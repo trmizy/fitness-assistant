@@ -305,6 +305,66 @@ export type GymAssistedCheckInChallenge = $Result.DefaultSelection<Prisma.$GymAs
  * Ngoại lệ: không OTP, không ảnh → lễ tân xin, QUẢN LÝ/CHỦ chi nhánh đó duyệt (ghi lý do riêng). Hết hạn cuối ngày.
  */
 export type GymAssistedCheckInException = $Result.DefaultSelection<Prisma.$GymAssistedCheckInExceptionPayload>
+/**
+ * Model GymComplaintCase
+ * 
+ */
+export type GymComplaintCase = $Result.DefaultSelection<Prisma.$GymComplaintCasePayload>
+/**
+ * Model GymCaseStatement
+ * 
+ */
+export type GymCaseStatement = $Result.DefaultSelection<Prisma.$GymCaseStatementPayload>
+/**
+ * Model GymCaseEvidence
+ * 
+ */
+export type GymCaseEvidence = $Result.DefaultSelection<Prisma.$GymCaseEvidencePayload>
+/**
+ * Model GymCaseShare
+ * 
+ */
+export type GymCaseShare = $Result.DefaultSelection<Prisma.$GymCaseSharePayload>
+/**
+ * Model GymCaseClaim
+ * 
+ */
+export type GymCaseClaim = $Result.DefaultSelection<Prisma.$GymCaseClaimPayload>
+/**
+ * Model GymCaseAssessment
+ * 
+ */
+export type GymCaseAssessment = $Result.DefaultSelection<Prisma.$GymCaseAssessmentPayload>
+/**
+ * Model GymCaseFinding
+ * 
+ */
+export type GymCaseFinding = $Result.DefaultSelection<Prisma.$GymCaseFindingPayload>
+/**
+ * Model GymCaseProposal
+ * 
+ */
+export type GymCaseProposal = $Result.DefaultSelection<Prisma.$GymCaseProposalPayload>
+/**
+ * Model GymCaseApproval
+ * 
+ */
+export type GymCaseApproval = $Result.DefaultSelection<Prisma.$GymCaseApprovalPayload>
+/**
+ * Model GymCaseEvent
+ * 
+ */
+export type GymCaseEvent = $Result.DefaultSelection<Prisma.$GymCaseEventPayload>
+/**
+ * Model GymCaseExecution
+ * Append-only history of the execution axis. `response` keeps what payment-service returned (the financial view is DERIVED from it).
+ */
+export type GymCaseExecution = $Result.DefaultSelection<Prisma.$GymCaseExecutionPayload>
+/**
+ * Model GymCaseAccessLog
+ * 
+ */
+export type GymCaseAccessLog = $Result.DefaultSelection<Prisma.$GymCaseAccessLogPayload>
 
 /**
  * Enums
@@ -855,6 +915,124 @@ export const AssistedExceptionStatus: {
 
 export type AssistedExceptionStatus = (typeof AssistedExceptionStatus)[keyof typeof AssistedExceptionStatus]
 
+
+export const GymCaseClass: {
+  MEM_TXN: 'MEM_TXN',
+  MEM_CLOSED: 'MEM_CLOSED',
+  MEM_VIOLATION: 'MEM_VIOLATION',
+  MEM_ACCESS: 'MEM_ACCESS',
+  GYM_GENERAL: 'GYM_GENERAL'
+};
+
+export type GymCaseClass = (typeof GymCaseClass)[keyof typeof GymCaseClass]
+
+
+export const GymCaseStatus: {
+  INTAKE: 'INTAKE',
+  COLLECTING: 'COLLECTING',
+  AWAITING_PARTIES: 'AWAITING_PARTIES',
+  ASSESSING: 'ASSESSING',
+  FINDING_RECORDED: 'FINDING_RECORDED',
+  AWAITING_APPROVAL: 'AWAITING_APPROVAL',
+  DECISION_APPROVED: 'DECISION_APPROVED',
+  REJECTED_INTAKE: 'REJECTED_INTAKE'
+};
+
+export type GymCaseStatus = (typeof GymCaseStatus)[keyof typeof GymCaseStatus]
+
+
+export const GymCaseExecStatus: {
+  NOT_STARTED: 'NOT_STARTED',
+  EXECUTING: 'EXECUTING',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  EXEC_BLOCKED: 'EXEC_BLOCKED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+export type GymCaseExecStatus = (typeof GymCaseExecStatus)[keyof typeof GymCaseExecStatus]
+
+
+export const GymCasePartyRole: {
+  MEMBER: 'MEMBER',
+  ADMIN_ON_BEHALF: 'ADMIN_ON_BEHALF',
+  GYM: 'GYM'
+};
+
+export type GymCasePartyRole = (typeof GymCasePartyRole)[keyof typeof GymCasePartyRole]
+
+
+export const GymCaseProvenance: {
+  SERVER_OBSERVED: 'SERVER_OBSERVED',
+  USER_REPORTED_STORED: 'USER_REPORTED_STORED',
+  EXTERNAL_DOCUMENT: 'EXTERNAL_DOCUMENT',
+  ADMIN_RECEIVED_ON_BEHALF: 'ADMIN_RECEIVED_ON_BEHALF',
+  LEGACY_FIELD: 'LEGACY_FIELD'
+};
+
+export type GymCaseProvenance = (typeof GymCaseProvenance)[keyof typeof GymCaseProvenance]
+
+
+export const GymCaseSensitivity: {
+  NORMAL: 'NORMAL',
+  SENSITIVE: 'SENSITIVE'
+};
+
+export type GymCaseSensitivity = (typeof GymCaseSensitivity)[keyof typeof GymCaseSensitivity]
+
+
+export const GymCaseAssessmentResult: {
+  ESTABLISHED: 'ESTABLISHED',
+  NOT_ESTABLISHED: 'NOT_ESTABLISHED',
+  REFUTED: 'REFUTED'
+};
+
+export type GymCaseAssessmentResult = (typeof GymCaseAssessmentResult)[keyof typeof GymCaseAssessmentResult]
+
+
+export const GymCaseFindingKind: {
+  ESTABLISHED: 'ESTABLISHED',
+  NOT_ESTABLISHED: 'NOT_ESTABLISHED'
+};
+
+export type GymCaseFindingKind = (typeof GymCaseFindingKind)[keyof typeof GymCaseFindingKind]
+
+
+export const GymCaseOutcome: {
+  REFUND_TRANSACTION_ERROR: 'REFUND_TRANSACTION_ERROR',
+  REFUND_GYM_CLOSED: 'REFUND_GYM_CLOSED',
+  REFUND_GYM_VIOLATION: 'REFUND_GYM_VIOLATION',
+  RESOLVE_UPHELD: 'RESOLVE_UPHELD',
+  RESOLVE_INSUFFICIENT_EVIDENCE: 'RESOLVE_INSUFFICIENT_EVIDENCE'
+};
+
+export type GymCaseOutcome = (typeof GymCaseOutcome)[keyof typeof GymCaseOutcome]
+
+
+export const GymCaseApprovalResult: {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+export type GymCaseApprovalResult = (typeof GymCaseApprovalResult)[keyof typeof GymCaseApprovalResult]
+
+
+export const GymCaseExecState: {
+  STARTED: 'STARTED',
+  BLOCKED: 'BLOCKED',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+export type GymCaseExecState = (typeof GymCaseExecState)[keyof typeof GymCaseExecState]
+
+
+export const GymCaseAccessAction: {
+  VIEW_CASE: 'VIEW_CASE',
+  VIEW_EVIDENCE: 'VIEW_EVIDENCE'
+};
+
+export type GymCaseAccessAction = (typeof GymCaseAccessAction)[keyof typeof GymCaseAccessAction]
+
 }
 
 export type GymPhotoCategory = $Enums.GymPhotoCategory
@@ -1056,6 +1234,54 @@ export const AssistedCheckInMethod: typeof $Enums.AssistedCheckInMethod
 export type AssistedExceptionStatus = $Enums.AssistedExceptionStatus
 
 export const AssistedExceptionStatus: typeof $Enums.AssistedExceptionStatus
+
+export type GymCaseClass = $Enums.GymCaseClass
+
+export const GymCaseClass: typeof $Enums.GymCaseClass
+
+export type GymCaseStatus = $Enums.GymCaseStatus
+
+export const GymCaseStatus: typeof $Enums.GymCaseStatus
+
+export type GymCaseExecStatus = $Enums.GymCaseExecStatus
+
+export const GymCaseExecStatus: typeof $Enums.GymCaseExecStatus
+
+export type GymCasePartyRole = $Enums.GymCasePartyRole
+
+export const GymCasePartyRole: typeof $Enums.GymCasePartyRole
+
+export type GymCaseProvenance = $Enums.GymCaseProvenance
+
+export const GymCaseProvenance: typeof $Enums.GymCaseProvenance
+
+export type GymCaseSensitivity = $Enums.GymCaseSensitivity
+
+export const GymCaseSensitivity: typeof $Enums.GymCaseSensitivity
+
+export type GymCaseAssessmentResult = $Enums.GymCaseAssessmentResult
+
+export const GymCaseAssessmentResult: typeof $Enums.GymCaseAssessmentResult
+
+export type GymCaseFindingKind = $Enums.GymCaseFindingKind
+
+export const GymCaseFindingKind: typeof $Enums.GymCaseFindingKind
+
+export type GymCaseOutcome = $Enums.GymCaseOutcome
+
+export const GymCaseOutcome: typeof $Enums.GymCaseOutcome
+
+export type GymCaseApprovalResult = $Enums.GymCaseApprovalResult
+
+export const GymCaseApprovalResult: typeof $Enums.GymCaseApprovalResult
+
+export type GymCaseExecState = $Enums.GymCaseExecState
+
+export const GymCaseExecState: typeof $Enums.GymCaseExecState
+
+export type GymCaseAccessAction = $Enums.GymCaseAccessAction
+
+export const GymCaseAccessAction: typeof $Enums.GymCaseAccessAction
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1569,6 +1795,126 @@ export class PrismaClient<
     * ```
     */
   get gymAssistedCheckInException(): Prisma.GymAssistedCheckInExceptionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymComplaintCase`: Exposes CRUD operations for the **GymComplaintCase** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymComplaintCases
+    * const gymComplaintCases = await prisma.gymComplaintCase.findMany()
+    * ```
+    */
+  get gymComplaintCase(): Prisma.GymComplaintCaseDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseStatement`: Exposes CRUD operations for the **GymCaseStatement** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseStatements
+    * const gymCaseStatements = await prisma.gymCaseStatement.findMany()
+    * ```
+    */
+  get gymCaseStatement(): Prisma.GymCaseStatementDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseEvidence`: Exposes CRUD operations for the **GymCaseEvidence** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseEvidences
+    * const gymCaseEvidences = await prisma.gymCaseEvidence.findMany()
+    * ```
+    */
+  get gymCaseEvidence(): Prisma.GymCaseEvidenceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseShare`: Exposes CRUD operations for the **GymCaseShare** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseShares
+    * const gymCaseShares = await prisma.gymCaseShare.findMany()
+    * ```
+    */
+  get gymCaseShare(): Prisma.GymCaseShareDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseClaim`: Exposes CRUD operations for the **GymCaseClaim** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseClaims
+    * const gymCaseClaims = await prisma.gymCaseClaim.findMany()
+    * ```
+    */
+  get gymCaseClaim(): Prisma.GymCaseClaimDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseAssessment`: Exposes CRUD operations for the **GymCaseAssessment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseAssessments
+    * const gymCaseAssessments = await prisma.gymCaseAssessment.findMany()
+    * ```
+    */
+  get gymCaseAssessment(): Prisma.GymCaseAssessmentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseFinding`: Exposes CRUD operations for the **GymCaseFinding** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseFindings
+    * const gymCaseFindings = await prisma.gymCaseFinding.findMany()
+    * ```
+    */
+  get gymCaseFinding(): Prisma.GymCaseFindingDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseProposal`: Exposes CRUD operations for the **GymCaseProposal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseProposals
+    * const gymCaseProposals = await prisma.gymCaseProposal.findMany()
+    * ```
+    */
+  get gymCaseProposal(): Prisma.GymCaseProposalDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseApproval`: Exposes CRUD operations for the **GymCaseApproval** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseApprovals
+    * const gymCaseApprovals = await prisma.gymCaseApproval.findMany()
+    * ```
+    */
+  get gymCaseApproval(): Prisma.GymCaseApprovalDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseEvent`: Exposes CRUD operations for the **GymCaseEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseEvents
+    * const gymCaseEvents = await prisma.gymCaseEvent.findMany()
+    * ```
+    */
+  get gymCaseEvent(): Prisma.GymCaseEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseExecution`: Exposes CRUD operations for the **GymCaseExecution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseExecutions
+    * const gymCaseExecutions = await prisma.gymCaseExecution.findMany()
+    * ```
+    */
+  get gymCaseExecution(): Prisma.GymCaseExecutionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymCaseAccessLog`: Exposes CRUD operations for the **GymCaseAccessLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymCaseAccessLogs
+    * const gymCaseAccessLogs = await prisma.gymCaseAccessLog.findMany()
+    * ```
+    */
+  get gymCaseAccessLog(): Prisma.GymCaseAccessLogDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -2048,7 +2394,19 @@ export namespace Prisma {
     AmenityAuditLog: 'AmenityAuditLog',
     GymAssistedCheckInEvent: 'GymAssistedCheckInEvent',
     GymAssistedCheckInChallenge: 'GymAssistedCheckInChallenge',
-    GymAssistedCheckInException: 'GymAssistedCheckInException'
+    GymAssistedCheckInException: 'GymAssistedCheckInException',
+    GymComplaintCase: 'GymComplaintCase',
+    GymCaseStatement: 'GymCaseStatement',
+    GymCaseEvidence: 'GymCaseEvidence',
+    GymCaseShare: 'GymCaseShare',
+    GymCaseClaim: 'GymCaseClaim',
+    GymCaseAssessment: 'GymCaseAssessment',
+    GymCaseFinding: 'GymCaseFinding',
+    GymCaseProposal: 'GymCaseProposal',
+    GymCaseApproval: 'GymCaseApproval',
+    GymCaseEvent: 'GymCaseEvent',
+    GymCaseExecution: 'GymCaseExecution',
+    GymCaseAccessLog: 'GymCaseAccessLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2064,7 +2422,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn" | "amenity" | "amenityProposal" | "gymAmenity" | "gymListingRevision" | "legacyCompatEvent" | "compatWriterHeartbeat" | "clientCompatEvent" | "amenityAuditLog" | "gymAssistedCheckInEvent" | "gymAssistedCheckInChallenge" | "gymAssistedCheckInException"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn" | "amenity" | "amenityProposal" | "gymAmenity" | "gymListingRevision" | "legacyCompatEvent" | "compatWriterHeartbeat" | "clientCompatEvent" | "amenityAuditLog" | "gymAssistedCheckInEvent" | "gymAssistedCheckInChallenge" | "gymAssistedCheckInException" | "gymComplaintCase" | "gymCaseStatement" | "gymCaseEvidence" | "gymCaseShare" | "gymCaseClaim" | "gymCaseAssessment" | "gymCaseFinding" | "gymCaseProposal" | "gymCaseApproval" | "gymCaseEvent" | "gymCaseExecution" | "gymCaseAccessLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4798,6 +5156,846 @@ export namespace Prisma {
           }
         }
       }
+      GymComplaintCase: {
+        payload: Prisma.$GymComplaintCasePayload<ExtArgs>
+        fields: Prisma.GymComplaintCaseFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymComplaintCaseFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymComplaintCaseFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          findFirst: {
+            args: Prisma.GymComplaintCaseFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymComplaintCaseFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          findMany: {
+            args: Prisma.GymComplaintCaseFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>[]
+          }
+          create: {
+            args: Prisma.GymComplaintCaseCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          createMany: {
+            args: Prisma.GymComplaintCaseCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymComplaintCaseCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>[]
+          }
+          delete: {
+            args: Prisma.GymComplaintCaseDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          update: {
+            args: Prisma.GymComplaintCaseUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymComplaintCaseDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymComplaintCaseUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymComplaintCaseUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymComplaintCasePayload>
+          }
+          aggregate: {
+            args: Prisma.GymComplaintCaseAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymComplaintCase>
+          }
+          groupBy: {
+            args: Prisma.GymComplaintCaseGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymComplaintCaseGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymComplaintCaseCountArgs<ExtArgs>
+            result: $Utils.Optional<GymComplaintCaseCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseStatement: {
+        payload: Prisma.$GymCaseStatementPayload<ExtArgs>
+        fields: Prisma.GymCaseStatementFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseStatementFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseStatementFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseStatementFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseStatementFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseStatementFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseStatementCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseStatementCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseStatementCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseStatementDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          update: {
+            args: Prisma.GymCaseStatementUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseStatementDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseStatementUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseStatementUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseStatementPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseStatementAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseStatement>
+          }
+          groupBy: {
+            args: Prisma.GymCaseStatementGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseStatementGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseStatementCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseStatementCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseEvidence: {
+        payload: Prisma.$GymCaseEvidencePayload<ExtArgs>
+        fields: Prisma.GymCaseEvidenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseEvidenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseEvidenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseEvidenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseEvidenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseEvidenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseEvidenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseEvidenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseEvidenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseEvidenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          update: {
+            args: Prisma.GymCaseEvidenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseEvidenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseEvidenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseEvidenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEvidencePayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseEvidenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseEvidence>
+          }
+          groupBy: {
+            args: Prisma.GymCaseEvidenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseEvidenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseEvidenceCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseEvidenceCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseShare: {
+        payload: Prisma.$GymCaseSharePayload<ExtArgs>
+        fields: Prisma.GymCaseShareFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseShareFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseShareFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseShareFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseShareFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseShareFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseShareCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseShareCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseShareCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseShareDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          update: {
+            args: Prisma.GymCaseShareUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseShareDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseShareUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseShareUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseSharePayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseShareAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseShare>
+          }
+          groupBy: {
+            args: Prisma.GymCaseShareGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseShareGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseShareCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseShareCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseClaim: {
+        payload: Prisma.$GymCaseClaimPayload<ExtArgs>
+        fields: Prisma.GymCaseClaimFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseClaimFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseClaimFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseClaimFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseClaimFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseClaimFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseClaimCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseClaimCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseClaimCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseClaimDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          update: {
+            args: Prisma.GymCaseClaimUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseClaimDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseClaimUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseClaimUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseClaimPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseClaimAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseClaim>
+          }
+          groupBy: {
+            args: Prisma.GymCaseClaimGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseClaimGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseClaimCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseClaimCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseAssessment: {
+        payload: Prisma.$GymCaseAssessmentPayload<ExtArgs>
+        fields: Prisma.GymCaseAssessmentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseAssessmentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseAssessmentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseAssessmentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseAssessmentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseAssessmentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseAssessmentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseAssessmentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseAssessmentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseAssessmentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          update: {
+            args: Prisma.GymCaseAssessmentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseAssessmentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseAssessmentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseAssessmentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAssessmentPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseAssessmentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseAssessment>
+          }
+          groupBy: {
+            args: Prisma.GymCaseAssessmentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseAssessmentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseAssessmentCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseAssessmentCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseFinding: {
+        payload: Prisma.$GymCaseFindingPayload<ExtArgs>
+        fields: Prisma.GymCaseFindingFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseFindingFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseFindingFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseFindingFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseFindingFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseFindingFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseFindingCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseFindingCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseFindingCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseFindingDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          update: {
+            args: Prisma.GymCaseFindingUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseFindingDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseFindingUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseFindingUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseFindingPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseFindingAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseFinding>
+          }
+          groupBy: {
+            args: Prisma.GymCaseFindingGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseFindingGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseFindingCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseFindingCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseProposal: {
+        payload: Prisma.$GymCaseProposalPayload<ExtArgs>
+        fields: Prisma.GymCaseProposalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseProposalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseProposalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseProposalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseProposalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseProposalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseProposalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseProposalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseProposalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseProposalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          update: {
+            args: Prisma.GymCaseProposalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseProposalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseProposalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseProposalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseProposalPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseProposalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseProposal>
+          }
+          groupBy: {
+            args: Prisma.GymCaseProposalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseProposalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseProposalCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseProposalCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseApproval: {
+        payload: Prisma.$GymCaseApprovalPayload<ExtArgs>
+        fields: Prisma.GymCaseApprovalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseApprovalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseApprovalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseApprovalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseApprovalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseApprovalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseApprovalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseApprovalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseApprovalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseApprovalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          update: {
+            args: Prisma.GymCaseApprovalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseApprovalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseApprovalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseApprovalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseApprovalPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseApprovalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseApproval>
+          }
+          groupBy: {
+            args: Prisma.GymCaseApprovalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseApprovalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseApprovalCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseApprovalCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseEvent: {
+        payload: Prisma.$GymCaseEventPayload<ExtArgs>
+        fields: Prisma.GymCaseEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          update: {
+            args: Prisma.GymCaseEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseEventPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseEvent>
+          }
+          groupBy: {
+            args: Prisma.GymCaseEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseEventCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseExecution: {
+        payload: Prisma.$GymCaseExecutionPayload<ExtArgs>
+        fields: Prisma.GymCaseExecutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseExecutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseExecutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseExecutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseExecutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseExecutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseExecutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseExecutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseExecutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseExecutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          update: {
+            args: Prisma.GymCaseExecutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseExecutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseExecutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseExecutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseExecutionPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseExecutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseExecution>
+          }
+          groupBy: {
+            args: Prisma.GymCaseExecutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseExecutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseExecutionCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseExecutionCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymCaseAccessLog: {
+        payload: Prisma.$GymCaseAccessLogPayload<ExtArgs>
+        fields: Prisma.GymCaseAccessLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymCaseAccessLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymCaseAccessLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          findFirst: {
+            args: Prisma.GymCaseAccessLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymCaseAccessLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          findMany: {
+            args: Prisma.GymCaseAccessLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>[]
+          }
+          create: {
+            args: Prisma.GymCaseAccessLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          createMany: {
+            args: Prisma.GymCaseAccessLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymCaseAccessLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>[]
+          }
+          delete: {
+            args: Prisma.GymCaseAccessLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          update: {
+            args: Prisma.GymCaseAccessLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymCaseAccessLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymCaseAccessLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymCaseAccessLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymCaseAccessLogPayload>
+          }
+          aggregate: {
+            args: Prisma.GymCaseAccessLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymCaseAccessLog>
+          }
+          groupBy: {
+            args: Prisma.GymCaseAccessLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseAccessLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymCaseAccessLogCountArgs<ExtArgs>
+            result: $Utils.Optional<GymCaseAccessLogCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -5446,6 +6644,211 @@ export namespace Prisma {
    */
   export type AmenityProposalCountOutputTypeCountCreatedAmenitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AmenityWhereInput
+  }
+
+
+  /**
+   * Count Type GymComplaintCaseCountOutputType
+   */
+
+  export type GymComplaintCaseCountOutputType = {
+    statements: number
+    evidence: number
+    shares: number
+    claims: number
+    assessments: number
+    findings: number
+    proposals: number
+    events: number
+    executions: number
+    accessLogs: number
+  }
+
+  export type GymComplaintCaseCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    statements?: boolean | GymComplaintCaseCountOutputTypeCountStatementsArgs
+    evidence?: boolean | GymComplaintCaseCountOutputTypeCountEvidenceArgs
+    shares?: boolean | GymComplaintCaseCountOutputTypeCountSharesArgs
+    claims?: boolean | GymComplaintCaseCountOutputTypeCountClaimsArgs
+    assessments?: boolean | GymComplaintCaseCountOutputTypeCountAssessmentsArgs
+    findings?: boolean | GymComplaintCaseCountOutputTypeCountFindingsArgs
+    proposals?: boolean | GymComplaintCaseCountOutputTypeCountProposalsArgs
+    events?: boolean | GymComplaintCaseCountOutputTypeCountEventsArgs
+    executions?: boolean | GymComplaintCaseCountOutputTypeCountExecutionsArgs
+    accessLogs?: boolean | GymComplaintCaseCountOutputTypeCountAccessLogsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCaseCountOutputType
+     */
+    select?: GymComplaintCaseCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountStatementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseStatementWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountEvidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseEvidenceWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseShareWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountClaimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseClaimWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountAssessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseAssessmentWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountFindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseFindingWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseProposalWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseEventWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountExecutionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseExecutionWhereInput
+  }
+
+  /**
+   * GymComplaintCaseCountOutputType without action
+   */
+  export type GymComplaintCaseCountOutputTypeCountAccessLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseAccessLogWhereInput
+  }
+
+
+  /**
+   * Count Type GymCaseClaimCountOutputType
+   */
+
+  export type GymCaseClaimCountOutputType = {
+    assessments: number
+  }
+
+  export type GymCaseClaimCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    assessments?: boolean | GymCaseClaimCountOutputTypeCountAssessmentsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymCaseClaimCountOutputType without action
+   */
+  export type GymCaseClaimCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaimCountOutputType
+     */
+    select?: GymCaseClaimCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseClaimCountOutputType without action
+   */
+  export type GymCaseClaimCountOutputTypeCountAssessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseAssessmentWhereInput
+  }
+
+
+  /**
+   * Count Type GymCaseFindingCountOutputType
+   */
+
+  export type GymCaseFindingCountOutputType = {
+    proposals: number
+  }
+
+  export type GymCaseFindingCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    proposals?: boolean | GymCaseFindingCountOutputTypeCountProposalsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymCaseFindingCountOutputType without action
+   */
+  export type GymCaseFindingCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFindingCountOutputType
+     */
+    select?: GymCaseFindingCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseFindingCountOutputType without action
+   */
+  export type GymCaseFindingCountOutputTypeCountProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseProposalWhereInput
+  }
+
+
+  /**
+   * Count Type GymCaseProposalCountOutputType
+   */
+
+  export type GymCaseProposalCountOutputType = {
+    approvals: number
+  }
+
+  export type GymCaseProposalCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    approvals?: boolean | GymCaseProposalCountOutputTypeCountApprovalsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymCaseProposalCountOutputType without action
+   */
+  export type GymCaseProposalCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposalCountOutputType
+     */
+    select?: GymCaseProposalCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseProposalCountOutputType without action
+   */
+  export type GymCaseProposalCountOutputTypeCountApprovalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseApprovalWhereInput
   }
 
 
@@ -9745,6 +11148,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    case?: boolean | GymComplaint$caseArgs<ExtArgs>
   }, ExtArgs["result"]["gymComplaint"]>
 
   export type GymComplaintSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -9786,6 +11190,7 @@ export namespace Prisma {
 
   export type GymComplaintInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    case?: boolean | GymComplaint$caseArgs<ExtArgs>
   }
   export type GymComplaintIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -9795,6 +11200,7 @@ export namespace Prisma {
     name: "GymComplaint"
     objects: {
       gym: Prisma.$GymPayload<ExtArgs>
+      case: Prisma.$GymComplaintCasePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -10195,6 +11601,7 @@ export namespace Prisma {
   export interface Prisma__GymComplaintClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    case<T extends GymComplaint$caseArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaint$caseArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10554,6 +11961,21 @@ export namespace Prisma {
      * Filter which GymComplaints to delete
      */
     where?: GymComplaintWhereInput
+  }
+
+  /**
+   * GymComplaint.case
+   */
+  export type GymComplaint$caseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    where?: GymComplaintCaseWhereInput
   }
 
   /**
@@ -46975,6 +48397,12394 @@ export namespace Prisma {
 
 
   /**
+   * Model GymComplaintCase
+   */
+
+  export type AggregateGymComplaintCase = {
+    _count: GymComplaintCaseCountAggregateOutputType | null
+    _avg: GymComplaintCaseAvgAggregateOutputType | null
+    _sum: GymComplaintCaseSumAggregateOutputType | null
+    _min: GymComplaintCaseMinAggregateOutputType | null
+    _max: GymComplaintCaseMaxAggregateOutputType | null
+  }
+
+  export type GymComplaintCaseAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type GymComplaintCaseSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type GymComplaintCaseMinAggregateOutputType = {
+    id: string | null
+    complaintId: string | null
+    gymId: string | null
+    membershipId: string | null
+    reporterUserId: string | null
+    caseClass: $Enums.GymCaseClass | null
+    status: $Enums.GymCaseStatus | null
+    escalated: boolean | null
+    investigatorId: string | null
+    version: number | null
+    execStatus: $Enums.GymCaseExecStatus | null
+    execDecisionId: string | null
+    createdBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymComplaintCaseMaxAggregateOutputType = {
+    id: string | null
+    complaintId: string | null
+    gymId: string | null
+    membershipId: string | null
+    reporterUserId: string | null
+    caseClass: $Enums.GymCaseClass | null
+    status: $Enums.GymCaseStatus | null
+    escalated: boolean | null
+    investigatorId: string | null
+    version: number | null
+    execStatus: $Enums.GymCaseExecStatus | null
+    execDecisionId: string | null
+    createdBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymComplaintCaseCountAggregateOutputType = {
+    id: number
+    complaintId: number
+    gymId: number
+    membershipId: number
+    reporterUserId: number
+    caseClass: number
+    status: number
+    escalated: number
+    investigatorId: number
+    version: number
+    execStatus: number
+    execDecisionId: number
+    createdBy: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymComplaintCaseAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type GymComplaintCaseSumAggregateInputType = {
+    version?: true
+  }
+
+  export type GymComplaintCaseMinAggregateInputType = {
+    id?: true
+    complaintId?: true
+    gymId?: true
+    membershipId?: true
+    reporterUserId?: true
+    caseClass?: true
+    status?: true
+    escalated?: true
+    investigatorId?: true
+    version?: true
+    execStatus?: true
+    execDecisionId?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymComplaintCaseMaxAggregateInputType = {
+    id?: true
+    complaintId?: true
+    gymId?: true
+    membershipId?: true
+    reporterUserId?: true
+    caseClass?: true
+    status?: true
+    escalated?: true
+    investigatorId?: true
+    version?: true
+    execStatus?: true
+    execDecisionId?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymComplaintCaseCountAggregateInputType = {
+    id?: true
+    complaintId?: true
+    gymId?: true
+    membershipId?: true
+    reporterUserId?: true
+    caseClass?: true
+    status?: true
+    escalated?: true
+    investigatorId?: true
+    version?: true
+    execStatus?: true
+    execDecisionId?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymComplaintCaseAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymComplaintCase to aggregate.
+     */
+    where?: GymComplaintCaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymComplaintCases to fetch.
+     */
+    orderBy?: GymComplaintCaseOrderByWithRelationInput | GymComplaintCaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymComplaintCaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymComplaintCases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymComplaintCases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymComplaintCases
+    **/
+    _count?: true | GymComplaintCaseCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymComplaintCaseAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymComplaintCaseSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymComplaintCaseMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymComplaintCaseMaxAggregateInputType
+  }
+
+  export type GetGymComplaintCaseAggregateType<T extends GymComplaintCaseAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymComplaintCase]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymComplaintCase[P]>
+      : GetScalarType<T[P], AggregateGymComplaintCase[P]>
+  }
+
+
+
+
+  export type GymComplaintCaseGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymComplaintCaseWhereInput
+    orderBy?: GymComplaintCaseOrderByWithAggregationInput | GymComplaintCaseOrderByWithAggregationInput[]
+    by: GymComplaintCaseScalarFieldEnum[] | GymComplaintCaseScalarFieldEnum
+    having?: GymComplaintCaseScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymComplaintCaseCountAggregateInputType | true
+    _avg?: GymComplaintCaseAvgAggregateInputType
+    _sum?: GymComplaintCaseSumAggregateInputType
+    _min?: GymComplaintCaseMinAggregateInputType
+    _max?: GymComplaintCaseMaxAggregateInputType
+  }
+
+  export type GymComplaintCaseGroupByOutputType = {
+    id: string
+    complaintId: string
+    gymId: string
+    membershipId: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status: $Enums.GymCaseStatus
+    escalated: boolean
+    investigatorId: string | null
+    version: number
+    execStatus: $Enums.GymCaseExecStatus
+    execDecisionId: string | null
+    createdBy: string
+    createdAt: Date
+    updatedAt: Date
+    _count: GymComplaintCaseCountAggregateOutputType | null
+    _avg: GymComplaintCaseAvgAggregateOutputType | null
+    _sum: GymComplaintCaseSumAggregateOutputType | null
+    _min: GymComplaintCaseMinAggregateOutputType | null
+    _max: GymComplaintCaseMaxAggregateOutputType | null
+  }
+
+  type GetGymComplaintCaseGroupByPayload<T extends GymComplaintCaseGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymComplaintCaseGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymComplaintCaseGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymComplaintCaseGroupByOutputType[P]>
+            : GetScalarType<T[P], GymComplaintCaseGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymComplaintCaseSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    complaintId?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    reporterUserId?: boolean
+    caseClass?: boolean
+    status?: boolean
+    escalated?: boolean
+    investigatorId?: boolean
+    version?: boolean
+    execStatus?: boolean
+    execDecisionId?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    complaint?: boolean | GymComplaintDefaultArgs<ExtArgs>
+    statements?: boolean | GymComplaintCase$statementsArgs<ExtArgs>
+    evidence?: boolean | GymComplaintCase$evidenceArgs<ExtArgs>
+    shares?: boolean | GymComplaintCase$sharesArgs<ExtArgs>
+    claims?: boolean | GymComplaintCase$claimsArgs<ExtArgs>
+    assessments?: boolean | GymComplaintCase$assessmentsArgs<ExtArgs>
+    findings?: boolean | GymComplaintCase$findingsArgs<ExtArgs>
+    proposals?: boolean | GymComplaintCase$proposalsArgs<ExtArgs>
+    events?: boolean | GymComplaintCase$eventsArgs<ExtArgs>
+    executions?: boolean | GymComplaintCase$executionsArgs<ExtArgs>
+    accessLogs?: boolean | GymComplaintCase$accessLogsArgs<ExtArgs>
+    _count?: boolean | GymComplaintCaseCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymComplaintCase"]>
+
+  export type GymComplaintCaseSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    complaintId?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    reporterUserId?: boolean
+    caseClass?: boolean
+    status?: boolean
+    escalated?: boolean
+    investigatorId?: boolean
+    version?: boolean
+    execStatus?: boolean
+    execDecisionId?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    complaint?: boolean | GymComplaintDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymComplaintCase"]>
+
+  export type GymComplaintCaseSelectScalar = {
+    id?: boolean
+    complaintId?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    reporterUserId?: boolean
+    caseClass?: boolean
+    status?: boolean
+    escalated?: boolean
+    investigatorId?: boolean
+    version?: boolean
+    execStatus?: boolean
+    execDecisionId?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymComplaintCaseInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    complaint?: boolean | GymComplaintDefaultArgs<ExtArgs>
+    statements?: boolean | GymComplaintCase$statementsArgs<ExtArgs>
+    evidence?: boolean | GymComplaintCase$evidenceArgs<ExtArgs>
+    shares?: boolean | GymComplaintCase$sharesArgs<ExtArgs>
+    claims?: boolean | GymComplaintCase$claimsArgs<ExtArgs>
+    assessments?: boolean | GymComplaintCase$assessmentsArgs<ExtArgs>
+    findings?: boolean | GymComplaintCase$findingsArgs<ExtArgs>
+    proposals?: boolean | GymComplaintCase$proposalsArgs<ExtArgs>
+    events?: boolean | GymComplaintCase$eventsArgs<ExtArgs>
+    executions?: boolean | GymComplaintCase$executionsArgs<ExtArgs>
+    accessLogs?: boolean | GymComplaintCase$accessLogsArgs<ExtArgs>
+    _count?: boolean | GymComplaintCaseCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymComplaintCaseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    complaint?: boolean | GymComplaintDefaultArgs<ExtArgs>
+  }
+
+  export type $GymComplaintCasePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymComplaintCase"
+    objects: {
+      complaint: Prisma.$GymComplaintPayload<ExtArgs>
+      statements: Prisma.$GymCaseStatementPayload<ExtArgs>[]
+      evidence: Prisma.$GymCaseEvidencePayload<ExtArgs>[]
+      shares: Prisma.$GymCaseSharePayload<ExtArgs>[]
+      claims: Prisma.$GymCaseClaimPayload<ExtArgs>[]
+      assessments: Prisma.$GymCaseAssessmentPayload<ExtArgs>[]
+      findings: Prisma.$GymCaseFindingPayload<ExtArgs>[]
+      proposals: Prisma.$GymCaseProposalPayload<ExtArgs>[]
+      events: Prisma.$GymCaseEventPayload<ExtArgs>[]
+      executions: Prisma.$GymCaseExecutionPayload<ExtArgs>[]
+      accessLogs: Prisma.$GymCaseAccessLogPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      complaintId: string
+      gymId: string
+      /**
+       * Only for MEM_* cases: the membership the complaint is about (must belong to the reporter and to gymId; checked at intake).
+       */
+      membershipId: string | null
+      reporterUserId: string
+      caseClass: $Enums.GymCaseClass
+      status: $Enums.GymCaseStatus
+      escalated: boolean
+      investigatorId: string | null
+      version: number
+      execStatus: $Enums.GymCaseExecStatus
+      execDecisionId: string | null
+      createdBy: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymComplaintCase"]>
+    composites: {}
+  }
+
+  type GymComplaintCaseGetPayload<S extends boolean | null | undefined | GymComplaintCaseDefaultArgs> = $Result.GetResult<Prisma.$GymComplaintCasePayload, S>
+
+  type GymComplaintCaseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymComplaintCaseFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymComplaintCaseCountAggregateInputType | true
+    }
+
+  export interface GymComplaintCaseDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymComplaintCase'], meta: { name: 'GymComplaintCase' } }
+    /**
+     * Find zero or one GymComplaintCase that matches the filter.
+     * @param {GymComplaintCaseFindUniqueArgs} args - Arguments to find a GymComplaintCase
+     * @example
+     * // Get one GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymComplaintCaseFindUniqueArgs>(args: SelectSubset<T, GymComplaintCaseFindUniqueArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymComplaintCase that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymComplaintCaseFindUniqueOrThrowArgs} args - Arguments to find a GymComplaintCase
+     * @example
+     * // Get one GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymComplaintCaseFindUniqueOrThrowArgs>(args: SelectSubset<T, GymComplaintCaseFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymComplaintCase that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseFindFirstArgs} args - Arguments to find a GymComplaintCase
+     * @example
+     * // Get one GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymComplaintCaseFindFirstArgs>(args?: SelectSubset<T, GymComplaintCaseFindFirstArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymComplaintCase that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseFindFirstOrThrowArgs} args - Arguments to find a GymComplaintCase
+     * @example
+     * // Get one GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymComplaintCaseFindFirstOrThrowArgs>(args?: SelectSubset<T, GymComplaintCaseFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymComplaintCases that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymComplaintCases
+     * const gymComplaintCases = await prisma.gymComplaintCase.findMany()
+     * 
+     * // Get first 10 GymComplaintCases
+     * const gymComplaintCases = await prisma.gymComplaintCase.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymComplaintCaseWithIdOnly = await prisma.gymComplaintCase.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymComplaintCaseFindManyArgs>(args?: SelectSubset<T, GymComplaintCaseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymComplaintCase.
+     * @param {GymComplaintCaseCreateArgs} args - Arguments to create a GymComplaintCase.
+     * @example
+     * // Create one GymComplaintCase
+     * const GymComplaintCase = await prisma.gymComplaintCase.create({
+     *   data: {
+     *     // ... data to create a GymComplaintCase
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymComplaintCaseCreateArgs>(args: SelectSubset<T, GymComplaintCaseCreateArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymComplaintCases.
+     * @param {GymComplaintCaseCreateManyArgs} args - Arguments to create many GymComplaintCases.
+     * @example
+     * // Create many GymComplaintCases
+     * const gymComplaintCase = await prisma.gymComplaintCase.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymComplaintCaseCreateManyArgs>(args?: SelectSubset<T, GymComplaintCaseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymComplaintCases and returns the data saved in the database.
+     * @param {GymComplaintCaseCreateManyAndReturnArgs} args - Arguments to create many GymComplaintCases.
+     * @example
+     * // Create many GymComplaintCases
+     * const gymComplaintCase = await prisma.gymComplaintCase.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymComplaintCases and only return the `id`
+     * const gymComplaintCaseWithIdOnly = await prisma.gymComplaintCase.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymComplaintCaseCreateManyAndReturnArgs>(args?: SelectSubset<T, GymComplaintCaseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymComplaintCase.
+     * @param {GymComplaintCaseDeleteArgs} args - Arguments to delete one GymComplaintCase.
+     * @example
+     * // Delete one GymComplaintCase
+     * const GymComplaintCase = await prisma.gymComplaintCase.delete({
+     *   where: {
+     *     // ... filter to delete one GymComplaintCase
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymComplaintCaseDeleteArgs>(args: SelectSubset<T, GymComplaintCaseDeleteArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymComplaintCase.
+     * @param {GymComplaintCaseUpdateArgs} args - Arguments to update one GymComplaintCase.
+     * @example
+     * // Update one GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymComplaintCaseUpdateArgs>(args: SelectSubset<T, GymComplaintCaseUpdateArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymComplaintCases.
+     * @param {GymComplaintCaseDeleteManyArgs} args - Arguments to filter GymComplaintCases to delete.
+     * @example
+     * // Delete a few GymComplaintCases
+     * const { count } = await prisma.gymComplaintCase.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymComplaintCaseDeleteManyArgs>(args?: SelectSubset<T, GymComplaintCaseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymComplaintCases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymComplaintCases
+     * const gymComplaintCase = await prisma.gymComplaintCase.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymComplaintCaseUpdateManyArgs>(args: SelectSubset<T, GymComplaintCaseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymComplaintCase.
+     * @param {GymComplaintCaseUpsertArgs} args - Arguments to update or create a GymComplaintCase.
+     * @example
+     * // Update or create a GymComplaintCase
+     * const gymComplaintCase = await prisma.gymComplaintCase.upsert({
+     *   create: {
+     *     // ... data to create a GymComplaintCase
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymComplaintCase we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymComplaintCaseUpsertArgs>(args: SelectSubset<T, GymComplaintCaseUpsertArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymComplaintCases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseCountArgs} args - Arguments to filter GymComplaintCases to count.
+     * @example
+     * // Count the number of GymComplaintCases
+     * const count = await prisma.gymComplaintCase.count({
+     *   where: {
+     *     // ... the filter for the GymComplaintCases we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymComplaintCaseCountArgs>(
+      args?: Subset<T, GymComplaintCaseCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymComplaintCaseCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymComplaintCase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymComplaintCaseAggregateArgs>(args: Subset<T, GymComplaintCaseAggregateArgs>): Prisma.PrismaPromise<GetGymComplaintCaseAggregateType<T>>
+
+    /**
+     * Group by GymComplaintCase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymComplaintCaseGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymComplaintCaseGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymComplaintCaseGroupByArgs['orderBy'] }
+        : { orderBy?: GymComplaintCaseGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymComplaintCaseGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymComplaintCaseGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymComplaintCase model
+   */
+  readonly fields: GymComplaintCaseFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymComplaintCase.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymComplaintCaseClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    complaint<T extends GymComplaintDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintDefaultArgs<ExtArgs>>): Prisma__GymComplaintClient<$Result.GetResult<Prisma.$GymComplaintPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    statements<T extends GymComplaintCase$statementsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$statementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findMany"> | Null>
+    evidence<T extends GymComplaintCase$evidenceArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$evidenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findMany"> | Null>
+    shares<T extends GymComplaintCase$sharesArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$sharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findMany"> | Null>
+    claims<T extends GymComplaintCase$claimsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$claimsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findMany"> | Null>
+    assessments<T extends GymComplaintCase$assessmentsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$assessmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findMany"> | Null>
+    findings<T extends GymComplaintCase$findingsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$findingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findMany"> | Null>
+    proposals<T extends GymComplaintCase$proposalsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$proposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findMany"> | Null>
+    events<T extends GymComplaintCase$eventsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findMany"> | Null>
+    executions<T extends GymComplaintCase$executionsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$executionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findMany"> | Null>
+    accessLogs<T extends GymComplaintCase$accessLogsArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCase$accessLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymComplaintCase model
+   */ 
+  interface GymComplaintCaseFieldRefs {
+    readonly id: FieldRef<"GymComplaintCase", 'String'>
+    readonly complaintId: FieldRef<"GymComplaintCase", 'String'>
+    readonly gymId: FieldRef<"GymComplaintCase", 'String'>
+    readonly membershipId: FieldRef<"GymComplaintCase", 'String'>
+    readonly reporterUserId: FieldRef<"GymComplaintCase", 'String'>
+    readonly caseClass: FieldRef<"GymComplaintCase", 'GymCaseClass'>
+    readonly status: FieldRef<"GymComplaintCase", 'GymCaseStatus'>
+    readonly escalated: FieldRef<"GymComplaintCase", 'Boolean'>
+    readonly investigatorId: FieldRef<"GymComplaintCase", 'String'>
+    readonly version: FieldRef<"GymComplaintCase", 'Int'>
+    readonly execStatus: FieldRef<"GymComplaintCase", 'GymCaseExecStatus'>
+    readonly execDecisionId: FieldRef<"GymComplaintCase", 'String'>
+    readonly createdBy: FieldRef<"GymComplaintCase", 'String'>
+    readonly createdAt: FieldRef<"GymComplaintCase", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymComplaintCase", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymComplaintCase findUnique
+   */
+  export type GymComplaintCaseFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter, which GymComplaintCase to fetch.
+     */
+    where: GymComplaintCaseWhereUniqueInput
+  }
+
+  /**
+   * GymComplaintCase findUniqueOrThrow
+   */
+  export type GymComplaintCaseFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter, which GymComplaintCase to fetch.
+     */
+    where: GymComplaintCaseWhereUniqueInput
+  }
+
+  /**
+   * GymComplaintCase findFirst
+   */
+  export type GymComplaintCaseFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter, which GymComplaintCase to fetch.
+     */
+    where?: GymComplaintCaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymComplaintCases to fetch.
+     */
+    orderBy?: GymComplaintCaseOrderByWithRelationInput | GymComplaintCaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymComplaintCases.
+     */
+    cursor?: GymComplaintCaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymComplaintCases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymComplaintCases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymComplaintCases.
+     */
+    distinct?: GymComplaintCaseScalarFieldEnum | GymComplaintCaseScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase findFirstOrThrow
+   */
+  export type GymComplaintCaseFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter, which GymComplaintCase to fetch.
+     */
+    where?: GymComplaintCaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymComplaintCases to fetch.
+     */
+    orderBy?: GymComplaintCaseOrderByWithRelationInput | GymComplaintCaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymComplaintCases.
+     */
+    cursor?: GymComplaintCaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymComplaintCases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymComplaintCases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymComplaintCases.
+     */
+    distinct?: GymComplaintCaseScalarFieldEnum | GymComplaintCaseScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase findMany
+   */
+  export type GymComplaintCaseFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter, which GymComplaintCases to fetch.
+     */
+    where?: GymComplaintCaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymComplaintCases to fetch.
+     */
+    orderBy?: GymComplaintCaseOrderByWithRelationInput | GymComplaintCaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymComplaintCases.
+     */
+    cursor?: GymComplaintCaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymComplaintCases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymComplaintCases.
+     */
+    skip?: number
+    distinct?: GymComplaintCaseScalarFieldEnum | GymComplaintCaseScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase create
+   */
+  export type GymComplaintCaseCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymComplaintCase.
+     */
+    data: XOR<GymComplaintCaseCreateInput, GymComplaintCaseUncheckedCreateInput>
+  }
+
+  /**
+   * GymComplaintCase createMany
+   */
+  export type GymComplaintCaseCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymComplaintCases.
+     */
+    data: GymComplaintCaseCreateManyInput | GymComplaintCaseCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymComplaintCase createManyAndReturn
+   */
+  export type GymComplaintCaseCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymComplaintCases.
+     */
+    data: GymComplaintCaseCreateManyInput | GymComplaintCaseCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymComplaintCase update
+   */
+  export type GymComplaintCaseUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymComplaintCase.
+     */
+    data: XOR<GymComplaintCaseUpdateInput, GymComplaintCaseUncheckedUpdateInput>
+    /**
+     * Choose, which GymComplaintCase to update.
+     */
+    where: GymComplaintCaseWhereUniqueInput
+  }
+
+  /**
+   * GymComplaintCase updateMany
+   */
+  export type GymComplaintCaseUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymComplaintCases.
+     */
+    data: XOR<GymComplaintCaseUpdateManyMutationInput, GymComplaintCaseUncheckedUpdateManyInput>
+    /**
+     * Filter which GymComplaintCases to update
+     */
+    where?: GymComplaintCaseWhereInput
+  }
+
+  /**
+   * GymComplaintCase upsert
+   */
+  export type GymComplaintCaseUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymComplaintCase to update in case it exists.
+     */
+    where: GymComplaintCaseWhereUniqueInput
+    /**
+     * In case the GymComplaintCase found by the `where` argument doesn't exist, create a new GymComplaintCase with this data.
+     */
+    create: XOR<GymComplaintCaseCreateInput, GymComplaintCaseUncheckedCreateInput>
+    /**
+     * In case the GymComplaintCase was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymComplaintCaseUpdateInput, GymComplaintCaseUncheckedUpdateInput>
+  }
+
+  /**
+   * GymComplaintCase delete
+   */
+  export type GymComplaintCaseDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+    /**
+     * Filter which GymComplaintCase to delete.
+     */
+    where: GymComplaintCaseWhereUniqueInput
+  }
+
+  /**
+   * GymComplaintCase deleteMany
+   */
+  export type GymComplaintCaseDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymComplaintCases to delete
+     */
+    where?: GymComplaintCaseWhereInput
+  }
+
+  /**
+   * GymComplaintCase.statements
+   */
+  export type GymComplaintCase$statementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    where?: GymCaseStatementWhereInput
+    orderBy?: GymCaseStatementOrderByWithRelationInput | GymCaseStatementOrderByWithRelationInput[]
+    cursor?: GymCaseStatementWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseStatementScalarFieldEnum | GymCaseStatementScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.evidence
+   */
+  export type GymComplaintCase$evidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    where?: GymCaseEvidenceWhereInput
+    orderBy?: GymCaseEvidenceOrderByWithRelationInput | GymCaseEvidenceOrderByWithRelationInput[]
+    cursor?: GymCaseEvidenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseEvidenceScalarFieldEnum | GymCaseEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.shares
+   */
+  export type GymComplaintCase$sharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    where?: GymCaseShareWhereInput
+    orderBy?: GymCaseShareOrderByWithRelationInput | GymCaseShareOrderByWithRelationInput[]
+    cursor?: GymCaseShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseShareScalarFieldEnum | GymCaseShareScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.claims
+   */
+  export type GymComplaintCase$claimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    where?: GymCaseClaimWhereInput
+    orderBy?: GymCaseClaimOrderByWithRelationInput | GymCaseClaimOrderByWithRelationInput[]
+    cursor?: GymCaseClaimWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseClaimScalarFieldEnum | GymCaseClaimScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.assessments
+   */
+  export type GymComplaintCase$assessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    where?: GymCaseAssessmentWhereInput
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseAssessmentScalarFieldEnum | GymCaseAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.findings
+   */
+  export type GymComplaintCase$findingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    where?: GymCaseFindingWhereInput
+    orderBy?: GymCaseFindingOrderByWithRelationInput | GymCaseFindingOrderByWithRelationInput[]
+    cursor?: GymCaseFindingWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseFindingScalarFieldEnum | GymCaseFindingScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.proposals
+   */
+  export type GymComplaintCase$proposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    where?: GymCaseProposalWhereInput
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    cursor?: GymCaseProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseProposalScalarFieldEnum | GymCaseProposalScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.events
+   */
+  export type GymComplaintCase$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    where?: GymCaseEventWhereInput
+    orderBy?: GymCaseEventOrderByWithRelationInput | GymCaseEventOrderByWithRelationInput[]
+    cursor?: GymCaseEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseEventScalarFieldEnum | GymCaseEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.executions
+   */
+  export type GymComplaintCase$executionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    where?: GymCaseExecutionWhereInput
+    orderBy?: GymCaseExecutionOrderByWithRelationInput | GymCaseExecutionOrderByWithRelationInput[]
+    cursor?: GymCaseExecutionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseExecutionScalarFieldEnum | GymCaseExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase.accessLogs
+   */
+  export type GymComplaintCase$accessLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    where?: GymCaseAccessLogWhereInput
+    orderBy?: GymCaseAccessLogOrderByWithRelationInput | GymCaseAccessLogOrderByWithRelationInput[]
+    cursor?: GymCaseAccessLogWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseAccessLogScalarFieldEnum | GymCaseAccessLogScalarFieldEnum[]
+  }
+
+  /**
+   * GymComplaintCase without action
+   */
+  export type GymComplaintCaseDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymComplaintCase
+     */
+    select?: GymComplaintCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymComplaintCaseInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseStatement
+   */
+
+  export type AggregateGymCaseStatement = {
+    _count: GymCaseStatementCountAggregateOutputType | null
+    _avg: GymCaseStatementAvgAggregateOutputType | null
+    _sum: GymCaseStatementSumAggregateOutputType | null
+    _min: GymCaseStatementMinAggregateOutputType | null
+    _max: GymCaseStatementMaxAggregateOutputType | null
+  }
+
+  export type GymCaseStatementAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type GymCaseStatementSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type GymCaseStatementMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    partyRole: $Enums.GymCasePartyRole | null
+    authorUserId: string | null
+    version: number | null
+    source: string | null
+    text: string | null
+    supplementReason: string | null
+    supersedesId: string | null
+    contentHash: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseStatementMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    partyRole: $Enums.GymCasePartyRole | null
+    authorUserId: string | null
+    version: number | null
+    source: string | null
+    text: string | null
+    supplementReason: string | null
+    supersedesId: string | null
+    contentHash: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseStatementCountAggregateOutputType = {
+    id: number
+    caseId: number
+    partyRole: number
+    authorUserId: number
+    version: number
+    source: number
+    text: number
+    supplementReason: number
+    supersedesId: number
+    contentHash: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseStatementAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type GymCaseStatementSumAggregateInputType = {
+    version?: true
+  }
+
+  export type GymCaseStatementMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    authorUserId?: true
+    version?: true
+    source?: true
+    text?: true
+    supplementReason?: true
+    supersedesId?: true
+    contentHash?: true
+    createdAt?: true
+  }
+
+  export type GymCaseStatementMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    authorUserId?: true
+    version?: true
+    source?: true
+    text?: true
+    supplementReason?: true
+    supersedesId?: true
+    contentHash?: true
+    createdAt?: true
+  }
+
+  export type GymCaseStatementCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    authorUserId?: true
+    version?: true
+    source?: true
+    text?: true
+    supplementReason?: true
+    supersedesId?: true
+    contentHash?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseStatementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseStatement to aggregate.
+     */
+    where?: GymCaseStatementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseStatements to fetch.
+     */
+    orderBy?: GymCaseStatementOrderByWithRelationInput | GymCaseStatementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseStatementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseStatements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseStatements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseStatements
+    **/
+    _count?: true | GymCaseStatementCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymCaseStatementAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymCaseStatementSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseStatementMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseStatementMaxAggregateInputType
+  }
+
+  export type GetGymCaseStatementAggregateType<T extends GymCaseStatementAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseStatement]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseStatement[P]>
+      : GetScalarType<T[P], AggregateGymCaseStatement[P]>
+  }
+
+
+
+
+  export type GymCaseStatementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseStatementWhereInput
+    orderBy?: GymCaseStatementOrderByWithAggregationInput | GymCaseStatementOrderByWithAggregationInput[]
+    by: GymCaseStatementScalarFieldEnum[] | GymCaseStatementScalarFieldEnum
+    having?: GymCaseStatementScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseStatementCountAggregateInputType | true
+    _avg?: GymCaseStatementAvgAggregateInputType
+    _sum?: GymCaseStatementSumAggregateInputType
+    _min?: GymCaseStatementMinAggregateInputType
+    _max?: GymCaseStatementMaxAggregateInputType
+  }
+
+  export type GymCaseStatementGroupByOutputType = {
+    id: string
+    caseId: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source: string
+    text: string
+    supplementReason: string | null
+    supersedesId: string | null
+    contentHash: string
+    createdAt: Date
+    _count: GymCaseStatementCountAggregateOutputType | null
+    _avg: GymCaseStatementAvgAggregateOutputType | null
+    _sum: GymCaseStatementSumAggregateOutputType | null
+    _min: GymCaseStatementMinAggregateOutputType | null
+    _max: GymCaseStatementMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseStatementGroupByPayload<T extends GymCaseStatementGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseStatementGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseStatementGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseStatementGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseStatementGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseStatementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    authorUserId?: boolean
+    version?: boolean
+    source?: boolean
+    text?: boolean
+    supplementReason?: boolean
+    supersedesId?: boolean
+    contentHash?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseStatement"]>
+
+  export type GymCaseStatementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    authorUserId?: boolean
+    version?: boolean
+    source?: boolean
+    text?: boolean
+    supplementReason?: boolean
+    supersedesId?: boolean
+    contentHash?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseStatement"]>
+
+  export type GymCaseStatementSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    authorUserId?: boolean
+    version?: boolean
+    source?: boolean
+    text?: boolean
+    supplementReason?: boolean
+    supersedesId?: boolean
+    contentHash?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseStatementInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseStatementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseStatementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseStatement"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      partyRole: $Enums.GymCasePartyRole
+      authorUserId: string
+      version: number
+      source: string
+      text: string
+      supplementReason: string | null
+      supersedesId: string | null
+      contentHash: string
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseStatement"]>
+    composites: {}
+  }
+
+  type GymCaseStatementGetPayload<S extends boolean | null | undefined | GymCaseStatementDefaultArgs> = $Result.GetResult<Prisma.$GymCaseStatementPayload, S>
+
+  type GymCaseStatementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseStatementFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseStatementCountAggregateInputType | true
+    }
+
+  export interface GymCaseStatementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseStatement'], meta: { name: 'GymCaseStatement' } }
+    /**
+     * Find zero or one GymCaseStatement that matches the filter.
+     * @param {GymCaseStatementFindUniqueArgs} args - Arguments to find a GymCaseStatement
+     * @example
+     * // Get one GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseStatementFindUniqueArgs>(args: SelectSubset<T, GymCaseStatementFindUniqueArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseStatement that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseStatementFindUniqueOrThrowArgs} args - Arguments to find a GymCaseStatement
+     * @example
+     * // Get one GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseStatementFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseStatementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseStatement that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementFindFirstArgs} args - Arguments to find a GymCaseStatement
+     * @example
+     * // Get one GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseStatementFindFirstArgs>(args?: SelectSubset<T, GymCaseStatementFindFirstArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseStatement that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementFindFirstOrThrowArgs} args - Arguments to find a GymCaseStatement
+     * @example
+     * // Get one GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseStatementFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseStatementFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseStatements that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseStatements
+     * const gymCaseStatements = await prisma.gymCaseStatement.findMany()
+     * 
+     * // Get first 10 GymCaseStatements
+     * const gymCaseStatements = await prisma.gymCaseStatement.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseStatementWithIdOnly = await prisma.gymCaseStatement.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseStatementFindManyArgs>(args?: SelectSubset<T, GymCaseStatementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseStatement.
+     * @param {GymCaseStatementCreateArgs} args - Arguments to create a GymCaseStatement.
+     * @example
+     * // Create one GymCaseStatement
+     * const GymCaseStatement = await prisma.gymCaseStatement.create({
+     *   data: {
+     *     // ... data to create a GymCaseStatement
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseStatementCreateArgs>(args: SelectSubset<T, GymCaseStatementCreateArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseStatements.
+     * @param {GymCaseStatementCreateManyArgs} args - Arguments to create many GymCaseStatements.
+     * @example
+     * // Create many GymCaseStatements
+     * const gymCaseStatement = await prisma.gymCaseStatement.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseStatementCreateManyArgs>(args?: SelectSubset<T, GymCaseStatementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseStatements and returns the data saved in the database.
+     * @param {GymCaseStatementCreateManyAndReturnArgs} args - Arguments to create many GymCaseStatements.
+     * @example
+     * // Create many GymCaseStatements
+     * const gymCaseStatement = await prisma.gymCaseStatement.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseStatements and only return the `id`
+     * const gymCaseStatementWithIdOnly = await prisma.gymCaseStatement.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseStatementCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseStatementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseStatement.
+     * @param {GymCaseStatementDeleteArgs} args - Arguments to delete one GymCaseStatement.
+     * @example
+     * // Delete one GymCaseStatement
+     * const GymCaseStatement = await prisma.gymCaseStatement.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseStatement
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseStatementDeleteArgs>(args: SelectSubset<T, GymCaseStatementDeleteArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseStatement.
+     * @param {GymCaseStatementUpdateArgs} args - Arguments to update one GymCaseStatement.
+     * @example
+     * // Update one GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseStatementUpdateArgs>(args: SelectSubset<T, GymCaseStatementUpdateArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseStatements.
+     * @param {GymCaseStatementDeleteManyArgs} args - Arguments to filter GymCaseStatements to delete.
+     * @example
+     * // Delete a few GymCaseStatements
+     * const { count } = await prisma.gymCaseStatement.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseStatementDeleteManyArgs>(args?: SelectSubset<T, GymCaseStatementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseStatements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseStatements
+     * const gymCaseStatement = await prisma.gymCaseStatement.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseStatementUpdateManyArgs>(args: SelectSubset<T, GymCaseStatementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseStatement.
+     * @param {GymCaseStatementUpsertArgs} args - Arguments to update or create a GymCaseStatement.
+     * @example
+     * // Update or create a GymCaseStatement
+     * const gymCaseStatement = await prisma.gymCaseStatement.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseStatement
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseStatement we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseStatementUpsertArgs>(args: SelectSubset<T, GymCaseStatementUpsertArgs<ExtArgs>>): Prisma__GymCaseStatementClient<$Result.GetResult<Prisma.$GymCaseStatementPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseStatements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementCountArgs} args - Arguments to filter GymCaseStatements to count.
+     * @example
+     * // Count the number of GymCaseStatements
+     * const count = await prisma.gymCaseStatement.count({
+     *   where: {
+     *     // ... the filter for the GymCaseStatements we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseStatementCountArgs>(
+      args?: Subset<T, GymCaseStatementCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseStatementCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseStatement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseStatementAggregateArgs>(args: Subset<T, GymCaseStatementAggregateArgs>): Prisma.PrismaPromise<GetGymCaseStatementAggregateType<T>>
+
+    /**
+     * Group by GymCaseStatement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseStatementGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseStatementGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseStatementGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseStatementGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseStatementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseStatementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseStatement model
+   */
+  readonly fields: GymCaseStatementFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseStatement.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseStatementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseStatement model
+   */ 
+  interface GymCaseStatementFieldRefs {
+    readonly id: FieldRef<"GymCaseStatement", 'String'>
+    readonly caseId: FieldRef<"GymCaseStatement", 'String'>
+    readonly partyRole: FieldRef<"GymCaseStatement", 'GymCasePartyRole'>
+    readonly authorUserId: FieldRef<"GymCaseStatement", 'String'>
+    readonly version: FieldRef<"GymCaseStatement", 'Int'>
+    readonly source: FieldRef<"GymCaseStatement", 'String'>
+    readonly text: FieldRef<"GymCaseStatement", 'String'>
+    readonly supplementReason: FieldRef<"GymCaseStatement", 'String'>
+    readonly supersedesId: FieldRef<"GymCaseStatement", 'String'>
+    readonly contentHash: FieldRef<"GymCaseStatement", 'String'>
+    readonly createdAt: FieldRef<"GymCaseStatement", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseStatement findUnique
+   */
+  export type GymCaseStatementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseStatement to fetch.
+     */
+    where: GymCaseStatementWhereUniqueInput
+  }
+
+  /**
+   * GymCaseStatement findUniqueOrThrow
+   */
+  export type GymCaseStatementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseStatement to fetch.
+     */
+    where: GymCaseStatementWhereUniqueInput
+  }
+
+  /**
+   * GymCaseStatement findFirst
+   */
+  export type GymCaseStatementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseStatement to fetch.
+     */
+    where?: GymCaseStatementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseStatements to fetch.
+     */
+    orderBy?: GymCaseStatementOrderByWithRelationInput | GymCaseStatementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseStatements.
+     */
+    cursor?: GymCaseStatementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseStatements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseStatements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseStatements.
+     */
+    distinct?: GymCaseStatementScalarFieldEnum | GymCaseStatementScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseStatement findFirstOrThrow
+   */
+  export type GymCaseStatementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseStatement to fetch.
+     */
+    where?: GymCaseStatementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseStatements to fetch.
+     */
+    orderBy?: GymCaseStatementOrderByWithRelationInput | GymCaseStatementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseStatements.
+     */
+    cursor?: GymCaseStatementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseStatements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseStatements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseStatements.
+     */
+    distinct?: GymCaseStatementScalarFieldEnum | GymCaseStatementScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseStatement findMany
+   */
+  export type GymCaseStatementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseStatements to fetch.
+     */
+    where?: GymCaseStatementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseStatements to fetch.
+     */
+    orderBy?: GymCaseStatementOrderByWithRelationInput | GymCaseStatementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseStatements.
+     */
+    cursor?: GymCaseStatementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseStatements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseStatements.
+     */
+    skip?: number
+    distinct?: GymCaseStatementScalarFieldEnum | GymCaseStatementScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseStatement create
+   */
+  export type GymCaseStatementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseStatement.
+     */
+    data: XOR<GymCaseStatementCreateInput, GymCaseStatementUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseStatement createMany
+   */
+  export type GymCaseStatementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseStatements.
+     */
+    data: GymCaseStatementCreateManyInput | GymCaseStatementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseStatement createManyAndReturn
+   */
+  export type GymCaseStatementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseStatements.
+     */
+    data: GymCaseStatementCreateManyInput | GymCaseStatementCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseStatement update
+   */
+  export type GymCaseStatementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseStatement.
+     */
+    data: XOR<GymCaseStatementUpdateInput, GymCaseStatementUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseStatement to update.
+     */
+    where: GymCaseStatementWhereUniqueInput
+  }
+
+  /**
+   * GymCaseStatement updateMany
+   */
+  export type GymCaseStatementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseStatements.
+     */
+    data: XOR<GymCaseStatementUpdateManyMutationInput, GymCaseStatementUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseStatements to update
+     */
+    where?: GymCaseStatementWhereInput
+  }
+
+  /**
+   * GymCaseStatement upsert
+   */
+  export type GymCaseStatementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseStatement to update in case it exists.
+     */
+    where: GymCaseStatementWhereUniqueInput
+    /**
+     * In case the GymCaseStatement found by the `where` argument doesn't exist, create a new GymCaseStatement with this data.
+     */
+    create: XOR<GymCaseStatementCreateInput, GymCaseStatementUncheckedCreateInput>
+    /**
+     * In case the GymCaseStatement was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseStatementUpdateInput, GymCaseStatementUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseStatement delete
+   */
+  export type GymCaseStatementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseStatement to delete.
+     */
+    where: GymCaseStatementWhereUniqueInput
+  }
+
+  /**
+   * GymCaseStatement deleteMany
+   */
+  export type GymCaseStatementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseStatements to delete
+     */
+    where?: GymCaseStatementWhereInput
+  }
+
+  /**
+   * GymCaseStatement without action
+   */
+  export type GymCaseStatementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseStatement
+     */
+    select?: GymCaseStatementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseStatementInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseEvidence
+   */
+
+  export type AggregateGymCaseEvidence = {
+    _count: GymCaseEvidenceCountAggregateOutputType | null
+    _avg: GymCaseEvidenceAvgAggregateOutputType | null
+    _sum: GymCaseEvidenceSumAggregateOutputType | null
+    _min: GymCaseEvidenceMinAggregateOutputType | null
+    _max: GymCaseEvidenceMaxAggregateOutputType | null
+  }
+
+  export type GymCaseEvidenceAvgAggregateOutputType = {
+    snapshotVersion: number | null
+  }
+
+  export type GymCaseEvidenceSumAggregateOutputType = {
+    snapshotVersion: number | null
+  }
+
+  export type GymCaseEvidenceMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    provenanceType: $Enums.GymCaseProvenance | null
+    source: string | null
+    subject: string | null
+    scopeGymId: string | null
+    eventAt: Date | null
+    capturedAt: Date | null
+    submittedBy: string | null
+    submittedRole: string | null
+    snapshotVersion: number | null
+    contentHash: string | null
+    sensitivity: $Enums.GymCaseSensitivity | null
+    supersedesId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseEvidenceMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    provenanceType: $Enums.GymCaseProvenance | null
+    source: string | null
+    subject: string | null
+    scopeGymId: string | null
+    eventAt: Date | null
+    capturedAt: Date | null
+    submittedBy: string | null
+    submittedRole: string | null
+    snapshotVersion: number | null
+    contentHash: string | null
+    sensitivity: $Enums.GymCaseSensitivity | null
+    supersedesId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseEvidenceCountAggregateOutputType = {
+    id: number
+    caseId: number
+    provenanceType: number
+    source: number
+    subject: number
+    scopeGymId: number
+    eventAt: number
+    capturedAt: number
+    submittedBy: number
+    submittedRole: number
+    snapshotVersion: number
+    contentHash: number
+    payload: number
+    sensitivity: number
+    supersedesId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseEvidenceAvgAggregateInputType = {
+    snapshotVersion?: true
+  }
+
+  export type GymCaseEvidenceSumAggregateInputType = {
+    snapshotVersion?: true
+  }
+
+  export type GymCaseEvidenceMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    provenanceType?: true
+    source?: true
+    subject?: true
+    scopeGymId?: true
+    eventAt?: true
+    capturedAt?: true
+    submittedBy?: true
+    submittedRole?: true
+    snapshotVersion?: true
+    contentHash?: true
+    sensitivity?: true
+    supersedesId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseEvidenceMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    provenanceType?: true
+    source?: true
+    subject?: true
+    scopeGymId?: true
+    eventAt?: true
+    capturedAt?: true
+    submittedBy?: true
+    submittedRole?: true
+    snapshotVersion?: true
+    contentHash?: true
+    sensitivity?: true
+    supersedesId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseEvidenceCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    provenanceType?: true
+    source?: true
+    subject?: true
+    scopeGymId?: true
+    eventAt?: true
+    capturedAt?: true
+    submittedBy?: true
+    submittedRole?: true
+    snapshotVersion?: true
+    contentHash?: true
+    payload?: true
+    sensitivity?: true
+    supersedesId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseEvidenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseEvidence to aggregate.
+     */
+    where?: GymCaseEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvidences to fetch.
+     */
+    orderBy?: GymCaseEvidenceOrderByWithRelationInput | GymCaseEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseEvidences
+    **/
+    _count?: true | GymCaseEvidenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymCaseEvidenceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymCaseEvidenceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseEvidenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseEvidenceMaxAggregateInputType
+  }
+
+  export type GetGymCaseEvidenceAggregateType<T extends GymCaseEvidenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseEvidence]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseEvidence[P]>
+      : GetScalarType<T[P], AggregateGymCaseEvidence[P]>
+  }
+
+
+
+
+  export type GymCaseEvidenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseEvidenceWhereInput
+    orderBy?: GymCaseEvidenceOrderByWithAggregationInput | GymCaseEvidenceOrderByWithAggregationInput[]
+    by: GymCaseEvidenceScalarFieldEnum[] | GymCaseEvidenceScalarFieldEnum
+    having?: GymCaseEvidenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseEvidenceCountAggregateInputType | true
+    _avg?: GymCaseEvidenceAvgAggregateInputType
+    _sum?: GymCaseEvidenceSumAggregateInputType
+    _min?: GymCaseEvidenceMinAggregateInputType
+    _max?: GymCaseEvidenceMaxAggregateInputType
+  }
+
+  export type GymCaseEvidenceGroupByOutputType = {
+    id: string
+    caseId: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt: Date | null
+    capturedAt: Date
+    submittedBy: string | null
+    submittedRole: string | null
+    snapshotVersion: number
+    contentHash: string
+    payload: JsonValue
+    sensitivity: $Enums.GymCaseSensitivity
+    supersedesId: string | null
+    createdAt: Date
+    _count: GymCaseEvidenceCountAggregateOutputType | null
+    _avg: GymCaseEvidenceAvgAggregateOutputType | null
+    _sum: GymCaseEvidenceSumAggregateOutputType | null
+    _min: GymCaseEvidenceMinAggregateOutputType | null
+    _max: GymCaseEvidenceMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseEvidenceGroupByPayload<T extends GymCaseEvidenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseEvidenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseEvidenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseEvidenceGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseEvidenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseEvidenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    provenanceType?: boolean
+    source?: boolean
+    subject?: boolean
+    scopeGymId?: boolean
+    eventAt?: boolean
+    capturedAt?: boolean
+    submittedBy?: boolean
+    submittedRole?: boolean
+    snapshotVersion?: boolean
+    contentHash?: boolean
+    payload?: boolean
+    sensitivity?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseEvidence"]>
+
+  export type GymCaseEvidenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    provenanceType?: boolean
+    source?: boolean
+    subject?: boolean
+    scopeGymId?: boolean
+    eventAt?: boolean
+    capturedAt?: boolean
+    submittedBy?: boolean
+    submittedRole?: boolean
+    snapshotVersion?: boolean
+    contentHash?: boolean
+    payload?: boolean
+    sensitivity?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseEvidence"]>
+
+  export type GymCaseEvidenceSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    provenanceType?: boolean
+    source?: boolean
+    subject?: boolean
+    scopeGymId?: boolean
+    eventAt?: boolean
+    capturedAt?: boolean
+    submittedBy?: boolean
+    submittedRole?: boolean
+    snapshotVersion?: boolean
+    contentHash?: boolean
+    payload?: boolean
+    sensitivity?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseEvidenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseEvidenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseEvidencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseEvidence"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      provenanceType: $Enums.GymCaseProvenance
+      source: string
+      subject: string
+      /**
+       * The branch the evidence is scoped to (access by branch): always the case's gymId.
+       */
+      scopeGymId: string
+      eventAt: Date | null
+      capturedAt: Date
+      submittedBy: string | null
+      submittedRole: string | null
+      snapshotVersion: number
+      /**
+       * sha256 of the canonical JSON of `payload` (a party-declared sha256 of a file is stored INSIDE the payload and is a claim, not a verification).
+       */
+      contentHash: string
+      payload: Prisma.JsonValue
+      sensitivity: $Enums.GymCaseSensitivity
+      supersedesId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseEvidence"]>
+    composites: {}
+  }
+
+  type GymCaseEvidenceGetPayload<S extends boolean | null | undefined | GymCaseEvidenceDefaultArgs> = $Result.GetResult<Prisma.$GymCaseEvidencePayload, S>
+
+  type GymCaseEvidenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseEvidenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseEvidenceCountAggregateInputType | true
+    }
+
+  export interface GymCaseEvidenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseEvidence'], meta: { name: 'GymCaseEvidence' } }
+    /**
+     * Find zero or one GymCaseEvidence that matches the filter.
+     * @param {GymCaseEvidenceFindUniqueArgs} args - Arguments to find a GymCaseEvidence
+     * @example
+     * // Get one GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseEvidenceFindUniqueArgs>(args: SelectSubset<T, GymCaseEvidenceFindUniqueArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseEvidence that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseEvidenceFindUniqueOrThrowArgs} args - Arguments to find a GymCaseEvidence
+     * @example
+     * // Get one GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseEvidenceFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseEvidenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseEvidence that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceFindFirstArgs} args - Arguments to find a GymCaseEvidence
+     * @example
+     * // Get one GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseEvidenceFindFirstArgs>(args?: SelectSubset<T, GymCaseEvidenceFindFirstArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseEvidence that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceFindFirstOrThrowArgs} args - Arguments to find a GymCaseEvidence
+     * @example
+     * // Get one GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseEvidenceFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseEvidenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseEvidences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseEvidences
+     * const gymCaseEvidences = await prisma.gymCaseEvidence.findMany()
+     * 
+     * // Get first 10 GymCaseEvidences
+     * const gymCaseEvidences = await prisma.gymCaseEvidence.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseEvidenceWithIdOnly = await prisma.gymCaseEvidence.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseEvidenceFindManyArgs>(args?: SelectSubset<T, GymCaseEvidenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseEvidence.
+     * @param {GymCaseEvidenceCreateArgs} args - Arguments to create a GymCaseEvidence.
+     * @example
+     * // Create one GymCaseEvidence
+     * const GymCaseEvidence = await prisma.gymCaseEvidence.create({
+     *   data: {
+     *     // ... data to create a GymCaseEvidence
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseEvidenceCreateArgs>(args: SelectSubset<T, GymCaseEvidenceCreateArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseEvidences.
+     * @param {GymCaseEvidenceCreateManyArgs} args - Arguments to create many GymCaseEvidences.
+     * @example
+     * // Create many GymCaseEvidences
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseEvidenceCreateManyArgs>(args?: SelectSubset<T, GymCaseEvidenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseEvidences and returns the data saved in the database.
+     * @param {GymCaseEvidenceCreateManyAndReturnArgs} args - Arguments to create many GymCaseEvidences.
+     * @example
+     * // Create many GymCaseEvidences
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseEvidences and only return the `id`
+     * const gymCaseEvidenceWithIdOnly = await prisma.gymCaseEvidence.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseEvidenceCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseEvidenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseEvidence.
+     * @param {GymCaseEvidenceDeleteArgs} args - Arguments to delete one GymCaseEvidence.
+     * @example
+     * // Delete one GymCaseEvidence
+     * const GymCaseEvidence = await prisma.gymCaseEvidence.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseEvidence
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseEvidenceDeleteArgs>(args: SelectSubset<T, GymCaseEvidenceDeleteArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseEvidence.
+     * @param {GymCaseEvidenceUpdateArgs} args - Arguments to update one GymCaseEvidence.
+     * @example
+     * // Update one GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseEvidenceUpdateArgs>(args: SelectSubset<T, GymCaseEvidenceUpdateArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseEvidences.
+     * @param {GymCaseEvidenceDeleteManyArgs} args - Arguments to filter GymCaseEvidences to delete.
+     * @example
+     * // Delete a few GymCaseEvidences
+     * const { count } = await prisma.gymCaseEvidence.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseEvidenceDeleteManyArgs>(args?: SelectSubset<T, GymCaseEvidenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseEvidences
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseEvidenceUpdateManyArgs>(args: SelectSubset<T, GymCaseEvidenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseEvidence.
+     * @param {GymCaseEvidenceUpsertArgs} args - Arguments to update or create a GymCaseEvidence.
+     * @example
+     * // Update or create a GymCaseEvidence
+     * const gymCaseEvidence = await prisma.gymCaseEvidence.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseEvidence
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseEvidence we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseEvidenceUpsertArgs>(args: SelectSubset<T, GymCaseEvidenceUpsertArgs<ExtArgs>>): Prisma__GymCaseEvidenceClient<$Result.GetResult<Prisma.$GymCaseEvidencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceCountArgs} args - Arguments to filter GymCaseEvidences to count.
+     * @example
+     * // Count the number of GymCaseEvidences
+     * const count = await prisma.gymCaseEvidence.count({
+     *   where: {
+     *     // ... the filter for the GymCaseEvidences we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseEvidenceCountArgs>(
+      args?: Subset<T, GymCaseEvidenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseEvidenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseEvidenceAggregateArgs>(args: Subset<T, GymCaseEvidenceAggregateArgs>): Prisma.PrismaPromise<GetGymCaseEvidenceAggregateType<T>>
+
+    /**
+     * Group by GymCaseEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEvidenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseEvidenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseEvidenceGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseEvidenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseEvidenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseEvidenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseEvidence model
+   */
+  readonly fields: GymCaseEvidenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseEvidence.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseEvidenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseEvidence model
+   */ 
+  interface GymCaseEvidenceFieldRefs {
+    readonly id: FieldRef<"GymCaseEvidence", 'String'>
+    readonly caseId: FieldRef<"GymCaseEvidence", 'String'>
+    readonly provenanceType: FieldRef<"GymCaseEvidence", 'GymCaseProvenance'>
+    readonly source: FieldRef<"GymCaseEvidence", 'String'>
+    readonly subject: FieldRef<"GymCaseEvidence", 'String'>
+    readonly scopeGymId: FieldRef<"GymCaseEvidence", 'String'>
+    readonly eventAt: FieldRef<"GymCaseEvidence", 'DateTime'>
+    readonly capturedAt: FieldRef<"GymCaseEvidence", 'DateTime'>
+    readonly submittedBy: FieldRef<"GymCaseEvidence", 'String'>
+    readonly submittedRole: FieldRef<"GymCaseEvidence", 'String'>
+    readonly snapshotVersion: FieldRef<"GymCaseEvidence", 'Int'>
+    readonly contentHash: FieldRef<"GymCaseEvidence", 'String'>
+    readonly payload: FieldRef<"GymCaseEvidence", 'Json'>
+    readonly sensitivity: FieldRef<"GymCaseEvidence", 'GymCaseSensitivity'>
+    readonly supersedesId: FieldRef<"GymCaseEvidence", 'String'>
+    readonly createdAt: FieldRef<"GymCaseEvidence", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseEvidence findUnique
+   */
+  export type GymCaseEvidenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvidence to fetch.
+     */
+    where: GymCaseEvidenceWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvidence findUniqueOrThrow
+   */
+  export type GymCaseEvidenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvidence to fetch.
+     */
+    where: GymCaseEvidenceWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvidence findFirst
+   */
+  export type GymCaseEvidenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvidence to fetch.
+     */
+    where?: GymCaseEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvidences to fetch.
+     */
+    orderBy?: GymCaseEvidenceOrderByWithRelationInput | GymCaseEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseEvidences.
+     */
+    cursor?: GymCaseEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseEvidences.
+     */
+    distinct?: GymCaseEvidenceScalarFieldEnum | GymCaseEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvidence findFirstOrThrow
+   */
+  export type GymCaseEvidenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvidence to fetch.
+     */
+    where?: GymCaseEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvidences to fetch.
+     */
+    orderBy?: GymCaseEvidenceOrderByWithRelationInput | GymCaseEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseEvidences.
+     */
+    cursor?: GymCaseEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseEvidences.
+     */
+    distinct?: GymCaseEvidenceScalarFieldEnum | GymCaseEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvidence findMany
+   */
+  export type GymCaseEvidenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvidences to fetch.
+     */
+    where?: GymCaseEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvidences to fetch.
+     */
+    orderBy?: GymCaseEvidenceOrderByWithRelationInput | GymCaseEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseEvidences.
+     */
+    cursor?: GymCaseEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvidences.
+     */
+    skip?: number
+    distinct?: GymCaseEvidenceScalarFieldEnum | GymCaseEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvidence create
+   */
+  export type GymCaseEvidenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseEvidence.
+     */
+    data: XOR<GymCaseEvidenceCreateInput, GymCaseEvidenceUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseEvidence createMany
+   */
+  export type GymCaseEvidenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseEvidences.
+     */
+    data: GymCaseEvidenceCreateManyInput | GymCaseEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseEvidence createManyAndReturn
+   */
+  export type GymCaseEvidenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseEvidences.
+     */
+    data: GymCaseEvidenceCreateManyInput | GymCaseEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseEvidence update
+   */
+  export type GymCaseEvidenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseEvidence.
+     */
+    data: XOR<GymCaseEvidenceUpdateInput, GymCaseEvidenceUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseEvidence to update.
+     */
+    where: GymCaseEvidenceWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvidence updateMany
+   */
+  export type GymCaseEvidenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseEvidences.
+     */
+    data: XOR<GymCaseEvidenceUpdateManyMutationInput, GymCaseEvidenceUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseEvidences to update
+     */
+    where?: GymCaseEvidenceWhereInput
+  }
+
+  /**
+   * GymCaseEvidence upsert
+   */
+  export type GymCaseEvidenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseEvidence to update in case it exists.
+     */
+    where: GymCaseEvidenceWhereUniqueInput
+    /**
+     * In case the GymCaseEvidence found by the `where` argument doesn't exist, create a new GymCaseEvidence with this data.
+     */
+    create: XOR<GymCaseEvidenceCreateInput, GymCaseEvidenceUncheckedCreateInput>
+    /**
+     * In case the GymCaseEvidence was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseEvidenceUpdateInput, GymCaseEvidenceUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseEvidence delete
+   */
+  export type GymCaseEvidenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseEvidence to delete.
+     */
+    where: GymCaseEvidenceWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvidence deleteMany
+   */
+  export type GymCaseEvidenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseEvidences to delete
+     */
+    where?: GymCaseEvidenceWhereInput
+  }
+
+  /**
+   * GymCaseEvidence without action
+   */
+  export type GymCaseEvidenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvidence
+     */
+    select?: GymCaseEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEvidenceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseShare
+   */
+
+  export type AggregateGymCaseShare = {
+    _count: GymCaseShareCountAggregateOutputType | null
+    _min: GymCaseShareMinAggregateOutputType | null
+    _max: GymCaseShareMaxAggregateOutputType | null
+  }
+
+  export type GymCaseShareMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    evidenceId: string | null
+    statementId: string | null
+    sharedWithRole: $Enums.GymCasePartyRole | null
+    sharedBy: string | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseShareMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    evidenceId: string | null
+    statementId: string | null
+    sharedWithRole: $Enums.GymCasePartyRole | null
+    sharedBy: string | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseShareCountAggregateOutputType = {
+    id: number
+    caseId: number
+    evidenceId: number
+    statementId: number
+    sharedWithRole: number
+    sharedBy: number
+    reason: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseShareMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    evidenceId?: true
+    statementId?: true
+    sharedWithRole?: true
+    sharedBy?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type GymCaseShareMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    evidenceId?: true
+    statementId?: true
+    sharedWithRole?: true
+    sharedBy?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type GymCaseShareCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    evidenceId?: true
+    statementId?: true
+    sharedWithRole?: true
+    sharedBy?: true
+    reason?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseShareAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseShare to aggregate.
+     */
+    where?: GymCaseShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseShares to fetch.
+     */
+    orderBy?: GymCaseShareOrderByWithRelationInput | GymCaseShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseShares
+    **/
+    _count?: true | GymCaseShareCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseShareMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseShareMaxAggregateInputType
+  }
+
+  export type GetGymCaseShareAggregateType<T extends GymCaseShareAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseShare]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseShare[P]>
+      : GetScalarType<T[P], AggregateGymCaseShare[P]>
+  }
+
+
+
+
+  export type GymCaseShareGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseShareWhereInput
+    orderBy?: GymCaseShareOrderByWithAggregationInput | GymCaseShareOrderByWithAggregationInput[]
+    by: GymCaseShareScalarFieldEnum[] | GymCaseShareScalarFieldEnum
+    having?: GymCaseShareScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseShareCountAggregateInputType | true
+    _min?: GymCaseShareMinAggregateInputType
+    _max?: GymCaseShareMaxAggregateInputType
+  }
+
+  export type GymCaseShareGroupByOutputType = {
+    id: string
+    caseId: string
+    evidenceId: string | null
+    statementId: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt: Date
+    _count: GymCaseShareCountAggregateOutputType | null
+    _min: GymCaseShareMinAggregateOutputType | null
+    _max: GymCaseShareMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseShareGroupByPayload<T extends GymCaseShareGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseShareGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseShareGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseShareGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseShareGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseShareSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    evidenceId?: boolean
+    statementId?: boolean
+    sharedWithRole?: boolean
+    sharedBy?: boolean
+    reason?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseShare"]>
+
+  export type GymCaseShareSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    evidenceId?: boolean
+    statementId?: boolean
+    sharedWithRole?: boolean
+    sharedBy?: boolean
+    reason?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseShare"]>
+
+  export type GymCaseShareSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    evidenceId?: boolean
+    statementId?: boolean
+    sharedWithRole?: boolean
+    sharedBy?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseShareIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseSharePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseShare"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      evidenceId: string | null
+      statementId: string | null
+      /**
+       * Always MEMBER today (the GYM party is locked).
+       */
+      sharedWithRole: $Enums.GymCasePartyRole
+      sharedBy: string
+      reason: string
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseShare"]>
+    composites: {}
+  }
+
+  type GymCaseShareGetPayload<S extends boolean | null | undefined | GymCaseShareDefaultArgs> = $Result.GetResult<Prisma.$GymCaseSharePayload, S>
+
+  type GymCaseShareCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseShareFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseShareCountAggregateInputType | true
+    }
+
+  export interface GymCaseShareDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseShare'], meta: { name: 'GymCaseShare' } }
+    /**
+     * Find zero or one GymCaseShare that matches the filter.
+     * @param {GymCaseShareFindUniqueArgs} args - Arguments to find a GymCaseShare
+     * @example
+     * // Get one GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseShareFindUniqueArgs>(args: SelectSubset<T, GymCaseShareFindUniqueArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseShare that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseShareFindUniqueOrThrowArgs} args - Arguments to find a GymCaseShare
+     * @example
+     * // Get one GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseShareFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseShareFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseShare that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareFindFirstArgs} args - Arguments to find a GymCaseShare
+     * @example
+     * // Get one GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseShareFindFirstArgs>(args?: SelectSubset<T, GymCaseShareFindFirstArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseShare that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareFindFirstOrThrowArgs} args - Arguments to find a GymCaseShare
+     * @example
+     * // Get one GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseShareFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseShareFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseShares that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseShares
+     * const gymCaseShares = await prisma.gymCaseShare.findMany()
+     * 
+     * // Get first 10 GymCaseShares
+     * const gymCaseShares = await prisma.gymCaseShare.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseShareWithIdOnly = await prisma.gymCaseShare.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseShareFindManyArgs>(args?: SelectSubset<T, GymCaseShareFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseShare.
+     * @param {GymCaseShareCreateArgs} args - Arguments to create a GymCaseShare.
+     * @example
+     * // Create one GymCaseShare
+     * const GymCaseShare = await prisma.gymCaseShare.create({
+     *   data: {
+     *     // ... data to create a GymCaseShare
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseShareCreateArgs>(args: SelectSubset<T, GymCaseShareCreateArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseShares.
+     * @param {GymCaseShareCreateManyArgs} args - Arguments to create many GymCaseShares.
+     * @example
+     * // Create many GymCaseShares
+     * const gymCaseShare = await prisma.gymCaseShare.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseShareCreateManyArgs>(args?: SelectSubset<T, GymCaseShareCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseShares and returns the data saved in the database.
+     * @param {GymCaseShareCreateManyAndReturnArgs} args - Arguments to create many GymCaseShares.
+     * @example
+     * // Create many GymCaseShares
+     * const gymCaseShare = await prisma.gymCaseShare.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseShares and only return the `id`
+     * const gymCaseShareWithIdOnly = await prisma.gymCaseShare.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseShareCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseShareCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseShare.
+     * @param {GymCaseShareDeleteArgs} args - Arguments to delete one GymCaseShare.
+     * @example
+     * // Delete one GymCaseShare
+     * const GymCaseShare = await prisma.gymCaseShare.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseShare
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseShareDeleteArgs>(args: SelectSubset<T, GymCaseShareDeleteArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseShare.
+     * @param {GymCaseShareUpdateArgs} args - Arguments to update one GymCaseShare.
+     * @example
+     * // Update one GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseShareUpdateArgs>(args: SelectSubset<T, GymCaseShareUpdateArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseShares.
+     * @param {GymCaseShareDeleteManyArgs} args - Arguments to filter GymCaseShares to delete.
+     * @example
+     * // Delete a few GymCaseShares
+     * const { count } = await prisma.gymCaseShare.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseShareDeleteManyArgs>(args?: SelectSubset<T, GymCaseShareDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseShares.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseShares
+     * const gymCaseShare = await prisma.gymCaseShare.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseShareUpdateManyArgs>(args: SelectSubset<T, GymCaseShareUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseShare.
+     * @param {GymCaseShareUpsertArgs} args - Arguments to update or create a GymCaseShare.
+     * @example
+     * // Update or create a GymCaseShare
+     * const gymCaseShare = await prisma.gymCaseShare.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseShare
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseShare we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseShareUpsertArgs>(args: SelectSubset<T, GymCaseShareUpsertArgs<ExtArgs>>): Prisma__GymCaseShareClient<$Result.GetResult<Prisma.$GymCaseSharePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseShares.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareCountArgs} args - Arguments to filter GymCaseShares to count.
+     * @example
+     * // Count the number of GymCaseShares
+     * const count = await prisma.gymCaseShare.count({
+     *   where: {
+     *     // ... the filter for the GymCaseShares we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseShareCountArgs>(
+      args?: Subset<T, GymCaseShareCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseShareCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseShare.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseShareAggregateArgs>(args: Subset<T, GymCaseShareAggregateArgs>): Prisma.PrismaPromise<GetGymCaseShareAggregateType<T>>
+
+    /**
+     * Group by GymCaseShare.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseShareGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseShareGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseShareGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseShareGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseShareGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseShareGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseShare model
+   */
+  readonly fields: GymCaseShareFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseShare.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseShareClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseShare model
+   */ 
+  interface GymCaseShareFieldRefs {
+    readonly id: FieldRef<"GymCaseShare", 'String'>
+    readonly caseId: FieldRef<"GymCaseShare", 'String'>
+    readonly evidenceId: FieldRef<"GymCaseShare", 'String'>
+    readonly statementId: FieldRef<"GymCaseShare", 'String'>
+    readonly sharedWithRole: FieldRef<"GymCaseShare", 'GymCasePartyRole'>
+    readonly sharedBy: FieldRef<"GymCaseShare", 'String'>
+    readonly reason: FieldRef<"GymCaseShare", 'String'>
+    readonly createdAt: FieldRef<"GymCaseShare", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseShare findUnique
+   */
+  export type GymCaseShareFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseShare to fetch.
+     */
+    where: GymCaseShareWhereUniqueInput
+  }
+
+  /**
+   * GymCaseShare findUniqueOrThrow
+   */
+  export type GymCaseShareFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseShare to fetch.
+     */
+    where: GymCaseShareWhereUniqueInput
+  }
+
+  /**
+   * GymCaseShare findFirst
+   */
+  export type GymCaseShareFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseShare to fetch.
+     */
+    where?: GymCaseShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseShares to fetch.
+     */
+    orderBy?: GymCaseShareOrderByWithRelationInput | GymCaseShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseShares.
+     */
+    cursor?: GymCaseShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseShares.
+     */
+    distinct?: GymCaseShareScalarFieldEnum | GymCaseShareScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseShare findFirstOrThrow
+   */
+  export type GymCaseShareFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseShare to fetch.
+     */
+    where?: GymCaseShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseShares to fetch.
+     */
+    orderBy?: GymCaseShareOrderByWithRelationInput | GymCaseShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseShares.
+     */
+    cursor?: GymCaseShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseShares.
+     */
+    distinct?: GymCaseShareScalarFieldEnum | GymCaseShareScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseShare findMany
+   */
+  export type GymCaseShareFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseShares to fetch.
+     */
+    where?: GymCaseShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseShares to fetch.
+     */
+    orderBy?: GymCaseShareOrderByWithRelationInput | GymCaseShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseShares.
+     */
+    cursor?: GymCaseShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseShares.
+     */
+    skip?: number
+    distinct?: GymCaseShareScalarFieldEnum | GymCaseShareScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseShare create
+   */
+  export type GymCaseShareCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseShare.
+     */
+    data: XOR<GymCaseShareCreateInput, GymCaseShareUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseShare createMany
+   */
+  export type GymCaseShareCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseShares.
+     */
+    data: GymCaseShareCreateManyInput | GymCaseShareCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseShare createManyAndReturn
+   */
+  export type GymCaseShareCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseShares.
+     */
+    data: GymCaseShareCreateManyInput | GymCaseShareCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseShare update
+   */
+  export type GymCaseShareUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseShare.
+     */
+    data: XOR<GymCaseShareUpdateInput, GymCaseShareUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseShare to update.
+     */
+    where: GymCaseShareWhereUniqueInput
+  }
+
+  /**
+   * GymCaseShare updateMany
+   */
+  export type GymCaseShareUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseShares.
+     */
+    data: XOR<GymCaseShareUpdateManyMutationInput, GymCaseShareUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseShares to update
+     */
+    where?: GymCaseShareWhereInput
+  }
+
+  /**
+   * GymCaseShare upsert
+   */
+  export type GymCaseShareUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseShare to update in case it exists.
+     */
+    where: GymCaseShareWhereUniqueInput
+    /**
+     * In case the GymCaseShare found by the `where` argument doesn't exist, create a new GymCaseShare with this data.
+     */
+    create: XOR<GymCaseShareCreateInput, GymCaseShareUncheckedCreateInput>
+    /**
+     * In case the GymCaseShare was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseShareUpdateInput, GymCaseShareUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseShare delete
+   */
+  export type GymCaseShareDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseShare to delete.
+     */
+    where: GymCaseShareWhereUniqueInput
+  }
+
+  /**
+   * GymCaseShare deleteMany
+   */
+  export type GymCaseShareDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseShares to delete
+     */
+    where?: GymCaseShareWhereInput
+  }
+
+  /**
+   * GymCaseShare without action
+   */
+  export type GymCaseShareDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseShare
+     */
+    select?: GymCaseShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseShareInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseClaim
+   */
+
+  export type AggregateGymCaseClaim = {
+    _count: GymCaseClaimCountAggregateOutputType | null
+    _min: GymCaseClaimMinAggregateOutputType | null
+    _max: GymCaseClaimMaxAggregateOutputType | null
+  }
+
+  export type GymCaseClaimMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    claimantRole: $Enums.GymCasePartyRole | null
+    text: string | null
+    createdBy: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseClaimMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    claimantRole: $Enums.GymCasePartyRole | null
+    text: string | null
+    createdBy: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseClaimCountAggregateOutputType = {
+    id: number
+    caseId: number
+    claimantRole: number
+    text: number
+    createdBy: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseClaimMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimantRole?: true
+    text?: true
+    createdBy?: true
+    createdAt?: true
+  }
+
+  export type GymCaseClaimMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimantRole?: true
+    text?: true
+    createdBy?: true
+    createdAt?: true
+  }
+
+  export type GymCaseClaimCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimantRole?: true
+    text?: true
+    createdBy?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseClaimAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseClaim to aggregate.
+     */
+    where?: GymCaseClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseClaims to fetch.
+     */
+    orderBy?: GymCaseClaimOrderByWithRelationInput | GymCaseClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseClaims
+    **/
+    _count?: true | GymCaseClaimCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseClaimMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseClaimMaxAggregateInputType
+  }
+
+  export type GetGymCaseClaimAggregateType<T extends GymCaseClaimAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseClaim]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseClaim[P]>
+      : GetScalarType<T[P], AggregateGymCaseClaim[P]>
+  }
+
+
+
+
+  export type GymCaseClaimGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseClaimWhereInput
+    orderBy?: GymCaseClaimOrderByWithAggregationInput | GymCaseClaimOrderByWithAggregationInput[]
+    by: GymCaseClaimScalarFieldEnum[] | GymCaseClaimScalarFieldEnum
+    having?: GymCaseClaimScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseClaimCountAggregateInputType | true
+    _min?: GymCaseClaimMinAggregateInputType
+    _max?: GymCaseClaimMaxAggregateInputType
+  }
+
+  export type GymCaseClaimGroupByOutputType = {
+    id: string
+    caseId: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt: Date
+    _count: GymCaseClaimCountAggregateOutputType | null
+    _min: GymCaseClaimMinAggregateOutputType | null
+    _max: GymCaseClaimMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseClaimGroupByPayload<T extends GymCaseClaimGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseClaimGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseClaimGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseClaimGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseClaimGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseClaimSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    claimantRole?: boolean
+    text?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    assessments?: boolean | GymCaseClaim$assessmentsArgs<ExtArgs>
+    _count?: boolean | GymCaseClaimCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseClaim"]>
+
+  export type GymCaseClaimSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    claimantRole?: boolean
+    text?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseClaim"]>
+
+  export type GymCaseClaimSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    claimantRole?: boolean
+    text?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseClaimInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    assessments?: boolean | GymCaseClaim$assessmentsArgs<ExtArgs>
+    _count?: boolean | GymCaseClaimCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymCaseClaimIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseClaimPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseClaim"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+      assessments: Prisma.$GymCaseAssessmentPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      claimantRole: $Enums.GymCasePartyRole
+      text: string
+      createdBy: string
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseClaim"]>
+    composites: {}
+  }
+
+  type GymCaseClaimGetPayload<S extends boolean | null | undefined | GymCaseClaimDefaultArgs> = $Result.GetResult<Prisma.$GymCaseClaimPayload, S>
+
+  type GymCaseClaimCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseClaimFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseClaimCountAggregateInputType | true
+    }
+
+  export interface GymCaseClaimDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseClaim'], meta: { name: 'GymCaseClaim' } }
+    /**
+     * Find zero or one GymCaseClaim that matches the filter.
+     * @param {GymCaseClaimFindUniqueArgs} args - Arguments to find a GymCaseClaim
+     * @example
+     * // Get one GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseClaimFindUniqueArgs>(args: SelectSubset<T, GymCaseClaimFindUniqueArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseClaim that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseClaimFindUniqueOrThrowArgs} args - Arguments to find a GymCaseClaim
+     * @example
+     * // Get one GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseClaimFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseClaimFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseClaim that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimFindFirstArgs} args - Arguments to find a GymCaseClaim
+     * @example
+     * // Get one GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseClaimFindFirstArgs>(args?: SelectSubset<T, GymCaseClaimFindFirstArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseClaim that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimFindFirstOrThrowArgs} args - Arguments to find a GymCaseClaim
+     * @example
+     * // Get one GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseClaimFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseClaimFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseClaims that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseClaims
+     * const gymCaseClaims = await prisma.gymCaseClaim.findMany()
+     * 
+     * // Get first 10 GymCaseClaims
+     * const gymCaseClaims = await prisma.gymCaseClaim.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseClaimWithIdOnly = await prisma.gymCaseClaim.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseClaimFindManyArgs>(args?: SelectSubset<T, GymCaseClaimFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseClaim.
+     * @param {GymCaseClaimCreateArgs} args - Arguments to create a GymCaseClaim.
+     * @example
+     * // Create one GymCaseClaim
+     * const GymCaseClaim = await prisma.gymCaseClaim.create({
+     *   data: {
+     *     // ... data to create a GymCaseClaim
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseClaimCreateArgs>(args: SelectSubset<T, GymCaseClaimCreateArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseClaims.
+     * @param {GymCaseClaimCreateManyArgs} args - Arguments to create many GymCaseClaims.
+     * @example
+     * // Create many GymCaseClaims
+     * const gymCaseClaim = await prisma.gymCaseClaim.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseClaimCreateManyArgs>(args?: SelectSubset<T, GymCaseClaimCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseClaims and returns the data saved in the database.
+     * @param {GymCaseClaimCreateManyAndReturnArgs} args - Arguments to create many GymCaseClaims.
+     * @example
+     * // Create many GymCaseClaims
+     * const gymCaseClaim = await prisma.gymCaseClaim.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseClaims and only return the `id`
+     * const gymCaseClaimWithIdOnly = await prisma.gymCaseClaim.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseClaimCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseClaimCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseClaim.
+     * @param {GymCaseClaimDeleteArgs} args - Arguments to delete one GymCaseClaim.
+     * @example
+     * // Delete one GymCaseClaim
+     * const GymCaseClaim = await prisma.gymCaseClaim.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseClaim
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseClaimDeleteArgs>(args: SelectSubset<T, GymCaseClaimDeleteArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseClaim.
+     * @param {GymCaseClaimUpdateArgs} args - Arguments to update one GymCaseClaim.
+     * @example
+     * // Update one GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseClaimUpdateArgs>(args: SelectSubset<T, GymCaseClaimUpdateArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseClaims.
+     * @param {GymCaseClaimDeleteManyArgs} args - Arguments to filter GymCaseClaims to delete.
+     * @example
+     * // Delete a few GymCaseClaims
+     * const { count } = await prisma.gymCaseClaim.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseClaimDeleteManyArgs>(args?: SelectSubset<T, GymCaseClaimDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseClaims.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseClaims
+     * const gymCaseClaim = await prisma.gymCaseClaim.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseClaimUpdateManyArgs>(args: SelectSubset<T, GymCaseClaimUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseClaim.
+     * @param {GymCaseClaimUpsertArgs} args - Arguments to update or create a GymCaseClaim.
+     * @example
+     * // Update or create a GymCaseClaim
+     * const gymCaseClaim = await prisma.gymCaseClaim.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseClaim
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseClaim we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseClaimUpsertArgs>(args: SelectSubset<T, GymCaseClaimUpsertArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseClaims.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimCountArgs} args - Arguments to filter GymCaseClaims to count.
+     * @example
+     * // Count the number of GymCaseClaims
+     * const count = await prisma.gymCaseClaim.count({
+     *   where: {
+     *     // ... the filter for the GymCaseClaims we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseClaimCountArgs>(
+      args?: Subset<T, GymCaseClaimCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseClaimCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseClaim.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseClaimAggregateArgs>(args: Subset<T, GymCaseClaimAggregateArgs>): Prisma.PrismaPromise<GetGymCaseClaimAggregateType<T>>
+
+    /**
+     * Group by GymCaseClaim.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseClaimGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseClaimGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseClaimGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseClaimGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseClaimGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseClaimGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseClaim model
+   */
+  readonly fields: GymCaseClaimFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseClaim.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseClaimClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    assessments<T extends GymCaseClaim$assessmentsArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseClaim$assessmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseClaim model
+   */ 
+  interface GymCaseClaimFieldRefs {
+    readonly id: FieldRef<"GymCaseClaim", 'String'>
+    readonly caseId: FieldRef<"GymCaseClaim", 'String'>
+    readonly claimantRole: FieldRef<"GymCaseClaim", 'GymCasePartyRole'>
+    readonly text: FieldRef<"GymCaseClaim", 'String'>
+    readonly createdBy: FieldRef<"GymCaseClaim", 'String'>
+    readonly createdAt: FieldRef<"GymCaseClaim", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseClaim findUnique
+   */
+  export type GymCaseClaimFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseClaim to fetch.
+     */
+    where: GymCaseClaimWhereUniqueInput
+  }
+
+  /**
+   * GymCaseClaim findUniqueOrThrow
+   */
+  export type GymCaseClaimFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseClaim to fetch.
+     */
+    where: GymCaseClaimWhereUniqueInput
+  }
+
+  /**
+   * GymCaseClaim findFirst
+   */
+  export type GymCaseClaimFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseClaim to fetch.
+     */
+    where?: GymCaseClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseClaims to fetch.
+     */
+    orderBy?: GymCaseClaimOrderByWithRelationInput | GymCaseClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseClaims.
+     */
+    cursor?: GymCaseClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseClaims.
+     */
+    distinct?: GymCaseClaimScalarFieldEnum | GymCaseClaimScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseClaim findFirstOrThrow
+   */
+  export type GymCaseClaimFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseClaim to fetch.
+     */
+    where?: GymCaseClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseClaims to fetch.
+     */
+    orderBy?: GymCaseClaimOrderByWithRelationInput | GymCaseClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseClaims.
+     */
+    cursor?: GymCaseClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseClaims.
+     */
+    distinct?: GymCaseClaimScalarFieldEnum | GymCaseClaimScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseClaim findMany
+   */
+  export type GymCaseClaimFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseClaims to fetch.
+     */
+    where?: GymCaseClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseClaims to fetch.
+     */
+    orderBy?: GymCaseClaimOrderByWithRelationInput | GymCaseClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseClaims.
+     */
+    cursor?: GymCaseClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseClaims.
+     */
+    skip?: number
+    distinct?: GymCaseClaimScalarFieldEnum | GymCaseClaimScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseClaim create
+   */
+  export type GymCaseClaimCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseClaim.
+     */
+    data: XOR<GymCaseClaimCreateInput, GymCaseClaimUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseClaim createMany
+   */
+  export type GymCaseClaimCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseClaims.
+     */
+    data: GymCaseClaimCreateManyInput | GymCaseClaimCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseClaim createManyAndReturn
+   */
+  export type GymCaseClaimCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseClaims.
+     */
+    data: GymCaseClaimCreateManyInput | GymCaseClaimCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseClaim update
+   */
+  export type GymCaseClaimUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseClaim.
+     */
+    data: XOR<GymCaseClaimUpdateInput, GymCaseClaimUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseClaim to update.
+     */
+    where: GymCaseClaimWhereUniqueInput
+  }
+
+  /**
+   * GymCaseClaim updateMany
+   */
+  export type GymCaseClaimUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseClaims.
+     */
+    data: XOR<GymCaseClaimUpdateManyMutationInput, GymCaseClaimUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseClaims to update
+     */
+    where?: GymCaseClaimWhereInput
+  }
+
+  /**
+   * GymCaseClaim upsert
+   */
+  export type GymCaseClaimUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseClaim to update in case it exists.
+     */
+    where: GymCaseClaimWhereUniqueInput
+    /**
+     * In case the GymCaseClaim found by the `where` argument doesn't exist, create a new GymCaseClaim with this data.
+     */
+    create: XOR<GymCaseClaimCreateInput, GymCaseClaimUncheckedCreateInput>
+    /**
+     * In case the GymCaseClaim was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseClaimUpdateInput, GymCaseClaimUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseClaim delete
+   */
+  export type GymCaseClaimDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseClaim to delete.
+     */
+    where: GymCaseClaimWhereUniqueInput
+  }
+
+  /**
+   * GymCaseClaim deleteMany
+   */
+  export type GymCaseClaimDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseClaims to delete
+     */
+    where?: GymCaseClaimWhereInput
+  }
+
+  /**
+   * GymCaseClaim.assessments
+   */
+  export type GymCaseClaim$assessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    where?: GymCaseAssessmentWhereInput
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseAssessmentScalarFieldEnum | GymCaseAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseClaim without action
+   */
+  export type GymCaseClaimDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseClaim
+     */
+    select?: GymCaseClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseClaimInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseAssessment
+   */
+
+  export type AggregateGymCaseAssessment = {
+    _count: GymCaseAssessmentCountAggregateOutputType | null
+    _min: GymCaseAssessmentMinAggregateOutputType | null
+    _max: GymCaseAssessmentMaxAggregateOutputType | null
+  }
+
+  export type GymCaseAssessmentMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    claimId: string | null
+    assessorId: string | null
+    relevanceNote: string | null
+    verifiabilityNote: string | null
+    consistencyNote: string | null
+    result: $Enums.GymCaseAssessmentResult | null
+    reasoning: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseAssessmentMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    claimId: string | null
+    assessorId: string | null
+    relevanceNote: string | null
+    verifiabilityNote: string | null
+    consistencyNote: string | null
+    result: $Enums.GymCaseAssessmentResult | null
+    reasoning: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseAssessmentCountAggregateOutputType = {
+    id: number
+    caseId: number
+    claimId: number
+    assessorId: number
+    directEvidenceIds: number
+    indirectEvidenceIds: number
+    rebuttalEvidenceIds: number
+    relevanceNote: number
+    verifiabilityNote: number
+    consistencyNote: number
+    result: number
+    reasoning: number
+    evidenceSnapshot: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseAssessmentMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimId?: true
+    assessorId?: true
+    relevanceNote?: true
+    verifiabilityNote?: true
+    consistencyNote?: true
+    result?: true
+    reasoning?: true
+    createdAt?: true
+  }
+
+  export type GymCaseAssessmentMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimId?: true
+    assessorId?: true
+    relevanceNote?: true
+    verifiabilityNote?: true
+    consistencyNote?: true
+    result?: true
+    reasoning?: true
+    createdAt?: true
+  }
+
+  export type GymCaseAssessmentCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    claimId?: true
+    assessorId?: true
+    directEvidenceIds?: true
+    indirectEvidenceIds?: true
+    rebuttalEvidenceIds?: true
+    relevanceNote?: true
+    verifiabilityNote?: true
+    consistencyNote?: true
+    result?: true
+    reasoning?: true
+    evidenceSnapshot?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseAssessmentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseAssessment to aggregate.
+     */
+    where?: GymCaseAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAssessments to fetch.
+     */
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseAssessments
+    **/
+    _count?: true | GymCaseAssessmentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseAssessmentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseAssessmentMaxAggregateInputType
+  }
+
+  export type GetGymCaseAssessmentAggregateType<T extends GymCaseAssessmentAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseAssessment]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseAssessment[P]>
+      : GetScalarType<T[P], AggregateGymCaseAssessment[P]>
+  }
+
+
+
+
+  export type GymCaseAssessmentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseAssessmentWhereInput
+    orderBy?: GymCaseAssessmentOrderByWithAggregationInput | GymCaseAssessmentOrderByWithAggregationInput[]
+    by: GymCaseAssessmentScalarFieldEnum[] | GymCaseAssessmentScalarFieldEnum
+    having?: GymCaseAssessmentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseAssessmentCountAggregateInputType | true
+    _min?: GymCaseAssessmentMinAggregateInputType
+    _max?: GymCaseAssessmentMaxAggregateInputType
+  }
+
+  export type GymCaseAssessmentGroupByOutputType = {
+    id: string
+    caseId: string
+    claimId: string
+    assessorId: string
+    directEvidenceIds: string[]
+    indirectEvidenceIds: string[]
+    rebuttalEvidenceIds: string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonValue
+    createdAt: Date
+    _count: GymCaseAssessmentCountAggregateOutputType | null
+    _min: GymCaseAssessmentMinAggregateOutputType | null
+    _max: GymCaseAssessmentMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseAssessmentGroupByPayload<T extends GymCaseAssessmentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseAssessmentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseAssessmentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseAssessmentGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseAssessmentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseAssessmentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    claimId?: boolean
+    assessorId?: boolean
+    directEvidenceIds?: boolean
+    indirectEvidenceIds?: boolean
+    rebuttalEvidenceIds?: boolean
+    relevanceNote?: boolean
+    verifiabilityNote?: boolean
+    consistencyNote?: boolean
+    result?: boolean
+    reasoning?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    claim?: boolean | GymCaseClaimDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseAssessment"]>
+
+  export type GymCaseAssessmentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    claimId?: boolean
+    assessorId?: boolean
+    directEvidenceIds?: boolean
+    indirectEvidenceIds?: boolean
+    rebuttalEvidenceIds?: boolean
+    relevanceNote?: boolean
+    verifiabilityNote?: boolean
+    consistencyNote?: boolean
+    result?: boolean
+    reasoning?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    claim?: boolean | GymCaseClaimDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseAssessment"]>
+
+  export type GymCaseAssessmentSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    claimId?: boolean
+    assessorId?: boolean
+    directEvidenceIds?: boolean
+    indirectEvidenceIds?: boolean
+    rebuttalEvidenceIds?: boolean
+    relevanceNote?: boolean
+    verifiabilityNote?: boolean
+    consistencyNote?: boolean
+    result?: boolean
+    reasoning?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseAssessmentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    claim?: boolean | GymCaseClaimDefaultArgs<ExtArgs>
+  }
+  export type GymCaseAssessmentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    claim?: boolean | GymCaseClaimDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseAssessmentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseAssessment"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+      claim: Prisma.$GymCaseClaimPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      claimId: string
+      assessorId: string
+      directEvidenceIds: string[]
+      indirectEvidenceIds: string[]
+      rebuttalEvidenceIds: string[]
+      relevanceNote: string
+      verifiabilityNote: string
+      consistencyNote: string
+      result: $Enums.GymCaseAssessmentResult
+      reasoning: string
+      evidenceSnapshot: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseAssessment"]>
+    composites: {}
+  }
+
+  type GymCaseAssessmentGetPayload<S extends boolean | null | undefined | GymCaseAssessmentDefaultArgs> = $Result.GetResult<Prisma.$GymCaseAssessmentPayload, S>
+
+  type GymCaseAssessmentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseAssessmentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseAssessmentCountAggregateInputType | true
+    }
+
+  export interface GymCaseAssessmentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseAssessment'], meta: { name: 'GymCaseAssessment' } }
+    /**
+     * Find zero or one GymCaseAssessment that matches the filter.
+     * @param {GymCaseAssessmentFindUniqueArgs} args - Arguments to find a GymCaseAssessment
+     * @example
+     * // Get one GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseAssessmentFindUniqueArgs>(args: SelectSubset<T, GymCaseAssessmentFindUniqueArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseAssessment that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseAssessmentFindUniqueOrThrowArgs} args - Arguments to find a GymCaseAssessment
+     * @example
+     * // Get one GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseAssessmentFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseAssessmentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseAssessment that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentFindFirstArgs} args - Arguments to find a GymCaseAssessment
+     * @example
+     * // Get one GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseAssessmentFindFirstArgs>(args?: SelectSubset<T, GymCaseAssessmentFindFirstArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseAssessment that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentFindFirstOrThrowArgs} args - Arguments to find a GymCaseAssessment
+     * @example
+     * // Get one GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseAssessmentFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseAssessmentFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseAssessments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseAssessments
+     * const gymCaseAssessments = await prisma.gymCaseAssessment.findMany()
+     * 
+     * // Get first 10 GymCaseAssessments
+     * const gymCaseAssessments = await prisma.gymCaseAssessment.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseAssessmentWithIdOnly = await prisma.gymCaseAssessment.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseAssessmentFindManyArgs>(args?: SelectSubset<T, GymCaseAssessmentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseAssessment.
+     * @param {GymCaseAssessmentCreateArgs} args - Arguments to create a GymCaseAssessment.
+     * @example
+     * // Create one GymCaseAssessment
+     * const GymCaseAssessment = await prisma.gymCaseAssessment.create({
+     *   data: {
+     *     // ... data to create a GymCaseAssessment
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseAssessmentCreateArgs>(args: SelectSubset<T, GymCaseAssessmentCreateArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseAssessments.
+     * @param {GymCaseAssessmentCreateManyArgs} args - Arguments to create many GymCaseAssessments.
+     * @example
+     * // Create many GymCaseAssessments
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseAssessmentCreateManyArgs>(args?: SelectSubset<T, GymCaseAssessmentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseAssessments and returns the data saved in the database.
+     * @param {GymCaseAssessmentCreateManyAndReturnArgs} args - Arguments to create many GymCaseAssessments.
+     * @example
+     * // Create many GymCaseAssessments
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseAssessments and only return the `id`
+     * const gymCaseAssessmentWithIdOnly = await prisma.gymCaseAssessment.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseAssessmentCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseAssessmentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseAssessment.
+     * @param {GymCaseAssessmentDeleteArgs} args - Arguments to delete one GymCaseAssessment.
+     * @example
+     * // Delete one GymCaseAssessment
+     * const GymCaseAssessment = await prisma.gymCaseAssessment.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseAssessment
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseAssessmentDeleteArgs>(args: SelectSubset<T, GymCaseAssessmentDeleteArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseAssessment.
+     * @param {GymCaseAssessmentUpdateArgs} args - Arguments to update one GymCaseAssessment.
+     * @example
+     * // Update one GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseAssessmentUpdateArgs>(args: SelectSubset<T, GymCaseAssessmentUpdateArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseAssessments.
+     * @param {GymCaseAssessmentDeleteManyArgs} args - Arguments to filter GymCaseAssessments to delete.
+     * @example
+     * // Delete a few GymCaseAssessments
+     * const { count } = await prisma.gymCaseAssessment.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseAssessmentDeleteManyArgs>(args?: SelectSubset<T, GymCaseAssessmentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseAssessments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseAssessments
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseAssessmentUpdateManyArgs>(args: SelectSubset<T, GymCaseAssessmentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseAssessment.
+     * @param {GymCaseAssessmentUpsertArgs} args - Arguments to update or create a GymCaseAssessment.
+     * @example
+     * // Update or create a GymCaseAssessment
+     * const gymCaseAssessment = await prisma.gymCaseAssessment.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseAssessment
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseAssessment we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseAssessmentUpsertArgs>(args: SelectSubset<T, GymCaseAssessmentUpsertArgs<ExtArgs>>): Prisma__GymCaseAssessmentClient<$Result.GetResult<Prisma.$GymCaseAssessmentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseAssessments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentCountArgs} args - Arguments to filter GymCaseAssessments to count.
+     * @example
+     * // Count the number of GymCaseAssessments
+     * const count = await prisma.gymCaseAssessment.count({
+     *   where: {
+     *     // ... the filter for the GymCaseAssessments we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseAssessmentCountArgs>(
+      args?: Subset<T, GymCaseAssessmentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseAssessmentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseAssessment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseAssessmentAggregateArgs>(args: Subset<T, GymCaseAssessmentAggregateArgs>): Prisma.PrismaPromise<GetGymCaseAssessmentAggregateType<T>>
+
+    /**
+     * Group by GymCaseAssessment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAssessmentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseAssessmentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseAssessmentGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseAssessmentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseAssessmentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseAssessmentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseAssessment model
+   */
+  readonly fields: GymCaseAssessmentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseAssessment.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseAssessmentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    claim<T extends GymCaseClaimDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseClaimDefaultArgs<ExtArgs>>): Prisma__GymCaseClaimClient<$Result.GetResult<Prisma.$GymCaseClaimPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseAssessment model
+   */ 
+  interface GymCaseAssessmentFieldRefs {
+    readonly id: FieldRef<"GymCaseAssessment", 'String'>
+    readonly caseId: FieldRef<"GymCaseAssessment", 'String'>
+    readonly claimId: FieldRef<"GymCaseAssessment", 'String'>
+    readonly assessorId: FieldRef<"GymCaseAssessment", 'String'>
+    readonly directEvidenceIds: FieldRef<"GymCaseAssessment", 'String[]'>
+    readonly indirectEvidenceIds: FieldRef<"GymCaseAssessment", 'String[]'>
+    readonly rebuttalEvidenceIds: FieldRef<"GymCaseAssessment", 'String[]'>
+    readonly relevanceNote: FieldRef<"GymCaseAssessment", 'String'>
+    readonly verifiabilityNote: FieldRef<"GymCaseAssessment", 'String'>
+    readonly consistencyNote: FieldRef<"GymCaseAssessment", 'String'>
+    readonly result: FieldRef<"GymCaseAssessment", 'GymCaseAssessmentResult'>
+    readonly reasoning: FieldRef<"GymCaseAssessment", 'String'>
+    readonly evidenceSnapshot: FieldRef<"GymCaseAssessment", 'Json'>
+    readonly createdAt: FieldRef<"GymCaseAssessment", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseAssessment findUnique
+   */
+  export type GymCaseAssessmentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAssessment to fetch.
+     */
+    where: GymCaseAssessmentWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAssessment findUniqueOrThrow
+   */
+  export type GymCaseAssessmentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAssessment to fetch.
+     */
+    where: GymCaseAssessmentWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAssessment findFirst
+   */
+  export type GymCaseAssessmentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAssessment to fetch.
+     */
+    where?: GymCaseAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAssessments to fetch.
+     */
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseAssessments.
+     */
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseAssessments.
+     */
+    distinct?: GymCaseAssessmentScalarFieldEnum | GymCaseAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAssessment findFirstOrThrow
+   */
+  export type GymCaseAssessmentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAssessment to fetch.
+     */
+    where?: GymCaseAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAssessments to fetch.
+     */
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseAssessments.
+     */
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseAssessments.
+     */
+    distinct?: GymCaseAssessmentScalarFieldEnum | GymCaseAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAssessment findMany
+   */
+  export type GymCaseAssessmentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAssessments to fetch.
+     */
+    where?: GymCaseAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAssessments to fetch.
+     */
+    orderBy?: GymCaseAssessmentOrderByWithRelationInput | GymCaseAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseAssessments.
+     */
+    cursor?: GymCaseAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAssessments.
+     */
+    skip?: number
+    distinct?: GymCaseAssessmentScalarFieldEnum | GymCaseAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAssessment create
+   */
+  export type GymCaseAssessmentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseAssessment.
+     */
+    data: XOR<GymCaseAssessmentCreateInput, GymCaseAssessmentUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseAssessment createMany
+   */
+  export type GymCaseAssessmentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseAssessments.
+     */
+    data: GymCaseAssessmentCreateManyInput | GymCaseAssessmentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseAssessment createManyAndReturn
+   */
+  export type GymCaseAssessmentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseAssessments.
+     */
+    data: GymCaseAssessmentCreateManyInput | GymCaseAssessmentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseAssessment update
+   */
+  export type GymCaseAssessmentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseAssessment.
+     */
+    data: XOR<GymCaseAssessmentUpdateInput, GymCaseAssessmentUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseAssessment to update.
+     */
+    where: GymCaseAssessmentWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAssessment updateMany
+   */
+  export type GymCaseAssessmentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseAssessments.
+     */
+    data: XOR<GymCaseAssessmentUpdateManyMutationInput, GymCaseAssessmentUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseAssessments to update
+     */
+    where?: GymCaseAssessmentWhereInput
+  }
+
+  /**
+   * GymCaseAssessment upsert
+   */
+  export type GymCaseAssessmentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseAssessment to update in case it exists.
+     */
+    where: GymCaseAssessmentWhereUniqueInput
+    /**
+     * In case the GymCaseAssessment found by the `where` argument doesn't exist, create a new GymCaseAssessment with this data.
+     */
+    create: XOR<GymCaseAssessmentCreateInput, GymCaseAssessmentUncheckedCreateInput>
+    /**
+     * In case the GymCaseAssessment was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseAssessmentUpdateInput, GymCaseAssessmentUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseAssessment delete
+   */
+  export type GymCaseAssessmentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseAssessment to delete.
+     */
+    where: GymCaseAssessmentWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAssessment deleteMany
+   */
+  export type GymCaseAssessmentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseAssessments to delete
+     */
+    where?: GymCaseAssessmentWhereInput
+  }
+
+  /**
+   * GymCaseAssessment without action
+   */
+  export type GymCaseAssessmentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAssessment
+     */
+    select?: GymCaseAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAssessmentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseFinding
+   */
+
+  export type AggregateGymCaseFinding = {
+    _count: GymCaseFindingCountAggregateOutputType | null
+    _min: GymCaseFindingMinAggregateOutputType | null
+    _max: GymCaseFindingMaxAggregateOutputType | null
+  }
+
+  export type GymCaseFindingMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    finding: $Enums.GymCaseFindingKind | null
+    reasoning: string | null
+    recordedBy: string | null
+    supersedesId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseFindingMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    finding: $Enums.GymCaseFindingKind | null
+    reasoning: string | null
+    recordedBy: string | null
+    supersedesId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseFindingCountAggregateOutputType = {
+    id: number
+    caseId: number
+    finding: number
+    reasoning: number
+    recordedBy: number
+    supersedesId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseFindingMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    finding?: true
+    reasoning?: true
+    recordedBy?: true
+    supersedesId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseFindingMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    finding?: true
+    reasoning?: true
+    recordedBy?: true
+    supersedesId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseFindingCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    finding?: true
+    reasoning?: true
+    recordedBy?: true
+    supersedesId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseFindingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseFinding to aggregate.
+     */
+    where?: GymCaseFindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseFindings to fetch.
+     */
+    orderBy?: GymCaseFindingOrderByWithRelationInput | GymCaseFindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseFindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseFindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseFindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseFindings
+    **/
+    _count?: true | GymCaseFindingCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseFindingMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseFindingMaxAggregateInputType
+  }
+
+  export type GetGymCaseFindingAggregateType<T extends GymCaseFindingAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseFinding]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseFinding[P]>
+      : GetScalarType<T[P], AggregateGymCaseFinding[P]>
+  }
+
+
+
+
+  export type GymCaseFindingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseFindingWhereInput
+    orderBy?: GymCaseFindingOrderByWithAggregationInput | GymCaseFindingOrderByWithAggregationInput[]
+    by: GymCaseFindingScalarFieldEnum[] | GymCaseFindingScalarFieldEnum
+    having?: GymCaseFindingScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseFindingCountAggregateInputType | true
+    _min?: GymCaseFindingMinAggregateInputType
+    _max?: GymCaseFindingMaxAggregateInputType
+  }
+
+  export type GymCaseFindingGroupByOutputType = {
+    id: string
+    caseId: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId: string | null
+    createdAt: Date
+    _count: GymCaseFindingCountAggregateOutputType | null
+    _min: GymCaseFindingMinAggregateOutputType | null
+    _max: GymCaseFindingMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseFindingGroupByPayload<T extends GymCaseFindingGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseFindingGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseFindingGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseFindingGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseFindingGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseFindingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    finding?: boolean
+    reasoning?: boolean
+    recordedBy?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    proposals?: boolean | GymCaseFinding$proposalsArgs<ExtArgs>
+    _count?: boolean | GymCaseFindingCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseFinding"]>
+
+  export type GymCaseFindingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    finding?: boolean
+    reasoning?: boolean
+    recordedBy?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseFinding"]>
+
+  export type GymCaseFindingSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    finding?: boolean
+    reasoning?: boolean
+    recordedBy?: boolean
+    supersedesId?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseFindingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    proposals?: boolean | GymCaseFinding$proposalsArgs<ExtArgs>
+    _count?: boolean | GymCaseFindingCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymCaseFindingIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseFindingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseFinding"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+      proposals: Prisma.$GymCaseProposalPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      finding: $Enums.GymCaseFindingKind
+      reasoning: string
+      recordedBy: string
+      supersedesId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseFinding"]>
+    composites: {}
+  }
+
+  type GymCaseFindingGetPayload<S extends boolean | null | undefined | GymCaseFindingDefaultArgs> = $Result.GetResult<Prisma.$GymCaseFindingPayload, S>
+
+  type GymCaseFindingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseFindingFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseFindingCountAggregateInputType | true
+    }
+
+  export interface GymCaseFindingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseFinding'], meta: { name: 'GymCaseFinding' } }
+    /**
+     * Find zero or one GymCaseFinding that matches the filter.
+     * @param {GymCaseFindingFindUniqueArgs} args - Arguments to find a GymCaseFinding
+     * @example
+     * // Get one GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseFindingFindUniqueArgs>(args: SelectSubset<T, GymCaseFindingFindUniqueArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseFinding that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseFindingFindUniqueOrThrowArgs} args - Arguments to find a GymCaseFinding
+     * @example
+     * // Get one GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseFindingFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseFindingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseFinding that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingFindFirstArgs} args - Arguments to find a GymCaseFinding
+     * @example
+     * // Get one GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseFindingFindFirstArgs>(args?: SelectSubset<T, GymCaseFindingFindFirstArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseFinding that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingFindFirstOrThrowArgs} args - Arguments to find a GymCaseFinding
+     * @example
+     * // Get one GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseFindingFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseFindingFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseFindings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseFindings
+     * const gymCaseFindings = await prisma.gymCaseFinding.findMany()
+     * 
+     * // Get first 10 GymCaseFindings
+     * const gymCaseFindings = await prisma.gymCaseFinding.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseFindingWithIdOnly = await prisma.gymCaseFinding.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseFindingFindManyArgs>(args?: SelectSubset<T, GymCaseFindingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseFinding.
+     * @param {GymCaseFindingCreateArgs} args - Arguments to create a GymCaseFinding.
+     * @example
+     * // Create one GymCaseFinding
+     * const GymCaseFinding = await prisma.gymCaseFinding.create({
+     *   data: {
+     *     // ... data to create a GymCaseFinding
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseFindingCreateArgs>(args: SelectSubset<T, GymCaseFindingCreateArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseFindings.
+     * @param {GymCaseFindingCreateManyArgs} args - Arguments to create many GymCaseFindings.
+     * @example
+     * // Create many GymCaseFindings
+     * const gymCaseFinding = await prisma.gymCaseFinding.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseFindingCreateManyArgs>(args?: SelectSubset<T, GymCaseFindingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseFindings and returns the data saved in the database.
+     * @param {GymCaseFindingCreateManyAndReturnArgs} args - Arguments to create many GymCaseFindings.
+     * @example
+     * // Create many GymCaseFindings
+     * const gymCaseFinding = await prisma.gymCaseFinding.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseFindings and only return the `id`
+     * const gymCaseFindingWithIdOnly = await prisma.gymCaseFinding.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseFindingCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseFindingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseFinding.
+     * @param {GymCaseFindingDeleteArgs} args - Arguments to delete one GymCaseFinding.
+     * @example
+     * // Delete one GymCaseFinding
+     * const GymCaseFinding = await prisma.gymCaseFinding.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseFinding
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseFindingDeleteArgs>(args: SelectSubset<T, GymCaseFindingDeleteArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseFinding.
+     * @param {GymCaseFindingUpdateArgs} args - Arguments to update one GymCaseFinding.
+     * @example
+     * // Update one GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseFindingUpdateArgs>(args: SelectSubset<T, GymCaseFindingUpdateArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseFindings.
+     * @param {GymCaseFindingDeleteManyArgs} args - Arguments to filter GymCaseFindings to delete.
+     * @example
+     * // Delete a few GymCaseFindings
+     * const { count } = await prisma.gymCaseFinding.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseFindingDeleteManyArgs>(args?: SelectSubset<T, GymCaseFindingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseFindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseFindings
+     * const gymCaseFinding = await prisma.gymCaseFinding.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseFindingUpdateManyArgs>(args: SelectSubset<T, GymCaseFindingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseFinding.
+     * @param {GymCaseFindingUpsertArgs} args - Arguments to update or create a GymCaseFinding.
+     * @example
+     * // Update or create a GymCaseFinding
+     * const gymCaseFinding = await prisma.gymCaseFinding.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseFinding
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseFinding we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseFindingUpsertArgs>(args: SelectSubset<T, GymCaseFindingUpsertArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseFindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingCountArgs} args - Arguments to filter GymCaseFindings to count.
+     * @example
+     * // Count the number of GymCaseFindings
+     * const count = await prisma.gymCaseFinding.count({
+     *   where: {
+     *     // ... the filter for the GymCaseFindings we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseFindingCountArgs>(
+      args?: Subset<T, GymCaseFindingCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseFindingCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseFinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseFindingAggregateArgs>(args: Subset<T, GymCaseFindingAggregateArgs>): Prisma.PrismaPromise<GetGymCaseFindingAggregateType<T>>
+
+    /**
+     * Group by GymCaseFinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseFindingGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseFindingGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseFindingGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseFindingGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseFindingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseFindingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseFinding model
+   */
+  readonly fields: GymCaseFindingFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseFinding.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseFindingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    proposals<T extends GymCaseFinding$proposalsArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseFinding$proposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseFinding model
+   */ 
+  interface GymCaseFindingFieldRefs {
+    readonly id: FieldRef<"GymCaseFinding", 'String'>
+    readonly caseId: FieldRef<"GymCaseFinding", 'String'>
+    readonly finding: FieldRef<"GymCaseFinding", 'GymCaseFindingKind'>
+    readonly reasoning: FieldRef<"GymCaseFinding", 'String'>
+    readonly recordedBy: FieldRef<"GymCaseFinding", 'String'>
+    readonly supersedesId: FieldRef<"GymCaseFinding", 'String'>
+    readonly createdAt: FieldRef<"GymCaseFinding", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseFinding findUnique
+   */
+  export type GymCaseFindingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseFinding to fetch.
+     */
+    where: GymCaseFindingWhereUniqueInput
+  }
+
+  /**
+   * GymCaseFinding findUniqueOrThrow
+   */
+  export type GymCaseFindingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseFinding to fetch.
+     */
+    where: GymCaseFindingWhereUniqueInput
+  }
+
+  /**
+   * GymCaseFinding findFirst
+   */
+  export type GymCaseFindingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseFinding to fetch.
+     */
+    where?: GymCaseFindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseFindings to fetch.
+     */
+    orderBy?: GymCaseFindingOrderByWithRelationInput | GymCaseFindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseFindings.
+     */
+    cursor?: GymCaseFindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseFindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseFindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseFindings.
+     */
+    distinct?: GymCaseFindingScalarFieldEnum | GymCaseFindingScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseFinding findFirstOrThrow
+   */
+  export type GymCaseFindingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseFinding to fetch.
+     */
+    where?: GymCaseFindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseFindings to fetch.
+     */
+    orderBy?: GymCaseFindingOrderByWithRelationInput | GymCaseFindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseFindings.
+     */
+    cursor?: GymCaseFindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseFindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseFindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseFindings.
+     */
+    distinct?: GymCaseFindingScalarFieldEnum | GymCaseFindingScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseFinding findMany
+   */
+  export type GymCaseFindingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseFindings to fetch.
+     */
+    where?: GymCaseFindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseFindings to fetch.
+     */
+    orderBy?: GymCaseFindingOrderByWithRelationInput | GymCaseFindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseFindings.
+     */
+    cursor?: GymCaseFindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseFindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseFindings.
+     */
+    skip?: number
+    distinct?: GymCaseFindingScalarFieldEnum | GymCaseFindingScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseFinding create
+   */
+  export type GymCaseFindingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseFinding.
+     */
+    data: XOR<GymCaseFindingCreateInput, GymCaseFindingUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseFinding createMany
+   */
+  export type GymCaseFindingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseFindings.
+     */
+    data: GymCaseFindingCreateManyInput | GymCaseFindingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseFinding createManyAndReturn
+   */
+  export type GymCaseFindingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseFindings.
+     */
+    data: GymCaseFindingCreateManyInput | GymCaseFindingCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseFinding update
+   */
+  export type GymCaseFindingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseFinding.
+     */
+    data: XOR<GymCaseFindingUpdateInput, GymCaseFindingUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseFinding to update.
+     */
+    where: GymCaseFindingWhereUniqueInput
+  }
+
+  /**
+   * GymCaseFinding updateMany
+   */
+  export type GymCaseFindingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseFindings.
+     */
+    data: XOR<GymCaseFindingUpdateManyMutationInput, GymCaseFindingUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseFindings to update
+     */
+    where?: GymCaseFindingWhereInput
+  }
+
+  /**
+   * GymCaseFinding upsert
+   */
+  export type GymCaseFindingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseFinding to update in case it exists.
+     */
+    where: GymCaseFindingWhereUniqueInput
+    /**
+     * In case the GymCaseFinding found by the `where` argument doesn't exist, create a new GymCaseFinding with this data.
+     */
+    create: XOR<GymCaseFindingCreateInput, GymCaseFindingUncheckedCreateInput>
+    /**
+     * In case the GymCaseFinding was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseFindingUpdateInput, GymCaseFindingUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseFinding delete
+   */
+  export type GymCaseFindingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseFinding to delete.
+     */
+    where: GymCaseFindingWhereUniqueInput
+  }
+
+  /**
+   * GymCaseFinding deleteMany
+   */
+  export type GymCaseFindingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseFindings to delete
+     */
+    where?: GymCaseFindingWhereInput
+  }
+
+  /**
+   * GymCaseFinding.proposals
+   */
+  export type GymCaseFinding$proposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    where?: GymCaseProposalWhereInput
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    cursor?: GymCaseProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseProposalScalarFieldEnum | GymCaseProposalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseFinding without action
+   */
+  export type GymCaseFindingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseFinding
+     */
+    select?: GymCaseFindingSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseFindingInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseProposal
+   */
+
+  export type AggregateGymCaseProposal = {
+    _count: GymCaseProposalCountAggregateOutputType | null
+    _min: GymCaseProposalMinAggregateOutputType | null
+    _max: GymCaseProposalMaxAggregateOutputType | null
+  }
+
+  export type GymCaseProposalMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    findingId: string | null
+    outcome: $Enums.GymCaseOutcome | null
+    proposerId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseProposalMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    findingId: string | null
+    outcome: $Enums.GymCaseOutcome | null
+    proposerId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseProposalCountAggregateOutputType = {
+    id: number
+    caseId: number
+    findingId: number
+    outcome: number
+    proposerId: number
+    evidenceSnapshot: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseProposalMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    findingId?: true
+    outcome?: true
+    proposerId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseProposalMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    findingId?: true
+    outcome?: true
+    proposerId?: true
+    createdAt?: true
+  }
+
+  export type GymCaseProposalCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    findingId?: true
+    outcome?: true
+    proposerId?: true
+    evidenceSnapshot?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseProposalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseProposal to aggregate.
+     */
+    where?: GymCaseProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseProposals to fetch.
+     */
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseProposals
+    **/
+    _count?: true | GymCaseProposalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseProposalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseProposalMaxAggregateInputType
+  }
+
+  export type GetGymCaseProposalAggregateType<T extends GymCaseProposalAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseProposal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseProposal[P]>
+      : GetScalarType<T[P], AggregateGymCaseProposal[P]>
+  }
+
+
+
+
+  export type GymCaseProposalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseProposalWhereInput
+    orderBy?: GymCaseProposalOrderByWithAggregationInput | GymCaseProposalOrderByWithAggregationInput[]
+    by: GymCaseProposalScalarFieldEnum[] | GymCaseProposalScalarFieldEnum
+    having?: GymCaseProposalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseProposalCountAggregateInputType | true
+    _min?: GymCaseProposalMinAggregateInputType
+    _max?: GymCaseProposalMaxAggregateInputType
+  }
+
+  export type GymCaseProposalGroupByOutputType = {
+    id: string
+    caseId: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonValue
+    createdAt: Date
+    _count: GymCaseProposalCountAggregateOutputType | null
+    _min: GymCaseProposalMinAggregateOutputType | null
+    _max: GymCaseProposalMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseProposalGroupByPayload<T extends GymCaseProposalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseProposalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseProposalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseProposalGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseProposalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseProposalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    findingId?: boolean
+    outcome?: boolean
+    proposerId?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    finding?: boolean | GymCaseFindingDefaultArgs<ExtArgs>
+    approvals?: boolean | GymCaseProposal$approvalsArgs<ExtArgs>
+    _count?: boolean | GymCaseProposalCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseProposal"]>
+
+  export type GymCaseProposalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    findingId?: boolean
+    outcome?: boolean
+    proposerId?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    finding?: boolean | GymCaseFindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseProposal"]>
+
+  export type GymCaseProposalSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    findingId?: boolean
+    outcome?: boolean
+    proposerId?: boolean
+    evidenceSnapshot?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseProposalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    finding?: boolean | GymCaseFindingDefaultArgs<ExtArgs>
+    approvals?: boolean | GymCaseProposal$approvalsArgs<ExtArgs>
+    _count?: boolean | GymCaseProposalCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymCaseProposalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+    finding?: boolean | GymCaseFindingDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseProposalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseProposal"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+      finding: Prisma.$GymCaseFindingPayload<ExtArgs>
+      approvals: Prisma.$GymCaseApprovalPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      findingId: string
+      outcome: $Enums.GymCaseOutcome
+      proposerId: string
+      evidenceSnapshot: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseProposal"]>
+    composites: {}
+  }
+
+  type GymCaseProposalGetPayload<S extends boolean | null | undefined | GymCaseProposalDefaultArgs> = $Result.GetResult<Prisma.$GymCaseProposalPayload, S>
+
+  type GymCaseProposalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseProposalFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseProposalCountAggregateInputType | true
+    }
+
+  export interface GymCaseProposalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseProposal'], meta: { name: 'GymCaseProposal' } }
+    /**
+     * Find zero or one GymCaseProposal that matches the filter.
+     * @param {GymCaseProposalFindUniqueArgs} args - Arguments to find a GymCaseProposal
+     * @example
+     * // Get one GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseProposalFindUniqueArgs>(args: SelectSubset<T, GymCaseProposalFindUniqueArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseProposal that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseProposalFindUniqueOrThrowArgs} args - Arguments to find a GymCaseProposal
+     * @example
+     * // Get one GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseProposalFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseProposalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseProposal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalFindFirstArgs} args - Arguments to find a GymCaseProposal
+     * @example
+     * // Get one GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseProposalFindFirstArgs>(args?: SelectSubset<T, GymCaseProposalFindFirstArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseProposal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalFindFirstOrThrowArgs} args - Arguments to find a GymCaseProposal
+     * @example
+     * // Get one GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseProposalFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseProposalFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseProposals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseProposals
+     * const gymCaseProposals = await prisma.gymCaseProposal.findMany()
+     * 
+     * // Get first 10 GymCaseProposals
+     * const gymCaseProposals = await prisma.gymCaseProposal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseProposalWithIdOnly = await prisma.gymCaseProposal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseProposalFindManyArgs>(args?: SelectSubset<T, GymCaseProposalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseProposal.
+     * @param {GymCaseProposalCreateArgs} args - Arguments to create a GymCaseProposal.
+     * @example
+     * // Create one GymCaseProposal
+     * const GymCaseProposal = await prisma.gymCaseProposal.create({
+     *   data: {
+     *     // ... data to create a GymCaseProposal
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseProposalCreateArgs>(args: SelectSubset<T, GymCaseProposalCreateArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseProposals.
+     * @param {GymCaseProposalCreateManyArgs} args - Arguments to create many GymCaseProposals.
+     * @example
+     * // Create many GymCaseProposals
+     * const gymCaseProposal = await prisma.gymCaseProposal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseProposalCreateManyArgs>(args?: SelectSubset<T, GymCaseProposalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseProposals and returns the data saved in the database.
+     * @param {GymCaseProposalCreateManyAndReturnArgs} args - Arguments to create many GymCaseProposals.
+     * @example
+     * // Create many GymCaseProposals
+     * const gymCaseProposal = await prisma.gymCaseProposal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseProposals and only return the `id`
+     * const gymCaseProposalWithIdOnly = await prisma.gymCaseProposal.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseProposalCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseProposalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseProposal.
+     * @param {GymCaseProposalDeleteArgs} args - Arguments to delete one GymCaseProposal.
+     * @example
+     * // Delete one GymCaseProposal
+     * const GymCaseProposal = await prisma.gymCaseProposal.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseProposal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseProposalDeleteArgs>(args: SelectSubset<T, GymCaseProposalDeleteArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseProposal.
+     * @param {GymCaseProposalUpdateArgs} args - Arguments to update one GymCaseProposal.
+     * @example
+     * // Update one GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseProposalUpdateArgs>(args: SelectSubset<T, GymCaseProposalUpdateArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseProposals.
+     * @param {GymCaseProposalDeleteManyArgs} args - Arguments to filter GymCaseProposals to delete.
+     * @example
+     * // Delete a few GymCaseProposals
+     * const { count } = await prisma.gymCaseProposal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseProposalDeleteManyArgs>(args?: SelectSubset<T, GymCaseProposalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseProposals
+     * const gymCaseProposal = await prisma.gymCaseProposal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseProposalUpdateManyArgs>(args: SelectSubset<T, GymCaseProposalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseProposal.
+     * @param {GymCaseProposalUpsertArgs} args - Arguments to update or create a GymCaseProposal.
+     * @example
+     * // Update or create a GymCaseProposal
+     * const gymCaseProposal = await prisma.gymCaseProposal.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseProposal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseProposal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseProposalUpsertArgs>(args: SelectSubset<T, GymCaseProposalUpsertArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalCountArgs} args - Arguments to filter GymCaseProposals to count.
+     * @example
+     * // Count the number of GymCaseProposals
+     * const count = await prisma.gymCaseProposal.count({
+     *   where: {
+     *     // ... the filter for the GymCaseProposals we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseProposalCountArgs>(
+      args?: Subset<T, GymCaseProposalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseProposalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseProposalAggregateArgs>(args: Subset<T, GymCaseProposalAggregateArgs>): Prisma.PrismaPromise<GetGymCaseProposalAggregateType<T>>
+
+    /**
+     * Group by GymCaseProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseProposalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseProposalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseProposalGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseProposalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseProposalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseProposalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseProposal model
+   */
+  readonly fields: GymCaseProposalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseProposal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseProposalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    finding<T extends GymCaseFindingDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseFindingDefaultArgs<ExtArgs>>): Prisma__GymCaseFindingClient<$Result.GetResult<Prisma.$GymCaseFindingPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    approvals<T extends GymCaseProposal$approvalsArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseProposal$approvalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseProposal model
+   */ 
+  interface GymCaseProposalFieldRefs {
+    readonly id: FieldRef<"GymCaseProposal", 'String'>
+    readonly caseId: FieldRef<"GymCaseProposal", 'String'>
+    readonly findingId: FieldRef<"GymCaseProposal", 'String'>
+    readonly outcome: FieldRef<"GymCaseProposal", 'GymCaseOutcome'>
+    readonly proposerId: FieldRef<"GymCaseProposal", 'String'>
+    readonly evidenceSnapshot: FieldRef<"GymCaseProposal", 'Json'>
+    readonly createdAt: FieldRef<"GymCaseProposal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseProposal findUnique
+   */
+  export type GymCaseProposalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseProposal to fetch.
+     */
+    where: GymCaseProposalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseProposal findUniqueOrThrow
+   */
+  export type GymCaseProposalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseProposal to fetch.
+     */
+    where: GymCaseProposalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseProposal findFirst
+   */
+  export type GymCaseProposalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseProposal to fetch.
+     */
+    where?: GymCaseProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseProposals to fetch.
+     */
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseProposals.
+     */
+    cursor?: GymCaseProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseProposals.
+     */
+    distinct?: GymCaseProposalScalarFieldEnum | GymCaseProposalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseProposal findFirstOrThrow
+   */
+  export type GymCaseProposalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseProposal to fetch.
+     */
+    where?: GymCaseProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseProposals to fetch.
+     */
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseProposals.
+     */
+    cursor?: GymCaseProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseProposals.
+     */
+    distinct?: GymCaseProposalScalarFieldEnum | GymCaseProposalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseProposal findMany
+   */
+  export type GymCaseProposalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseProposals to fetch.
+     */
+    where?: GymCaseProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseProposals to fetch.
+     */
+    orderBy?: GymCaseProposalOrderByWithRelationInput | GymCaseProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseProposals.
+     */
+    cursor?: GymCaseProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseProposals.
+     */
+    skip?: number
+    distinct?: GymCaseProposalScalarFieldEnum | GymCaseProposalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseProposal create
+   */
+  export type GymCaseProposalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseProposal.
+     */
+    data: XOR<GymCaseProposalCreateInput, GymCaseProposalUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseProposal createMany
+   */
+  export type GymCaseProposalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseProposals.
+     */
+    data: GymCaseProposalCreateManyInput | GymCaseProposalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseProposal createManyAndReturn
+   */
+  export type GymCaseProposalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseProposals.
+     */
+    data: GymCaseProposalCreateManyInput | GymCaseProposalCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseProposal update
+   */
+  export type GymCaseProposalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseProposal.
+     */
+    data: XOR<GymCaseProposalUpdateInput, GymCaseProposalUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseProposal to update.
+     */
+    where: GymCaseProposalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseProposal updateMany
+   */
+  export type GymCaseProposalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseProposals.
+     */
+    data: XOR<GymCaseProposalUpdateManyMutationInput, GymCaseProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseProposals to update
+     */
+    where?: GymCaseProposalWhereInput
+  }
+
+  /**
+   * GymCaseProposal upsert
+   */
+  export type GymCaseProposalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseProposal to update in case it exists.
+     */
+    where: GymCaseProposalWhereUniqueInput
+    /**
+     * In case the GymCaseProposal found by the `where` argument doesn't exist, create a new GymCaseProposal with this data.
+     */
+    create: XOR<GymCaseProposalCreateInput, GymCaseProposalUncheckedCreateInput>
+    /**
+     * In case the GymCaseProposal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseProposalUpdateInput, GymCaseProposalUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseProposal delete
+   */
+  export type GymCaseProposalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseProposal to delete.
+     */
+    where: GymCaseProposalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseProposal deleteMany
+   */
+  export type GymCaseProposalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseProposals to delete
+     */
+    where?: GymCaseProposalWhereInput
+  }
+
+  /**
+   * GymCaseProposal.approvals
+   */
+  export type GymCaseProposal$approvalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    where?: GymCaseApprovalWhereInput
+    orderBy?: GymCaseApprovalOrderByWithRelationInput | GymCaseApprovalOrderByWithRelationInput[]
+    cursor?: GymCaseApprovalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymCaseApprovalScalarFieldEnum | GymCaseApprovalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseProposal without action
+   */
+  export type GymCaseProposalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseProposal
+     */
+    select?: GymCaseProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseProposalInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseApproval
+   */
+
+  export type AggregateGymCaseApproval = {
+    _count: GymCaseApprovalCountAggregateOutputType | null
+    _min: GymCaseApprovalMinAggregateOutputType | null
+    _max: GymCaseApprovalMaxAggregateOutputType | null
+  }
+
+  export type GymCaseApprovalMinAggregateOutputType = {
+    id: string | null
+    proposalId: string | null
+    approverId: string | null
+    result: $Enums.GymCaseApprovalResult | null
+    reason: string | null
+    conflictOfInterestDeclaredNone: boolean | null
+    evidenceChangeAcknowledged: boolean | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseApprovalMaxAggregateOutputType = {
+    id: string | null
+    proposalId: string | null
+    approverId: string | null
+    result: $Enums.GymCaseApprovalResult | null
+    reason: string | null
+    conflictOfInterestDeclaredNone: boolean | null
+    evidenceChangeAcknowledged: boolean | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseApprovalCountAggregateOutputType = {
+    id: number
+    proposalId: number
+    approverId: number
+    result: number
+    reason: number
+    conflictOfInterestDeclaredNone: number
+    evidenceChangeAcknowledged: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseApprovalMinAggregateInputType = {
+    id?: true
+    proposalId?: true
+    approverId?: true
+    result?: true
+    reason?: true
+    conflictOfInterestDeclaredNone?: true
+    evidenceChangeAcknowledged?: true
+    createdAt?: true
+  }
+
+  export type GymCaseApprovalMaxAggregateInputType = {
+    id?: true
+    proposalId?: true
+    approverId?: true
+    result?: true
+    reason?: true
+    conflictOfInterestDeclaredNone?: true
+    evidenceChangeAcknowledged?: true
+    createdAt?: true
+  }
+
+  export type GymCaseApprovalCountAggregateInputType = {
+    id?: true
+    proposalId?: true
+    approverId?: true
+    result?: true
+    reason?: true
+    conflictOfInterestDeclaredNone?: true
+    evidenceChangeAcknowledged?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseApprovalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseApproval to aggregate.
+     */
+    where?: GymCaseApprovalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseApprovals to fetch.
+     */
+    orderBy?: GymCaseApprovalOrderByWithRelationInput | GymCaseApprovalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseApprovalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseApprovals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseApprovals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseApprovals
+    **/
+    _count?: true | GymCaseApprovalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseApprovalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseApprovalMaxAggregateInputType
+  }
+
+  export type GetGymCaseApprovalAggregateType<T extends GymCaseApprovalAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseApproval]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseApproval[P]>
+      : GetScalarType<T[P], AggregateGymCaseApproval[P]>
+  }
+
+
+
+
+  export type GymCaseApprovalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseApprovalWhereInput
+    orderBy?: GymCaseApprovalOrderByWithAggregationInput | GymCaseApprovalOrderByWithAggregationInput[]
+    by: GymCaseApprovalScalarFieldEnum[] | GymCaseApprovalScalarFieldEnum
+    having?: GymCaseApprovalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseApprovalCountAggregateInputType | true
+    _min?: GymCaseApprovalMinAggregateInputType
+    _max?: GymCaseApprovalMaxAggregateInputType
+  }
+
+  export type GymCaseApprovalGroupByOutputType = {
+    id: string
+    proposalId: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged: boolean
+    createdAt: Date
+    _count: GymCaseApprovalCountAggregateOutputType | null
+    _min: GymCaseApprovalMinAggregateOutputType | null
+    _max: GymCaseApprovalMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseApprovalGroupByPayload<T extends GymCaseApprovalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseApprovalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseApprovalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseApprovalGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseApprovalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseApprovalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    proposalId?: boolean
+    approverId?: boolean
+    result?: boolean
+    reason?: boolean
+    conflictOfInterestDeclaredNone?: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: boolean
+    proposal?: boolean | GymCaseProposalDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseApproval"]>
+
+  export type GymCaseApprovalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    proposalId?: boolean
+    approverId?: boolean
+    result?: boolean
+    reason?: boolean
+    conflictOfInterestDeclaredNone?: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: boolean
+    proposal?: boolean | GymCaseProposalDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseApproval"]>
+
+  export type GymCaseApprovalSelectScalar = {
+    id?: boolean
+    proposalId?: boolean
+    approverId?: boolean
+    result?: boolean
+    reason?: boolean
+    conflictOfInterestDeclaredNone?: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseApprovalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    proposal?: boolean | GymCaseProposalDefaultArgs<ExtArgs>
+  }
+  export type GymCaseApprovalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    proposal?: boolean | GymCaseProposalDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseApprovalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseApproval"
+    objects: {
+      proposal: Prisma.$GymCaseProposalPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      proposalId: string
+      approverId: string
+      result: $Enums.GymCaseApprovalResult
+      reason: string
+      conflictOfInterestDeclaredNone: boolean
+      evidenceChangeAcknowledged: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseApproval"]>
+    composites: {}
+  }
+
+  type GymCaseApprovalGetPayload<S extends boolean | null | undefined | GymCaseApprovalDefaultArgs> = $Result.GetResult<Prisma.$GymCaseApprovalPayload, S>
+
+  type GymCaseApprovalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseApprovalFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseApprovalCountAggregateInputType | true
+    }
+
+  export interface GymCaseApprovalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseApproval'], meta: { name: 'GymCaseApproval' } }
+    /**
+     * Find zero or one GymCaseApproval that matches the filter.
+     * @param {GymCaseApprovalFindUniqueArgs} args - Arguments to find a GymCaseApproval
+     * @example
+     * // Get one GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseApprovalFindUniqueArgs>(args: SelectSubset<T, GymCaseApprovalFindUniqueArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseApproval that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseApprovalFindUniqueOrThrowArgs} args - Arguments to find a GymCaseApproval
+     * @example
+     * // Get one GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseApprovalFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseApprovalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseApproval that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalFindFirstArgs} args - Arguments to find a GymCaseApproval
+     * @example
+     * // Get one GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseApprovalFindFirstArgs>(args?: SelectSubset<T, GymCaseApprovalFindFirstArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseApproval that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalFindFirstOrThrowArgs} args - Arguments to find a GymCaseApproval
+     * @example
+     * // Get one GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseApprovalFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseApprovalFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseApprovals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseApprovals
+     * const gymCaseApprovals = await prisma.gymCaseApproval.findMany()
+     * 
+     * // Get first 10 GymCaseApprovals
+     * const gymCaseApprovals = await prisma.gymCaseApproval.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseApprovalWithIdOnly = await prisma.gymCaseApproval.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseApprovalFindManyArgs>(args?: SelectSubset<T, GymCaseApprovalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseApproval.
+     * @param {GymCaseApprovalCreateArgs} args - Arguments to create a GymCaseApproval.
+     * @example
+     * // Create one GymCaseApproval
+     * const GymCaseApproval = await prisma.gymCaseApproval.create({
+     *   data: {
+     *     // ... data to create a GymCaseApproval
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseApprovalCreateArgs>(args: SelectSubset<T, GymCaseApprovalCreateArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseApprovals.
+     * @param {GymCaseApprovalCreateManyArgs} args - Arguments to create many GymCaseApprovals.
+     * @example
+     * // Create many GymCaseApprovals
+     * const gymCaseApproval = await prisma.gymCaseApproval.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseApprovalCreateManyArgs>(args?: SelectSubset<T, GymCaseApprovalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseApprovals and returns the data saved in the database.
+     * @param {GymCaseApprovalCreateManyAndReturnArgs} args - Arguments to create many GymCaseApprovals.
+     * @example
+     * // Create many GymCaseApprovals
+     * const gymCaseApproval = await prisma.gymCaseApproval.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseApprovals and only return the `id`
+     * const gymCaseApprovalWithIdOnly = await prisma.gymCaseApproval.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseApprovalCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseApprovalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseApproval.
+     * @param {GymCaseApprovalDeleteArgs} args - Arguments to delete one GymCaseApproval.
+     * @example
+     * // Delete one GymCaseApproval
+     * const GymCaseApproval = await prisma.gymCaseApproval.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseApproval
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseApprovalDeleteArgs>(args: SelectSubset<T, GymCaseApprovalDeleteArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseApproval.
+     * @param {GymCaseApprovalUpdateArgs} args - Arguments to update one GymCaseApproval.
+     * @example
+     * // Update one GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseApprovalUpdateArgs>(args: SelectSubset<T, GymCaseApprovalUpdateArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseApprovals.
+     * @param {GymCaseApprovalDeleteManyArgs} args - Arguments to filter GymCaseApprovals to delete.
+     * @example
+     * // Delete a few GymCaseApprovals
+     * const { count } = await prisma.gymCaseApproval.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseApprovalDeleteManyArgs>(args?: SelectSubset<T, GymCaseApprovalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseApprovals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseApprovals
+     * const gymCaseApproval = await prisma.gymCaseApproval.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseApprovalUpdateManyArgs>(args: SelectSubset<T, GymCaseApprovalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseApproval.
+     * @param {GymCaseApprovalUpsertArgs} args - Arguments to update or create a GymCaseApproval.
+     * @example
+     * // Update or create a GymCaseApproval
+     * const gymCaseApproval = await prisma.gymCaseApproval.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseApproval
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseApproval we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseApprovalUpsertArgs>(args: SelectSubset<T, GymCaseApprovalUpsertArgs<ExtArgs>>): Prisma__GymCaseApprovalClient<$Result.GetResult<Prisma.$GymCaseApprovalPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseApprovals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalCountArgs} args - Arguments to filter GymCaseApprovals to count.
+     * @example
+     * // Count the number of GymCaseApprovals
+     * const count = await prisma.gymCaseApproval.count({
+     *   where: {
+     *     // ... the filter for the GymCaseApprovals we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseApprovalCountArgs>(
+      args?: Subset<T, GymCaseApprovalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseApprovalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseApproval.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseApprovalAggregateArgs>(args: Subset<T, GymCaseApprovalAggregateArgs>): Prisma.PrismaPromise<GetGymCaseApprovalAggregateType<T>>
+
+    /**
+     * Group by GymCaseApproval.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseApprovalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseApprovalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseApprovalGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseApprovalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseApprovalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseApprovalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseApproval model
+   */
+  readonly fields: GymCaseApprovalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseApproval.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseApprovalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    proposal<T extends GymCaseProposalDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymCaseProposalDefaultArgs<ExtArgs>>): Prisma__GymCaseProposalClient<$Result.GetResult<Prisma.$GymCaseProposalPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseApproval model
+   */ 
+  interface GymCaseApprovalFieldRefs {
+    readonly id: FieldRef<"GymCaseApproval", 'String'>
+    readonly proposalId: FieldRef<"GymCaseApproval", 'String'>
+    readonly approverId: FieldRef<"GymCaseApproval", 'String'>
+    readonly result: FieldRef<"GymCaseApproval", 'GymCaseApprovalResult'>
+    readonly reason: FieldRef<"GymCaseApproval", 'String'>
+    readonly conflictOfInterestDeclaredNone: FieldRef<"GymCaseApproval", 'Boolean'>
+    readonly evidenceChangeAcknowledged: FieldRef<"GymCaseApproval", 'Boolean'>
+    readonly createdAt: FieldRef<"GymCaseApproval", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseApproval findUnique
+   */
+  export type GymCaseApprovalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseApproval to fetch.
+     */
+    where: GymCaseApprovalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseApproval findUniqueOrThrow
+   */
+  export type GymCaseApprovalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseApproval to fetch.
+     */
+    where: GymCaseApprovalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseApproval findFirst
+   */
+  export type GymCaseApprovalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseApproval to fetch.
+     */
+    where?: GymCaseApprovalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseApprovals to fetch.
+     */
+    orderBy?: GymCaseApprovalOrderByWithRelationInput | GymCaseApprovalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseApprovals.
+     */
+    cursor?: GymCaseApprovalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseApprovals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseApprovals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseApprovals.
+     */
+    distinct?: GymCaseApprovalScalarFieldEnum | GymCaseApprovalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseApproval findFirstOrThrow
+   */
+  export type GymCaseApprovalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseApproval to fetch.
+     */
+    where?: GymCaseApprovalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseApprovals to fetch.
+     */
+    orderBy?: GymCaseApprovalOrderByWithRelationInput | GymCaseApprovalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseApprovals.
+     */
+    cursor?: GymCaseApprovalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseApprovals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseApprovals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseApprovals.
+     */
+    distinct?: GymCaseApprovalScalarFieldEnum | GymCaseApprovalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseApproval findMany
+   */
+  export type GymCaseApprovalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseApprovals to fetch.
+     */
+    where?: GymCaseApprovalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseApprovals to fetch.
+     */
+    orderBy?: GymCaseApprovalOrderByWithRelationInput | GymCaseApprovalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseApprovals.
+     */
+    cursor?: GymCaseApprovalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseApprovals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseApprovals.
+     */
+    skip?: number
+    distinct?: GymCaseApprovalScalarFieldEnum | GymCaseApprovalScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseApproval create
+   */
+  export type GymCaseApprovalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseApproval.
+     */
+    data: XOR<GymCaseApprovalCreateInput, GymCaseApprovalUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseApproval createMany
+   */
+  export type GymCaseApprovalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseApprovals.
+     */
+    data: GymCaseApprovalCreateManyInput | GymCaseApprovalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseApproval createManyAndReturn
+   */
+  export type GymCaseApprovalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseApprovals.
+     */
+    data: GymCaseApprovalCreateManyInput | GymCaseApprovalCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseApproval update
+   */
+  export type GymCaseApprovalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseApproval.
+     */
+    data: XOR<GymCaseApprovalUpdateInput, GymCaseApprovalUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseApproval to update.
+     */
+    where: GymCaseApprovalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseApproval updateMany
+   */
+  export type GymCaseApprovalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseApprovals.
+     */
+    data: XOR<GymCaseApprovalUpdateManyMutationInput, GymCaseApprovalUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseApprovals to update
+     */
+    where?: GymCaseApprovalWhereInput
+  }
+
+  /**
+   * GymCaseApproval upsert
+   */
+  export type GymCaseApprovalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseApproval to update in case it exists.
+     */
+    where: GymCaseApprovalWhereUniqueInput
+    /**
+     * In case the GymCaseApproval found by the `where` argument doesn't exist, create a new GymCaseApproval with this data.
+     */
+    create: XOR<GymCaseApprovalCreateInput, GymCaseApprovalUncheckedCreateInput>
+    /**
+     * In case the GymCaseApproval was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseApprovalUpdateInput, GymCaseApprovalUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseApproval delete
+   */
+  export type GymCaseApprovalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseApproval to delete.
+     */
+    where: GymCaseApprovalWhereUniqueInput
+  }
+
+  /**
+   * GymCaseApproval deleteMany
+   */
+  export type GymCaseApprovalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseApprovals to delete
+     */
+    where?: GymCaseApprovalWhereInput
+  }
+
+  /**
+   * GymCaseApproval without action
+   */
+  export type GymCaseApprovalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseApproval
+     */
+    select?: GymCaseApprovalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseApprovalInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseEvent
+   */
+
+  export type AggregateGymCaseEvent = {
+    _count: GymCaseEventCountAggregateOutputType | null
+    _min: GymCaseEventMinAggregateOutputType | null
+    _max: GymCaseEventMaxAggregateOutputType | null
+  }
+
+  export type GymCaseEventMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    action: string | null
+    fromStatus: $Enums.GymCaseStatus | null
+    toStatus: $Enums.GymCaseStatus | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseEventMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    action: string | null
+    fromStatus: $Enums.GymCaseStatus | null
+    toStatus: $Enums.GymCaseStatus | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseEventCountAggregateOutputType = {
+    id: number
+    caseId: number
+    actorUserId: number
+    actorRole: number
+    action: number
+    fromStatus: number
+    toStatus: number
+    note: number
+    idempotencyKey: number
+    payload: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseEventMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type GymCaseEventMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type GymCaseEventCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    note?: true
+    idempotencyKey?: true
+    payload?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseEvent to aggregate.
+     */
+    where?: GymCaseEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvents to fetch.
+     */
+    orderBy?: GymCaseEventOrderByWithRelationInput | GymCaseEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseEvents
+    **/
+    _count?: true | GymCaseEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseEventMaxAggregateInputType
+  }
+
+  export type GetGymCaseEventAggregateType<T extends GymCaseEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseEvent[P]>
+      : GetScalarType<T[P], AggregateGymCaseEvent[P]>
+  }
+
+
+
+
+  export type GymCaseEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseEventWhereInput
+    orderBy?: GymCaseEventOrderByWithAggregationInput | GymCaseEventOrderByWithAggregationInput[]
+    by: GymCaseEventScalarFieldEnum[] | GymCaseEventScalarFieldEnum
+    having?: GymCaseEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseEventCountAggregateInputType | true
+    _min?: GymCaseEventMinAggregateInputType
+    _max?: GymCaseEventMaxAggregateInputType
+  }
+
+  export type GymCaseEventGroupByOutputType = {
+    id: string
+    caseId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus: $Enums.GymCaseStatus | null
+    toStatus: $Enums.GymCaseStatus | null
+    note: string | null
+    idempotencyKey: string | null
+    payload: JsonValue | null
+    createdAt: Date
+    _count: GymCaseEventCountAggregateOutputType | null
+    _min: GymCaseEventMinAggregateOutputType | null
+    _max: GymCaseEventMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseEventGroupByPayload<T extends GymCaseEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseEventGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseEvent"]>
+
+  export type GymCaseEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseEvent"]>
+
+  export type GymCaseEventSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseEvent"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      actorUserId: string
+      actorRole: string
+      action: string
+      fromStatus: $Enums.GymCaseStatus | null
+      toStatus: $Enums.GymCaseStatus | null
+      note: string | null
+      idempotencyKey: string | null
+      payload: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseEvent"]>
+    composites: {}
+  }
+
+  type GymCaseEventGetPayload<S extends boolean | null | undefined | GymCaseEventDefaultArgs> = $Result.GetResult<Prisma.$GymCaseEventPayload, S>
+
+  type GymCaseEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseEventCountAggregateInputType | true
+    }
+
+  export interface GymCaseEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseEvent'], meta: { name: 'GymCaseEvent' } }
+    /**
+     * Find zero or one GymCaseEvent that matches the filter.
+     * @param {GymCaseEventFindUniqueArgs} args - Arguments to find a GymCaseEvent
+     * @example
+     * // Get one GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseEventFindUniqueArgs>(args: SelectSubset<T, GymCaseEventFindUniqueArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseEventFindUniqueOrThrowArgs} args - Arguments to find a GymCaseEvent
+     * @example
+     * // Get one GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseEventFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventFindFirstArgs} args - Arguments to find a GymCaseEvent
+     * @example
+     * // Get one GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseEventFindFirstArgs>(args?: SelectSubset<T, GymCaseEventFindFirstArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventFindFirstOrThrowArgs} args - Arguments to find a GymCaseEvent
+     * @example
+     * // Get one GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseEventFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseEvents
+     * const gymCaseEvents = await prisma.gymCaseEvent.findMany()
+     * 
+     * // Get first 10 GymCaseEvents
+     * const gymCaseEvents = await prisma.gymCaseEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseEventWithIdOnly = await prisma.gymCaseEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseEventFindManyArgs>(args?: SelectSubset<T, GymCaseEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseEvent.
+     * @param {GymCaseEventCreateArgs} args - Arguments to create a GymCaseEvent.
+     * @example
+     * // Create one GymCaseEvent
+     * const GymCaseEvent = await prisma.gymCaseEvent.create({
+     *   data: {
+     *     // ... data to create a GymCaseEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseEventCreateArgs>(args: SelectSubset<T, GymCaseEventCreateArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseEvents.
+     * @param {GymCaseEventCreateManyArgs} args - Arguments to create many GymCaseEvents.
+     * @example
+     * // Create many GymCaseEvents
+     * const gymCaseEvent = await prisma.gymCaseEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseEventCreateManyArgs>(args?: SelectSubset<T, GymCaseEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseEvents and returns the data saved in the database.
+     * @param {GymCaseEventCreateManyAndReturnArgs} args - Arguments to create many GymCaseEvents.
+     * @example
+     * // Create many GymCaseEvents
+     * const gymCaseEvent = await prisma.gymCaseEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseEvents and only return the `id`
+     * const gymCaseEventWithIdOnly = await prisma.gymCaseEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseEventCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseEvent.
+     * @param {GymCaseEventDeleteArgs} args - Arguments to delete one GymCaseEvent.
+     * @example
+     * // Delete one GymCaseEvent
+     * const GymCaseEvent = await prisma.gymCaseEvent.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseEventDeleteArgs>(args: SelectSubset<T, GymCaseEventDeleteArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseEvent.
+     * @param {GymCaseEventUpdateArgs} args - Arguments to update one GymCaseEvent.
+     * @example
+     * // Update one GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseEventUpdateArgs>(args: SelectSubset<T, GymCaseEventUpdateArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseEvents.
+     * @param {GymCaseEventDeleteManyArgs} args - Arguments to filter GymCaseEvents to delete.
+     * @example
+     * // Delete a few GymCaseEvents
+     * const { count } = await prisma.gymCaseEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseEventDeleteManyArgs>(args?: SelectSubset<T, GymCaseEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseEvents
+     * const gymCaseEvent = await prisma.gymCaseEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseEventUpdateManyArgs>(args: SelectSubset<T, GymCaseEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseEvent.
+     * @param {GymCaseEventUpsertArgs} args - Arguments to update or create a GymCaseEvent.
+     * @example
+     * // Update or create a GymCaseEvent
+     * const gymCaseEvent = await prisma.gymCaseEvent.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseEventUpsertArgs>(args: SelectSubset<T, GymCaseEventUpsertArgs<ExtArgs>>): Prisma__GymCaseEventClient<$Result.GetResult<Prisma.$GymCaseEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventCountArgs} args - Arguments to filter GymCaseEvents to count.
+     * @example
+     * // Count the number of GymCaseEvents
+     * const count = await prisma.gymCaseEvent.count({
+     *   where: {
+     *     // ... the filter for the GymCaseEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseEventCountArgs>(
+      args?: Subset<T, GymCaseEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseEventAggregateArgs>(args: Subset<T, GymCaseEventAggregateArgs>): Prisma.PrismaPromise<GetGymCaseEventAggregateType<T>>
+
+    /**
+     * Group by GymCaseEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseEventGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseEvent model
+   */
+  readonly fields: GymCaseEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseEvent model
+   */ 
+  interface GymCaseEventFieldRefs {
+    readonly id: FieldRef<"GymCaseEvent", 'String'>
+    readonly caseId: FieldRef<"GymCaseEvent", 'String'>
+    readonly actorUserId: FieldRef<"GymCaseEvent", 'String'>
+    readonly actorRole: FieldRef<"GymCaseEvent", 'String'>
+    readonly action: FieldRef<"GymCaseEvent", 'String'>
+    readonly fromStatus: FieldRef<"GymCaseEvent", 'GymCaseStatus'>
+    readonly toStatus: FieldRef<"GymCaseEvent", 'GymCaseStatus'>
+    readonly note: FieldRef<"GymCaseEvent", 'String'>
+    readonly idempotencyKey: FieldRef<"GymCaseEvent", 'String'>
+    readonly payload: FieldRef<"GymCaseEvent", 'Json'>
+    readonly createdAt: FieldRef<"GymCaseEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseEvent findUnique
+   */
+  export type GymCaseEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvent to fetch.
+     */
+    where: GymCaseEventWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvent findUniqueOrThrow
+   */
+  export type GymCaseEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvent to fetch.
+     */
+    where: GymCaseEventWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvent findFirst
+   */
+  export type GymCaseEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvent to fetch.
+     */
+    where?: GymCaseEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvents to fetch.
+     */
+    orderBy?: GymCaseEventOrderByWithRelationInput | GymCaseEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseEvents.
+     */
+    cursor?: GymCaseEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseEvents.
+     */
+    distinct?: GymCaseEventScalarFieldEnum | GymCaseEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvent findFirstOrThrow
+   */
+  export type GymCaseEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvent to fetch.
+     */
+    where?: GymCaseEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvents to fetch.
+     */
+    orderBy?: GymCaseEventOrderByWithRelationInput | GymCaseEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseEvents.
+     */
+    cursor?: GymCaseEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseEvents.
+     */
+    distinct?: GymCaseEventScalarFieldEnum | GymCaseEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvent findMany
+   */
+  export type GymCaseEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseEvents to fetch.
+     */
+    where?: GymCaseEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseEvents to fetch.
+     */
+    orderBy?: GymCaseEventOrderByWithRelationInput | GymCaseEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseEvents.
+     */
+    cursor?: GymCaseEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseEvents.
+     */
+    skip?: number
+    distinct?: GymCaseEventScalarFieldEnum | GymCaseEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseEvent create
+   */
+  export type GymCaseEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseEvent.
+     */
+    data: XOR<GymCaseEventCreateInput, GymCaseEventUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseEvent createMany
+   */
+  export type GymCaseEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseEvents.
+     */
+    data: GymCaseEventCreateManyInput | GymCaseEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseEvent createManyAndReturn
+   */
+  export type GymCaseEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseEvents.
+     */
+    data: GymCaseEventCreateManyInput | GymCaseEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseEvent update
+   */
+  export type GymCaseEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseEvent.
+     */
+    data: XOR<GymCaseEventUpdateInput, GymCaseEventUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseEvent to update.
+     */
+    where: GymCaseEventWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvent updateMany
+   */
+  export type GymCaseEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseEvents.
+     */
+    data: XOR<GymCaseEventUpdateManyMutationInput, GymCaseEventUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseEvents to update
+     */
+    where?: GymCaseEventWhereInput
+  }
+
+  /**
+   * GymCaseEvent upsert
+   */
+  export type GymCaseEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseEvent to update in case it exists.
+     */
+    where: GymCaseEventWhereUniqueInput
+    /**
+     * In case the GymCaseEvent found by the `where` argument doesn't exist, create a new GymCaseEvent with this data.
+     */
+    create: XOR<GymCaseEventCreateInput, GymCaseEventUncheckedCreateInput>
+    /**
+     * In case the GymCaseEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseEventUpdateInput, GymCaseEventUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseEvent delete
+   */
+  export type GymCaseEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseEvent to delete.
+     */
+    where: GymCaseEventWhereUniqueInput
+  }
+
+  /**
+   * GymCaseEvent deleteMany
+   */
+  export type GymCaseEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseEvents to delete
+     */
+    where?: GymCaseEventWhereInput
+  }
+
+  /**
+   * GymCaseEvent without action
+   */
+  export type GymCaseEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseEvent
+     */
+    select?: GymCaseEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseEventInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseExecution
+   */
+
+  export type AggregateGymCaseExecution = {
+    _count: GymCaseExecutionCountAggregateOutputType | null
+    _avg: GymCaseExecutionAvgAggregateOutputType | null
+    _sum: GymCaseExecutionSumAggregateOutputType | null
+    _min: GymCaseExecutionMinAggregateOutputType | null
+    _max: GymCaseExecutionMaxAggregateOutputType | null
+  }
+
+  export type GymCaseExecutionAvgAggregateOutputType = {
+    attempt: number | null
+  }
+
+  export type GymCaseExecutionSumAggregateOutputType = {
+    attempt: number | null
+  }
+
+  export type GymCaseExecutionMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    decisionId: string | null
+    outcome: $Enums.GymCaseOutcome | null
+    actorUserId: string | null
+    idempotencyKey: string | null
+    attempt: number | null
+    state: $Enums.GymCaseExecState | null
+    blockedReason: string | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseExecutionMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    decisionId: string | null
+    outcome: $Enums.GymCaseOutcome | null
+    actorUserId: string | null
+    idempotencyKey: string | null
+    attempt: number | null
+    state: $Enums.GymCaseExecState | null
+    blockedReason: string | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseExecutionCountAggregateOutputType = {
+    id: number
+    caseId: number
+    decisionId: number
+    outcome: number
+    actorUserId: number
+    idempotencyKey: number
+    attempt: number
+    state: number
+    blockedReason: number
+    note: number
+    response: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseExecutionAvgAggregateInputType = {
+    attempt?: true
+  }
+
+  export type GymCaseExecutionSumAggregateInputType = {
+    attempt?: true
+  }
+
+  export type GymCaseExecutionMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    decisionId?: true
+    outcome?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    attempt?: true
+    state?: true
+    blockedReason?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type GymCaseExecutionMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    decisionId?: true
+    outcome?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    attempt?: true
+    state?: true
+    blockedReason?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type GymCaseExecutionCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    decisionId?: true
+    outcome?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    attempt?: true
+    state?: true
+    blockedReason?: true
+    note?: true
+    response?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseExecutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseExecution to aggregate.
+     */
+    where?: GymCaseExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseExecutions to fetch.
+     */
+    orderBy?: GymCaseExecutionOrderByWithRelationInput | GymCaseExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseExecutions
+    **/
+    _count?: true | GymCaseExecutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymCaseExecutionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymCaseExecutionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseExecutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseExecutionMaxAggregateInputType
+  }
+
+  export type GetGymCaseExecutionAggregateType<T extends GymCaseExecutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseExecution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseExecution[P]>
+      : GetScalarType<T[P], AggregateGymCaseExecution[P]>
+  }
+
+
+
+
+  export type GymCaseExecutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseExecutionWhereInput
+    orderBy?: GymCaseExecutionOrderByWithAggregationInput | GymCaseExecutionOrderByWithAggregationInput[]
+    by: GymCaseExecutionScalarFieldEnum[] | GymCaseExecutionScalarFieldEnum
+    having?: GymCaseExecutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseExecutionCountAggregateInputType | true
+    _avg?: GymCaseExecutionAvgAggregateInputType
+    _sum?: GymCaseExecutionSumAggregateInputType
+    _min?: GymCaseExecutionMinAggregateInputType
+    _max?: GymCaseExecutionMaxAggregateInputType
+  }
+
+  export type GymCaseExecutionGroupByOutputType = {
+    id: string
+    caseId: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt: number
+    state: $Enums.GymCaseExecState
+    blockedReason: string | null
+    note: string | null
+    response: JsonValue | null
+    createdAt: Date
+    _count: GymCaseExecutionCountAggregateOutputType | null
+    _avg: GymCaseExecutionAvgAggregateOutputType | null
+    _sum: GymCaseExecutionSumAggregateOutputType | null
+    _min: GymCaseExecutionMinAggregateOutputType | null
+    _max: GymCaseExecutionMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseExecutionGroupByPayload<T extends GymCaseExecutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseExecutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseExecutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseExecutionGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseExecutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseExecutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    decisionId?: boolean
+    outcome?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    attempt?: boolean
+    state?: boolean
+    blockedReason?: boolean
+    note?: boolean
+    response?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseExecution"]>
+
+  export type GymCaseExecutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    decisionId?: boolean
+    outcome?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    attempt?: boolean
+    state?: boolean
+    blockedReason?: boolean
+    note?: boolean
+    response?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseExecution"]>
+
+  export type GymCaseExecutionSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    decisionId?: boolean
+    outcome?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    attempt?: boolean
+    state?: boolean
+    blockedReason?: boolean
+    note?: boolean
+    response?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseExecutionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseExecutionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseExecutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseExecution"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      decisionId: string
+      outcome: $Enums.GymCaseOutcome
+      actorUserId: string
+      idempotencyKey: string
+      attempt: number
+      state: $Enums.GymCaseExecState
+      blockedReason: string | null
+      note: string | null
+      response: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseExecution"]>
+    composites: {}
+  }
+
+  type GymCaseExecutionGetPayload<S extends boolean | null | undefined | GymCaseExecutionDefaultArgs> = $Result.GetResult<Prisma.$GymCaseExecutionPayload, S>
+
+  type GymCaseExecutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseExecutionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseExecutionCountAggregateInputType | true
+    }
+
+  export interface GymCaseExecutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseExecution'], meta: { name: 'GymCaseExecution' } }
+    /**
+     * Find zero or one GymCaseExecution that matches the filter.
+     * @param {GymCaseExecutionFindUniqueArgs} args - Arguments to find a GymCaseExecution
+     * @example
+     * // Get one GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseExecutionFindUniqueArgs>(args: SelectSubset<T, GymCaseExecutionFindUniqueArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseExecution that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseExecutionFindUniqueOrThrowArgs} args - Arguments to find a GymCaseExecution
+     * @example
+     * // Get one GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseExecutionFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseExecutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseExecution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionFindFirstArgs} args - Arguments to find a GymCaseExecution
+     * @example
+     * // Get one GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseExecutionFindFirstArgs>(args?: SelectSubset<T, GymCaseExecutionFindFirstArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseExecution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionFindFirstOrThrowArgs} args - Arguments to find a GymCaseExecution
+     * @example
+     * // Get one GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseExecutionFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseExecutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseExecutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseExecutions
+     * const gymCaseExecutions = await prisma.gymCaseExecution.findMany()
+     * 
+     * // Get first 10 GymCaseExecutions
+     * const gymCaseExecutions = await prisma.gymCaseExecution.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseExecutionWithIdOnly = await prisma.gymCaseExecution.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseExecutionFindManyArgs>(args?: SelectSubset<T, GymCaseExecutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseExecution.
+     * @param {GymCaseExecutionCreateArgs} args - Arguments to create a GymCaseExecution.
+     * @example
+     * // Create one GymCaseExecution
+     * const GymCaseExecution = await prisma.gymCaseExecution.create({
+     *   data: {
+     *     // ... data to create a GymCaseExecution
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseExecutionCreateArgs>(args: SelectSubset<T, GymCaseExecutionCreateArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseExecutions.
+     * @param {GymCaseExecutionCreateManyArgs} args - Arguments to create many GymCaseExecutions.
+     * @example
+     * // Create many GymCaseExecutions
+     * const gymCaseExecution = await prisma.gymCaseExecution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseExecutionCreateManyArgs>(args?: SelectSubset<T, GymCaseExecutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseExecutions and returns the data saved in the database.
+     * @param {GymCaseExecutionCreateManyAndReturnArgs} args - Arguments to create many GymCaseExecutions.
+     * @example
+     * // Create many GymCaseExecutions
+     * const gymCaseExecution = await prisma.gymCaseExecution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseExecutions and only return the `id`
+     * const gymCaseExecutionWithIdOnly = await prisma.gymCaseExecution.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseExecutionCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseExecutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseExecution.
+     * @param {GymCaseExecutionDeleteArgs} args - Arguments to delete one GymCaseExecution.
+     * @example
+     * // Delete one GymCaseExecution
+     * const GymCaseExecution = await prisma.gymCaseExecution.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseExecution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseExecutionDeleteArgs>(args: SelectSubset<T, GymCaseExecutionDeleteArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseExecution.
+     * @param {GymCaseExecutionUpdateArgs} args - Arguments to update one GymCaseExecution.
+     * @example
+     * // Update one GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseExecutionUpdateArgs>(args: SelectSubset<T, GymCaseExecutionUpdateArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseExecutions.
+     * @param {GymCaseExecutionDeleteManyArgs} args - Arguments to filter GymCaseExecutions to delete.
+     * @example
+     * // Delete a few GymCaseExecutions
+     * const { count } = await prisma.gymCaseExecution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseExecutionDeleteManyArgs>(args?: SelectSubset<T, GymCaseExecutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseExecutions
+     * const gymCaseExecution = await prisma.gymCaseExecution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseExecutionUpdateManyArgs>(args: SelectSubset<T, GymCaseExecutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseExecution.
+     * @param {GymCaseExecutionUpsertArgs} args - Arguments to update or create a GymCaseExecution.
+     * @example
+     * // Update or create a GymCaseExecution
+     * const gymCaseExecution = await prisma.gymCaseExecution.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseExecution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseExecution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseExecutionUpsertArgs>(args: SelectSubset<T, GymCaseExecutionUpsertArgs<ExtArgs>>): Prisma__GymCaseExecutionClient<$Result.GetResult<Prisma.$GymCaseExecutionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionCountArgs} args - Arguments to filter GymCaseExecutions to count.
+     * @example
+     * // Count the number of GymCaseExecutions
+     * const count = await prisma.gymCaseExecution.count({
+     *   where: {
+     *     // ... the filter for the GymCaseExecutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseExecutionCountArgs>(
+      args?: Subset<T, GymCaseExecutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseExecutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseExecutionAggregateArgs>(args: Subset<T, GymCaseExecutionAggregateArgs>): Prisma.PrismaPromise<GetGymCaseExecutionAggregateType<T>>
+
+    /**
+     * Group by GymCaseExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseExecutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseExecutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseExecutionGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseExecutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseExecutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseExecutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseExecution model
+   */
+  readonly fields: GymCaseExecutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseExecution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseExecutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseExecution model
+   */ 
+  interface GymCaseExecutionFieldRefs {
+    readonly id: FieldRef<"GymCaseExecution", 'String'>
+    readonly caseId: FieldRef<"GymCaseExecution", 'String'>
+    readonly decisionId: FieldRef<"GymCaseExecution", 'String'>
+    readonly outcome: FieldRef<"GymCaseExecution", 'GymCaseOutcome'>
+    readonly actorUserId: FieldRef<"GymCaseExecution", 'String'>
+    readonly idempotencyKey: FieldRef<"GymCaseExecution", 'String'>
+    readonly attempt: FieldRef<"GymCaseExecution", 'Int'>
+    readonly state: FieldRef<"GymCaseExecution", 'GymCaseExecState'>
+    readonly blockedReason: FieldRef<"GymCaseExecution", 'String'>
+    readonly note: FieldRef<"GymCaseExecution", 'String'>
+    readonly response: FieldRef<"GymCaseExecution", 'Json'>
+    readonly createdAt: FieldRef<"GymCaseExecution", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseExecution findUnique
+   */
+  export type GymCaseExecutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseExecution to fetch.
+     */
+    where: GymCaseExecutionWhereUniqueInput
+  }
+
+  /**
+   * GymCaseExecution findUniqueOrThrow
+   */
+  export type GymCaseExecutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseExecution to fetch.
+     */
+    where: GymCaseExecutionWhereUniqueInput
+  }
+
+  /**
+   * GymCaseExecution findFirst
+   */
+  export type GymCaseExecutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseExecution to fetch.
+     */
+    where?: GymCaseExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseExecutions to fetch.
+     */
+    orderBy?: GymCaseExecutionOrderByWithRelationInput | GymCaseExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseExecutions.
+     */
+    cursor?: GymCaseExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseExecutions.
+     */
+    distinct?: GymCaseExecutionScalarFieldEnum | GymCaseExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseExecution findFirstOrThrow
+   */
+  export type GymCaseExecutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseExecution to fetch.
+     */
+    where?: GymCaseExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseExecutions to fetch.
+     */
+    orderBy?: GymCaseExecutionOrderByWithRelationInput | GymCaseExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseExecutions.
+     */
+    cursor?: GymCaseExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseExecutions.
+     */
+    distinct?: GymCaseExecutionScalarFieldEnum | GymCaseExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseExecution findMany
+   */
+  export type GymCaseExecutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseExecutions to fetch.
+     */
+    where?: GymCaseExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseExecutions to fetch.
+     */
+    orderBy?: GymCaseExecutionOrderByWithRelationInput | GymCaseExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseExecutions.
+     */
+    cursor?: GymCaseExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseExecutions.
+     */
+    skip?: number
+    distinct?: GymCaseExecutionScalarFieldEnum | GymCaseExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseExecution create
+   */
+  export type GymCaseExecutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseExecution.
+     */
+    data: XOR<GymCaseExecutionCreateInput, GymCaseExecutionUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseExecution createMany
+   */
+  export type GymCaseExecutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseExecutions.
+     */
+    data: GymCaseExecutionCreateManyInput | GymCaseExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseExecution createManyAndReturn
+   */
+  export type GymCaseExecutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseExecutions.
+     */
+    data: GymCaseExecutionCreateManyInput | GymCaseExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseExecution update
+   */
+  export type GymCaseExecutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseExecution.
+     */
+    data: XOR<GymCaseExecutionUpdateInput, GymCaseExecutionUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseExecution to update.
+     */
+    where: GymCaseExecutionWhereUniqueInput
+  }
+
+  /**
+   * GymCaseExecution updateMany
+   */
+  export type GymCaseExecutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseExecutions.
+     */
+    data: XOR<GymCaseExecutionUpdateManyMutationInput, GymCaseExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseExecutions to update
+     */
+    where?: GymCaseExecutionWhereInput
+  }
+
+  /**
+   * GymCaseExecution upsert
+   */
+  export type GymCaseExecutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseExecution to update in case it exists.
+     */
+    where: GymCaseExecutionWhereUniqueInput
+    /**
+     * In case the GymCaseExecution found by the `where` argument doesn't exist, create a new GymCaseExecution with this data.
+     */
+    create: XOR<GymCaseExecutionCreateInput, GymCaseExecutionUncheckedCreateInput>
+    /**
+     * In case the GymCaseExecution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseExecutionUpdateInput, GymCaseExecutionUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseExecution delete
+   */
+  export type GymCaseExecutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseExecution to delete.
+     */
+    where: GymCaseExecutionWhereUniqueInput
+  }
+
+  /**
+   * GymCaseExecution deleteMany
+   */
+  export type GymCaseExecutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseExecutions to delete
+     */
+    where?: GymCaseExecutionWhereInput
+  }
+
+  /**
+   * GymCaseExecution without action
+   */
+  export type GymCaseExecutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseExecution
+     */
+    select?: GymCaseExecutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseExecutionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymCaseAccessLog
+   */
+
+  export type AggregateGymCaseAccessLog = {
+    _count: GymCaseAccessLogCountAggregateOutputType | null
+    _min: GymCaseAccessLogMinAggregateOutputType | null
+    _max: GymCaseAccessLogMaxAggregateOutputType | null
+  }
+
+  export type GymCaseAccessLogMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    viewerUserId: string | null
+    viewerRole: string | null
+    evidenceId: string | null
+    action: $Enums.GymCaseAccessAction | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseAccessLogMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    viewerUserId: string | null
+    viewerRole: string | null
+    evidenceId: string | null
+    action: $Enums.GymCaseAccessAction | null
+    createdAt: Date | null
+  }
+
+  export type GymCaseAccessLogCountAggregateOutputType = {
+    id: number
+    caseId: number
+    viewerUserId: number
+    viewerRole: number
+    evidenceId: number
+    action: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymCaseAccessLogMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    viewerUserId?: true
+    viewerRole?: true
+    evidenceId?: true
+    action?: true
+    createdAt?: true
+  }
+
+  export type GymCaseAccessLogMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    viewerUserId?: true
+    viewerRole?: true
+    evidenceId?: true
+    action?: true
+    createdAt?: true
+  }
+
+  export type GymCaseAccessLogCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    viewerUserId?: true
+    viewerRole?: true
+    evidenceId?: true
+    action?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymCaseAccessLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseAccessLog to aggregate.
+     */
+    where?: GymCaseAccessLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAccessLogs to fetch.
+     */
+    orderBy?: GymCaseAccessLogOrderByWithRelationInput | GymCaseAccessLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymCaseAccessLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAccessLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAccessLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymCaseAccessLogs
+    **/
+    _count?: true | GymCaseAccessLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymCaseAccessLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymCaseAccessLogMaxAggregateInputType
+  }
+
+  export type GetGymCaseAccessLogAggregateType<T extends GymCaseAccessLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymCaseAccessLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymCaseAccessLog[P]>
+      : GetScalarType<T[P], AggregateGymCaseAccessLog[P]>
+  }
+
+
+
+
+  export type GymCaseAccessLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymCaseAccessLogWhereInput
+    orderBy?: GymCaseAccessLogOrderByWithAggregationInput | GymCaseAccessLogOrderByWithAggregationInput[]
+    by: GymCaseAccessLogScalarFieldEnum[] | GymCaseAccessLogScalarFieldEnum
+    having?: GymCaseAccessLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymCaseAccessLogCountAggregateInputType | true
+    _min?: GymCaseAccessLogMinAggregateInputType
+    _max?: GymCaseAccessLogMaxAggregateInputType
+  }
+
+  export type GymCaseAccessLogGroupByOutputType = {
+    id: string
+    caseId: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt: Date
+    _count: GymCaseAccessLogCountAggregateOutputType | null
+    _min: GymCaseAccessLogMinAggregateOutputType | null
+    _max: GymCaseAccessLogMaxAggregateOutputType | null
+  }
+
+  type GetGymCaseAccessLogGroupByPayload<T extends GymCaseAccessLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymCaseAccessLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymCaseAccessLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymCaseAccessLogGroupByOutputType[P]>
+            : GetScalarType<T[P], GymCaseAccessLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymCaseAccessLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    viewerUserId?: boolean
+    viewerRole?: boolean
+    evidenceId?: boolean
+    action?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseAccessLog"]>
+
+  export type GymCaseAccessLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    viewerUserId?: boolean
+    viewerRole?: boolean
+    evidenceId?: boolean
+    action?: boolean
+    createdAt?: boolean
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymCaseAccessLog"]>
+
+  export type GymCaseAccessLogSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    viewerUserId?: boolean
+    viewerRole?: boolean
+    evidenceId?: boolean
+    action?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymCaseAccessLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+  export type GymCaseAccessLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | GymComplaintCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $GymCaseAccessLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymCaseAccessLog"
+    objects: {
+      case: Prisma.$GymComplaintCasePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      viewerUserId: string
+      viewerRole: string
+      evidenceId: string | null
+      action: $Enums.GymCaseAccessAction
+      createdAt: Date
+    }, ExtArgs["result"]["gymCaseAccessLog"]>
+    composites: {}
+  }
+
+  type GymCaseAccessLogGetPayload<S extends boolean | null | undefined | GymCaseAccessLogDefaultArgs> = $Result.GetResult<Prisma.$GymCaseAccessLogPayload, S>
+
+  type GymCaseAccessLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymCaseAccessLogFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymCaseAccessLogCountAggregateInputType | true
+    }
+
+  export interface GymCaseAccessLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymCaseAccessLog'], meta: { name: 'GymCaseAccessLog' } }
+    /**
+     * Find zero or one GymCaseAccessLog that matches the filter.
+     * @param {GymCaseAccessLogFindUniqueArgs} args - Arguments to find a GymCaseAccessLog
+     * @example
+     * // Get one GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymCaseAccessLogFindUniqueArgs>(args: SelectSubset<T, GymCaseAccessLogFindUniqueArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymCaseAccessLog that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymCaseAccessLogFindUniqueOrThrowArgs} args - Arguments to find a GymCaseAccessLog
+     * @example
+     * // Get one GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymCaseAccessLogFindUniqueOrThrowArgs>(args: SelectSubset<T, GymCaseAccessLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymCaseAccessLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogFindFirstArgs} args - Arguments to find a GymCaseAccessLog
+     * @example
+     * // Get one GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymCaseAccessLogFindFirstArgs>(args?: SelectSubset<T, GymCaseAccessLogFindFirstArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymCaseAccessLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogFindFirstOrThrowArgs} args - Arguments to find a GymCaseAccessLog
+     * @example
+     * // Get one GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymCaseAccessLogFindFirstOrThrowArgs>(args?: SelectSubset<T, GymCaseAccessLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymCaseAccessLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymCaseAccessLogs
+     * const gymCaseAccessLogs = await prisma.gymCaseAccessLog.findMany()
+     * 
+     * // Get first 10 GymCaseAccessLogs
+     * const gymCaseAccessLogs = await prisma.gymCaseAccessLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymCaseAccessLogWithIdOnly = await prisma.gymCaseAccessLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymCaseAccessLogFindManyArgs>(args?: SelectSubset<T, GymCaseAccessLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymCaseAccessLog.
+     * @param {GymCaseAccessLogCreateArgs} args - Arguments to create a GymCaseAccessLog.
+     * @example
+     * // Create one GymCaseAccessLog
+     * const GymCaseAccessLog = await prisma.gymCaseAccessLog.create({
+     *   data: {
+     *     // ... data to create a GymCaseAccessLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymCaseAccessLogCreateArgs>(args: SelectSubset<T, GymCaseAccessLogCreateArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymCaseAccessLogs.
+     * @param {GymCaseAccessLogCreateManyArgs} args - Arguments to create many GymCaseAccessLogs.
+     * @example
+     * // Create many GymCaseAccessLogs
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymCaseAccessLogCreateManyArgs>(args?: SelectSubset<T, GymCaseAccessLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymCaseAccessLogs and returns the data saved in the database.
+     * @param {GymCaseAccessLogCreateManyAndReturnArgs} args - Arguments to create many GymCaseAccessLogs.
+     * @example
+     * // Create many GymCaseAccessLogs
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymCaseAccessLogs and only return the `id`
+     * const gymCaseAccessLogWithIdOnly = await prisma.gymCaseAccessLog.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymCaseAccessLogCreateManyAndReturnArgs>(args?: SelectSubset<T, GymCaseAccessLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymCaseAccessLog.
+     * @param {GymCaseAccessLogDeleteArgs} args - Arguments to delete one GymCaseAccessLog.
+     * @example
+     * // Delete one GymCaseAccessLog
+     * const GymCaseAccessLog = await prisma.gymCaseAccessLog.delete({
+     *   where: {
+     *     // ... filter to delete one GymCaseAccessLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymCaseAccessLogDeleteArgs>(args: SelectSubset<T, GymCaseAccessLogDeleteArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymCaseAccessLog.
+     * @param {GymCaseAccessLogUpdateArgs} args - Arguments to update one GymCaseAccessLog.
+     * @example
+     * // Update one GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymCaseAccessLogUpdateArgs>(args: SelectSubset<T, GymCaseAccessLogUpdateArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymCaseAccessLogs.
+     * @param {GymCaseAccessLogDeleteManyArgs} args - Arguments to filter GymCaseAccessLogs to delete.
+     * @example
+     * // Delete a few GymCaseAccessLogs
+     * const { count } = await prisma.gymCaseAccessLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymCaseAccessLogDeleteManyArgs>(args?: SelectSubset<T, GymCaseAccessLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymCaseAccessLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymCaseAccessLogs
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymCaseAccessLogUpdateManyArgs>(args: SelectSubset<T, GymCaseAccessLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymCaseAccessLog.
+     * @param {GymCaseAccessLogUpsertArgs} args - Arguments to update or create a GymCaseAccessLog.
+     * @example
+     * // Update or create a GymCaseAccessLog
+     * const gymCaseAccessLog = await prisma.gymCaseAccessLog.upsert({
+     *   create: {
+     *     // ... data to create a GymCaseAccessLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymCaseAccessLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymCaseAccessLogUpsertArgs>(args: SelectSubset<T, GymCaseAccessLogUpsertArgs<ExtArgs>>): Prisma__GymCaseAccessLogClient<$Result.GetResult<Prisma.$GymCaseAccessLogPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymCaseAccessLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogCountArgs} args - Arguments to filter GymCaseAccessLogs to count.
+     * @example
+     * // Count the number of GymCaseAccessLogs
+     * const count = await prisma.gymCaseAccessLog.count({
+     *   where: {
+     *     // ... the filter for the GymCaseAccessLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymCaseAccessLogCountArgs>(
+      args?: Subset<T, GymCaseAccessLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymCaseAccessLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymCaseAccessLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymCaseAccessLogAggregateArgs>(args: Subset<T, GymCaseAccessLogAggregateArgs>): Prisma.PrismaPromise<GetGymCaseAccessLogAggregateType<T>>
+
+    /**
+     * Group by GymCaseAccessLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymCaseAccessLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymCaseAccessLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymCaseAccessLogGroupByArgs['orderBy'] }
+        : { orderBy?: GymCaseAccessLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymCaseAccessLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymCaseAccessLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymCaseAccessLog model
+   */
+  readonly fields: GymCaseAccessLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymCaseAccessLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymCaseAccessLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends GymComplaintCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymComplaintCaseDefaultArgs<ExtArgs>>): Prisma__GymComplaintCaseClient<$Result.GetResult<Prisma.$GymComplaintCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymCaseAccessLog model
+   */ 
+  interface GymCaseAccessLogFieldRefs {
+    readonly id: FieldRef<"GymCaseAccessLog", 'String'>
+    readonly caseId: FieldRef<"GymCaseAccessLog", 'String'>
+    readonly viewerUserId: FieldRef<"GymCaseAccessLog", 'String'>
+    readonly viewerRole: FieldRef<"GymCaseAccessLog", 'String'>
+    readonly evidenceId: FieldRef<"GymCaseAccessLog", 'String'>
+    readonly action: FieldRef<"GymCaseAccessLog", 'GymCaseAccessAction'>
+    readonly createdAt: FieldRef<"GymCaseAccessLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymCaseAccessLog findUnique
+   */
+  export type GymCaseAccessLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAccessLog to fetch.
+     */
+    where: GymCaseAccessLogWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAccessLog findUniqueOrThrow
+   */
+  export type GymCaseAccessLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAccessLog to fetch.
+     */
+    where: GymCaseAccessLogWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAccessLog findFirst
+   */
+  export type GymCaseAccessLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAccessLog to fetch.
+     */
+    where?: GymCaseAccessLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAccessLogs to fetch.
+     */
+    orderBy?: GymCaseAccessLogOrderByWithRelationInput | GymCaseAccessLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseAccessLogs.
+     */
+    cursor?: GymCaseAccessLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAccessLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAccessLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseAccessLogs.
+     */
+    distinct?: GymCaseAccessLogScalarFieldEnum | GymCaseAccessLogScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAccessLog findFirstOrThrow
+   */
+  export type GymCaseAccessLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAccessLog to fetch.
+     */
+    where?: GymCaseAccessLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAccessLogs to fetch.
+     */
+    orderBy?: GymCaseAccessLogOrderByWithRelationInput | GymCaseAccessLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymCaseAccessLogs.
+     */
+    cursor?: GymCaseAccessLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAccessLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAccessLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymCaseAccessLogs.
+     */
+    distinct?: GymCaseAccessLogScalarFieldEnum | GymCaseAccessLogScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAccessLog findMany
+   */
+  export type GymCaseAccessLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter, which GymCaseAccessLogs to fetch.
+     */
+    where?: GymCaseAccessLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymCaseAccessLogs to fetch.
+     */
+    orderBy?: GymCaseAccessLogOrderByWithRelationInput | GymCaseAccessLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymCaseAccessLogs.
+     */
+    cursor?: GymCaseAccessLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymCaseAccessLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymCaseAccessLogs.
+     */
+    skip?: number
+    distinct?: GymCaseAccessLogScalarFieldEnum | GymCaseAccessLogScalarFieldEnum[]
+  }
+
+  /**
+   * GymCaseAccessLog create
+   */
+  export type GymCaseAccessLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymCaseAccessLog.
+     */
+    data: XOR<GymCaseAccessLogCreateInput, GymCaseAccessLogUncheckedCreateInput>
+  }
+
+  /**
+   * GymCaseAccessLog createMany
+   */
+  export type GymCaseAccessLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymCaseAccessLogs.
+     */
+    data: GymCaseAccessLogCreateManyInput | GymCaseAccessLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymCaseAccessLog createManyAndReturn
+   */
+  export type GymCaseAccessLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymCaseAccessLogs.
+     */
+    data: GymCaseAccessLogCreateManyInput | GymCaseAccessLogCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymCaseAccessLog update
+   */
+  export type GymCaseAccessLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymCaseAccessLog.
+     */
+    data: XOR<GymCaseAccessLogUpdateInput, GymCaseAccessLogUncheckedUpdateInput>
+    /**
+     * Choose, which GymCaseAccessLog to update.
+     */
+    where: GymCaseAccessLogWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAccessLog updateMany
+   */
+  export type GymCaseAccessLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymCaseAccessLogs.
+     */
+    data: XOR<GymCaseAccessLogUpdateManyMutationInput, GymCaseAccessLogUncheckedUpdateManyInput>
+    /**
+     * Filter which GymCaseAccessLogs to update
+     */
+    where?: GymCaseAccessLogWhereInput
+  }
+
+  /**
+   * GymCaseAccessLog upsert
+   */
+  export type GymCaseAccessLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymCaseAccessLog to update in case it exists.
+     */
+    where: GymCaseAccessLogWhereUniqueInput
+    /**
+     * In case the GymCaseAccessLog found by the `where` argument doesn't exist, create a new GymCaseAccessLog with this data.
+     */
+    create: XOR<GymCaseAccessLogCreateInput, GymCaseAccessLogUncheckedCreateInput>
+    /**
+     * In case the GymCaseAccessLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymCaseAccessLogUpdateInput, GymCaseAccessLogUncheckedUpdateInput>
+  }
+
+  /**
+   * GymCaseAccessLog delete
+   */
+  export type GymCaseAccessLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+    /**
+     * Filter which GymCaseAccessLog to delete.
+     */
+    where: GymCaseAccessLogWhereUniqueInput
+  }
+
+  /**
+   * GymCaseAccessLog deleteMany
+   */
+  export type GymCaseAccessLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymCaseAccessLogs to delete
+     */
+    where?: GymCaseAccessLogWhereInput
+  }
+
+  /**
+   * GymCaseAccessLog without action
+   */
+  export type GymCaseAccessLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymCaseAccessLog
+     */
+    select?: GymCaseAccessLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymCaseAccessLogInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -47716,6 +61526,200 @@ export namespace Prisma {
   };
 
   export type GymAssistedCheckInExceptionScalarFieldEnum = (typeof GymAssistedCheckInExceptionScalarFieldEnum)[keyof typeof GymAssistedCheckInExceptionScalarFieldEnum]
+
+
+  export const GymComplaintCaseScalarFieldEnum: {
+    id: 'id',
+    complaintId: 'complaintId',
+    gymId: 'gymId',
+    membershipId: 'membershipId',
+    reporterUserId: 'reporterUserId',
+    caseClass: 'caseClass',
+    status: 'status',
+    escalated: 'escalated',
+    investigatorId: 'investigatorId',
+    version: 'version',
+    execStatus: 'execStatus',
+    execDecisionId: 'execDecisionId',
+    createdBy: 'createdBy',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymComplaintCaseScalarFieldEnum = (typeof GymComplaintCaseScalarFieldEnum)[keyof typeof GymComplaintCaseScalarFieldEnum]
+
+
+  export const GymCaseStatementScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    partyRole: 'partyRole',
+    authorUserId: 'authorUserId',
+    version: 'version',
+    source: 'source',
+    text: 'text',
+    supplementReason: 'supplementReason',
+    supersedesId: 'supersedesId',
+    contentHash: 'contentHash',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseStatementScalarFieldEnum = (typeof GymCaseStatementScalarFieldEnum)[keyof typeof GymCaseStatementScalarFieldEnum]
+
+
+  export const GymCaseEvidenceScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    provenanceType: 'provenanceType',
+    source: 'source',
+    subject: 'subject',
+    scopeGymId: 'scopeGymId',
+    eventAt: 'eventAt',
+    capturedAt: 'capturedAt',
+    submittedBy: 'submittedBy',
+    submittedRole: 'submittedRole',
+    snapshotVersion: 'snapshotVersion',
+    contentHash: 'contentHash',
+    payload: 'payload',
+    sensitivity: 'sensitivity',
+    supersedesId: 'supersedesId',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseEvidenceScalarFieldEnum = (typeof GymCaseEvidenceScalarFieldEnum)[keyof typeof GymCaseEvidenceScalarFieldEnum]
+
+
+  export const GymCaseShareScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    evidenceId: 'evidenceId',
+    statementId: 'statementId',
+    sharedWithRole: 'sharedWithRole',
+    sharedBy: 'sharedBy',
+    reason: 'reason',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseShareScalarFieldEnum = (typeof GymCaseShareScalarFieldEnum)[keyof typeof GymCaseShareScalarFieldEnum]
+
+
+  export const GymCaseClaimScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    claimantRole: 'claimantRole',
+    text: 'text',
+    createdBy: 'createdBy',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseClaimScalarFieldEnum = (typeof GymCaseClaimScalarFieldEnum)[keyof typeof GymCaseClaimScalarFieldEnum]
+
+
+  export const GymCaseAssessmentScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    claimId: 'claimId',
+    assessorId: 'assessorId',
+    directEvidenceIds: 'directEvidenceIds',
+    indirectEvidenceIds: 'indirectEvidenceIds',
+    rebuttalEvidenceIds: 'rebuttalEvidenceIds',
+    relevanceNote: 'relevanceNote',
+    verifiabilityNote: 'verifiabilityNote',
+    consistencyNote: 'consistencyNote',
+    result: 'result',
+    reasoning: 'reasoning',
+    evidenceSnapshot: 'evidenceSnapshot',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseAssessmentScalarFieldEnum = (typeof GymCaseAssessmentScalarFieldEnum)[keyof typeof GymCaseAssessmentScalarFieldEnum]
+
+
+  export const GymCaseFindingScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    finding: 'finding',
+    reasoning: 'reasoning',
+    recordedBy: 'recordedBy',
+    supersedesId: 'supersedesId',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseFindingScalarFieldEnum = (typeof GymCaseFindingScalarFieldEnum)[keyof typeof GymCaseFindingScalarFieldEnum]
+
+
+  export const GymCaseProposalScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    findingId: 'findingId',
+    outcome: 'outcome',
+    proposerId: 'proposerId',
+    evidenceSnapshot: 'evidenceSnapshot',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseProposalScalarFieldEnum = (typeof GymCaseProposalScalarFieldEnum)[keyof typeof GymCaseProposalScalarFieldEnum]
+
+
+  export const GymCaseApprovalScalarFieldEnum: {
+    id: 'id',
+    proposalId: 'proposalId',
+    approverId: 'approverId',
+    result: 'result',
+    reason: 'reason',
+    conflictOfInterestDeclaredNone: 'conflictOfInterestDeclaredNone',
+    evidenceChangeAcknowledged: 'evidenceChangeAcknowledged',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseApprovalScalarFieldEnum = (typeof GymCaseApprovalScalarFieldEnum)[keyof typeof GymCaseApprovalScalarFieldEnum]
+
+
+  export const GymCaseEventScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    actorUserId: 'actorUserId',
+    actorRole: 'actorRole',
+    action: 'action',
+    fromStatus: 'fromStatus',
+    toStatus: 'toStatus',
+    note: 'note',
+    idempotencyKey: 'idempotencyKey',
+    payload: 'payload',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseEventScalarFieldEnum = (typeof GymCaseEventScalarFieldEnum)[keyof typeof GymCaseEventScalarFieldEnum]
+
+
+  export const GymCaseExecutionScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    decisionId: 'decisionId',
+    outcome: 'outcome',
+    actorUserId: 'actorUserId',
+    idempotencyKey: 'idempotencyKey',
+    attempt: 'attempt',
+    state: 'state',
+    blockedReason: 'blockedReason',
+    note: 'note',
+    response: 'response',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseExecutionScalarFieldEnum = (typeof GymCaseExecutionScalarFieldEnum)[keyof typeof GymCaseExecutionScalarFieldEnum]
+
+
+  export const GymCaseAccessLogScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    viewerUserId: 'viewerUserId',
+    viewerRole: 'viewerRole',
+    evidenceId: 'evidenceId',
+    action: 'action',
+    createdAt: 'createdAt'
+  };
+
+  export type GymCaseAccessLogScalarFieldEnum = (typeof GymCaseAccessLogScalarFieldEnum)[keyof typeof GymCaseAccessLogScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -48553,6 +62557,174 @@ export namespace Prisma {
    */
   export type ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedExceptionStatus[]'>
     
+
+
+  /**
+   * Reference to a field of type 'GymCaseClass'
+   */
+  export type EnumGymCaseClassFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseClass'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseClass[]'
+   */
+  export type ListEnumGymCaseClassFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseClass[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseStatus'
+   */
+  export type EnumGymCaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseStatus[]'
+   */
+  export type ListEnumGymCaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseExecStatus'
+   */
+  export type EnumGymCaseExecStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseExecStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseExecStatus[]'
+   */
+  export type ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseExecStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCasePartyRole'
+   */
+  export type EnumGymCasePartyRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCasePartyRole'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCasePartyRole[]'
+   */
+  export type ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCasePartyRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseProvenance'
+   */
+  export type EnumGymCaseProvenanceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseProvenance'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseProvenance[]'
+   */
+  export type ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseProvenance[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseSensitivity'
+   */
+  export type EnumGymCaseSensitivityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseSensitivity'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseSensitivity[]'
+   */
+  export type ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseSensitivity[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseAssessmentResult'
+   */
+  export type EnumGymCaseAssessmentResultFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseAssessmentResult'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseAssessmentResult[]'
+   */
+  export type ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseAssessmentResult[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseFindingKind'
+   */
+  export type EnumGymCaseFindingKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseFindingKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseFindingKind[]'
+   */
+  export type ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseFindingKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseOutcome'
+   */
+  export type EnumGymCaseOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseOutcome'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseOutcome[]'
+   */
+  export type ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseOutcome[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseApprovalResult'
+   */
+  export type EnumGymCaseApprovalResultFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseApprovalResult'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseApprovalResult[]'
+   */
+  export type ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseApprovalResult[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseExecState'
+   */
+  export type EnumGymCaseExecStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseExecState'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseExecState[]'
+   */
+  export type ListEnumGymCaseExecStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseExecState[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseAccessAction'
+   */
+  export type EnumGymCaseAccessActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseAccessAction'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCaseAccessAction[]'
+   */
+  export type ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCaseAccessAction[]'>
+    
   /**
    * Deep Input Types
    */
@@ -48894,6 +63066,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymComplaint"> | Date | string
     updatedAt?: DateTimeFilter<"GymComplaint"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
+    case?: XOR<GymComplaintCaseNullableRelationFilter, GymComplaintCaseWhereInput> | null
   }
 
   export type GymComplaintOrderByWithRelationInput = {
@@ -48913,6 +63086,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
+    case?: GymComplaintCaseOrderByWithRelationInput
   }
 
   export type GymComplaintWhereUniqueInput = Prisma.AtLeast<{
@@ -48935,6 +63109,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymComplaint"> | Date | string
     updatedAt?: DateTimeFilter<"GymComplaint"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
+    case?: XOR<GymComplaintCaseNullableRelationFilter, GymComplaintCaseWhereInput> | null
   }, "id">
 
   export type GymComplaintOrderByWithAggregationInput = {
@@ -52342,6 +66517,1029 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInException"> | Date | string
   }
 
+  export type GymComplaintCaseWhereInput = {
+    AND?: GymComplaintCaseWhereInput | GymComplaintCaseWhereInput[]
+    OR?: GymComplaintCaseWhereInput[]
+    NOT?: GymComplaintCaseWhereInput | GymComplaintCaseWhereInput[]
+    id?: UuidFilter<"GymComplaintCase"> | string
+    complaintId?: StringFilter<"GymComplaintCase"> | string
+    gymId?: StringFilter<"GymComplaintCase"> | string
+    membershipId?: StringNullableFilter<"GymComplaintCase"> | string | null
+    reporterUserId?: StringFilter<"GymComplaintCase"> | string
+    caseClass?: EnumGymCaseClassFilter<"GymComplaintCase"> | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFilter<"GymComplaintCase"> | $Enums.GymCaseStatus
+    escalated?: BoolFilter<"GymComplaintCase"> | boolean
+    investigatorId?: StringNullableFilter<"GymComplaintCase"> | string | null
+    version?: IntFilter<"GymComplaintCase"> | number
+    execStatus?: EnumGymCaseExecStatusFilter<"GymComplaintCase"> | $Enums.GymCaseExecStatus
+    execDecisionId?: UuidNullableFilter<"GymComplaintCase"> | string | null
+    createdBy?: StringFilter<"GymComplaintCase"> | string
+    createdAt?: DateTimeFilter<"GymComplaintCase"> | Date | string
+    updatedAt?: DateTimeFilter<"GymComplaintCase"> | Date | string
+    complaint?: XOR<GymComplaintRelationFilter, GymComplaintWhereInput>
+    statements?: GymCaseStatementListRelationFilter
+    evidence?: GymCaseEvidenceListRelationFilter
+    shares?: GymCaseShareListRelationFilter
+    claims?: GymCaseClaimListRelationFilter
+    assessments?: GymCaseAssessmentListRelationFilter
+    findings?: GymCaseFindingListRelationFilter
+    proposals?: GymCaseProposalListRelationFilter
+    events?: GymCaseEventListRelationFilter
+    executions?: GymCaseExecutionListRelationFilter
+    accessLogs?: GymCaseAccessLogListRelationFilter
+  }
+
+  export type GymComplaintCaseOrderByWithRelationInput = {
+    id?: SortOrder
+    complaintId?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrderInput | SortOrder
+    reporterUserId?: SortOrder
+    caseClass?: SortOrder
+    status?: SortOrder
+    escalated?: SortOrder
+    investigatorId?: SortOrderInput | SortOrder
+    version?: SortOrder
+    execStatus?: SortOrder
+    execDecisionId?: SortOrderInput | SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    complaint?: GymComplaintOrderByWithRelationInput
+    statements?: GymCaseStatementOrderByRelationAggregateInput
+    evidence?: GymCaseEvidenceOrderByRelationAggregateInput
+    shares?: GymCaseShareOrderByRelationAggregateInput
+    claims?: GymCaseClaimOrderByRelationAggregateInput
+    assessments?: GymCaseAssessmentOrderByRelationAggregateInput
+    findings?: GymCaseFindingOrderByRelationAggregateInput
+    proposals?: GymCaseProposalOrderByRelationAggregateInput
+    events?: GymCaseEventOrderByRelationAggregateInput
+    executions?: GymCaseExecutionOrderByRelationAggregateInput
+    accessLogs?: GymCaseAccessLogOrderByRelationAggregateInput
+  }
+
+  export type GymComplaintCaseWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    complaintId?: string
+    AND?: GymComplaintCaseWhereInput | GymComplaintCaseWhereInput[]
+    OR?: GymComplaintCaseWhereInput[]
+    NOT?: GymComplaintCaseWhereInput | GymComplaintCaseWhereInput[]
+    gymId?: StringFilter<"GymComplaintCase"> | string
+    membershipId?: StringNullableFilter<"GymComplaintCase"> | string | null
+    reporterUserId?: StringFilter<"GymComplaintCase"> | string
+    caseClass?: EnumGymCaseClassFilter<"GymComplaintCase"> | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFilter<"GymComplaintCase"> | $Enums.GymCaseStatus
+    escalated?: BoolFilter<"GymComplaintCase"> | boolean
+    investigatorId?: StringNullableFilter<"GymComplaintCase"> | string | null
+    version?: IntFilter<"GymComplaintCase"> | number
+    execStatus?: EnumGymCaseExecStatusFilter<"GymComplaintCase"> | $Enums.GymCaseExecStatus
+    execDecisionId?: UuidNullableFilter<"GymComplaintCase"> | string | null
+    createdBy?: StringFilter<"GymComplaintCase"> | string
+    createdAt?: DateTimeFilter<"GymComplaintCase"> | Date | string
+    updatedAt?: DateTimeFilter<"GymComplaintCase"> | Date | string
+    complaint?: XOR<GymComplaintRelationFilter, GymComplaintWhereInput>
+    statements?: GymCaseStatementListRelationFilter
+    evidence?: GymCaseEvidenceListRelationFilter
+    shares?: GymCaseShareListRelationFilter
+    claims?: GymCaseClaimListRelationFilter
+    assessments?: GymCaseAssessmentListRelationFilter
+    findings?: GymCaseFindingListRelationFilter
+    proposals?: GymCaseProposalListRelationFilter
+    events?: GymCaseEventListRelationFilter
+    executions?: GymCaseExecutionListRelationFilter
+    accessLogs?: GymCaseAccessLogListRelationFilter
+  }, "id" | "complaintId">
+
+  export type GymComplaintCaseOrderByWithAggregationInput = {
+    id?: SortOrder
+    complaintId?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrderInput | SortOrder
+    reporterUserId?: SortOrder
+    caseClass?: SortOrder
+    status?: SortOrder
+    escalated?: SortOrder
+    investigatorId?: SortOrderInput | SortOrder
+    version?: SortOrder
+    execStatus?: SortOrder
+    execDecisionId?: SortOrderInput | SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymComplaintCaseCountOrderByAggregateInput
+    _avg?: GymComplaintCaseAvgOrderByAggregateInput
+    _max?: GymComplaintCaseMaxOrderByAggregateInput
+    _min?: GymComplaintCaseMinOrderByAggregateInput
+    _sum?: GymComplaintCaseSumOrderByAggregateInput
+  }
+
+  export type GymComplaintCaseScalarWhereWithAggregatesInput = {
+    AND?: GymComplaintCaseScalarWhereWithAggregatesInput | GymComplaintCaseScalarWhereWithAggregatesInput[]
+    OR?: GymComplaintCaseScalarWhereWithAggregatesInput[]
+    NOT?: GymComplaintCaseScalarWhereWithAggregatesInput | GymComplaintCaseScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymComplaintCase"> | string
+    complaintId?: StringWithAggregatesFilter<"GymComplaintCase"> | string
+    gymId?: StringWithAggregatesFilter<"GymComplaintCase"> | string
+    membershipId?: StringNullableWithAggregatesFilter<"GymComplaintCase"> | string | null
+    reporterUserId?: StringWithAggregatesFilter<"GymComplaintCase"> | string
+    caseClass?: EnumGymCaseClassWithAggregatesFilter<"GymComplaintCase"> | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusWithAggregatesFilter<"GymComplaintCase"> | $Enums.GymCaseStatus
+    escalated?: BoolWithAggregatesFilter<"GymComplaintCase"> | boolean
+    investigatorId?: StringNullableWithAggregatesFilter<"GymComplaintCase"> | string | null
+    version?: IntWithAggregatesFilter<"GymComplaintCase"> | number
+    execStatus?: EnumGymCaseExecStatusWithAggregatesFilter<"GymComplaintCase"> | $Enums.GymCaseExecStatus
+    execDecisionId?: UuidNullableWithAggregatesFilter<"GymComplaintCase"> | string | null
+    createdBy?: StringWithAggregatesFilter<"GymComplaintCase"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymComplaintCase"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymComplaintCase"> | Date | string
+  }
+
+  export type GymCaseStatementWhereInput = {
+    AND?: GymCaseStatementWhereInput | GymCaseStatementWhereInput[]
+    OR?: GymCaseStatementWhereInput[]
+    NOT?: GymCaseStatementWhereInput | GymCaseStatementWhereInput[]
+    id?: UuidFilter<"GymCaseStatement"> | string
+    caseId?: UuidFilter<"GymCaseStatement"> | string
+    partyRole?: EnumGymCasePartyRoleFilter<"GymCaseStatement"> | $Enums.GymCasePartyRole
+    authorUserId?: StringFilter<"GymCaseStatement"> | string
+    version?: IntFilter<"GymCaseStatement"> | number
+    source?: StringFilter<"GymCaseStatement"> | string
+    text?: StringFilter<"GymCaseStatement"> | string
+    supplementReason?: StringNullableFilter<"GymCaseStatement"> | string | null
+    supersedesId?: UuidNullableFilter<"GymCaseStatement"> | string | null
+    contentHash?: StringFilter<"GymCaseStatement"> | string
+    createdAt?: DateTimeFilter<"GymCaseStatement"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseStatementOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    authorUserId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    text?: SortOrder
+    supplementReason?: SortOrderInput | SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    contentHash?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseStatementWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseStatementWhereInput | GymCaseStatementWhereInput[]
+    OR?: GymCaseStatementWhereInput[]
+    NOT?: GymCaseStatementWhereInput | GymCaseStatementWhereInput[]
+    caseId?: UuidFilter<"GymCaseStatement"> | string
+    partyRole?: EnumGymCasePartyRoleFilter<"GymCaseStatement"> | $Enums.GymCasePartyRole
+    authorUserId?: StringFilter<"GymCaseStatement"> | string
+    version?: IntFilter<"GymCaseStatement"> | number
+    source?: StringFilter<"GymCaseStatement"> | string
+    text?: StringFilter<"GymCaseStatement"> | string
+    supplementReason?: StringNullableFilter<"GymCaseStatement"> | string | null
+    supersedesId?: UuidNullableFilter<"GymCaseStatement"> | string | null
+    contentHash?: StringFilter<"GymCaseStatement"> | string
+    createdAt?: DateTimeFilter<"GymCaseStatement"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id">
+
+  export type GymCaseStatementOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    authorUserId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    text?: SortOrder
+    supplementReason?: SortOrderInput | SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    contentHash?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseStatementCountOrderByAggregateInput
+    _avg?: GymCaseStatementAvgOrderByAggregateInput
+    _max?: GymCaseStatementMaxOrderByAggregateInput
+    _min?: GymCaseStatementMinOrderByAggregateInput
+    _sum?: GymCaseStatementSumOrderByAggregateInput
+  }
+
+  export type GymCaseStatementScalarWhereWithAggregatesInput = {
+    AND?: GymCaseStatementScalarWhereWithAggregatesInput | GymCaseStatementScalarWhereWithAggregatesInput[]
+    OR?: GymCaseStatementScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseStatementScalarWhereWithAggregatesInput | GymCaseStatementScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseStatement"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseStatement"> | string
+    partyRole?: EnumGymCasePartyRoleWithAggregatesFilter<"GymCaseStatement"> | $Enums.GymCasePartyRole
+    authorUserId?: StringWithAggregatesFilter<"GymCaseStatement"> | string
+    version?: IntWithAggregatesFilter<"GymCaseStatement"> | number
+    source?: StringWithAggregatesFilter<"GymCaseStatement"> | string
+    text?: StringWithAggregatesFilter<"GymCaseStatement"> | string
+    supplementReason?: StringNullableWithAggregatesFilter<"GymCaseStatement"> | string | null
+    supersedesId?: UuidNullableWithAggregatesFilter<"GymCaseStatement"> | string | null
+    contentHash?: StringWithAggregatesFilter<"GymCaseStatement"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseStatement"> | Date | string
+  }
+
+  export type GymCaseEvidenceWhereInput = {
+    AND?: GymCaseEvidenceWhereInput | GymCaseEvidenceWhereInput[]
+    OR?: GymCaseEvidenceWhereInput[]
+    NOT?: GymCaseEvidenceWhereInput | GymCaseEvidenceWhereInput[]
+    id?: UuidFilter<"GymCaseEvidence"> | string
+    caseId?: UuidFilter<"GymCaseEvidence"> | string
+    provenanceType?: EnumGymCaseProvenanceFilter<"GymCaseEvidence"> | $Enums.GymCaseProvenance
+    source?: StringFilter<"GymCaseEvidence"> | string
+    subject?: StringFilter<"GymCaseEvidence"> | string
+    scopeGymId?: StringFilter<"GymCaseEvidence"> | string
+    eventAt?: DateTimeNullableFilter<"GymCaseEvidence"> | Date | string | null
+    capturedAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+    submittedBy?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    submittedRole?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    snapshotVersion?: IntFilter<"GymCaseEvidence"> | number
+    contentHash?: StringFilter<"GymCaseEvidence"> | string
+    payload?: JsonFilter<"GymCaseEvidence">
+    sensitivity?: EnumGymCaseSensitivityFilter<"GymCaseEvidence"> | $Enums.GymCaseSensitivity
+    supersedesId?: UuidNullableFilter<"GymCaseEvidence"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseEvidenceOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    provenanceType?: SortOrder
+    source?: SortOrder
+    subject?: SortOrder
+    scopeGymId?: SortOrder
+    eventAt?: SortOrderInput | SortOrder
+    capturedAt?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedRole?: SortOrderInput | SortOrder
+    snapshotVersion?: SortOrder
+    contentHash?: SortOrder
+    payload?: SortOrder
+    sensitivity?: SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseEvidenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseEvidenceWhereInput | GymCaseEvidenceWhereInput[]
+    OR?: GymCaseEvidenceWhereInput[]
+    NOT?: GymCaseEvidenceWhereInput | GymCaseEvidenceWhereInput[]
+    caseId?: UuidFilter<"GymCaseEvidence"> | string
+    provenanceType?: EnumGymCaseProvenanceFilter<"GymCaseEvidence"> | $Enums.GymCaseProvenance
+    source?: StringFilter<"GymCaseEvidence"> | string
+    subject?: StringFilter<"GymCaseEvidence"> | string
+    scopeGymId?: StringFilter<"GymCaseEvidence"> | string
+    eventAt?: DateTimeNullableFilter<"GymCaseEvidence"> | Date | string | null
+    capturedAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+    submittedBy?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    submittedRole?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    snapshotVersion?: IntFilter<"GymCaseEvidence"> | number
+    contentHash?: StringFilter<"GymCaseEvidence"> | string
+    payload?: JsonFilter<"GymCaseEvidence">
+    sensitivity?: EnumGymCaseSensitivityFilter<"GymCaseEvidence"> | $Enums.GymCaseSensitivity
+    supersedesId?: UuidNullableFilter<"GymCaseEvidence"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id">
+
+  export type GymCaseEvidenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    provenanceType?: SortOrder
+    source?: SortOrder
+    subject?: SortOrder
+    scopeGymId?: SortOrder
+    eventAt?: SortOrderInput | SortOrder
+    capturedAt?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedRole?: SortOrderInput | SortOrder
+    snapshotVersion?: SortOrder
+    contentHash?: SortOrder
+    payload?: SortOrder
+    sensitivity?: SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseEvidenceCountOrderByAggregateInput
+    _avg?: GymCaseEvidenceAvgOrderByAggregateInput
+    _max?: GymCaseEvidenceMaxOrderByAggregateInput
+    _min?: GymCaseEvidenceMinOrderByAggregateInput
+    _sum?: GymCaseEvidenceSumOrderByAggregateInput
+  }
+
+  export type GymCaseEvidenceScalarWhereWithAggregatesInput = {
+    AND?: GymCaseEvidenceScalarWhereWithAggregatesInput | GymCaseEvidenceScalarWhereWithAggregatesInput[]
+    OR?: GymCaseEvidenceScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseEvidenceScalarWhereWithAggregatesInput | GymCaseEvidenceScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseEvidence"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseEvidence"> | string
+    provenanceType?: EnumGymCaseProvenanceWithAggregatesFilter<"GymCaseEvidence"> | $Enums.GymCaseProvenance
+    source?: StringWithAggregatesFilter<"GymCaseEvidence"> | string
+    subject?: StringWithAggregatesFilter<"GymCaseEvidence"> | string
+    scopeGymId?: StringWithAggregatesFilter<"GymCaseEvidence"> | string
+    eventAt?: DateTimeNullableWithAggregatesFilter<"GymCaseEvidence"> | Date | string | null
+    capturedAt?: DateTimeWithAggregatesFilter<"GymCaseEvidence"> | Date | string
+    submittedBy?: StringNullableWithAggregatesFilter<"GymCaseEvidence"> | string | null
+    submittedRole?: StringNullableWithAggregatesFilter<"GymCaseEvidence"> | string | null
+    snapshotVersion?: IntWithAggregatesFilter<"GymCaseEvidence"> | number
+    contentHash?: StringWithAggregatesFilter<"GymCaseEvidence"> | string
+    payload?: JsonWithAggregatesFilter<"GymCaseEvidence">
+    sensitivity?: EnumGymCaseSensitivityWithAggregatesFilter<"GymCaseEvidence"> | $Enums.GymCaseSensitivity
+    supersedesId?: UuidNullableWithAggregatesFilter<"GymCaseEvidence"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseEvidence"> | Date | string
+  }
+
+  export type GymCaseShareWhereInput = {
+    AND?: GymCaseShareWhereInput | GymCaseShareWhereInput[]
+    OR?: GymCaseShareWhereInput[]
+    NOT?: GymCaseShareWhereInput | GymCaseShareWhereInput[]
+    id?: UuidFilter<"GymCaseShare"> | string
+    caseId?: UuidFilter<"GymCaseShare"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    statementId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFilter<"GymCaseShare"> | $Enums.GymCasePartyRole
+    sharedBy?: StringFilter<"GymCaseShare"> | string
+    reason?: StringFilter<"GymCaseShare"> | string
+    createdAt?: DateTimeFilter<"GymCaseShare"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseShareOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    evidenceId?: SortOrderInput | SortOrder
+    statementId?: SortOrderInput | SortOrder
+    sharedWithRole?: SortOrder
+    sharedBy?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseShareWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseShareWhereInput | GymCaseShareWhereInput[]
+    OR?: GymCaseShareWhereInput[]
+    NOT?: GymCaseShareWhereInput | GymCaseShareWhereInput[]
+    caseId?: UuidFilter<"GymCaseShare"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    statementId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFilter<"GymCaseShare"> | $Enums.GymCasePartyRole
+    sharedBy?: StringFilter<"GymCaseShare"> | string
+    reason?: StringFilter<"GymCaseShare"> | string
+    createdAt?: DateTimeFilter<"GymCaseShare"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id">
+
+  export type GymCaseShareOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    evidenceId?: SortOrderInput | SortOrder
+    statementId?: SortOrderInput | SortOrder
+    sharedWithRole?: SortOrder
+    sharedBy?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseShareCountOrderByAggregateInput
+    _max?: GymCaseShareMaxOrderByAggregateInput
+    _min?: GymCaseShareMinOrderByAggregateInput
+  }
+
+  export type GymCaseShareScalarWhereWithAggregatesInput = {
+    AND?: GymCaseShareScalarWhereWithAggregatesInput | GymCaseShareScalarWhereWithAggregatesInput[]
+    OR?: GymCaseShareScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseShareScalarWhereWithAggregatesInput | GymCaseShareScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseShare"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseShare"> | string
+    evidenceId?: UuidNullableWithAggregatesFilter<"GymCaseShare"> | string | null
+    statementId?: UuidNullableWithAggregatesFilter<"GymCaseShare"> | string | null
+    sharedWithRole?: EnumGymCasePartyRoleWithAggregatesFilter<"GymCaseShare"> | $Enums.GymCasePartyRole
+    sharedBy?: StringWithAggregatesFilter<"GymCaseShare"> | string
+    reason?: StringWithAggregatesFilter<"GymCaseShare"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseShare"> | Date | string
+  }
+
+  export type GymCaseClaimWhereInput = {
+    AND?: GymCaseClaimWhereInput | GymCaseClaimWhereInput[]
+    OR?: GymCaseClaimWhereInput[]
+    NOT?: GymCaseClaimWhereInput | GymCaseClaimWhereInput[]
+    id?: UuidFilter<"GymCaseClaim"> | string
+    caseId?: UuidFilter<"GymCaseClaim"> | string
+    claimantRole?: EnumGymCasePartyRoleFilter<"GymCaseClaim"> | $Enums.GymCasePartyRole
+    text?: StringFilter<"GymCaseClaim"> | string
+    createdBy?: StringFilter<"GymCaseClaim"> | string
+    createdAt?: DateTimeFilter<"GymCaseClaim"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    assessments?: GymCaseAssessmentListRelationFilter
+  }
+
+  export type GymCaseClaimOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimantRole?: SortOrder
+    text?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+    assessments?: GymCaseAssessmentOrderByRelationAggregateInput
+  }
+
+  export type GymCaseClaimWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseClaimWhereInput | GymCaseClaimWhereInput[]
+    OR?: GymCaseClaimWhereInput[]
+    NOT?: GymCaseClaimWhereInput | GymCaseClaimWhereInput[]
+    caseId?: UuidFilter<"GymCaseClaim"> | string
+    claimantRole?: EnumGymCasePartyRoleFilter<"GymCaseClaim"> | $Enums.GymCasePartyRole
+    text?: StringFilter<"GymCaseClaim"> | string
+    createdBy?: StringFilter<"GymCaseClaim"> | string
+    createdAt?: DateTimeFilter<"GymCaseClaim"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    assessments?: GymCaseAssessmentListRelationFilter
+  }, "id">
+
+  export type GymCaseClaimOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimantRole?: SortOrder
+    text?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseClaimCountOrderByAggregateInput
+    _max?: GymCaseClaimMaxOrderByAggregateInput
+    _min?: GymCaseClaimMinOrderByAggregateInput
+  }
+
+  export type GymCaseClaimScalarWhereWithAggregatesInput = {
+    AND?: GymCaseClaimScalarWhereWithAggregatesInput | GymCaseClaimScalarWhereWithAggregatesInput[]
+    OR?: GymCaseClaimScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseClaimScalarWhereWithAggregatesInput | GymCaseClaimScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseClaim"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseClaim"> | string
+    claimantRole?: EnumGymCasePartyRoleWithAggregatesFilter<"GymCaseClaim"> | $Enums.GymCasePartyRole
+    text?: StringWithAggregatesFilter<"GymCaseClaim"> | string
+    createdBy?: StringWithAggregatesFilter<"GymCaseClaim"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseClaim"> | Date | string
+  }
+
+  export type GymCaseAssessmentWhereInput = {
+    AND?: GymCaseAssessmentWhereInput | GymCaseAssessmentWhereInput[]
+    OR?: GymCaseAssessmentWhereInput[]
+    NOT?: GymCaseAssessmentWhereInput | GymCaseAssessmentWhereInput[]
+    id?: UuidFilter<"GymCaseAssessment"> | string
+    caseId?: UuidFilter<"GymCaseAssessment"> | string
+    claimId?: UuidFilter<"GymCaseAssessment"> | string
+    assessorId?: StringFilter<"GymCaseAssessment"> | string
+    directEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    indirectEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    rebuttalEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    relevanceNote?: StringFilter<"GymCaseAssessment"> | string
+    verifiabilityNote?: StringFilter<"GymCaseAssessment"> | string
+    consistencyNote?: StringFilter<"GymCaseAssessment"> | string
+    result?: EnumGymCaseAssessmentResultFilter<"GymCaseAssessment"> | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFilter<"GymCaseAssessment"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseAssessment">
+    createdAt?: DateTimeFilter<"GymCaseAssessment"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    claim?: XOR<GymCaseClaimRelationFilter, GymCaseClaimWhereInput>
+  }
+
+  export type GymCaseAssessmentOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimId?: SortOrder
+    assessorId?: SortOrder
+    directEvidenceIds?: SortOrder
+    indirectEvidenceIds?: SortOrder
+    rebuttalEvidenceIds?: SortOrder
+    relevanceNote?: SortOrder
+    verifiabilityNote?: SortOrder
+    consistencyNote?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+    claim?: GymCaseClaimOrderByWithRelationInput
+  }
+
+  export type GymCaseAssessmentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseAssessmentWhereInput | GymCaseAssessmentWhereInput[]
+    OR?: GymCaseAssessmentWhereInput[]
+    NOT?: GymCaseAssessmentWhereInput | GymCaseAssessmentWhereInput[]
+    caseId?: UuidFilter<"GymCaseAssessment"> | string
+    claimId?: UuidFilter<"GymCaseAssessment"> | string
+    assessorId?: StringFilter<"GymCaseAssessment"> | string
+    directEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    indirectEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    rebuttalEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    relevanceNote?: StringFilter<"GymCaseAssessment"> | string
+    verifiabilityNote?: StringFilter<"GymCaseAssessment"> | string
+    consistencyNote?: StringFilter<"GymCaseAssessment"> | string
+    result?: EnumGymCaseAssessmentResultFilter<"GymCaseAssessment"> | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFilter<"GymCaseAssessment"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseAssessment">
+    createdAt?: DateTimeFilter<"GymCaseAssessment"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    claim?: XOR<GymCaseClaimRelationFilter, GymCaseClaimWhereInput>
+  }, "id">
+
+  export type GymCaseAssessmentOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimId?: SortOrder
+    assessorId?: SortOrder
+    directEvidenceIds?: SortOrder
+    indirectEvidenceIds?: SortOrder
+    rebuttalEvidenceIds?: SortOrder
+    relevanceNote?: SortOrder
+    verifiabilityNote?: SortOrder
+    consistencyNote?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseAssessmentCountOrderByAggregateInput
+    _max?: GymCaseAssessmentMaxOrderByAggregateInput
+    _min?: GymCaseAssessmentMinOrderByAggregateInput
+  }
+
+  export type GymCaseAssessmentScalarWhereWithAggregatesInput = {
+    AND?: GymCaseAssessmentScalarWhereWithAggregatesInput | GymCaseAssessmentScalarWhereWithAggregatesInput[]
+    OR?: GymCaseAssessmentScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseAssessmentScalarWhereWithAggregatesInput | GymCaseAssessmentScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseAssessment"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseAssessment"> | string
+    claimId?: UuidWithAggregatesFilter<"GymCaseAssessment"> | string
+    assessorId?: StringWithAggregatesFilter<"GymCaseAssessment"> | string
+    directEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    indirectEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    rebuttalEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    relevanceNote?: StringWithAggregatesFilter<"GymCaseAssessment"> | string
+    verifiabilityNote?: StringWithAggregatesFilter<"GymCaseAssessment"> | string
+    consistencyNote?: StringWithAggregatesFilter<"GymCaseAssessment"> | string
+    result?: EnumGymCaseAssessmentResultWithAggregatesFilter<"GymCaseAssessment"> | $Enums.GymCaseAssessmentResult
+    reasoning?: StringWithAggregatesFilter<"GymCaseAssessment"> | string
+    evidenceSnapshot?: JsonWithAggregatesFilter<"GymCaseAssessment">
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseAssessment"> | Date | string
+  }
+
+  export type GymCaseFindingWhereInput = {
+    AND?: GymCaseFindingWhereInput | GymCaseFindingWhereInput[]
+    OR?: GymCaseFindingWhereInput[]
+    NOT?: GymCaseFindingWhereInput | GymCaseFindingWhereInput[]
+    id?: UuidFilter<"GymCaseFinding"> | string
+    caseId?: UuidFilter<"GymCaseFinding"> | string
+    finding?: EnumGymCaseFindingKindFilter<"GymCaseFinding"> | $Enums.GymCaseFindingKind
+    reasoning?: StringFilter<"GymCaseFinding"> | string
+    recordedBy?: StringFilter<"GymCaseFinding"> | string
+    supersedesId?: UuidNullableFilter<"GymCaseFinding"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseFinding"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    proposals?: GymCaseProposalListRelationFilter
+  }
+
+  export type GymCaseFindingOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    finding?: SortOrder
+    reasoning?: SortOrder
+    recordedBy?: SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+    proposals?: GymCaseProposalOrderByRelationAggregateInput
+  }
+
+  export type GymCaseFindingWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseFindingWhereInput | GymCaseFindingWhereInput[]
+    OR?: GymCaseFindingWhereInput[]
+    NOT?: GymCaseFindingWhereInput | GymCaseFindingWhereInput[]
+    caseId?: UuidFilter<"GymCaseFinding"> | string
+    finding?: EnumGymCaseFindingKindFilter<"GymCaseFinding"> | $Enums.GymCaseFindingKind
+    reasoning?: StringFilter<"GymCaseFinding"> | string
+    recordedBy?: StringFilter<"GymCaseFinding"> | string
+    supersedesId?: UuidNullableFilter<"GymCaseFinding"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseFinding"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    proposals?: GymCaseProposalListRelationFilter
+  }, "id">
+
+  export type GymCaseFindingOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    finding?: SortOrder
+    reasoning?: SortOrder
+    recordedBy?: SortOrder
+    supersedesId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseFindingCountOrderByAggregateInput
+    _max?: GymCaseFindingMaxOrderByAggregateInput
+    _min?: GymCaseFindingMinOrderByAggregateInput
+  }
+
+  export type GymCaseFindingScalarWhereWithAggregatesInput = {
+    AND?: GymCaseFindingScalarWhereWithAggregatesInput | GymCaseFindingScalarWhereWithAggregatesInput[]
+    OR?: GymCaseFindingScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseFindingScalarWhereWithAggregatesInput | GymCaseFindingScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseFinding"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseFinding"> | string
+    finding?: EnumGymCaseFindingKindWithAggregatesFilter<"GymCaseFinding"> | $Enums.GymCaseFindingKind
+    reasoning?: StringWithAggregatesFilter<"GymCaseFinding"> | string
+    recordedBy?: StringWithAggregatesFilter<"GymCaseFinding"> | string
+    supersedesId?: UuidNullableWithAggregatesFilter<"GymCaseFinding"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseFinding"> | Date | string
+  }
+
+  export type GymCaseProposalWhereInput = {
+    AND?: GymCaseProposalWhereInput | GymCaseProposalWhereInput[]
+    OR?: GymCaseProposalWhereInput[]
+    NOT?: GymCaseProposalWhereInput | GymCaseProposalWhereInput[]
+    id?: UuidFilter<"GymCaseProposal"> | string
+    caseId?: UuidFilter<"GymCaseProposal"> | string
+    findingId?: UuidFilter<"GymCaseProposal"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseProposal"> | $Enums.GymCaseOutcome
+    proposerId?: StringFilter<"GymCaseProposal"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseProposal">
+    createdAt?: DateTimeFilter<"GymCaseProposal"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    finding?: XOR<GymCaseFindingRelationFilter, GymCaseFindingWhereInput>
+    approvals?: GymCaseApprovalListRelationFilter
+  }
+
+  export type GymCaseProposalOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    findingId?: SortOrder
+    outcome?: SortOrder
+    proposerId?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+    finding?: GymCaseFindingOrderByWithRelationInput
+    approvals?: GymCaseApprovalOrderByRelationAggregateInput
+  }
+
+  export type GymCaseProposalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseProposalWhereInput | GymCaseProposalWhereInput[]
+    OR?: GymCaseProposalWhereInput[]
+    NOT?: GymCaseProposalWhereInput | GymCaseProposalWhereInput[]
+    caseId?: UuidFilter<"GymCaseProposal"> | string
+    findingId?: UuidFilter<"GymCaseProposal"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseProposal"> | $Enums.GymCaseOutcome
+    proposerId?: StringFilter<"GymCaseProposal"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseProposal">
+    createdAt?: DateTimeFilter<"GymCaseProposal"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+    finding?: XOR<GymCaseFindingRelationFilter, GymCaseFindingWhereInput>
+    approvals?: GymCaseApprovalListRelationFilter
+  }, "id">
+
+  export type GymCaseProposalOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    findingId?: SortOrder
+    outcome?: SortOrder
+    proposerId?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseProposalCountOrderByAggregateInput
+    _max?: GymCaseProposalMaxOrderByAggregateInput
+    _min?: GymCaseProposalMinOrderByAggregateInput
+  }
+
+  export type GymCaseProposalScalarWhereWithAggregatesInput = {
+    AND?: GymCaseProposalScalarWhereWithAggregatesInput | GymCaseProposalScalarWhereWithAggregatesInput[]
+    OR?: GymCaseProposalScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseProposalScalarWhereWithAggregatesInput | GymCaseProposalScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseProposal"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseProposal"> | string
+    findingId?: UuidWithAggregatesFilter<"GymCaseProposal"> | string
+    outcome?: EnumGymCaseOutcomeWithAggregatesFilter<"GymCaseProposal"> | $Enums.GymCaseOutcome
+    proposerId?: StringWithAggregatesFilter<"GymCaseProposal"> | string
+    evidenceSnapshot?: JsonWithAggregatesFilter<"GymCaseProposal">
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseProposal"> | Date | string
+  }
+
+  export type GymCaseApprovalWhereInput = {
+    AND?: GymCaseApprovalWhereInput | GymCaseApprovalWhereInput[]
+    OR?: GymCaseApprovalWhereInput[]
+    NOT?: GymCaseApprovalWhereInput | GymCaseApprovalWhereInput[]
+    id?: UuidFilter<"GymCaseApproval"> | string
+    proposalId?: UuidFilter<"GymCaseApproval"> | string
+    approverId?: StringFilter<"GymCaseApproval"> | string
+    result?: EnumGymCaseApprovalResultFilter<"GymCaseApproval"> | $Enums.GymCaseApprovalResult
+    reason?: StringFilter<"GymCaseApproval"> | string
+    conflictOfInterestDeclaredNone?: BoolFilter<"GymCaseApproval"> | boolean
+    evidenceChangeAcknowledged?: BoolFilter<"GymCaseApproval"> | boolean
+    createdAt?: DateTimeFilter<"GymCaseApproval"> | Date | string
+    proposal?: XOR<GymCaseProposalRelationFilter, GymCaseProposalWhereInput>
+  }
+
+  export type GymCaseApprovalOrderByWithRelationInput = {
+    id?: SortOrder
+    proposalId?: SortOrder
+    approverId?: SortOrder
+    result?: SortOrder
+    reason?: SortOrder
+    conflictOfInterestDeclaredNone?: SortOrder
+    evidenceChangeAcknowledged?: SortOrder
+    createdAt?: SortOrder
+    proposal?: GymCaseProposalOrderByWithRelationInput
+  }
+
+  export type GymCaseApprovalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseApprovalWhereInput | GymCaseApprovalWhereInput[]
+    OR?: GymCaseApprovalWhereInput[]
+    NOT?: GymCaseApprovalWhereInput | GymCaseApprovalWhereInput[]
+    proposalId?: UuidFilter<"GymCaseApproval"> | string
+    approverId?: StringFilter<"GymCaseApproval"> | string
+    result?: EnumGymCaseApprovalResultFilter<"GymCaseApproval"> | $Enums.GymCaseApprovalResult
+    reason?: StringFilter<"GymCaseApproval"> | string
+    conflictOfInterestDeclaredNone?: BoolFilter<"GymCaseApproval"> | boolean
+    evidenceChangeAcknowledged?: BoolFilter<"GymCaseApproval"> | boolean
+    createdAt?: DateTimeFilter<"GymCaseApproval"> | Date | string
+    proposal?: XOR<GymCaseProposalRelationFilter, GymCaseProposalWhereInput>
+  }, "id">
+
+  export type GymCaseApprovalOrderByWithAggregationInput = {
+    id?: SortOrder
+    proposalId?: SortOrder
+    approverId?: SortOrder
+    result?: SortOrder
+    reason?: SortOrder
+    conflictOfInterestDeclaredNone?: SortOrder
+    evidenceChangeAcknowledged?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseApprovalCountOrderByAggregateInput
+    _max?: GymCaseApprovalMaxOrderByAggregateInput
+    _min?: GymCaseApprovalMinOrderByAggregateInput
+  }
+
+  export type GymCaseApprovalScalarWhereWithAggregatesInput = {
+    AND?: GymCaseApprovalScalarWhereWithAggregatesInput | GymCaseApprovalScalarWhereWithAggregatesInput[]
+    OR?: GymCaseApprovalScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseApprovalScalarWhereWithAggregatesInput | GymCaseApprovalScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseApproval"> | string
+    proposalId?: UuidWithAggregatesFilter<"GymCaseApproval"> | string
+    approverId?: StringWithAggregatesFilter<"GymCaseApproval"> | string
+    result?: EnumGymCaseApprovalResultWithAggregatesFilter<"GymCaseApproval"> | $Enums.GymCaseApprovalResult
+    reason?: StringWithAggregatesFilter<"GymCaseApproval"> | string
+    conflictOfInterestDeclaredNone?: BoolWithAggregatesFilter<"GymCaseApproval"> | boolean
+    evidenceChangeAcknowledged?: BoolWithAggregatesFilter<"GymCaseApproval"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseApproval"> | Date | string
+  }
+
+  export type GymCaseEventWhereInput = {
+    AND?: GymCaseEventWhereInput | GymCaseEventWhereInput[]
+    OR?: GymCaseEventWhereInput[]
+    NOT?: GymCaseEventWhereInput | GymCaseEventWhereInput[]
+    id?: UuidFilter<"GymCaseEvent"> | string
+    caseId?: UuidFilter<"GymCaseEvent"> | string
+    actorUserId?: StringFilter<"GymCaseEvent"> | string
+    actorRole?: StringFilter<"GymCaseEvent"> | string
+    action?: StringFilter<"GymCaseEvent"> | string
+    fromStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    toStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    note?: StringNullableFilter<"GymCaseEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"GymCaseEvent"> | string | null
+    payload?: JsonNullableFilter<"GymCaseEvent">
+    createdAt?: DateTimeFilter<"GymCaseEvent"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseEventOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrderInput | SortOrder
+    toStatus?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: GymCaseEventWhereInput | GymCaseEventWhereInput[]
+    OR?: GymCaseEventWhereInput[]
+    NOT?: GymCaseEventWhereInput | GymCaseEventWhereInput[]
+    caseId?: UuidFilter<"GymCaseEvent"> | string
+    actorUserId?: StringFilter<"GymCaseEvent"> | string
+    actorRole?: StringFilter<"GymCaseEvent"> | string
+    action?: StringFilter<"GymCaseEvent"> | string
+    fromStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    toStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    note?: StringNullableFilter<"GymCaseEvent"> | string | null
+    payload?: JsonNullableFilter<"GymCaseEvent">
+    createdAt?: DateTimeFilter<"GymCaseEvent"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id" | "idempotencyKey">
+
+  export type GymCaseEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrderInput | SortOrder
+    toStatus?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseEventCountOrderByAggregateInput
+    _max?: GymCaseEventMaxOrderByAggregateInput
+    _min?: GymCaseEventMinOrderByAggregateInput
+  }
+
+  export type GymCaseEventScalarWhereWithAggregatesInput = {
+    AND?: GymCaseEventScalarWhereWithAggregatesInput | GymCaseEventScalarWhereWithAggregatesInput[]
+    OR?: GymCaseEventScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseEventScalarWhereWithAggregatesInput | GymCaseEventScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseEvent"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseEvent"> | string
+    actorUserId?: StringWithAggregatesFilter<"GymCaseEvent"> | string
+    actorRole?: StringWithAggregatesFilter<"GymCaseEvent"> | string
+    action?: StringWithAggregatesFilter<"GymCaseEvent"> | string
+    fromStatus?: EnumGymCaseStatusNullableWithAggregatesFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    toStatus?: EnumGymCaseStatusNullableWithAggregatesFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    note?: StringNullableWithAggregatesFilter<"GymCaseEvent"> | string | null
+    idempotencyKey?: StringNullableWithAggregatesFilter<"GymCaseEvent"> | string | null
+    payload?: JsonNullableWithAggregatesFilter<"GymCaseEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseEvent"> | Date | string
+  }
+
+  export type GymCaseExecutionWhereInput = {
+    AND?: GymCaseExecutionWhereInput | GymCaseExecutionWhereInput[]
+    OR?: GymCaseExecutionWhereInput[]
+    NOT?: GymCaseExecutionWhereInput | GymCaseExecutionWhereInput[]
+    id?: UuidFilter<"GymCaseExecution"> | string
+    caseId?: UuidFilter<"GymCaseExecution"> | string
+    decisionId?: UuidFilter<"GymCaseExecution"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseExecution"> | $Enums.GymCaseOutcome
+    actorUserId?: StringFilter<"GymCaseExecution"> | string
+    idempotencyKey?: StringFilter<"GymCaseExecution"> | string
+    attempt?: IntFilter<"GymCaseExecution"> | number
+    state?: EnumGymCaseExecStateFilter<"GymCaseExecution"> | $Enums.GymCaseExecState
+    blockedReason?: StringNullableFilter<"GymCaseExecution"> | string | null
+    note?: StringNullableFilter<"GymCaseExecution"> | string | null
+    response?: JsonNullableFilter<"GymCaseExecution">
+    createdAt?: DateTimeFilter<"GymCaseExecution"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseExecutionOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    decisionId?: SortOrder
+    outcome?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    attempt?: SortOrder
+    state?: SortOrder
+    blockedReason?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    response?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseExecutionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseExecutionWhereInput | GymCaseExecutionWhereInput[]
+    OR?: GymCaseExecutionWhereInput[]
+    NOT?: GymCaseExecutionWhereInput | GymCaseExecutionWhereInput[]
+    caseId?: UuidFilter<"GymCaseExecution"> | string
+    decisionId?: UuidFilter<"GymCaseExecution"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseExecution"> | $Enums.GymCaseOutcome
+    actorUserId?: StringFilter<"GymCaseExecution"> | string
+    idempotencyKey?: StringFilter<"GymCaseExecution"> | string
+    attempt?: IntFilter<"GymCaseExecution"> | number
+    state?: EnumGymCaseExecStateFilter<"GymCaseExecution"> | $Enums.GymCaseExecState
+    blockedReason?: StringNullableFilter<"GymCaseExecution"> | string | null
+    note?: StringNullableFilter<"GymCaseExecution"> | string | null
+    response?: JsonNullableFilter<"GymCaseExecution">
+    createdAt?: DateTimeFilter<"GymCaseExecution"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id">
+
+  export type GymCaseExecutionOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    decisionId?: SortOrder
+    outcome?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    attempt?: SortOrder
+    state?: SortOrder
+    blockedReason?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    response?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseExecutionCountOrderByAggregateInput
+    _avg?: GymCaseExecutionAvgOrderByAggregateInput
+    _max?: GymCaseExecutionMaxOrderByAggregateInput
+    _min?: GymCaseExecutionMinOrderByAggregateInput
+    _sum?: GymCaseExecutionSumOrderByAggregateInput
+  }
+
+  export type GymCaseExecutionScalarWhereWithAggregatesInput = {
+    AND?: GymCaseExecutionScalarWhereWithAggregatesInput | GymCaseExecutionScalarWhereWithAggregatesInput[]
+    OR?: GymCaseExecutionScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseExecutionScalarWhereWithAggregatesInput | GymCaseExecutionScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseExecution"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseExecution"> | string
+    decisionId?: UuidWithAggregatesFilter<"GymCaseExecution"> | string
+    outcome?: EnumGymCaseOutcomeWithAggregatesFilter<"GymCaseExecution"> | $Enums.GymCaseOutcome
+    actorUserId?: StringWithAggregatesFilter<"GymCaseExecution"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"GymCaseExecution"> | string
+    attempt?: IntWithAggregatesFilter<"GymCaseExecution"> | number
+    state?: EnumGymCaseExecStateWithAggregatesFilter<"GymCaseExecution"> | $Enums.GymCaseExecState
+    blockedReason?: StringNullableWithAggregatesFilter<"GymCaseExecution"> | string | null
+    note?: StringNullableWithAggregatesFilter<"GymCaseExecution"> | string | null
+    response?: JsonNullableWithAggregatesFilter<"GymCaseExecution">
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseExecution"> | Date | string
+  }
+
+  export type GymCaseAccessLogWhereInput = {
+    AND?: GymCaseAccessLogWhereInput | GymCaseAccessLogWhereInput[]
+    OR?: GymCaseAccessLogWhereInput[]
+    NOT?: GymCaseAccessLogWhereInput | GymCaseAccessLogWhereInput[]
+    id?: UuidFilter<"GymCaseAccessLog"> | string
+    caseId?: UuidFilter<"GymCaseAccessLog"> | string
+    viewerUserId?: StringFilter<"GymCaseAccessLog"> | string
+    viewerRole?: StringFilter<"GymCaseAccessLog"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseAccessLog"> | string | null
+    action?: EnumGymCaseAccessActionFilter<"GymCaseAccessLog"> | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFilter<"GymCaseAccessLog"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }
+
+  export type GymCaseAccessLogOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    viewerUserId?: SortOrder
+    viewerRole?: SortOrder
+    evidenceId?: SortOrderInput | SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+    case?: GymComplaintCaseOrderByWithRelationInput
+  }
+
+  export type GymCaseAccessLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymCaseAccessLogWhereInput | GymCaseAccessLogWhereInput[]
+    OR?: GymCaseAccessLogWhereInput[]
+    NOT?: GymCaseAccessLogWhereInput | GymCaseAccessLogWhereInput[]
+    caseId?: UuidFilter<"GymCaseAccessLog"> | string
+    viewerUserId?: StringFilter<"GymCaseAccessLog"> | string
+    viewerRole?: StringFilter<"GymCaseAccessLog"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseAccessLog"> | string | null
+    action?: EnumGymCaseAccessActionFilter<"GymCaseAccessLog"> | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFilter<"GymCaseAccessLog"> | Date | string
+    case?: XOR<GymComplaintCaseRelationFilter, GymComplaintCaseWhereInput>
+  }, "id">
+
+  export type GymCaseAccessLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    viewerUserId?: SortOrder
+    viewerRole?: SortOrder
+    evidenceId?: SortOrderInput | SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymCaseAccessLogCountOrderByAggregateInput
+    _max?: GymCaseAccessLogMaxOrderByAggregateInput
+    _min?: GymCaseAccessLogMinOrderByAggregateInput
+  }
+
+  export type GymCaseAccessLogScalarWhereWithAggregatesInput = {
+    AND?: GymCaseAccessLogScalarWhereWithAggregatesInput | GymCaseAccessLogScalarWhereWithAggregatesInput[]
+    OR?: GymCaseAccessLogScalarWhereWithAggregatesInput[]
+    NOT?: GymCaseAccessLogScalarWhereWithAggregatesInput | GymCaseAccessLogScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"GymCaseAccessLog"> | string
+    caseId?: UuidWithAggregatesFilter<"GymCaseAccessLog"> | string
+    viewerUserId?: StringWithAggregatesFilter<"GymCaseAccessLog"> | string
+    viewerRole?: StringWithAggregatesFilter<"GymCaseAccessLog"> | string
+    evidenceId?: UuidNullableWithAggregatesFilter<"GymCaseAccessLog"> | string | null
+    action?: EnumGymCaseAccessActionWithAggregatesFilter<"GymCaseAccessLog"> | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeWithAggregatesFilter<"GymCaseAccessLog"> | Date | string
+  }
+
   export type GymPhotoCreateInput = {
     id?: string
     fileName: string
@@ -52704,6 +67902,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutComplaintsInput
+    case?: GymComplaintCaseCreateNestedOneWithoutComplaintInput
   }
 
   export type GymComplaintUncheckedCreateInput = {
@@ -52722,6 +67921,7 @@ export namespace Prisma {
     resolvedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    case?: GymComplaintCaseUncheckedCreateNestedOneWithoutComplaintInput
   }
 
   export type GymComplaintUpdateInput = {
@@ -52740,6 +67940,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutComplaintsNestedInput
+    case?: GymComplaintCaseUpdateOneWithoutComplaintNestedInput
   }
 
   export type GymComplaintUncheckedUpdateInput = {
@@ -52758,6 +67959,7 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUncheckedUpdateOneWithoutComplaintNestedInput
   }
 
   export type GymComplaintCreateManyInput = {
@@ -56735,6 +71937,1150 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymComplaintCaseCreateInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateManyInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymComplaintCaseUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymComplaintCaseUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementCreateInput = {
+    id?: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutStatementsInput
+  }
+
+  export type GymCaseStatementUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseStatementUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutStatementsNestedInput
+  }
+
+  export type GymCaseStatementUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementCreateManyInput = {
+    id?: string
+    caseId: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseStatementUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceCreateInput = {
+    id?: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutEvidenceInput
+  }
+
+  export type GymCaseEvidenceUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEvidenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutEvidenceNestedInput
+  }
+
+  export type GymCaseEvidenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceCreateManyInput = {
+    id?: string
+    caseId: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEvidenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareCreateInput = {
+    id?: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutSharesInput
+  }
+
+  export type GymCaseShareUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseShareUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutSharesNestedInput
+  }
+
+  export type GymCaseShareUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareCreateManyInput = {
+    id?: string
+    caseId: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseShareUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseClaimCreateInput = {
+    id?: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutClaimsInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutClaimInput
+  }
+
+  export type GymCaseClaimUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutClaimInput
+  }
+
+  export type GymCaseClaimUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutClaimsNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutClaimNestedInput
+  }
+
+  export type GymCaseClaimUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutClaimNestedInput
+  }
+
+  export type GymCaseClaimCreateManyInput = {
+    id?: string
+    caseId: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseClaimUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseClaimUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentCreateInput = {
+    id?: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutAssessmentsInput
+    claim: GymCaseClaimCreateNestedOneWithoutAssessmentsInput
+  }
+
+  export type GymCaseAssessmentUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    claimId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutAssessmentsNestedInput
+    claim?: GymCaseClaimUpdateOneRequiredWithoutAssessmentsNestedInput
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    claimId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentCreateManyInput = {
+    id?: string
+    caseId: string
+    claimId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    claimId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseFindingCreateInput = {
+    id?: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutFindingsInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutFindingInput
+  }
+
+  export type GymCaseFindingUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutFindingInput
+  }
+
+  export type GymCaseFindingUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutFindingsNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutFindingNestedInput
+  }
+
+  export type GymCaseFindingUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutFindingNestedInput
+  }
+
+  export type GymCaseFindingCreateManyInput = {
+    id?: string
+    caseId: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseFindingUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseFindingUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseProposalCreateInput = {
+    id?: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutProposalsInput
+    finding: GymCaseFindingCreateNestedOneWithoutProposalsInput
+    approvals?: GymCaseApprovalCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvals?: GymCaseApprovalUncheckedCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutProposalsNestedInput
+    finding?: GymCaseFindingUpdateOneRequiredWithoutProposalsNestedInput
+    approvals?: GymCaseApprovalUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    findingId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvals?: GymCaseApprovalUncheckedUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalCreateManyInput = {
+    id?: string
+    caseId: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseProposalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseProposalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    findingId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalCreateInput = {
+    id?: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+    proposal: GymCaseProposalCreateNestedOneWithoutApprovalsInput
+  }
+
+  export type GymCaseApprovalUncheckedCreateInput = {
+    id?: string
+    proposalId: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+  }
+
+  export type GymCaseApprovalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposal?: GymCaseProposalUpdateOneRequiredWithoutApprovalsNestedInput
+  }
+
+  export type GymCaseApprovalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    proposalId?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalCreateManyInput = {
+    id?: string
+    proposalId: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+  }
+
+  export type GymCaseApprovalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    proposalId?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventCreateInput = {
+    id?: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutEventsInput
+  }
+
+  export type GymCaseEventUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type GymCaseEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventCreateManyInput = {
+    id?: string
+    caseId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionCreateInput = {
+    id?: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutExecutionsInput
+  }
+
+  export type GymCaseExecutionUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseExecutionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutExecutionsNestedInput
+  }
+
+  export type GymCaseExecutionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionCreateManyInput = {
+    id?: string
+    caseId: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseExecutionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogCreateInput = {
+    id?: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutAccessLogsInput
+  }
+
+  export type GymCaseAccessLogUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAccessLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutAccessLogsNestedInput
+  }
+
+  export type GymCaseAccessLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogCreateManyInput = {
+    id?: string
+    caseId: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAccessLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -57269,6 +73615,11 @@ export namespace Prisma {
     in?: $Enums.ComplaintStatus[] | ListEnumComplaintStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.ComplaintStatus[] | ListEnumComplaintStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumComplaintStatusFilter<$PrismaModel> | $Enums.ComplaintStatus
+  }
+
+  export type GymComplaintCaseNullableRelationFilter = {
+    is?: GymComplaintCaseWhereInput | null
+    isNot?: GymComplaintCaseWhereInput | null
   }
 
   export type GymComplaintCountOrderByAggregateInput = {
@@ -60368,6 +76719,906 @@ export namespace Prisma {
     _max?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
   }
 
+  export type UuidFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidFilter<$PrismaModel> | string
+  }
+
+  export type EnumGymCaseClassFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseClass | EnumGymCaseClassFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseClassFilter<$PrismaModel> | $Enums.GymCaseClass
+  }
+
+  export type EnumGymCaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseStatusFilter<$PrismaModel> | $Enums.GymCaseStatus
+  }
+
+  export type EnumGymCaseExecStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecStatus | EnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStatusFilter<$PrismaModel> | $Enums.GymCaseExecStatus
+  }
+
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type GymComplaintRelationFilter = {
+    is?: GymComplaintWhereInput
+    isNot?: GymComplaintWhereInput
+  }
+
+  export type GymCaseStatementListRelationFilter = {
+    every?: GymCaseStatementWhereInput
+    some?: GymCaseStatementWhereInput
+    none?: GymCaseStatementWhereInput
+  }
+
+  export type GymCaseEvidenceListRelationFilter = {
+    every?: GymCaseEvidenceWhereInput
+    some?: GymCaseEvidenceWhereInput
+    none?: GymCaseEvidenceWhereInput
+  }
+
+  export type GymCaseShareListRelationFilter = {
+    every?: GymCaseShareWhereInput
+    some?: GymCaseShareWhereInput
+    none?: GymCaseShareWhereInput
+  }
+
+  export type GymCaseClaimListRelationFilter = {
+    every?: GymCaseClaimWhereInput
+    some?: GymCaseClaimWhereInput
+    none?: GymCaseClaimWhereInput
+  }
+
+  export type GymCaseAssessmentListRelationFilter = {
+    every?: GymCaseAssessmentWhereInput
+    some?: GymCaseAssessmentWhereInput
+    none?: GymCaseAssessmentWhereInput
+  }
+
+  export type GymCaseFindingListRelationFilter = {
+    every?: GymCaseFindingWhereInput
+    some?: GymCaseFindingWhereInput
+    none?: GymCaseFindingWhereInput
+  }
+
+  export type GymCaseProposalListRelationFilter = {
+    every?: GymCaseProposalWhereInput
+    some?: GymCaseProposalWhereInput
+    none?: GymCaseProposalWhereInput
+  }
+
+  export type GymCaseEventListRelationFilter = {
+    every?: GymCaseEventWhereInput
+    some?: GymCaseEventWhereInput
+    none?: GymCaseEventWhereInput
+  }
+
+  export type GymCaseExecutionListRelationFilter = {
+    every?: GymCaseExecutionWhereInput
+    some?: GymCaseExecutionWhereInput
+    none?: GymCaseExecutionWhereInput
+  }
+
+  export type GymCaseAccessLogListRelationFilter = {
+    every?: GymCaseAccessLogWhereInput
+    some?: GymCaseAccessLogWhereInput
+    none?: GymCaseAccessLogWhereInput
+  }
+
+  export type GymCaseStatementOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseEvidenceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseShareOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseClaimOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseAssessmentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseFindingOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseProposalOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseExecutionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseAccessLogOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymComplaintCaseCountOrderByAggregateInput = {
+    id?: SortOrder
+    complaintId?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    reporterUserId?: SortOrder
+    caseClass?: SortOrder
+    status?: SortOrder
+    escalated?: SortOrder
+    investigatorId?: SortOrder
+    version?: SortOrder
+    execStatus?: SortOrder
+    execDecisionId?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymComplaintCaseAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type GymComplaintCaseMaxOrderByAggregateInput = {
+    id?: SortOrder
+    complaintId?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    reporterUserId?: SortOrder
+    caseClass?: SortOrder
+    status?: SortOrder
+    escalated?: SortOrder
+    investigatorId?: SortOrder
+    version?: SortOrder
+    execStatus?: SortOrder
+    execDecisionId?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymComplaintCaseMinOrderByAggregateInput = {
+    id?: SortOrder
+    complaintId?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    reporterUserId?: SortOrder
+    caseClass?: SortOrder
+    status?: SortOrder
+    escalated?: SortOrder
+    investigatorId?: SortOrder
+    version?: SortOrder
+    execStatus?: SortOrder
+    execDecisionId?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymComplaintCaseSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type UuidWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseClassWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseClass | EnumGymCaseClassFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseClassWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseClass
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseClassFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseClassFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseStatusFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseExecStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecStatus | EnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseExecStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseExecStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseExecStatusFilter<$PrismaModel>
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymCasePartyRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCasePartyRole | EnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCasePartyRoleFilter<$PrismaModel> | $Enums.GymCasePartyRole
+  }
+
+  export type GymComplaintCaseRelationFilter = {
+    is?: GymComplaintCaseWhereInput
+    isNot?: GymComplaintCaseWhereInput
+  }
+
+  export type GymCaseStatementCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    authorUserId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    text?: SortOrder
+    supplementReason?: SortOrder
+    supersedesId?: SortOrder
+    contentHash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseStatementAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type GymCaseStatementMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    authorUserId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    text?: SortOrder
+    supplementReason?: SortOrder
+    supersedesId?: SortOrder
+    contentHash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseStatementMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    authorUserId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    text?: SortOrder
+    supplementReason?: SortOrder
+    supersedesId?: SortOrder
+    contentHash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseStatementSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type EnumGymCasePartyRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCasePartyRole | EnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCasePartyRoleWithAggregatesFilter<$PrismaModel> | $Enums.GymCasePartyRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCasePartyRoleFilter<$PrismaModel>
+    _max?: NestedEnumGymCasePartyRoleFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseProvenanceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseProvenance | EnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseProvenanceFilter<$PrismaModel> | $Enums.GymCaseProvenance
+  }
+
+  export type EnumGymCaseSensitivityFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseSensitivity | EnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseSensitivityFilter<$PrismaModel> | $Enums.GymCaseSensitivity
+  }
+
+  export type GymCaseEvidenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    provenanceType?: SortOrder
+    source?: SortOrder
+    subject?: SortOrder
+    scopeGymId?: SortOrder
+    eventAt?: SortOrder
+    capturedAt?: SortOrder
+    submittedBy?: SortOrder
+    submittedRole?: SortOrder
+    snapshotVersion?: SortOrder
+    contentHash?: SortOrder
+    payload?: SortOrder
+    sensitivity?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseEvidenceAvgOrderByAggregateInput = {
+    snapshotVersion?: SortOrder
+  }
+
+  export type GymCaseEvidenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    provenanceType?: SortOrder
+    source?: SortOrder
+    subject?: SortOrder
+    scopeGymId?: SortOrder
+    eventAt?: SortOrder
+    capturedAt?: SortOrder
+    submittedBy?: SortOrder
+    submittedRole?: SortOrder
+    snapshotVersion?: SortOrder
+    contentHash?: SortOrder
+    sensitivity?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseEvidenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    provenanceType?: SortOrder
+    source?: SortOrder
+    subject?: SortOrder
+    scopeGymId?: SortOrder
+    eventAt?: SortOrder
+    capturedAt?: SortOrder
+    submittedBy?: SortOrder
+    submittedRole?: SortOrder
+    snapshotVersion?: SortOrder
+    contentHash?: SortOrder
+    sensitivity?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseEvidenceSumOrderByAggregateInput = {
+    snapshotVersion?: SortOrder
+  }
+
+  export type EnumGymCaseProvenanceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseProvenance | EnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseProvenanceWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseProvenance
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseProvenanceFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseProvenanceFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseSensitivityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseSensitivity | EnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseSensitivityWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseSensitivity
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseSensitivityFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseSensitivityFilter<$PrismaModel>
+  }
+
+  export type GymCaseShareCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    evidenceId?: SortOrder
+    statementId?: SortOrder
+    sharedWithRole?: SortOrder
+    sharedBy?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseShareMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    evidenceId?: SortOrder
+    statementId?: SortOrder
+    sharedWithRole?: SortOrder
+    sharedBy?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseShareMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    evidenceId?: SortOrder
+    statementId?: SortOrder
+    sharedWithRole?: SortOrder
+    sharedBy?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseClaimCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimantRole?: SortOrder
+    text?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseClaimMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimantRole?: SortOrder
+    text?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseClaimMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimantRole?: SortOrder
+    text?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseAssessmentResultFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAssessmentResult | EnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel> | $Enums.GymCaseAssessmentResult
+  }
+
+  export type GymCaseClaimRelationFilter = {
+    is?: GymCaseClaimWhereInput
+    isNot?: GymCaseClaimWhereInput
+  }
+
+  export type GymCaseAssessmentCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimId?: SortOrder
+    assessorId?: SortOrder
+    directEvidenceIds?: SortOrder
+    indirectEvidenceIds?: SortOrder
+    rebuttalEvidenceIds?: SortOrder
+    relevanceNote?: SortOrder
+    verifiabilityNote?: SortOrder
+    consistencyNote?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseAssessmentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimId?: SortOrder
+    assessorId?: SortOrder
+    relevanceNote?: SortOrder
+    verifiabilityNote?: SortOrder
+    consistencyNote?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseAssessmentMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    claimId?: SortOrder
+    assessorId?: SortOrder
+    relevanceNote?: SortOrder
+    verifiabilityNote?: SortOrder
+    consistencyNote?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseAssessmentResultWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAssessmentResult | EnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAssessmentResultWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseAssessmentResult
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseFindingKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseFindingKind | EnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseFindingKindFilter<$PrismaModel> | $Enums.GymCaseFindingKind
+  }
+
+  export type GymCaseFindingCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    finding?: SortOrder
+    reasoning?: SortOrder
+    recordedBy?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseFindingMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    finding?: SortOrder
+    reasoning?: SortOrder
+    recordedBy?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseFindingMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    finding?: SortOrder
+    reasoning?: SortOrder
+    recordedBy?: SortOrder
+    supersedesId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseFindingKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseFindingKind | EnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseFindingKindWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseFindingKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseFindingKindFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseFindingKindFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseOutcome | EnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseOutcomeFilter<$PrismaModel> | $Enums.GymCaseOutcome
+  }
+
+  export type GymCaseFindingRelationFilter = {
+    is?: GymCaseFindingWhereInput
+    isNot?: GymCaseFindingWhereInput
+  }
+
+  export type GymCaseApprovalListRelationFilter = {
+    every?: GymCaseApprovalWhereInput
+    some?: GymCaseApprovalWhereInput
+    none?: GymCaseApprovalWhereInput
+  }
+
+  export type GymCaseApprovalOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCaseProposalCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    findingId?: SortOrder
+    outcome?: SortOrder
+    proposerId?: SortOrder
+    evidenceSnapshot?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseProposalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    findingId?: SortOrder
+    outcome?: SortOrder
+    proposerId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseProposalMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    findingId?: SortOrder
+    outcome?: SortOrder
+    proposerId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseOutcome | EnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseOutcomeFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseApprovalResultFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseApprovalResult | EnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel> | $Enums.GymCaseApprovalResult
+  }
+
+  export type GymCaseProposalRelationFilter = {
+    is?: GymCaseProposalWhereInput
+    isNot?: GymCaseProposalWhereInput
+  }
+
+  export type GymCaseApprovalCountOrderByAggregateInput = {
+    id?: SortOrder
+    proposalId?: SortOrder
+    approverId?: SortOrder
+    result?: SortOrder
+    reason?: SortOrder
+    conflictOfInterestDeclaredNone?: SortOrder
+    evidenceChangeAcknowledged?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseApprovalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    proposalId?: SortOrder
+    approverId?: SortOrder
+    result?: SortOrder
+    reason?: SortOrder
+    conflictOfInterestDeclaredNone?: SortOrder
+    evidenceChangeAcknowledged?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseApprovalMinOrderByAggregateInput = {
+    id?: SortOrder
+    proposalId?: SortOrder
+    approverId?: SortOrder
+    result?: SortOrder
+    reason?: SortOrder
+    conflictOfInterestDeclaredNone?: SortOrder
+    evidenceChangeAcknowledged?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseApprovalResultWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseApprovalResult | EnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseApprovalResultWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseApprovalResult
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel> | $Enums.GymCaseStatus | null
+  }
+
+  export type GymCaseEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymCaseStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseExecStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecState | EnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStateFilter<$PrismaModel> | $Enums.GymCaseExecState
+  }
+
+  export type GymCaseExecutionCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    decisionId?: SortOrder
+    outcome?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    attempt?: SortOrder
+    state?: SortOrder
+    blockedReason?: SortOrder
+    note?: SortOrder
+    response?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseExecutionAvgOrderByAggregateInput = {
+    attempt?: SortOrder
+  }
+
+  export type GymCaseExecutionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    decisionId?: SortOrder
+    outcome?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    attempt?: SortOrder
+    state?: SortOrder
+    blockedReason?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseExecutionMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    decisionId?: SortOrder
+    outcome?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    attempt?: SortOrder
+    state?: SortOrder
+    blockedReason?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseExecutionSumOrderByAggregateInput = {
+    attempt?: SortOrder
+  }
+
+  export type EnumGymCaseExecStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecState | EnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStateWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseExecState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseExecStateFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseExecStateFilter<$PrismaModel>
+  }
+
+  export type EnumGymCaseAccessActionFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAccessAction | EnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAccessActionFilter<$PrismaModel> | $Enums.GymCaseAccessAction
+  }
+
+  export type GymCaseAccessLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    viewerUserId?: SortOrder
+    viewerRole?: SortOrder
+    evidenceId?: SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseAccessLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    viewerUserId?: SortOrder
+    viewerRole?: SortOrder
+    evidenceId?: SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymCaseAccessLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    viewerUserId?: SortOrder
+    viewerRole?: SortOrder
+    evidenceId?: SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymCaseAccessActionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAccessAction | EnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAccessActionWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseAccessAction
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseAccessActionFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseAccessActionFilter<$PrismaModel>
+  }
+
   export type GymCreateNestedOneWithoutPhotosInput = {
     create?: XOR<GymCreateWithoutPhotosInput, GymUncheckedCreateWithoutPhotosInput>
     connectOrCreate?: GymCreateOrConnectWithoutPhotosInput
@@ -60502,6 +77753,18 @@ export namespace Prisma {
     connect?: GymWhereUniqueInput
   }
 
+  export type GymComplaintCaseCreateNestedOneWithoutComplaintInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutComplaintInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateNestedOneWithoutComplaintInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutComplaintInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
   export type EnumComplaintSourceFieldUpdateOperationsInput = {
     set?: $Enums.ComplaintSource
   }
@@ -60525,6 +77788,26 @@ export namespace Prisma {
     upsert?: GymUpsertWithoutComplaintsInput
     connect?: GymWhereUniqueInput
     update?: XOR<XOR<GymUpdateToOneWithWhereWithoutComplaintsInput, GymUpdateWithoutComplaintsInput>, GymUncheckedUpdateWithoutComplaintsInput>
+  }
+
+  export type GymComplaintCaseUpdateOneWithoutComplaintNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutComplaintInput
+    upsert?: GymComplaintCaseUpsertWithoutComplaintInput
+    disconnect?: GymComplaintCaseWhereInput | boolean
+    delete?: GymComplaintCaseWhereInput | boolean
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutComplaintInput, GymComplaintCaseUpdateWithoutComplaintInput>, GymComplaintCaseUncheckedUpdateWithoutComplaintInput>
+  }
+
+  export type GymComplaintCaseUncheckedUpdateOneWithoutComplaintNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutComplaintInput
+    upsert?: GymComplaintCaseUpsertWithoutComplaintInput
+    disconnect?: GymComplaintCaseWhereInput | boolean
+    delete?: GymComplaintCaseWhereInput | boolean
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutComplaintInput, GymComplaintCaseUpdateWithoutComplaintInput>, GymComplaintCaseUncheckedUpdateWithoutComplaintInput>
   }
 
   export type GymPartnerCreateNestedOneWithoutAuditLogsInput = {
@@ -62601,6 +79884,827 @@ export namespace Prisma {
     set?: $Enums.AssistedExceptionStatus
   }
 
+  export type GymComplaintCreateNestedOneWithoutCaseInput = {
+    create?: XOR<GymComplaintCreateWithoutCaseInput, GymComplaintUncheckedCreateWithoutCaseInput>
+    connectOrCreate?: GymComplaintCreateOrConnectWithoutCaseInput
+    connect?: GymComplaintWhereUniqueInput
+  }
+
+  export type GymCaseStatementCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput> | GymCaseStatementCreateWithoutCaseInput[] | GymCaseStatementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseStatementCreateOrConnectWithoutCaseInput | GymCaseStatementCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseStatementCreateManyCaseInputEnvelope
+    connect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+  }
+
+  export type GymCaseEvidenceCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput> | GymCaseEvidenceCreateWithoutCaseInput[] | GymCaseEvidenceUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEvidenceCreateOrConnectWithoutCaseInput | GymCaseEvidenceCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseEvidenceCreateManyCaseInputEnvelope
+    connect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+  }
+
+  export type GymCaseShareCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput> | GymCaseShareCreateWithoutCaseInput[] | GymCaseShareUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseShareCreateOrConnectWithoutCaseInput | GymCaseShareCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseShareCreateManyCaseInputEnvelope
+    connect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+  }
+
+  export type GymCaseClaimCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput> | GymCaseClaimCreateWithoutCaseInput[] | GymCaseClaimUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutCaseInput | GymCaseClaimCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseClaimCreateManyCaseInputEnvelope
+    connect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+  }
+
+  export type GymCaseAssessmentCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput> | GymCaseAssessmentCreateWithoutCaseInput[] | GymCaseAssessmentUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutCaseInput | GymCaseAssessmentCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseAssessmentCreateManyCaseInputEnvelope
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+  }
+
+  export type GymCaseFindingCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput> | GymCaseFindingCreateWithoutCaseInput[] | GymCaseFindingUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutCaseInput | GymCaseFindingCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseFindingCreateManyCaseInputEnvelope
+    connect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+  }
+
+  export type GymCaseProposalCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput> | GymCaseProposalCreateWithoutCaseInput[] | GymCaseProposalUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutCaseInput | GymCaseProposalCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseProposalCreateManyCaseInputEnvelope
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+  }
+
+  export type GymCaseEventCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput> | GymCaseEventCreateWithoutCaseInput[] | GymCaseEventUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEventCreateOrConnectWithoutCaseInput | GymCaseEventCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseEventCreateManyCaseInputEnvelope
+    connect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+  }
+
+  export type GymCaseExecutionCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput> | GymCaseExecutionCreateWithoutCaseInput[] | GymCaseExecutionUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseExecutionCreateOrConnectWithoutCaseInput | GymCaseExecutionCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseExecutionCreateManyCaseInputEnvelope
+    connect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+  }
+
+  export type GymCaseAccessLogCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput> | GymCaseAccessLogCreateWithoutCaseInput[] | GymCaseAccessLogUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAccessLogCreateOrConnectWithoutCaseInput | GymCaseAccessLogCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseAccessLogCreateManyCaseInputEnvelope
+    connect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+  }
+
+  export type GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput> | GymCaseStatementCreateWithoutCaseInput[] | GymCaseStatementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseStatementCreateOrConnectWithoutCaseInput | GymCaseStatementCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseStatementCreateManyCaseInputEnvelope
+    connect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+  }
+
+  export type GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput> | GymCaseEvidenceCreateWithoutCaseInput[] | GymCaseEvidenceUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEvidenceCreateOrConnectWithoutCaseInput | GymCaseEvidenceCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseEvidenceCreateManyCaseInputEnvelope
+    connect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+  }
+
+  export type GymCaseShareUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput> | GymCaseShareCreateWithoutCaseInput[] | GymCaseShareUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseShareCreateOrConnectWithoutCaseInput | GymCaseShareCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseShareCreateManyCaseInputEnvelope
+    connect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+  }
+
+  export type GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput> | GymCaseClaimCreateWithoutCaseInput[] | GymCaseClaimUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutCaseInput | GymCaseClaimCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseClaimCreateManyCaseInputEnvelope
+    connect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+  }
+
+  export type GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput> | GymCaseAssessmentCreateWithoutCaseInput[] | GymCaseAssessmentUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutCaseInput | GymCaseAssessmentCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseAssessmentCreateManyCaseInputEnvelope
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+  }
+
+  export type GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput> | GymCaseFindingCreateWithoutCaseInput[] | GymCaseFindingUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutCaseInput | GymCaseFindingCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseFindingCreateManyCaseInputEnvelope
+    connect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+  }
+
+  export type GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput> | GymCaseProposalCreateWithoutCaseInput[] | GymCaseProposalUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutCaseInput | GymCaseProposalCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseProposalCreateManyCaseInputEnvelope
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+  }
+
+  export type GymCaseEventUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput> | GymCaseEventCreateWithoutCaseInput[] | GymCaseEventUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEventCreateOrConnectWithoutCaseInput | GymCaseEventCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseEventCreateManyCaseInputEnvelope
+    connect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+  }
+
+  export type GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput> | GymCaseExecutionCreateWithoutCaseInput[] | GymCaseExecutionUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseExecutionCreateOrConnectWithoutCaseInput | GymCaseExecutionCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseExecutionCreateManyCaseInputEnvelope
+    connect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+  }
+
+  export type GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput> | GymCaseAccessLogCreateWithoutCaseInput[] | GymCaseAccessLogUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAccessLogCreateOrConnectWithoutCaseInput | GymCaseAccessLogCreateOrConnectWithoutCaseInput[]
+    createMany?: GymCaseAccessLogCreateManyCaseInputEnvelope
+    connect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+  }
+
+  export type EnumGymCaseClassFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseClass
+  }
+
+  export type EnumGymCaseStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseStatus
+  }
+
+  export type EnumGymCaseExecStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseExecStatus
+  }
+
+  export type GymComplaintUpdateOneRequiredWithoutCaseNestedInput = {
+    create?: XOR<GymComplaintCreateWithoutCaseInput, GymComplaintUncheckedCreateWithoutCaseInput>
+    connectOrCreate?: GymComplaintCreateOrConnectWithoutCaseInput
+    upsert?: GymComplaintUpsertWithoutCaseInput
+    connect?: GymComplaintWhereUniqueInput
+    update?: XOR<XOR<GymComplaintUpdateToOneWithWhereWithoutCaseInput, GymComplaintUpdateWithoutCaseInput>, GymComplaintUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseStatementUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput> | GymCaseStatementCreateWithoutCaseInput[] | GymCaseStatementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseStatementCreateOrConnectWithoutCaseInput | GymCaseStatementCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseStatementUpsertWithWhereUniqueWithoutCaseInput | GymCaseStatementUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseStatementCreateManyCaseInputEnvelope
+    set?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    disconnect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    delete?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    connect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    update?: GymCaseStatementUpdateWithWhereUniqueWithoutCaseInput | GymCaseStatementUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseStatementUpdateManyWithWhereWithoutCaseInput | GymCaseStatementUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseStatementScalarWhereInput | GymCaseStatementScalarWhereInput[]
+  }
+
+  export type GymCaseEvidenceUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput> | GymCaseEvidenceCreateWithoutCaseInput[] | GymCaseEvidenceUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEvidenceCreateOrConnectWithoutCaseInput | GymCaseEvidenceCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseEvidenceUpsertWithWhereUniqueWithoutCaseInput | GymCaseEvidenceUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseEvidenceCreateManyCaseInputEnvelope
+    set?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    disconnect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    delete?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    connect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    update?: GymCaseEvidenceUpdateWithWhereUniqueWithoutCaseInput | GymCaseEvidenceUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseEvidenceUpdateManyWithWhereWithoutCaseInput | GymCaseEvidenceUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseEvidenceScalarWhereInput | GymCaseEvidenceScalarWhereInput[]
+  }
+
+  export type GymCaseShareUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput> | GymCaseShareCreateWithoutCaseInput[] | GymCaseShareUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseShareCreateOrConnectWithoutCaseInput | GymCaseShareCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseShareUpsertWithWhereUniqueWithoutCaseInput | GymCaseShareUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseShareCreateManyCaseInputEnvelope
+    set?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    disconnect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    delete?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    connect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    update?: GymCaseShareUpdateWithWhereUniqueWithoutCaseInput | GymCaseShareUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseShareUpdateManyWithWhereWithoutCaseInput | GymCaseShareUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseShareScalarWhereInput | GymCaseShareScalarWhereInput[]
+  }
+
+  export type GymCaseClaimUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput> | GymCaseClaimCreateWithoutCaseInput[] | GymCaseClaimUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutCaseInput | GymCaseClaimCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseClaimUpsertWithWhereUniqueWithoutCaseInput | GymCaseClaimUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseClaimCreateManyCaseInputEnvelope
+    set?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    disconnect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    delete?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    connect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    update?: GymCaseClaimUpdateWithWhereUniqueWithoutCaseInput | GymCaseClaimUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseClaimUpdateManyWithWhereWithoutCaseInput | GymCaseClaimUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseClaimScalarWhereInput | GymCaseClaimScalarWhereInput[]
+  }
+
+  export type GymCaseAssessmentUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput> | GymCaseAssessmentCreateWithoutCaseInput[] | GymCaseAssessmentUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutCaseInput | GymCaseAssessmentCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseAssessmentUpsertWithWhereUniqueWithoutCaseInput | GymCaseAssessmentUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseAssessmentCreateManyCaseInputEnvelope
+    set?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    disconnect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    delete?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    update?: GymCaseAssessmentUpdateWithWhereUniqueWithoutCaseInput | GymCaseAssessmentUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseAssessmentUpdateManyWithWhereWithoutCaseInput | GymCaseAssessmentUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+  }
+
+  export type GymCaseFindingUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput> | GymCaseFindingCreateWithoutCaseInput[] | GymCaseFindingUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutCaseInput | GymCaseFindingCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseFindingUpsertWithWhereUniqueWithoutCaseInput | GymCaseFindingUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseFindingCreateManyCaseInputEnvelope
+    set?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    disconnect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    delete?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    connect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    update?: GymCaseFindingUpdateWithWhereUniqueWithoutCaseInput | GymCaseFindingUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseFindingUpdateManyWithWhereWithoutCaseInput | GymCaseFindingUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseFindingScalarWhereInput | GymCaseFindingScalarWhereInput[]
+  }
+
+  export type GymCaseProposalUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput> | GymCaseProposalCreateWithoutCaseInput[] | GymCaseProposalUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutCaseInput | GymCaseProposalCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseProposalUpsertWithWhereUniqueWithoutCaseInput | GymCaseProposalUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseProposalCreateManyCaseInputEnvelope
+    set?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    disconnect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    delete?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    update?: GymCaseProposalUpdateWithWhereUniqueWithoutCaseInput | GymCaseProposalUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseProposalUpdateManyWithWhereWithoutCaseInput | GymCaseProposalUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+  }
+
+  export type GymCaseEventUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput> | GymCaseEventCreateWithoutCaseInput[] | GymCaseEventUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEventCreateOrConnectWithoutCaseInput | GymCaseEventCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseEventUpsertWithWhereUniqueWithoutCaseInput | GymCaseEventUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseEventCreateManyCaseInputEnvelope
+    set?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    disconnect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    delete?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    connect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    update?: GymCaseEventUpdateWithWhereUniqueWithoutCaseInput | GymCaseEventUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseEventUpdateManyWithWhereWithoutCaseInput | GymCaseEventUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseEventScalarWhereInput | GymCaseEventScalarWhereInput[]
+  }
+
+  export type GymCaseExecutionUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput> | GymCaseExecutionCreateWithoutCaseInput[] | GymCaseExecutionUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseExecutionCreateOrConnectWithoutCaseInput | GymCaseExecutionCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseExecutionUpsertWithWhereUniqueWithoutCaseInput | GymCaseExecutionUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseExecutionCreateManyCaseInputEnvelope
+    set?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    disconnect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    delete?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    connect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    update?: GymCaseExecutionUpdateWithWhereUniqueWithoutCaseInput | GymCaseExecutionUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseExecutionUpdateManyWithWhereWithoutCaseInput | GymCaseExecutionUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseExecutionScalarWhereInput | GymCaseExecutionScalarWhereInput[]
+  }
+
+  export type GymCaseAccessLogUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput> | GymCaseAccessLogCreateWithoutCaseInput[] | GymCaseAccessLogUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAccessLogCreateOrConnectWithoutCaseInput | GymCaseAccessLogCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseAccessLogUpsertWithWhereUniqueWithoutCaseInput | GymCaseAccessLogUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseAccessLogCreateManyCaseInputEnvelope
+    set?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    disconnect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    delete?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    connect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    update?: GymCaseAccessLogUpdateWithWhereUniqueWithoutCaseInput | GymCaseAccessLogUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseAccessLogUpdateManyWithWhereWithoutCaseInput | GymCaseAccessLogUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseAccessLogScalarWhereInput | GymCaseAccessLogScalarWhereInput[]
+  }
+
+  export type GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput> | GymCaseStatementCreateWithoutCaseInput[] | GymCaseStatementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseStatementCreateOrConnectWithoutCaseInput | GymCaseStatementCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseStatementUpsertWithWhereUniqueWithoutCaseInput | GymCaseStatementUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseStatementCreateManyCaseInputEnvelope
+    set?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    disconnect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    delete?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    connect?: GymCaseStatementWhereUniqueInput | GymCaseStatementWhereUniqueInput[]
+    update?: GymCaseStatementUpdateWithWhereUniqueWithoutCaseInput | GymCaseStatementUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseStatementUpdateManyWithWhereWithoutCaseInput | GymCaseStatementUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseStatementScalarWhereInput | GymCaseStatementScalarWhereInput[]
+  }
+
+  export type GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput> | GymCaseEvidenceCreateWithoutCaseInput[] | GymCaseEvidenceUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEvidenceCreateOrConnectWithoutCaseInput | GymCaseEvidenceCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseEvidenceUpsertWithWhereUniqueWithoutCaseInput | GymCaseEvidenceUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseEvidenceCreateManyCaseInputEnvelope
+    set?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    disconnect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    delete?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    connect?: GymCaseEvidenceWhereUniqueInput | GymCaseEvidenceWhereUniqueInput[]
+    update?: GymCaseEvidenceUpdateWithWhereUniqueWithoutCaseInput | GymCaseEvidenceUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseEvidenceUpdateManyWithWhereWithoutCaseInput | GymCaseEvidenceUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseEvidenceScalarWhereInput | GymCaseEvidenceScalarWhereInput[]
+  }
+
+  export type GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput> | GymCaseShareCreateWithoutCaseInput[] | GymCaseShareUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseShareCreateOrConnectWithoutCaseInput | GymCaseShareCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseShareUpsertWithWhereUniqueWithoutCaseInput | GymCaseShareUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseShareCreateManyCaseInputEnvelope
+    set?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    disconnect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    delete?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    connect?: GymCaseShareWhereUniqueInput | GymCaseShareWhereUniqueInput[]
+    update?: GymCaseShareUpdateWithWhereUniqueWithoutCaseInput | GymCaseShareUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseShareUpdateManyWithWhereWithoutCaseInput | GymCaseShareUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseShareScalarWhereInput | GymCaseShareScalarWhereInput[]
+  }
+
+  export type GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput> | GymCaseClaimCreateWithoutCaseInput[] | GymCaseClaimUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutCaseInput | GymCaseClaimCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseClaimUpsertWithWhereUniqueWithoutCaseInput | GymCaseClaimUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseClaimCreateManyCaseInputEnvelope
+    set?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    disconnect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    delete?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    connect?: GymCaseClaimWhereUniqueInput | GymCaseClaimWhereUniqueInput[]
+    update?: GymCaseClaimUpdateWithWhereUniqueWithoutCaseInput | GymCaseClaimUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseClaimUpdateManyWithWhereWithoutCaseInput | GymCaseClaimUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseClaimScalarWhereInput | GymCaseClaimScalarWhereInput[]
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput> | GymCaseAssessmentCreateWithoutCaseInput[] | GymCaseAssessmentUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutCaseInput | GymCaseAssessmentCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseAssessmentUpsertWithWhereUniqueWithoutCaseInput | GymCaseAssessmentUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseAssessmentCreateManyCaseInputEnvelope
+    set?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    disconnect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    delete?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    update?: GymCaseAssessmentUpdateWithWhereUniqueWithoutCaseInput | GymCaseAssessmentUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseAssessmentUpdateManyWithWhereWithoutCaseInput | GymCaseAssessmentUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+  }
+
+  export type GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput> | GymCaseFindingCreateWithoutCaseInput[] | GymCaseFindingUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutCaseInput | GymCaseFindingCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseFindingUpsertWithWhereUniqueWithoutCaseInput | GymCaseFindingUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseFindingCreateManyCaseInputEnvelope
+    set?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    disconnect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    delete?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    connect?: GymCaseFindingWhereUniqueInput | GymCaseFindingWhereUniqueInput[]
+    update?: GymCaseFindingUpdateWithWhereUniqueWithoutCaseInput | GymCaseFindingUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseFindingUpdateManyWithWhereWithoutCaseInput | GymCaseFindingUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseFindingScalarWhereInput | GymCaseFindingScalarWhereInput[]
+  }
+
+  export type GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput> | GymCaseProposalCreateWithoutCaseInput[] | GymCaseProposalUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutCaseInput | GymCaseProposalCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseProposalUpsertWithWhereUniqueWithoutCaseInput | GymCaseProposalUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseProposalCreateManyCaseInputEnvelope
+    set?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    disconnect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    delete?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    update?: GymCaseProposalUpdateWithWhereUniqueWithoutCaseInput | GymCaseProposalUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseProposalUpdateManyWithWhereWithoutCaseInput | GymCaseProposalUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+  }
+
+  export type GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput> | GymCaseEventCreateWithoutCaseInput[] | GymCaseEventUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseEventCreateOrConnectWithoutCaseInput | GymCaseEventCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseEventUpsertWithWhereUniqueWithoutCaseInput | GymCaseEventUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseEventCreateManyCaseInputEnvelope
+    set?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    disconnect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    delete?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    connect?: GymCaseEventWhereUniqueInput | GymCaseEventWhereUniqueInput[]
+    update?: GymCaseEventUpdateWithWhereUniqueWithoutCaseInput | GymCaseEventUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseEventUpdateManyWithWhereWithoutCaseInput | GymCaseEventUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseEventScalarWhereInput | GymCaseEventScalarWhereInput[]
+  }
+
+  export type GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput> | GymCaseExecutionCreateWithoutCaseInput[] | GymCaseExecutionUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseExecutionCreateOrConnectWithoutCaseInput | GymCaseExecutionCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseExecutionUpsertWithWhereUniqueWithoutCaseInput | GymCaseExecutionUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseExecutionCreateManyCaseInputEnvelope
+    set?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    disconnect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    delete?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    connect?: GymCaseExecutionWhereUniqueInput | GymCaseExecutionWhereUniqueInput[]
+    update?: GymCaseExecutionUpdateWithWhereUniqueWithoutCaseInput | GymCaseExecutionUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseExecutionUpdateManyWithWhereWithoutCaseInput | GymCaseExecutionUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseExecutionScalarWhereInput | GymCaseExecutionScalarWhereInput[]
+  }
+
+  export type GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput> | GymCaseAccessLogCreateWithoutCaseInput[] | GymCaseAccessLogUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: GymCaseAccessLogCreateOrConnectWithoutCaseInput | GymCaseAccessLogCreateOrConnectWithoutCaseInput[]
+    upsert?: GymCaseAccessLogUpsertWithWhereUniqueWithoutCaseInput | GymCaseAccessLogUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: GymCaseAccessLogCreateManyCaseInputEnvelope
+    set?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    disconnect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    delete?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    connect?: GymCaseAccessLogWhereUniqueInput | GymCaseAccessLogWhereUniqueInput[]
+    update?: GymCaseAccessLogUpdateWithWhereUniqueWithoutCaseInput | GymCaseAccessLogUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: GymCaseAccessLogUpdateManyWithWhereWithoutCaseInput | GymCaseAccessLogUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: GymCaseAccessLogScalarWhereInput | GymCaseAccessLogScalarWhereInput[]
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutStatementsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutStatementsInput, GymComplaintCaseUncheckedCreateWithoutStatementsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutStatementsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type EnumGymCasePartyRoleFieldUpdateOperationsInput = {
+    set?: $Enums.GymCasePartyRole
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutStatementsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutStatementsInput, GymComplaintCaseUncheckedCreateWithoutStatementsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutStatementsInput
+    upsert?: GymComplaintCaseUpsertWithoutStatementsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutStatementsInput, GymComplaintCaseUpdateWithoutStatementsInput>, GymComplaintCaseUncheckedUpdateWithoutStatementsInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutEvidenceInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutEvidenceInput, GymComplaintCaseUncheckedCreateWithoutEvidenceInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutEvidenceInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type EnumGymCaseProvenanceFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseProvenance
+  }
+
+  export type EnumGymCaseSensitivityFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseSensitivity
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutEvidenceNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutEvidenceInput, GymComplaintCaseUncheckedCreateWithoutEvidenceInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutEvidenceInput
+    upsert?: GymComplaintCaseUpsertWithoutEvidenceInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutEvidenceInput, GymComplaintCaseUpdateWithoutEvidenceInput>, GymComplaintCaseUncheckedUpdateWithoutEvidenceInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutSharesInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutSharesInput, GymComplaintCaseUncheckedCreateWithoutSharesInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutSharesInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutSharesNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutSharesInput, GymComplaintCaseUncheckedCreateWithoutSharesInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutSharesInput
+    upsert?: GymComplaintCaseUpsertWithoutSharesInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutSharesInput, GymComplaintCaseUpdateWithoutSharesInput>, GymComplaintCaseUncheckedUpdateWithoutSharesInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutClaimsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutClaimsInput, GymComplaintCaseUncheckedCreateWithoutClaimsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutClaimsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymCaseAssessmentCreateNestedManyWithoutClaimInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput> | GymCaseAssessmentCreateWithoutClaimInput[] | GymCaseAssessmentUncheckedCreateWithoutClaimInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutClaimInput | GymCaseAssessmentCreateOrConnectWithoutClaimInput[]
+    createMany?: GymCaseAssessmentCreateManyClaimInputEnvelope
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+  }
+
+  export type GymCaseAssessmentUncheckedCreateNestedManyWithoutClaimInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput> | GymCaseAssessmentCreateWithoutClaimInput[] | GymCaseAssessmentUncheckedCreateWithoutClaimInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutClaimInput | GymCaseAssessmentCreateOrConnectWithoutClaimInput[]
+    createMany?: GymCaseAssessmentCreateManyClaimInputEnvelope
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutClaimsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutClaimsInput, GymComplaintCaseUncheckedCreateWithoutClaimsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutClaimsInput
+    upsert?: GymComplaintCaseUpsertWithoutClaimsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutClaimsInput, GymComplaintCaseUpdateWithoutClaimsInput>, GymComplaintCaseUncheckedUpdateWithoutClaimsInput>
+  }
+
+  export type GymCaseAssessmentUpdateManyWithoutClaimNestedInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput> | GymCaseAssessmentCreateWithoutClaimInput[] | GymCaseAssessmentUncheckedCreateWithoutClaimInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutClaimInput | GymCaseAssessmentCreateOrConnectWithoutClaimInput[]
+    upsert?: GymCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput | GymCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput[]
+    createMany?: GymCaseAssessmentCreateManyClaimInputEnvelope
+    set?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    disconnect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    delete?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    update?: GymCaseAssessmentUpdateWithWhereUniqueWithoutClaimInput | GymCaseAssessmentUpdateWithWhereUniqueWithoutClaimInput[]
+    updateMany?: GymCaseAssessmentUpdateManyWithWhereWithoutClaimInput | GymCaseAssessmentUpdateManyWithWhereWithoutClaimInput[]
+    deleteMany?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateManyWithoutClaimNestedInput = {
+    create?: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput> | GymCaseAssessmentCreateWithoutClaimInput[] | GymCaseAssessmentUncheckedCreateWithoutClaimInput[]
+    connectOrCreate?: GymCaseAssessmentCreateOrConnectWithoutClaimInput | GymCaseAssessmentCreateOrConnectWithoutClaimInput[]
+    upsert?: GymCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput | GymCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput[]
+    createMany?: GymCaseAssessmentCreateManyClaimInputEnvelope
+    set?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    disconnect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    delete?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    connect?: GymCaseAssessmentWhereUniqueInput | GymCaseAssessmentWhereUniqueInput[]
+    update?: GymCaseAssessmentUpdateWithWhereUniqueWithoutClaimInput | GymCaseAssessmentUpdateWithWhereUniqueWithoutClaimInput[]
+    updateMany?: GymCaseAssessmentUpdateManyWithWhereWithoutClaimInput | GymCaseAssessmentUpdateManyWithWhereWithoutClaimInput[]
+    deleteMany?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+  }
+
+  export type GymCaseAssessmentCreatedirectEvidenceIdsInput = {
+    set: string[]
+  }
+
+  export type GymCaseAssessmentCreateindirectEvidenceIdsInput = {
+    set: string[]
+  }
+
+  export type GymCaseAssessmentCreaterebuttalEvidenceIdsInput = {
+    set: string[]
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutAssessmentsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutAssessmentsInput, GymComplaintCaseUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutAssessmentsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymCaseClaimCreateNestedOneWithoutAssessmentsInput = {
+    create?: XOR<GymCaseClaimCreateWithoutAssessmentsInput, GymCaseClaimUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutAssessmentsInput
+    connect?: GymCaseClaimWhereUniqueInput
+  }
+
+  export type GymCaseAssessmentUpdatedirectEvidenceIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type GymCaseAssessmentUpdateindirectEvidenceIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type GymCaseAssessmentUpdaterebuttalEvidenceIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type EnumGymCaseAssessmentResultFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseAssessmentResult
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutAssessmentsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutAssessmentsInput, GymComplaintCaseUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutAssessmentsInput
+    upsert?: GymComplaintCaseUpsertWithoutAssessmentsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutAssessmentsInput, GymComplaintCaseUpdateWithoutAssessmentsInput>, GymComplaintCaseUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type GymCaseClaimUpdateOneRequiredWithoutAssessmentsNestedInput = {
+    create?: XOR<GymCaseClaimCreateWithoutAssessmentsInput, GymCaseClaimUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: GymCaseClaimCreateOrConnectWithoutAssessmentsInput
+    upsert?: GymCaseClaimUpsertWithoutAssessmentsInput
+    connect?: GymCaseClaimWhereUniqueInput
+    update?: XOR<XOR<GymCaseClaimUpdateToOneWithWhereWithoutAssessmentsInput, GymCaseClaimUpdateWithoutAssessmentsInput>, GymCaseClaimUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutFindingsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutFindingsInput, GymComplaintCaseUncheckedCreateWithoutFindingsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutFindingsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymCaseProposalCreateNestedManyWithoutFindingInput = {
+    create?: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput> | GymCaseProposalCreateWithoutFindingInput[] | GymCaseProposalUncheckedCreateWithoutFindingInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutFindingInput | GymCaseProposalCreateOrConnectWithoutFindingInput[]
+    createMany?: GymCaseProposalCreateManyFindingInputEnvelope
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+  }
+
+  export type GymCaseProposalUncheckedCreateNestedManyWithoutFindingInput = {
+    create?: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput> | GymCaseProposalCreateWithoutFindingInput[] | GymCaseProposalUncheckedCreateWithoutFindingInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutFindingInput | GymCaseProposalCreateOrConnectWithoutFindingInput[]
+    createMany?: GymCaseProposalCreateManyFindingInputEnvelope
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+  }
+
+  export type EnumGymCaseFindingKindFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseFindingKind
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutFindingsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutFindingsInput, GymComplaintCaseUncheckedCreateWithoutFindingsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutFindingsInput
+    upsert?: GymComplaintCaseUpsertWithoutFindingsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutFindingsInput, GymComplaintCaseUpdateWithoutFindingsInput>, GymComplaintCaseUncheckedUpdateWithoutFindingsInput>
+  }
+
+  export type GymCaseProposalUpdateManyWithoutFindingNestedInput = {
+    create?: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput> | GymCaseProposalCreateWithoutFindingInput[] | GymCaseProposalUncheckedCreateWithoutFindingInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutFindingInput | GymCaseProposalCreateOrConnectWithoutFindingInput[]
+    upsert?: GymCaseProposalUpsertWithWhereUniqueWithoutFindingInput | GymCaseProposalUpsertWithWhereUniqueWithoutFindingInput[]
+    createMany?: GymCaseProposalCreateManyFindingInputEnvelope
+    set?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    disconnect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    delete?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    update?: GymCaseProposalUpdateWithWhereUniqueWithoutFindingInput | GymCaseProposalUpdateWithWhereUniqueWithoutFindingInput[]
+    updateMany?: GymCaseProposalUpdateManyWithWhereWithoutFindingInput | GymCaseProposalUpdateManyWithWhereWithoutFindingInput[]
+    deleteMany?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+  }
+
+  export type GymCaseProposalUncheckedUpdateManyWithoutFindingNestedInput = {
+    create?: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput> | GymCaseProposalCreateWithoutFindingInput[] | GymCaseProposalUncheckedCreateWithoutFindingInput[]
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutFindingInput | GymCaseProposalCreateOrConnectWithoutFindingInput[]
+    upsert?: GymCaseProposalUpsertWithWhereUniqueWithoutFindingInput | GymCaseProposalUpsertWithWhereUniqueWithoutFindingInput[]
+    createMany?: GymCaseProposalCreateManyFindingInputEnvelope
+    set?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    disconnect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    delete?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    connect?: GymCaseProposalWhereUniqueInput | GymCaseProposalWhereUniqueInput[]
+    update?: GymCaseProposalUpdateWithWhereUniqueWithoutFindingInput | GymCaseProposalUpdateWithWhereUniqueWithoutFindingInput[]
+    updateMany?: GymCaseProposalUpdateManyWithWhereWithoutFindingInput | GymCaseProposalUpdateManyWithWhereWithoutFindingInput[]
+    deleteMany?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutProposalsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutProposalsInput, GymComplaintCaseUncheckedCreateWithoutProposalsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutProposalsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type GymCaseFindingCreateNestedOneWithoutProposalsInput = {
+    create?: XOR<GymCaseFindingCreateWithoutProposalsInput, GymCaseFindingUncheckedCreateWithoutProposalsInput>
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutProposalsInput
+    connect?: GymCaseFindingWhereUniqueInput
+  }
+
+  export type GymCaseApprovalCreateNestedManyWithoutProposalInput = {
+    create?: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput> | GymCaseApprovalCreateWithoutProposalInput[] | GymCaseApprovalUncheckedCreateWithoutProposalInput[]
+    connectOrCreate?: GymCaseApprovalCreateOrConnectWithoutProposalInput | GymCaseApprovalCreateOrConnectWithoutProposalInput[]
+    createMany?: GymCaseApprovalCreateManyProposalInputEnvelope
+    connect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+  }
+
+  export type GymCaseApprovalUncheckedCreateNestedManyWithoutProposalInput = {
+    create?: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput> | GymCaseApprovalCreateWithoutProposalInput[] | GymCaseApprovalUncheckedCreateWithoutProposalInput[]
+    connectOrCreate?: GymCaseApprovalCreateOrConnectWithoutProposalInput | GymCaseApprovalCreateOrConnectWithoutProposalInput[]
+    createMany?: GymCaseApprovalCreateManyProposalInputEnvelope
+    connect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+  }
+
+  export type EnumGymCaseOutcomeFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseOutcome
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutProposalsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutProposalsInput, GymComplaintCaseUncheckedCreateWithoutProposalsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutProposalsInput
+    upsert?: GymComplaintCaseUpsertWithoutProposalsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutProposalsInput, GymComplaintCaseUpdateWithoutProposalsInput>, GymComplaintCaseUncheckedUpdateWithoutProposalsInput>
+  }
+
+  export type GymCaseFindingUpdateOneRequiredWithoutProposalsNestedInput = {
+    create?: XOR<GymCaseFindingCreateWithoutProposalsInput, GymCaseFindingUncheckedCreateWithoutProposalsInput>
+    connectOrCreate?: GymCaseFindingCreateOrConnectWithoutProposalsInput
+    upsert?: GymCaseFindingUpsertWithoutProposalsInput
+    connect?: GymCaseFindingWhereUniqueInput
+    update?: XOR<XOR<GymCaseFindingUpdateToOneWithWhereWithoutProposalsInput, GymCaseFindingUpdateWithoutProposalsInput>, GymCaseFindingUncheckedUpdateWithoutProposalsInput>
+  }
+
+  export type GymCaseApprovalUpdateManyWithoutProposalNestedInput = {
+    create?: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput> | GymCaseApprovalCreateWithoutProposalInput[] | GymCaseApprovalUncheckedCreateWithoutProposalInput[]
+    connectOrCreate?: GymCaseApprovalCreateOrConnectWithoutProposalInput | GymCaseApprovalCreateOrConnectWithoutProposalInput[]
+    upsert?: GymCaseApprovalUpsertWithWhereUniqueWithoutProposalInput | GymCaseApprovalUpsertWithWhereUniqueWithoutProposalInput[]
+    createMany?: GymCaseApprovalCreateManyProposalInputEnvelope
+    set?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    disconnect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    delete?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    connect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    update?: GymCaseApprovalUpdateWithWhereUniqueWithoutProposalInput | GymCaseApprovalUpdateWithWhereUniqueWithoutProposalInput[]
+    updateMany?: GymCaseApprovalUpdateManyWithWhereWithoutProposalInput | GymCaseApprovalUpdateManyWithWhereWithoutProposalInput[]
+    deleteMany?: GymCaseApprovalScalarWhereInput | GymCaseApprovalScalarWhereInput[]
+  }
+
+  export type GymCaseApprovalUncheckedUpdateManyWithoutProposalNestedInput = {
+    create?: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput> | GymCaseApprovalCreateWithoutProposalInput[] | GymCaseApprovalUncheckedCreateWithoutProposalInput[]
+    connectOrCreate?: GymCaseApprovalCreateOrConnectWithoutProposalInput | GymCaseApprovalCreateOrConnectWithoutProposalInput[]
+    upsert?: GymCaseApprovalUpsertWithWhereUniqueWithoutProposalInput | GymCaseApprovalUpsertWithWhereUniqueWithoutProposalInput[]
+    createMany?: GymCaseApprovalCreateManyProposalInputEnvelope
+    set?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    disconnect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    delete?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    connect?: GymCaseApprovalWhereUniqueInput | GymCaseApprovalWhereUniqueInput[]
+    update?: GymCaseApprovalUpdateWithWhereUniqueWithoutProposalInput | GymCaseApprovalUpdateWithWhereUniqueWithoutProposalInput[]
+    updateMany?: GymCaseApprovalUpdateManyWithWhereWithoutProposalInput | GymCaseApprovalUpdateManyWithWhereWithoutProposalInput[]
+    deleteMany?: GymCaseApprovalScalarWhereInput | GymCaseApprovalScalarWhereInput[]
+  }
+
+  export type GymCaseProposalCreateNestedOneWithoutApprovalsInput = {
+    create?: XOR<GymCaseProposalCreateWithoutApprovalsInput, GymCaseProposalUncheckedCreateWithoutApprovalsInput>
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutApprovalsInput
+    connect?: GymCaseProposalWhereUniqueInput
+  }
+
+  export type EnumGymCaseApprovalResultFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseApprovalResult
+  }
+
+  export type GymCaseProposalUpdateOneRequiredWithoutApprovalsNestedInput = {
+    create?: XOR<GymCaseProposalCreateWithoutApprovalsInput, GymCaseProposalUncheckedCreateWithoutApprovalsInput>
+    connectOrCreate?: GymCaseProposalCreateOrConnectWithoutApprovalsInput
+    upsert?: GymCaseProposalUpsertWithoutApprovalsInput
+    connect?: GymCaseProposalWhereUniqueInput
+    update?: XOR<XOR<GymCaseProposalUpdateToOneWithWhereWithoutApprovalsInput, GymCaseProposalUpdateWithoutApprovalsInput>, GymCaseProposalUncheckedUpdateWithoutApprovalsInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutEventsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutEventsInput, GymComplaintCaseUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutEventsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type NullableEnumGymCaseStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseStatus | null
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutEventsInput, GymComplaintCaseUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutEventsInput
+    upsert?: GymComplaintCaseUpsertWithoutEventsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutEventsInput, GymComplaintCaseUpdateWithoutEventsInput>, GymComplaintCaseUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutExecutionsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutExecutionsInput, GymComplaintCaseUncheckedCreateWithoutExecutionsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutExecutionsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type EnumGymCaseExecStateFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseExecState
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutExecutionsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutExecutionsInput, GymComplaintCaseUncheckedCreateWithoutExecutionsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutExecutionsInput
+    upsert?: GymComplaintCaseUpsertWithoutExecutionsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutExecutionsInput, GymComplaintCaseUpdateWithoutExecutionsInput>, GymComplaintCaseUncheckedUpdateWithoutExecutionsInput>
+  }
+
+  export type GymComplaintCaseCreateNestedOneWithoutAccessLogsInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutAccessLogsInput, GymComplaintCaseUncheckedCreateWithoutAccessLogsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutAccessLogsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+  }
+
+  export type EnumGymCaseAccessActionFieldUpdateOperationsInput = {
+    set?: $Enums.GymCaseAccessAction
+  }
+
+  export type GymComplaintCaseUpdateOneRequiredWithoutAccessLogsNestedInput = {
+    create?: XOR<GymComplaintCaseCreateWithoutAccessLogsInput, GymComplaintCaseUncheckedCreateWithoutAccessLogsInput>
+    connectOrCreate?: GymComplaintCaseCreateOrConnectWithoutAccessLogsInput
+    upsert?: GymComplaintCaseUpsertWithoutAccessLogsInput
+    connect?: GymComplaintCaseWhereUniqueInput
+    update?: XOR<XOR<GymComplaintCaseUpdateToOneWithWhereWithoutAccessLogsInput, GymComplaintCaseUpdateWithoutAccessLogsInput>, GymComplaintCaseUncheckedUpdateWithoutAccessLogsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -63783,6 +81887,277 @@ export namespace Prisma {
     _max?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
   }
 
+  export type NestedUuidFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidFilter<$PrismaModel> | string
+  }
+
+  export type NestedEnumGymCaseClassFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseClass | EnumGymCaseClassFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseClassFilter<$PrismaModel> | $Enums.GymCaseClass
+  }
+
+  export type NestedEnumGymCaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseStatusFilter<$PrismaModel> | $Enums.GymCaseStatus
+  }
+
+  export type NestedEnumGymCaseExecStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecStatus | EnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStatusFilter<$PrismaModel> | $Enums.GymCaseExecStatus
+  }
+
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseClassWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseClass | EnumGymCaseClassFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseClass[] | ListEnumGymCaseClassFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseClassWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseClass
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseClassFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseClassFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseExecStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecStatus | EnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecStatus[] | ListEnumGymCaseExecStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseExecStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseExecStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseExecStatusFilter<$PrismaModel>
+  }
+
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCasePartyRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCasePartyRole | EnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCasePartyRoleFilter<$PrismaModel> | $Enums.GymCasePartyRole
+  }
+
+  export type NestedEnumGymCasePartyRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCasePartyRole | EnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCasePartyRole[] | ListEnumGymCasePartyRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCasePartyRoleWithAggregatesFilter<$PrismaModel> | $Enums.GymCasePartyRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCasePartyRoleFilter<$PrismaModel>
+    _max?: NestedEnumGymCasePartyRoleFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseProvenanceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseProvenance | EnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseProvenanceFilter<$PrismaModel> | $Enums.GymCaseProvenance
+  }
+
+  export type NestedEnumGymCaseSensitivityFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseSensitivity | EnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseSensitivityFilter<$PrismaModel> | $Enums.GymCaseSensitivity
+  }
+
+  export type NestedEnumGymCaseProvenanceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseProvenance | EnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseProvenance[] | ListEnumGymCaseProvenanceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseProvenanceWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseProvenance
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseProvenanceFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseProvenanceFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseSensitivityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseSensitivity | EnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseSensitivity[] | ListEnumGymCaseSensitivityFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseSensitivityWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseSensitivity
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseSensitivityFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseSensitivityFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseAssessmentResultFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAssessmentResult | EnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel> | $Enums.GymCaseAssessmentResult
+  }
+
+  export type NestedEnumGymCaseAssessmentResultWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAssessmentResult | EnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAssessmentResult[] | ListEnumGymCaseAssessmentResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAssessmentResultWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseAssessmentResult
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseAssessmentResultFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseFindingKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseFindingKind | EnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseFindingKindFilter<$PrismaModel> | $Enums.GymCaseFindingKind
+  }
+
+  export type NestedEnumGymCaseFindingKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseFindingKind | EnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseFindingKind[] | ListEnumGymCaseFindingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseFindingKindWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseFindingKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseFindingKindFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseFindingKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseOutcome | EnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseOutcomeFilter<$PrismaModel> | $Enums.GymCaseOutcome
+  }
+
+  export type NestedEnumGymCaseOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseOutcome | EnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseOutcome[] | ListEnumGymCaseOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseOutcomeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseApprovalResultFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseApprovalResult | EnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel> | $Enums.GymCaseApprovalResult
+  }
+
+  export type NestedEnumGymCaseApprovalResultWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseApprovalResult | EnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseApprovalResult[] | ListEnumGymCaseApprovalResultFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseApprovalResultWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseApprovalResult
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseApprovalResultFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel> | $Enums.GymCaseStatus | null
+  }
+
+  export type NestedEnumGymCaseStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseStatus | EnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.GymCaseStatus[] | ListEnumGymCaseStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumGymCaseStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseStatusNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseExecStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecState | EnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStateFilter<$PrismaModel> | $Enums.GymCaseExecState
+  }
+
+  export type NestedEnumGymCaseExecStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseExecState | EnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseExecState[] | ListEnumGymCaseExecStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseExecStateWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseExecState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseExecStateFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseExecStateFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymCaseAccessActionFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAccessAction | EnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAccessActionFilter<$PrismaModel> | $Enums.GymCaseAccessAction
+  }
+
+  export type NestedEnumGymCaseAccessActionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCaseAccessAction | EnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCaseAccessAction[] | ListEnumGymCaseAccessActionFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCaseAccessActionWithAggregatesFilter<$PrismaModel> | $Enums.GymCaseAccessAction
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCaseAccessActionFilter<$PrismaModel>
+    _max?: NestedEnumGymCaseAccessActionFilter<$PrismaModel>
+  }
+
   export type GymCreateWithoutPhotosInput = {
     id?: string
     ownerId: string
@@ -64788,6 +83163,65 @@ export namespace Prisma {
     create: XOR<GymCreateWithoutComplaintsInput, GymUncheckedCreateWithoutComplaintsInput>
   }
 
+  export type GymComplaintCaseCreateWithoutComplaintInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutComplaintInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutComplaintInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+  }
+
   export type GymUpsertWithoutComplaintsInput = {
     update: XOR<GymUpdateWithoutComplaintsInput, GymUncheckedUpdateWithoutComplaintsInput>
     create: XOR<GymCreateWithoutComplaintsInput, GymUncheckedCreateWithoutComplaintsInput>
@@ -64901,6 +83335,71 @@ export namespace Prisma {
     amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
     amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
     listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymComplaintCaseUpsertWithoutComplaintInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutComplaintInput, GymComplaintCaseUncheckedUpdateWithoutComplaintInput>
+    create: XOR<GymComplaintCaseCreateWithoutComplaintInput, GymComplaintCaseUncheckedCreateWithoutComplaintInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutComplaintInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutComplaintInput, GymComplaintCaseUncheckedUpdateWithoutComplaintInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutComplaintInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutComplaintInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type GymPartnerCreateWithoutAuditLogsInput = {
@@ -68014,6 +86513,7 @@ export namespace Prisma {
     resolvedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    case?: GymComplaintCaseCreateNestedOneWithoutComplaintInput
   }
 
   export type GymComplaintUncheckedCreateWithoutGymInput = {
@@ -68031,6 +86531,7 @@ export namespace Prisma {
     resolvedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    case?: GymComplaintCaseUncheckedCreateNestedOneWithoutComplaintInput
   }
 
   export type GymComplaintCreateOrConnectWithoutGymInput = {
@@ -71999,6 +90500,2325 @@ export namespace Prisma {
     amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
   }
 
+  export type GymComplaintCreateWithoutCaseInput = {
+    id?: string
+    partnerId?: string | null
+    source: $Enums.ComplaintSource
+    issueType: $Enums.ComplaintIssueType
+    reporterUserId?: string | null
+    description: string
+    photoTokens?: GymComplaintCreatephotoTokensInput | string[]
+    status?: $Enums.ComplaintStatus
+    assignedAdminId?: string | null
+    adminResponse?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutComplaintsInput
+  }
+
+  export type GymComplaintUncheckedCreateWithoutCaseInput = {
+    id?: string
+    gymId: string
+    partnerId?: string | null
+    source: $Enums.ComplaintSource
+    issueType: $Enums.ComplaintIssueType
+    reporterUserId?: string | null
+    description: string
+    photoTokens?: GymComplaintCreatephotoTokensInput | string[]
+    status?: $Enums.ComplaintStatus
+    assignedAdminId?: string | null
+    adminResponse?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymComplaintCreateOrConnectWithoutCaseInput = {
+    where: GymComplaintWhereUniqueInput
+    create: XOR<GymComplaintCreateWithoutCaseInput, GymComplaintUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseStatementCreateWithoutCaseInput = {
+    id?: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseStatementUncheckedCreateWithoutCaseInput = {
+    id?: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseStatementCreateOrConnectWithoutCaseInput = {
+    where: GymCaseStatementWhereUniqueInput
+    create: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseStatementCreateManyCaseInputEnvelope = {
+    data: GymCaseStatementCreateManyCaseInput | GymCaseStatementCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseEvidenceCreateWithoutCaseInput = {
+    id?: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEvidenceUncheckedCreateWithoutCaseInput = {
+    id?: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEvidenceCreateOrConnectWithoutCaseInput = {
+    where: GymCaseEvidenceWhereUniqueInput
+    create: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseEvidenceCreateManyCaseInputEnvelope = {
+    data: GymCaseEvidenceCreateManyCaseInput | GymCaseEvidenceCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseShareCreateWithoutCaseInput = {
+    id?: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseShareUncheckedCreateWithoutCaseInput = {
+    id?: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseShareCreateOrConnectWithoutCaseInput = {
+    where: GymCaseShareWhereUniqueInput
+    create: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseShareCreateManyCaseInputEnvelope = {
+    data: GymCaseShareCreateManyCaseInput | GymCaseShareCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseClaimCreateWithoutCaseInput = {
+    id?: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutClaimInput
+  }
+
+  export type GymCaseClaimUncheckedCreateWithoutCaseInput = {
+    id?: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutClaimInput
+  }
+
+  export type GymCaseClaimCreateOrConnectWithoutCaseInput = {
+    where: GymCaseClaimWhereUniqueInput
+    create: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseClaimCreateManyCaseInputEnvelope = {
+    data: GymCaseClaimCreateManyCaseInput | GymCaseClaimCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseAssessmentCreateWithoutCaseInput = {
+    id?: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    claim: GymCaseClaimCreateNestedOneWithoutAssessmentsInput
+  }
+
+  export type GymCaseAssessmentUncheckedCreateWithoutCaseInput = {
+    id?: string
+    claimId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentCreateOrConnectWithoutCaseInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    create: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseAssessmentCreateManyCaseInputEnvelope = {
+    data: GymCaseAssessmentCreateManyCaseInput | GymCaseAssessmentCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseFindingCreateWithoutCaseInput = {
+    id?: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+    proposals?: GymCaseProposalCreateNestedManyWithoutFindingInput
+  }
+
+  export type GymCaseFindingUncheckedCreateWithoutCaseInput = {
+    id?: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutFindingInput
+  }
+
+  export type GymCaseFindingCreateOrConnectWithoutCaseInput = {
+    where: GymCaseFindingWhereUniqueInput
+    create: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseFindingCreateManyCaseInputEnvelope = {
+    data: GymCaseFindingCreateManyCaseInput | GymCaseFindingCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseProposalCreateWithoutCaseInput = {
+    id?: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    finding: GymCaseFindingCreateNestedOneWithoutProposalsInput
+    approvals?: GymCaseApprovalCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalUncheckedCreateWithoutCaseInput = {
+    id?: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvals?: GymCaseApprovalUncheckedCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalCreateOrConnectWithoutCaseInput = {
+    where: GymCaseProposalWhereUniqueInput
+    create: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseProposalCreateManyCaseInputEnvelope = {
+    data: GymCaseProposalCreateManyCaseInput | GymCaseProposalCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseEventCreateWithoutCaseInput = {
+    id?: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEventUncheckedCreateWithoutCaseInput = {
+    id?: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEventCreateOrConnectWithoutCaseInput = {
+    where: GymCaseEventWhereUniqueInput
+    create: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseEventCreateManyCaseInputEnvelope = {
+    data: GymCaseEventCreateManyCaseInput | GymCaseEventCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseExecutionCreateWithoutCaseInput = {
+    id?: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseExecutionUncheckedCreateWithoutCaseInput = {
+    id?: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseExecutionCreateOrConnectWithoutCaseInput = {
+    where: GymCaseExecutionWhereUniqueInput
+    create: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseExecutionCreateManyCaseInputEnvelope = {
+    data: GymCaseExecutionCreateManyCaseInput | GymCaseExecutionCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymCaseAccessLogCreateWithoutCaseInput = {
+    id?: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAccessLogUncheckedCreateWithoutCaseInput = {
+    id?: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAccessLogCreateOrConnectWithoutCaseInput = {
+    where: GymCaseAccessLogWhereUniqueInput
+    create: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseAccessLogCreateManyCaseInputEnvelope = {
+    data: GymCaseAccessLogCreateManyCaseInput | GymCaseAccessLogCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymComplaintUpsertWithoutCaseInput = {
+    update: XOR<GymComplaintUpdateWithoutCaseInput, GymComplaintUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymComplaintCreateWithoutCaseInput, GymComplaintUncheckedCreateWithoutCaseInput>
+    where?: GymComplaintWhereInput
+  }
+
+  export type GymComplaintUpdateToOneWithWhereWithoutCaseInput = {
+    where?: GymComplaintWhereInput
+    data: XOR<GymComplaintUpdateWithoutCaseInput, GymComplaintUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymComplaintUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partnerId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumComplaintSourceFieldUpdateOperationsInput | $Enums.ComplaintSource
+    issueType?: EnumComplaintIssueTypeFieldUpdateOperationsInput | $Enums.ComplaintIssueType
+    reporterUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: StringFieldUpdateOperationsInput | string
+    photoTokens?: GymComplaintUpdatephotoTokensInput | string[]
+    status?: EnumComplaintStatusFieldUpdateOperationsInput | $Enums.ComplaintStatus
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    adminResponse?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutComplaintsNestedInput
+  }
+
+  export type GymComplaintUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    partnerId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumComplaintSourceFieldUpdateOperationsInput | $Enums.ComplaintSource
+    issueType?: EnumComplaintIssueTypeFieldUpdateOperationsInput | $Enums.ComplaintIssueType
+    reporterUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: StringFieldUpdateOperationsInput | string
+    photoTokens?: GymComplaintUpdatephotoTokensInput | string[]
+    status?: EnumComplaintStatusFieldUpdateOperationsInput | $Enums.ComplaintStatus
+    assignedAdminId?: NullableStringFieldUpdateOperationsInput | string | null
+    adminResponse?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseStatementWhereUniqueInput
+    update: XOR<GymCaseStatementUpdateWithoutCaseInput, GymCaseStatementUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseStatementCreateWithoutCaseInput, GymCaseStatementUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseStatementUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseStatementWhereUniqueInput
+    data: XOR<GymCaseStatementUpdateWithoutCaseInput, GymCaseStatementUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseStatementUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseStatementScalarWhereInput
+    data: XOR<GymCaseStatementUpdateManyMutationInput, GymCaseStatementUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseStatementScalarWhereInput = {
+    AND?: GymCaseStatementScalarWhereInput | GymCaseStatementScalarWhereInput[]
+    OR?: GymCaseStatementScalarWhereInput[]
+    NOT?: GymCaseStatementScalarWhereInput | GymCaseStatementScalarWhereInput[]
+    id?: UuidFilter<"GymCaseStatement"> | string
+    caseId?: UuidFilter<"GymCaseStatement"> | string
+    partyRole?: EnumGymCasePartyRoleFilter<"GymCaseStatement"> | $Enums.GymCasePartyRole
+    authorUserId?: StringFilter<"GymCaseStatement"> | string
+    version?: IntFilter<"GymCaseStatement"> | number
+    source?: StringFilter<"GymCaseStatement"> | string
+    text?: StringFilter<"GymCaseStatement"> | string
+    supplementReason?: StringNullableFilter<"GymCaseStatement"> | string | null
+    supersedesId?: UuidNullableFilter<"GymCaseStatement"> | string | null
+    contentHash?: StringFilter<"GymCaseStatement"> | string
+    createdAt?: DateTimeFilter<"GymCaseStatement"> | Date | string
+  }
+
+  export type GymCaseEvidenceUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseEvidenceWhereUniqueInput
+    update: XOR<GymCaseEvidenceUpdateWithoutCaseInput, GymCaseEvidenceUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseEvidenceCreateWithoutCaseInput, GymCaseEvidenceUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseEvidenceUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseEvidenceWhereUniqueInput
+    data: XOR<GymCaseEvidenceUpdateWithoutCaseInput, GymCaseEvidenceUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseEvidenceUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseEvidenceScalarWhereInput
+    data: XOR<GymCaseEvidenceUpdateManyMutationInput, GymCaseEvidenceUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseEvidenceScalarWhereInput = {
+    AND?: GymCaseEvidenceScalarWhereInput | GymCaseEvidenceScalarWhereInput[]
+    OR?: GymCaseEvidenceScalarWhereInput[]
+    NOT?: GymCaseEvidenceScalarWhereInput | GymCaseEvidenceScalarWhereInput[]
+    id?: UuidFilter<"GymCaseEvidence"> | string
+    caseId?: UuidFilter<"GymCaseEvidence"> | string
+    provenanceType?: EnumGymCaseProvenanceFilter<"GymCaseEvidence"> | $Enums.GymCaseProvenance
+    source?: StringFilter<"GymCaseEvidence"> | string
+    subject?: StringFilter<"GymCaseEvidence"> | string
+    scopeGymId?: StringFilter<"GymCaseEvidence"> | string
+    eventAt?: DateTimeNullableFilter<"GymCaseEvidence"> | Date | string | null
+    capturedAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+    submittedBy?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    submittedRole?: StringNullableFilter<"GymCaseEvidence"> | string | null
+    snapshotVersion?: IntFilter<"GymCaseEvidence"> | number
+    contentHash?: StringFilter<"GymCaseEvidence"> | string
+    payload?: JsonFilter<"GymCaseEvidence">
+    sensitivity?: EnumGymCaseSensitivityFilter<"GymCaseEvidence"> | $Enums.GymCaseSensitivity
+    supersedesId?: UuidNullableFilter<"GymCaseEvidence"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseEvidence"> | Date | string
+  }
+
+  export type GymCaseShareUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseShareWhereUniqueInput
+    update: XOR<GymCaseShareUpdateWithoutCaseInput, GymCaseShareUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseShareCreateWithoutCaseInput, GymCaseShareUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseShareUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseShareWhereUniqueInput
+    data: XOR<GymCaseShareUpdateWithoutCaseInput, GymCaseShareUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseShareUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseShareScalarWhereInput
+    data: XOR<GymCaseShareUpdateManyMutationInput, GymCaseShareUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseShareScalarWhereInput = {
+    AND?: GymCaseShareScalarWhereInput | GymCaseShareScalarWhereInput[]
+    OR?: GymCaseShareScalarWhereInput[]
+    NOT?: GymCaseShareScalarWhereInput | GymCaseShareScalarWhereInput[]
+    id?: UuidFilter<"GymCaseShare"> | string
+    caseId?: UuidFilter<"GymCaseShare"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    statementId?: UuidNullableFilter<"GymCaseShare"> | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFilter<"GymCaseShare"> | $Enums.GymCasePartyRole
+    sharedBy?: StringFilter<"GymCaseShare"> | string
+    reason?: StringFilter<"GymCaseShare"> | string
+    createdAt?: DateTimeFilter<"GymCaseShare"> | Date | string
+  }
+
+  export type GymCaseClaimUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseClaimWhereUniqueInput
+    update: XOR<GymCaseClaimUpdateWithoutCaseInput, GymCaseClaimUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseClaimCreateWithoutCaseInput, GymCaseClaimUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseClaimUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseClaimWhereUniqueInput
+    data: XOR<GymCaseClaimUpdateWithoutCaseInput, GymCaseClaimUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseClaimUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseClaimScalarWhereInput
+    data: XOR<GymCaseClaimUpdateManyMutationInput, GymCaseClaimUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseClaimScalarWhereInput = {
+    AND?: GymCaseClaimScalarWhereInput | GymCaseClaimScalarWhereInput[]
+    OR?: GymCaseClaimScalarWhereInput[]
+    NOT?: GymCaseClaimScalarWhereInput | GymCaseClaimScalarWhereInput[]
+    id?: UuidFilter<"GymCaseClaim"> | string
+    caseId?: UuidFilter<"GymCaseClaim"> | string
+    claimantRole?: EnumGymCasePartyRoleFilter<"GymCaseClaim"> | $Enums.GymCasePartyRole
+    text?: StringFilter<"GymCaseClaim"> | string
+    createdBy?: StringFilter<"GymCaseClaim"> | string
+    createdAt?: DateTimeFilter<"GymCaseClaim"> | Date | string
+  }
+
+  export type GymCaseAssessmentUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    update: XOR<GymCaseAssessmentUpdateWithoutCaseInput, GymCaseAssessmentUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseAssessmentCreateWithoutCaseInput, GymCaseAssessmentUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseAssessmentUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    data: XOR<GymCaseAssessmentUpdateWithoutCaseInput, GymCaseAssessmentUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseAssessmentUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseAssessmentScalarWhereInput
+    data: XOR<GymCaseAssessmentUpdateManyMutationInput, GymCaseAssessmentUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseAssessmentScalarWhereInput = {
+    AND?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+    OR?: GymCaseAssessmentScalarWhereInput[]
+    NOT?: GymCaseAssessmentScalarWhereInput | GymCaseAssessmentScalarWhereInput[]
+    id?: UuidFilter<"GymCaseAssessment"> | string
+    caseId?: UuidFilter<"GymCaseAssessment"> | string
+    claimId?: UuidFilter<"GymCaseAssessment"> | string
+    assessorId?: StringFilter<"GymCaseAssessment"> | string
+    directEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    indirectEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    rebuttalEvidenceIds?: StringNullableListFilter<"GymCaseAssessment">
+    relevanceNote?: StringFilter<"GymCaseAssessment"> | string
+    verifiabilityNote?: StringFilter<"GymCaseAssessment"> | string
+    consistencyNote?: StringFilter<"GymCaseAssessment"> | string
+    result?: EnumGymCaseAssessmentResultFilter<"GymCaseAssessment"> | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFilter<"GymCaseAssessment"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseAssessment">
+    createdAt?: DateTimeFilter<"GymCaseAssessment"> | Date | string
+  }
+
+  export type GymCaseFindingUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseFindingWhereUniqueInput
+    update: XOR<GymCaseFindingUpdateWithoutCaseInput, GymCaseFindingUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseFindingCreateWithoutCaseInput, GymCaseFindingUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseFindingUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseFindingWhereUniqueInput
+    data: XOR<GymCaseFindingUpdateWithoutCaseInput, GymCaseFindingUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseFindingUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseFindingScalarWhereInput
+    data: XOR<GymCaseFindingUpdateManyMutationInput, GymCaseFindingUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseFindingScalarWhereInput = {
+    AND?: GymCaseFindingScalarWhereInput | GymCaseFindingScalarWhereInput[]
+    OR?: GymCaseFindingScalarWhereInput[]
+    NOT?: GymCaseFindingScalarWhereInput | GymCaseFindingScalarWhereInput[]
+    id?: UuidFilter<"GymCaseFinding"> | string
+    caseId?: UuidFilter<"GymCaseFinding"> | string
+    finding?: EnumGymCaseFindingKindFilter<"GymCaseFinding"> | $Enums.GymCaseFindingKind
+    reasoning?: StringFilter<"GymCaseFinding"> | string
+    recordedBy?: StringFilter<"GymCaseFinding"> | string
+    supersedesId?: UuidNullableFilter<"GymCaseFinding"> | string | null
+    createdAt?: DateTimeFilter<"GymCaseFinding"> | Date | string
+  }
+
+  export type GymCaseProposalUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseProposalWhereUniqueInput
+    update: XOR<GymCaseProposalUpdateWithoutCaseInput, GymCaseProposalUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseProposalCreateWithoutCaseInput, GymCaseProposalUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseProposalUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseProposalWhereUniqueInput
+    data: XOR<GymCaseProposalUpdateWithoutCaseInput, GymCaseProposalUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseProposalUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseProposalScalarWhereInput
+    data: XOR<GymCaseProposalUpdateManyMutationInput, GymCaseProposalUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseProposalScalarWhereInput = {
+    AND?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+    OR?: GymCaseProposalScalarWhereInput[]
+    NOT?: GymCaseProposalScalarWhereInput | GymCaseProposalScalarWhereInput[]
+    id?: UuidFilter<"GymCaseProposal"> | string
+    caseId?: UuidFilter<"GymCaseProposal"> | string
+    findingId?: UuidFilter<"GymCaseProposal"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseProposal"> | $Enums.GymCaseOutcome
+    proposerId?: StringFilter<"GymCaseProposal"> | string
+    evidenceSnapshot?: JsonFilter<"GymCaseProposal">
+    createdAt?: DateTimeFilter<"GymCaseProposal"> | Date | string
+  }
+
+  export type GymCaseEventUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseEventWhereUniqueInput
+    update: XOR<GymCaseEventUpdateWithoutCaseInput, GymCaseEventUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseEventCreateWithoutCaseInput, GymCaseEventUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseEventUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseEventWhereUniqueInput
+    data: XOR<GymCaseEventUpdateWithoutCaseInput, GymCaseEventUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseEventUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseEventScalarWhereInput
+    data: XOR<GymCaseEventUpdateManyMutationInput, GymCaseEventUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseEventScalarWhereInput = {
+    AND?: GymCaseEventScalarWhereInput | GymCaseEventScalarWhereInput[]
+    OR?: GymCaseEventScalarWhereInput[]
+    NOT?: GymCaseEventScalarWhereInput | GymCaseEventScalarWhereInput[]
+    id?: UuidFilter<"GymCaseEvent"> | string
+    caseId?: UuidFilter<"GymCaseEvent"> | string
+    actorUserId?: StringFilter<"GymCaseEvent"> | string
+    actorRole?: StringFilter<"GymCaseEvent"> | string
+    action?: StringFilter<"GymCaseEvent"> | string
+    fromStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    toStatus?: EnumGymCaseStatusNullableFilter<"GymCaseEvent"> | $Enums.GymCaseStatus | null
+    note?: StringNullableFilter<"GymCaseEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"GymCaseEvent"> | string | null
+    payload?: JsonNullableFilter<"GymCaseEvent">
+    createdAt?: DateTimeFilter<"GymCaseEvent"> | Date | string
+  }
+
+  export type GymCaseExecutionUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseExecutionWhereUniqueInput
+    update: XOR<GymCaseExecutionUpdateWithoutCaseInput, GymCaseExecutionUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseExecutionCreateWithoutCaseInput, GymCaseExecutionUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseExecutionUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseExecutionWhereUniqueInput
+    data: XOR<GymCaseExecutionUpdateWithoutCaseInput, GymCaseExecutionUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseExecutionUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseExecutionScalarWhereInput
+    data: XOR<GymCaseExecutionUpdateManyMutationInput, GymCaseExecutionUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseExecutionScalarWhereInput = {
+    AND?: GymCaseExecutionScalarWhereInput | GymCaseExecutionScalarWhereInput[]
+    OR?: GymCaseExecutionScalarWhereInput[]
+    NOT?: GymCaseExecutionScalarWhereInput | GymCaseExecutionScalarWhereInput[]
+    id?: UuidFilter<"GymCaseExecution"> | string
+    caseId?: UuidFilter<"GymCaseExecution"> | string
+    decisionId?: UuidFilter<"GymCaseExecution"> | string
+    outcome?: EnumGymCaseOutcomeFilter<"GymCaseExecution"> | $Enums.GymCaseOutcome
+    actorUserId?: StringFilter<"GymCaseExecution"> | string
+    idempotencyKey?: StringFilter<"GymCaseExecution"> | string
+    attempt?: IntFilter<"GymCaseExecution"> | number
+    state?: EnumGymCaseExecStateFilter<"GymCaseExecution"> | $Enums.GymCaseExecState
+    blockedReason?: StringNullableFilter<"GymCaseExecution"> | string | null
+    note?: StringNullableFilter<"GymCaseExecution"> | string | null
+    response?: JsonNullableFilter<"GymCaseExecution">
+    createdAt?: DateTimeFilter<"GymCaseExecution"> | Date | string
+  }
+
+  export type GymCaseAccessLogUpsertWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseAccessLogWhereUniqueInput
+    update: XOR<GymCaseAccessLogUpdateWithoutCaseInput, GymCaseAccessLogUncheckedUpdateWithoutCaseInput>
+    create: XOR<GymCaseAccessLogCreateWithoutCaseInput, GymCaseAccessLogUncheckedCreateWithoutCaseInput>
+  }
+
+  export type GymCaseAccessLogUpdateWithWhereUniqueWithoutCaseInput = {
+    where: GymCaseAccessLogWhereUniqueInput
+    data: XOR<GymCaseAccessLogUpdateWithoutCaseInput, GymCaseAccessLogUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type GymCaseAccessLogUpdateManyWithWhereWithoutCaseInput = {
+    where: GymCaseAccessLogScalarWhereInput
+    data: XOR<GymCaseAccessLogUpdateManyMutationInput, GymCaseAccessLogUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type GymCaseAccessLogScalarWhereInput = {
+    AND?: GymCaseAccessLogScalarWhereInput | GymCaseAccessLogScalarWhereInput[]
+    OR?: GymCaseAccessLogScalarWhereInput[]
+    NOT?: GymCaseAccessLogScalarWhereInput | GymCaseAccessLogScalarWhereInput[]
+    id?: UuidFilter<"GymCaseAccessLog"> | string
+    caseId?: UuidFilter<"GymCaseAccessLog"> | string
+    viewerUserId?: StringFilter<"GymCaseAccessLog"> | string
+    viewerRole?: StringFilter<"GymCaseAccessLog"> | string
+    evidenceId?: UuidNullableFilter<"GymCaseAccessLog"> | string | null
+    action?: EnumGymCaseAccessActionFilter<"GymCaseAccessLog"> | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFilter<"GymCaseAccessLog"> | Date | string
+  }
+
+  export type GymComplaintCaseCreateWithoutStatementsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutStatementsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutStatementsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutStatementsInput, GymComplaintCaseUncheckedCreateWithoutStatementsInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutStatementsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutStatementsInput, GymComplaintCaseUncheckedUpdateWithoutStatementsInput>
+    create: XOR<GymComplaintCaseCreateWithoutStatementsInput, GymComplaintCaseUncheckedCreateWithoutStatementsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutStatementsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutStatementsInput, GymComplaintCaseUncheckedUpdateWithoutStatementsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutStatementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutStatementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateWithoutEvidenceInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutEvidenceInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutEvidenceInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutEvidenceInput, GymComplaintCaseUncheckedCreateWithoutEvidenceInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutEvidenceInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutEvidenceInput, GymComplaintCaseUncheckedUpdateWithoutEvidenceInput>
+    create: XOR<GymComplaintCaseCreateWithoutEvidenceInput, GymComplaintCaseUncheckedCreateWithoutEvidenceInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutEvidenceInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutEvidenceInput, GymComplaintCaseUncheckedUpdateWithoutEvidenceInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutEvidenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutEvidenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateWithoutSharesInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutSharesInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutSharesInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutSharesInput, GymComplaintCaseUncheckedCreateWithoutSharesInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutSharesInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutSharesInput, GymComplaintCaseUncheckedUpdateWithoutSharesInput>
+    create: XOR<GymComplaintCaseCreateWithoutSharesInput, GymComplaintCaseUncheckedCreateWithoutSharesInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutSharesInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutSharesInput, GymComplaintCaseUncheckedUpdateWithoutSharesInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateWithoutClaimsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutClaimsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutClaimsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutClaimsInput, GymComplaintCaseUncheckedCreateWithoutClaimsInput>
+  }
+
+  export type GymCaseAssessmentCreateWithoutClaimInput = {
+    id?: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutAssessmentsInput
+  }
+
+  export type GymCaseAssessmentUncheckedCreateWithoutClaimInput = {
+    id?: string
+    caseId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentCreateOrConnectWithoutClaimInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    create: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput>
+  }
+
+  export type GymCaseAssessmentCreateManyClaimInputEnvelope = {
+    data: GymCaseAssessmentCreateManyClaimInput | GymCaseAssessmentCreateManyClaimInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymComplaintCaseUpsertWithoutClaimsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutClaimsInput, GymComplaintCaseUncheckedUpdateWithoutClaimsInput>
+    create: XOR<GymComplaintCaseCreateWithoutClaimsInput, GymComplaintCaseUncheckedCreateWithoutClaimsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutClaimsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutClaimsInput, GymComplaintCaseUncheckedUpdateWithoutClaimsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    update: XOR<GymCaseAssessmentUpdateWithoutClaimInput, GymCaseAssessmentUncheckedUpdateWithoutClaimInput>
+    create: XOR<GymCaseAssessmentCreateWithoutClaimInput, GymCaseAssessmentUncheckedCreateWithoutClaimInput>
+  }
+
+  export type GymCaseAssessmentUpdateWithWhereUniqueWithoutClaimInput = {
+    where: GymCaseAssessmentWhereUniqueInput
+    data: XOR<GymCaseAssessmentUpdateWithoutClaimInput, GymCaseAssessmentUncheckedUpdateWithoutClaimInput>
+  }
+
+  export type GymCaseAssessmentUpdateManyWithWhereWithoutClaimInput = {
+    where: GymCaseAssessmentScalarWhereInput
+    data: XOR<GymCaseAssessmentUpdateManyMutationInput, GymCaseAssessmentUncheckedUpdateManyWithoutClaimInput>
+  }
+
+  export type GymComplaintCaseCreateWithoutAssessmentsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutAssessmentsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutAssessmentsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutAssessmentsInput, GymComplaintCaseUncheckedCreateWithoutAssessmentsInput>
+  }
+
+  export type GymCaseClaimCreateWithoutAssessmentsInput = {
+    id?: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutClaimsInput
+  }
+
+  export type GymCaseClaimUncheckedCreateWithoutAssessmentsInput = {
+    id?: string
+    caseId: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseClaimCreateOrConnectWithoutAssessmentsInput = {
+    where: GymCaseClaimWhereUniqueInput
+    create: XOR<GymCaseClaimCreateWithoutAssessmentsInput, GymCaseClaimUncheckedCreateWithoutAssessmentsInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutAssessmentsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutAssessmentsInput, GymComplaintCaseUncheckedUpdateWithoutAssessmentsInput>
+    create: XOR<GymComplaintCaseCreateWithoutAssessmentsInput, GymComplaintCaseUncheckedCreateWithoutAssessmentsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutAssessmentsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutAssessmentsInput, GymComplaintCaseUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymCaseClaimUpsertWithoutAssessmentsInput = {
+    update: XOR<GymCaseClaimUpdateWithoutAssessmentsInput, GymCaseClaimUncheckedUpdateWithoutAssessmentsInput>
+    create: XOR<GymCaseClaimCreateWithoutAssessmentsInput, GymCaseClaimUncheckedCreateWithoutAssessmentsInput>
+    where?: GymCaseClaimWhereInput
+  }
+
+  export type GymCaseClaimUpdateToOneWithWhereWithoutAssessmentsInput = {
+    where?: GymCaseClaimWhereInput
+    data: XOR<GymCaseClaimUpdateWithoutAssessmentsInput, GymCaseClaimUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type GymCaseClaimUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutClaimsNestedInput
+  }
+
+  export type GymCaseClaimUncheckedUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymComplaintCaseCreateWithoutFindingsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutFindingsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutFindingsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutFindingsInput, GymComplaintCaseUncheckedCreateWithoutFindingsInput>
+  }
+
+  export type GymCaseProposalCreateWithoutFindingInput = {
+    id?: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutProposalsInput
+    approvals?: GymCaseApprovalCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalUncheckedCreateWithoutFindingInput = {
+    id?: string
+    caseId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvals?: GymCaseApprovalUncheckedCreateNestedManyWithoutProposalInput
+  }
+
+  export type GymCaseProposalCreateOrConnectWithoutFindingInput = {
+    where: GymCaseProposalWhereUniqueInput
+    create: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput>
+  }
+
+  export type GymCaseProposalCreateManyFindingInputEnvelope = {
+    data: GymCaseProposalCreateManyFindingInput | GymCaseProposalCreateManyFindingInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymComplaintCaseUpsertWithoutFindingsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutFindingsInput, GymComplaintCaseUncheckedUpdateWithoutFindingsInput>
+    create: XOR<GymComplaintCaseCreateWithoutFindingsInput, GymComplaintCaseUncheckedCreateWithoutFindingsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutFindingsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutFindingsInput, GymComplaintCaseUncheckedUpdateWithoutFindingsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutFindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutFindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymCaseProposalUpsertWithWhereUniqueWithoutFindingInput = {
+    where: GymCaseProposalWhereUniqueInput
+    update: XOR<GymCaseProposalUpdateWithoutFindingInput, GymCaseProposalUncheckedUpdateWithoutFindingInput>
+    create: XOR<GymCaseProposalCreateWithoutFindingInput, GymCaseProposalUncheckedCreateWithoutFindingInput>
+  }
+
+  export type GymCaseProposalUpdateWithWhereUniqueWithoutFindingInput = {
+    where: GymCaseProposalWhereUniqueInput
+    data: XOR<GymCaseProposalUpdateWithoutFindingInput, GymCaseProposalUncheckedUpdateWithoutFindingInput>
+  }
+
+  export type GymCaseProposalUpdateManyWithWhereWithoutFindingInput = {
+    where: GymCaseProposalScalarWhereInput
+    data: XOR<GymCaseProposalUpdateManyMutationInput, GymCaseProposalUncheckedUpdateManyWithoutFindingInput>
+  }
+
+  export type GymComplaintCaseCreateWithoutProposalsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutProposalsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutProposalsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutProposalsInput, GymComplaintCaseUncheckedCreateWithoutProposalsInput>
+  }
+
+  export type GymCaseFindingCreateWithoutProposalsInput = {
+    id?: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutFindingsInput
+  }
+
+  export type GymCaseFindingUncheckedCreateWithoutProposalsInput = {
+    id?: string
+    caseId: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseFindingCreateOrConnectWithoutProposalsInput = {
+    where: GymCaseFindingWhereUniqueInput
+    create: XOR<GymCaseFindingCreateWithoutProposalsInput, GymCaseFindingUncheckedCreateWithoutProposalsInput>
+  }
+
+  export type GymCaseApprovalCreateWithoutProposalInput = {
+    id?: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+  }
+
+  export type GymCaseApprovalUncheckedCreateWithoutProposalInput = {
+    id?: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+  }
+
+  export type GymCaseApprovalCreateOrConnectWithoutProposalInput = {
+    where: GymCaseApprovalWhereUniqueInput
+    create: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput>
+  }
+
+  export type GymCaseApprovalCreateManyProposalInputEnvelope = {
+    data: GymCaseApprovalCreateManyProposalInput | GymCaseApprovalCreateManyProposalInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymComplaintCaseUpsertWithoutProposalsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutProposalsInput, GymComplaintCaseUncheckedUpdateWithoutProposalsInput>
+    create: XOR<GymComplaintCaseCreateWithoutProposalsInput, GymComplaintCaseUncheckedCreateWithoutProposalsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutProposalsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutProposalsInput, GymComplaintCaseUncheckedUpdateWithoutProposalsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymCaseFindingUpsertWithoutProposalsInput = {
+    update: XOR<GymCaseFindingUpdateWithoutProposalsInput, GymCaseFindingUncheckedUpdateWithoutProposalsInput>
+    create: XOR<GymCaseFindingCreateWithoutProposalsInput, GymCaseFindingUncheckedCreateWithoutProposalsInput>
+    where?: GymCaseFindingWhereInput
+  }
+
+  export type GymCaseFindingUpdateToOneWithWhereWithoutProposalsInput = {
+    where?: GymCaseFindingWhereInput
+    data: XOR<GymCaseFindingUpdateWithoutProposalsInput, GymCaseFindingUncheckedUpdateWithoutProposalsInput>
+  }
+
+  export type GymCaseFindingUpdateWithoutProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutFindingsNestedInput
+  }
+
+  export type GymCaseFindingUncheckedUpdateWithoutProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalUpsertWithWhereUniqueWithoutProposalInput = {
+    where: GymCaseApprovalWhereUniqueInput
+    update: XOR<GymCaseApprovalUpdateWithoutProposalInput, GymCaseApprovalUncheckedUpdateWithoutProposalInput>
+    create: XOR<GymCaseApprovalCreateWithoutProposalInput, GymCaseApprovalUncheckedCreateWithoutProposalInput>
+  }
+
+  export type GymCaseApprovalUpdateWithWhereUniqueWithoutProposalInput = {
+    where: GymCaseApprovalWhereUniqueInput
+    data: XOR<GymCaseApprovalUpdateWithoutProposalInput, GymCaseApprovalUncheckedUpdateWithoutProposalInput>
+  }
+
+  export type GymCaseApprovalUpdateManyWithWhereWithoutProposalInput = {
+    where: GymCaseApprovalScalarWhereInput
+    data: XOR<GymCaseApprovalUpdateManyMutationInput, GymCaseApprovalUncheckedUpdateManyWithoutProposalInput>
+  }
+
+  export type GymCaseApprovalScalarWhereInput = {
+    AND?: GymCaseApprovalScalarWhereInput | GymCaseApprovalScalarWhereInput[]
+    OR?: GymCaseApprovalScalarWhereInput[]
+    NOT?: GymCaseApprovalScalarWhereInput | GymCaseApprovalScalarWhereInput[]
+    id?: UuidFilter<"GymCaseApproval"> | string
+    proposalId?: UuidFilter<"GymCaseApproval"> | string
+    approverId?: StringFilter<"GymCaseApproval"> | string
+    result?: EnumGymCaseApprovalResultFilter<"GymCaseApproval"> | $Enums.GymCaseApprovalResult
+    reason?: StringFilter<"GymCaseApproval"> | string
+    conflictOfInterestDeclaredNone?: BoolFilter<"GymCaseApproval"> | boolean
+    evidenceChangeAcknowledged?: BoolFilter<"GymCaseApproval"> | boolean
+    createdAt?: DateTimeFilter<"GymCaseApproval"> | Date | string
+  }
+
+  export type GymCaseProposalCreateWithoutApprovalsInput = {
+    id?: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    case: GymComplaintCaseCreateNestedOneWithoutProposalsInput
+    finding: GymCaseFindingCreateNestedOneWithoutProposalsInput
+  }
+
+  export type GymCaseProposalUncheckedCreateWithoutApprovalsInput = {
+    id?: string
+    caseId: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseProposalCreateOrConnectWithoutApprovalsInput = {
+    where: GymCaseProposalWhereUniqueInput
+    create: XOR<GymCaseProposalCreateWithoutApprovalsInput, GymCaseProposalUncheckedCreateWithoutApprovalsInput>
+  }
+
+  export type GymCaseProposalUpsertWithoutApprovalsInput = {
+    update: XOR<GymCaseProposalUpdateWithoutApprovalsInput, GymCaseProposalUncheckedUpdateWithoutApprovalsInput>
+    create: XOR<GymCaseProposalCreateWithoutApprovalsInput, GymCaseProposalUncheckedCreateWithoutApprovalsInput>
+    where?: GymCaseProposalWhereInput
+  }
+
+  export type GymCaseProposalUpdateToOneWithWhereWithoutApprovalsInput = {
+    where?: GymCaseProposalWhereInput
+    data: XOR<GymCaseProposalUpdateWithoutApprovalsInput, GymCaseProposalUncheckedUpdateWithoutApprovalsInput>
+  }
+
+  export type GymCaseProposalUpdateWithoutApprovalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutProposalsNestedInput
+    finding?: GymCaseFindingUpdateOneRequiredWithoutProposalsNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateWithoutApprovalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    findingId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymComplaintCaseCreateWithoutEventsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutEventsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutEventsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutEventsInput, GymComplaintCaseUncheckedCreateWithoutEventsInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutEventsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutEventsInput, GymComplaintCaseUncheckedUpdateWithoutEventsInput>
+    create: XOR<GymComplaintCaseCreateWithoutEventsInput, GymComplaintCaseUncheckedCreateWithoutEventsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutEventsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutEventsInput, GymComplaintCaseUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateWithoutExecutionsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutExecutionsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: GymCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutExecutionsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutExecutionsInput, GymComplaintCaseUncheckedCreateWithoutExecutionsInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutExecutionsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutExecutionsInput, GymComplaintCaseUncheckedUpdateWithoutExecutionsInput>
+    create: XOR<GymComplaintCaseCreateWithoutExecutionsInput, GymComplaintCaseUncheckedCreateWithoutExecutionsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutExecutionsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutExecutionsInput, GymComplaintCaseUncheckedUpdateWithoutExecutionsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutExecutionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutExecutionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: GymCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseCreateWithoutAccessLogsInput = {
+    id?: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    complaint: GymComplaintCreateNestedOneWithoutCaseInput
+    statements?: GymCaseStatementCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseUncheckedCreateWithoutAccessLogsInput = {
+    id?: string
+    complaintId: string
+    gymId: string
+    membershipId?: string | null
+    reporterUserId: string
+    caseClass: $Enums.GymCaseClass
+    status?: $Enums.GymCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    version?: number
+    execStatus?: $Enums.GymCaseExecStatus
+    execDecisionId?: string | null
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    statements?: GymCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: GymCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    shares?: GymCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    claims?: GymCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: GymCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: GymCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: GymCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: GymCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    executions?: GymCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type GymComplaintCaseCreateOrConnectWithoutAccessLogsInput = {
+    where: GymComplaintCaseWhereUniqueInput
+    create: XOR<GymComplaintCaseCreateWithoutAccessLogsInput, GymComplaintCaseUncheckedCreateWithoutAccessLogsInput>
+  }
+
+  export type GymComplaintCaseUpsertWithoutAccessLogsInput = {
+    update: XOR<GymComplaintCaseUpdateWithoutAccessLogsInput, GymComplaintCaseUncheckedUpdateWithoutAccessLogsInput>
+    create: XOR<GymComplaintCaseCreateWithoutAccessLogsInput, GymComplaintCaseUncheckedCreateWithoutAccessLogsInput>
+    where?: GymComplaintCaseWhereInput
+  }
+
+  export type GymComplaintCaseUpdateToOneWithWhereWithoutAccessLogsInput = {
+    where?: GymComplaintCaseWhereInput
+    data: XOR<GymComplaintCaseUpdateWithoutAccessLogsInput, GymComplaintCaseUncheckedUpdateWithoutAccessLogsInput>
+  }
+
+  export type GymComplaintCaseUpdateWithoutAccessLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    complaint?: GymComplaintUpdateOneRequiredWithoutCaseNestedInput
+    statements?: GymCaseStatementUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUpdateManyWithoutCaseNestedInput
+  }
+
+  export type GymComplaintCaseUncheckedUpdateWithoutAccessLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    complaintId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    reporterUserId?: StringFieldUpdateOperationsInput | string
+    caseClass?: EnumGymCaseClassFieldUpdateOperationsInput | $Enums.GymCaseClass
+    status?: EnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    execStatus?: EnumGymCaseExecStatusFieldUpdateOperationsInput | $Enums.GymCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    statements?: GymCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: GymCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: GymCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: GymCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: GymCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: GymCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: GymCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
   export type GymPartnerAccountCreateManyPartnerInput = {
     id?: string
     userId: string
@@ -73217,6 +94037,7 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneWithoutComplaintNestedInput
   }
 
   export type GymComplaintUncheckedUpdateWithoutGymInput = {
@@ -73234,6 +94055,7 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUncheckedUpdateOneWithoutComplaintNestedInput
   }
 
   export type GymComplaintUncheckedUpdateManyWithoutGymInput = {
@@ -74007,6 +94829,630 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymCaseStatementCreateManyCaseInput = {
+    id?: string
+    partyRole: $Enums.GymCasePartyRole
+    authorUserId: string
+    version: number
+    source?: string
+    text: string
+    supplementReason?: string | null
+    supersedesId?: string | null
+    contentHash: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEvidenceCreateManyCaseInput = {
+    id?: string
+    provenanceType: $Enums.GymCaseProvenance
+    source: string
+    subject: string
+    scopeGymId: string
+    eventAt?: Date | string | null
+    capturedAt?: Date | string
+    submittedBy?: string | null
+    submittedRole?: string | null
+    snapshotVersion?: number
+    contentHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    sensitivity?: $Enums.GymCaseSensitivity
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseShareCreateManyCaseInput = {
+    id?: string
+    evidenceId?: string | null
+    statementId?: string | null
+    sharedWithRole: $Enums.GymCasePartyRole
+    sharedBy: string
+    reason: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseClaimCreateManyCaseInput = {
+    id?: string
+    claimantRole: $Enums.GymCasePartyRole
+    text: string
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentCreateManyCaseInput = {
+    id?: string
+    claimId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseFindingCreateManyCaseInput = {
+    id?: string
+    finding: $Enums.GymCaseFindingKind
+    reasoning: string
+    recordedBy: string
+    supersedesId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type GymCaseProposalCreateManyCaseInput = {
+    id?: string
+    findingId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseEventCreateManyCaseInput = {
+    id?: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    fromStatus?: $Enums.GymCaseStatus | null
+    toStatus?: $Enums.GymCaseStatus | null
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseExecutionCreateManyCaseInput = {
+    id?: string
+    decisionId: string
+    outcome: $Enums.GymCaseOutcome
+    actorUserId: string
+    idempotencyKey: string
+    attempt?: number
+    state: $Enums.GymCaseExecState
+    blockedReason?: string | null
+    note?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAccessLogCreateManyCaseInput = {
+    id?: string
+    viewerUserId: string
+    viewerRole: string
+    evidenceId?: string | null
+    action: $Enums.GymCaseAccessAction
+    createdAt?: Date | string
+  }
+
+  export type GymCaseStatementUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseStatementUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    authorUserId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    supplementReason?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEvidenceUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provenanceType?: EnumGymCaseProvenanceFieldUpdateOperationsInput | $Enums.GymCaseProvenance
+    source?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    scopeGymId?: StringFieldUpdateOperationsInput | string
+    eventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedRole?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshotVersion?: IntFieldUpdateOperationsInput | number
+    contentHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    sensitivity?: EnumGymCaseSensitivityFieldUpdateOperationsInput | $Enums.GymCaseSensitivity
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseShareUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    statementId?: NullableStringFieldUpdateOperationsInput | string | null
+    sharedWithRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    sharedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseClaimUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    assessments?: GymCaseAssessmentUpdateManyWithoutClaimNestedInput
+  }
+
+  export type GymCaseClaimUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    assessments?: GymCaseAssessmentUncheckedUpdateManyWithoutClaimNestedInput
+  }
+
+  export type GymCaseClaimUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimantRole?: EnumGymCasePartyRoleFieldUpdateOperationsInput | $Enums.GymCasePartyRole
+    text?: StringFieldUpdateOperationsInput | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    claim?: GymCaseClaimUpdateOneRequiredWithoutAssessmentsNestedInput
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claimId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseFindingUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposals?: GymCaseProposalUpdateManyWithoutFindingNestedInput
+  }
+
+  export type GymCaseFindingUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proposals?: GymCaseProposalUncheckedUpdateManyWithoutFindingNestedInput
+  }
+
+  export type GymCaseFindingUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    finding?: EnumGymCaseFindingKindFieldUpdateOperationsInput | $Enums.GymCaseFindingKind
+    reasoning?: StringFieldUpdateOperationsInput | string
+    recordedBy?: StringFieldUpdateOperationsInput | string
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseProposalUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finding?: GymCaseFindingUpdateOneRequiredWithoutProposalsNestedInput
+    approvals?: GymCaseApprovalUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    findingId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvals?: GymCaseApprovalUncheckedUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    findingId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseEventUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    toStatus?: NullableEnumGymCaseStatusFieldUpdateOperationsInput | $Enums.GymCaseStatus | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseExecutionUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decisionId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    state?: EnumGymCaseExecStateFieldUpdateOperationsInput | $Enums.GymCaseExecState
+    blockedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAccessLogUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    viewerUserId?: StringFieldUpdateOperationsInput | string
+    viewerRole?: StringFieldUpdateOperationsInput | string
+    evidenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: EnumGymCaseAccessActionFieldUpdateOperationsInput | $Enums.GymCaseAccessAction
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentCreateManyClaimInput = {
+    id?: string
+    caseId: string
+    assessorId: string
+    directEvidenceIds?: GymCaseAssessmentCreatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentCreateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentCreaterebuttalEvidenceIdsInput | string[]
+    relevanceNote: string
+    verifiabilityNote: string
+    consistencyNote: string
+    result: $Enums.GymCaseAssessmentResult
+    reasoning: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseAssessmentUpdateWithoutClaimInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutAssessmentsNestedInput
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateWithoutClaimInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseAssessmentUncheckedUpdateManyWithoutClaimInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    assessorId?: StringFieldUpdateOperationsInput | string
+    directEvidenceIds?: GymCaseAssessmentUpdatedirectEvidenceIdsInput | string[]
+    indirectEvidenceIds?: GymCaseAssessmentUpdateindirectEvidenceIdsInput | string[]
+    rebuttalEvidenceIds?: GymCaseAssessmentUpdaterebuttalEvidenceIdsInput | string[]
+    relevanceNote?: StringFieldUpdateOperationsInput | string
+    verifiabilityNote?: StringFieldUpdateOperationsInput | string
+    consistencyNote?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseAssessmentResultFieldUpdateOperationsInput | $Enums.GymCaseAssessmentResult
+    reasoning?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseProposalCreateManyFindingInput = {
+    id?: string
+    caseId: string
+    outcome: $Enums.GymCaseOutcome
+    proposerId: string
+    evidenceSnapshot: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymCaseProposalUpdateWithoutFindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: GymComplaintCaseUpdateOneRequiredWithoutProposalsNestedInput
+    approvals?: GymCaseApprovalUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateWithoutFindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvals?: GymCaseApprovalUncheckedUpdateManyWithoutProposalNestedInput
+  }
+
+  export type GymCaseProposalUncheckedUpdateManyWithoutFindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    outcome?: EnumGymCaseOutcomeFieldUpdateOperationsInput | $Enums.GymCaseOutcome
+    proposerId?: StringFieldUpdateOperationsInput | string
+    evidenceSnapshot?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalCreateManyProposalInput = {
+    id?: string
+    approverId: string
+    result: $Enums.GymCaseApprovalResult
+    reason: string
+    conflictOfInterestDeclaredNone: boolean
+    evidenceChangeAcknowledged?: boolean
+    createdAt?: Date | string
+  }
+
+  export type GymCaseApprovalUpdateWithoutProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalUncheckedUpdateWithoutProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymCaseApprovalUncheckedUpdateManyWithoutProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approverId?: StringFieldUpdateOperationsInput | string
+    result?: EnumGymCaseApprovalResultFieldUpdateOperationsInput | $Enums.GymCaseApprovalResult
+    reason?: StringFieldUpdateOperationsInput | string
+    conflictOfInterestDeclaredNone?: BoolFieldUpdateOperationsInput | boolean
+    evidenceChangeAcknowledged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -74048,6 +95494,22 @@ export namespace Prisma {
      * @deprecated Use AmenityProposalCountOutputTypeDefaultArgs instead
      */
     export type AmenityProposalCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityProposalCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymComplaintCaseCountOutputTypeDefaultArgs instead
+     */
+    export type GymComplaintCaseCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymComplaintCaseCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseClaimCountOutputTypeDefaultArgs instead
+     */
+    export type GymCaseClaimCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseClaimCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseFindingCountOutputTypeDefaultArgs instead
+     */
+    export type GymCaseFindingCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseFindingCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseProposalCountOutputTypeDefaultArgs instead
+     */
+    export type GymCaseProposalCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseProposalCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymPhotoDefaultArgs instead
      */
@@ -74204,6 +95666,54 @@ export namespace Prisma {
      * @deprecated Use GymAssistedCheckInExceptionDefaultArgs instead
      */
     export type GymAssistedCheckInExceptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymAssistedCheckInExceptionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymComplaintCaseDefaultArgs instead
+     */
+    export type GymComplaintCaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymComplaintCaseDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseStatementDefaultArgs instead
+     */
+    export type GymCaseStatementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseStatementDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseEvidenceDefaultArgs instead
+     */
+    export type GymCaseEvidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseEvidenceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseShareDefaultArgs instead
+     */
+    export type GymCaseShareArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseShareDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseClaimDefaultArgs instead
+     */
+    export type GymCaseClaimArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseClaimDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseAssessmentDefaultArgs instead
+     */
+    export type GymCaseAssessmentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseAssessmentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseFindingDefaultArgs instead
+     */
+    export type GymCaseFindingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseFindingDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseProposalDefaultArgs instead
+     */
+    export type GymCaseProposalArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseProposalDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseApprovalDefaultArgs instead
+     */
+    export type GymCaseApprovalArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseApprovalDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseEventDefaultArgs instead
+     */
+    export type GymCaseEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseExecutionDefaultArgs instead
+     */
+    export type GymCaseExecutionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseExecutionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymCaseAccessLogDefaultArgs instead
+     */
+    export type GymCaseAccessLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCaseAccessLogDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany
