@@ -1762,6 +1762,13 @@ router.use(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// Dispute V2.1 Slice 3 - the reporter's own complaint case (gym-service answers 404 for a case the caller did not file).
+router.use(
+  '/me/complaint-cases',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 
 // PT — gym affiliation invitations
 router.use(
@@ -1940,6 +1947,13 @@ router.use(
 );
 router.use(
   '/admin/complaint-photos',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+// Dispute V2.1 Slice 3 - gym complaint CASE layer (admin workspace). gym-service re-checks the role and refuses every write unless its own fail-closed flag is on.
+router.use(
+  '/admin/complaint-cases',
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),

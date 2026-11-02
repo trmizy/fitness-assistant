@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { complaintService } from '../services/complaint.service';
 
 function fail(res: Response, e: any) {
-  res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
+  res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message || 'Đã có lỗi xảy ra' } });
 }
 
 export const complaintController = {
@@ -44,9 +44,13 @@ export const complaintController = {
   },
 
   async queue(req: Request, res: Response) {
-    const status = typeof req.query.status === 'string' ? (req.query.status as any) : undefined;
-    const complaints = await complaintService.queue(status);
-    res.json({ success: true, data: complaints });
+    try {
+      const status = typeof req.query.status === 'string' ? (req.query.status as any) : undefined;
+      const complaints = await complaintService.queue(status);
+      res.json({ success: true, data: complaints });
+    } catch (e: any) {
+      fail(res, e);
+    }
   },
 
   async listForPartner(req: Request, res: Response) {

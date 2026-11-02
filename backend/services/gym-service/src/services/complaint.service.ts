@@ -4,10 +4,21 @@ import { membershipRepository } from '../repositories/membership.repository';
 import { gymRepository } from '../repositories/gym.repository';
 import { partnerRepository } from '../repositories/partner.repository';
 import { userClient } from '../clients/user.client';
+import { prisma } from '../repositories/prisma';
+import { assertRealAdmin } from './complaint-case/case.service';
+import { COMPLAINT_ISSUE_TYPES, COMPLAINT_SOURCES, COMPLAINT_STATUSES } from './complaint-case/schemas';
 import type { ComplaintSource, ComplaintIssueType, ComplaintStatus } from '../generated/prisma';
 
-function err(message: string, status: number) {
-  return Object.assign(new Error(message), { status });
+function err(message: string, status: number, code?: string) {
+  return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
+}
+
+/** F7 (Dispute V2.1 contract): enum values are checked here and answer 400, never a Prisma 500. */
+function assertOneOf<T extends string>(value: unknown, allowed: readonly T[], what: string): T {
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    throw err(`${what} không hợp lệ (chấp nhận: ${allowed.join(', ')})`, 400, 'INVALID_INPUT');
+  }
+  return value as T;
 }
 
 /** GYM_MANAGEMENT master spec, Phase 5 — "chỉ hội viên có gói còn hiệu lực hoặc vừa hết
@@ -30,6 +41,7 @@ export const complaintService = {
     clientId: string,
     data: { issueType: ComplaintIssueType; description: string; photoTokens?: string[] },
   ) {
+    assertOneOf(data.issueType, COMPLAINT_ISSUE_TYPES, 'Nhóm vấn đề');
     if (!data.description?.trim()) throw err('Vui lòng mô tả vấn đề', 400);
     if (data.photoTokens && data.photoTokens.length > MAX_PHOTOS) {
       throw err(`Tối đa ${MAX_PHOTOS} ảnh`, 400);
@@ -75,10 +87,13 @@ export const complaintService = {
       assignedAdminId?: string | null;
     },
   ) {
+    assertOneOf(data.source, COMPLAINT_SOURCES, 'Nguồn khiếu nại');
+    assertOneOf(data.issueType, COMPLAINT_ISSUE_TYPES, 'Nhóm vấn đề');
     if (!data.description?.trim()) throw err('Vui lòng mô tả vấn đề', 400);
     if (data.photoTokens && data.photoTokens.length > MAX_PHOTOS) {
       throw err(`Tối đa ${MAX_PHOTOS} ảnh`, 400);
     }
+    if (data.assignedAdminId) await assertRealAdmin(data.assignedAdminId);
 
     const gym = await gymRepository.findById(data.gymId);
     if (!gym) throw err('Không tìm thấy phòng gym', 404);
@@ -99,6 +114,7 @@ export const complaintService = {
   },
 
   queue(status?: ComplaintStatus) {
+    if (status !== undefined) assertOneOf(status, COMPLAINT_STATUSES, 'Trạng thái');
     return complaintRepository.listAll(status);
   },
 
@@ -123,8 +139,13 @@ export const complaintService = {
    * blocks the resolution itself if the notification call fails (see userClient.notifyUser).
    */
   async updateStatus(id: string, actorAdminId: string, data: { status: ComplaintStatus; adminResponse?: string }) {
+    assertOneOf(data.status, COMPLAINT_STATUSES, 'Trạng thái');
     const complaint = await this.getById(id);
     if (complaint.status === 'RESOLVED') throw err('Khiếu nại này đã được xử lý xong', 409);
+    // Dispute V2.1 Slice 3: once a complaint has a Case, it can only be RESOLVED through the Case (four eyes + executor), never by this direct route.
+    if (data.status === 'RESOLVED' && (await prisma.gymComplaintCase.findUnique({ where: { complaintId: id }, select: { id: true } }))) {
+      throw err('Khiếu nại này đang có hồ sơ xử lý nên chỉ được kết thúc qua hồ sơ', 409, 'CASE_REQUIRED');
+    }
 
     if (data.status === 'RESOLVED' && !data.adminResponse?.trim()) {
       throw err('Cần ghi phản hồi khi đánh dấu đã xử lý xong', 400);
@@ -149,7 +170,10 @@ export const complaintService = {
     return updated;
   },
 
-  assignAdmin(id: string, assignedAdminId: string | null) {
+  async assignAdmin(id: string, assignedAdminId: string | null) {
+    if (assignedAdminId !== null && (typeof assignedAdminId !== 'string' || !assignedAdminId.trim())) throw err('assignedAdminId không hợp lệ', 400, 'INVALID_INPUT');
+    await this.getById(id);
+    if (assignedAdminId !== null) await assertRealAdmin(assignedAdminId);
     return complaintRepository.update(id, { assignedAdminId });
   },
 };
