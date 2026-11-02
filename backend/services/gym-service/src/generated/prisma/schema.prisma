@@ -321,7 +321,8 @@ model GymComplaint {
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
 
-  gym Gym @relation(fields: [gymId], references: [id])
+  gym  Gym               @relation(fields: [gymId], references: [id])
+  case GymComplaintCase?
 
   @@index([gymId, status])
   @@index([partnerId, createdAt])
@@ -1750,4 +1751,334 @@ model GymAssistedCheckInException {
   @@index([gymId, status, expiresAt])
   @@index([membershipId, status])
   @@map("gym_assisted_checkin_exceptions")
+}
+
+// ─── Gym complaint CASE layer (Dispute V2.1 Slice 3, docs/DISPUTE_CASE_DESIGN_V2_1.md §1.3.4) ──────────────────
+// Extends GymComplaint (gym-service owns it; no new service). A Case NEVER creates a money source: the only money exit is the existing
+// membershipService.refundByAdmin, executed from an approved decision. Writes of this layer are refused unless GYM_COMPLAINT_CASE_ENABLED is
+// effective (test environment only, see services/complaint-case/flags.ts). Hand-written constraints (append-only triggers, one open case per
+// membership, four-eyes unique index, GYM party lock) live in the migration, not here.
+
+enum GymCaseClass {
+  MEM_TXN
+  MEM_CLOSED
+  MEM_VIOLATION
+  MEM_ACCESS
+  GYM_GENERAL
+}
+
+enum GymCaseStatus {
+  INTAKE
+  COLLECTING
+  AWAITING_PARTIES
+  ASSESSING
+  FINDING_RECORDED
+  AWAITING_APPROVAL
+  DECISION_APPROVED
+  REJECTED_INTAKE
+}
+
+enum GymCaseExecStatus {
+  NOT_STARTED
+  EXECUTING
+  BUSINESS_DONE
+  EXEC_BLOCKED
+  NEEDS_HUMAN
+}
+
+/// GYM is RESERVED and LOCKED by a CHECK constraint (D-NEW-9 is an open policy decision): no statement / claim can be written for it.
+enum GymCasePartyRole {
+  MEMBER
+  ADMIN_ON_BEHALF
+  GYM
+}
+
+enum GymCaseProvenance {
+  SERVER_OBSERVED
+  USER_REPORTED_STORED
+  EXTERNAL_DOCUMENT
+  ADMIN_RECEIVED_ON_BEHALF
+  LEGACY_FIELD
+}
+
+enum GymCaseSensitivity {
+  NORMAL
+  SENSITIVE
+}
+
+enum GymCaseAssessmentResult {
+  ESTABLISHED
+  NOT_ESTABLISHED
+  REFUTED
+}
+
+enum GymCaseFindingKind {
+  ESTABLISHED
+  NOT_ESTABLISHED
+}
+
+enum GymCaseOutcome {
+  REFUND_TRANSACTION_ERROR
+  REFUND_GYM_CLOSED
+  REFUND_GYM_VIOLATION
+  RESOLVE_UPHELD
+  RESOLVE_INSUFFICIENT_EVIDENCE
+}
+
+enum GymCaseApprovalResult {
+  APPROVED
+  REJECTED
+}
+
+enum GymCaseExecState {
+  STARTED
+  BLOCKED
+  BUSINESS_DONE
+  NEEDS_HUMAN
+}
+
+enum GymCaseAccessAction {
+  VIEW_CASE
+  VIEW_EVIDENCE
+}
+
+model GymComplaintCase {
+  id             String            @id @default(uuid()) @db.Uuid
+  complaintId    String            @unique @map("complaint_id")
+  gymId          String            @map("gym_id")
+  /// Only for MEM_* cases: the membership the complaint is about (must belong to the reporter and to gymId; checked at intake).
+  membershipId   String?           @map("membership_id")
+  reporterUserId String            @map("reporter_user_id")
+  caseClass      GymCaseClass      @map("case_class")
+  status         GymCaseStatus     @default(INTAKE)
+  escalated      Boolean           @default(false)
+  investigatorId String?           @map("investigator_id")
+  version        Int               @default(1)
+  execStatus     GymCaseExecStatus @default(NOT_STARTED) @map("exec_status")
+  execDecisionId String?           @map("exec_decision_id") @db.Uuid
+  createdBy      String            @map("created_by")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  complaint   GymComplaint        @relation(fields: [complaintId], references: [id])
+  statements  GymCaseStatement[]
+  evidence    GymCaseEvidence[]
+  shares      GymCaseShare[]
+  claims      GymCaseClaim[]
+  assessments GymCaseAssessment[]
+  findings    GymCaseFinding[]
+  proposals   GymCaseProposal[]
+  events      GymCaseEvent[]
+  executions  GymCaseExecution[]
+  accessLogs  GymCaseAccessLog[]
+
+  @@index([status])
+  @@index([gymId])
+  @@index([reporterUserId])
+  @@map("gym_complaint_cases")
+}
+
+model GymCaseStatement {
+  id               String           @id @default(uuid()) @db.Uuid
+  caseId           String           @map("case_id") @db.Uuid
+  partyRole        GymCasePartyRole @map("party_role")
+  authorUserId     String           @map("author_user_id")
+  version          Int
+  source           String           @default("SUBMITTED")
+  text             String
+  supplementReason String?          @map("supplement_reason")
+  supersedesId     String?          @map("supersedes_id") @db.Uuid
+  contentHash      String           @map("content_hash")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+  @@map("gym_case_statements")
+}
+
+model GymCaseEvidence {
+  id              String             @id @default(uuid()) @db.Uuid
+  caseId          String             @map("case_id") @db.Uuid
+  provenanceType  GymCaseProvenance  @map("provenance_type")
+  source          String
+  subject         String
+  /// The branch the evidence is scoped to (access by branch): always the case's gymId.
+  scopeGymId      String             @map("scope_gym_id")
+  eventAt         DateTime?          @map("event_at") @db.Timestamptz(3)
+  capturedAt      DateTime           @default(now()) @map("captured_at") @db.Timestamptz(3)
+  submittedBy     String?            @map("submitted_by")
+  submittedRole   String?            @map("submitted_role")
+  snapshotVersion Int                @default(1) @map("snapshot_version")
+  /// sha256 of the canonical JSON of `payload` (a party-declared sha256 of a file is stored INSIDE the payload and is a claim, not a verification).
+  contentHash     String             @map("content_hash")
+  payload         Json
+  sensitivity     GymCaseSensitivity @default(NORMAL)
+  supersedesId    String?            @map("supersedes_id") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, source, subject])
+  @@map("gym_case_evidence")
+}
+
+model GymCaseShare {
+  id             String           @id @default(uuid()) @db.Uuid
+  caseId         String           @map("case_id") @db.Uuid
+  evidenceId     String?          @map("evidence_id") @db.Uuid
+  statementId    String?          @map("statement_id") @db.Uuid
+  /// Always MEMBER today (the GYM party is locked).
+  sharedWithRole GymCasePartyRole @map("shared_with_role")
+  sharedBy       String           @map("shared_by")
+  reason         String
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, sharedWithRole])
+  @@map("gym_case_shares")
+}
+
+model GymCaseClaim {
+  id           String           @id @default(uuid()) @db.Uuid
+  caseId       String           @map("case_id") @db.Uuid
+  claimantRole GymCasePartyRole @map("claimant_role")
+  text         String
+  createdBy    String           @map("created_by")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case        GymComplaintCase    @relation(fields: [caseId], references: [id])
+  assessments GymCaseAssessment[]
+
+  @@index([caseId])
+  @@map("gym_case_claims")
+}
+
+model GymCaseAssessment {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  caseId              String                  @map("case_id") @db.Uuid
+  claimId             String                  @map("claim_id") @db.Uuid
+  assessorId          String                  @map("assessor_id")
+  directEvidenceIds   String[]                @map("direct_evidence_ids") @db.Uuid
+  indirectEvidenceIds String[]                @map("indirect_evidence_ids") @db.Uuid
+  rebuttalEvidenceIds String[]                @map("rebuttal_evidence_ids") @db.Uuid
+  relevanceNote       String                  @map("relevance_note")
+  verifiabilityNote   String                  @map("verifiability_note")
+  consistencyNote     String                  @map("consistency_note")
+  result              GymCaseAssessmentResult
+  reasoning           String
+  evidenceSnapshot    Json                    @map("evidence_snapshot")
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case  GymComplaintCase @relation(fields: [caseId], references: [id])
+  claim GymCaseClaim     @relation(fields: [claimId], references: [id])
+
+  @@index([caseId])
+  @@map("gym_case_assessments")
+}
+
+model GymCaseFinding {
+  id           String             @id @default(uuid()) @db.Uuid
+  caseId       String             @map("case_id") @db.Uuid
+  finding      GymCaseFindingKind
+  reasoning    String
+  recordedBy   String             @map("recorded_by")
+  supersedesId String?            @map("supersedes_id") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case      GymComplaintCase  @relation(fields: [caseId], references: [id])
+  proposals GymCaseProposal[]
+
+  @@index([caseId])
+  @@map("gym_case_findings")
+}
+
+model GymCaseProposal {
+  id               String         @id @default(uuid()) @db.Uuid
+  caseId           String         @map("case_id") @db.Uuid
+  findingId        String         @map("finding_id") @db.Uuid
+  outcome          GymCaseOutcome
+  proposerId       String         @map("proposer_id")
+  evidenceSnapshot Json           @map("evidence_snapshot")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case      GymComplaintCase  @relation(fields: [caseId], references: [id])
+  finding   GymCaseFinding    @relation(fields: [findingId], references: [id])
+  approvals GymCaseApproval[]
+
+  @@index([caseId])
+  @@map("gym_case_proposals")
+}
+
+model GymCaseApproval {
+  id                             String                @id @default(uuid()) @db.Uuid
+  proposalId                     String                @map("proposal_id") @db.Uuid
+  approverId                     String                @map("approver_id")
+  result                         GymCaseApprovalResult
+  reason                         String
+  conflictOfInterestDeclaredNone Boolean               @map("conflict_of_interest_declared_none")
+  evidenceChangeAcknowledged     Boolean               @default(false) @map("evidence_change_acknowledged")
+  createdAt                      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proposal GymCaseProposal @relation(fields: [proposalId], references: [id])
+
+  @@index([proposalId])
+  @@map("gym_case_approvals")
+}
+
+model GymCaseEvent {
+  id             String         @id @default(uuid()) @db.Uuid
+  caseId         String         @map("case_id") @db.Uuid
+  actorUserId    String         @map("actor_user_id")
+  actorRole      String         @map("actor_role")
+  action         String
+  fromStatus     GymCaseStatus? @map("from_status")
+  toStatus       GymCaseStatus? @map("to_status")
+  note           String?
+  idempotencyKey String?        @unique @map("idempotency_key")
+  payload        Json?
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, createdAt])
+  @@map("gym_case_events")
+}
+
+/// Append-only history of the execution axis. `response` keeps what payment-service returned (the financial view is DERIVED from it).
+model GymCaseExecution {
+  id             String           @id @default(uuid()) @db.Uuid
+  caseId         String           @map("case_id") @db.Uuid
+  decisionId     String           @map("decision_id") @db.Uuid
+  outcome        GymCaseOutcome
+  actorUserId    String           @map("actor_user_id")
+  idempotencyKey String           @map("idempotency_key")
+  attempt        Int              @default(0)
+  state          GymCaseExecState
+  blockedReason  String?          @map("blocked_reason")
+  note           String?
+  response       Json?
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, createdAt])
+  @@index([idempotencyKey])
+  @@map("gym_case_executions")
+}
+
+model GymCaseAccessLog {
+  id           String              @id @default(uuid()) @db.Uuid
+  caseId       String              @map("case_id") @db.Uuid
+  viewerUserId String              @map("viewer_user_id")
+  viewerRole   String              @map("viewer_role")
+  evidenceId   String?             @map("evidence_id") @db.Uuid
+  action       GymCaseAccessAction
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, createdAt])
+  @@map("gym_case_access_logs")
 }

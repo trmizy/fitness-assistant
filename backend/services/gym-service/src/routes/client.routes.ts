@@ -3,6 +3,7 @@ import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middl
 import { membershipController } from '../controllers/membership.controller';
 import { checkinController } from '../controllers/checkin.controller';
 import { reviewController } from '../controllers/review.controller';
+import { complaintCaseController } from '../controllers/complaint-case.controller';
 import { complaintController } from '../controllers/complaint.controller';
 import { complaintPhotoController } from '../controllers/complaint-photo.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -64,5 +65,11 @@ router.post('/gyms/:gymId/complaints', ...gate, asyncHandler(complaintController
 router.get('/me/complaints', ...gate, asyncHandler(complaintController.listMine));
 router.post('/complaint-photos', ...gate, complaintPhotoController.uploadMiddleware, asyncHandler(complaintPhotoController.upload));
 router.get('/complaint-photos/:token', ...gate, asyncHandler(complaintPhotoController.serve));
+
+// Dispute V2.1 Slice 3 - the reporter's own view of their complaint case. A case the user did not file answers 404.
+router.get('/me/complaint-cases', ...gate, asyncHandler(complaintCaseController.listMine));
+router.get('/me/complaint-cases/:id', ...gate, asyncHandler(complaintCaseController.detailMine));
+router.post('/me/complaint-cases/:id/statements', ...gate, asyncHandler(complaintCaseController.statementMine));
+router.post('/me/complaint-cases/:id/evidence', ...gate, asyncHandler(complaintCaseController.evidenceMine));
 
 export default router;
