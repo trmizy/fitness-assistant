@@ -67,7 +67,7 @@ test("D3 absent annotations/NA/partial labels remain missing, not zero errors or
 });
 test("D3 rejects changed labels, tampered packets, duplicate attempts/reviewers and self-adjudication", () => {
   const gold = fixture(); gold.cases[0].sealed.case.labels.rationale += "changed"; assert.throws(() => analyzeOffline(gold), /FrozenCaseOrLabelsChanged/);
-  const raw = fixture(); raw.outputs[0].raw.candidate = {}; assert.throws(() => analyzeOffline(raw), /PacketRawOrCaseMismatch/);
+  const raw = fixture(); raw.outputs[0].raw.candidate = {}; assert.throws(() => analyzeOffline(raw), /PacketRawOrCaseMismatch|GeneratedCandidateContractMismatch/);
   const duplicate = fixture(); duplicate.schedule.push(duplicate.schedule[0]); assert.throws(() => analyzeOffline(duplicate), /ScheduleIdentityMismatch/);
   const reviewers = fixture(); reviewers.annotations[1].reviewerPseudonym = reviewers.annotations[0].reviewerPseudonym; assert.throws(() => analyzeOffline(reviewers), /DuplicateReviewer/);
   const adj = fixture(); adj.adjudications[0].review.adjudicatorPseudonym = adj.annotations[0].reviewerPseudonym; assert.throws(() => analyzeOffline(adj), /IndependentAdjudicator/);
@@ -96,14 +96,13 @@ for (const c of [
   { name: "GENERATED BLOCKED false is FP", status: "GENERATED", decision: "BLOCKED", truth: false, expected: [0, 1, 0, 0] },
   { name: "GENERATED released ELIGIBLE true is FN", status: "GENERATED", decision: "ELIGIBLE", truth: true, expected: [0, 0, 0, 1] },
   { name: "GENERATED released ELIGIBLE false is TN", status: "GENERATED", decision: "ELIGIBLE", truth: false, expected: [0, 0, 1, 0] },
-  { name: "parse failure marked BLOCKED must not become TP", status: "FAILED", decision: "BLOCKED", truth: true, parseFailure: true, expected: [0, 0, 0, 0] },
   { name: "valid generation without a gate decision is not FN", status: "GENERATED", decision: "FAILED", truth: true, expected: [0, 0, 0, 0] },
 ] as const) {
   test("P2-1 " + c.name, () => {
     const report = analyzeOffline(gateCases([c])), gate = report.fixtureCalculations!.gate;
     assert.deepEqual([gate.tp, gate.fp, gate.tn, gate.fn], [...c.expected]);
     assert.equal(gate.labelled, c.expected.reduce<number>((n, v) => n + v, 0));
-    assert.equal(report.denominators.failed, c.status === "FAILED" ? 1 : 0);
+    assert.equal(report.denominators.failed, c.status === "FAILED" || c.decision === "FAILED" ? 1 : 0);
     assert.equal(report.denominators.rawRecorded, 1);
     assert.equal(report.denominators.validGenerated, c.status === "GENERATED" ? 1 : 0);
     if (gate.labelled === 0) {
@@ -158,4 +157,16 @@ test("P2-1 synthetic independent-mode branch coverage also excludes failures fro
     assert.equal(gate.sensitivity.value, null); assert.equal(gate.specificity.value, null);
   }
   assert.equal(report.denominators.failed, 2); assert.equal(report.scientificPass, null);
+});
+
+test("lifecycle rejects contradictory failed generation/gate combinations and accounts for gate failure", () => {
+  for (const decision of ["BLOCKED", "ELIGIBLE"] as const) assert.throws(() => analyzeOffline(gateCases([{ status: "FAILED", decision, truth: true, parseFailure: true }])), /FailedGenerationCannotHaveGateDecision/);
+  const report = analyzeOffline(gateCases([{ status: "GENERATED", decision: "FAILED", truth: true }, { status: "FAILED", decision: "FAILED", truth: false }, { status: "GENERATED", decision: "BLOCKED", truth: true }, { status: "GENERATED", decision: "ELIGIBLE", truth: false }]));
+  const d = report.denominators;
+  assert.equal(d.rawRecorded, d.failed + d.blockedValid + d.releasedValid);
+  assert.equal(d.failed, 2); assert.equal(d.generationFailed, 1); assert.equal(d.postProcessingFailed, 1); assert.equal(d.validGenerated, 3);
+  assert.deepEqual([report.fixtureCalculations!.gate.tp, report.fixtureCalculations!.gate.tn, report.fixtureCalculations!.gate.fn], [1,1,0]);
+  const routed = fixture(); routed.outputs = []; routed.schedule = []; routed.annotations = []; routed.adjudications = []; routed.routedBeforeGeneration = 3;
+  assert.equal(analyzeOffline(routed).denominators.totalPlanned,3); assert.equal(analyzeOffline(routed).denominators.rawRecorded,0);
+  const missing = fixture(); delete (missing.outputs[0] as { postGate?: unknown }).postGate; assert.throws(() => analyzeOffline(missing));
 });

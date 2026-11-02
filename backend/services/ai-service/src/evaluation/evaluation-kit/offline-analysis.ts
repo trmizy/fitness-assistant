@@ -4,6 +4,7 @@ import { ARMS, POLICY_VARIANTS, AnalysisEnvelopeSchema } from "../ai-coach-dev/p
 import { attemptIdentity } from "../bedrock-pilot/design";
 import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, type createAnnotationPackets } from "./annotations";
 import { digest } from "./identity";
+import { outputLifecycle } from "./lifecycle";
 import { cohensKappa, pairedClusterBootstrap, type Category, type CaseCell } from "./statistics";
 
 type Packet = ReturnType<typeof createAnnotationPackets>["reviewers"][number];
@@ -19,7 +20,10 @@ export const OfflineAnalysisInputSchema = z.object({
     raw: z.object({ candidate: z.unknown().refine((v) => v !== undefined, "ExplicitCandidateOrNullRequired"), text: z.string().nullable(), status: z.enum(["GENERATED", "FAILED"]), executionMode: z.enum(["FAKE", "LIVE"]), inputTokens: z.number().int().nonnegative().nullable(), outputTokens: z.number().int().nonnegative().nullable(), latencyMs: NullableNumber, estimatedUsd: NullableNumber }).strict(),
     postGate: z.object({ decision: z.enum(["ELIGIBLE", "BLOCKED", "FAILED"]), structuredInvariant: z.boolean(), narrowTextHeuristic: z.boolean() }).strict(),
     packet: z.custom<Packet>((v) => !!v && typeof v === "object" && "body" in v && "packetHash" in v),
-  }).strict()),
+  }).strict().superRefine((o, ctx) => {
+    try { outputLifecycle(o.raw.status, o.postGate.decision, o.raw.candidate); }
+    catch (e) { ctx.addIssue({ code: "custom", message: (e as Error).message }); }
+  })),
   annotations: z.array(AnnotationSchema),
   adjudications: z.array(z.object({ authority: Authority, review: AdjudicationSchema, shouldBlock: z.boolean().nullable() }).strict()),
 }).strict();
@@ -29,7 +33,7 @@ const metric = (n = 0, d = 0): Metric => ({ numerator: n, denominator: d, value:
 const personal = new Set(["OBSERVATION", "PERSONAL_HYPOTHESIS", "MEASUREMENT_LIMITATION", "CONCLUSION"]);
 const unitAxes = ["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "personalApplicability", "unsupportedCausalInference"] as const;
 type Axis = typeof unitAxes[number] | "usefulness";
-type Row = { metadata: z.infer<typeof AnalysisAttemptSchema>; valid: boolean; released: boolean; qualified: boolean; values: Record<string, Metric>; gateTruth: boolean | null; scopes: { structuredInvariant: boolean; narrowTextHeuristic: boolean }; blocked: boolean };
+type Row = { metadata: z.infer<typeof AnalysisAttemptSchema>; valid: boolean; released: boolean; failed: boolean; generationFailed: boolean; postProcessingFailed: boolean; qualified: boolean; values: Record<string, Metric>; gateTruth: boolean | null; scopes: { structuredInvariant: boolean; narrowTextHeuristic: boolean }; blocked: boolean };
 function known(value: unknown): value is string | number | boolean { return value !== null && value !== undefined && value !== "NOT_EVALUATED"; }
 function sumMetrics(rows: Row[], key: string) { return metric(rows.reduce((n, r) => n + r.values[key].numerator, 0), rows.reduce((n, r) => n + r.values[key].denominator, 0)); }
 export function gateConfusion(rows: readonly { truth: boolean | null; blocked: boolean }[]) {
@@ -59,7 +63,8 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     const frozen = cases.get(metadata.caseKey)!, packet = output.packet, body = packet.body;
     const packetCandidate = output.raw.candidate ?? output.raw.text;
     if (!body || digest(body) !== packet.packetHash || body.candidateHash !== digest(packetCandidate) || digest(body.units) !== digest(annotationUnits(packetCandidate)) || body.question !== frozen.sealed.case.request.question || digest(body.facts) !== digest(frozen.sealed.case.request.snapshots.flatMap((s) => s.facts))) throw new Error("PacketRawOrCaseMismatch");
-    const parsed = AnalysisEnvelopeSchema.safeParse(output.raw.candidate), valid = output.raw.status === "GENERATED";
+    const lifecycle = outputLifecycle(output.raw.status, output.postGate.decision, output.raw.candidate);
+    const parsed = AnalysisEnvelopeSchema.safeParse(output.raw.candidate), valid = lifecycle.validGenerated;
     if ((valid && !parsed.success) || (output.postGate.decision === "ELIGIBLE" && !valid)) throw new Error("RawPostGateContractMismatch");
     const annotations = input.annotations.filter((a) => a.packetHash === packet.packetHash);
     if (new Set(annotations.map((a) => a.reviewerSlot)).size !== annotations.length || new Set(annotations.map((a) => a.reviewerPseudonym)).size !== annotations.length) throw new Error("DuplicateReviewer");
@@ -101,7 +106,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     if (valid && typeof usefulness === "number") values.usefulness = metric(usefulness, 1);
     if (calculate && valid && parsed.success && frozen.sealed.case.labels.expectedAssessment !== null) values.assessmentCorrectness = metric(Number(parsed.data.analysis.assessment === frozen.sealed.case.labels.expectedAssessment), 1);
     for (const key of Object.keys(values)) values[key] = metric(values[key].numerator, values[key].denominator);
-    rows.push({ metadata, valid, released: valid && output.postGate.decision === "ELIGIBLE", qualified, values, blocked: output.postGate.decision === "BLOCKED", scopes: output.postGate,
+    rows.push({ metadata, valid, ...lifecycle, qualified, values, scopes: output.postGate,
       gateTruth: calculate && adj && (input.purpose === "TEST_FIXTURE" || adj.authority === "REVIEWER_ATTESTED") ? adj.shouldBlock : null });
   }
   const keys = ["unsupportedPersonalClaimRate", "assessmentCorrectness", "sourceSupport", "appropriateAbstention", "usefulness"];
@@ -124,7 +129,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
   const responseCount = input.outputs.filter((o) => o.raw.text !== null || o.raw.candidate !== null).length, eligible = rows.filter((r) => r.released).length;
   const substantive = rows.some((r) => r.qualified);
   return { status: substantive ? "INDEPENDENT_LABELS_ANALYZED_NOT_SCIENTIFIC_APPROVAL" : "NOT_EVALUATED", purpose: input.purpose, configHash: input.configHash, inputHash: digest(input), split: input.cases[0]?.manifest.split ?? null, scientificPass: null,
-    denominators: { scheduled: input.schedule.length, routedBeforeGeneration: input.routedBeforeGeneration, rawRecorded: rows.length, rawResponded: responseCount, missingOutputs: input.schedule.length - rows.length, validGenerated: rows.filter((r) => r.valid).length, failed: rows.filter((r) => !r.valid).length, blockedValid: rows.filter((r) => r.valid && r.blocked).length, releasedValid: eligible, coverage: metric(eligible, responseCount), attemptRetention: metric(eligible, rows.length) },
+    denominators: { scheduled: input.schedule.length, totalPlanned: input.schedule.length + input.routedBeforeGeneration, routedBeforeGeneration: input.routedBeforeGeneration, rawRecorded: rows.length, rawResponded: responseCount, missingOutputs: input.schedule.length - rows.length, validGenerated: rows.filter((r) => r.valid).length, failed: rows.filter((r) => r.failed).length, generationFailed: rows.filter((r) => r.generationFailed).length, postProcessingFailed: rows.filter((r) => r.postProcessingFailed).length, blockedValid: rows.filter((r) => r.valid && r.blocked).length, releasedValid: eligible, coverage: metric(eligible, responseCount), attemptRetention: metric(eligible, rows.length) },
     semantics: substantive ? { raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), gateByScope: Object.fromEntries(["structuredInvariant", "narrowTextHeuristic"].map((scope) => [scope, gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.scopes[scope as keyof typeof r.scopes] }))) ])), agreement } : null,
     fixtureCalculations: input.purpose === "TEST_FIXTURE" ? { authority: "TEST_FIXTURE_MATH_ONLY_NOT_MODEL_EVALUATION", raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), agreement } : null,
     pairedComparisons: comparisons, missingness: { annotationRecords: missingAnnotationRecords, axisJudgements: missingAxisJudgements, unresolvedDisagreements: disagreement.filter((d) => !d.resolved).length }, disagreements: disagreement,

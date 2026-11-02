@@ -80,12 +80,14 @@ export async function runControlledPilot(options: RunnerOptions) {
       }
       journal.append({ event: "POSTPROCESSED", attemptKey, fileHash: digest(JSON.parse(fs.readFileSync(file, "utf8"))) }); options.onStage?.("PERSISTED");
       const generated = session.state().attemptKeys.includes(attemptKey);
-      outputs.push({ generated, blocked: verification.blocked, failed: !!result.providerError || !!result.parseError });
+      const failed = !!result.providerError || !!result.parseError;
+      outputs.push({ generated, blocked: !failed && verification.blocked, failed });
       if (session.state().stopped) break;
     }
     const state = session.state();
     const summary = { status: state.stopped ? "STOPPED" : "FAKE_COMPLETED_REVIEW_ONLY", mode: "FAKE", configHash, approvalId: session.approvalId, target: session.target,
       denominators: { scheduled: preparation.rows.length + preparation.routed.length, routedBeforeGeneration: preparation.routed.length, generationEligible: preparation.rows.length, inferenceAttempts: state.inferenceCalls, finishedOutputs: outputs.filter((o) => o.generated).length,
+        recordedOutputs: outputs.length, validGenerated: outputs.filter((o) => !o.failed).length, failed: outputs.filter((o) => o.failed).length,
         parseOrProviderFailures: outputs.filter((o) => o.failed).length, postGateEligible: outputs.filter((o) => o.generated && !o.blocked && !o.failed).length, blocked: outputs.filter((o) => o.generated && o.blocked).length, notAttempted: preparation.rows.length - state.inferenceCalls },
       routed: preparation.routed, budget: state, rawCorrectness: null, postGateCorrectness: null, scientificPass: null, actualBedrockCalls: 0, actualEmbeddingCalls: 0, actualVectorDbCalls: 0 };
     atomicCreate(summaryFile, summary); journal.append({ event: "PILOT_COMPLETED", summaryHash: digest(summary) });
