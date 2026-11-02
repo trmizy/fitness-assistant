@@ -170,3 +170,32 @@ test("lifecycle rejects contradictory failed generation/gate combinations and ac
   assert.equal(analyzeOffline(routed).denominators.totalPlanned,3); assert.equal(analyzeOffline(routed).denominators.rawRecorded,0);
   const missing = fixture(); delete (missing.outputs[0] as { postGate?: unknown }).postGate; assert.throws(() => analyzeOffline(missing));
 });
+
+test("consensus overrides require an explicit reason and preserve both reviewers in the audit", () => {
+  const data = fixture();
+  data.adjudications[0].review.decisions = [{unitId:"CONCLUSION",axis:"unsupportedPersonalClaim",decision:false,rationale:"Synthetic adjudication"}];
+  assert.throws(() => analyzeOffline(data),/ConsensusOverrideRationaleRequired/);
+  Object.assign(data.adjudications[0].review.decisions[0],{consensusOverride:{reason:"Fixture override: explicit re-examination of the same evidence"}});
+  const report = analyzeOffline(data), audit = report.adjudicationAudit.find(a => a.axis === "unsupportedPersonalClaim")!;
+  assert.equal(audit.agreement,"AGREED"); assert.deepEqual(audit.reviewerA,{pseudonym:"TEST_R1",value:true}); assert.deepEqual(audit.reviewerB,{pseudonym:"TEST_R2",value:true});
+  assert.equal(audit.adjudicatedResult,false); assert.ok(audit.overrideReason); assert.equal(report.fixtureCalculations!.raw.unsupportedPersonalClaimRate.value,0);
+  const unchanged = fixture(); unchanged.adjudications[0].review.decisions = [{unitId:"CONCLUSION",axis:"unsupportedPersonalClaim",decision:true,rationale:"Keep fixture consensus"}];
+  assert.equal(analyzeOffline(unchanged).adjudicationAudit.find(a=>a.axis==="unsupportedPersonalClaim")!.overrideReason,null);
+});
+
+test("per-metric and per-axis missingness distinguish missing, NE, NA, failures, blocks and releases", () => {
+  const data = gateCases([{status:"GENERATED",decision:"ELIGIBLE",truth:null},{status:"GENERATED",decision:"BLOCKED",truth:true},{status:"FAILED",decision:"FAILED",truth:false}]);
+  data.annotations = data.annotations.filter(a=>a.packetHash!==data.outputs[0].packet.packetHash);
+  for (const a of data.annotations) for (const u of a.units) { u.sourceSupport="NOT_APPLICABLE"; u.uncertainty="NOT_EVALUATED"; }
+  const report = analyzeOffline(data);
+  for (const m of Object.values(report.missingness.byMetric)) {
+    assert.equal(m.recordedOutputs,3); assert.equal(m.failedOutputs,1); assert.equal(m.blockedOutputs,1); assert.equal(m.releasedOutputs,1);
+    assert.equal(m.eligibleOutputs,m.scoredOutputs+m.unscoredOutputs);
+  }
+  assert.equal(report.missingness.byMetric.usefulness.missingAnnotationOutputs,1);
+  assert.equal(report.missingness.byMetric.sourceSupport.notApplicableOutputs,1);
+  assert.ok(report.missingness.byAxis.uncertainty.notEvaluated>0); assert.ok(report.missingness.byAxis.sourceSupport.notApplicable>0);
+  for (const axis of Object.values(report.missingness.byAxis)) assert.equal(axis.expectedJudgements,axis.missingReviewerRecords+axis.nullLabels+axis.notEvaluated+axis.notApplicable+axis.presentLabels);
+  const alone=fixture(); alone.annotations=[alone.annotations[0]]; alone.adjudications=[];
+  assert.equal(analyzeOffline(alone).fixtureCalculations!.agreement.factualCorrectness.kappa,null);
+});

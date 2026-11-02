@@ -3,8 +3,8 @@ import { z } from "zod";
 import { ARMS, POLICY_VARIANTS, AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { attemptIdentity } from "../bedrock-pilot/design";
 import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, type ReviewerPacket } from "./annotations";
-import { digest } from "./identity";
 import { redact } from "./representation";
+import { digest } from "./identity";
 import { outputLifecycle } from "./lifecycle";
 import { cohensKappa, pairedClusterBootstrap, type Category, type CaseCell } from "./statistics";
 
@@ -34,6 +34,9 @@ const metric = (n = 0, d = 0): Metric => ({ numerator: n, denominator: d, value:
 const personal = new Set(["OBSERVATION", "PERSONAL_HYPOTHESIS", "MEASUREMENT_LIMITATION", "CONCLUSION"]);
 const unitAxes = ["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "personalApplicability", "unsupportedCausalInference"] as const;
 type Axis = typeof unitAxes[number] | "usefulness";
+const metricKeys = ["unsupportedPersonalClaimRate", "assessmentCorrectness", "sourceSupport", "appropriateAbstention", "usefulness"] as const;
+type MetricKey = typeof metricKeys[number];
+const emptyMissingness = () => ({ recordedOutputs: 0, eligibleOutputs: 0, scoredOutputs: 0, unscoredOutputs: 0, missingAnnotationOutputs: 0, nullJudgementOutputs: 0, notEvaluatedOutputs: 0, notApplicableOutputs: 0, unresolvedDisagreementOutputs: 0, unqualifiedOutputs: 0, redactedOutputs: 0, failedOutputs: 0, blockedOutputs: 0, releasedOutputs: 0 });
 type Row = { metadata: z.infer<typeof AnalysisAttemptSchema>; valid: boolean; released: boolean; failed: boolean; generationFailed: boolean; postProcessingFailed: boolean; qualified: boolean; values: Record<string, Metric>; gateTruth: boolean | null; scopes: { structuredInvariant: boolean; narrowTextHeuristic: boolean }; blocked: boolean };
 function known(value: unknown): value is string | number | boolean { return value !== null && value !== undefined && value !== "NOT_EVALUATED"; }
 function sumMetrics(rows: Row[], key: string) { return metric(rows.reduce((n, r) => n + r.values[key].numerator, 0), rows.reduce((n, r) => n + r.values[key].denominator, 0)); }
@@ -59,6 +62,10 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
   const rows: Row[] = [], disagreement: { attemptKey: string; unitId: string; axis: string; resolved: boolean }[] = [];
   const agreementPairs: Record<Axis, [Category, Category][]> = { factualCorrectness: [], sourceSupport: [], unsupportedPersonalClaim: [], uncertainty: [], abstention: [], personalApplicability: [], unsupportedCausalInference: [], usefulness: [] };
   let missingAnnotationRecords = 0, missingAxisJudgements = 0;
+  const byMetric = Object.fromEntries(metricKeys.map((k) => [k, emptyMissingness()])) as Record<MetricKey, ReturnType<typeof emptyMissingness>>;
+  const byAxis = Object.fromEntries([...unitAxes, "usefulness"].map((axis) => [axis, { expectedJudgements: 0, missingReviewerRecords: 0, nullLabels: 0, notEvaluated: 0, notApplicable: 0, presentLabels: 0 }])) as Record<Axis, { expectedJudgements: number; missingReviewerRecords: number; nullLabels: number; notEvaluated: number; notApplicable: number; presentLabels: number }>;
+  const adjudicationAudit: { attemptKey: string; unitId: string; axis: Axis; reviewerA: unknown; reviewerB: unknown; agreement: string; adjudicator: string | null; adjudicatedResult: unknown; trustedDecision: boolean; overrideReason: string | null }[] = [];
+  let redactedOutputs = 0, legacyPackets = 0;
   for (const output of input.outputs) {
     const metadata = schedule.get(output.attemptKey); if (!metadata) throw new Error("OutputNotScheduled");
     const frozen = cases.get(metadata.caseKey)!, packet = output.packet, body = packet.body;
@@ -82,16 +89,36 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     const paired = !!left && !!right;
     const eligibleAuthority = paired && frozen.authority === "REVIEWER_ATTESTED" && annotations.every((a) => a.authority === "REVIEWER_ATTESTED" && a.reviewerPseudonym !== frozen.sealed.case.author.pseudonym);
     const representationEligible = body.representation?.scoringDisposition !== "REDACTED_NOT_SCORED";
+    if (!representationEligible) redactedOutputs++;
+    if (!packet.reviewerExportHashes) legacyPackets++;
     const qualified = input.purpose === "INDEPENDENT_ANALYSIS" && output.raw.executionMode === "LIVE" && eligibleAuthority && representationEligible;
     // Fixture arithmetic is an explicit diagnostic, never published semantic results.
     const calculate = representationEligible && (qualified || input.purpose === "TEST_FIXTURE" && paired);
+    const judgements = new Map<string, { a: unknown; b: unknown; unresolved: boolean }>();
     function finalLabel(unitId: string, axis: Axis): unknown {
       const a = axis === "usefulness" ? left?.usefulness : left?.units.find((u) => u.unitId === unitId)?.[axis];
       const b = axis === "usefulness" ? right?.usefulness : right?.units.find((u) => u.unitId === unitId)?.[axis];
+      const axisCounts = byAxis[axis]; axisCounts.expectedJudgements += 2;
+      for (const label of [a, b]) {
+        if (label === undefined) axisCounts.missingReviewerRecords++;
+        else if (label === null) axisCounts.nullLabels++;
+        else if (label === "NOT_EVALUATED") axisCounts.notEvaluated++;
+        else if (label === "NOT_APPLICABLE") axisCounts.notApplicable++;
+        else axisCounts.presentLabels++;
+      }
       if (!known(a)) missingAxisJudgements++; if (!known(b)) missingAxisJudgements++;
       if (calculate) agreementPairs[axis].push([known(a) ? a : null, known(b) ? b : null]);
       const decision = adj?.review.decisions.find((d) => d.unitId === unitId && d.axis === axis);
       const trustedDecision = decision && (input.purpose === "TEST_FIXTURE" || qualified && adj!.authority === "REVIEWER_ATTESTED");
+      const consensus = known(a) && known(b) && a === b;
+      const override = !!decision && consensus && decision.decision !== a;
+      if (override && !decision.consensusOverride) throw new Error("ConsensusOverrideRationaleRequired");
+      judgements.set(JSON.stringify([unitId, axis]), { a, b, unresolved: known(a) && known(b) && a !== b && !(trustedDecision && known(decision!.decision)) });
+      adjudicationAudit.push({ attemptKey: metadata!.attemptKey, unitId, axis,
+        reviewerA: { pseudonym: left?.reviewerPseudonym ?? null, value: a ?? null }, reviewerB: { pseudonym: right?.reviewerPseudonym ?? null, value: b ?? null },
+        agreement: !known(a) || !known(b) ? "INCOMPLETE" : consensus ? "AGREED" : "DISAGREED",
+        adjudicator: decision ? adj!.review.adjudicatorPseudonym : null, adjudicatedResult: decision?.decision ?? null,
+        trustedDecision: !!trustedDecision, overrideReason: override ? decision!.consensusOverride!.reason : null });
       if (known(a) && known(b) && a !== b) disagreement.push({ attemptKey: metadata!.attemptKey, unitId, axis, resolved: !!trustedDecision && known(decision!.decision) });
       if (!calculate) return null;
       if (trustedDecision) return decision!.decision;
@@ -108,10 +135,28 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     if (valid && typeof usefulness === "number") values.usefulness = metric(usefulness, 1);
     if (calculate && valid && parsed.success && frozen.sealed.case.labels.expectedAssessment !== null) values.assessmentCorrectness = metric(Number(parsed.data.analysis.assessment === frozen.sealed.case.labels.expectedAssessment), 1);
     for (const key of Object.keys(values)) values[key] = metric(values[key].numerator, values[key].denominator);
+    const targets: Record<MetricKey, [string, Axis][]> = {
+      unsupportedPersonalClaimRate: body.units.filter((u) => personal.has(u.type)).map((u) => [u.unitId, "unsupportedPersonalClaim"]),
+      sourceSupport: body.units.map((u) => [u.unitId, "sourceSupport"]), assessmentCorrectness: [],
+      appropriateAbstention: frozen.sealed.case.labels.appropriateAbstention ? [["CONCLUSION", "abstention"]] : [], usefulness: [["WHOLE_RESPONSE", "usefulness"]],
+    };
+    for (const key of metricKeys) {
+      const m = byMetric[key], labels = targets[key].map(([unit, axis]) => judgements.get(JSON.stringify([unit, axis]))!).filter(Boolean);
+      const applicable = key === "assessmentCorrectness" ? frozen.sealed.case.labels.expectedAssessment !== null : targets[key].length > 0;
+      const eligible = valid && representationEligible && applicable;
+      m.recordedOutputs++; m.failedOutputs += Number(lifecycle.failed); m.blockedOutputs += Number(lifecycle.blocked); m.releasedOutputs += Number(lifecycle.released);
+      m.redactedOutputs += Number(!representationEligible); m.eligibleOutputs += Number(eligible);
+      m.scoredOutputs += Number(values[key].denominator > 0); m.unscoredOutputs += Number(eligible && values[key].denominator === 0);
+      m.missingAnnotationOutputs += Number(eligible && !paired);
+      m.nullJudgementOutputs += Number(eligible && labels.some((v) => v.a === null || v.b === null));
+      m.notEvaluatedOutputs += Number(eligible && labels.some((v) => v.a === "NOT_EVALUATED" || v.b === "NOT_EVALUATED"));
+      m.notApplicableOutputs += Number(valid && representationEligible && (!applicable || labels.some((v) => v.a === "NOT_APPLICABLE" || v.b === "NOT_APPLICABLE")));
+      m.unresolvedDisagreementOutputs += Number(eligible && labels.some((v) => v.unresolved)); m.unqualifiedOutputs += Number(eligible && !calculate);
+    }
     rows.push({ metadata, valid, ...lifecycle, qualified, values, scopes: output.postGate,
       gateTruth: calculate && adj && (input.purpose === "TEST_FIXTURE" || adj.authority === "REVIEWER_ATTESTED") ? adj.shouldBlock : null });
   }
-  const keys = ["unsupportedPersonalClaimRate", "assessmentCorrectness", "sourceSupport", "appropriateAbstention", "usefulness"];
+  const keys = metricKeys;
   const aggregate = (selected: Row[]) => Object.fromEntries(keys.map((k) => [k, sumMetrics(selected, k)]));
   const raw = aggregate(rows), postGate = aggregate(rows.filter((r) => r.released));
   // Confusion requires valid generation and an actual BLOCKED/ELIGIBLE decision.
@@ -134,7 +179,8 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     denominators: { scheduled: input.schedule.length, totalPlanned: input.schedule.length + input.routedBeforeGeneration, routedBeforeGeneration: input.routedBeforeGeneration, rawRecorded: rows.length, rawResponded: responseCount, missingOutputs: input.schedule.length - rows.length, validGenerated: rows.filter((r) => r.valid).length, failed: rows.filter((r) => r.failed).length, generationFailed: rows.filter((r) => r.generationFailed).length, postProcessingFailed: rows.filter((r) => r.postProcessingFailed).length, blockedValid: rows.filter((r) => r.valid && r.blocked).length, releasedValid: eligible, coverage: metric(eligible, responseCount), attemptRetention: metric(eligible, rows.length) },
     semantics: substantive ? { raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), gateByScope: Object.fromEntries(["structuredInvariant", "narrowTextHeuristic"].map((scope) => [scope, gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.scopes[scope as keyof typeof r.scopes] }))) ])), agreement } : null,
     fixtureCalculations: input.purpose === "TEST_FIXTURE" ? { authority: "TEST_FIXTURE_MATH_ONLY_NOT_MODEL_EVALUATION", raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), agreement } : null,
-    pairedComparisons: comparisons, missingness: { annotationRecords: missingAnnotationRecords, axisJudgements: missingAxisJudgements, unresolvedDisagreements: disagreement.filter((d) => !d.resolved).length }, disagreements: disagreement,
+    pairedComparisons: comparisons, missingness: { annotationRecords: missingAnnotationRecords, axisJudgements: missingAxisJudgements, unresolvedDisagreements: disagreement.filter((d) => !d.resolved).length, redactedOutputs, legacyPackets, byMetric, byAxis,
+      counting: "Per-metric output counts; reasons may overlap. eligibleOutputs = scoredOutputs + unscoredOutputs. Missing scheduled outputs are reported in denominators." }, disagreements: disagreement, adjudicationAudit,
     telemetry: { inputTokens: telemetry("inputTokens"), outputTokens: telemetry("outputTokens"), latencyMs: telemetry("latencyMs"), estimatedUsd: telemetry("estimatedUsd"), fakeAttemptsExcluded: input.outputs.length - actual.length },
     limitations: ["Reviewer attestations/pseudonyms require owner verification; hashes are integrity, not independent expertise", "Case clusters are assumed independent; repeated outputs are aggregated within case/arm/policy", "Complete-pair/available-label analysis may be biased by missingness; report all denominators", "No p-values, mixed-effects model, multiplicity correction or equivalence claim", "All six arms share structured output; no isolated structured-analysis effect", "No corpus scientific approval or model capability conclusion is granted"] };
 }

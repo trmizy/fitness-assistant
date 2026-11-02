@@ -71,8 +71,8 @@ export function createAnnotationPackets(original: { question: string; facts: unk
   const packetHash = digest(body);
   return { ownerLinkage: { instanceId, packetHash, candidateHash: body.candidateHash }, reviewers: ["R1", "R2"].map((reviewerSlot) => ({ packetHash, reviewerSlot, body })) };
 }
-export type ReviewerPacket = ReturnType<typeof createAnnotationPackets>["reviewers"][number] & { reviewerExportHashes?: Record<string, string> };
 const Factual = z.enum(["SUPPORTED", "CONTRADICTED", "NOT_ESTABLISHED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
+export type ReviewerPacket = ReturnType<typeof createAnnotationPackets>["reviewers"][number] & { reviewerExportHashes?: Record<string, string> };
 const Support = z.enum(["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Uncertainty = z.enum(["APPROPRIATE", "OVERCONFIDENT", "UNDERCONFIDENT", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Abstention = z.enum(["APPROPRIATE", "UNNECESSARY", "NEEDED_BUT_MISSING", "NOT_APPLICABLE", "NOT_EVALUATED"]);
@@ -90,7 +90,9 @@ export const AnnotationSchema = z.object({ packetHash: Hash, reviewerSlot: z.enu
 export const AgreementSchema = z.object({ status: z.enum(["PENDING_LABELS", "TEST_FIXTURE_ONLY", "REVIEWER_ATTESTED"]), pairedJudgements: z.number().int().nonnegative(), exactAgreement: z.number().min(0).max(1).nullable(), kappa: z.number().min(-1).max(1).nullable(), requiresAdjudication: z.boolean().nullable() }).strict();
 const Axis = z.enum(["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "personalApplicability", "unsupportedCausalInference", "usefulness"]);
 export const reviewAxes = { factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention, personalApplicability: PersonalApplicability, unsupportedCausalInference: UnsupportedCausalInference, usefulness: z.number().int().min(1).max(5).nullable() };
-const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([Factual, Support, Uncertainty, Abstention, PersonalApplicability, UnsupportedCausalInference, z.boolean(), z.number().int().min(1).max(5), z.null()]), rationale: z.string().min(1) }).strict().superRefine((d, ctx) => {
+const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([Factual, Support, Uncertainty, Abstention, PersonalApplicability, UnsupportedCausalInference, z.boolean(), z.number().int().min(1).max(5), z.null()]), rationale: z.string().min(1),
+  consensusOverride: z.object({ reason: z.string().trim().min(1) }).strict().optional(),
+}).strict().superRefine((d, ctx) => {
   if (!reviewAxes[d.axis].safeParse(d.decision).success) ctx.addIssue({ code: "custom", message: "AdjudicationDecisionDoesNotMatchAxis" });
 });
 export const AdjudicationSchema = z.object({ packetHash: Hash, adjudicatorPseudonym: z.string().min(1), decisions: z.array(Decision), rationale: z.string().min(1) }).strict();
