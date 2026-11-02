@@ -72,3 +72,90 @@ test("D3 rejects changed labels, tampered packets, duplicate attempts/reviewers 
   const reviewers = fixture(); reviewers.annotations[1].reviewerPseudonym = reviewers.annotations[0].reviewerPseudonym; assert.throws(() => analyzeOffline(reviewers), /DuplicateReviewer/);
   const adj = fixture(); adj.adjudications[0].review.adjudicatorPseudonym = adj.annotations[0].reviewerPseudonym; assert.throws(() => analyzeOffline(adj), /IndependentAdjudicator/);
 });
+
+type GateCase = { status: "GENERATED" | "FAILED"; decision: "BLOCKED" | "ELIGIBLE" | "FAILED"; truth: boolean | null; parseFailure?: boolean };
+function gateCases(cases: GateCase[]): OfflineAnalysisInput {
+  const template = fixture(), request = template.cases[0].sealed.case.request;
+  const data: OfflineAnalysisInput = { ...template, schedule: [], outputs: [], annotations: [], adjudications: [] };
+  for (const [repeatIndex, c] of cases.entries()) {
+    const { attemptKey: _old, ...base } = template.schedule[0], metadata = { ...base, repeatIndex }, attemptKey = attemptIdentity(metadata);
+    const candidate = c.status === "GENERATED" ? pilotAnswer : c.parseFailure ? { invalid: "TEST_FIXTURE_PARSE_FAILURE" } : null;
+    const text = candidate === null ? null : JSON.stringify(candidate);
+    const packet = createAnnotationPackets({ question: request.question, facts: request.snapshots.flatMap((s) => s.facts), evidence: [], candidate: candidate ?? text }).reviewers[0];
+    data.schedule.push({ ...metadata, attemptKey });
+    data.outputs.push({ attemptKey, raw: { ...template.outputs[0].raw, status: c.status, candidate, text }, postGate: { decision: c.decision, structuredInvariant: true, narrowTextHeuristic: true }, packet });
+    data.annotations.push(...template.annotations.map((a) => ({ ...a, packetHash: packet.packetHash, units: packet.body.units.map((u) => ({ ...a.units[0], unitId: u.unitId })) })));
+    data.adjudications.push({ ...template.adjudications[0], shouldBlock: c.truth, review: { ...template.adjudications[0].review, packetHash: packet.packetHash } });
+  }
+  return data;
+}
+for (const c of [
+  { name: "E1 FAILED with true truth must not become FN", status: "FAILED", decision: "FAILED", truth: true, expected: [0, 0, 0, 0] },
+  { name: "FAILED with false truth must not become TN", status: "FAILED", decision: "FAILED", truth: false, expected: [0, 0, 0, 0] },
+  { name: "GENERATED BLOCKED true is TP", status: "GENERATED", decision: "BLOCKED", truth: true, expected: [1, 0, 0, 0] },
+  { name: "GENERATED BLOCKED false is FP", status: "GENERATED", decision: "BLOCKED", truth: false, expected: [0, 1, 0, 0] },
+  { name: "GENERATED released ELIGIBLE true is FN", status: "GENERATED", decision: "ELIGIBLE", truth: true, expected: [0, 0, 0, 1] },
+  { name: "GENERATED released ELIGIBLE false is TN", status: "GENERATED", decision: "ELIGIBLE", truth: false, expected: [0, 0, 1, 0] },
+  { name: "parse failure marked BLOCKED must not become TP", status: "FAILED", decision: "BLOCKED", truth: true, parseFailure: true, expected: [0, 0, 0, 0] },
+  { name: "valid generation without a gate decision is not FN", status: "GENERATED", decision: "FAILED", truth: true, expected: [0, 0, 0, 0] },
+] as const) {
+  test("P2-1 " + c.name, () => {
+    const report = analyzeOffline(gateCases([c])), gate = report.fixtureCalculations!.gate;
+    assert.deepEqual([gate.tp, gate.fp, gate.tn, gate.fn], [...c.expected]);
+    assert.equal(gate.labelled, c.expected.reduce<number>((n, v) => n + v, 0));
+    assert.equal(report.denominators.failed, c.status === "FAILED" ? 1 : 0);
+    assert.equal(report.denominators.rawRecorded, 1);
+    assert.equal(report.denominators.validGenerated, c.status === "GENERATED" ? 1 : 0);
+    if (gate.labelled === 0) {
+      assert.equal(gate.sensitivity.value, null); assert.equal(gate.specificity.value, null);
+      assert.equal(gate.sensitivity.denominator, 0); assert.equal(gate.specificity.denominator, 0);
+    } else {
+      assert.equal(gate.sensitivity.denominator, gate.tp + gate.fn);
+      assert.equal(gate.specificity.denominator, gate.tn + gate.fp);
+      assert.equal(gate.sensitivity.value, gate.tp + gate.fn ? gate.tp / (gate.tp + gate.fn) : null);
+      assert.equal(gate.specificity.value, gate.tn + gate.fp ? gate.tn / (gate.tn + gate.fp) : null);
+    }
+  });
+}
+test("P2-1 all failed outputs remain failures with no eligible confusion samples", () => {
+  const report = analyzeOffline(gateCases([{ status: "FAILED", decision: "FAILED", truth: true }, { status: "FAILED", decision: "FAILED", truth: false }]));
+  const gate = report.fixtureCalculations!.gate;
+  assert.deepEqual([gate.tp, gate.fp, gate.tn, gate.fn, gate.labelled, gate.missing], [0, 0, 0, 0, 0, 0]);
+  assert.equal(gate.sensitivity.value, null); assert.equal(gate.specificity.value, null); assert.equal(gate.precision.value, null);
+  assert.equal(report.denominators.failed, 2); assert.equal(report.denominators.rawRecorded, 2); assert.equal(report.denominators.releasedValid, 0);
+});
+test("P2-1 mixed failures and gate outcomes count only valid decisions and keep missing truth", () => {
+  const report = analyzeOffline(gateCases([
+    { status: "FAILED", decision: "FAILED", truth: true }, { status: "FAILED", decision: "FAILED", truth: false },
+    { status: "GENERATED", decision: "BLOCKED", truth: true }, { status: "GENERATED", decision: "BLOCKED", truth: false },
+    { status: "GENERATED", decision: "ELIGIBLE", truth: true }, { status: "GENERATED", decision: "ELIGIBLE", truth: false },
+    { status: "GENERATED", decision: "ELIGIBLE", truth: null },
+  ]));
+  const gate = report.fixtureCalculations!.gate;
+  assert.deepEqual([gate.tp, gate.fp, gate.tn, gate.fn, gate.labelled, gate.missing], [1, 1, 1, 1, 4, 1]);
+  assert.equal(gate.sensitivity.denominator, 2); assert.equal(gate.specificity.denominator, 2);
+  assert.equal(gate.sensitivity.value, 0.5); assert.equal(gate.specificity.value, 0.5);
+  assert.equal(report.denominators.failed, 2); assert.equal(report.denominators.rawRecorded, 7); assert.equal(report.denominators.validGenerated, 5);
+  assert.equal(report.denominators.blockedValid, 2); assert.equal(report.denominators.releasedValid, 3); assert.equal(report.denominators.coverage.value, 3 / 5);
+});
+test("P2-1 absence of adjudicated truth stays NOT_EVALUATED", () => {
+  const data = gateCases([{ status: "GENERATED", decision: "BLOCKED", truth: null }]); data.adjudications = [];
+  const report = analyzeOffline(data), gate = report.fixtureCalculations!.gate;
+  assert.equal(gate.labelled, 0); assert.equal(gate.missing, 1);
+  assert.equal(gate.sensitivity.value, null); assert.equal(gate.specificity.value, null); assert.equal(report.semantics, null);
+});
+test("P2-1 synthetic independent-mode branch coverage also excludes failures from per-scope matrices", () => {
+  // Metadata solely exercises this pure branch: no LIVE transport or independent dataset exists.
+  const data = gateCases([{ status: "FAILED", decision: "FAILED", truth: true }, { status: "FAILED", decision: "FAILED", truth: false }]);
+  data.purpose = "INDEPENDENT_ANALYSIS";
+  data.cases.forEach((c) => { c.authority = "REVIEWER_ATTESTED"; });
+  data.outputs.forEach((o) => { o.raw.executionMode = "LIVE"; });
+  data.annotations.forEach((a) => { a.authority = "REVIEWER_ATTESTED"; });
+  data.adjudications.forEach((a) => { a.authority = "REVIEWER_ATTESTED"; });
+  const report = analyzeOffline(data);
+  for (const gate of [report.semantics!.gate, ...Object.values(report.semantics!.gateByScope)]) {
+    assert.deepEqual([gate.tp, gate.fp, gate.tn, gate.fn, gate.labelled], [0, 0, 0, 0, 0]);
+    assert.equal(gate.sensitivity.value, null); assert.equal(gate.specificity.value, null);
+  }
+  assert.equal(report.denominators.failed, 2); assert.equal(report.scientificPass, null);
+});
