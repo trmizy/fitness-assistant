@@ -173,6 +173,18 @@ export const sessionRepository = {
    * may proceed to run side effects; every other concurrent caller gets `false` and must
    * treat this as "already handled by someone else", not retry the same write.
    */
+  /**
+   * Quota A+: the per-session compare-and-set that makes the booking of a PT no-show's entitlement happen ONCE (sets no_show_quota_booked_at while it is NULL). true = THIS call set it and so must move the
+   * contract counter. `requireNoShow` = the decision path (the session must be NO_SHOW right now); the settlement path of an older row does not require it.
+   */
+  claimNoShowQuota: async (id: string, contractId: string, opts: { requireNoShow?: boolean } = {}, db: Db = prisma): Promise<boolean> => {
+    const { count } = await db.session.updateMany({
+      where: { id, contractId, noShowQuotaBookedAt: null, ...(opts.requireNoShow ? { status: SessionStatus.NO_SHOW } : {}) },
+      data: { noShowQuotaBookedAt: new Date() },
+    });
+    return count === 1;
+  },
+
   transitionStatus: async (
     id: string,
     expected: SessionStatus[],

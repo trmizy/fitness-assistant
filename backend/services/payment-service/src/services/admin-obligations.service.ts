@@ -111,6 +111,13 @@ export interface UnpaidObligationRow {
   /** Why the obligation exists, in words (D77 sets it; null on rows FH-1 wrote). Cut to 120 characters. */
   reason: string | null;
   /**
+   * D77 final (Q5/Q6), read-only, LATE_ARRIVAL obligations only: how the SESSION'S OWN money was settled - the operation (key) that settled it and what it moved to
+   * each party. `releasedBeforeL` = the session had already been paid out in full when the late arrival reached the ledger: the obligation stays OPEN and a person
+   * must decide who verifies it and where the payment comes from (no automatic payment exists for it). `reviewer` = who put it UNDER_REVIEW (the person in charge).
+   */
+  sessionSettlement: { opKey: string; kind: string; moved: { pt: string; gym: string; platform: string; client: string | null }; lateArrivalDeducted: { pt: string; gym: string; platform: string } | null; releasedBeforeL: boolean } | null;
+  reviewer: string | null;
+  /**
    * LEGACY first-cut figure: recorded as paid outside the ledger WITHOUT verification. Never written any more;
    * old PAID_EXTERNALLY rows keep it and are not upgraded.
    */
@@ -210,6 +217,8 @@ export interface ObligationsReport {
       awaitingEvidence: { count: number; unpaid: string };
       /** Fully paid and VERIFIED. `amount` = everything verified so far, incl. partial verified payments on rows back to OPEN. */
       paidVerified: { count: number; amount: string };
+      /** D77 final: paid to the client by a ledger entry inside the session own settlement (not an outside-the-ledger payment). */
+      paidViaLedger: { count: number };
       /**
        * LEGACY: evidence recorded WITHOUT verification (first cut). NOT proof of payment; never upgraded. `amount` = everything
        * recorded that way, incl. partial recordings on rows still open.
@@ -249,7 +258,7 @@ export interface ObligationsReport {
   unpaidObligations: UnpaidObligationRow[];
   /** A payment is in flight: APPROVED_FOR_PAYMENT / AWAITING_EVIDENCE (still unpaid until verified), each with its pending payment and history. */
   inFlightObligations: UnpaidObligationRow[];
-  /** Closed ones, newest first: PAID_VERIFIED / PAID_EXTERNALLY (legacy, unverified) / WAIVED / RESOLVED_OTHER / RESOLVED (legacy), each with its history. */
+  /** Closed ones, newest first: PAID_VERIFIED / PAID_VIA_LEDGER / PAID_EXTERNALLY (legacy, unverified) / WAIVED / RESOLVED_OTHER / RESOLVED (legacy), each with its history. */
   closedObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   /**
@@ -380,7 +389,7 @@ export async function buildObligationsReport(
         `SELECT ${OB_COLS}
            FROM contract_unpaid_obligations o
            LEFT JOIN payment_transactions t ON t.id = o.transaction_id
-          WHERE o.status IN ('PAID_VERIFIED','PAID_EXTERNALLY','WAIVED','RESOLVED','RESOLVED_OTHER')
+          WHERE o.status IN ('PAID_VERIFIED','PAID_VIA_LEDGER','PAID_EXTERNALLY','WAIVED','RESOLVED','RESOLVED_OTHER')
           ORDER BY o.resolved_at DESC NULLS LAST, o.id LIMIT $1`,
         limit,
       );
@@ -394,6 +403,15 @@ export async function buildObligationsReport(
               WHERE status IN ('APPROVED','EVIDENCE_SUBMITTED') AND obligation_id = ANY($1::text[])`,
             inFlightRows.map((r) => r.id as string),
           )
+        : [];
+      // D77 final (Q6): the operation that settled the session of each LATE_ARRIVAL obligation (read-only).
+      const lateSessionIds = [...obRows, ...inFlightRows, ...closedRows]
+        .filter((r) => r.kind === 'LATE_ARRIVAL')
+        .map((r) => sessionIdOfKey(r.key))
+        .filter((v): v is string => !!v);
+      const settleKeys = lateSessionIds.flatMap((id) => [`SESSION_RELEASE:${id}`, `UNRESOLVED_SESSION:${id}`, `PT_NO_SHOW:${id}`]);
+      const settleOpRows = settleKeys.length
+        ? await tx.$queryRawUnsafe<any[]>(`SELECT key, kind, result, created_at FROM ledger_operations WHERE key = ANY($1::text[])`, settleKeys)
         : [];
       const eventRows = obIds.length
         ? await tx.$queryRawUnsafe<any[]>(
@@ -454,7 +472,7 @@ export async function buildObligationsReport(
           ORDER BY sum(CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) DESC, e.transaction_id`,
       );
 
-      return { holdRows, negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, inFlightRows, pendingRows, closedRows, eventRows, staleCount, staleRows };
+      return { holdRows, negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, inFlightRows, pendingRows, closedRows, eventRows, settleOpRows, staleCount, staleRows };
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30_000, maxWait: 10_000 },
   );
@@ -517,7 +535,7 @@ export async function buildObligationsReport(
   const recCount = (rec('ACTIVE')?.c ?? 0) + (rec('SUSPENDED')?.c ?? 0);
   const obOpen = ob('OPEN')?.c ?? 0;
   const obClosedCount =
-    (ob('PAID_VERIFIED')?.c ?? 0) + (ob('PAID_EXTERNALLY')?.c ?? 0) + (ob('WAIVED')?.c ?? 0) + (ob('RESOLVED')?.c ?? 0) + (ob('RESOLVED_OTHER')?.c ?? 0);
+    (ob('PAID_VERIFIED')?.c ?? 0) + (ob('PAID_VIA_LEDGER')?.c ?? 0) + (ob('PAID_EXTERNALLY')?.c ?? 0) + (ob('WAIVED')?.c ?? 0) + (ob('RESOLVED')?.c ?? 0) + (ob('RESOLVED_OTHER')?.c ?? 0);
   const obOpenListCount = obOpen + (ob('UNDER_REVIEW')?.c ?? 0);
   const obInFlightCount = (ob('APPROVED_FOR_PAYMENT')?.c ?? 0) + (ob('AWAITING_EVIDENCE')?.c ?? 0);
   const totalExternallyPaid = core.obSummary.reduce((a, r) => a.plus(new Prisma.Decimal(r.ext ?? 0)), new Prisma.Decimal(0));
@@ -574,6 +592,30 @@ export async function buildObligationsReport(
     });
     historyByObligation.set(e.obligation_id, list);
   }
+  const settleOps = new Map<string, any>(core.settleOpRows.map((o: any) => [o.key as string, o]));
+  const sessionSettlementOf = (r: any): UnpaidObligationRow['sessionSettlement'] => {
+    if (r.kind !== 'LATE_ARRIVAL') return null;
+    const sid = sessionIdOfKey(r.key);
+    if (!sid) return null;
+    const op = settleOps.get(`SESSION_RELEASE:${sid}`) ?? settleOps.get(`UNRESOLVED_SESSION:${sid}`) ?? settleOps.get(`PT_NO_SHOW:${sid}`);
+    if (!op) return null;
+    const res = (op.result ?? {}) as any;
+    const moved = res.released ?? res.moved ?? { pt: '0', gym: '0', platform: '0' };
+    const deducted = res.lateArrivalDeducted ?? null;
+    return {
+      opKey: op.key,
+      kind: op.kind,
+      moved: { pt: money(moved.pt ?? 0), gym: money(moved.gym ?? 0), platform: money(moved.platform ?? 0), client: res.moved?.client != null ? money(res.moved.client) : null },
+      lateArrivalDeducted: deducted ? { pt: money(deducted.pt ?? 0), gym: money(deducted.gym ?? 0), platform: money(deducted.platform ?? 0) } : null,
+      // the session was settled BEFORE this obligation existed (its settlement carries no deduction and is older than the obligation)
+      releasedBeforeL: !deducted && op.kind !== 'NO_SHOW' && new Date(op.created_at).getTime() <= new Date(r.created_at).getTime(),
+    };
+  };
+  const reviewerOf = (r: any): string | null => {
+    if (r.status !== 'UNDER_REVIEW') return null;
+    const evs = (historyByObligation.get(r.id) ?? []).filter((e) => e.action === 'REVIEW');
+    return evs.length ? evs[evs.length - 1].actor : null;
+  };
   const toObligation = (r: any): UnpaidObligationRow => ({
     id: r.id,
     kind: r.kind,
@@ -587,6 +629,8 @@ export async function buildObligationsReport(
     contractId: r.contract_id ?? null,
     sessionId: sessionIdOfKey(r.key),
     reason: r.reason ? cut(r.reason) : null,
+    sessionSettlement: sessionSettlementOf(r),
+    reviewer: reviewerOf(r),
     externallyPaid: money(r.externally_paid),
     verifiedPaid: money(r.verified_paid),
     pendingPayment: pendingByObligation.get(r.id) ?? null,
@@ -613,6 +657,8 @@ export async function buildObligationsReport(
         approvedForPayment: { count: ob('APPROVED_FOR_PAYMENT')?.c ?? 0, unpaid: money(ob('APPROVED_FOR_PAYMENT')?.unpaid) },
         awaitingEvidence: { count: ob('AWAITING_EVIDENCE')?.c ?? 0, unpaid: money(ob('AWAITING_EVIDENCE')?.unpaid) },
         paidVerified: { count: ob('PAID_VERIFIED')?.c ?? 0, amount: totalVerifiedPaid.toFixed(2) },
+        /** D77 final: paid to the client by a ledger entry inside the session's own settlement (not an outside-the-ledger payment). */
+        paidViaLedger: { count: ob('PAID_VIA_LEDGER')?.c ?? 0 },
         paidExternally: { count: ob('PAID_EXTERNALLY')?.c ?? 0, amount: totalExternallyPaid.toFixed(2) },
         resolvedOther: { count: ob('RESOLVED_OTHER')?.c ?? 0 },
         waived: { count: ob('WAIVED')?.c ?? 0, unpaid: money(ob('WAIVED')?.unpaid) },

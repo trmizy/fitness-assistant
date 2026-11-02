@@ -158,6 +158,8 @@ export function classifyOutcome(f: SubjectFacts): Outcome {
           return "PAID_SHORT_OPEN";
         case "PAID_EXTERNALLY":
           return "PAID_SHORT_PAID_EXTERNALLY";
+        case "PAID_VIA_LEDGER": // D77 final: the client was paid into the wallet by the session's own settlement
+          return "PAID_IN_FULL";
         case "WAIVED":
           return "PAID_SHORT_WAIVED";
         case "RESOLVED":

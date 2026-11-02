@@ -47,7 +47,7 @@ export interface LedgerOperationRecord {
    * Present when `result.obligationId` names an unpaid obligation: its LIVE status. OPEN = still owed; RESOLVED = handled outside
    * the ledger with a reference; WAIVED = the owner decided it is not pursued (the client was not paid).
    */
-  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | string; owed: string; paid: string; unpaid: string };
+  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | 'PAID_VIA_LEDGER' | string; owed: string; paid: string; unpaid: string };
 }
 
 export const paymentClient = {
@@ -109,6 +109,17 @@ export const paymentClient = {
 
   async noShow(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /** READ-ONLY (final safety gate): what the ledger holds for the late-arrival obligation `PT_LATE_ARRIVAL:<sessionId>` of a contract. Writes nothing. */
+  async readLateOpenState(body: { transactionId: string; lateKey: string; parties: Record<string, unknown> }): Promise<{
+    contractEnded: boolean;
+    lateOperation: { exists: boolean; chargedTotal: string | null };
+    obligation: null | { id: string; key: string; kind: string; status: string; owed: string; paid: string; unpaid: string; verifiedPaid: string; externallyPaid: string; openPayments: number };
+    ownPending: { pt: string; gym: string | null; platform: string };
+  }> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-open-state`, body, { headers, timeout: 15_000 });
     return data.data;
   },
 

@@ -518,7 +518,8 @@ exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligation
   APPROVED_FOR_PAYMENT: 'APPROVED_FOR_PAYMENT',
   AWAITING_EVIDENCE: 'AWAITING_EVIDENCE',
   PAID_VERIFIED: 'PAID_VERIFIED',
-  RESOLVED_OTHER: 'RESOLVED_OTHER'
+  RESOLVED_OTHER: 'RESOLVED_OTHER',
+  PAID_VIA_LEDGER: 'PAID_VIA_LEDGER'
 };
 
 exports.PtHoldbackReviewKind = exports.$Enums.PtHoldbackReviewKind = {
@@ -551,7 +552,8 @@ exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidOblig
   SUBMIT_EVIDENCE: 'SUBMIT_EVIDENCE',
   VERIFY_PAYMENT: 'VERIFY_PAYMENT',
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
-  RESOLVE_OTHER: 'RESOLVE_OTHER'
+  RESOLVE_OTHER: 'RESOLVE_OTHER',
+  SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER'
 };
 
 exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {

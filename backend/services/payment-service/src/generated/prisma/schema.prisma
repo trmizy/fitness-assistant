@@ -373,6 +373,8 @@ enum ContractUnpaidObligationStatus {
   AWAITING_EVIDENCE
   PAID_VERIFIED
   RESOLVED_OTHER
+  /// D77 phuong an A (01/11/2026): paid to the client by a REAL ledger entry inside the settlement transaction of the session (release / resolve / no-show). Never set by FH-8.
+  PAID_VIA_LEDGER
 }
 
 /// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
@@ -530,6 +532,8 @@ enum ContractUnpaidObligationEventAction {
   VERIFY_PAYMENT
   CANCEL_APPROVAL
   RESOLVE_OTHER
+  /// D77 phuong an A: the append-only record of a PAID_VIA_LEDGER payment (actor = the ledger operation key).
+  SETTLE_VIA_LEDGER
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;

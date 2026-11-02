@@ -1386,6 +1386,31 @@ router.use(
   }),
 );
 
+// Dispute Case (slice 1) — admin side: intake, evidence, assessment, finding, proposal, four-eyes approval (User Service).
+// user-service re-checks the ADMIN role itself and takes the acting admin from the verified token.
+router.use(
+  "/admin/dispute-cases",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (dispute cases)"),
+  }),
+);
+
+// Dispute Case (slice 1) — party side: the client / PT of a case reads their own redacted view and submits statements and
+// evidence metadata. Any authenticated user may reach it; user-service answers only for a party of the case.
+router.use(
+  "/dispute-cases",
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
 // Admin — temporary PT suspension: suspend / lift / history / list / justify (User Service). The
 // gateway gates by role; user-service re-checks ADMIN and takes the acting admin from the verified token.
 router.use(

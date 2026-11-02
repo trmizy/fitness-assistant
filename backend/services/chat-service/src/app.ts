@@ -5,6 +5,8 @@ import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
 import { getIo } from "./socket/index";
 import { callService } from "./services/call.service";
+import { createInternalEvidenceRoutes } from "./routes/internal-evidence.routes";
+import { internalEvidenceRepository } from "./repositories/internal-evidence.repository";
 
 const app: Express = express();
 
@@ -96,6 +98,9 @@ app.post("/internal/calls/end-by-session", async (req: Request, res: Response): 
     res.status(500).json({ error: "Failed to end call" });
   }
 });
+
+// Dispute Case slice 2 / S2.3: read-only call-session evidence for user-service (shared secret; the gateway does not proxy /internal).
+app.use("/internal", createInternalEvidenceRoutes(internalEvidenceRepository));
 
 // 404 handler
 app.use((_req, res) => {

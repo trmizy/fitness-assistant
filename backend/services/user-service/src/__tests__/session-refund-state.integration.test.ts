@@ -26,6 +26,16 @@ test("deriveRefundInfo: paid = owed -> FULL; 0 < paid < owed -> PARTIAL with the
   assert.deepEqual(deriveRefundInfo(money("0.00", "250000.00")), { refundState: "PENDING", refundedAmount: "0.00", refundPendingAmount: "250000.00" });
 });
 
+test("final safety gate: an obligation settled OUTSIDE the ledger (PAID_VERIFIED / RESOLVED_OTHER / PAID_EXTERNALLY) never shows money in the wallet: refundedAmount is only what the ledger credited", () => {
+  for (const status of ["PAID_VERIFIED", "RESOLVED_OTHER", "PAID_EXTERNALLY", "UNDER_REVIEW", "APPROVED_FOR_PAYMENT", "AWAITING_EVIDENCE"]) {
+    const info = deriveRefundInfo(money("0.00", "250000.00"), status);
+    assert.equal(info.refundedAmount, "0.00", status);
+    assert.notEqual(info.refundState, "FULL", status);
+  }
+  // PAID_VIA_LEDGER is a real ledger credit: the only status that may say FULL with the paid amount
+  assert.deepEqual(deriveRefundInfo(money("250000.00", "250000.00"), "PAID_VIA_LEDGER"), { refundState: "FULL", refundedAmount: "250000.00", refundPendingAmount: "0.00" });
+});
+
 test("deriveRefundInfo: an OPEN obligation is never shown as paid; RESOLVED is FULL; WAIVED is never FULL and has nothing pending", () => {
   assert.equal(deriveRefundInfo(money("125000.00", "250000.00"), "OPEN").refundState, "PARTIAL");
   assert.equal(deriveRefundInfo(money("0.00", "250000.00"), "OPEN").refundState, "PENDING");

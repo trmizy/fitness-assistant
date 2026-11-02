@@ -5,6 +5,8 @@ import { bookingController } from "../controllers/booking.controller";
 import { ptRestrictionController } from "../controllers/pt-restriction.controller";
 import { adminReconciliationController } from "../controllers/admin-reconciliation.controller";
 import adminPtListingRoutes from "./admin-pt-listing.routes";
+import disputeCaseAdminRoutes from "./dispute-case-admin.routes";
+import lateOpenReconciliationRoutes from "./late-open-reconciliation.routes";
 
 const router = Router();
 
@@ -17,6 +19,12 @@ router.get("/sessions/disputed", bookingController.listDisputed as any);
 // FH-4: read-only money reconciliation report (settlement rows needing a person, unconfirmed endings, disputes by SLA age).
 router.get("/sessions/reconciliation", roleMiddleware(["ADMIN"]), adminReconciliationController.get as any);
 router.post("/sessions/:id/resolve", bookingController.resolveDispute as any);
+
+// ── Dispute Case (slice 1): investigation file of a disputed session. Records and decides; executes nothing (see dispute-case.service.ts). ──
+router.use("/dispute-cases", disputeCaseAdminRoutes);
+
+// ── Late-open reconciliation (final safety gate): the four-eyes way out for a D77-OPEN step of an ORDINARY session (no Case, no policy review). Never touches the dispute-case tables. ──
+router.use("/late-open-reconciliations", lateOpenReconciliationRoutes);
 
 // ── Temporary PT suspension (contracts are NOT touched; see pt-restriction.service.ts) ──────────
 // The literal /pts/suspended is declared before the parameterised paths, though no parameterised path

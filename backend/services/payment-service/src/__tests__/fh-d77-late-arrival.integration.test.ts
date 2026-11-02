@@ -303,20 +303,29 @@ test('D77 the money-breakdown route given the transaction id quotes the same ref
 
 // ── legacy: nothing is clawed back ───────────────────────────────────────────
 
-test('D77 a session released in FULL before the compensation arrives keeps its outcome: nothing is clawed back, the compensation is paid from the contract\'s own pending as before', skipOpts, async () => {
+// POLICY CHANGE I5/C1 (Ngai, 31/10/2026). Before: the compensation that arrived after a full release was PAID out of the contract's own pending, i.e. out of the OTHER sessions'
+// money (125.000 taken from sessions that were not late). Now: the session was already paid out in full, so L is recorded as an OPEN obligation and NOT ONE dong moves.
+test('D77 a session released in FULL before the compensation arrives keeps its outcome: nothing is clawed back, and the compensation is RECORDED as OPEN - never taken from other sessions (I5/C1)', skipOpts, async () => {
   const m = await load();
   await reset(m);
   const A = await paidContract(m, 'A');
   const full = await release(m, A, 's1'); // released in full first
   assert.deepEqual(full.released, { pt: '225000.00', gym: '0.00', platform: '25000.00' });
+  const pendingBefore = await bucketsOf(m, 'PT', 'pt-d77');
   const comp = await late(m, A, 's1'); // the compensation arrives afterwards
-  assert.equal(comp.paid, '125000.00');
-  assert.equal((await bucketsOf(m, 'PT', 'pt-d77')).available, '225000.00', 'the PT keeps the full release: not a đồng clawed back');
+  assert.deepEqual([comp.owed, comp.paid, comp.unpaid, comp.compensation], ['125000.00', '0.00', '125000.00', '0.00'], 'nothing is paid: the session cannot fund it any more');
+  assert.equal((comp as any).d77.arrivedAfterRelease, true);
+  const pendingAfter = await bucketsOf(m, 'PT', 'pt-d77');
+  assert.equal(pendingAfter.pending, pendingBefore.pending, 'no pending of another session was touched');
+  assert.equal(pendingAfter.available, '225000.00', 'the PT keeps the full release: not a đồng clawed back');
   assert.equal(await m.prisma.walletLedgerEntry.count({ where: { description: { contains: 'clawed' } } }), 0);
+  const ob = await m.prisma.contractUnpaidObligation.findMany();
+  assert.equal(ob.length, 1);
+  assert.deepEqual([ob[0].kind, ob[0].status, ob[0].owed.toFixed(2), ob[0].paid.toFixed(2), ob[0].unpaid.toFixed(2)], ['LATE_ARRIVAL', 'OPEN', '125000.00', '0.00', '125000.00']);
   // a later termination does not pretend the compensation was deducted from that session
   const lateArrival = await m.ledger.loadLateArrivalDeductions(m.prisma, A.txnId, 0);
   assert.deepEqual([lateArrival.settled.pt.toFixed(2), lateArrival.open.pt.toFixed(2)], ['0.00', '0.00']);
-  await noObligationsNoDebt(m, 'late after release');
+  assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PT debt');
   await assertBooksSound(m, 'late after release');
 });
 

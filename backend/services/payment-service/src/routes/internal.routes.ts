@@ -30,6 +30,7 @@ import { releaseOrder, refundOrder } from '../services/personalized-service-ledg
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { IdempotencyKeyConflictError } from '../services/ledger-idempotency';
 import { RequestDoesNotMatchTransactionError } from '../services/contract-request-guard';
+import { ContractAlreadyTerminatedError, LateOpenReconciliationError, TerminateSnapshotStaleError, readLateOpenState } from '../services/contract-ledger.service';
 import ledgerOperationRoutes from './ledger-operations.routes';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
@@ -54,6 +55,22 @@ function respondLedgerRefusal(err: unknown, res: Response): boolean {
   if (err instanceof RequestDoesNotMatchTransactionError) {
     logger.warn({ error: 'request does not match transaction', message: err.message });
     res.status(422).json({ success: false, error: { code: 'REQUEST_DOES_NOT_MATCH_TRANSACTION', message: err.message } });
+    return true;
+  }
+  if (err instanceof ContractAlreadyTerminatedError) {
+    logger.warn({ error: 'contract already terminated', details: err.details });
+    res.status(409).json({ success: false, error: { code: err.code, message: err.message, details: err.details } });
+    return true;
+  }
+  if (err instanceof TerminateSnapshotStaleError) {
+    logger.warn({ error: 'terminate snapshot stale', details: err.details });
+    res.status(409).json({ success: false, error: { code: err.code, message: err.message, details: err.details } });
+    return true;
+  }
+  if (err instanceof LateOpenReconciliationError) {
+    // D77 final: the session cannot be settled by the ledger on its own; NOTHING was written. 409 with a stable code and the obligation it is about.
+    logger.warn({ error: 'late-open settlement refused', code: err.code, details: err.details });
+    res.status(409).json({ success: false, error: { code: err.code, message: err.message, details: err.details } });
     return true;
   }
   return false;
@@ -476,6 +493,9 @@ const releaseSchema = z.object({
   // PT_NO_SHOW:<sessionId> on /no-show — a retry with the same key replays instead of
   // moving money twice.
   idempotencyKey: z.string().min(1),
+  // D77 final: the caller (user-service) confirms the late arrival of THIS session is verified (settlement SETTLED, no contested case, not D-NEW-12). Without it a session
+  // with an OPEN late-arrival obligation is refused (409 LATE_OPEN_FLAG_REQUIRED) - the ledger cannot know that by itself. Not part of the request fingerprint.
+  settleLateOpen: z.boolean().optional(),
 });
 
 // The PT holdback rate frozen onto THIS contract when it was created — a decimal string like
@@ -513,6 +533,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
       label: d.label,
       idempotencyKey: d.idempotencyKey,
       ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
+      settleLateOpen: d.settleLateOpen,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -539,6 +560,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
       parties: d.parties,
       label: d.label,
       idempotencyKey: d.idempotencyKey,
+      settleLateOpen: d.settleLateOpen,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -610,6 +632,22 @@ router.post('/contracts/no-show-obligation', async (req: Request, res: Response)
     return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
   }
 });
+// POST /internal/contracts/late-open-state - READ-ONLY (final safety gate): what the ledger holds for ONE late-arrival obligation (`PT_LATE_ARRIVAL:<sessionId>`) of a contract. Writes nothing.
+const lateOpenStateSchema = z.object({
+  transactionId: z.string().min(1),
+  lateKey: z.string().min(1).startsWith('PT_LATE_ARRIVAL:'),
+  parties: partiesSchema,
+});
+router.post('/contracts/late-open-state', async (req: Request, res: Response) => {
+  const parsed = lateOpenStateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  try {
+    return res.json({ success: true, data: await readLateOpenState(parsed.data) });
+  } catch (err) {
+    logger.error({ error: 'late-open state read failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'LATE_OPEN_STATE_FAILED', message: (err as Error).message } });
+  }
+});
 router.post('/contracts/late-arrival-obligation', async (req: Request, res: Response) => {
   const parsed = lateArrivalObligationSchema.safeParse(req.body);
   if (!parsed.success || !parsed.data.idempotencyKey.startsWith('PT_LATE_ARRIVAL:')) {
@@ -656,6 +694,8 @@ const terminationReasonSchema = z.enum([
 // yet confirmed, or disputed). 0 / absent = none. Bounded by what is actually left to hold:
 // refusing here, with a 400, means a wrong count never reaches the ledger.
 const unresolvedSessionsSchema = z.number().int().min(0).optional();
+// D77 final (Q4): the ids of the sessions the ending holds - when sent, a late-arrival compensation is attributed to a held session only if its id is listed.
+const unresolvedSessionIdsSchema = z.array(z.string().min(1)).max(500).optional();
 function refineUnresolvedBound(
   d: { totalSessions: number; usedSessions: number; compensatedSessions?: number; unresolvedSessions?: number },
   ctx: z.RefinementCtx,
@@ -678,6 +718,7 @@ const terminateSchema = releaseSchema
     // left, but defensive) does not 400.
     compensatedSessions: z.number().int().min(0).optional(),
     unresolvedSessions: unresolvedSessionsSchema,
+    unresolvedSessionIds: unresolvedSessionIdsSchema,
     reason: terminationReasonSchema,
     alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
     // See ptHoldbackRateSchema above: the contract's own snapshot, or absent for none.
@@ -701,6 +742,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       usedSessions: d.usedSessions,
       compensatedSessions: d.compensatedSessions,
       unresolvedSessions: d.unresolvedSessions,
+      unresolvedSessionIds: d.unresolvedSessionIds,
       rates: toRates(d.rates),
       reason: d.reason,
       alreadyReleased: {
@@ -749,6 +791,7 @@ router.post('/contracts/resolve-unresolved-session', async (req: Request, res: R
       idempotencyKey: d.idempotencyKey,
       outcome: d.outcome,
       ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
+      settleLateOpen: d.settleLateOpen,
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -808,6 +851,7 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     // it used to give, so a caller that sends neither field sees no change.
     reason: terminationReasonSchema.optional(),
     unresolvedSessions: unresolvedSessionsSchema,
+    unresolvedSessionIds: unresolvedSessionIdsSchema,
     rates: rateSchema,
     // D77: when the contract's payment transaction is named, the preview accounts for the late-arrival compensations
     // the ledger holds for it - the very facts terminate uses - so the quote equals what is credited.
@@ -819,7 +863,7 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
   }
   try {
     const lateArrival = parsed.data.transactionId
-      ? await loadLateArrivalDeductions(ledgerPrisma, parsed.data.transactionId, parsed.data.unresolvedSessions ?? 0)
+      ? await loadLateArrivalDeductions(ledgerPrisma, parsed.data.transactionId, parsed.data.unresolvedSessions ?? 0, parsed.data.unresolvedSessionIds)
       : undefined;
     return res.json({
       success: true,

@@ -5,6 +5,8 @@ import { collaborationController } from '../controllers/collaboration.controller
 import { asyncHandler } from '../middleware/asyncHandler';
 import internalMembershipRoutes from './internal-memberships.routes';
 import internalStatusRoutes from './internal-status.routes';
+import { createInternalDisputeEvidenceRoutes } from './internal-dispute-evidence.routes';
+import { internalDisputeEvidenceRepository } from '../repositories/internal-dispute-evidence.repository';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
@@ -22,5 +24,7 @@ router.get('/collaborations/active', asyncHandler(collaborationController.intern
 router.use(internalMembershipRoutes);
 // FH-4 - read-only status facts (new file, secret-protected by the router.use above).
 router.use(internalStatusRoutes);
+// Dispute Case slice 2 / S2.3 - read-only PT / member check-in evidence (secret-protected by the router.use above).
+router.use(createInternalDisputeEvidenceRoutes(internalDisputeEvidenceRepository));
 
 export default router;
