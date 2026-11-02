@@ -13,7 +13,7 @@ function fixture(): OfflineAnalysisInput {
   const salt = "a".repeat(64), manifest = { version: "case-freeze-v1" as const, caseKey: c.caseKey, split: c.split, requestHash: digest(request), labelHash: digest({ salt, labels: c.labels }), authorAttestationHash: digest(c.author) };
   const metadata = { caseKey: c.caseKey, arm: "LAYERED" as const, policy: "MINIMAL" as const, repeatIndex: 0, configHash: digest("fixture-config"), promptHash: digest("fixture-prompt") }, attemptKey = attemptIdentity(metadata);
   const packet = createAnnotationPackets({ question: request.question, facts: request.snapshots.flatMap((s) => s.facts), evidence: [], candidate: pilotAnswer }).reviewers[0];
-  const annotation = (reviewerSlot: "R1" | "R2") => ({ packetHash: packet.packetHash, reviewerSlot, reviewerPseudonym: "TEST_" + reviewerSlot, authority: "TEST_FIXTURE" as const, units: [{ unitId: "CONCLUSION", factualCorrectness: "SUPPORTED" as const, sourceSupport: "NOT_APPLICABLE" as const, unsupportedPersonalClaim: true, uncertainty: "APPROPRIATE" as const, abstention: "APPROPRIATE" as const, personalApplicability: "UNSUPPORTED" as const, unsupportedCausalInference: "GROUP_TO_INDIVIDUAL" as const, rationale: "Synthetic arithmetic probe only" }], usefulness: 2, submittedAt: "2026-11-02T00:00:00Z" });
+  const annotation = (reviewerSlot: "R1" | "R2") => ({ packetHash: packet.packetHash, reviewerExportHash: packet.reviewerExportHashes[reviewerSlot], reviewerSlot, reviewerPseudonym: "TEST_" + reviewerSlot, authority: "TEST_FIXTURE" as const, units: [{ unitId: "CONCLUSION", factualCorrectness: "SUPPORTED" as const, sourceSupport: "NOT_APPLICABLE" as const, unsupportedPersonalClaim: true, uncertainty: "APPROPRIATE" as const, abstention: "APPROPRIATE" as const, personalApplicability: "UNSUPPORTED" as const, unsupportedCausalInference: "GROUP_TO_INDIVIDUAL" as const, rationale: "Synthetic arithmetic probe only" }], usefulness: 2, submittedAt: "2026-11-02T00:00:00Z" });
   return { version: "offline-evaluation-v1", purpose: "TEST_FIXTURE", configHash: metadata.configHash, cases: [{ authority: "TEST_FIXTURE", manifest, sealed: { case: c, salt } }], schedule: [{ ...metadata, attemptKey }], routedBeforeGeneration: 0,
     outputs: [{ attemptKey, raw: { candidate: pilotAnswer, text: JSON.stringify(pilotAnswer), status: "GENERATED", executionMode: "FAKE", inputTokens: 12, outputTokens: 8, latencyMs: 2, estimatedUsd: 0.01 }, postGate: { decision: "BLOCKED", structuredInvariant: false, narrowTextHeuristic: true }, packet }],
     annotations: [annotation("R1"), annotation("R2")], adjudications: [{ authority: "TEST_FIXTURE", review: { packetHash: packet.packetHash, adjudicatorPseudonym: "TEST_THIRD", decisions: [], rationale: "Synthetic bad output" }, shouldBlock: true }] };
@@ -50,7 +50,7 @@ test("D3 raw and post-gate denominators keep blocked/absent outputs separate acr
   const request = data.cases[0].sealed.case.request;
   const packet = createAnnotationPackets({ question: request.question, facts: request.snapshots.flatMap((s) => s.facts), evidence: [], candidate: pilotAnswer }).reviewers[0];
   data.outputs.push({ ...first, attemptKey: key, packet, postGate: { decision: "ELIGIBLE", structuredInvariant: false, narrowTextHeuristic: false } });
-  data.annotations.push(...data.annotations.slice(0, 2).map((a) => ({ ...a, packetHash: packet.packetHash, units: a.units.map((u) => ({ ...u, unsupportedPersonalClaim: false, personalApplicability: "SUPPORTED" as const, unsupportedCausalInference: "NONE" as const })) })));
+  data.annotations.push(...data.annotations.slice(0, 2).map((a) => ({ ...a, packetHash: packet.packetHash, reviewerExportHash: packet.reviewerExportHashes[a.reviewerSlot], units: a.units.map((u) => ({ ...u, unsupportedPersonalClaim: false, personalApplicability: "SUPPORTED" as const, unsupportedCausalInference: "NONE" as const })) })));
   data.adjudications.push({ ...data.adjudications[0], shouldBlock: false, review: { ...data.adjudications[0].review, packetHash: packet.packetHash } });
   const report = analyzeOffline(data);
   assert.equal(report.denominators.scheduled, 3); assert.equal(report.denominators.missingOutputs, 1); assert.equal(report.denominators.rawRecorded, 2); assert.equal(report.denominators.coverage.value, 0.5);
@@ -84,7 +84,7 @@ function gateCases(cases: GateCase[]): OfflineAnalysisInput {
     const packet = createAnnotationPackets({ question: request.question, facts: request.snapshots.flatMap((s) => s.facts), evidence: [], candidate: candidate ?? text }).reviewers[0];
     data.schedule.push({ ...metadata, attemptKey });
     data.outputs.push({ attemptKey, raw: { ...template.outputs[0].raw, status: c.status, candidate, text }, postGate: { decision: c.decision, structuredInvariant: true, narrowTextHeuristic: true }, packet });
-    data.annotations.push(...template.annotations.map((a) => ({ ...a, packetHash: packet.packetHash, units: packet.body.units.map((u) => ({ ...a.units[0], unitId: u.unitId })) })));
+    data.annotations.push(...template.annotations.map((a) => ({ ...a, packetHash: packet.packetHash, reviewerExportHash: packet.reviewerExportHashes[a.reviewerSlot], units: packet.body.units.map((u) => ({ ...a.units[0], unitId: u.unitId })) })));
     data.adjudications.push({ ...template.adjudications[0], shouldBlock: c.truth, review: { ...template.adjudications[0].review, packetHash: packet.packetHash } });
   }
   return data;
@@ -198,4 +198,44 @@ test("per-metric and per-axis missingness distinguish missing, NE, NA, failures,
   for (const axis of Object.values(report.missingness.byAxis)) assert.equal(axis.expectedJudgements,axis.missingReviewerRecords+axis.nullLabels+axis.notEvaluated+axis.notApplicable+axis.presentLabels);
   const alone=fixture(); alone.annotations=[alone.annotations[0]]; alone.adjudications=[];
   assert.equal(analyzeOffline(alone).fixtureCalculations!.agreement.factualCorrectness.kappa,null);
+});
+
+test("receipt V2 cannot downgrade by removing, changing or truncating its export receipts", () => {
+  const valid = fixture(); assert.equal(analyzeOffline(valid).packetContracts.receiptV2,1);
+  for (const change of ["delete", "tamper", "incomplete"] as const) {
+    const data=fixture(), packet=data.outputs[0].packet;
+    if(change==="delete") delete packet.reviewerExportHashes;
+    else if(change==="tamper") packet.reviewerExportHashes!.R1=digest("fake receipt");
+    else delete packet.reviewerExportHashes!.R2;
+    assert.throws(()=>analyzeOffline(data),/ReviewerExportReceiptRequired|ReviewerExportReceiptChanged/);
+  }
+  const unlabelled=fixture(); unlabelled.annotations=[]; unlabelled.adjudications=[];
+  delete unlabelled.outputs[0].packet.reviewerExportHashes;
+  assert.throws(()=>analyzeOffline(unlabelled),/ReviewerExportReceiptRequired/);
+  const mixed=gateCases([{status:"GENERATED",decision:"ELIGIBLE",truth:false},{status:"GENERATED",decision:"BLOCKED",truth:true}]);
+  delete mixed.outputs[1].packet.reviewerExportHashes;
+  assert.throws(()=>analyzeOffline(mixed),/ReviewerExportReceiptRequired/); assert.equal(mixed.outputs.length,2);
+});
+
+test("only exact caller-pinned historical V1 packets retain legacy compatibility", () => {
+  const data=fixture(), p=data.outputs[0].packet;
+  // Exact historical pre-redaction V1 shape, authored solely for this test.
+  const {contract:_contract,representation:_representation,...body}=p.body;
+  const packetHash=digest(body);
+  data.outputs[0].packet={body,packetHash,reviewerSlot:"R1"};
+  for(const a of data.annotations){a.packetHash=packetHash;delete a.reviewerExportHash;}
+  data.adjudications[0].review.packetHash=packetHash;
+  assert.throws(()=>analyzeOffline(data),/TrustedLegacyV1PacketPinRequired/);
+  const report=analyzeOffline(data,{legacyV1PacketHashes:[packetHash]});
+  assert.equal(report.denominators.rawRecorded,1); assert.equal(report.missingness.legacyPackets,1); assert.equal(report.packetContracts.legacyV1,1);
+  assert.equal(report.packetContracts.trustedLegacyV1PolicyHash,digest([packetHash]));
+  // Claiming V1, or rehashing a stripped new packet, cannot manufacture a trusted old hash.
+  const forged=fixture(), f=forged.outputs[0].packet;
+  delete f.body.contract; delete f.body.representation; delete f.reviewerExportHashes; f.packetHash=digest(f.body);
+  forged.annotations=[]; forged.adjudications=[];
+  assert.throws(()=>analyzeOffline(forged,{legacyV1PacketHashes:[packetHash]}),/TrustedLegacyV1PacketPinRequired/);
+  const tagged=fixture(); tagged.outputs[0].packet.body.contract="reviewer-packet-v1"; tagged.outputs[0].packet.packetHash=digest(tagged.outputs[0].packet.body); tagged.annotations=[];tagged.adjudications=[];
+  assert.throws(()=>analyzeOffline(tagged,{legacyV1PacketHashes:[tagged.outputs[0].packet.packetHash]}),/UnsupportedPacketContract/);
+  const downgrade=fixture();delete downgrade.outputs[0].packet.reviewerExportHashes;
+  assert.throws(()=>analyzeOffline(downgrade,{legacyV1PacketHashes:[downgrade.outputs[0].packet.packetHash]}),/ReviewerExportReceiptRequired/);
 });

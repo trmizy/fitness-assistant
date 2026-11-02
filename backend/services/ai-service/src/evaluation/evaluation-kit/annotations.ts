@@ -57,7 +57,7 @@ export function annotationUnits(candidate: unknown) {
     ...parsed.data.analysis.missingInformation.map((q, i) => ({ unitId: "QUESTION_" + i, type: "QUESTION", text: q.question })),
   ] : [{ unitId: "INVALID_OUTPUT", type: "INVALID_OUTPUT", rawCandidate: candidate }];
 }
-export function createAnnotationPackets(original: { question: string; facts: unknown; evidence: unknown; candidate: unknown; redactionChanged?: boolean }) {
+function prepareAnnotationPackets(original: { question: string; facts: unknown; evidence: unknown; candidate: unknown; redactionChanged?: boolean }) {
   const protectedInput = protect(original), input = protectedInput.value as typeof original;
   const units = annotationUnits(input.candidate);
   const instanceId = randomUUID();
@@ -67,13 +67,41 @@ export function createAnnotationPackets(original: { question: string; facts: unk
     const p = value as { source?: { id?: unknown; title?: unknown; doi?: unknown; url?: unknown; applicability?: unknown; limitations?: unknown }; excerpts?: { id?: unknown; text?: unknown; locator?: unknown; authorship?: unknown }[] };
     return { sourceId: p.source?.id ?? null, sourceMetadata: { title: p.source?.title ?? null, doi: p.source?.doi ?? null, url: p.source?.url ?? null }, originalExcerpts: (p.excerpts ?? []).map((e) => ({ id: e.id ?? null, text: e.text ?? null, locator: e.locator ?? null, authorship: e.authorship ?? "UNVERIFIED" })), assistantAuthoredInterpretation: { applicability: p.source?.applicability ?? null, limitations: p.source?.limitations ?? null } };
   }) : [];
-  const body = { instanceId, question: input.question, facts: input.facts, evidence: publicEvidence, units, candidateHash: digest(input.candidate),
+  const body = { contract: "reviewer-packet-v2" as const, instanceId, question: input.question, facts: input.facts, evidence: publicEvidence, units, candidateHash: digest(input.candidate),
     representation: { version: "redacted-canonical-v1", ...protectedInput.receipt, scoringDisposition: protectedInput.receipt.changed || original.redactionChanged ? "REDACTED_NOT_SCORED" : "UNCHANGED" } };
   const packetHash = digest(body);
-  return { ownerLinkage: { instanceId, packetHash, candidateHash: body.candidateHash }, reviewers: ["R1", "R2"].map((reviewerSlot) => ({ packetHash, reviewerSlot, body })) };
+  const reviewers = ["R1", "R2"].map((reviewerSlot) => ({ packetHash, reviewerSlot, body }));
+  return { ownerLinkage: { instanceId, packetHash, candidateHash: body.candidateHash }, reviewers };
+}
+export function createAnnotationPackets(original: Parameters<typeof prepareAnnotationPackets>[0]) {
+  const prepared = prepareAnnotationPackets(original);
+  const reviewerExportHashes = Object.fromEntries(prepared.reviewers.map((p) => [p.reviewerSlot, reviewerExport(p).hash]));
+  return { ...prepared, reviewers: prepared.reviewers.map((p) => ({ ...p, reviewerExportHashes })) };
 }
 const Factual = z.enum(["SUPPORTED", "CONTRADICTED", "NOT_ESTABLISHED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
-export type ReviewerPacket = ReturnType<typeof createAnnotationPackets>["reviewers"][number] & { reviewerExportHashes?: Record<string, string> };
+type CurrentPacket = ReturnType<typeof prepareAnnotationPackets>["reviewers"][number];
+export type ReviewerPacket = Omit<CurrentPacket, "body" | "reviewerExportHashes"> & {
+  body: Omit<CurrentPacket["body"], "contract" | "representation"> & { contract?: string; representation?: CurrentPacket["body"]["representation"] };
+  reviewerExportHashes?: Record<string, string>;
+};
+/** Trusted caller policy, kept outside untrusted analysis/artifact JSON. Hash pins identify exact historical V1 bodies. */
+export interface PacketValidationPolicy { legacyV1PacketHashes?: readonly string[] }
+export function validatePacketContract(packet: ReviewerPacket, policy: PacketValidationPolicy = {}) {
+  if (digest(packet.body) !== packet.packetHash) throw new Error("PacketIntegrityFailed");
+  const contract = packet.body.contract;
+  // Also protect pre-version-marker receipt packets produced by the reviewed f0ab66c0 implementation.
+  const current = contract === "reviewer-packet-v2" || contract === undefined && packet.body.representation?.version === "redacted-canonical-v1";
+  if (contract !== undefined && contract !== "reviewer-packet-v2") throw new Error("UnsupportedPacketContract");
+  if (!current) {
+    if (!policy.legacyV1PacketHashes?.includes(packet.packetHash)) throw new Error("TrustedLegacyV1PacketPinRequired");
+    if (Object.keys(packet.body).sort().join() !== "candidateHash,evidence,facts,instanceId,question,units") throw new Error("LegacyPacketContractMismatch");
+    if (packet.reviewerExportHashes !== undefined) throw new Error("LegacyPacketContractMismatch");
+    return "LEGACY_V1" as const;
+  }
+  if (!packet.reviewerExportHashes) throw new Error("ReviewerExportReceiptRequired");
+  if (Object.keys(packet.reviewerExportHashes).sort().join() !== "R1,R2" || ["R1", "R2"].some((slot) => packet.reviewerExportHashes![slot] !== reviewerExport({ ...packet, reviewerSlot: slot }).hash)) throw new Error("ReviewerExportReceiptChanged");
+  return "RECEIPT_V2" as const;
+}
 const Support = z.enum(["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Uncertainty = z.enum(["APPROPRIATE", "OVERCONFIDENT", "UNDERCONFIDENT", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Abstention = z.enum(["APPROPRIATE", "UNNECESSARY", "NEEDED_BUT_MISSING", "NOT_APPLICABLE", "NOT_EVALUATED"]);
@@ -97,9 +125,9 @@ const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([F
   if (!reviewAxes[d.axis].safeParse(d.decision).success) ctx.addIssue({ code: "custom", message: "AdjudicationDecisionDoesNotMatchAxis" });
 });
 export const AdjudicationSchema = z.object({ packetHash: Hash, adjudicatorPseudonym: z.string().min(1), decisions: z.array(Decision), rationale: z.string().min(1) }).strict();
-export function validateAnnotation(value: unknown, packet: ReviewerPacket) {
+export function validateAnnotation(value: unknown, packet: ReviewerPacket, policy: PacketValidationPolicy = {}) {
+  validatePacketContract(packet, policy);
   const a = AnnotationSchema.parse(value), expected = packet.body.units.map((u) => u.unitId);
-  if (packet.reviewerExportHashes && (Object.keys(packet.reviewerExportHashes).sort().join() !== "R1,R2" || ["R1", "R2"].some((slot) => packet.reviewerExportHashes![slot] !== reviewerExport({ ...packet, reviewerSlot: slot }).hash))) throw new Error("ReviewerExportReceiptChanged");
   if (packet.reviewerExportHashes && a.reviewerExportHash !== packet.reviewerExportHashes[a.reviewerSlot]) throw new Error("ReviewerExportReceiptRequired");
   if (a.packetHash !== packet.packetHash || a.reviewerSlot !== packet.reviewerSlot || a.units.length !== expected.length || new Set(a.units.map((u) => u.unitId)).size !== expected.length || expected.some((id) => !a.units.some((u) => u.unitId === id))) throw new Error("AnnotationPacketOrUnitsMismatch");
   const facts = new Set(Array.isArray(packet.body.facts) ? packet.body.facts.map((f) => (f as { id: string }).id) : []);

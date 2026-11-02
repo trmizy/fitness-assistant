@@ -48,7 +48,7 @@ test("missing labels give null agreement/kappa, never fabricated scientific gold
 });
 test("annotations require complete packet units and distinct reviewer identities", () => {
   const packet = createAnnotationPackets({ question: "Synthetic", facts: [], evidence: [], candidate: {} }).reviewers[0];
-  const a = { packetHash: packet.packetHash, reviewerSlot: "R1", reviewerPseudonym: "TEST_A", authority: "TEST_FIXTURE", units: [{ unitId: "INVALID_OUTPUT", factualCorrectness: "NOT_APPLICABLE", sourceSupport: "NOT_APPLICABLE", unsupportedPersonalClaim: null, uncertainty: "NOT_APPLICABLE", abstention: "NOT_APPLICABLE", rationale: "Fixture only" }], usefulness: null, submittedAt: new Date().toISOString() };
+  const a = { packetHash: packet.packetHash, reviewerExportHash: packet.reviewerExportHashes.R1, reviewerSlot: "R1", reviewerPseudonym: "TEST_A", authority: "TEST_FIXTURE", units: [{ unitId: "INVALID_OUTPUT", factualCorrectness: "NOT_APPLICABLE", sourceSupport: "NOT_APPLICABLE", unsupportedPersonalClaim: null, uncertainty: "NOT_APPLICABLE", abstention: "NOT_APPLICABLE", rationale: "Fixture only" }], usefulness: null, submittedAt: new Date().toISOString() };
   assert.ok(validateAnnotation(a, packet)); assert.throws(() => validateAnnotation({ ...a, units: [] }, packet));
   assert.throws(() => reviewerAgreement(a, a), /TwoIndependentReviewers/);
   const b = { ...a, reviewerSlot: "R2", reviewerPseudonym: "TEST_B" };

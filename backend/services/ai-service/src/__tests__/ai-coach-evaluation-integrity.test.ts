@@ -22,14 +22,11 @@ test("blind export is a separate strict allowlist with opaque identity and an in
   const tampered = structuredClone(exported.artifact); tampered.body.question += "changed";
   assert.throws(() => verifyReviewerExport(tampered, exported.hash), /ReviewerExportIntegrityFailed/);
   for (const field of ["arm", "policy", "repeatIndex", "expectedAssessment", "postGate", "trace"]) {
-    const p = createAnnotationPackets({ question: "Synthetic", facts: [{ nested: { [field]: "hidden" } }], evidence: [], candidate: pilotAnswer }).reviewers[0];
-    assert.throws(() => reviewerExport(p), /ReviewerTreatmentLeak/);
+    assert.throws(() => createAnnotationPackets({ question: "Synthetic", facts: [{ nested: { [field]: "hidden" } }], evidence: [], candidate: pilotAnswer }), /ReviewerTreatmentLeak/);
   }
   for (const arm of ["FLAT_LAYOUT", "LAYERED", "LAYERED_CONTEXT", "LAYERED_CONTEXT_RAG", "LAYERED_CONTEXT_PLACEBO", "LAYERED_CONTEXT_WRONG_EXCERPT"]) {
-    const p = createAnnotationPackets({ question: "Synthetic", facts: [{ nested: { text: "treatment " + arm } }], evidence: [], candidate: pilotAnswer }).reviewers[0];
-    assert.throws(() => reviewerExport(p), /ReviewerTreatmentLeak/);
-    const keyed = createAnnotationPackets({ question: "Synthetic", facts: [{ [arm]: 42 }], evidence: [], candidate: pilotAnswer }).reviewers[0];
-    assert.throws(() => reviewerExport(keyed), /ReviewerTreatmentLeak/);
+    assert.throws(() => createAnnotationPackets({ question: "Synthetic", facts: [{ nested: { text: "treatment " + arm } }], evidence: [], candidate: pilotAnswer }), /ReviewerTreatmentLeak/);
+    assert.throws(() => createAnnotationPackets({ question: "Synthetic", facts: [{ [arm]: 42 }], evidence: [], candidate: pilotAnswer }), /ReviewerTreatmentLeak/);
   }
 });
 
@@ -51,7 +48,7 @@ test("new packet annotations bind the R1/R2 export receipts; legacy packets stay
   assert.equal(validateAnnotation({ ...a, reviewerExportHash: hashes.R2 }, packet).reviewerSlot, "R2");
   const changed = { ...packet, reviewerExportHashes: { ...hashes, R2: digest("tampered receipt") } };
   assert.throws(() => validateAnnotation({ ...a, reviewerExportHash: changed.reviewerExportHashes.R2 }, changed), /ReviewerExportReceiptChanged/);
-  assert.equal(validateAnnotation(a, packets.reviewers[1]).reviewerSlot, "R2");
+  assert.throws(() => validateAnnotation(a, packets.reviewers[1]), /ReviewerExportReceiptRequired/);
 });
 
 test("fake transport normal/key/email-token responses persist and analyze with canonical hashes; resume detects tampering", async () => {

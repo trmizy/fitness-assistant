@@ -112,8 +112,6 @@ export async function runControlledPilot(options: RunnerOptions) {
         const previous = JSON.parse(fs.readFileSync(file, "utf8"));
         if (previous.configHash !== configHash || previous.promptHash !== row.promptHash || digest(previous.verification) !== digest(redact(verification)) || previous.candidateHash !== digest(result.parsedCandidate)) throw new PilotError("RESULT_INTEGRITY_FAILED");
       } else {
-        const reviewerExportHashes = Object.fromEntries(packets.reviewers.map((packet) => [packet.reviewerSlot, reviewerExport(packet).hash]));
-        for (const packet of packets.reviewers) Object.assign(packet, { reviewerExportHashes });
         // Packet hashes are sealed AFTER sanitizing; never redact a sealed packet again.
         atomicCreate(file, { configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), generationStatus, postGate, lifecycle, raw: result, verification: redact(verification), packets });
       }

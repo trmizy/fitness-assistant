@@ -1,5 +1,7 @@
 # AI Coach — evaluation integrity hardening
 
+> Follow-up tại [last P2 closure](ai-coach-last-p2-handoff.md) thay thế fallback legacy dựa vào receipt thiếu: contract hiện hành bắt buộc receipt; historical V1 cần trusted exact-hash policy riêng. Các kết quả dưới đây là lượt bàn giao ban đầu.
+
 Ngày 2026-11-02. Baseline `e172d096`. Branch `feat/ai-coach-eval-integrity`, app-managed worktree `C:/Users/ASUS/.codex/worktrees/ai-coach-eval-integrity/fitness-assistant`. Không merge/cherry-pick vào worktree scientific review. Evidence: **CODE AUDIT / TEST FIXTURE**; không phải model evaluation hay scientific approval.
 
 ## Finding disposition

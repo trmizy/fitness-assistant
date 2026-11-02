@@ -4,7 +4,7 @@ import { AnnotationSchema, AdjudicationSchema, createAnnotationPackets, validate
 import { pilotAnswer } from "./fixtures/pilot";
 function fixture() {
   const packet = createAnnotationPackets({ question: "Synthetic fixture", facts: [{ id: "DEV_F_X" }], evidence: [{ source: { id: "TEST_SOURCE" }, excerpts: [{ id: "TEST_EXCERPT", text: "Synthetic text, not science." }] }], candidate: pilotAnswer }).reviewers[0];
-  const value = { packetHash: packet.packetHash, reviewerSlot: "R1", reviewerPseudonym: "TEST_REVIEWER", authority: "TEST_FIXTURE", units: [{ unitId: "CONCLUSION", factualCorrectness: "SUPPORTED", sourceSupport: "SUPPORTED", unsupportedPersonalClaim: null, uncertainty: "NOT_APPLICABLE", abstention: "NOT_APPLICABLE", rationale: "Synthetic review only" }], usefulness: 3, submittedAt: "2026-11-02T00:00:00Z" };
+  const value = { packetHash: packet.packetHash, reviewerExportHash: packet.reviewerExportHashes.R1, reviewerSlot: "R1", reviewerPseudonym: "TEST_REVIEWER", authority: "TEST_FIXTURE", units: [{ unitId: "CONCLUSION", factualCorrectness: "SUPPORTED", sourceSupport: "SUPPORTED", unsupportedPersonalClaim: null, uncertainty: "NOT_APPLICABLE", abstention: "NOT_APPLICABLE", rationale: "Synthetic review only" }], usefulness: 3, submittedAt: "2026-11-02T00:00:00Z" };
   return { packet, value };
 }
 test("D1 valid annotation records personal/source/fact references without inferring applicability from citations", () => {

@@ -16,7 +16,7 @@ function assertBlind(value: unknown): void {
 const ExportSchema = z.object({ version: z.literal("blind-review-v1"), opaqueId: z.string().uuid(), packetHash: z.string().regex(/^[a-f0-9]{64}$/), reviewerSlot: z.enum(["R1", "R2"]),
   body: z.object({ question: z.string(), facts: z.unknown(), evidence: z.array(z.unknown()), units: z.array(z.unknown()) }).strict(),
 }).strict();
-export function reviewerExport(packet: ReviewerPacket) {
+export function reviewerExport(packet: ReviewerPacket): { artifact: z.infer<typeof ExportSchema>; hash: string } {
   if (digest(packet.body) !== packet.packetHash) throw new Error("PacketIntegrityFailed");
   const b = packet.body;
   const artifact = ExportSchema.parse({ version: "blind-review-v1", opaqueId: b.instanceId, packetHash: packet.packetHash, reviewerSlot: packet.reviewerSlot,

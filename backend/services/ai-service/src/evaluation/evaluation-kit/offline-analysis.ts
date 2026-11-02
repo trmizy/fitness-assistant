@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { ARMS, POLICY_VARIANTS, AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { attemptIdentity } from "../bedrock-pilot/design";
-import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, type ReviewerPacket } from "./annotations";
+import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, validatePacketContract, type ReviewerPacket, type PacketValidationPolicy } from "./annotations";
 import { redact } from "./representation";
 import { digest } from "./identity";
 import { outputLifecycle } from "./lifecycle";
@@ -45,7 +45,7 @@ export function gateConfusion(rows: readonly { truth: boolean | null; blocked: b
   for (const r of rows) { if (r.truth === null) continue; if (r.truth) { if (r.blocked) tp++; else fn++; } else if (r.blocked) fp++; else tn++; }
   return { labelled: tp + fp + tn + fn, missing: rows.filter((r) => r.truth === null).length, tp, fp, tn, fn, sensitivity: metric(tp, tp + fn), specificity: metric(tn, tn + fp), precision: metric(tp, tp + fp) };
 }
-export function analyzeOffline(value: unknown, options: { resamples?: number; samplerSeed?: number } = {}) {
+export function analyzeOffline(value: unknown, options: { resamples?: number; samplerSeed?: number } & PacketValidationPolicy = {}) {
   const input = OfflineAnalysisInputSchema.parse(value);
   const cases = new Map(input.cases.map((c) => [c.manifest.caseKey, c]));
   if (cases.size !== input.cases.length) throw new Error("DuplicateFrozenCase");
@@ -71,12 +71,13 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     const frozen = cases.get(metadata.caseKey)!, packet = output.packet, body = packet.body;
     const packetCandidate = output.raw.candidate ?? output.raw.text;
     if (!body || digest(body) !== packet.packetHash || body.candidateHash !== digest(redact(packetCandidate)) || digest(body.units) !== digest(annotationUnits(redact(packetCandidate))) || body.question !== redact(frozen.sealed.case.request.question) || digest(body.facts) !== digest(redact(frozen.sealed.case.request.snapshots.flatMap((s) => s.facts)))) throw new Error("PacketRawOrCaseMismatch");
+    const packetContract = validatePacketContract(packet, options);
     const lifecycle = outputLifecycle(output.raw.status, output.postGate.decision, output.raw.candidate);
     const parsed = AnalysisEnvelopeSchema.safeParse(output.raw.candidate), valid = lifecycle.validGenerated;
     if ((valid && !parsed.success) || (output.postGate.decision === "ELIGIBLE" && !valid)) throw new Error("RawPostGateContractMismatch");
     const annotations = input.annotations.filter((a) => a.packetHash === packet.packetHash);
     if (new Set(annotations.map((a) => a.reviewerSlot)).size !== annotations.length || new Set(annotations.map((a) => a.reviewerPseudonym)).size !== annotations.length) throw new Error("DuplicateReviewer");
-    for (const a of annotations) { if (!/^[A-Za-z0-9_-]+$/.test(a.reviewerPseudonym)) throw new Error("PseudonymRequired"); validateAnnotation(a, { ...packet, reviewerSlot: a.reviewerSlot }); }
+    for (const a of annotations) { if (!/^[A-Za-z0-9_-]+$/.test(a.reviewerPseudonym)) throw new Error("PseudonymRequired"); validateAnnotation(a, { ...packet, reviewerSlot: a.reviewerSlot }, options); }
     missingAnnotationRecords += 2 - annotations.length;
     const left = annotations.find((a) => a.reviewerSlot === "R1"), right = annotations.find((a) => a.reviewerSlot === "R2");
     const adjs = input.adjudications.filter((a) => a.review.packetHash === packet.packetHash); if (adjs.length > 1) throw new Error("DuplicateAdjudication");
@@ -90,7 +91,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     const eligibleAuthority = paired && frozen.authority === "REVIEWER_ATTESTED" && annotations.every((a) => a.authority === "REVIEWER_ATTESTED" && a.reviewerPseudonym !== frozen.sealed.case.author.pseudonym);
     const representationEligible = body.representation?.scoringDisposition !== "REDACTED_NOT_SCORED";
     if (!representationEligible) redactedOutputs++;
-    if (!packet.reviewerExportHashes) legacyPackets++;
+    if (packetContract === "LEGACY_V1") legacyPackets++;
     const qualified = input.purpose === "INDEPENDENT_ANALYSIS" && output.raw.executionMode === "LIVE" && eligibleAuthority && representationEligible;
     // Fixture arithmetic is an explicit diagnostic, never published semantic results.
     const calculate = representationEligible && (qualified || input.purpose === "TEST_FIXTURE" && paired);
@@ -176,6 +177,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
   const responseCount = input.outputs.filter((o) => o.raw.text !== null || o.raw.candidate !== null).length, eligible = rows.filter((r) => r.released).length;
   const substantive = rows.some((r) => r.qualified);
   return { status: substantive ? "INDEPENDENT_LABELS_ANALYZED_NOT_SCIENTIFIC_APPROVAL" : "NOT_EVALUATED", purpose: input.purpose, configHash: input.configHash, inputHash: digest(input), split: input.cases[0]?.manifest.split ?? null, scientificPass: null,
+    packetContracts: { receiptV2: rows.length - legacyPackets, legacyV1: legacyPackets, trustedLegacyV1PolicyHash: digest([...(options.legacyV1PacketHashes ?? [])].sort()) },
     denominators: { scheduled: input.schedule.length, totalPlanned: input.schedule.length + input.routedBeforeGeneration, routedBeforeGeneration: input.routedBeforeGeneration, rawRecorded: rows.length, rawResponded: responseCount, missingOutputs: input.schedule.length - rows.length, validGenerated: rows.filter((r) => r.valid).length, failed: rows.filter((r) => r.failed).length, generationFailed: rows.filter((r) => r.generationFailed).length, postProcessingFailed: rows.filter((r) => r.postProcessingFailed).length, blockedValid: rows.filter((r) => r.valid && r.blocked).length, releasedValid: eligible, coverage: metric(eligible, responseCount), attemptRetention: metric(eligible, rows.length) },
     semantics: substantive ? { raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), gateByScope: Object.fromEntries(["structuredInvariant", "narrowTextHeuristic"].map((scope) => [scope, gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.scopes[scope as keyof typeof r.scopes] }))) ])), agreement } : null,
     fixtureCalculations: input.purpose === "TEST_FIXTURE" ? { authority: "TEST_FIXTURE_MATH_ONLY_NOT_MODEL_EVALUATION", raw, postGate, gate: gateConfusion(gateRows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), agreement } : null,
