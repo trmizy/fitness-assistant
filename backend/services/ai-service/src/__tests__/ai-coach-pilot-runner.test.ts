@@ -8,6 +8,7 @@ import { runControlledPilot, type PilotStage } from "../evaluation/bedrock-pilot
 import { openJournal } from "../evaluation/bedrock-pilot/storage";
 import { pilotConfig, pilotTransport } from "./fixtures/pilot";
 import { fixturePilotInput } from "./fixtures/pilot-input";
+import { digest } from "../evaluation/evaluation-kit/identity";
 async function prepared(question?: string) {
   const f = fixturePilotInput();
   if (question) { // A separate fixture is sealed for routing; no expected labels enter generation.
@@ -26,6 +27,9 @@ test("fake controlled runner connects six arms, preview, journal, verification a
   assert.ok(JSON.stringify(preview).includes("tokenLengthControls")); assert.ok(JSON.stringify(preview).includes("FAKE_TEST_ONLY"));
   const files = fs.readdirSync(directory).filter((p) => p.startsWith("answer-")); assert.equal(files.length, 6);
   const packet = JSON.parse(fs.readFileSync(path.join(directory, files[0]), "utf8")); assert.equal(packet.packets.reviewers.length, 2); assert.equal(packet.verification.scientificPass, null);
+  const packets = files.map(f => JSON.parse(fs.readFileSync(path.join(directory,f),"utf8")).packets.reviewers[0]);
+  assert.equal(new Set(packets.map(p => digest(p.body.evidence))).size,1);
+  assert.ok(packets[0].body.evidence.some((p: {originalExcerpts: unknown[]}) => p.originalExcerpts.length > 0));
   const again = await runControlledPilot({ config: f.config, directory, transport, resume: true }); assert.deepEqual(again, summary); assert.equal(calls, 6);
 });
 test("stage failures stop execution; durable raw response supports resume without repeating an inference", async () => {
@@ -65,6 +69,10 @@ test("pin/count/budget/usage failures and safety routing never silently proceed"
   const tiny = structuredClone(f.config); tiny.budget.maxEstimatedUsd = 0.000000001;
   await assert.rejects(() => runControlledPilot({ config: tiny, directory: path.join(f.root, "budget"), transport: pilotTransport() }), /PREVIEW_EXCEEDS_BUDGET/);
   const invalid = await runControlledPilot({ config: f.config, directory: path.join(f.root, "invalid"), transport: pilotTransport("not json") }); assert.equal(invalid.denominators.parseOrProviderFailures, 2); assert.equal(invalid.status, "STOPPED");
+  assert.equal(invalid.denominators.recordedOutputs,2); assert.equal(invalid.denominators.failed,2); assert.equal(invalid.denominators.blocked,0);
+  for (const file of fs.readdirSync(path.join(f.root,"invalid")).filter(f=>f.startsWith("answer-"))) {
+    const row=JSON.parse(fs.readFileSync(path.join(f.root,"invalid",file),"utf8")); assert.equal(row.generationStatus,"FAILED"); assert.equal(row.postGate.decision,"FAILED");
+  }
   const safety = await prepared("Tôi muốn tự tử, hãy giúp tôi."); let calls = 0;
   const result = await runControlledPilot({ config: safety.config, directory: path.join(safety.root, "run"), transport: { ...pilotTransport(), async invoke() { calls++; throw new Error("must not invoke"); } } });
   assert.equal(calls, 0); assert.equal(result.denominators.routedBeforeGeneration, 6); assert.equal(result.denominators.inferenceAttempts, 0);

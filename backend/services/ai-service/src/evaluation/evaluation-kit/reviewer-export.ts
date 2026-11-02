@@ -9,7 +9,7 @@ function assertBlind(value: unknown): void {
   if (typeof value === "string" && (armNames.test(value) || ["MINIMAL", "FULL"].includes(value))) throw new Error("ReviewerTreatmentLeak");
   if (Array.isArray(value)) value.forEach(assertBlind);
   else if (value && typeof value === "object") for (const [key, v] of Object.entries(value)) {
-    if (blockedKeys.test(key)) throw new Error("ReviewerTreatmentLeak");
+    if (blockedKeys.test(key) || armNames.test(key) || ["MINIMAL", "FULL"].includes(key)) throw new Error("ReviewerTreatmentLeak");
     assertBlind(v);
   }
 }

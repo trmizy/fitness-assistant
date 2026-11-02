@@ -7,6 +7,7 @@ import { DevRequestSchema } from "../ai-coach-dev/context";
 import { AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { canonical, digest } from "./identity";
 import { protect } from "./representation";
+import { reviewerExport } from "./reviewer-export";
 const Hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const ReviewerCaseSchema = z.object({
   version: z.literal("reviewer-case-v1"), caseKey: z.string().regex(/^case-[a-z0-9-]+$/), split: z.enum(["REVIEWED_DEV", "HELD_OUT"]),
@@ -98,6 +99,7 @@ const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([F
 export const AdjudicationSchema = z.object({ packetHash: Hash, adjudicatorPseudonym: z.string().min(1), decisions: z.array(Decision), rationale: z.string().min(1) }).strict();
 export function validateAnnotation(value: unknown, packet: ReviewerPacket) {
   const a = AnnotationSchema.parse(value), expected = packet.body.units.map((u) => u.unitId);
+  if (packet.reviewerExportHashes && (Object.keys(packet.reviewerExportHashes).sort().join() !== "R1,R2" || ["R1", "R2"].some((slot) => packet.reviewerExportHashes![slot] !== reviewerExport({ ...packet, reviewerSlot: slot }).hash))) throw new Error("ReviewerExportReceiptChanged");
   if (packet.reviewerExportHashes && a.reviewerExportHash !== packet.reviewerExportHashes[a.reviewerSlot]) throw new Error("ReviewerExportReceiptRequired");
   if (a.packetHash !== packet.packetHash || a.reviewerSlot !== packet.reviewerSlot || a.units.length !== expected.length || new Set(a.units.map((u) => u.unitId)).size !== expected.length || expected.some((id) => !a.units.some((u) => u.unitId === id))) throw new Error("AnnotationPacketOrUnitsMismatch");
   const facts = new Set(Array.isArray(packet.body.facts) ? packet.body.facts.map((f) => (f as { id: string }).id) : []);
