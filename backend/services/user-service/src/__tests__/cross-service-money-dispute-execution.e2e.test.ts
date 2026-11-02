@@ -258,6 +258,10 @@ test("I6 with a real settled D77: a CANCELLED finding creates NO proposal (POLIC
     const fx = await setupD77();
     const snapshot = await H.snapshot();
     const before = await facts(fx);
+    // I6 on the old exit while the session has NO Case yet (with a Case, D65 track B answers CASE_EXISTS first - asserted below)
+    const old = await H.call("POST", `/admin/sessions/${fx.S.id}/resolve`, H.tokenFor(randomUUID(), "ADMIN"), { resolution: "CANCELLED", note: "I6" });
+    assert.equal(old.status, 409, JSON.stringify(old.body));
+    assert.match(JSON.stringify(old.body), /CANCELLED_BLOCKED_BY_D77/);
     const at = await X.helpers.caseAtFinding(fx.S.id, "VERIFIED_NOT_DELIVERED_NO_FAULT");
     const { disputeCaseService } = await import("../services/dispute-case/dispute-case.service");
     const r = (await disputeCaseService.propose(at.investigator, at.caseId, undefined)).result;
@@ -265,9 +269,8 @@ test("I6 with a real settled D77: a CANCELLED finding creates NO proposal (POLIC
     assert.equal(r.blocked, "CANCELLED_BLOCKED_BY_D77");
     assert.equal(await H.m.prisma.disputeCaseProposal.count({ where: { caseId: at.caseId } }), 0);
     assert.equal((await H.m.prisma.disputeCase.findUniqueOrThrow({ where: { id: at.caseId } })).status, "POLICY_PENDING");
-    const old = await H.call("POST", `/admin/sessions/${fx.S.id}/resolve`, H.tokenFor(randomUUID(), "ADMIN"), { resolution: "CANCELLED", note: "I6" });
-    assert.equal(old.status, 409, JSON.stringify(old.body));
-    assert.match(JSON.stringify(old.body), /CANCELLED_BLOCKED_BY_D77/);
+    const oldAgain = await H.call("POST", `/admin/sessions/${fx.S.id}/resolve`, H.tokenFor(randomUUID(), "ADMIN"), { resolution: "CANCELLED", note: "I6" });
+    assert.deepEqual([oldAgain.status, oldAgain.body.code], [409, "CASE_EXISTS"], "D65 track B: with a Case, the old exit stops at CASE_EXISTS");
     assert.deepEqual(await H.snapshot(), snapshot, "the ledger did not move");
     assert.deepEqual(await facts(fx), before, "session, quota, settlements, obligations: untouched");
   });

@@ -272,8 +272,12 @@ test("CONTESTED D77: an open dispute case holds a PT_LATE finding LATE_CONTESTED
     const before = await totals(c);
     const ledgerBefore = await H.snapshot();
     const adminToken = H.tokenFor(randomUUID(), "ADMIN");
+    // D65 track B: the old route no longer rules a session that has an open Case at all (409 CASE_EXISTS, nothing written). The contested-D77 hold is a property of the MONEY STEP, so the step a COMPLETED
+    // ruling would start is driven directly (releaseSessionMoney, the very call the ruling makes): it must park NEEDS_HUMAN and send nothing to the ledger.
     const res = await rule(adminToken, S.id, "COMPLETED");
-    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.deepEqual([res.status, res.body.code], [409, "CASE_EXISTS"], JSON.stringify(res.body));
+    assert.deepEqual(await H.snapshot(), ledgerBefore, "the refused ruling moved nothing");
+    await H.m.payout.releaseSessionMoney(c.id, S.id);
     await drain(c.id, 4);
     const rel = await H.m.prisma.sessionSettlement.findUniqueOrThrow({ where: { idempotencyKey: `SESSION_RELEASE:${S.id}` } });
     assert.ok(["NEEDS_HUMAN", "CONFLICT", "UNCONFIRMED"].includes(rel.status as string), `the release waits for a person (${rel.status})`);
