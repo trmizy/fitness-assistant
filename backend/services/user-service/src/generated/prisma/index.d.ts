@@ -276,6 +276,19 @@ export type LateOpenReconciliationEvent = $Result.DefaultSelection<Prisma.$LateO
  * No new idempotency key for the money step, no new way to pay.
  */
 export type LateOpenRecovery = $Result.DefaultSelection<Prisma.$LateOpenRecoveryPayload>
+/**
+ * Model D65bResolution
+ * D65-B (03/11/2026). Four-eyes admin resolution of the money HELD for ONE NO_SHOW session whose compensation row is UNCONFIRMED (the ending held its value; the ledger never paid it).
+ * ONE proposal per session, ever (unique session_id / settlement_row_id). NO amount, NO outcome column the caller can choose: the only outcome is NOT_DELIVERED, the value is read
+ * by the ledger from the contract's own pending. `ledger_before` is the ledger reading at proposal time; the approval stamp (approved_by, approved_at, approval_reason) and the outcome
+ * stamp (outcome, outcome_at, ledger_after) are one-time NULL -> value changes, everything else is immutable (trigger).
+ */
+export type D65bResolution = $Result.DefaultSelection<Prisma.$D65bResolutionPayload>
+/**
+ * Model D65bResolutionEvent
+ * APPEND-ONLY audit of the D65-B path (proposed, approved, execution started / failed / blocked / done).
+ */
+export type D65bResolutionEvent = $Result.DefaultSelection<Prisma.$D65bResolutionEventPayload>
 
 /**
  * Enums
@@ -1659,6 +1672,26 @@ export class PrismaClient<
     * ```
     */
   get lateOpenRecovery(): Prisma.LateOpenRecoveryDelegate<ExtArgs>;
+
+  /**
+   * `prisma.d65bResolution`: Exposes CRUD operations for the **D65bResolution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more D65bResolutions
+    * const d65bResolutions = await prisma.d65bResolution.findMany()
+    * ```
+    */
+  get d65bResolution(): Prisma.D65bResolutionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.d65bResolutionEvent`: Exposes CRUD operations for the **D65bResolutionEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more D65bResolutionEvents
+    * const d65bResolutionEvents = await prisma.d65bResolutionEvent.findMany()
+    * ```
+    */
+  get d65bResolutionEvent(): Prisma.D65bResolutionEventDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -2147,7 +2180,9 @@ export namespace Prisma {
     DisputeCaseExecution: 'DisputeCaseExecution',
     LateOpenReconciliation: 'LateOpenReconciliation',
     LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
-    LateOpenRecovery: 'LateOpenRecovery'
+    LateOpenRecovery: 'LateOpenRecovery',
+    D65bResolution: 'D65bResolution',
+    D65bResolutionEvent: 'D65bResolutionEvent'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2163,7 +2198,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5527,6 +5562,146 @@ export namespace Prisma {
           }
         }
       }
+      D65bResolution: {
+        payload: Prisma.$D65bResolutionPayload<ExtArgs>
+        fields: Prisma.D65bResolutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.D65bResolutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.D65bResolutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          findFirst: {
+            args: Prisma.D65bResolutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.D65bResolutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          findMany: {
+            args: Prisma.D65bResolutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>[]
+          }
+          create: {
+            args: Prisma.D65bResolutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          createMany: {
+            args: Prisma.D65bResolutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.D65bResolutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>[]
+          }
+          delete: {
+            args: Prisma.D65bResolutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          update: {
+            args: Prisma.D65bResolutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.D65bResolutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.D65bResolutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.D65bResolutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionPayload>
+          }
+          aggregate: {
+            args: Prisma.D65bResolutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateD65bResolution>
+          }
+          groupBy: {
+            args: Prisma.D65bResolutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<D65bResolutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.D65bResolutionCountArgs<ExtArgs>
+            result: $Utils.Optional<D65bResolutionCountAggregateOutputType> | number
+          }
+        }
+      }
+      D65bResolutionEvent: {
+        payload: Prisma.$D65bResolutionEventPayload<ExtArgs>
+        fields: Prisma.D65bResolutionEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.D65bResolutionEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.D65bResolutionEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          findFirst: {
+            args: Prisma.D65bResolutionEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.D65bResolutionEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          findMany: {
+            args: Prisma.D65bResolutionEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>[]
+          }
+          create: {
+            args: Prisma.D65bResolutionEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          createMany: {
+            args: Prisma.D65bResolutionEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.D65bResolutionEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>[]
+          }
+          delete: {
+            args: Prisma.D65bResolutionEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          update: {
+            args: Prisma.D65bResolutionEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.D65bResolutionEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.D65bResolutionEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.D65bResolutionEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$D65bResolutionEventPayload>
+          }
+          aggregate: {
+            args: Prisma.D65bResolutionEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateD65bResolutionEvent>
+          }
+          groupBy: {
+            args: Prisma.D65bResolutionEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<D65bResolutionEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.D65bResolutionEventCountArgs<ExtArgs>
+            result: $Utils.Optional<D65bResolutionEventCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -5976,12 +6151,14 @@ export namespace Prisma {
     lateOpenReconciliations: number
     lateOpenReconciliationEvents: number
     lateOpenRecoveries: number
+    d65bResolutionEvents: number
   }
 
   export type SessionSettlementCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     lateOpenReconciliations?: boolean | SessionSettlementCountOutputTypeCountLateOpenReconciliationsArgs
     lateOpenReconciliationEvents?: boolean | SessionSettlementCountOutputTypeCountLateOpenReconciliationEventsArgs
     lateOpenRecoveries?: boolean | SessionSettlementCountOutputTypeCountLateOpenRecoveriesArgs
+    d65bResolutionEvents?: boolean | SessionSettlementCountOutputTypeCountD65bResolutionEventsArgs
   }
 
   // Custom InputTypes
@@ -6014,6 +6191,13 @@ export namespace Prisma {
    */
   export type SessionSettlementCountOutputTypeCountLateOpenRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LateOpenRecoveryWhereInput
+  }
+
+  /**
+   * SessionSettlementCountOutputType without action
+   */
+  export type SessionSettlementCountOutputTypeCountD65bResolutionEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: D65bResolutionEventWhereInput
   }
 
 
@@ -6339,6 +6523,37 @@ export namespace Prisma {
    */
   export type LateOpenReconciliationCountOutputTypeCountRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LateOpenRecoveryWhereInput
+  }
+
+
+  /**
+   * Count Type D65bResolutionCountOutputType
+   */
+
+  export type D65bResolutionCountOutputType = {
+    events: number
+  }
+
+  export type D65bResolutionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    events?: boolean | D65bResolutionCountOutputTypeCountEventsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * D65bResolutionCountOutputType without action
+   */
+  export type D65bResolutionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionCountOutputType
+     */
+    select?: D65bResolutionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * D65bResolutionCountOutputType without action
+   */
+  export type D65bResolutionCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: D65bResolutionEventWhereInput
   }
 
 
@@ -29172,6 +29387,8 @@ export namespace Prisma {
     lateOpenReconciliations?: boolean | SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>
     lateOpenReconciliationEvents?: boolean | SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>
     lateOpenRecoveries?: boolean | SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>
+    d65bResolution?: boolean | SessionSettlement$d65bResolutionArgs<ExtArgs>
+    d65bResolutionEvents?: boolean | SessionSettlement$d65bResolutionEventsArgs<ExtArgs>
     _count?: boolean | SessionSettlementCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["sessionSettlement"]>
 
@@ -29219,6 +29436,8 @@ export namespace Prisma {
     lateOpenReconciliations?: boolean | SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>
     lateOpenReconciliationEvents?: boolean | SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>
     lateOpenRecoveries?: boolean | SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>
+    d65bResolution?: boolean | SessionSettlement$d65bResolutionArgs<ExtArgs>
+    d65bResolutionEvents?: boolean | SessionSettlement$d65bResolutionEventsArgs<ExtArgs>
     _count?: boolean | SessionSettlementCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type SessionSettlementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -29229,6 +29448,8 @@ export namespace Prisma {
       lateOpenReconciliations: Prisma.$LateOpenReconciliationPayload<ExtArgs>[]
       lateOpenReconciliationEvents: Prisma.$LateOpenReconciliationEventPayload<ExtArgs>[]
       lateOpenRecoveries: Prisma.$LateOpenRecoveryPayload<ExtArgs>[]
+      d65bResolution: Prisma.$D65bResolutionPayload<ExtArgs> | null
+      d65bResolutionEvents: Prisma.$D65bResolutionEventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -29642,6 +29863,8 @@ export namespace Prisma {
     lateOpenReconciliations<T extends SessionSettlement$lateOpenReconciliationsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenReconciliationPayload<ExtArgs>, T, "findMany"> | Null>
     lateOpenReconciliationEvents<T extends SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenReconciliationEventPayload<ExtArgs>, T, "findMany"> | Null>
     lateOpenRecoveries<T extends SessionSettlement$lateOpenRecoveriesArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenRecoveryPayload<ExtArgs>, T, "findMany"> | Null>
+    d65bResolution<T extends SessionSettlement$d65bResolutionArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$d65bResolutionArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    d65bResolutionEvents<T extends SessionSettlement$d65bResolutionEventsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$d65bResolutionEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -30059,6 +30282,41 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: LateOpenRecoveryScalarFieldEnum | LateOpenRecoveryScalarFieldEnum[]
+  }
+
+  /**
+   * SessionSettlement.d65bResolution
+   */
+  export type SessionSettlement$d65bResolutionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    where?: D65bResolutionWhereInput
+  }
+
+  /**
+   * SessionSettlement.d65bResolutionEvents
+   */
+  export type SessionSettlement$d65bResolutionEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    where?: D65bResolutionEventWhereInput
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    cursor?: D65bResolutionEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: D65bResolutionEventScalarFieldEnum | D65bResolutionEventScalarFieldEnum[]
   }
 
   /**
@@ -58219,6 +58477,2116 @@ export namespace Prisma {
 
 
   /**
+   * Model D65bResolution
+   */
+
+  export type AggregateD65bResolution = {
+    _count: D65bResolutionCountAggregateOutputType | null
+    _min: D65bResolutionMinAggregateOutputType | null
+    _max: D65bResolutionMaxAggregateOutputType | null
+  }
+
+  export type D65bResolutionMinAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    settlementRowId: string | null
+    clientUserId: string | null
+    ptUserId: string | null
+    reason: string | null
+    proposedBy: string | null
+    createdAt: Date | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    approvalReason: string | null
+    outcome: string | null
+    outcomeAt: Date | null
+  }
+
+  export type D65bResolutionMaxAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    settlementRowId: string | null
+    clientUserId: string | null
+    ptUserId: string | null
+    reason: string | null
+    proposedBy: string | null
+    createdAt: Date | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    approvalReason: string | null
+    outcome: string | null
+    outcomeAt: Date | null
+  }
+
+  export type D65bResolutionCountAggregateOutputType = {
+    id: number
+    sessionId: number
+    contractId: number
+    settlementRowId: number
+    clientUserId: number
+    ptUserId: number
+    reason: number
+    evidenceRefs: number
+    proposedBy: number
+    ledgerBefore: number
+    createdAt: number
+    approvedBy: number
+    approvedAt: number
+    approvalReason: number
+    outcome: number
+    outcomeAt: number
+    ledgerAfter: number
+    _all: number
+  }
+
+
+  export type D65bResolutionMinAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    settlementRowId?: true
+    clientUserId?: true
+    ptUserId?: true
+    reason?: true
+    proposedBy?: true
+    createdAt?: true
+    approvedBy?: true
+    approvedAt?: true
+    approvalReason?: true
+    outcome?: true
+    outcomeAt?: true
+  }
+
+  export type D65bResolutionMaxAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    settlementRowId?: true
+    clientUserId?: true
+    ptUserId?: true
+    reason?: true
+    proposedBy?: true
+    createdAt?: true
+    approvedBy?: true
+    approvedAt?: true
+    approvalReason?: true
+    outcome?: true
+    outcomeAt?: true
+  }
+
+  export type D65bResolutionCountAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    settlementRowId?: true
+    clientUserId?: true
+    ptUserId?: true
+    reason?: true
+    evidenceRefs?: true
+    proposedBy?: true
+    ledgerBefore?: true
+    createdAt?: true
+    approvedBy?: true
+    approvedAt?: true
+    approvalReason?: true
+    outcome?: true
+    outcomeAt?: true
+    ledgerAfter?: true
+    _all?: true
+  }
+
+  export type D65bResolutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which D65bResolution to aggregate.
+     */
+    where?: D65bResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutions to fetch.
+     */
+    orderBy?: D65bResolutionOrderByWithRelationInput | D65bResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: D65bResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned D65bResolutions
+    **/
+    _count?: true | D65bResolutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: D65bResolutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: D65bResolutionMaxAggregateInputType
+  }
+
+  export type GetD65bResolutionAggregateType<T extends D65bResolutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateD65bResolution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateD65bResolution[P]>
+      : GetScalarType<T[P], AggregateD65bResolution[P]>
+  }
+
+
+
+
+  export type D65bResolutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: D65bResolutionWhereInput
+    orderBy?: D65bResolutionOrderByWithAggregationInput | D65bResolutionOrderByWithAggregationInput[]
+    by: D65bResolutionScalarFieldEnum[] | D65bResolutionScalarFieldEnum
+    having?: D65bResolutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: D65bResolutionCountAggregateInputType | true
+    _min?: D65bResolutionMinAggregateInputType
+    _max?: D65bResolutionMaxAggregateInputType
+  }
+
+  export type D65bResolutionGroupByOutputType = {
+    id: string
+    sessionId: string
+    contractId: string
+    settlementRowId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs: string[]
+    proposedBy: string
+    ledgerBefore: JsonValue
+    createdAt: Date
+    approvedBy: string | null
+    approvedAt: Date | null
+    approvalReason: string | null
+    outcome: string | null
+    outcomeAt: Date | null
+    ledgerAfter: JsonValue | null
+    _count: D65bResolutionCountAggregateOutputType | null
+    _min: D65bResolutionMinAggregateOutputType | null
+    _max: D65bResolutionMaxAggregateOutputType | null
+  }
+
+  type GetD65bResolutionGroupByPayload<T extends D65bResolutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<D65bResolutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof D65bResolutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], D65bResolutionGroupByOutputType[P]>
+            : GetScalarType<T[P], D65bResolutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type D65bResolutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    settlementRowId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    reason?: boolean
+    evidenceRefs?: boolean
+    proposedBy?: boolean
+    ledgerBefore?: boolean
+    createdAt?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    approvalReason?: boolean
+    outcome?: boolean
+    outcomeAt?: boolean
+    ledgerAfter?: boolean
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+    events?: boolean | D65bResolution$eventsArgs<ExtArgs>
+    _count?: boolean | D65bResolutionCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["d65bResolution"]>
+
+  export type D65bResolutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    settlementRowId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    reason?: boolean
+    evidenceRefs?: boolean
+    proposedBy?: boolean
+    ledgerBefore?: boolean
+    createdAt?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    approvalReason?: boolean
+    outcome?: boolean
+    outcomeAt?: boolean
+    ledgerAfter?: boolean
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["d65bResolution"]>
+
+  export type D65bResolutionSelectScalar = {
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    settlementRowId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    reason?: boolean
+    evidenceRefs?: boolean
+    proposedBy?: boolean
+    ledgerBefore?: boolean
+    createdAt?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    approvalReason?: boolean
+    outcome?: boolean
+    outcomeAt?: boolean
+    ledgerAfter?: boolean
+  }
+
+  export type D65bResolutionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+    events?: boolean | D65bResolution$eventsArgs<ExtArgs>
+    _count?: boolean | D65bResolutionCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type D65bResolutionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }
+
+  export type $D65bResolutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "D65bResolution"
+    objects: {
+      row: Prisma.$SessionSettlementPayload<ExtArgs>
+      events: Prisma.$D65bResolutionEventPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sessionId: string
+      contractId: string
+      settlementRowId: string
+      clientUserId: string
+      ptUserId: string
+      reason: string
+      evidenceRefs: string[]
+      proposedBy: string
+      ledgerBefore: Prisma.JsonValue
+      createdAt: Date
+      approvedBy: string | null
+      approvedAt: Date | null
+      approvalReason: string | null
+      outcome: string | null
+      outcomeAt: Date | null
+      ledgerAfter: Prisma.JsonValue | null
+    }, ExtArgs["result"]["d65bResolution"]>
+    composites: {}
+  }
+
+  type D65bResolutionGetPayload<S extends boolean | null | undefined | D65bResolutionDefaultArgs> = $Result.GetResult<Prisma.$D65bResolutionPayload, S>
+
+  type D65bResolutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<D65bResolutionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: D65bResolutionCountAggregateInputType | true
+    }
+
+  export interface D65bResolutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['D65bResolution'], meta: { name: 'D65bResolution' } }
+    /**
+     * Find zero or one D65bResolution that matches the filter.
+     * @param {D65bResolutionFindUniqueArgs} args - Arguments to find a D65bResolution
+     * @example
+     * // Get one D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends D65bResolutionFindUniqueArgs>(args: SelectSubset<T, D65bResolutionFindUniqueArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one D65bResolution that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {D65bResolutionFindUniqueOrThrowArgs} args - Arguments to find a D65bResolution
+     * @example
+     * // Get one D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends D65bResolutionFindUniqueOrThrowArgs>(args: SelectSubset<T, D65bResolutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first D65bResolution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionFindFirstArgs} args - Arguments to find a D65bResolution
+     * @example
+     * // Get one D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends D65bResolutionFindFirstArgs>(args?: SelectSubset<T, D65bResolutionFindFirstArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first D65bResolution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionFindFirstOrThrowArgs} args - Arguments to find a D65bResolution
+     * @example
+     * // Get one D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends D65bResolutionFindFirstOrThrowArgs>(args?: SelectSubset<T, D65bResolutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more D65bResolutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all D65bResolutions
+     * const d65bResolutions = await prisma.d65bResolution.findMany()
+     * 
+     * // Get first 10 D65bResolutions
+     * const d65bResolutions = await prisma.d65bResolution.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const d65bResolutionWithIdOnly = await prisma.d65bResolution.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends D65bResolutionFindManyArgs>(args?: SelectSubset<T, D65bResolutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a D65bResolution.
+     * @param {D65bResolutionCreateArgs} args - Arguments to create a D65bResolution.
+     * @example
+     * // Create one D65bResolution
+     * const D65bResolution = await prisma.d65bResolution.create({
+     *   data: {
+     *     // ... data to create a D65bResolution
+     *   }
+     * })
+     * 
+     */
+    create<T extends D65bResolutionCreateArgs>(args: SelectSubset<T, D65bResolutionCreateArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many D65bResolutions.
+     * @param {D65bResolutionCreateManyArgs} args - Arguments to create many D65bResolutions.
+     * @example
+     * // Create many D65bResolutions
+     * const d65bResolution = await prisma.d65bResolution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends D65bResolutionCreateManyArgs>(args?: SelectSubset<T, D65bResolutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many D65bResolutions and returns the data saved in the database.
+     * @param {D65bResolutionCreateManyAndReturnArgs} args - Arguments to create many D65bResolutions.
+     * @example
+     * // Create many D65bResolutions
+     * const d65bResolution = await prisma.d65bResolution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many D65bResolutions and only return the `id`
+     * const d65bResolutionWithIdOnly = await prisma.d65bResolution.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends D65bResolutionCreateManyAndReturnArgs>(args?: SelectSubset<T, D65bResolutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a D65bResolution.
+     * @param {D65bResolutionDeleteArgs} args - Arguments to delete one D65bResolution.
+     * @example
+     * // Delete one D65bResolution
+     * const D65bResolution = await prisma.d65bResolution.delete({
+     *   where: {
+     *     // ... filter to delete one D65bResolution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends D65bResolutionDeleteArgs>(args: SelectSubset<T, D65bResolutionDeleteArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one D65bResolution.
+     * @param {D65bResolutionUpdateArgs} args - Arguments to update one D65bResolution.
+     * @example
+     * // Update one D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends D65bResolutionUpdateArgs>(args: SelectSubset<T, D65bResolutionUpdateArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more D65bResolutions.
+     * @param {D65bResolutionDeleteManyArgs} args - Arguments to filter D65bResolutions to delete.
+     * @example
+     * // Delete a few D65bResolutions
+     * const { count } = await prisma.d65bResolution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends D65bResolutionDeleteManyArgs>(args?: SelectSubset<T, D65bResolutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more D65bResolutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many D65bResolutions
+     * const d65bResolution = await prisma.d65bResolution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends D65bResolutionUpdateManyArgs>(args: SelectSubset<T, D65bResolutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one D65bResolution.
+     * @param {D65bResolutionUpsertArgs} args - Arguments to update or create a D65bResolution.
+     * @example
+     * // Update or create a D65bResolution
+     * const d65bResolution = await prisma.d65bResolution.upsert({
+     *   create: {
+     *     // ... data to create a D65bResolution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the D65bResolution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends D65bResolutionUpsertArgs>(args: SelectSubset<T, D65bResolutionUpsertArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of D65bResolutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionCountArgs} args - Arguments to filter D65bResolutions to count.
+     * @example
+     * // Count the number of D65bResolutions
+     * const count = await prisma.d65bResolution.count({
+     *   where: {
+     *     // ... the filter for the D65bResolutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends D65bResolutionCountArgs>(
+      args?: Subset<T, D65bResolutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], D65bResolutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a D65bResolution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends D65bResolutionAggregateArgs>(args: Subset<T, D65bResolutionAggregateArgs>): Prisma.PrismaPromise<GetD65bResolutionAggregateType<T>>
+
+    /**
+     * Group by D65bResolution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends D65bResolutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: D65bResolutionGroupByArgs['orderBy'] }
+        : { orderBy?: D65bResolutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, D65bResolutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetD65bResolutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the D65bResolution model
+   */
+  readonly fields: D65bResolutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for D65bResolution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__D65bResolutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    row<T extends SessionSettlementDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlementDefaultArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    events<T extends D65bResolution$eventsArgs<ExtArgs> = {}>(args?: Subset<T, D65bResolution$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the D65bResolution model
+   */ 
+  interface D65bResolutionFieldRefs {
+    readonly id: FieldRef<"D65bResolution", 'String'>
+    readonly sessionId: FieldRef<"D65bResolution", 'String'>
+    readonly contractId: FieldRef<"D65bResolution", 'String'>
+    readonly settlementRowId: FieldRef<"D65bResolution", 'String'>
+    readonly clientUserId: FieldRef<"D65bResolution", 'String'>
+    readonly ptUserId: FieldRef<"D65bResolution", 'String'>
+    readonly reason: FieldRef<"D65bResolution", 'String'>
+    readonly evidenceRefs: FieldRef<"D65bResolution", 'String[]'>
+    readonly proposedBy: FieldRef<"D65bResolution", 'String'>
+    readonly ledgerBefore: FieldRef<"D65bResolution", 'Json'>
+    readonly createdAt: FieldRef<"D65bResolution", 'DateTime'>
+    readonly approvedBy: FieldRef<"D65bResolution", 'String'>
+    readonly approvedAt: FieldRef<"D65bResolution", 'DateTime'>
+    readonly approvalReason: FieldRef<"D65bResolution", 'String'>
+    readonly outcome: FieldRef<"D65bResolution", 'String'>
+    readonly outcomeAt: FieldRef<"D65bResolution", 'DateTime'>
+    readonly ledgerAfter: FieldRef<"D65bResolution", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * D65bResolution findUnique
+   */
+  export type D65bResolutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolution to fetch.
+     */
+    where: D65bResolutionWhereUniqueInput
+  }
+
+  /**
+   * D65bResolution findUniqueOrThrow
+   */
+  export type D65bResolutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolution to fetch.
+     */
+    where: D65bResolutionWhereUniqueInput
+  }
+
+  /**
+   * D65bResolution findFirst
+   */
+  export type D65bResolutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolution to fetch.
+     */
+    where?: D65bResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutions to fetch.
+     */
+    orderBy?: D65bResolutionOrderByWithRelationInput | D65bResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for D65bResolutions.
+     */
+    cursor?: D65bResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of D65bResolutions.
+     */
+    distinct?: D65bResolutionScalarFieldEnum | D65bResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolution findFirstOrThrow
+   */
+  export type D65bResolutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolution to fetch.
+     */
+    where?: D65bResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutions to fetch.
+     */
+    orderBy?: D65bResolutionOrderByWithRelationInput | D65bResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for D65bResolutions.
+     */
+    cursor?: D65bResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of D65bResolutions.
+     */
+    distinct?: D65bResolutionScalarFieldEnum | D65bResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolution findMany
+   */
+  export type D65bResolutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutions to fetch.
+     */
+    where?: D65bResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutions to fetch.
+     */
+    orderBy?: D65bResolutionOrderByWithRelationInput | D65bResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing D65bResolutions.
+     */
+    cursor?: D65bResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutions.
+     */
+    skip?: number
+    distinct?: D65bResolutionScalarFieldEnum | D65bResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolution create
+   */
+  export type D65bResolutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a D65bResolution.
+     */
+    data: XOR<D65bResolutionCreateInput, D65bResolutionUncheckedCreateInput>
+  }
+
+  /**
+   * D65bResolution createMany
+   */
+  export type D65bResolutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many D65bResolutions.
+     */
+    data: D65bResolutionCreateManyInput | D65bResolutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * D65bResolution createManyAndReturn
+   */
+  export type D65bResolutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many D65bResolutions.
+     */
+    data: D65bResolutionCreateManyInput | D65bResolutionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * D65bResolution update
+   */
+  export type D65bResolutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a D65bResolution.
+     */
+    data: XOR<D65bResolutionUpdateInput, D65bResolutionUncheckedUpdateInput>
+    /**
+     * Choose, which D65bResolution to update.
+     */
+    where: D65bResolutionWhereUniqueInput
+  }
+
+  /**
+   * D65bResolution updateMany
+   */
+  export type D65bResolutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update D65bResolutions.
+     */
+    data: XOR<D65bResolutionUpdateManyMutationInput, D65bResolutionUncheckedUpdateManyInput>
+    /**
+     * Filter which D65bResolutions to update
+     */
+    where?: D65bResolutionWhereInput
+  }
+
+  /**
+   * D65bResolution upsert
+   */
+  export type D65bResolutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the D65bResolution to update in case it exists.
+     */
+    where: D65bResolutionWhereUniqueInput
+    /**
+     * In case the D65bResolution found by the `where` argument doesn't exist, create a new D65bResolution with this data.
+     */
+    create: XOR<D65bResolutionCreateInput, D65bResolutionUncheckedCreateInput>
+    /**
+     * In case the D65bResolution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<D65bResolutionUpdateInput, D65bResolutionUncheckedUpdateInput>
+  }
+
+  /**
+   * D65bResolution delete
+   */
+  export type D65bResolutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+    /**
+     * Filter which D65bResolution to delete.
+     */
+    where: D65bResolutionWhereUniqueInput
+  }
+
+  /**
+   * D65bResolution deleteMany
+   */
+  export type D65bResolutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which D65bResolutions to delete
+     */
+    where?: D65bResolutionWhereInput
+  }
+
+  /**
+   * D65bResolution.events
+   */
+  export type D65bResolution$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    where?: D65bResolutionEventWhereInput
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    cursor?: D65bResolutionEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: D65bResolutionEventScalarFieldEnum | D65bResolutionEventScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolution without action
+   */
+  export type D65bResolutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolution
+     */
+    select?: D65bResolutionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model D65bResolutionEvent
+   */
+
+  export type AggregateD65bResolutionEvent = {
+    _count: D65bResolutionEventCountAggregateOutputType | null
+    _min: D65bResolutionEventMinAggregateOutputType | null
+    _max: D65bResolutionEventMaxAggregateOutputType | null
+  }
+
+  export type D65bResolutionEventMinAggregateOutputType = {
+    id: string | null
+    resolutionId: string | null
+    settlementRowId: string | null
+    sessionId: string | null
+    contractId: string | null
+    action: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type D65bResolutionEventMaxAggregateOutputType = {
+    id: string | null
+    resolutionId: string | null
+    settlementRowId: string | null
+    sessionId: string | null
+    contractId: string | null
+    action: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type D65bResolutionEventCountAggregateOutputType = {
+    id: number
+    resolutionId: number
+    settlementRowId: number
+    sessionId: number
+    contractId: number
+    action: number
+    actorUserId: number
+    actorRole: number
+    note: number
+    payload: number
+    idempotencyKey: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type D65bResolutionEventMinAggregateInputType = {
+    id?: true
+    resolutionId?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    action?: true
+    actorUserId?: true
+    actorRole?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type D65bResolutionEventMaxAggregateInputType = {
+    id?: true
+    resolutionId?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    action?: true
+    actorUserId?: true
+    actorRole?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type D65bResolutionEventCountAggregateInputType = {
+    id?: true
+    resolutionId?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    action?: true
+    actorUserId?: true
+    actorRole?: true
+    note?: true
+    payload?: true
+    idempotencyKey?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type D65bResolutionEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which D65bResolutionEvent to aggregate.
+     */
+    where?: D65bResolutionEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutionEvents to fetch.
+     */
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: D65bResolutionEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutionEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutionEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned D65bResolutionEvents
+    **/
+    _count?: true | D65bResolutionEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: D65bResolutionEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: D65bResolutionEventMaxAggregateInputType
+  }
+
+  export type GetD65bResolutionEventAggregateType<T extends D65bResolutionEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateD65bResolutionEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateD65bResolutionEvent[P]>
+      : GetScalarType<T[P], AggregateD65bResolutionEvent[P]>
+  }
+
+
+
+
+  export type D65bResolutionEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: D65bResolutionEventWhereInput
+    orderBy?: D65bResolutionEventOrderByWithAggregationInput | D65bResolutionEventOrderByWithAggregationInput[]
+    by: D65bResolutionEventScalarFieldEnum[] | D65bResolutionEventScalarFieldEnum
+    having?: D65bResolutionEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: D65bResolutionEventCountAggregateInputType | true
+    _min?: D65bResolutionEventMinAggregateInputType
+    _max?: D65bResolutionEventMaxAggregateInputType
+  }
+
+  export type D65bResolutionEventGroupByOutputType = {
+    id: string
+    resolutionId: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note: string | null
+    payload: JsonValue | null
+    idempotencyKey: string | null
+    createdAt: Date
+    _count: D65bResolutionEventCountAggregateOutputType | null
+    _min: D65bResolutionEventMinAggregateOutputType | null
+    _max: D65bResolutionEventMaxAggregateOutputType | null
+  }
+
+  type GetD65bResolutionEventGroupByPayload<T extends D65bResolutionEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<D65bResolutionEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof D65bResolutionEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], D65bResolutionEventGroupByOutputType[P]>
+            : GetScalarType<T[P], D65bResolutionEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type D65bResolutionEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    resolutionId?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    action?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    note?: boolean
+    payload?: boolean
+    idempotencyKey?: boolean
+    createdAt?: boolean
+    resolution?: boolean | D65bResolutionDefaultArgs<ExtArgs>
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["d65bResolutionEvent"]>
+
+  export type D65bResolutionEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    resolutionId?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    action?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    note?: boolean
+    payload?: boolean
+    idempotencyKey?: boolean
+    createdAt?: boolean
+    resolution?: boolean | D65bResolutionDefaultArgs<ExtArgs>
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["d65bResolutionEvent"]>
+
+  export type D65bResolutionEventSelectScalar = {
+    id?: boolean
+    resolutionId?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    action?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    note?: boolean
+    payload?: boolean
+    idempotencyKey?: boolean
+    createdAt?: boolean
+  }
+
+  export type D65bResolutionEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    resolution?: boolean | D65bResolutionDefaultArgs<ExtArgs>
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }
+  export type D65bResolutionEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    resolution?: boolean | D65bResolutionDefaultArgs<ExtArgs>
+    row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
+  }
+
+  export type $D65bResolutionEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "D65bResolutionEvent"
+    objects: {
+      resolution: Prisma.$D65bResolutionPayload<ExtArgs>
+      row: Prisma.$SessionSettlementPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      resolutionId: string
+      settlementRowId: string
+      sessionId: string
+      contractId: string
+      action: string
+      actorUserId: string
+      actorRole: string
+      note: string | null
+      payload: Prisma.JsonValue | null
+      idempotencyKey: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["d65bResolutionEvent"]>
+    composites: {}
+  }
+
+  type D65bResolutionEventGetPayload<S extends boolean | null | undefined | D65bResolutionEventDefaultArgs> = $Result.GetResult<Prisma.$D65bResolutionEventPayload, S>
+
+  type D65bResolutionEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<D65bResolutionEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: D65bResolutionEventCountAggregateInputType | true
+    }
+
+  export interface D65bResolutionEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['D65bResolutionEvent'], meta: { name: 'D65bResolutionEvent' } }
+    /**
+     * Find zero or one D65bResolutionEvent that matches the filter.
+     * @param {D65bResolutionEventFindUniqueArgs} args - Arguments to find a D65bResolutionEvent
+     * @example
+     * // Get one D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends D65bResolutionEventFindUniqueArgs>(args: SelectSubset<T, D65bResolutionEventFindUniqueArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one D65bResolutionEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {D65bResolutionEventFindUniqueOrThrowArgs} args - Arguments to find a D65bResolutionEvent
+     * @example
+     * // Get one D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends D65bResolutionEventFindUniqueOrThrowArgs>(args: SelectSubset<T, D65bResolutionEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first D65bResolutionEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventFindFirstArgs} args - Arguments to find a D65bResolutionEvent
+     * @example
+     * // Get one D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends D65bResolutionEventFindFirstArgs>(args?: SelectSubset<T, D65bResolutionEventFindFirstArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first D65bResolutionEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventFindFirstOrThrowArgs} args - Arguments to find a D65bResolutionEvent
+     * @example
+     * // Get one D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends D65bResolutionEventFindFirstOrThrowArgs>(args?: SelectSubset<T, D65bResolutionEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more D65bResolutionEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all D65bResolutionEvents
+     * const d65bResolutionEvents = await prisma.d65bResolutionEvent.findMany()
+     * 
+     * // Get first 10 D65bResolutionEvents
+     * const d65bResolutionEvents = await prisma.d65bResolutionEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const d65bResolutionEventWithIdOnly = await prisma.d65bResolutionEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends D65bResolutionEventFindManyArgs>(args?: SelectSubset<T, D65bResolutionEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a D65bResolutionEvent.
+     * @param {D65bResolutionEventCreateArgs} args - Arguments to create a D65bResolutionEvent.
+     * @example
+     * // Create one D65bResolutionEvent
+     * const D65bResolutionEvent = await prisma.d65bResolutionEvent.create({
+     *   data: {
+     *     // ... data to create a D65bResolutionEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends D65bResolutionEventCreateArgs>(args: SelectSubset<T, D65bResolutionEventCreateArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many D65bResolutionEvents.
+     * @param {D65bResolutionEventCreateManyArgs} args - Arguments to create many D65bResolutionEvents.
+     * @example
+     * // Create many D65bResolutionEvents
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends D65bResolutionEventCreateManyArgs>(args?: SelectSubset<T, D65bResolutionEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many D65bResolutionEvents and returns the data saved in the database.
+     * @param {D65bResolutionEventCreateManyAndReturnArgs} args - Arguments to create many D65bResolutionEvents.
+     * @example
+     * // Create many D65bResolutionEvents
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many D65bResolutionEvents and only return the `id`
+     * const d65bResolutionEventWithIdOnly = await prisma.d65bResolutionEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends D65bResolutionEventCreateManyAndReturnArgs>(args?: SelectSubset<T, D65bResolutionEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a D65bResolutionEvent.
+     * @param {D65bResolutionEventDeleteArgs} args - Arguments to delete one D65bResolutionEvent.
+     * @example
+     * // Delete one D65bResolutionEvent
+     * const D65bResolutionEvent = await prisma.d65bResolutionEvent.delete({
+     *   where: {
+     *     // ... filter to delete one D65bResolutionEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends D65bResolutionEventDeleteArgs>(args: SelectSubset<T, D65bResolutionEventDeleteArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one D65bResolutionEvent.
+     * @param {D65bResolutionEventUpdateArgs} args - Arguments to update one D65bResolutionEvent.
+     * @example
+     * // Update one D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends D65bResolutionEventUpdateArgs>(args: SelectSubset<T, D65bResolutionEventUpdateArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more D65bResolutionEvents.
+     * @param {D65bResolutionEventDeleteManyArgs} args - Arguments to filter D65bResolutionEvents to delete.
+     * @example
+     * // Delete a few D65bResolutionEvents
+     * const { count } = await prisma.d65bResolutionEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends D65bResolutionEventDeleteManyArgs>(args?: SelectSubset<T, D65bResolutionEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more D65bResolutionEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many D65bResolutionEvents
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends D65bResolutionEventUpdateManyArgs>(args: SelectSubset<T, D65bResolutionEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one D65bResolutionEvent.
+     * @param {D65bResolutionEventUpsertArgs} args - Arguments to update or create a D65bResolutionEvent.
+     * @example
+     * // Update or create a D65bResolutionEvent
+     * const d65bResolutionEvent = await prisma.d65bResolutionEvent.upsert({
+     *   create: {
+     *     // ... data to create a D65bResolutionEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the D65bResolutionEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends D65bResolutionEventUpsertArgs>(args: SelectSubset<T, D65bResolutionEventUpsertArgs<ExtArgs>>): Prisma__D65bResolutionEventClient<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of D65bResolutionEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventCountArgs} args - Arguments to filter D65bResolutionEvents to count.
+     * @example
+     * // Count the number of D65bResolutionEvents
+     * const count = await prisma.d65bResolutionEvent.count({
+     *   where: {
+     *     // ... the filter for the D65bResolutionEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends D65bResolutionEventCountArgs>(
+      args?: Subset<T, D65bResolutionEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], D65bResolutionEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a D65bResolutionEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends D65bResolutionEventAggregateArgs>(args: Subset<T, D65bResolutionEventAggregateArgs>): Prisma.PrismaPromise<GetD65bResolutionEventAggregateType<T>>
+
+    /**
+     * Group by D65bResolutionEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {D65bResolutionEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends D65bResolutionEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: D65bResolutionEventGroupByArgs['orderBy'] }
+        : { orderBy?: D65bResolutionEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, D65bResolutionEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetD65bResolutionEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the D65bResolutionEvent model
+   */
+  readonly fields: D65bResolutionEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for D65bResolutionEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__D65bResolutionEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    resolution<T extends D65bResolutionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, D65bResolutionDefaultArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    row<T extends SessionSettlementDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlementDefaultArgs<ExtArgs>>): Prisma__SessionSettlementClient<$Result.GetResult<Prisma.$SessionSettlementPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the D65bResolutionEvent model
+   */ 
+  interface D65bResolutionEventFieldRefs {
+    readonly id: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly resolutionId: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly settlementRowId: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly sessionId: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly contractId: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly action: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly actorUserId: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly actorRole: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly note: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly payload: FieldRef<"D65bResolutionEvent", 'Json'>
+    readonly idempotencyKey: FieldRef<"D65bResolutionEvent", 'String'>
+    readonly createdAt: FieldRef<"D65bResolutionEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * D65bResolutionEvent findUnique
+   */
+  export type D65bResolutionEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutionEvent to fetch.
+     */
+    where: D65bResolutionEventWhereUniqueInput
+  }
+
+  /**
+   * D65bResolutionEvent findUniqueOrThrow
+   */
+  export type D65bResolutionEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutionEvent to fetch.
+     */
+    where: D65bResolutionEventWhereUniqueInput
+  }
+
+  /**
+   * D65bResolutionEvent findFirst
+   */
+  export type D65bResolutionEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutionEvent to fetch.
+     */
+    where?: D65bResolutionEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutionEvents to fetch.
+     */
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for D65bResolutionEvents.
+     */
+    cursor?: D65bResolutionEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutionEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutionEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of D65bResolutionEvents.
+     */
+    distinct?: D65bResolutionEventScalarFieldEnum | D65bResolutionEventScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolutionEvent findFirstOrThrow
+   */
+  export type D65bResolutionEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutionEvent to fetch.
+     */
+    where?: D65bResolutionEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutionEvents to fetch.
+     */
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for D65bResolutionEvents.
+     */
+    cursor?: D65bResolutionEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutionEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutionEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of D65bResolutionEvents.
+     */
+    distinct?: D65bResolutionEventScalarFieldEnum | D65bResolutionEventScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolutionEvent findMany
+   */
+  export type D65bResolutionEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter, which D65bResolutionEvents to fetch.
+     */
+    where?: D65bResolutionEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of D65bResolutionEvents to fetch.
+     */
+    orderBy?: D65bResolutionEventOrderByWithRelationInput | D65bResolutionEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing D65bResolutionEvents.
+     */
+    cursor?: D65bResolutionEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` D65bResolutionEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` D65bResolutionEvents.
+     */
+    skip?: number
+    distinct?: D65bResolutionEventScalarFieldEnum | D65bResolutionEventScalarFieldEnum[]
+  }
+
+  /**
+   * D65bResolutionEvent create
+   */
+  export type D65bResolutionEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a D65bResolutionEvent.
+     */
+    data: XOR<D65bResolutionEventCreateInput, D65bResolutionEventUncheckedCreateInput>
+  }
+
+  /**
+   * D65bResolutionEvent createMany
+   */
+  export type D65bResolutionEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many D65bResolutionEvents.
+     */
+    data: D65bResolutionEventCreateManyInput | D65bResolutionEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * D65bResolutionEvent createManyAndReturn
+   */
+  export type D65bResolutionEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many D65bResolutionEvents.
+     */
+    data: D65bResolutionEventCreateManyInput | D65bResolutionEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * D65bResolutionEvent update
+   */
+  export type D65bResolutionEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a D65bResolutionEvent.
+     */
+    data: XOR<D65bResolutionEventUpdateInput, D65bResolutionEventUncheckedUpdateInput>
+    /**
+     * Choose, which D65bResolutionEvent to update.
+     */
+    where: D65bResolutionEventWhereUniqueInput
+  }
+
+  /**
+   * D65bResolutionEvent updateMany
+   */
+  export type D65bResolutionEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update D65bResolutionEvents.
+     */
+    data: XOR<D65bResolutionEventUpdateManyMutationInput, D65bResolutionEventUncheckedUpdateManyInput>
+    /**
+     * Filter which D65bResolutionEvents to update
+     */
+    where?: D65bResolutionEventWhereInput
+  }
+
+  /**
+   * D65bResolutionEvent upsert
+   */
+  export type D65bResolutionEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the D65bResolutionEvent to update in case it exists.
+     */
+    where: D65bResolutionEventWhereUniqueInput
+    /**
+     * In case the D65bResolutionEvent found by the `where` argument doesn't exist, create a new D65bResolutionEvent with this data.
+     */
+    create: XOR<D65bResolutionEventCreateInput, D65bResolutionEventUncheckedCreateInput>
+    /**
+     * In case the D65bResolutionEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<D65bResolutionEventUpdateInput, D65bResolutionEventUncheckedUpdateInput>
+  }
+
+  /**
+   * D65bResolutionEvent delete
+   */
+  export type D65bResolutionEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+    /**
+     * Filter which D65bResolutionEvent to delete.
+     */
+    where: D65bResolutionEventWhereUniqueInput
+  }
+
+  /**
+   * D65bResolutionEvent deleteMany
+   */
+  export type D65bResolutionEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which D65bResolutionEvents to delete
+     */
+    where?: D65bResolutionEventWhereInput
+  }
+
+  /**
+   * D65bResolutionEvent without action
+   */
+  export type D65bResolutionEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the D65bResolutionEvent
+     */
+    select?: D65bResolutionEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: D65bResolutionEventInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -59219,6 +61587,47 @@ export namespace Prisma {
   };
 
   export type LateOpenRecoveryScalarFieldEnum = (typeof LateOpenRecoveryScalarFieldEnum)[keyof typeof LateOpenRecoveryScalarFieldEnum]
+
+
+  export const D65bResolutionScalarFieldEnum: {
+    id: 'id',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    settlementRowId: 'settlementRowId',
+    clientUserId: 'clientUserId',
+    ptUserId: 'ptUserId',
+    reason: 'reason',
+    evidenceRefs: 'evidenceRefs',
+    proposedBy: 'proposedBy',
+    ledgerBefore: 'ledgerBefore',
+    createdAt: 'createdAt',
+    approvedBy: 'approvedBy',
+    approvedAt: 'approvedAt',
+    approvalReason: 'approvalReason',
+    outcome: 'outcome',
+    outcomeAt: 'outcomeAt',
+    ledgerAfter: 'ledgerAfter'
+  };
+
+  export type D65bResolutionScalarFieldEnum = (typeof D65bResolutionScalarFieldEnum)[keyof typeof D65bResolutionScalarFieldEnum]
+
+
+  export const D65bResolutionEventScalarFieldEnum: {
+    id: 'id',
+    resolutionId: 'resolutionId',
+    settlementRowId: 'settlementRowId',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    action: 'action',
+    actorUserId: 'actorUserId',
+    actorRole: 'actorRole',
+    note: 'note',
+    payload: 'payload',
+    idempotencyKey: 'idempotencyKey',
+    createdAt: 'createdAt'
+  };
+
+  export type D65bResolutionEventScalarFieldEnum = (typeof D65bResolutionEventScalarFieldEnum)[keyof typeof D65bResolutionEventScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -62606,6 +65015,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationListRelationFilter
     lateOpenReconciliationEvents?: LateOpenReconciliationEventListRelationFilter
     lateOpenRecoveries?: LateOpenRecoveryListRelationFilter
+    d65bResolution?: XOR<D65bResolutionNullableRelationFilter, D65bResolutionWhereInput> | null
+    d65bResolutionEvents?: D65bResolutionEventListRelationFilter
   }
 
   export type SessionSettlementOrderByWithRelationInput = {
@@ -62629,6 +65040,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationOrderByRelationAggregateInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventOrderByRelationAggregateInput
     lateOpenRecoveries?: LateOpenRecoveryOrderByRelationAggregateInput
+    d65bResolution?: D65bResolutionOrderByWithRelationInput
+    d65bResolutionEvents?: D65bResolutionEventOrderByRelationAggregateInput
   }
 
   export type SessionSettlementWhereUniqueInput = Prisma.AtLeast<{
@@ -62655,6 +65068,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationListRelationFilter
     lateOpenReconciliationEvents?: LateOpenReconciliationEventListRelationFilter
     lateOpenRecoveries?: LateOpenRecoveryListRelationFilter
+    d65bResolution?: XOR<D65bResolutionNullableRelationFilter, D65bResolutionWhereInput> | null
+    d65bResolutionEvents?: D65bResolutionEventListRelationFilter
   }, "id" | "idempotencyKey">
 
   export type SessionSettlementOrderByWithAggregationInput = {
@@ -65185,6 +67600,217 @@ export namespace Prisma {
     outcome?: StringNullableWithAggregatesFilter<"LateOpenRecovery"> | string | null
     outcomeAt?: DateTimeNullableWithAggregatesFilter<"LateOpenRecovery"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"LateOpenRecovery"> | Date | string
+  }
+
+  export type D65bResolutionWhereInput = {
+    AND?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
+    OR?: D65bResolutionWhereInput[]
+    NOT?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
+    id?: UuidFilter<"D65bResolution"> | string
+    sessionId?: StringFilter<"D65bResolution"> | string
+    contractId?: StringFilter<"D65bResolution"> | string
+    settlementRowId?: StringFilter<"D65bResolution"> | string
+    clientUserId?: StringFilter<"D65bResolution"> | string
+    ptUserId?: StringFilter<"D65bResolution"> | string
+    reason?: StringFilter<"D65bResolution"> | string
+    evidenceRefs?: StringNullableListFilter<"D65bResolution">
+    proposedBy?: StringFilter<"D65bResolution"> | string
+    ledgerBefore?: JsonFilter<"D65bResolution">
+    createdAt?: DateTimeFilter<"D65bResolution"> | Date | string
+    approvedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    approvedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    approvalReason?: StringNullableFilter<"D65bResolution"> | string | null
+    outcome?: StringNullableFilter<"D65bResolution"> | string | null
+    outcomeAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    ledgerAfter?: JsonNullableFilter<"D65bResolution">
+    row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
+    events?: D65bResolutionEventListRelationFilter
+  }
+
+  export type D65bResolutionOrderByWithRelationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    settlementRowId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    reason?: SortOrder
+    evidenceRefs?: SortOrder
+    proposedBy?: SortOrder
+    ledgerBefore?: SortOrder
+    createdAt?: SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    approvalReason?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    outcomeAt?: SortOrderInput | SortOrder
+    ledgerAfter?: SortOrderInput | SortOrder
+    row?: SessionSettlementOrderByWithRelationInput
+    events?: D65bResolutionEventOrderByRelationAggregateInput
+  }
+
+  export type D65bResolutionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    sessionId?: string
+    settlementRowId?: string
+    AND?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
+    OR?: D65bResolutionWhereInput[]
+    NOT?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
+    contractId?: StringFilter<"D65bResolution"> | string
+    clientUserId?: StringFilter<"D65bResolution"> | string
+    ptUserId?: StringFilter<"D65bResolution"> | string
+    reason?: StringFilter<"D65bResolution"> | string
+    evidenceRefs?: StringNullableListFilter<"D65bResolution">
+    proposedBy?: StringFilter<"D65bResolution"> | string
+    ledgerBefore?: JsonFilter<"D65bResolution">
+    createdAt?: DateTimeFilter<"D65bResolution"> | Date | string
+    approvedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    approvedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    approvalReason?: StringNullableFilter<"D65bResolution"> | string | null
+    outcome?: StringNullableFilter<"D65bResolution"> | string | null
+    outcomeAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    ledgerAfter?: JsonNullableFilter<"D65bResolution">
+    row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
+    events?: D65bResolutionEventListRelationFilter
+  }, "id" | "sessionId" | "settlementRowId">
+
+  export type D65bResolutionOrderByWithAggregationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    settlementRowId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    reason?: SortOrder
+    evidenceRefs?: SortOrder
+    proposedBy?: SortOrder
+    ledgerBefore?: SortOrder
+    createdAt?: SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    approvalReason?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    outcomeAt?: SortOrderInput | SortOrder
+    ledgerAfter?: SortOrderInput | SortOrder
+    _count?: D65bResolutionCountOrderByAggregateInput
+    _max?: D65bResolutionMaxOrderByAggregateInput
+    _min?: D65bResolutionMinOrderByAggregateInput
+  }
+
+  export type D65bResolutionScalarWhereWithAggregatesInput = {
+    AND?: D65bResolutionScalarWhereWithAggregatesInput | D65bResolutionScalarWhereWithAggregatesInput[]
+    OR?: D65bResolutionScalarWhereWithAggregatesInput[]
+    NOT?: D65bResolutionScalarWhereWithAggregatesInput | D65bResolutionScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"D65bResolution"> | string
+    sessionId?: StringWithAggregatesFilter<"D65bResolution"> | string
+    contractId?: StringWithAggregatesFilter<"D65bResolution"> | string
+    settlementRowId?: StringWithAggregatesFilter<"D65bResolution"> | string
+    clientUserId?: StringWithAggregatesFilter<"D65bResolution"> | string
+    ptUserId?: StringWithAggregatesFilter<"D65bResolution"> | string
+    reason?: StringWithAggregatesFilter<"D65bResolution"> | string
+    evidenceRefs?: StringNullableListFilter<"D65bResolution">
+    proposedBy?: StringWithAggregatesFilter<"D65bResolution"> | string
+    ledgerBefore?: JsonWithAggregatesFilter<"D65bResolution">
+    createdAt?: DateTimeWithAggregatesFilter<"D65bResolution"> | Date | string
+    approvedBy?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
+    approvedAt?: DateTimeNullableWithAggregatesFilter<"D65bResolution"> | Date | string | null
+    approvalReason?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
+    outcome?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
+    outcomeAt?: DateTimeNullableWithAggregatesFilter<"D65bResolution"> | Date | string | null
+    ledgerAfter?: JsonNullableWithAggregatesFilter<"D65bResolution">
+  }
+
+  export type D65bResolutionEventWhereInput = {
+    AND?: D65bResolutionEventWhereInput | D65bResolutionEventWhereInput[]
+    OR?: D65bResolutionEventWhereInput[]
+    NOT?: D65bResolutionEventWhereInput | D65bResolutionEventWhereInput[]
+    id?: UuidFilter<"D65bResolutionEvent"> | string
+    resolutionId?: UuidFilter<"D65bResolutionEvent"> | string
+    settlementRowId?: StringFilter<"D65bResolutionEvent"> | string
+    sessionId?: StringFilter<"D65bResolutionEvent"> | string
+    contractId?: StringFilter<"D65bResolutionEvent"> | string
+    action?: StringFilter<"D65bResolutionEvent"> | string
+    actorUserId?: StringFilter<"D65bResolutionEvent"> | string
+    actorRole?: StringFilter<"D65bResolutionEvent"> | string
+    note?: StringNullableFilter<"D65bResolutionEvent"> | string | null
+    payload?: JsonNullableFilter<"D65bResolutionEvent">
+    idempotencyKey?: StringNullableFilter<"D65bResolutionEvent"> | string | null
+    createdAt?: DateTimeFilter<"D65bResolutionEvent"> | Date | string
+    resolution?: XOR<D65bResolutionRelationFilter, D65bResolutionWhereInput>
+    row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
+  }
+
+  export type D65bResolutionEventOrderByWithRelationInput = {
+    id?: SortOrder
+    resolutionId?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    action?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    note?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    resolution?: D65bResolutionOrderByWithRelationInput
+    row?: SessionSettlementOrderByWithRelationInput
+  }
+
+  export type D65bResolutionEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: D65bResolutionEventWhereInput | D65bResolutionEventWhereInput[]
+    OR?: D65bResolutionEventWhereInput[]
+    NOT?: D65bResolutionEventWhereInput | D65bResolutionEventWhereInput[]
+    resolutionId?: UuidFilter<"D65bResolutionEvent"> | string
+    settlementRowId?: StringFilter<"D65bResolutionEvent"> | string
+    sessionId?: StringFilter<"D65bResolutionEvent"> | string
+    contractId?: StringFilter<"D65bResolutionEvent"> | string
+    action?: StringFilter<"D65bResolutionEvent"> | string
+    actorUserId?: StringFilter<"D65bResolutionEvent"> | string
+    actorRole?: StringFilter<"D65bResolutionEvent"> | string
+    note?: StringNullableFilter<"D65bResolutionEvent"> | string | null
+    payload?: JsonNullableFilter<"D65bResolutionEvent">
+    createdAt?: DateTimeFilter<"D65bResolutionEvent"> | Date | string
+    resolution?: XOR<D65bResolutionRelationFilter, D65bResolutionWhereInput>
+    row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
+  }, "id" | "idempotencyKey">
+
+  export type D65bResolutionEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    resolutionId?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    action?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    note?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: D65bResolutionEventCountOrderByAggregateInput
+    _max?: D65bResolutionEventMaxOrderByAggregateInput
+    _min?: D65bResolutionEventMinOrderByAggregateInput
+  }
+
+  export type D65bResolutionEventScalarWhereWithAggregatesInput = {
+    AND?: D65bResolutionEventScalarWhereWithAggregatesInput | D65bResolutionEventScalarWhereWithAggregatesInput[]
+    OR?: D65bResolutionEventScalarWhereWithAggregatesInput[]
+    NOT?: D65bResolutionEventScalarWhereWithAggregatesInput | D65bResolutionEventScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"D65bResolutionEvent"> | string
+    resolutionId?: UuidWithAggregatesFilter<"D65bResolutionEvent"> | string
+    settlementRowId?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    sessionId?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    contractId?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    action?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    actorUserId?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    actorRole?: StringWithAggregatesFilter<"D65bResolutionEvent"> | string
+    note?: StringNullableWithAggregatesFilter<"D65bResolutionEvent"> | string | null
+    payload?: JsonNullableWithAggregatesFilter<"D65bResolutionEvent">
+    idempotencyKey?: StringNullableWithAggregatesFilter<"D65bResolutionEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"D65bResolutionEvent"> | Date | string
   }
 
   export type UserProfileCreateInput = {
@@ -68256,6 +70882,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUncheckedCreateInput = {
@@ -68279,6 +70907,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUpdateInput = {
@@ -68302,6 +70932,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementUncheckedUpdateInput = {
@@ -68325,6 +70957,8 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementCreateManyInput = {
@@ -71228,6 +73862,252 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type D65bResolutionCreateInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionInput
+    events?: D65bResolutionEventCreateNestedManyWithoutResolutionInput
+  }
+
+  export type D65bResolutionUncheckedCreateInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    settlementRowId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventUncheckedCreateNestedManyWithoutResolutionInput
+  }
+
+  export type D65bResolutionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput
+    events?: D65bResolutionEventUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionCreateManyInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    settlementRowId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type D65bResolutionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type D65bResolutionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type D65bResolutionEventCreateInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+    resolution: D65bResolutionCreateNestedOneWithoutEventsInput
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionEventsInput
+  }
+
+  export type D65bResolutionEventUncheckedCreateInput = {
+    id?: string
+    resolutionId: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
+  export type D65bResolutionEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolution?: D65bResolutionUpdateOneRequiredWithoutEventsNestedInput
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionEventsNestedInput
+  }
+
+  export type D65bResolutionEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resolutionId?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionEventCreateManyInput = {
+    id?: string
+    resolutionId: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
+  export type D65bResolutionEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resolutionId?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -73654,6 +76534,17 @@ export namespace Prisma {
     none?: LateOpenRecoveryWhereInput
   }
 
+  export type D65bResolutionNullableRelationFilter = {
+    is?: D65bResolutionWhereInput | null
+    isNot?: D65bResolutionWhereInput | null
+  }
+
+  export type D65bResolutionEventListRelationFilter = {
+    every?: D65bResolutionEventWhereInput
+    some?: D65bResolutionEventWhereInput
+    none?: D65bResolutionEventWhereInput
+  }
+
   export type LateOpenReconciliationOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -73663,6 +76554,10 @@ export namespace Prisma {
   }
 
   export type LateOpenRecoveryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type D65bResolutionEventOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -75838,6 +78733,108 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type D65bResolutionCountOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    settlementRowId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    reason?: SortOrder
+    evidenceRefs?: SortOrder
+    proposedBy?: SortOrder
+    ledgerBefore?: SortOrder
+    createdAt?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    approvalReason?: SortOrder
+    outcome?: SortOrder
+    outcomeAt?: SortOrder
+    ledgerAfter?: SortOrder
+  }
+
+  export type D65bResolutionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    settlementRowId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    createdAt?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    approvalReason?: SortOrder
+    outcome?: SortOrder
+    outcomeAt?: SortOrder
+  }
+
+  export type D65bResolutionMinOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    settlementRowId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    createdAt?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    approvalReason?: SortOrder
+    outcome?: SortOrder
+    outcomeAt?: SortOrder
+  }
+
+  export type D65bResolutionRelationFilter = {
+    is?: D65bResolutionWhereInput
+    isNot?: D65bResolutionWhereInput
+  }
+
+  export type D65bResolutionEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    resolutionId?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    action?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    note?: SortOrder
+    payload?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type D65bResolutionEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    resolutionId?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    action?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type D65bResolutionEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    resolutionId?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    action?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -77130,6 +80127,19 @@ export namespace Prisma {
     connect?: LateOpenRecoveryWhereUniqueInput | LateOpenRecoveryWhereUniqueInput[]
   }
 
+  export type D65bResolutionCreateNestedOneWithoutRowInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
+    connect?: D65bResolutionWhereUniqueInput
+  }
+
+  export type D65bResolutionEventCreateNestedManyWithoutRowInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput> | D65bResolutionEventCreateWithoutRowInput[] | D65bResolutionEventUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutRowInput | D65bResolutionEventCreateOrConnectWithoutRowInput[]
+    createMany?: D65bResolutionEventCreateManyRowInputEnvelope
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+  }
+
   export type LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput = {
     create?: XOR<LateOpenReconciliationCreateWithoutRowInput, LateOpenReconciliationUncheckedCreateWithoutRowInput> | LateOpenReconciliationCreateWithoutRowInput[] | LateOpenReconciliationUncheckedCreateWithoutRowInput[]
     connectOrCreate?: LateOpenReconciliationCreateOrConnectWithoutRowInput | LateOpenReconciliationCreateOrConnectWithoutRowInput[]
@@ -77149,6 +80159,19 @@ export namespace Prisma {
     connectOrCreate?: LateOpenRecoveryCreateOrConnectWithoutRowInput | LateOpenRecoveryCreateOrConnectWithoutRowInput[]
     createMany?: LateOpenRecoveryCreateManyRowInputEnvelope
     connect?: LateOpenRecoveryWhereUniqueInput | LateOpenRecoveryWhereUniqueInput[]
+  }
+
+  export type D65bResolutionUncheckedCreateNestedOneWithoutRowInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
+    connect?: D65bResolutionWhereUniqueInput
+  }
+
+  export type D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput> | D65bResolutionEventCreateWithoutRowInput[] | D65bResolutionEventUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutRowInput | D65bResolutionEventCreateOrConnectWithoutRowInput[]
+    createMany?: D65bResolutionEventCreateManyRowInputEnvelope
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
   }
 
   export type EnumSessionSettlementKindFieldUpdateOperationsInput = {
@@ -77201,6 +80224,30 @@ export namespace Prisma {
     deleteMany?: LateOpenRecoveryScalarWhereInput | LateOpenRecoveryScalarWhereInput[]
   }
 
+  export type D65bResolutionUpdateOneWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
+    upsert?: D65bResolutionUpsertWithoutRowInput
+    disconnect?: D65bResolutionWhereInput | boolean
+    delete?: D65bResolutionWhereInput | boolean
+    connect?: D65bResolutionWhereUniqueInput
+    update?: XOR<XOR<D65bResolutionUpdateToOneWithWhereWithoutRowInput, D65bResolutionUpdateWithoutRowInput>, D65bResolutionUncheckedUpdateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventUpdateManyWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput> | D65bResolutionEventCreateWithoutRowInput[] | D65bResolutionEventUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutRowInput | D65bResolutionEventCreateOrConnectWithoutRowInput[]
+    upsert?: D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput | D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput[]
+    createMany?: D65bResolutionEventCreateManyRowInputEnvelope
+    set?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    disconnect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    delete?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    update?: D65bResolutionEventUpdateWithWhereUniqueWithoutRowInput | D65bResolutionEventUpdateWithWhereUniqueWithoutRowInput[]
+    updateMany?: D65bResolutionEventUpdateManyWithWhereWithoutRowInput | D65bResolutionEventUpdateManyWithWhereWithoutRowInput[]
+    deleteMany?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
+  }
+
   export type LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput = {
     create?: XOR<LateOpenReconciliationCreateWithoutRowInput, LateOpenReconciliationUncheckedCreateWithoutRowInput> | LateOpenReconciliationCreateWithoutRowInput[] | LateOpenReconciliationUncheckedCreateWithoutRowInput[]
     connectOrCreate?: LateOpenReconciliationCreateOrConnectWithoutRowInput | LateOpenReconciliationCreateOrConnectWithoutRowInput[]
@@ -77241,6 +80288,30 @@ export namespace Prisma {
     update?: LateOpenRecoveryUpdateWithWhereUniqueWithoutRowInput | LateOpenRecoveryUpdateWithWhereUniqueWithoutRowInput[]
     updateMany?: LateOpenRecoveryUpdateManyWithWhereWithoutRowInput | LateOpenRecoveryUpdateManyWithWhereWithoutRowInput[]
     deleteMany?: LateOpenRecoveryScalarWhereInput | LateOpenRecoveryScalarWhereInput[]
+  }
+
+  export type D65bResolutionUncheckedUpdateOneWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
+    upsert?: D65bResolutionUpsertWithoutRowInput
+    disconnect?: D65bResolutionWhereInput | boolean
+    delete?: D65bResolutionWhereInput | boolean
+    connect?: D65bResolutionWhereUniqueInput
+    update?: XOR<XOR<D65bResolutionUpdateToOneWithWhereWithoutRowInput, D65bResolutionUpdateWithoutRowInput>, D65bResolutionUncheckedUpdateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput> | D65bResolutionEventCreateWithoutRowInput[] | D65bResolutionEventUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutRowInput | D65bResolutionEventCreateOrConnectWithoutRowInput[]
+    upsert?: D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput | D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput[]
+    createMany?: D65bResolutionEventCreateManyRowInputEnvelope
+    set?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    disconnect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    delete?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    update?: D65bResolutionEventUpdateWithWhereUniqueWithoutRowInput | D65bResolutionEventUpdateWithWhereUniqueWithoutRowInput[]
+    updateMany?: D65bResolutionEventUpdateManyWithWhereWithoutRowInput | D65bResolutionEventUpdateManyWithWhereWithoutRowInput[]
+    deleteMany?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
   }
 
   export type ClientJourneyCreateconstraintsInput = {
@@ -78626,6 +81697,99 @@ export namespace Prisma {
     upsert?: SessionSettlementUpsertWithoutLateOpenRecoveriesInput
     connect?: SessionSettlementWhereUniqueInput
     update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutLateOpenRecoveriesInput, SessionSettlementUpdateWithoutLateOpenRecoveriesInput>, SessionSettlementUncheckedUpdateWithoutLateOpenRecoveriesInput>
+  }
+
+  export type D65bResolutionCreateevidenceRefsInput = {
+    set: string[]
+  }
+
+  export type SessionSettlementCreateNestedOneWithoutD65bResolutionInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionInput
+    connect?: SessionSettlementWhereUniqueInput
+  }
+
+  export type D65bResolutionEventCreateNestedManyWithoutResolutionInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput> | D65bResolutionEventCreateWithoutResolutionInput[] | D65bResolutionEventUncheckedCreateWithoutResolutionInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutResolutionInput | D65bResolutionEventCreateOrConnectWithoutResolutionInput[]
+    createMany?: D65bResolutionEventCreateManyResolutionInputEnvelope
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+  }
+
+  export type D65bResolutionEventUncheckedCreateNestedManyWithoutResolutionInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput> | D65bResolutionEventCreateWithoutResolutionInput[] | D65bResolutionEventUncheckedCreateWithoutResolutionInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutResolutionInput | D65bResolutionEventCreateOrConnectWithoutResolutionInput[]
+    createMany?: D65bResolutionEventCreateManyResolutionInputEnvelope
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+  }
+
+  export type D65bResolutionUpdateevidenceRefsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionInput
+    upsert?: SessionSettlementUpsertWithoutD65bResolutionInput
+    connect?: SessionSettlementWhereUniqueInput
+    update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionInput, SessionSettlementUpdateWithoutD65bResolutionInput>, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
+  }
+
+  export type D65bResolutionEventUpdateManyWithoutResolutionNestedInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput> | D65bResolutionEventCreateWithoutResolutionInput[] | D65bResolutionEventUncheckedCreateWithoutResolutionInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutResolutionInput | D65bResolutionEventCreateOrConnectWithoutResolutionInput[]
+    upsert?: D65bResolutionEventUpsertWithWhereUniqueWithoutResolutionInput | D65bResolutionEventUpsertWithWhereUniqueWithoutResolutionInput[]
+    createMany?: D65bResolutionEventCreateManyResolutionInputEnvelope
+    set?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    disconnect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    delete?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    update?: D65bResolutionEventUpdateWithWhereUniqueWithoutResolutionInput | D65bResolutionEventUpdateWithWhereUniqueWithoutResolutionInput[]
+    updateMany?: D65bResolutionEventUpdateManyWithWhereWithoutResolutionInput | D65bResolutionEventUpdateManyWithWhereWithoutResolutionInput[]
+    deleteMany?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
+  }
+
+  export type D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput = {
+    create?: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput> | D65bResolutionEventCreateWithoutResolutionInput[] | D65bResolutionEventUncheckedCreateWithoutResolutionInput[]
+    connectOrCreate?: D65bResolutionEventCreateOrConnectWithoutResolutionInput | D65bResolutionEventCreateOrConnectWithoutResolutionInput[]
+    upsert?: D65bResolutionEventUpsertWithWhereUniqueWithoutResolutionInput | D65bResolutionEventUpsertWithWhereUniqueWithoutResolutionInput[]
+    createMany?: D65bResolutionEventCreateManyResolutionInputEnvelope
+    set?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    disconnect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    delete?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    connect?: D65bResolutionEventWhereUniqueInput | D65bResolutionEventWhereUniqueInput[]
+    update?: D65bResolutionEventUpdateWithWhereUniqueWithoutResolutionInput | D65bResolutionEventUpdateWithWhereUniqueWithoutResolutionInput[]
+    updateMany?: D65bResolutionEventUpdateManyWithWhereWithoutResolutionInput | D65bResolutionEventUpdateManyWithWhereWithoutResolutionInput[]
+    deleteMany?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
+  }
+
+  export type D65bResolutionCreateNestedOneWithoutEventsInput = {
+    create?: XOR<D65bResolutionCreateWithoutEventsInput, D65bResolutionUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutEventsInput
+    connect?: D65bResolutionWhereUniqueInput
+  }
+
+  export type SessionSettlementCreateNestedOneWithoutD65bResolutionEventsInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionEventsInput
+    connect?: SessionSettlementWhereUniqueInput
+  }
+
+  export type D65bResolutionUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<D65bResolutionCreateWithoutEventsInput, D65bResolutionUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutEventsInput
+    upsert?: D65bResolutionUpsertWithoutEventsInput
+    connect?: D65bResolutionWhereUniqueInput
+    update?: XOR<XOR<D65bResolutionUpdateToOneWithWhereWithoutEventsInput, D65bResolutionUpdateWithoutEventsInput>, D65bResolutionUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type SessionSettlementUpdateOneRequiredWithoutD65bResolutionEventsNestedInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionEventsInput
+    upsert?: SessionSettlementUpsertWithoutD65bResolutionEventsInput
+    connect?: SessionSettlementWhereUniqueInput
+    update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionEventsInput, SessionSettlementUpdateWithoutD65bResolutionEventsInput>, SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -84637,6 +87801,89 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type D65bResolutionCreateWithoutRowInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventCreateNestedManyWithoutResolutionInput
+  }
+
+  export type D65bResolutionUncheckedCreateWithoutRowInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventUncheckedCreateNestedManyWithoutResolutionInput
+  }
+
+  export type D65bResolutionCreateOrConnectWithoutRowInput = {
+    where: D65bResolutionWhereUniqueInput
+    create: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventCreateWithoutRowInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+    resolution: D65bResolutionCreateNestedOneWithoutEventsInput
+  }
+
+  export type D65bResolutionEventUncheckedCreateWithoutRowInput = {
+    id?: string
+    resolutionId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
+  export type D65bResolutionEventCreateOrConnectWithoutRowInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    create: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventCreateManyRowInputEnvelope = {
+    data: D65bResolutionEventCreateManyRowInput | D65bResolutionEventCreateManyRowInput[]
+    skipDuplicates?: boolean
+  }
+
   export type LateOpenReconciliationUpsertWithWhereUniqueWithoutRowInput = {
     where: LateOpenReconciliationWhereUniqueInput
     update: XOR<LateOpenReconciliationUpdateWithoutRowInput, LateOpenReconciliationUncheckedUpdateWithoutRowInput>
@@ -84743,6 +87990,91 @@ export namespace Prisma {
     outcome?: StringNullableFilter<"LateOpenRecovery"> | string | null
     outcomeAt?: DateTimeNullableFilter<"LateOpenRecovery"> | Date | string | null
     createdAt?: DateTimeFilter<"LateOpenRecovery"> | Date | string
+  }
+
+  export type D65bResolutionUpsertWithoutRowInput = {
+    update: XOR<D65bResolutionUpdateWithoutRowInput, D65bResolutionUncheckedUpdateWithoutRowInput>
+    create: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+    where?: D65bResolutionWhereInput
+  }
+
+  export type D65bResolutionUpdateToOneWithWhereWithoutRowInput = {
+    where?: D65bResolutionWhereInput
+    data: XOR<D65bResolutionUpdateWithoutRowInput, D65bResolutionUncheckedUpdateWithoutRowInput>
+  }
+
+  export type D65bResolutionUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionUncheckedUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    events?: D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    update: XOR<D65bResolutionEventUpdateWithoutRowInput, D65bResolutionEventUncheckedUpdateWithoutRowInput>
+    create: XOR<D65bResolutionEventCreateWithoutRowInput, D65bResolutionEventUncheckedCreateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventUpdateWithWhereUniqueWithoutRowInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    data: XOR<D65bResolutionEventUpdateWithoutRowInput, D65bResolutionEventUncheckedUpdateWithoutRowInput>
+  }
+
+  export type D65bResolutionEventUpdateManyWithWhereWithoutRowInput = {
+    where: D65bResolutionEventScalarWhereInput
+    data: XOR<D65bResolutionEventUpdateManyMutationInput, D65bResolutionEventUncheckedUpdateManyWithoutRowInput>
+  }
+
+  export type D65bResolutionEventScalarWhereInput = {
+    AND?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
+    OR?: D65bResolutionEventScalarWhereInput[]
+    NOT?: D65bResolutionEventScalarWhereInput | D65bResolutionEventScalarWhereInput[]
+    id?: UuidFilter<"D65bResolutionEvent"> | string
+    resolutionId?: UuidFilter<"D65bResolutionEvent"> | string
+    settlementRowId?: StringFilter<"D65bResolutionEvent"> | string
+    sessionId?: StringFilter<"D65bResolutionEvent"> | string
+    contractId?: StringFilter<"D65bResolutionEvent"> | string
+    action?: StringFilter<"D65bResolutionEvent"> | string
+    actorUserId?: StringFilter<"D65bResolutionEvent"> | string
+    actorRole?: StringFilter<"D65bResolutionEvent"> | string
+    note?: StringNullableFilter<"D65bResolutionEvent"> | string | null
+    payload?: JsonNullableFilter<"D65bResolutionEvent">
+    idempotencyKey?: StringNullableFilter<"D65bResolutionEvent"> | string | null
+    createdAt?: DateTimeFilter<"D65bResolutionEvent"> | Date | string
   }
 
   export type UserProfileCreateWithoutJourneysInput = {
@@ -89503,6 +92835,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUncheckedCreateWithoutLateOpenReconciliationsInput = {
@@ -89525,6 +92859,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementCreateOrConnectWithoutLateOpenReconciliationsInput = {
@@ -89641,6 +92977,8 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementUncheckedUpdateWithoutLateOpenReconciliationsInput = {
@@ -89663,6 +93001,8 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
   export type LateOpenReconciliationEventUpsertWithWhereUniqueWithoutReconciliationInput = {
@@ -89717,6 +93057,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUncheckedCreateWithoutLateOpenReconciliationEventsInput = {
@@ -89739,6 +93081,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementCreateOrConnectWithoutLateOpenReconciliationEventsInput = {
@@ -89824,6 +93168,8 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementUncheckedUpdateWithoutLateOpenReconciliationEventsInput = {
@@ -89846,6 +93192,8 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
   export type LateOpenReconciliationUpsertWithoutEventsInput = {
@@ -89968,6 +93316,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUncheckedCreateWithoutLateOpenRecoveriesInput = {
@@ -89990,6 +93340,8 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementCreateOrConnectWithoutLateOpenRecoveriesInput = {
@@ -90081,6 +93433,8 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementUncheckedUpdateWithoutLateOpenRecoveriesInput = {
@@ -90103,6 +93457,382 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
+  }
+
+  export type SessionSettlementCreateWithoutD65bResolutionInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
+    lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
+  }
+
+  export type SessionSettlementUncheckedCreateWithoutD65bResolutionInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
+    lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
+  }
+
+  export type SessionSettlementCreateOrConnectWithoutD65bResolutionInput = {
+    where: SessionSettlementWhereUniqueInput
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+  }
+
+  export type D65bResolutionEventCreateWithoutResolutionInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionEventsInput
+  }
+
+  export type D65bResolutionEventUncheckedCreateWithoutResolutionInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
+  export type D65bResolutionEventCreateOrConnectWithoutResolutionInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    create: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput>
+  }
+
+  export type D65bResolutionEventCreateManyResolutionInputEnvelope = {
+    data: D65bResolutionEventCreateManyResolutionInput | D65bResolutionEventCreateManyResolutionInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SessionSettlementUpsertWithoutD65bResolutionInput = {
+    update: XOR<SessionSettlementUpdateWithoutD65bResolutionInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+    where?: SessionSettlementWhereInput
+  }
+
+  export type SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionInput = {
+    where?: SessionSettlementWhereInput
+    data: XOR<SessionSettlementUpdateWithoutD65bResolutionInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
+  }
+
+  export type SessionSettlementUpdateWithoutD65bResolutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
+    lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
+  }
+
+  export type SessionSettlementUncheckedUpdateWithoutD65bResolutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
+    lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
+  }
+
+  export type D65bResolutionEventUpsertWithWhereUniqueWithoutResolutionInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    update: XOR<D65bResolutionEventUpdateWithoutResolutionInput, D65bResolutionEventUncheckedUpdateWithoutResolutionInput>
+    create: XOR<D65bResolutionEventCreateWithoutResolutionInput, D65bResolutionEventUncheckedCreateWithoutResolutionInput>
+  }
+
+  export type D65bResolutionEventUpdateWithWhereUniqueWithoutResolutionInput = {
+    where: D65bResolutionEventWhereUniqueInput
+    data: XOR<D65bResolutionEventUpdateWithoutResolutionInput, D65bResolutionEventUncheckedUpdateWithoutResolutionInput>
+  }
+
+  export type D65bResolutionEventUpdateManyWithWhereWithoutResolutionInput = {
+    where: D65bResolutionEventScalarWhereInput
+    data: XOR<D65bResolutionEventUpdateManyMutationInput, D65bResolutionEventUncheckedUpdateManyWithoutResolutionInput>
+  }
+
+  export type D65bResolutionCreateWithoutEventsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionInput
+  }
+
+  export type D65bResolutionUncheckedCreateWithoutEventsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    settlementRowId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type D65bResolutionCreateOrConnectWithoutEventsInput = {
+    where: D65bResolutionWhereUniqueInput
+    create: XOR<D65bResolutionCreateWithoutEventsInput, D65bResolutionUncheckedCreateWithoutEventsInput>
+  }
+
+  export type SessionSettlementCreateWithoutD65bResolutionEventsInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
+    lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+  }
+
+  export type SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput = {
+    id?: string
+    kind: $Enums.SessionSettlementKind
+    idempotencyKey: string
+    sessionId?: string | null
+    contractId: string
+    reason?: string | null
+    status?: $Enums.SessionSettlementStatus
+    attempts?: number
+    lastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
+    lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
+    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+  }
+
+  export type SessionSettlementCreateOrConnectWithoutD65bResolutionEventsInput = {
+    where: SessionSettlementWhereUniqueInput
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput>
+  }
+
+  export type D65bResolutionUpsertWithoutEventsInput = {
+    update: XOR<D65bResolutionUpdateWithoutEventsInput, D65bResolutionUncheckedUpdateWithoutEventsInput>
+    create: XOR<D65bResolutionCreateWithoutEventsInput, D65bResolutionUncheckedCreateWithoutEventsInput>
+    where?: D65bResolutionWhereInput
+  }
+
+  export type D65bResolutionUpdateToOneWithWhereWithoutEventsInput = {
+    where?: D65bResolutionWhereInput
+    data: XOR<D65bResolutionUpdateWithoutEventsInput, D65bResolutionUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type D65bResolutionUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput
+  }
+
+  export type D65bResolutionUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type SessionSettlementUpsertWithoutD65bResolutionEventsInput = {
+    update: XOR<SessionSettlementUpdateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput>
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput>
+    where?: SessionSettlementWhereInput
+  }
+
+  export type SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionEventsInput = {
+    where?: SessionSettlementWhereInput
+    data: XOR<SessionSettlementUpdateWithoutD65bResolutionEventsInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput>
+  }
+
+  export type SessionSettlementUpdateWithoutD65bResolutionEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
+    lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+  }
+
+  export type SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumSessionSettlementStatusFieldUpdateOperationsInput | $Enums.SessionSettlementStatus
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
+    lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
+    lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
+    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
   }
 
   export type ClientJourneyCreateManyUserInput = {
@@ -91299,6 +95029,20 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type D65bResolutionEventCreateManyRowInput = {
+    id?: string
+    resolutionId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
   export type LateOpenReconciliationUpdateWithoutRowInput = {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
@@ -91444,6 +95188,48 @@ export namespace Prisma {
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionEventUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolution?: D65bResolutionUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type D65bResolutionEventUncheckedUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resolutionId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionEventUncheckedUpdateManyWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resolutionId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -92395,6 +96181,62 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type D65bResolutionEventCreateManyResolutionInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    action: string
+    actorUserId: string
+    actorRole: string
+    note?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: string | null
+    createdAt?: Date | string
+  }
+
+  export type D65bResolutionEventUpdateWithoutResolutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionEventsNestedInput
+  }
+
+  export type D65bResolutionEventUncheckedUpdateWithoutResolutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionEventUncheckedUpdateManyWithoutResolutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -92456,6 +96298,10 @@ export namespace Prisma {
      * @deprecated Use LateOpenReconciliationCountOutputTypeDefaultArgs instead
      */
     export type LateOpenReconciliationCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LateOpenReconciliationCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use D65bResolutionCountOutputTypeDefaultArgs instead
+     */
+    export type D65bResolutionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = D65bResolutionCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
@@ -92648,6 +96494,14 @@ export namespace Prisma {
      * @deprecated Use LateOpenRecoveryDefaultArgs instead
      */
     export type LateOpenRecoveryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LateOpenRecoveryDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use D65bResolutionDefaultArgs instead
+     */
+    export type D65bResolutionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = D65bResolutionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use D65bResolutionEventDefaultArgs instead
+     */
+    export type D65bResolutionEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = D65bResolutionEventDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

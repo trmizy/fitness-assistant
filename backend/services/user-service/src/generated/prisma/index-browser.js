@@ -967,6 +967,41 @@ exports.Prisma.LateOpenRecoveryScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.D65bResolutionScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  settlementRowId: 'settlementRowId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  reason: 'reason',
+  evidenceRefs: 'evidenceRefs',
+  proposedBy: 'proposedBy',
+  ledgerBefore: 'ledgerBefore',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  outcome: 'outcome',
+  outcomeAt: 'outcomeAt',
+  ledgerAfter: 'ledgerAfter'
+};
+
+exports.Prisma.D65bResolutionEventScalarFieldEnum = {
+  id: 'id',
+  resolutionId: 'resolutionId',
+  settlementRowId: 'settlementRowId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  action: 'action',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  note: 'note',
+  payload: 'payload',
+  idempotencyKey: 'idempotencyKey',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1462,7 +1497,9 @@ exports.Prisma.ModelName = {
   DisputeCaseExecution: 'DisputeCaseExecution',
   LateOpenReconciliation: 'LateOpenReconciliation',
   LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
-  LateOpenRecovery: 'LateOpenRecovery'
+  LateOpenRecovery: 'LateOpenRecovery',
+  D65bResolution: 'D65bResolution',
+  D65bResolutionEvent: 'D65bResolutionEvent'
 };
 
 /**

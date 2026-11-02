@@ -25,6 +25,8 @@ export const DISPUTE_CASE_FLAGS = {
    * internal routes with settleLateOpen:true is refused too. OFF = the whole path is refused / ignored. A D77 that is already SETTLED in cash, WAIVED or PAID_VIA_LEDGER is not affected.
    */
   LATE_OPEN_RECONCILIATION: "DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED",
+  /** D65-B: every MUTATING route of the four-eyes admin resolution of a held NO_SHOW session (POST propose / approve, retries and resumes included). Reads stay open. OFF = 409 D65B_RESOLUTION_DISABLED. */
+  D65B_RESOLUTION: "DISPUTE_CASE_D65B_RESOLUTION_ENABLED",
 } as const;
 
 export type DisputeCaseFlag = (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_CASE_FLAGS];
@@ -64,6 +66,7 @@ export const executionEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.EXE
 export const t0Enabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.T0);
 export const evidenceStorageEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE);
 export const lateOpenReconciliationEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION);
+export const d65bResolutionEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.D65B_RESOLUTION);
 
 /** For tests only: forget which warnings were already printed. */
 export const __resetFlagWarnings = () => warned.clear();
