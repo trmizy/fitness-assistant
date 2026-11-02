@@ -143,7 +143,8 @@ export const complaintService = {
     const complaint = await this.getById(id);
     if (complaint.status === 'RESOLVED') throw err('Khiếu nại này đã được xử lý xong', 409);
     // Dispute V2.1 Slice 3: once a complaint has a Case, it can only be RESOLVED through the Case (four eyes + executor), never by this direct route.
-    if (data.status === 'RESOLVED' && (await prisma.gymComplaintCase.findUnique({ where: { complaintId: id }, select: { id: true } }))) {
+    // A case that was REJECTED at intake (not accepted) hands the complaint back to this old flow.
+    if (data.status === 'RESOLVED' && (await prisma.gymComplaintCase.findFirst({ where: { complaintId: id, status: { not: 'REJECTED_INTAKE' } }, select: { id: true } }))) {
       throw err('Khiếu nại này đang có hồ sơ xử lý nên chỉ được kết thúc qua hồ sơ', 409, 'CASE_REQUIRED');
     }
 

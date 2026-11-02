@@ -120,6 +120,11 @@ test('F7: invalid status / source / issueType answer 400 (never 500); assignedAd
   assert.equal((await call('PATCH', `/admin/complaints/${complaint.id}/status`, admin.tok, { status: 123 })).status, 400);
   assert.equal((await call('GET', '/admin/complaints?status=bogus', admin.tok)).status, 400);
   assert.equal((await call('GET', '/admin/complaints?status=OPEN', admin.tok)).status, 200);
+  // the member's own submit route validates the enum before anything else (400, not a Prisma 500)
+  const cust = token(`cust-${randomUUID().slice(0, 6)}`, 'CUSTOMER');
+  const bad = await call('POST', `/gyms/${gym.id}/complaints`, cust, { issueType: 'NOPE', description: 'x' });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.body.error.code, 'INVALID_INPUT');
 
   // assignedAdminId: unknown id, a customer, an inactive admin, auth down
   authDirectory.users.set('cust-1', { role: 'CUSTOMER', isActive: true });
@@ -653,4 +658,16 @@ test('notifications: no internal enum in any text, the opening notice never ment
   assert.equal(notices.length, before + 1);
   assert.match(last.text, /120000\.00 đã được ghi vào ví Gymini/);
   for (const n of notices) assert.doesNotMatch(n.text, /\b[A-Z]{3,}(_[A-Z]+)+\b/, `internal enum in: ${n.text}`);
+});
+
+test('a case REJECTED at intake hands the complaint back to the old flow (it is not locked); a second case for it is still refused', { skip }, async () => {
+  const admin = newAdmin();
+  const { gym } = await makeGym();
+  const complaint = await makeComplaint(gym.id, `member-${randomUUID().slice(0, 6)}`);
+  const opened = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, admin.tok, { caseClass: 'GYM_GENERAL' }), 201, 'open');
+  assert.equal((await call('POST', `/admin/complaint-cases/${opened.id}/transition`, admin.tok, { to: 'REJECTED_INTAKE' })).body.error.code, 'REASON_REQUIRED');
+  assert.equal((await call('POST', `/admin/complaint-cases/${opened.id}/transition`, admin.tok, { to: 'REJECTED_INTAKE', reason: 'Không thuộc phạm vi hồ sơ' })).status, 200);
+  const old = await call('PATCH', `/admin/complaints/${complaint.id}/status`, admin.tok, { status: 'RESOLVED', adminResponse: 'Xử lý theo luồng cũ' });
+  assert.equal(old.status, 200);
+  assert.equal((await prisma.gymComplaint.findUniqueOrThrow({ where: { id: complaint.id } })).status, 'RESOLVED');
 });
