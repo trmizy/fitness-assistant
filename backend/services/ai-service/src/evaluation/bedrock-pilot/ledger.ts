@@ -20,7 +20,7 @@ export function verifySignedApproval(value: unknown, trust: { issuer: string; pu
   if (Date.parse(a.expiresAt) <= Date.now()) throw new PilotError("APPROVAL_EXPIRED");
   return a;
 }
-export function installedApproval(c: SessionConfig): { directory: string; approval: Approval } {
+export function installedApproval(c: Pick<SessionConfig, "approval" | "sources">): { directory: string; approval: Approval } {
   try {
     const file = installedTrustFile(); realDirectory(path.dirname(file));
     if (fs.lstatSync(file).isSymbolicLink()) throw new Error();

@@ -147,6 +147,12 @@ importers:
       '@qdrant/js-client-rest':
         specifier: ^1.9.0
         version: 1.16.2(typescript@5.9.3)
+      '@smithy/core':
+        specifier: 3.36.0
+        version: 3.36.0
+      '@smithy/signature-v4':
+        specifier: 5.7.4
+        version: 5.7.4
       axios:
         specifier: ^1.6.5
         version: 1.13.2
