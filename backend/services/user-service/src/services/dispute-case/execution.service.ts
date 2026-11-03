@@ -95,7 +95,7 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
     if (!approval) throw caseError(409, "DECISION_NOT_APPROVED", "Hồ sơ chưa có quyết định được duyệt");
   }
   if (approval.result !== "APPROVED") throw caseError(409, "DECISION_NOT_APPROVED", "Quyết định chưa được duyệt");
-  if (c.status !== "DECISION_APPROVED") throw caseError(409, "CASE_STATE_NOT_ALLOWED", "Hồ sơ chưa ở trạng thái đã duyệt quyết định", { status: c.status });
+  if (c.status !== "DECISION_APPROVED") throw caseError(409, "CASE_STATE_NOT_ALLOWED", "Hồ sơ chưa ở trạng thái đã duyệt quyết định", { status: c.status, allowed: ["DECISION_APPROVED"], allowedKind: "STATUSES" });
   if (c.type === "LEGACY_UNCLASSIFIED") throw caseError(409, "CLASSIFICATION_REQUIRED", "Hồ sơ còn ở phân loại tạm (LEGACY_UNCLASSIFIED)");
 
   // The outcome is computed again from the finding the proposal was built on - and that finding must still be the case's latest.

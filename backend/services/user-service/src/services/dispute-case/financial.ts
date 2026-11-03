@@ -44,7 +44,7 @@ export interface FinancialItem {
         obligation: LedgerOperationRecord["obligation"] | null;
       };
   /** RESOLVED_OTHER is F2 but must show WHY it was resolved elsewhere: the lookup does not carry the reason, so this says so instead of inventing one. */
-  resolutionReason?: { available: false; note: string };
+  resolutionReason?: { available: false; note: string } | { available: true; note: string; resolvedAt?: string | null };
 }
 
 export interface FinancialView {
@@ -55,6 +55,18 @@ export interface FinancialView {
   /** Set when group is F3: OUTSTANDING if any item is a real step / debt, VERIFICATION_REQUIRED if the queue holds only historical records. */
   f3Kind?: F3Kind;
   items: FinancialItem[];
+}
+
+/**
+ * R-13: why an obligation was RESOLVED_OTHER. The reason is stored by payment-service (contract_unpaid_obligations.resolved_note) but its read-only internal lookup does not
+ * project it yet, so today the answer is `available:false`. As soon as the lookup carries `obligation.resolvedNote` this passes it through unchanged (never invented, never edited).
+ */
+function resolutionReasonOf(ledger: FinancialItem["ledger"]): NonNullable<FinancialItem["resolutionReason"]> {
+  const ob = ledger.status === "FOUND" ? (ledger.obligation as { resolvedNote?: unknown; resolvedAt?: unknown } | null | undefined) : null;
+  if (ob && typeof ob.resolvedNote === "string" && ob.resolvedNote.trim()) {
+    return { available: true, note: ob.resolvedNote, resolvedAt: typeof ob.resolvedAt === "string" ? ob.resolvedAt : null };
+  }
+  return { available: false, note: "Sổ cái chưa trả lý do xử lý khác qua đường tra cứu này (cần payment-service mở trường resolvedNote ở tra cứu nội bộ)" };
 }
 
 export async function buildFinancialView(db: Db, sessionId: string): Promise<FinancialView> {
@@ -96,9 +108,7 @@ export async function buildFinancialView(db: Db, sessionId: string): Promise<Fin
         ...(f3KindOf(state) ? { f3Kind: f3KindOf(state) } : {}),
         ...(state === "LEGACY_NEEDS_VERIFICATION" ? { label: VERIFICATION_REQUIRED_LABEL_VI } : {}),
         ledger,
-        ...(state === "OBLIGATION_RESOLVED_OTHER"
-          ? { resolutionReason: { available: false as const, note: "Sổ cái không trả lý do xử lý khác qua đường tra cứu này (DESIGN_REQUIRED)" } }
-          : {}),
+        ...(state === "OBLIGATION_RESOLVED_OTHER" ? { resolutionReason: resolutionReasonOf(ledger) } : {}),
       };
     }),
   );

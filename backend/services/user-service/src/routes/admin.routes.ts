@@ -6,6 +6,7 @@ import { ptRestrictionController } from "../controllers/pt-restriction.controlle
 import { adminReconciliationController } from "../controllers/admin-reconciliation.controller";
 import adminPtListingRoutes from "./admin-pt-listing.routes";
 import disputeCaseAdminRoutes from "./dispute-case-admin.routes";
+import { disputeCaseController } from "../controllers/dispute-case.controller";
 import lateOpenReconciliationRoutes from "./late-open-reconciliation.routes";
 import d65bResolutionRoutes from "./d65b-resolution.routes";
 
@@ -19,6 +20,8 @@ router.use(authMiddleware, roleMiddleware(["ADMIN"]));
 router.get("/sessions/disputed", bookingController.listDisputed as any);
 // FH-4: read-only money reconciliation report (settlement rows needing a person, unconfirmed endings, disputes by SLA age).
 router.get("/sessions/reconciliation", roleMiddleware(["ADMIN"]), adminReconciliationController.get as any);
+// R-16: an admin reads one session (GET /sessions/:id is for its parties).
+router.get("/sessions/:id", disputeCaseController.adminSession as any);
 router.post("/sessions/:id/resolve", bookingController.resolveDispute as any);
 
 // ── Dispute Case (slice 1): investigation file of a disputed session. Records and decides; executes nothing (see dispute-case.service.ts). ──

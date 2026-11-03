@@ -12,8 +12,10 @@ router.post("/", c.open);
 router.get("/", c.list);
 // Fixed paths BEFORE "/:id".
 router.get("/queue", c.queue);
+router.get("/capabilities", c.capabilities);
 router.get("/contracts/:contractId/policy-eligibility", c.policyReviewsOfContract);
 router.get("/:id", c.get);
+router.get("/:id/access-log", c.accessLog);
 router.post("/:id/assign", c.assign);
 router.post("/:id/recollect", c.recollect);
 router.post("/:id/transition", c.transition);

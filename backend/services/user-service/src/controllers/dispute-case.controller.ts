@@ -7,6 +7,7 @@ import { evidenceStorageEnabled } from "../services/dispute-case/flags";
 import { MAX_EVIDENCE_BYTES } from "../services/dispute-case/evidence-storage";
 import multer from "multer";
 import {
+  accessLogQuery,
   ackBody,
   acknowledgeNeedsHumanBody,
   approvalBody,
@@ -190,6 +191,12 @@ export const disputeCaseController = {
 
   list: (req: any, res: Response) =>
     run(res, async (actor) => ({ body: await disputeCaseService.list(actor, parse(listQuery, req.query)) }), req, "list"),
+
+  capabilities: (req: any, res: Response) => run(res, async (actor) => ({ body: disputeCaseService.capabilities(actor) }), req, "capabilities"),
+
+  accessLog: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.accessLog(actor, idOf(req), parse(accessLogQuery, req.query)) }), req, "accessLog"),
+
+  adminSession: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.getSessionForAdmin(actor, String(req.params.id)) }), req, "adminSession"),
 
   queue: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.queue(actor, parse(queueQuery, req.query)) }), req, "queue"),
 

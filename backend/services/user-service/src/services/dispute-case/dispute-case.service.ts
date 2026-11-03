@@ -6,7 +6,7 @@ import { collectExternal, collectSources, draftHash, type Db, type EvidenceDraft
 import { buildFinancialView, hasLateArrivalStep, partyFinancialView } from "./financial";
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from "./errors";
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
-import { evidenceStorageEnabled, executionEnabled } from "./flags";
+import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdict } from "./flags";
 import { assertRealAdmin } from "./admin-account";
 import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
@@ -33,6 +33,7 @@ import {
   partyRoleOf,
   statementVisibleToParty,
   TERMINAL_STATUSES,
+  TRANSITIONS,
   type CaseStatus,
   type CaseType,
   type FindingKind,
@@ -73,8 +74,10 @@ const assertInvestigator = (a: Actor, c: CaseRow) => {
 };
 const classificationRequired = () =>
   caseError(409, "CLASSIFICATION_REQUIRED", "Hồ sơ còn ở phân loại tạm (LEGACY_UNCLASSIFIED). Điều tra viên cần phân loại trước khi ghi kết luận hoặc lập đề xuất");
-const stateNotAllowed = (c: CaseRow, allowed: readonly string[]) =>
-  caseError(409, "CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này", { status: c.status, allowed });
+/** R-10: `allowed` is always the REAL answer. allowedKind STATUSES = the case statuses in which the action is possible; TARGETS = the statuses this case may move to now. */
+const OPEN_STATUSES: readonly string[] = (Object.keys(TRANSITIONS) as CaseStatus[]).filter((s) => !isTerminal(s));
+const stateNotAllowed = (c: CaseRow, allowed: readonly string[], allowedKind: "STATUSES" | "TARGETS" = "STATUSES") =>
+  caseError(409, "CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này", { status: c.status, allowed, allowedKind });
 
 function summary(c: CaseRow) {
   return {
@@ -95,6 +98,25 @@ function summary(c: CaseRow) {
     updatedAt: c.updatedAt,
   };
 }
+
+/**
+ * R-04: display names of the people of a case, from the existing profile source (user_profiles.first_name / last_name; never the e-mail). A user with no profile or no name is
+ * null; the whole lookup failing is an empty map. A name is a convenience, so it NEVER fails the read.
+ */
+async function displayNames(ids: Array<string | null | undefined>): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  const uniq = [...new Set(ids.filter((i): i is string => !!i))];
+  if (uniq.length === 0) return out;
+  try {
+    const rows = await prisma.userProfile.findMany({ where: { userId: { in: uniq } }, select: { userId: true, firstName: true, lastName: true } });
+    for (const r of rows) out.set(r.userId, [r.firstName, r.lastName].map((x) => (x ?? "").trim()).filter(Boolean).join(" ") || null);
+  } catch {
+    /* names degrade to null */
+  }
+  return out;
+}
+const nameOf = (m: Map<string, string | null>, id: string | null | undefined) => (id ? (m.get(id) ?? null) : null);
+const withNames = (c: CaseRow, m: Map<string, string | null>) => ({ ...summary(c), clientName: nameOf(m, c.clientUserId), ptName: nameOf(m, c.ptUserId), investigatorName: nameOf(m, c.investigatorId) });
 
 // ── Mutation wrapper: lock, CAS, event, idempotency ──────────────────────────────────────────────────────────────────
 
@@ -122,7 +144,7 @@ async function lockCase(tx: Tx, caseId: string): Promise<CaseRow> {
 
 /** Compare-and-swap on (id, version, status). Writes nothing else; the transition is recorded in the ctx and its event written by `mutate`. */
 async function casStatus(ctx: Ctx, c: CaseRow, to: CaseStatus, note?: string): Promise<void> {
-  if (!canTransition(c.status as CaseStatus, to)) throw stateNotAllowed(c, []);
+  if (!canTransition(c.status as CaseStatus, to)) throw stateNotAllowed(c, TRANSITIONS[c.status as CaseStatus], "TARGETS");
   const r = await ctx.tx.disputeCase.updateMany({
     where: { id: c.id, version: c.version, status: c.status },
     data: { status: to, version: { increment: 1 } },
@@ -399,7 +421,7 @@ export const disputeCaseService = {
       body: {},
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
-        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, OPEN_STATUSES);
         const collected = await collectSources(ctx.tx, c.sessionId, undefined, prefetched);
         if (!collected) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
         const heads = await systemHeads(ctx.tx, c.id);
@@ -443,7 +465,7 @@ export const disputeCaseService = {
       body: { investigatorId: target },
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
-        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, OPEN_STATUSES);
         if (target === c.clientUserId || target === c.ptUserId) {
           throw caseError(403, "CONFLICT_OF_INTEREST", "Một bên của vụ việc không được làm điều tra viên");
         }
@@ -468,9 +490,9 @@ export const disputeCaseService = {
       body: { to, reason: o.reason ?? null, note: o.note ?? null },
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
-        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, OPEN_STATUSES);
         if (c.status !== "INTAKE") assertInvestigator(actor, c);
-        if (!canTransitionManually(c.status as CaseStatus, to)) throw stateNotAllowed(c, MANUAL_TARGETS.filter((t) => canTransitionManually(c.status as CaseStatus, t)));
+        if (!canTransitionManually(c.status as CaseStatus, to)) throw stateNotAllowed(c, MANUAL_TARGETS.filter((t) => canTransitionManually(c.status as CaseStatus, t)), "TARGETS");
         if (to === "REJECTED_INTAKE" && !o.reason) throw caseError(400, "REASON_REQUIRED", "Cần nhập lý do từ chối hồ sơ");
         const from = c.status;
         await casStatus(ctx, c, to, o.reason ?? o.note);
@@ -528,7 +550,7 @@ export const disputeCaseService = {
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         assertInvestigator(actor, c);
-        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, OPEN_STATUSES);
         if (!CLASSIFIABLE_TYPES.includes(type)) throw caseError(400, "TYPE_NOT_ALLOWED", "Loại hồ sơ không hợp lệ");
         if (c.type !== "LEGACY_UNCLASSIFIED") {
           throw caseError(409, "ALREADY_CLASSIFIED", "Hồ sơ này đã có loại, không phân loại lại", { type: c.type });
@@ -878,7 +900,7 @@ export const disputeCaseService = {
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         assertInvestigator(actor, c);
-        if (isTerminal(c.status as CaseStatus) || c.status === "INTAKE") throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus) || c.status === "INTAKE") throw stateNotAllowed(c, OPEN_STATUSES.filter((x) => x !== "INTAKE"));
         if (b.evidenceId) {
           const ev = await ctx.tx.disputeCaseEvidence.findFirst({
             where: { id: b.evidenceId, caseId: c.id },
@@ -932,7 +954,7 @@ export const disputeCaseService = {
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         if (actor.id === c.clientUserId || actor.id === c.ptUserId) throw caseError(403, "CONFLICT_OF_INTEREST", "Quản trị viên là một bên của vụ việc nên không được đóng hồ sơ");
-        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, OPEN_STATUSES);
         const session = await ctx.tx.session.findUnique({ where: { id: c.sessionId }, select: { status: true } });
         if (!session) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
         if (!isOrphanCase(c.status, session.status)) {
@@ -1087,7 +1109,8 @@ export const disputeCaseService = {
       prisma.disputeCase.count({ where }),
     ]);
     await logAccess(prisma, rows.map((r) => ({ caseId: r.id, viewer: actor, action: "VIEW_CASE" as const })));
-    return { total, limit: q.limit, offset: q.offset, hasMore: q.offset + rows.length < total, items: rows.map(summary) };
+    const names = await displayNames(rows.flatMap((r) => [r.clientUserId, r.ptUserId, r.investigatorId]));
+    return { total, limit: q.limit, offset: q.offset, hasMore: q.offset + rows.length < total, items: rows.map((r) => withNames(r, names)) };
   },
 
   /**
@@ -1121,6 +1144,7 @@ export const disputeCaseService = {
       }),
       prisma.session.count({ where }),
     ]);
+    const qNames = await displayNames(rows.flatMap((r) => [r.clientUserId, r.ptUserId]));
     return {
       total,
       limit: q.limit,
@@ -1137,6 +1161,8 @@ export const disputeCaseService = {
           scheduledStartAt: r.scheduledStartAt,
           clientUserId: r.clientUserId,
           ptUserId: r.ptUserId,
+          clientName: nameOf(qNames, r.clientUserId),
+          ptName: nameOf(qNames, r.ptUserId),
           hasCase: !!c,
           needsCase: !c,
           caseId: c?.id ?? null,
@@ -1146,6 +1172,96 @@ export const disputeCaseService = {
           investigatorId: c?.investigatorId ?? null,
         };
       }),
+    };
+  },
+
+  /**
+   * R-02: the REAL verdict of every Dispute flag in THIS process (the same function the guards call: "true" AND NODE_ENV=test AND an accepted isolated DB), read-only.
+   * `refusedBecause` says why a flag is off although the variable asks for on. The UI hides what is false and never guesses.
+   */
+  capabilities(actor: Actor) {
+    assertAdmin(actor);
+    const verdict = (name: (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_CASE_FLAGS]) => {
+      const v = flagVerdict(name);
+      return { effective: v.effective, ...(v.refusedBecause ? { refusedBecause: v.refusedBecause } : {}) };
+    };
+    const d = {
+      execution: verdict(DISPUTE_CASE_FLAGS.EXECUTION),
+      t0: verdict(DISPUTE_CASE_FLAGS.T0),
+      evidenceStorage: verdict(DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE),
+      lateOpenReconciliation: verdict(DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION),
+      d65bResolution: verdict(DISPUTE_CASE_FLAGS.D65B_RESOLUTION),
+    };
+    return {
+      execution: d.execution.effective,
+      t0: d.t0.effective,
+      evidenceStorage: d.evidenceStorage.effective,
+      lateOpenReconciliation: d.lateOpenReconciliation.effective,
+      d65bResolution: d.d65bResolution.effective,
+      details: d,
+    };
+  },
+
+  /** R-19: the access log of ONE case, read-only (reading it writes nothing, so the audit cannot grow by being read). Newest first. */
+  async accessLog(actor: Actor, caseId: string, q: { action?: "VIEW_CASE" | "VIEW_EVIDENCE"; limit: number; offset: number }) {
+    assertAdmin(actor);
+    requireUuid(caseId);
+    const c = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { id: true } });
+    if (!c) throw notFoundCase();
+    const where: Prisma.DisputeCaseAccessLogWhereInput = { caseId, ...(q.action ? { action: q.action } : {}) };
+    const [rows, total] = await Promise.all([
+      prisma.disputeCaseAccessLog.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: q.limit, skip: q.offset }),
+      prisma.disputeCaseAccessLog.count({ where }),
+    ]);
+    const names = await displayNames(rows.map((r) => r.viewerUserId));
+    return {
+      total,
+      limit: q.limit,
+      offset: q.offset,
+      hasMore: q.offset + rows.length < total,
+      items: rows.map((r) => ({ id: r.id, viewerUserId: r.viewerUserId, viewerName: nameOf(names, r.viewerUserId), viewerRole: r.viewerRole, action: r.action, evidenceId: r.evidenceId, createdAt: r.createdAt })),
+    };
+  },
+
+  /** R-16: an admin reads ONE session (GET /sessions/:id is refused to admins). Explicit field list, no contract money; the open case (if any) is named. */
+  async getSessionForAdmin(actor: Actor, sessionId: string) {
+    assertAdmin(actor);
+    if (!sessionId || sessionId.length > 64) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
+    const s = await prisma.session.findUnique({ where: { id: sessionId }, include: { contract: { select: { id: true, status: true, packageName: true, sessionMode: true, totalSessions: true, usedSessions: true } } } });
+    if (!s) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
+    const cases = await prisma.disputeCase.findMany({ where: { sessionId }, orderBy: [{ createdAt: "desc" }, { id: "asc" }], select: { id: true, status: true, type: true, execStatus: true, investigatorId: true, closeReason: true, createdAt: true } });
+    const names = await displayNames([s.clientUserId, s.ptUserId]);
+    return {
+      session: {
+        id: s.id,
+        contractId: s.contractId,
+        clientUserId: s.clientUserId,
+        clientName: nameOf(names, s.clientUserId),
+        ptUserId: s.ptUserId,
+        ptName: nameOf(names, s.ptUserId),
+        status: s.status,
+        sessionMode: s.sessionMode,
+        scheduledStartAt: s.scheduledStartAt,
+        scheduledEndAt: s.scheduledEndAt,
+        disputeType: s.disputeType,
+        disputeReason: s.disputeReason,
+        ptNotes: s.ptNotes,
+        disputedAt: s.disputedAt,
+        completedAt: s.completedAt,
+        sessionDeducted: s.sessionDeducted,
+        ptAtFault: s.ptAtFault,
+        clientConfirmDeadline: s.clientConfirmDeadline,
+        autoConfirmed: s.autoConfirmed,
+        cancelledBy: s.cancelledBy,
+        resolvedBy: s.resolvedBy,
+        resolvedAt: s.resolvedAt,
+        resolvedByCaseDecisionId: s.resolvedByCaseDecisionId,
+        roomPtJoinedAt: s.roomPtJoinedAt,
+        roomClientJoinedAt: s.roomClientJoinedAt,
+      },
+      contract: s.contract,
+      openCase: cases.find((c) => c.status !== "REJECTED_INTAKE") ?? null,
+      cases,
     };
   },
 
@@ -1177,7 +1293,7 @@ export const disputeCaseService = {
       prisma.disputeCaseAssessment.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseFinding.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseProposal.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { approvals: { orderBy: { createdAt: "asc" } } } }),
-      prisma.disputeCaseEvent.findMany({ where: { caseId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 200 }),
+      prisma.disputeCaseEvent.findMany({ where: { caseId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: EVENTS_LIMIT + 1 }),
       prisma.disputeCaseExecution.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.session.findUnique({ where: { id: c.sessionId }, select: { status: true } }),
       policyReviewsOf(prisma, c.contractId),
@@ -1192,7 +1308,7 @@ export const disputeCaseService = {
     const approval = approvedProposal ? ([...approvedProposal.approvals].reverse().find((a) => a.result === "APPROVED") ?? null) : null;
     const latestApproval = latestProposal?.approvals.length ? latestProposal.approvals[latestProposal.approvals.length - 1] : null;
     const sessionStatus = session?.status ?? null;
-    const execution = executionView(c, approvedProposal, approval, executions, events, sessionStatus, reviews.items);
+    const execution = executionView(c, approvedProposal, approval, executions, events.slice(0, EVENTS_LIMIT), sessionStatus, reviews.items);
     const actions = computeAllowedActions({
       actor,
       c,
@@ -1203,7 +1319,7 @@ export const disputeCaseService = {
       flags: { executionEnabled: executionEnabled(), evidenceStorageEnabled: evidenceStorageEnabled() },
     });
     return {
-      case: { ...summary(c), sessionStatus, orphan: isOrphanCase(c.status, sessionStatus) },
+      case: { ...withNames(c, await displayNames([c.clientUserId, c.ptUserId, c.investigatorId])), sessionStatus, orphan: isOrphanCase(c.status, sessionStatus) },
       claims,
       issues,
       // The admin sees plainly which rows are a party's unverified claim (effective status even for a row written before the column existed).
@@ -1221,7 +1337,9 @@ export const disputeCaseService = {
       policyReviews: reviews,
       allowedActions: allowedList(actions),
       actions,
-      events: events.map((e) => ({ ...e, payload: undefined })),
+      events: eventSummaries(events.slice(0, EVENTS_LIMIT)),
+      eventsLimit: EVENTS_LIMIT,
+      eventsTruncated: events.length > EVENTS_LIMIT,
       financial,
     };
   },
@@ -1526,6 +1644,27 @@ async function policyReviewsOf(db: Db, contractId: string) {
       supersedesId: r.supersedesId,
     })),
   };
+}
+
+export const EVENTS_LIMIT = 200;
+
+/**
+ * R-14: the event line an admin reads. The raw payload (request hash, the stored answer of an idempotent call) and the idempotency key never leave the server; `summary` keeps only
+ * the SHORT scalar facts the action recorded in payload.detail (ids, counts, results). Newest first.
+ */
+export function eventSummaries(events: Array<{ id: string; action: string; actorUserId: string; actorRole: string; fromStatus: string | null; toStatus: string | null; note: string | null; createdAt: Date; payload: unknown }>) {
+  const scalar = (v: unknown) => v === null || typeof v === "number" || typeof v === "boolean" || (typeof v === "string" && v.length <= 300);
+  return events.map((e) => {
+    const detail = (e.payload as { detail?: unknown } | null | undefined)?.detail;
+    const summary: Record<string, unknown> = {};
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+      for (const [k, v] of Object.entries(detail as Record<string, unknown>)) {
+        if (scalar(v)) summary[k] = v;
+        else if (Array.isArray(v) && v.length <= 20 && v.every(scalar)) summary[k] = v;
+      }
+    }
+    return { id: e.id, action: e.action, actorUserId: e.actorUserId, actorRole: e.actorRole, fromStatus: e.fromStatus, toStatus: e.toStatus, note: e.note, createdAt: e.createdAt, summary };
+  });
 }
 
 /** Blockers a person can read BEFORE pressing execute (informational: the executor re-checks everything itself). */

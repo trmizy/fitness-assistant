@@ -73,6 +73,8 @@ test("resolveDispute chấp nhận PT_NO_SHOW_CONFIRMED — bồi thường khá
     // B-1 release gate (D-NEW-12): the ruling core reads the contract's policy-eligibility review. Like the contract / session tables, that table is empty in this unit test, so the read is
     // answered in memory (TEST FIXTURE: an approved ELIGIBLE_CURRENT_POLICY review). The guard itself is proved in dispute-policy-eligibility.integration.test.ts.
     patch((prisma as any).disputeCasePolicyEligibilityReview, "findFirst", async () => ({ id: "fixture-review", result: "ELIGIBLE_CURRENT_POLICY" })),
+    // D65 track B: the old door reads whether the session has a Case (assertNoCaseForOldDoor); no Case here, no database.
+    patch((prisma as any).disputeCase, "findFirst", async () => null),
     patch(sessionRepository, "findById", async () => session as any),
     // F3: the ruling is a compare-and-set from DISPUTED
     patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {

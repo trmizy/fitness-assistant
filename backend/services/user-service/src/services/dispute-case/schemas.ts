@@ -172,6 +172,14 @@ export const queueQuery = z
 /** Closing a case without a decision: the reason is required (it is the audit). */
 export const closeBody = z.object({ reason: text(2000) }).strict();
 export const acknowledgeNeedsHumanBody = z.object({ note: text(2000) }).strict();
+/** R-19: the access log of one case. */
+export const accessLogQuery = z
+  .object({
+    action: z.enum(["VIEW_CASE", "VIEW_EVIDENCE"]).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    offset: z.coerce.number().int().min(0).max(100000).default(0),
+  })
+  .strict();
 export const emptyBody = z.object({}).strict();
 
 /** Only the three real types: LEGACY_UNCLASSIFIED is never a target. */
