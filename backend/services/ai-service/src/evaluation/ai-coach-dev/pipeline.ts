@@ -80,7 +80,7 @@ export function buildFiveLayerPrompt(context: ReturnType<typeof buildDevContext>
     })(),
   };
 }
-export function checkSourceLinks(value: AnalysisEnvelope, evidence: RetrievedEvidence): string[] {
+export function checkSourceLinks(value: AnalysisEnvelope, evidence: Pick<RetrievedEvidence, "passages">): string[] {
   const issues: string[] = [], seen = new Set<string>();
   for (const link of value.sourceLinks) {
     const claim = value.analysis.claims[link.claimIndex], passage = evidence.passages.find((p) => p.source.id === link.sourceId), key = link.claimIndex + ":" + link.sourceId;
@@ -151,7 +151,7 @@ export function groundCandidate(result: Awaited<ReturnType<typeof runDevSlice>>)
     candidate: blocked ? null : result.candidate, release: result.safetyHandling.action !== "NORMAL" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
 }
 /** Shared post-processing entry for real adapter outputs; no provider invocation. */
-export function verifyRawEvaluation(context: { input: AdvisoryInput; evidence: RetrievedEvidence }, rawCandidate: unknown) {
+export function verifyRawEvaluation(context: { input: AdvisoryInput; evidence: Pick<RetrievedEvidence, "passages"> }, rawCandidate: unknown) {
   const parsed = AnalysisEnvelopeSchema.safeParse(rawCandidate);
   const referenceIssues = parsed.success ? checkNamespaces(parsed.data, context.input) : null;
   const citationReferenceIssues = parsed.success ? checkSourceLinks(parsed.data, context.evidence) : null;

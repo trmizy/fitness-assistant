@@ -6,6 +6,7 @@ import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchem
 import { redact } from "./representation";
 import { digest } from "./identity";
 import { outputLifecycle } from "./lifecycle";
+import { analysisForLegacyChecks } from "../ai-coach-claim-dev/projection";
 import { cohensKappa, pairedClusterBootstrap, type Category, type CaseCell } from "./statistics";
 
 type Packet = ReviewerPacket;
@@ -73,7 +74,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     if (!body || digest(body) !== packet.packetHash || body.candidateHash !== digest(redact(packetCandidate)) || digest(body.units) !== digest(annotationUnits(redact(packetCandidate))) || body.question !== redact(frozen.sealed.case.request.question) || digest(body.facts) !== digest(redact(frozen.sealed.case.request.snapshots.flatMap((s) => s.facts)))) throw new Error("PacketRawOrCaseMismatch");
     const packetContract = validatePacketContract(packet, options);
     const lifecycle = outputLifecycle(output.raw.status, output.postGate.decision, output.raw.candidate);
-    const parsed = AnalysisEnvelopeSchema.safeParse(output.raw.candidate), valid = lifecycle.validGenerated;
+    const parsed = AnalysisEnvelopeSchema.safeParse(analysisForLegacyChecks(output.raw.candidate)), valid = lifecycle.validGenerated;
     if ((valid && !parsed.success) || (output.postGate.decision === "ELIGIBLE" && !valid)) throw new Error("RawPostGateContractMismatch");
     const annotations = input.annotations.filter((a) => a.packetHash === packet.packetHash);
     if (new Set(annotations.map((a) => a.reviewerSlot)).size !== annotations.length || new Set(annotations.map((a) => a.reviewerPseudonym)).size !== annotations.length) throw new Error("DuplicateReviewer");

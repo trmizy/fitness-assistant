@@ -4,6 +4,7 @@ import path from "node:path";
 import { ConverseCommand, CountTokensCommand, type ConverseCommandInput, type ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
 import { BEDROCK_REGION, bedrockRuntimeDeps, buildConverseTextInput, parseConverseText } from "../../services/bedrock.client";
 import { AnalysisEnvelopeSchema, type Prompt } from "../ai-coach-dev/pipeline";
+import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
 import { digest } from "../evaluation-kit/identity";
 import { protect, redact } from "../evaluation-kit/representation";
 export { redact } from "../evaluation-kit/representation";
@@ -19,6 +20,7 @@ export interface EvaluationTransport {
   invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput>;
 }
 export function inferenceTarget(c: SessionConfig) {
+  if (c.mode === "LIVE" && (c.modelId !== "amazon.nova-pro-v1:0" || c.outputContract === "CLAIM_MAP_V3")) throw new PilotError("CLAIM_PILOT_LIVE_NOT_READY");
   if (c.region !== BEDROCK_REGION && c.mode === "LIVE") throw new PilotError("ClientRegionMismatch");
   // CountTokens documents foundation model IDs/ARNs, not arbitrary profiles.
   // Never count against a base ID while Converse routes to a profile.
@@ -49,6 +51,7 @@ async function deadline<T>(ms: number, work: (signal: AbortSignal) => Promise<T>
 export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins }
 export function openEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
+  const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
   if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
@@ -131,12 +134,12 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         const latest = ledger.state(); save({ outputTokens: latest.outputTokens - cap + outputTokens!, estimatedUsd: estimatedCost(config, latest.inputTokens, latest.outputTokens - cap + outputTokens!) }, "USAGE_RECONCILED"); reconciled = true;
         try { parseConverseText(response); } catch { providerError = "MODEL_REFUSAL"; }
         if (!providerError) { try { parsedCandidate = JSON.parse(rawText); } catch { parseError = "INVALID_JSON"; }
-          if (!parseError && !AnalysisEnvelopeSchema.safeParse(parsedCandidate).success) parseError = "SCHEMA_INVALID";
+          if (!parseError && !outputSchema.safeParse(parsedCandidate).success) parseError = "SCHEMA_INVALID";
         }
       }
     } catch (e) { if (fatal) throw e; providerError = category(e); }
     const safeText = protect(rawText), safeCandidate = protect(parsedCandidate);
-    if (!providerError && !parseError && !AnalysisEnvelopeSchema.safeParse(safeCandidate.value).success) parseError = "REDACTION_SCHEMA_CHANGED";
+    if (!providerError && !parseError && !outputSchema.safeParse(safeCandidate.value).success) parseError = "REDACTION_SCHEMA_CHANGED";
     if (providerError || parseError) { const failures = ledger.state().failures + 1; save({ failures, stopped: ledger.state().stopped || failures >= config.budget.maxFailures }, "ATTEMPT_FAILED"); }
     const representation = { version: "redacted-canonical-v1", rawText: safeText.receipt, candidate: safeCandidate.receipt,
       scoringDisposition: safeText.receipt.changed || safeCandidate.receipt.changed ? "REDACTED_NOT_SCORED" : "UNCHANGED" };

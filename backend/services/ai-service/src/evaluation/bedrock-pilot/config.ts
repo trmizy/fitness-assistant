@@ -10,11 +10,13 @@ export const Hash = z.string().regex(/^[a-f0-9]{64}$/).refine((s) => !/^0+$/.tes
 export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: z.string().min(1), approvedBy: z.string().min(1), scope: z.literal("BEDROCK_EVALUATION_PILOT"), configHash: Hash, expiresAt: z.string().datetime(), signature: z.string().min(1) }).strict();
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
-  dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.literal("amazon.nova-pro-v1:0"), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
+  dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
+  outputContract: z.enum(["LEGACY_V3", "CLAIM_MAP_V3"]).optional(),
+  reviewerMode: z.enum(["TWO_RATER", "OWNER_ONLY_EXPLORATORY"]).optional(),
   design: EvaluationDesignSchema.optional(),
   parameters: z.object({ maxTokens: z.number().int().positive().max(5000), temperature: z.number().min(0.00001).max(1).optional(), topP: z.number().min(0).max(1).optional(), retries: z.literal(0), timeoutMs: z.number().int().min(1).max(300000) }).strict().refine((p) => !(p.temperature !== undefined && p.topP !== undefined), "Choose temperature or topP"),
   pins: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/).refine((s) => !/^0+$/.test(s)), code: Hash, corpus: Hash, cases: Hash, promptHashes: z.array(Hash) }).strict(),
-  sources: z.object({ workspaceRoot: z.string().refine(path.isAbsolute), casesFile: z.string().refine(path.isAbsolute) }).strict().optional(),
+  sources: z.object({ workspaceRoot: z.string().refine(path.isAbsolute), casesFile: z.string().refine(path.isAbsolute), claimRegistryConfigFile: z.string().refine(path.isAbsolute).optional(), protocolDecisionsFile: z.string().refine(path.isAbsolute).optional() }).strict().optional(),
   budget: z.object({ maxCalls: z.number().int().positive(), maxInputTokensPerCall: z.number().int().positive(), maxInputTokens: z.number().int().positive(), maxOutputTokens: z.number().int().positive(), maxEstimatedUsd: z.number().finite().positive(), maxFailures: z.number().int().positive() }).strict(),
   pricing: z.object({ authority: z.enum(["FAKE_TEST_ONLY", "OWNER_CONFIRMED_AWS"]), sourceUrl: z.literal("https://aws.amazon.com/bedrock/pricing/"), tokenUnit: z.literal("USD_PER_MILLION_TOKENS"), version: z.string().min(1), checkedAt: z.string().datetime(), expiresAt: z.string().datetime(), modelId: z.string(), inferenceProfile: z.string().nullable(), region: z.string(), inputUsdPerMillion: z.number().finite().positive(), outputUsdPerMillion: z.number().finite().positive(), confirmedBy: z.string().min(1), evidenceHash: Hash }).strict(),
   approval: ApprovalSchema.nullable(),
@@ -26,6 +28,7 @@ export function parseConfiguration(value: unknown): SessionConfig {
   const parsed = SessionConfigSchema.safeParse(value);
   if (!parsed.success) throw new PilotError("CONFIG_INVALID", { paths: parsed.error.issues.map((i) => i.path.join(".")) });
   const c = parsed.data;
+  if ((c.outputContract === "CLAIM_MAP_V3") !== !!c.sources?.claimRegistryConfigFile) throw new PilotError("ClaimContractSourcesRequired");
   assertCurrentAuthorization(c);
   return c;
 }

@@ -11,6 +11,9 @@ import { calculatePilotPins, verifySessionPins } from "./pins";
 import { openEvaluationSession, redact, type EvaluationTransport } from "./session";
 import { assertSeparate, atomicCreate, openJournal, realDirectory } from "./storage";
 import { attemptIdentity } from "./design";
+import { verifyClaimPilot } from "./claim-adapter";
+import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
+import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
 export interface RunnerOptions {
@@ -22,8 +25,8 @@ export interface RunnerOptions {
   /** FAKE-only fault probes, never a live authorization/provider bypass. */
   onStage?: (stage: PilotStage) => void;
 }
-function fakeTransport(): EvaluationTransport {
-  const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [] });
+function fakeTransport(claims: boolean): EvaluationTransport {
+  const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [], ...(claims ? { claimLinks: [] } : {}) });
   const count = (input: Parameters<EvaluationTransport["count"]>[0]) => Math.ceil(Buffer.byteLength(JSON.stringify({ messages: input.messages, system: input.system }), "utf8") / 4);
   return { kind: "FAKE", async count(input) { return count(input); }, async invoke(input) { const inputTokens = count(input); return { $metadata: {}, output: { message: { role: "assistant", content: [{ text: output }] } }, usage: { inputTokens, outputTokens: 100, totalTokens: inputTokens + 100 }, metrics: { latencyMs: 0 }, stopReason: "end_turn" }; } };
 }
@@ -32,13 +35,14 @@ export async function runControlledPilot(options: RunnerOptions) {
   if (config.mode !== "FAKE") throw new PilotError("RUNNER_LIVE_LOCKED");
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
   const reviewerDirectory = options.reviewerDirectory ?? path.resolve(options.directory) + "-reviewers";
+  const reviewerSlots = config.reviewerMode === "OWNER_ONLY_EXPLORATORY" ? ["R1"] : ["R1", "R2"];
   assertSeparate(options.directory, reviewerDirectory);
   fs.mkdirSync(reviewerDirectory, { recursive: true }); realDirectory(reviewerDirectory);
-  for (const slot of ["R1", "R2"]) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
-  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design);
+  for (const slot of reviewerSlots) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
+  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
+  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3"), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
@@ -55,6 +59,7 @@ export async function runControlledPilot(options: RunnerOptions) {
         const answer = JSON.parse(fs.readFileSync(path.join(options.directory, "answer-" + receipt.attemptKey + ".json"), "utf8"));
         if (digest(answer) !== receipt.fileHash) throw new PilotError("RESULT_INTEGRITY_FAILED");
         for (const packet of answer.packets.reviewers) {
+          if (!reviewerSlots.includes(packet.reviewerSlot)) continue;
           const exported = reviewerExport(packet);
           verifyReviewerExport(JSON.parse(fs.readFileSync(path.join(reviewerDirectory, packet.reviewerSlot, packet.body.instanceId + ".json"), "utf8")), exported.hash);
         }
@@ -98,7 +103,7 @@ export async function runControlledPilot(options: RunnerOptions) {
       const attemptKey = attemptIdentity({ caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, configHash, promptHash: row.promptHash });
       const result = finished.get(attemptKey) ?? await session.evaluate(row.prompt, attemptKey);
       options.onStage?.("EVALUATED");
-      const verification = verifyRawEvaluation(row.verificationContext, result.parsedCandidate);
+      const verification = row.claimContext ? verifyClaimPilot(row.claimContext, result.parsedCandidate) : verifyRawEvaluation(row.verificationContext, result.parsedCandidate);
       const generationStatus = result.providerError || result.parseError ? "FAILED" as const : "GENERATED" as const;
       const postGate = { decision: generationStatus === "FAILED" ? "FAILED" as const : verification.blocked ? "BLOCKED" as const : "ELIGIBLE" as const,
         structuredInvariant: generationStatus === "GENERATED" && !!verification.blockerScopes.structuredInvariant.length,
@@ -113,13 +118,15 @@ export async function runControlledPilot(options: RunnerOptions) {
         if (previous.configHash !== configHash || previous.promptHash !== row.promptHash || digest(previous.verification) !== digest(redact(verification)) || previous.candidateHash !== digest(result.parsedCandidate)) throw new PilotError("RESULT_INTEGRITY_FAILED");
       } else {
         // Packet hashes are sealed AFTER sanitizing; never redact a sealed packet again.
-        atomicCreate(file, { configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), generationStatus, postGate, lifecycle, raw: result, verification: redact(verification), packets });
+        atomicCreate(file, { configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), generationStatus, postGate, lifecycle, raw: result,
+          ...(row.claimContext ? { claimRepresentation: ClaimAnalysisSchema.safeParse(result.parsedCandidate).success ? projectClaimAnalysis(result.parsedCandidate) : null } : {}), verification: redact(verification), packets });
       }
       const stored = JSON.parse(fs.readFileSync(file, "utf8"));
       for (const packet of stored.packets.reviewers) {
         const { instanceId: _newId, ...expectedBody } = packets.reviewers[0].body;
         const { instanceId: _storedId, ...storedBody } = packet.body;
         if (digest(storedBody) !== digest(expectedBody)) throw new PilotError("PacketRawOrCaseMismatch");
+        if (!reviewerSlots.includes(packet.reviewerSlot)) continue;
         const exported = reviewerExport(packet), target = path.join(reviewerDirectory, packet.reviewerSlot, packet.body.instanceId + ".json");
         if (fs.existsSync(target)) verifyReviewerExport(JSON.parse(fs.readFileSync(target, "utf8")), exported.hash);
         else atomicCreate(target, exported.artifact);
@@ -135,7 +142,8 @@ export async function runControlledPilot(options: RunnerOptions) {
       denominators: { scheduled: preparation.rows.length + preparation.routed.length, routedBeforeGeneration: preparation.routed.length, generationEligible: preparation.rows.length, inferenceAttempts: state.inferenceCalls, finishedOutputs: outputs.filter((o) => o.generated).length,
         recordedOutputs: outputs.length, validGenerated: outputs.filter((o) => !o.failed).length, failed: outputs.filter((o) => o.failed).length, redactedOutputs: outputs.filter((o) => o.redacted).length,
         parseOrProviderFailures: outputs.filter((o) => o.failed).length, postGateEligible: outputs.filter((o) => o.generated && !o.blocked && !o.failed).length, blocked: outputs.filter((o) => o.generated && o.blocked).length, notAttempted: preparation.rows.length - state.inferenceCalls },
-      routed: preparation.routed, budget: state, rawCorrectness: null, postGateCorrectness: null, scientificPass: null, actualBedrockCalls: 0, actualEmbeddingCalls: 0, actualVectorDbCalls: 0 };
+      routed: preparation.routed, budget: state, rawCorrectness: null, postGateCorrectness: null, scientificPass: null,
+      reviewAuthority: config.reviewerMode === "OWNER_ONLY_EXPLORATORY" ? "EXPLORATORY_OWNER_REVIEWED" : "PENDING_INDEPENDENT_REVIEW", actualBedrockCalls: 0, actualEmbeddingCalls: 0, actualVectorDbCalls: 0 };
     atomicCreate(summaryFile, summary); journal.append({ event: "PILOT_COMPLETED", summaryHash: digest(summary) });
     return summary;
   } catch (e) {

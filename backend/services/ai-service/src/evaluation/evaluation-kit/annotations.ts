@@ -8,6 +8,8 @@ import { AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { canonical, digest } from "./identity";
 import { protect } from "./representation";
 import { reviewerExport } from "./reviewer-export";
+import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
+import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
 const Hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const ReviewerCaseSchema = z.object({
   version: z.literal("reviewer-case-v1"), caseKey: z.string().regex(/^case-[a-z0-9-]+$/), split: z.enum(["REVIEWED_DEV", "HELD_OUT"]),
@@ -50,7 +52,9 @@ export function validateGenerationBundle(value: unknown, expectedManifest: unkno
   return bundle;
 }
 export function annotationUnits(candidate: unknown) {
-  const parsed = AnalysisEnvelopeSchema.safeParse(candidate);
+  // Project before sealing units; packet.candidateHash still binds the FULL E2 candidate.
+  const e2 = ClaimAnalysisSchema.safeParse(candidate);
+  const parsed = AnalysisEnvelopeSchema.safeParse(e2.success ? projectClaimAnalysis(candidate).legacyView : candidate);
   return parsed.success ? [
     ...parsed.data.analysis.claims.map((c, i) => ({ unitId: "CLAIM_" + i, type: c.claimType, text: c.text, factIds: c.factIds, evidenceIds: c.evidenceIds })),
     { unitId: "CONCLUSION", type: "CONCLUSION", text: parsed.data.analysis.rationaleSummary, assessment: parsed.data.analysis.assessment, assessmentBasis: parsed.data.analysis.assessmentBasis },

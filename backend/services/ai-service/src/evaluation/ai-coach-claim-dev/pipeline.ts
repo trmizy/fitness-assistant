@@ -35,7 +35,7 @@ export function buildClaimPrompt(context: ClaimContext): Prompt {
 /** Legacy gate shape adapter only: original scientific excerpts stay separate from approved owner text.
  * year=0/doi="" mean unavailable in this projection, never fabricated bibliography. humanReviewed=false
  * is the legacy independent-review field; actual owner approval lives in the claim context. */
-function gateInput(context: ClaimContext): AdvisoryInput {
+export function gateInput(context: ClaimContext): AdvisoryInput {
   const sources = new Map<string, Source>();
   for (const match of context.retrieval.matches) for (const ref of match.claim.evidenceReferences.filter(r => r.kind === "PRIMARY_SCIENTIFIC")) {
     const previous = sources.get(ref.sourceId);

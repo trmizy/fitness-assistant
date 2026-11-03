@@ -105,7 +105,7 @@ export async function retrieveDevEvidence(question: string, corpus: Passage[], i
     return { ...base, status: searchFailed ? "UNAVAILABLE" : passages.length ? "FOUND" : "EMPTY_NO_MATCH", passages: searchFailed ? [] : passages, trace: result.trace };
   } catch { return { ...base, status: "UNAVAILABLE", passages: [], trace: null }; }
 }
-export function selectedSources(evidence: RetrievedEvidence): Source[] {
+export function selectedSources(evidence: Pick<RetrievedEvidence, "passages">): Source[] {
   return scientificSources(evidence.passages).map((s) => ({ ...s,
     originalExcerpt: evidence.passages.find((p) => p.source.id === s.id)!.excerpts.map((e) => e.text).join("\n"), supportedSummaryVi: "" }));
 }
