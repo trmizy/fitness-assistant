@@ -38,7 +38,9 @@ export function serializeNova(value: ConverseCommandInput) {
 }
 export interface NovaFakeRequest { operation: "Converse"; region: typeof NOVA_REGION; purpose: "MEASURE" | "INFERENCE"; body: string; identity: NovaWireIdentity }
 export interface NovaFakeReply { status: number; body: unknown }
-export interface NovaFakeIo { kind: "FAKE"; converse(request: NovaFakeRequest, signal: AbortSignal): Promise<NovaFakeReply> }
+/** Wire seam shared by the FAKE and LIVE adapters; status 0 means the outcome (and any billing) is unknown. */
+export interface NovaIo { converse(request: NovaFakeRequest, signal: AbortSignal): Promise<NovaFakeReply> }
+export interface NovaFakeIo extends NovaIo { kind: "FAKE" }
 const Tokens = z.number().int().nonnegative().safe();
 // Converse: inputTokens excludes explicit cache reads/writes. This adapter never sends cachePoint, and AWS documents
 // that Nova implicit cache reuse is not reported in the cache fields, so nonzero cache fields are unexpected and fail closed.
@@ -49,12 +51,19 @@ const Output = z.object({ output: z.object({ message: z.object({ role: z.literal
 
 export function createFakeNovaTransport(io: NovaFakeIo): EvaluationTransport {
   if (!io || io.kind !== "FAKE" || typeof io.converse !== "function") throw new PilotError("NOVA_FAKE_IO_REQUIRED");
+  return createNovaTransport(io, "FAKE");
+}
+/** Shared validation for both IO kinds. The LIVE IO is only constructed by the session after every owner gate. */
+export function createNovaTransport(io: NovaIo, kind: "FAKE" | "LIVE"): EvaluationTransport {
+  if (!io || typeof io.converse !== "function") throw new PilotError("NOVA_IO_REQUIRED");
   async function exchange(input: ConverseCommandInput, purpose: "MEASURE" | "INFERENCE", signal: AbortSignal) {
     const wire = serializeNova(input);
     if (signal.aborted) { const e = new Error("Aborted"); e.name = "AbortError"; throw e; }
     const reply = await io.converse(Object.freeze({ operation: "Converse" as const, region: NOVA_REGION, purpose, body: purpose === "MEASURE" ? wire.measureBody : wire.inferenceBody, identity: wire.identity }), signal);
     const fail = (code: string, unknownUsage = false): never => { throw new PilotError(code, { providerResponse: reply, wire: wire.identity, unknownUsage }); };
     if (!reply || !Number.isInteger(reply.status)) fail("NOVA_INVALID_RESPONSE", true);
+    // No HTTP status (network failure after dispatch): the request may have been billed.
+    if (reply.status === 0) fail("NOVA_NETWORK_UNKNOWN_OUTCOME", true);
     if (reply.status < 200 || reply.status >= 300) fail(reply.status === 401 || reply.status === 403 ? "NOVA_AUTHORIZATION" : reply.status === 429 ? "NOVA_THROTTLED" : reply.status === 400 ? "NOVA_REQUEST_VALIDATION" : "NOVA_PROVIDER_ERROR");
     const parsed = Output.safeParse(reply.body);
     if (!parsed.success) return fail(Usage.safeParse((reply.body as { usage?: unknown } | null)?.usage).success ? "NOVA_INVALID_RESPONSE" : "NOVA_USAGE_UNKNOWN", true);
@@ -63,7 +72,7 @@ export function createFakeNovaTransport(io: NovaFakeIo): EvaluationTransport {
     if (u.totalTokens !== u.inputTokens + u.outputTokens) fail("NOVA_USAGE_INCONSISTENT", true);
     return { wire, reply, body: parsed.data, usage: u, fail };
   }
-  return { kind: "FAKE", protocol: "NOVA_CONVERSE_MEASURED", billedCount: true,
+  return { kind, protocol: "NOVA_CONVERSE_MEASURED", billedCount: true,
     async count(input, signal) {
       const r = await exchange(input, "MEASURE", signal);
       if (r.usage.outputTokens > NOVA_MEASURE_MAX_TOKENS || !["max_tokens", "end_turn"].includes(r.body.stopReason)) return r.fail("NOVA_MEASURE_INVALID", true);

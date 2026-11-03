@@ -42,9 +42,13 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 96000 || b.maxOutputTokens > 16384 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("MANTLE_WARMUP_LIMIT_EXCEEDED");
   }
   if (c.transportProtocol === "NOVA_CONVERSE_MEASURED") {
-    if (c.mode !== "FAKE" || c.liveOptIn) throw new PilotError("NOVA_LIVE_LOCKED");
+    // FAKE can never opt in. LIVE parses only with the full signed-approval conditions checked below; the session
+    // still stops it with NOVA_LIVE_LOCKED after the trust/ledger gates.
+    if (c.mode === "FAKE" && c.liveOptIn) throw new PilotError("NOVA_LIVE_LOCKED");
     if (c.modelId !== "amazon.nova-pro-v1:0" || c.region !== "us-east-1" || c.inferenceProfile !== null) throw new PilotError("NOVA_TARGET_MISMATCH");
-    if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY" || c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null) throw new PilotError("NOVA_FAKE_CLAIM_SCOPE_REQUIRED");
+    if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY") throw new PilotError("NOVA_CLAIM_SCOPE_REQUIRED");
+    if (c.mode === "FAKE" && (c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null)) throw new PilotError("NOVA_FAKE_CLAIM_SCOPE_REQUIRED");
+    if (c.mode === "LIVE" && (!c.sources?.claimRegistryConfigFile || c.parameters.retries !== 0)) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");
     // 8 inference calls plus at most 4 billed measured preflights (one per unique prompt, maxTokens=1), each <=12,000 input.
     const b = c.budget, d = c.design;
     if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 144000 || b.maxOutputTokens > 16388 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("NOVA_WARMUP_LIMIT_EXCEEDED");

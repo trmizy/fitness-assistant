@@ -30,6 +30,19 @@ export function installedApproval(c: Pick<SessionConfig, "approval" | "sources">
     return { directory, approval: verifySignedApproval(c.approval, trust) };
   } catch (e) { if (e instanceof PilotError) throw e; throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); }
 }
+/** Read-only pre-check (no lock, no claim, no write): an unused OWNER_SIGNED ledger bound to this approval and config. */
+export function assertIssuedLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string }) {
+  if (!/^[a-zA-Z0-9-]{1,100}$/.test(args.approvalId)) throw new PilotError("APPROVAL_ID_INVALID");
+  let records: unknown[];
+  try {
+    const file = path.join(realDirectory(args.directory), args.approvalId + ".jsonl");
+    if (fs.lstatSync(file).isSymbolicLink()) throw new Error();
+    records = openJournal(file).records;
+  } catch (e) { if (e instanceof PilotError && e.code !== "UNTRUSTED_LEDGER_PATH") throw e; throw new PilotError("LEDGER_UNVERIFIABLE"); }
+  const issued = IssuedSchema.safeParse(records[0]);
+  if (!issued.success || issued.data.authority !== "OWNER_SIGNED" || issued.data.approvalId !== args.approvalId || issued.data.approvalHash !== args.approvalHash || issued.data.configHash !== args.configHash) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
+  if (records.length !== 1) throw new PilotError("APPROVAL_ALREADY_USED");
+}
 /** TEST FIXTURE ONLY. Live needs an owner-preissued, durable ISSUED journal. */
 export function issueFixtureLedger(directory: string, approvalId: string, configHash: string, approvalHash: string) {
   fs.mkdirSync(directory, { recursive: true });

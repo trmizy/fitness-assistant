@@ -9,7 +9,8 @@ import { digest } from "../evaluation-kit/identity";
 import { protect, redact } from "../evaluation-kit/representation";
 export { redact } from "../evaluation-kit/representation";
 import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, parseConfiguration, PilotError, type SessionConfig } from "./config";
-import { installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
+import { assertIssuedLedger, installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
+import { createLiveNovaTransport, NOVA_LIVE_EXECUTION_LOCKED } from "./nova-live-transport";
 import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
 import type { MantleWireIdentity } from "./mantle-transport";
@@ -27,7 +28,8 @@ export interface EvaluationTransport {
 }
 export function inferenceTarget(c: SessionConfig) {
   if (c.transportProtocol === "MANTLE_MESSAGES" || c.transportProtocol === "NOVA_CONVERSE_MEASURED") {
-    if (c.mode !== "FAKE") throw new PilotError(c.transportProtocol === "MANTLE_MESSAGES" ? "MANTLE_LIVE_LOCKED" : "NOVA_LIVE_LOCKED");
+    // Nova LIVE is locked in the session AFTER the owner gates (see openEvaluationSession), never before them.
+    if (c.mode !== "FAKE" && c.transportProtocol === "MANTLE_MESSAGES") throw new PilotError("MANTLE_LIVE_LOCKED");
     return { identifier: c.modelId, foundationModelId: c.modelId, kind: c.transportProtocol, region: c.region, pricingVersion: c.pricing.version };
   }
   if (c.mode === "LIVE" && (c.modelId !== "amazon.nova-pro-v1:0" || c.outputContract === "CLAIM_MAP_V3")) throw new PilotError("CLAIM_PILOT_LIVE_NOT_READY");
@@ -63,17 +65,26 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
   const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
-  if ((config.transportProtocol ?? null) !== (fake?.protocol ?? null)) throw new PilotError(config.transportProtocol === "NOVA_CONVERSE_MEASURED" || fake?.protocol === "NOVA_CONVERSE_MEASURED" ? "NOVA_TRANSPORT_REQUIRED" : "MANTLE_TRANSPORT_REQUIRED");
-  if (!!fake?.billedCount !== (config.transportProtocol === "NOVA_CONVERSE_MEASURED")) throw new PilotError("BILLED_COUNT_DECLARATION_MISMATCH");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
+  if (config.mode === "FAKE") {
+    if ((config.transportProtocol ?? null) !== (fake?.protocol ?? null)) throw new PilotError(config.transportProtocol === "NOVA_CONVERSE_MEASURED" || fake?.protocol === "NOVA_CONVERSE_MEASURED" ? "NOVA_TRANSPORT_REQUIRED" : "MANTLE_TRANSPORT_REQUIRED");
+    if (!!fake?.billedCount !== (config.transportProtocol === "NOVA_CONVERSE_MEASURED")) throw new PilotError("BILLED_COUNT_DECLARATION_MISMATCH");
+  }
+  // Owner gates, in order, before anything is claimed or sent: signed configuration (parseConfiguration),
+  // pinned payload/clean checkout, installed trust root + signature, then the owner-issued ledger (read-only).
   if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
   const approval = config.mode === "LIVE" ? installedApproval(config) : null;
+  if (approval && config.transportProtocol === "NOVA_CONVERSE_MEASURED") {
+    assertIssuedLedger({ directory: approval.directory, approvalId: approval.approval.approvalId, approvalHash: digest(approval.approval), configHash });
+    // Execution lock: all gates passed, nothing claimed, no credentials resolved, no request sent.
+    if (NOVA_LIVE_EXECUTION_LOCKED) throw new PilotError("NOVA_LIVE_LOCKED");
+  }
   const ledgerDirectory = approval?.directory ?? options.fixtureLedgerDirectory ?? path.join(path.dirname(path.resolve(directory)), "fixture-ledger");
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
   const approvalHash = approval ? digest(approval.approval) : digest({ authority: "FAKE_TEST_ONLY", approvalId, configHash });
   if (config.mode === "FAKE" && !options.resume && !fs.existsSync(path.join(ledgerDirectory, approvalId + ".jsonl"))) issueFixtureLedger(ledgerDirectory, approvalId, configHash, approvalHash);
   const ledger = openBudgetLedger({ directory: ledgerDirectory, approvalId, approvalHash, configHash, runDirectory: directory, mode: config.mode, resume: !!options.resume });
-  const transport = fake ?? liveTransport();
+  const transport = fake ?? (config.transportProtocol === "NOVA_CONVERSE_MEASURED" ? createLiveNovaTransport() : liveTransport());
   let journal: ReturnType<typeof openJournal>;
   try {
     if (!options.resume) {

@@ -108,7 +108,8 @@ test("Nova config cannot use a profile/other Region, raise caps, change arms or 
   try {
     const c = novaConfig(f.root); assert.doesNotThrow(() => parseConfiguration(c));
     assert.equal(inferenceTarget(c).identifier, NOVA_MODEL); assert.equal(inferenceTarget(c).kind, "NOVA_CONVERSE_MEASURED");
-    assert.throws(() => inferenceTarget({ ...c, mode: "LIVE" }), /NOVA_LIVE_LOCKED/);
+    // Nova LIVE is not locked at target resolution but in the session after the owner gates (nova-live suite).
+    assert.equal(inferenceTarget({ ...c, mode: "LIVE" }).kind, "NOVA_CONVERSE_MEASURED");
     for (const v of [{ ...c, mode: "LIVE", liveOptIn: true }, { ...c, liveOptIn: true }, { ...c, inferenceProfile: "us.amazon.nova-pro-v1:0" }, { ...c, region: "ap-southeast-1" },
       { ...c, outputContract: "LEGACY_V3" }, { ...c, reviewerMode: "TWO_RATER" }, { ...c, parameters: { ...c.parameters, maxTokens: 2049 } }, { ...c, design: { ...c.design, repeats: 3 } },
       ...[{ maxCalls: 9 }, { maxInputTokensPerCall: 13000 }, { maxInputTokens: 144001 }, { maxOutputTokens: 16389 }, { maxEstimatedUsd: 1.01 }, { maxFailures: 3 }].map(b => ({ ...c, budget: { ...c.budget, ...b } }))])
