@@ -118,6 +118,24 @@ export const complaintService = {
     return complaintRepository.listAll(status);
   },
 
+  /**
+   * R-18: the H1 queue with OPTIONAL paging. No limit / offset = the old behaviour (everything, same array). `limit` 1..200 and `offset` >= 0 are validated
+   * (400 INVALID_INPUT). The array stays in `data`; the total comes beside it, so an old client that ignores `meta` keeps working.
+   */
+  async queuePaged(status: ComplaintStatus | undefined, rawLimit: unknown, rawOffset: unknown) {
+    if (status !== undefined) assertOneOf(status, COMPLAINT_STATUSES, 'Trạng thái');
+    const num = (v: unknown, name: string, min: number, max: number): number | undefined => {
+      if (v === undefined) return undefined;
+      const n = typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
+      if (!Number.isInteger(n) || n < min || n > max) throw err(`${name} phải là số nguyên từ ${min} đến ${max}`, 400, 'INVALID_INPUT');
+      return n;
+    };
+    const limit = num(rawLimit, 'limit', 1, 200);
+    const offset = num(rawOffset, 'offset', 0, 1_000_000);
+    const [items, total] = await Promise.all([complaintRepository.listAll(status, { limit, offset }), complaintRepository.count(status)]);
+    return { items, meta: { total, limit: limit ?? null, offset: offset ?? 0 } };
+  },
+
   listForPartner(partnerId: string) {
     return complaintRepository.listForPartner(partnerId);
   },

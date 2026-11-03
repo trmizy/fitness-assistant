@@ -46,8 +46,10 @@ export const complaintController = {
   async queue(req: Request, res: Response) {
     try {
       const status = typeof req.query.status === 'string' ? (req.query.status as any) : undefined;
-      const complaints = await complaintService.queue(status);
-      res.json({ success: true, data: complaints });
+      const one = (v: unknown) => (typeof v === 'string' ? v : Array.isArray(v) ? String(v[0]) : undefined);
+      const { items, meta } = await complaintService.queuePaged(status, one(req.query.limit), one(req.query.offset));
+      res.set('X-Total-Count', String(meta.total));
+      res.json({ success: true, data: items, meta });
     } catch (e: any) {
       fail(res, e);
     }

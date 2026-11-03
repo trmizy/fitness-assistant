@@ -272,7 +272,7 @@ test('visible: the admin obligations report lists it with reason / owed / paid /
   try {
     const one: any = await (await fetch(`${url}/ledger-operations/${encodeURIComponent(key(A, 's1'))}`)).json();
     assert.equal(one.data.kind, 'LATE_ARRIVAL');
-    assert.deepEqual(one.data.obligation, { id: rec.obligationId, status: 'OPEN', owed: '125000.00', paid: '0.00', unpaid: '125000.00' });
+    assert.deepEqual(one.data.obligation, { id: rec.obligationId, status: 'OPEN', owed: '125000.00', paid: '0.00', unpaid: '125000.00', resolvedNote: null, resolvedAt: null }, 'R-13: nothing resolved yet -> the two read-only fields are null');
     // after an authorised person handles it, the lookup says so
     await m.adjust.adjustObligation({
       obligationId: rec.obligationId!, expectedUnpaid: '125000.00', expectedTransactionId: A.txnId, action: 'RESOLVE',
@@ -282,6 +282,13 @@ test('visible: the admin obligations report lists it with reason / owed / paid /
       await fetch(`${url}/ledger-operations/lookup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keys: [key(A, 's1'), 'PT_LATE_ARRIVAL:nope'] }) })
     ).json();
     assert.equal(many.data.operations[0].obligation.status, 'RESOLVED');
+    // R-13: the reason (resolved_note) and the moment (resolved_at) now travel with the live status - read only, copied from the row
+    assert.equal(many.data.operations[0].obligation.resolvedNote, 'paid to the client by bank transfer, ref BT-77');
+    assert.match(many.data.operations[0].obligation.resolvedAt, /^\d{4}-\d{2}-\d{2}T/);
+    const row = await m.prisma.contractUnpaidObligation.findUniqueOrThrow({ where: { id: rec.obligationId! } });
+    assert.equal(many.data.operations[0].obligation.resolvedAt, row.resolvedAt!.toISOString());
+    const single: any = await (await fetch(`${url}/ledger-operations/${encodeURIComponent(key(A, 's1'))}`)).json();
+    assert.equal(single.data.obligation.resolvedNote, many.data.operations[0].obligation.resolvedNote);
     assert.deepEqual(many.data.missing, ['PT_LATE_ARRIVAL:nope']);
   } finally {
     await new Promise((r) => server.close(r));
