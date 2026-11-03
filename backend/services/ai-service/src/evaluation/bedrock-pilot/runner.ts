@@ -14,6 +14,7 @@ import { attemptIdentity } from "./design";
 import { verifyClaimPilot } from "./claim-adapter";
 import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
 import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
+import { createScriptedMantleTransport } from "./mantle-transport";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
 export interface RunnerOptions {
@@ -25,8 +26,9 @@ export interface RunnerOptions {
   /** FAKE-only fault probes, never a live authorization/provider bypass. */
   onStage?: (stage: PilotStage) => void;
 }
-function fakeTransport(claims: boolean): EvaluationTransport {
+function fakeTransport(claims: boolean, mantle = false): EvaluationTransport {
   const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [], ...(claims ? { claimLinks: [] } : {}) });
+  if (mantle) return createScriptedMantleTransport(output);
   const count = (input: Parameters<EvaluationTransport["count"]>[0]) => Math.ceil(Buffer.byteLength(JSON.stringify({ messages: input.messages, system: input.system }), "utf8") / 4);
   return { kind: "FAKE", async count(input) { return count(input); }, async invoke(input) { const inputTokens = count(input); return { $metadata: {}, output: { message: { role: "assistant", content: [{ text: output }] } }, usage: { inputTokens, outputTokens: 100, totalTokens: inputTokens + 100 }, metrics: { latencyMs: 0 }, stopReason: "end_turn" }; } };
 }
@@ -40,9 +42,10 @@ export async function runControlledPilot(options: RunnerOptions) {
   fs.mkdirSync(reviewerDirectory, { recursive: true }); realDirectory(reviewerDirectory);
   for (const slot of reviewerSlots) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
   const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
+  if (config.transportProtocol === "MANTLE_MESSAGES" && (preparation.rows.length !== 8 || preparation.routed.length || new Set(preparation.rows.map(r => r.caseKey)).size !== 2)) throw new PilotError("MANTLE_WARMUP_CASES_REQUIRED");
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3"), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
+  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol === "MANTLE_MESSAGES"), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);

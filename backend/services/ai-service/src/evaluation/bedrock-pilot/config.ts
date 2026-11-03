@@ -10,7 +10,8 @@ export const Hash = z.string().regex(/^[a-f0-9]{64}$/).refine((s) => !/^0+$/.tes
 export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: z.string().min(1), approvedBy: z.string().min(1), scope: z.literal("BEDROCK_EVALUATION_PILOT"), configHash: Hash, expiresAt: z.string().datetime(), signature: z.string().min(1) }).strict();
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
-  dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
+  dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
+  transportProtocol: z.literal("MANTLE_MESSAGES").optional(),
   outputContract: z.enum(["LEGACY_V3", "CLAIM_MAP_V3"]).optional(),
   reviewerMode: z.enum(["TWO_RATER", "OWNER_ONLY_EXPLORATORY"]).optional(),
   design: EvaluationDesignSchema.optional(),
@@ -33,6 +34,13 @@ export function parseConfiguration(value: unknown): SessionConfig {
   return c;
 }
 export function assertCurrentAuthorization(c: SessionConfig) {
+  if (c.transportProtocol === "MANTLE_MESSAGES" || c.modelId === "anthropic.claude-haiku-4-5") {
+    if (c.mode !== "FAKE" || c.liveOptIn) throw new PilotError("MANTLE_LIVE_LOCKED");
+    if (c.transportProtocol !== "MANTLE_MESSAGES" || c.modelId !== "anthropic.claude-haiku-4-5" || c.region !== "us-east-2" || c.inferenceProfile !== null) throw new PilotError("MANTLE_TARGET_MISMATCH");
+    if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY" || c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null) throw new PilotError("MANTLE_FAKE_CLAIM_SCOPE_REQUIRED");
+    const b = c.budget, d = c.design;
+    if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 96000 || b.maxOutputTokens > 16384 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("MANTLE_WARMUP_LIMIT_EXCEEDED");
+  }
   const now = Date.now(), p = c.pricing;
   if (p.modelId !== c.modelId || p.inferenceProfile !== c.inferenceProfile || p.region !== c.region || Date.parse(p.expiresAt) <= now || Date.parse(p.checkedAt) > now || Date.parse(p.expiresAt) <= Date.parse(p.checkedAt)) throw new PilotError("PricingNotValid");
   if (c.mode === "LIVE" && (!c.liveOptIn || !c.profileModelConfirmed || p.authority !== "OWNER_CONFIRMED_AWS" || !c.approval || c.approval.configHash !== approvedConfigurationHash(c) || Date.parse(c.approval.expiresAt) <= now)) throw new PilotError("LiveNotApproved");

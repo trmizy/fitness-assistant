@@ -12,14 +12,20 @@ import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, p
 import { installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
 import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
+import type { MantleWireIdentity } from "./mantle-transport";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 export interface EvaluationTransport {
   kind: "FAKE" | "LIVE";
-  count(input: ConverseCommandInput, signal: AbortSignal): Promise<number>;
-  invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput>;
+  protocol?: "MANTLE_MESSAGES";
+  count(input: ConverseCommandInput, signal: AbortSignal): Promise<number | { inputTokens: number; providerResponse: unknown; wire: MantleWireIdentity }>;
+  invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput & { providerResponse?: unknown; wire?: MantleWireIdentity }>;
 }
 export function inferenceTarget(c: SessionConfig) {
+  if (c.transportProtocol === "MANTLE_MESSAGES") {
+    if (c.mode !== "FAKE") throw new PilotError("MANTLE_LIVE_LOCKED");
+    return { identifier: c.modelId, foundationModelId: c.modelId, kind: "MANTLE_MESSAGES", region: c.region, pricingVersion: c.pricing.version };
+  }
   if (c.mode === "LIVE" && (c.modelId !== "amazon.nova-pro-v1:0" || c.outputContract === "CLAIM_MAP_V3")) throw new PilotError("CLAIM_PILOT_LIVE_NOT_READY");
   if (c.region !== BEDROCK_REGION && c.mode === "LIVE") throw new PilotError("ClientRegionMismatch");
   // CountTokens documents foundation model IDs/ARNs, not arbitrary profiles.
@@ -53,6 +59,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
   const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
+  if ((config.transportProtocol === "MANTLE_MESSAGES") !== (fake?.protocol === "MANTLE_MESSAGES")) throw new PilotError("MANTLE_TRANSPORT_REQUIRED");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
   if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
   const approval = config.mode === "LIVE" ? installedApproval(config) : null;
@@ -94,12 +101,20 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     if (state.counts[hash] !== undefined) return state.counts[hash];
     if (state.countCalls >= config.budget.maxCalls) throw new PilotError("CountApiBudgetStopped");
     save({ countCalls: state.countCalls + 1 }, "COUNT_RESERVED");
+    let countResponse: ReturnType<typeof protect> | undefined, countWire: unknown;
     try {
-      const tokens = await deadline(config.parameters.timeoutMs, (signal) => transport.count(input, signal));
+      const response = await deadline(config.parameters.timeoutMs, (signal) => transport.count(input, signal));
+      const tokens = typeof response === "number" ? response : response.inputTokens;
+      if (typeof response !== "number") {
+        countResponse = protect(response.providerResponse); countWire = response.wire;
+        append({ event: "COUNT_RESPONSE", promptHash: hash, providerResponse: countResponse, wire: countWire });
+      }
       if (!Number.isInteger(tokens) || tokens < 0 || tokens > config.budget.maxInputTokensPerCall) throw new PilotError("InputTokenPreflightFailed");
       authorize(); save({ counts: { ...ledger.state().counts, [hash]: tokens } }, "COUNT_RECORDED");
-      append({ event: "TOKEN_PREFLIGHT", promptHash: hash, inputTokens: tokens, inferenceCalls: 0 }); return tokens;
-    } catch (e) { save({ stopped: true, failures: ledger.state().failures + 1 }, "COUNT_FAILED"); append({ event: "TOKEN_PREFLIGHT_FAILED", promptHash: hash, category: category(e) }); throw new PilotError("TokenPreflightFailed"); }
+      append({ event: "TOKEN_PREFLIGHT", promptHash: hash, inputTokens: tokens, inferenceCalls: 0,
+        ...(countResponse ? { providerResponse: countResponse, wire: countWire } : {}) }); return tokens;
+    } catch (e) { save({ stopped: true, failures: ledger.state().failures + 1 }, "COUNT_FAILED"); append({ event: "TOKEN_PREFLIGHT_FAILED", promptHash: hash, category: category(e),
+      ...(countResponse ? { providerResponse: countResponse, wire: countWire } : transport.protocol === "MANTLE_MESSAGES" && e instanceof PilotError ? { providerResponse: protect(e.details.providerResponse ?? null), wire: e.details.wire ?? null } : {}) }); throw new PilotError("TokenPreflightFailed"); }
   }
   async function attempt(prompt: Prompt, attemptKey?: string) {
     authorize(); const { hash, input } = inputFor(prompt), before = ledger.state();
@@ -121,14 +136,17 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     append({ event: "INFERENCE_RESERVED", attemptKey: key, promptHash: hash, inputTokens: inputCount, outputTokenCap: cap });
     let rawText: string | null = null, parsedCandidate: unknown = null, parseError: string | null = null, providerError: string | null = null, stopReason: string | null = null;
     let inputTokens: number | null = null, outputTokens: number | null = null, reconciled = false;
+    let providerResponse: ReturnType<typeof protect> | undefined, wire: unknown;
     const inferenceStarted = Date.now();
     try {
       const response = await deadline(config.parameters.timeoutMs, (signal) => transport.invoke(input, signal));
+      if (transport.protocol === "MANTLE_MESSAGES") { providerResponse = protect(response.providerResponse ?? null); wire = response.wire; }
       rawText = (response.output?.message?.content ?? []).map((b) => "text" in b ? b.text ?? "" : "").join("");
       stopReason = response.stopReason ?? null; inputTokens = response.usage?.inputTokens ?? null; outputTokens = response.usage?.outputTokens ?? null;
       // First durable response copy. Later verification/summary failures retain it.
       const safeText = protect(rawText);
-      append({ event: "RAW_RESPONSE", attemptKey: key, promptHash: hash, rawText: safeText.value, rawTextHash: safeText.receipt.storedHash, representation: safeText.receipt, inputTokens, outputTokens, stopReason });
+      append({ event: "RAW_RESPONSE", attemptKey: key, promptHash: hash, rawText: safeText.value, rawTextHash: safeText.receipt.storedHash, representation: safeText.receipt, inputTokens, outputTokens, stopReason,
+        ...(providerResponse ? { providerResponse, wire } : {}) });
       if (inputTokens !== inputCount || !Number.isInteger(outputTokens) || outputTokens! < 0 || outputTokens! > cap) { save({ stopped: true }, "USAGE_MISMATCH"); providerError = "USAGE_MISMATCH_OR_UNKNOWN"; }
       else {
         const latest = ledger.state(); save({ outputTokens: latest.outputTokens - cap + outputTokens!, estimatedUsd: estimatedCost(config, latest.inputTokens, latest.outputTokens - cap + outputTokens!) }, "USAGE_RECONCILED"); reconciled = true;
@@ -137,7 +155,13 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
           if (!parseError && !outputSchema.safeParse(parsedCandidate).success) parseError = "SCHEMA_INVALID";
         }
       }
-    } catch (e) { if (fatal) throw e; providerError = category(e); }
+    } catch (e) { if (fatal) throw e; providerError = category(e);
+      if (transport.protocol === "MANTLE_MESSAGES" && e instanceof PilotError) {
+        providerResponse = protect(e.details.providerResponse ?? null); wire = e.details.wire ?? null;
+        append({ event: "PROVIDER_RESPONSE_REJECTED", attemptKey: key, providerResponse, wire, category: providerError });
+        if (e.details.unknownUsage === true) save({ stopped: true }, "USAGE_UNKNOWN");
+      }
+    }
     const safeText = protect(rawText), safeCandidate = protect(parsedCandidate);
     if (!providerError && !parseError && !outputSchema.safeParse(safeCandidate.value).success) parseError = "REDACTION_SCHEMA_CHANGED";
     if (providerError || parseError) { const failures = ledger.state().failures + 1; save({ failures, stopped: ledger.state().stopped || failures >= config.budget.maxFailures }, "ATTEMPT_FAILED"); }
@@ -145,6 +169,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
       scoringDisposition: safeText.receipt.changed || safeCandidate.receipt.changed ? "REDACTED_NOT_SCORED" : "UNCHANGED" };
     const result = { event: "ATTEMPT_FINISHED", executionMode: config.mode, attemptKey: key, promptHash: hash, rawText: safeText.value as string | null, rawTextHash: rawText === null ? null : safeText.receipt.storedHash, parsedCandidate: safeCandidate.value, representation, parseError, providerError, inputTokens, outputTokens,
       latencyMs: Date.now() - started, countLatencyMs, inferenceLatencyMs: Date.now() - inferenceStarted, stopReason, target,
+      ...(providerResponse ? { providerResponse, wire } : {}),
       estimatedUsd: reconciled ? estimatedCost(config, inputTokens!, outputTokens!) : null, conservativeReservationRetained: !reconciled };
     append(result); return result;
   }
