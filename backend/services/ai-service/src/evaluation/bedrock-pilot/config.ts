@@ -11,7 +11,7 @@ export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: 
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
-  transportProtocol: z.literal("MANTLE_MESSAGES").optional(),
+  transportProtocol: z.enum(["MANTLE_MESSAGES", "NOVA_CONVERSE_MEASURED"]).optional(),
   outputContract: z.enum(["LEGACY_V3", "CLAIM_MAP_V3"]).optional(),
   reviewerMode: z.enum(["TWO_RATER", "OWNER_ONLY_EXPLORATORY"]).optional(),
   design: EvaluationDesignSchema.optional(),
@@ -40,6 +40,14 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY" || c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null) throw new PilotError("MANTLE_FAKE_CLAIM_SCOPE_REQUIRED");
     const b = c.budget, d = c.design;
     if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 96000 || b.maxOutputTokens > 16384 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("MANTLE_WARMUP_LIMIT_EXCEEDED");
+  }
+  if (c.transportProtocol === "NOVA_CONVERSE_MEASURED") {
+    if (c.mode !== "FAKE" || c.liveOptIn) throw new PilotError("NOVA_LIVE_LOCKED");
+    if (c.modelId !== "amazon.nova-pro-v1:0" || c.region !== "us-east-1" || c.inferenceProfile !== null) throw new PilotError("NOVA_TARGET_MISMATCH");
+    if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY" || c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null) throw new PilotError("NOVA_FAKE_CLAIM_SCOPE_REQUIRED");
+    // 8 inference calls plus at most 4 billed measured preflights (one per unique prompt, maxTokens=1), each <=12,000 input.
+    const b = c.budget, d = c.design;
+    if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 144000 || b.maxOutputTokens > 16388 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("NOVA_WARMUP_LIMIT_EXCEEDED");
   }
   const now = Date.now(), p = c.pricing;
   if (p.modelId !== c.modelId || p.inferenceProfile !== c.inferenceProfile || p.region !== c.region || Date.parse(p.expiresAt) <= now || Date.parse(p.checkedAt) > now || Date.parse(p.expiresAt) <= Date.parse(p.checkedAt)) throw new PilotError("PricingNotValid");

@@ -13,18 +13,22 @@ import { installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledge
 import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
 import type { MantleWireIdentity } from "./mantle-transport";
+import type { NovaWireIdentity } from "./nova-converse-transport";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
+type WireIdentity = MantleWireIdentity | NovaWireIdentity;
 export interface EvaluationTransport {
   kind: "FAKE" | "LIVE";
-  protocol?: "MANTLE_MESSAGES";
-  count(input: ConverseCommandInput, signal: AbortSignal): Promise<number | { inputTokens: number; providerResponse: unknown; wire: MantleWireIdentity }>;
-  invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput & { providerResponse?: unknown; wire?: MantleWireIdentity }>;
+  protocol?: "MANTLE_MESSAGES" | "NOVA_CONVERSE_MEASURED";
+  /** The count is itself a billed model call (Nova measured preflight); its spend is reserved and reconciled. */
+  billedCount?: boolean;
+  count(input: ConverseCommandInput, signal: AbortSignal): Promise<number | { inputTokens: number; providerResponse: unknown; wire: WireIdentity; billedUsage?: { inputTokens: number; outputTokens: number } }>;
+  invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput & { providerResponse?: unknown; wire?: WireIdentity }>;
 }
 export function inferenceTarget(c: SessionConfig) {
-  if (c.transportProtocol === "MANTLE_MESSAGES") {
-    if (c.mode !== "FAKE") throw new PilotError("MANTLE_LIVE_LOCKED");
-    return { identifier: c.modelId, foundationModelId: c.modelId, kind: "MANTLE_MESSAGES", region: c.region, pricingVersion: c.pricing.version };
+  if (c.transportProtocol === "MANTLE_MESSAGES" || c.transportProtocol === "NOVA_CONVERSE_MEASURED") {
+    if (c.mode !== "FAKE") throw new PilotError(c.transportProtocol === "MANTLE_MESSAGES" ? "MANTLE_LIVE_LOCKED" : "NOVA_LIVE_LOCKED");
+    return { identifier: c.modelId, foundationModelId: c.modelId, kind: c.transportProtocol, region: c.region, pricingVersion: c.pricing.version };
   }
   if (c.mode === "LIVE" && (c.modelId !== "amazon.nova-pro-v1:0" || c.outputContract === "CLAIM_MAP_V3")) throw new PilotError("CLAIM_PILOT_LIVE_NOT_READY");
   if (c.region !== BEDROCK_REGION && c.mode === "LIVE") throw new PilotError("ClientRegionMismatch");
@@ -59,7 +63,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
   const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
-  if ((config.transportProtocol === "MANTLE_MESSAGES") !== (fake?.protocol === "MANTLE_MESSAGES")) throw new PilotError("MANTLE_TRANSPORT_REQUIRED");
+  if ((config.transportProtocol ?? null) !== (fake?.protocol ?? null)) throw new PilotError(config.transportProtocol === "NOVA_CONVERSE_MEASURED" || fake?.protocol === "NOVA_CONVERSE_MEASURED" ? "NOVA_TRANSPORT_REQUIRED" : "MANTLE_TRANSPORT_REQUIRED");
+  if (!!fake?.billedCount !== (config.transportProtocol === "NOVA_CONVERSE_MEASURED")) throw new PilotError("BILLED_COUNT_DECLARATION_MISMATCH");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
   if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
   const approval = config.mode === "LIVE" ? installedApproval(config) : null;
@@ -100,7 +105,13 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     authorize(); const { hash, input } = inputFor(prompt); const state = ledger.state();
     if (state.counts[hash] !== undefined) return state.counts[hash];
     if (state.countCalls >= config.budget.maxCalls) throw new PilotError("CountApiBudgetStopped");
-    save({ countCalls: state.countCalls + 1 }, "COUNT_RESERVED");
+    // A billed measured preflight sends the full prompt before its size is known: reserve the per-call input cap
+    // plus its 1 output token durably first, then reconcile to AWS-reported usage (which may exceed the reservation).
+    const billed = !!transport.billedCount, reserveIn = config.budget.maxInputTokensPerCall, reserveOut = 1;
+    if (billed && (state.inputTokens + reserveIn > config.budget.maxInputTokens || state.outputTokens + reserveOut > config.budget.maxOutputTokens || estimatedCost(config, state.inputTokens + reserveIn, state.outputTokens + reserveOut) > config.budget.maxEstimatedUsd)) {
+      save({ stopped: true }, "MEASURE_BUDGET_REJECTED"); append({ event: "TOKEN_PREFLIGHT_FAILED", promptHash: hash, category: "MEASURE_BUDGET_REJECTED" }); throw new PilotError("TokenPreflightFailed");
+    }
+    save({ countCalls: state.countCalls + 1, ...(billed ? { inputTokens: state.inputTokens + reserveIn, outputTokens: state.outputTokens + reserveOut, estimatedUsd: estimatedCost(config, state.inputTokens + reserveIn, state.outputTokens + reserveOut) } : {}) }, billed ? "MEASURE_RESERVED" : "COUNT_RESERVED");
     let countResponse: ReturnType<typeof protect> | undefined, countWire: unknown;
     try {
       const response = await deadline(config.parameters.timeoutMs, (signal) => transport.count(input, signal));
@@ -109,12 +120,19 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         countResponse = protect(response.providerResponse); countWire = response.wire;
         append({ event: "COUNT_RESPONSE", promptHash: hash, providerResponse: countResponse, wire: countWire });
       }
+      if (billed) {
+        const u = typeof response === "number" ? undefined : response.billedUsage;
+        if (!u || !Number.isInteger(u.inputTokens) || u.inputTokens < 0 || u.inputTokens !== tokens || !Number.isInteger(u.outputTokens) || u.outputTokens < 0 || u.outputTokens > reserveOut) throw new PilotError("MEASURE_USAGE_UNKNOWN", { unknownUsage: true });
+        const latest = ledger.state(), inputTokens = latest.inputTokens - reserveIn + u.inputTokens, outputTokens = latest.outputTokens - reserveOut + u.outputTokens;
+        save({ inputTokens, outputTokens, estimatedUsd: estimatedCost(config, inputTokens, outputTokens) }, "MEASURE_RECONCILED");
+        append({ event: "MEASURE_BILLED", promptHash: hash, inputTokens: u.inputTokens, outputTokens: u.outputTokens });
+      }
       if (!Number.isInteger(tokens) || tokens < 0 || tokens > config.budget.maxInputTokensPerCall) throw new PilotError("InputTokenPreflightFailed");
       authorize(); save({ counts: { ...ledger.state().counts, [hash]: tokens } }, "COUNT_RECORDED");
       append({ event: "TOKEN_PREFLIGHT", promptHash: hash, inputTokens: tokens, inferenceCalls: 0,
         ...(countResponse ? { providerResponse: countResponse, wire: countWire } : {}) }); return tokens;
     } catch (e) { save({ stopped: true, failures: ledger.state().failures + 1 }, "COUNT_FAILED"); append({ event: "TOKEN_PREFLIGHT_FAILED", promptHash: hash, category: category(e),
-      ...(countResponse ? { providerResponse: countResponse, wire: countWire } : transport.protocol === "MANTLE_MESSAGES" && e instanceof PilotError ? { providerResponse: protect(e.details.providerResponse ?? null), wire: e.details.wire ?? null } : {}) }); throw new PilotError("TokenPreflightFailed"); }
+      ...(countResponse ? { providerResponse: countResponse, wire: countWire } : !!transport.protocol && e instanceof PilotError ? { providerResponse: protect(e.details.providerResponse ?? null), wire: e.details.wire ?? null } : {}) }); throw new PilotError("TokenPreflightFailed"); }
   }
   async function attempt(prompt: Prompt, attemptKey?: string) {
     authorize(); const { hash, input } = inputFor(prompt), before = ledger.state();
@@ -140,7 +158,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     const inferenceStarted = Date.now();
     try {
       const response = await deadline(config.parameters.timeoutMs, (signal) => transport.invoke(input, signal));
-      if (transport.protocol === "MANTLE_MESSAGES") { providerResponse = protect(response.providerResponse ?? null); wire = response.wire; }
+      if (transport.protocol) { providerResponse = protect(response.providerResponse ?? null); wire = response.wire; }
       rawText = (response.output?.message?.content ?? []).map((b) => "text" in b ? b.text ?? "" : "").join("");
       stopReason = response.stopReason ?? null; inputTokens = response.usage?.inputTokens ?? null; outputTokens = response.usage?.outputTokens ?? null;
       // First durable response copy. Later verification/summary failures retain it.
@@ -156,7 +174,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         }
       }
     } catch (e) { if (fatal) throw e; providerError = category(e);
-      if (transport.protocol === "MANTLE_MESSAGES" && e instanceof PilotError) {
+      if (!!transport.protocol && e instanceof PilotError) {
         providerResponse = protect(e.details.providerResponse ?? null); wire = e.details.wire ?? null;
         append({ event: "PROVIDER_RESPONSE_REJECTED", attemptKey: key, providerResponse, wire, category: providerError });
         if (e.details.unknownUsage === true) save({ stopped: true }, "USAGE_UNKNOWN");

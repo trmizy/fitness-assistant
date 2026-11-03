@@ -15,6 +15,8 @@ import { verifyClaimPilot } from "./claim-adapter";
 import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
 import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
 import { createScriptedMantleTransport } from "./mantle-transport";
+import { createScriptedNovaTransport } from "./nova-converse-transport";
+import type { SessionConfig } from "./config";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
 export interface RunnerOptions {
@@ -26,9 +28,10 @@ export interface RunnerOptions {
   /** FAKE-only fault probes, never a live authorization/provider bypass. */
   onStage?: (stage: PilotStage) => void;
 }
-function fakeTransport(claims: boolean, mantle = false): EvaluationTransport {
+function fakeTransport(claims: boolean, protocol?: SessionConfig["transportProtocol"]): EvaluationTransport {
   const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [], ...(claims ? { claimLinks: [] } : {}) });
-  if (mantle) return createScriptedMantleTransport(output);
+  if (protocol === "MANTLE_MESSAGES") return createScriptedMantleTransport(output);
+  if (protocol === "NOVA_CONVERSE_MEASURED") return createScriptedNovaTransport(output);
   const count = (input: Parameters<EvaluationTransport["count"]>[0]) => Math.ceil(Buffer.byteLength(JSON.stringify({ messages: input.messages, system: input.system }), "utf8") / 4);
   return { kind: "FAKE", async count(input) { return count(input); }, async invoke(input) { const inputTokens = count(input); return { $metadata: {}, output: { message: { role: "assistant", content: [{ text: output }] } }, usage: { inputTokens, outputTokens: 100, totalTokens: inputTokens + 100 }, metrics: { latencyMs: 0 }, stopReason: "end_turn" }; } };
 }
@@ -42,10 +45,12 @@ export async function runControlledPilot(options: RunnerOptions) {
   fs.mkdirSync(reviewerDirectory, { recursive: true }); realDirectory(reviewerDirectory);
   for (const slot of reviewerSlots) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
   const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
-  if (config.transportProtocol === "MANTLE_MESSAGES" && (preparation.rows.length !== 8 || preparation.routed.length || new Set(preparation.rows.map(r => r.caseKey)).size !== 2)) throw new PilotError("MANTLE_WARMUP_CASES_REQUIRED");
+  if (config.transportProtocol && (preparation.rows.length !== 8 || preparation.routed.length || new Set(preparation.rows.map(r => r.caseKey)).size !== 2)) throw new PilotError(config.transportProtocol === "MANTLE_MESSAGES" ? "MANTLE_WARMUP_CASES_REQUIRED" : "NOVA_WARMUP_CASES_REQUIRED");
+  // Each measured preflight is billed: exactly one per unique prompt (4 = 2 cases x 2 arms; repeats reuse the measurement).
+  if (config.transportProtocol === "NOVA_CONVERSE_MEASURED" && new Set(preparation.rows.map(r => r.promptHash)).size !== 4) throw new PilotError("NOVA_WARMUP_CASES_REQUIRED");
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol === "MANTLE_MESSAGES"), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
+  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
@@ -70,7 +75,10 @@ export async function runControlledPilot(options: RunnerOptions) {
       return prior;
     }
     const counts = await session.previewTokenCounts(preparation.rows.map((r) => r.prompt));
-    const inputCeiling = counts.reduce((n, r) => n + r.inputTokens, 0), outputCeiling = preparation.rows.length * config.parameters.maxTokens;
+    // Nova measured preflights are billed model calls: one per unique prompt, full input plus at most 1 output token.
+    const measured = config.transportProtocol === "NOVA_CONVERSE_MEASURED" ? [...new Map(counts.map(c => [c.promptHash, c.inputTokens])).values()] : [];
+    const measuredPreflight = measured.length ? { authority: "FAKE_TEST_ONLY_NOT_MODEL_TOKENS", calls: measured.length, inputTokens: measured.reduce((n, t) => n + t, 0), outputTokenCeiling: measured.length } : null;
+    const inputCeiling = counts.reduce((n, r) => n + r.inputTokens, 0) + (measuredPreflight?.inputTokens ?? 0), outputCeiling = preparation.rows.length * config.parameters.maxTokens + (measuredPreflight?.outputTokenCeiling ?? 0);
     const tokenLengthControls = preparation.rows.filter((r) => r.arm === "LAYERED_CONTEXT_PLACEBO").map((row) => {
       const index = preparation.rows.indexOf(row), pairedIndex = preparation.rows.findIndex((r) => r.caseKey === row.caseKey && r.policy === row.policy && r.repeatIndex === row.repeatIndex && r.arm === "LAYERED_CONTEXT");
       return { caseKey: row.caseKey, authority: "FAKE_TEST_ONLY", contextTokens: counts[pairedIndex]?.inputTokens ?? null, paddedTokens: counts[index].inputTokens, delta: pairedIndex < 0 ? null : counts[index].inputTokens - counts[pairedIndex].inputTokens, modelTokenMatch: "NOT_EVALUATED" };
@@ -78,6 +86,7 @@ export async function runControlledPilot(options: RunnerOptions) {
     const preview = { mode: "FAKE", configHash, approvalId: session.approvalId, target: session.target, pins: config.pins, inferenceCallsCeiling: preparation.rows.length, countApiCallsCeiling: new Set(config.pins.promptHashes).size,
       tokenAuthority: "FAKE_TEST_ONLY_NOT_MODEL_TOKENS", inputTokenCeiling: inputCeiling, outputTokenCeiling: outputCeiling, estimatedUsdCeiling: estimatedCost(config, inputCeiling, outputCeiling), approvedUsdCap: config.budget.maxEstimatedUsd,
       stopConditions: ["CALL_TOKEN_SPEND_CAP", "PIN_OR_APPROVAL_DRIFT", "UNKNOWN_USAGE", "FAILURE_THRESHOLD", "PERSISTENCE_OR_LOCK_FAILURE", "SAFETY_OUT_OF_DOMAIN_ROUTED"], tokenLengthControls,
+      ...(measuredPreflight ? { measuredPreflight } : {}),
       countsByRow: counts.map((c, i) => ({ caseKey: preparation.rows[i].caseKey, arm: preparation.rows[i].arm, promptHash: c.promptHash, fakeInputTokens: c.inputTokens, modelInputTokens: null, contextSize: preparation.rows[i].contextSize })) };
     options.onPreview?.(preview);
     if (!fs.existsSync(path.join(options.directory, "preview.json"))) atomicCreate(path.join(options.directory, "preview.json"), preview);
