@@ -1,3 +1,4 @@
+import { COMPLAINT_NO_AUTO_REFUND_SENTENCE } from "./disputes/disputeCaseLabels";
 import { useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -240,6 +241,7 @@ export function ComplaintDetailDialog({
                 placeholder="Phản hồi (bắt buộc khi đánh dấu Đã xử lý — người báo cáo sẽ thấy nội dung này)"
                 rows={3}
               />
+              <p className="text-xs text-zinc-500">{COMPLAINT_NO_AUTO_REFUND_SENTENCE}</p>
               <div className="flex gap-2">
                 {complaint.status === "OPEN" && (
                   <Button variant="outline" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate("IN_PROGRESS")}>

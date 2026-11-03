@@ -120,6 +120,9 @@ const AdminCatalogQuality = lazy(() => import("./pages/admin/AdminCatalogQuality
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring").then((m) => ({ default: m.SystemMonitoring })));
 const AdminAIObservability = lazy(() => import("./pages/admin/AdminAIObservability").then((m) => ({ default: m.AdminAIObservability })));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes").then((m) => ({ default: m.AdminDisputes })));
+const AdminDisputeCasePage = lazy(() => import("./pages/admin/disputes/workspace/AdminDisputeCasePage").then((m) => ({ default: m.AdminDisputeCasePage })));
+const MyDisputesPage = lazy(() => import("./pages/disputes/MyDisputesPage").then((m) => ({ default: m.MyDisputesPage })));
+const DisputeCasePartyPage = lazy(() => import("./pages/disputes/DisputeCasePartyPage").then((m) => ({ default: m.DisputeCasePartyPage })));
 const AdminGymModeration = lazy(() => import("./pages/admin/AdminGymModeration").then((m) => ({ default: m.AdminGymModeration })));
 const AdminPartnersPage = lazy(() => import("./pages/admin/AdminPartnersPage").then((m) => ({ default: m.AdminPartnersPage })));
 const AdminGymManagementOverview = lazy(() =>
@@ -287,6 +290,22 @@ export const router = createBrowserRouter([
         ],
       },
 
+      // ── Khiếu nại của tôi (M12): hồ sơ tranh chấp buổi tập mà khách / PT là một bên. Cùng vỏ AppShell và cùng cổng vai trò với /client. ──
+      {
+        path: "disputes",
+        element: (
+          <RequireRole allow={["client", "pt"]}>
+            <RequireOnboarding>
+              <AppShell />
+            </RequireOnboarding>
+          </RequireRole>
+        ),
+        children: [
+          { index: true, Component: MyDisputesPage },
+          { path: ":caseId", Component: DisputeCasePartyPage },
+        ],
+      },
+
       // ── PT workspace ─────────────────────────────────────────────────────
       {
         path: "pt",
@@ -375,6 +394,7 @@ export const router = createBrowserRouter([
           { path: "withdrawals", Component: LegacyAdminRedirect },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
+          { path: "disputes/:caseId", Component: AdminDisputeCasePage },
           { path: "gym-management", Component: AdminGymManagementOverview },
           { path: "gyms", Component: AdminGymModeration },
           { path: "partners", Component: AdminPartnersPage },

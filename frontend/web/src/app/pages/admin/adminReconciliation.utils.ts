@@ -204,6 +204,8 @@ export interface ObligationsReport {
       awaitingEvidence: { count: number; unpaid: string };
       /** Đã thanh toán được xác minh. `amount` gồm cả các lần trả một phần đã xác minh. */
       paidVerified: { count: number; amount: string };
+      /** Đã trả vào ví Gymini bằng bút toán sổ cái nội bộ (không phải chuyển khoản, không qua xác minh chứng từ). Server chỉ trả số lượng. */
+      paidViaLedger: { count: number };
       /** BẢN GHI CŨ: đã ghi nhận chứng từ nhưng CHƯA xác minh (không phải bằng chứng đã trả). */
       paidExternally: { count: number; amount: string };
       waived: { count: number; unpaid: string };
@@ -327,7 +329,7 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
 
 /**
- * Vòng đời: Đang mở -> Đã phê duyệt chi -> Đang chờ chứng từ -> Đã thanh toán được xác minh. Chỉ "được xác minh" mới là đã trả.
+ * Vòng đời: Đang mở -> Đã phê duyệt chi -> Đang chờ chứng từ -> Đã thanh toán được xác minh. Chi ngoài hệ thống: chỉ "được xác minh" mới là đã trả. Ngoài ra PAID_VIA_LEDGER = đã trả vào ví Gymini bằng bút toán sổ cái (không phải chuyển khoản ngân hàng).
  * PAID_EXTERNALLY là bản ghi cũ (chứng từ tự nhập, chưa ai xác minh) nên nhãn nói rõ "CHƯA xác minh".
  */
 export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
@@ -336,6 +338,7 @@ export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
   APPROVED_FOR_PAYMENT: "Đã phê duyệt chi",
   AWAITING_EVIDENCE: "Đang chờ chứng từ",
   PAID_VERIFIED: "Đã thanh toán được xác minh",
+  PAID_VIA_LEDGER: "Đã trả vào ví Gymini",
   PAID_EXTERNALLY: "Đã ghi nhận chứng từ — chưa xác minh",
   WAIVED: "Không truy đòi",
   RESOLVED_OTHER: "Đã giải quyết bằng phương thức khác",
@@ -366,14 +369,17 @@ export const PAYMENT_SOURCE_LABEL: Record<string, string> = {
 export const paymentSourceLabel = (s: string | null | undefined) => lookup(PAYMENT_SOURCE_LABEL, s, "Nguồn khác");
 
 /**
- * Nhóm hiển thị của một trạng thái nghĩa vụ. `verified` là nhóm DUY NHẤT được coi là đã trả; `unverified` là bản ghi cũ
+ * Nhóm hiển thị của một trạng thái nghĩa vụ. `verified` là nhóm DUY NHẤT được coi là đã chi ngoài hệ thống và có người xác minh; `ledgerPaid` là đã trả vào ví Gymini (không gộp với `verified`); `unverified` là bản ghi cũ
  * tự nhập chứng từ (không phải bằng chứng); `pending` là đã phê duyệt / chờ chứng từ (vẫn còn thiếu).
  */
-export type ObligationTone = "open" | "pending" | "verified" | "unverified" | "closed";
+export type ObligationTone = "open" | "pending" | "verified" | "ledgerPaid" | "unverified" | "closed";
 export function obligationTone(status: string | null | undefined): ObligationTone {
   switch (status) {
     case "PAID_VERIFIED":
       return "verified";
+    // Nhóm F1 nhưng KHÔNG phải "verified": trả bằng bút toán ví nội bộ, không có người thứ hai xác minh chứng từ ngoài hệ thống.
+    case "PAID_VIA_LEDGER":
+      return "ledgerPaid";
     case "PAID_EXTERNALLY":
       return "unverified";
     case "APPROVED_FOR_PAYMENT":
@@ -597,6 +603,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
         approvedForPayment: { count: num(s.unpaidObligations?.approvedForPayment?.count), unpaid: String(s.unpaidObligations?.approvedForPayment?.unpaid ?? "0") },
         awaitingEvidence: { count: num(s.unpaidObligations?.awaitingEvidence?.count), unpaid: String(s.unpaidObligations?.awaitingEvidence?.unpaid ?? "0") },
         paidVerified: { count: num(s.unpaidObligations?.paidVerified?.count), amount: String(s.unpaidObligations?.paidVerified?.amount ?? "0") },
+        paidViaLedger: { count: num(s.unpaidObligations?.paidViaLedger?.count) },
         paidExternally: { count: num(s.unpaidObligations?.paidExternally?.count), amount: String(s.unpaidObligations?.paidExternally?.amount ?? "0") },
         waived: { count: num(s.unpaidObligations?.waived?.count), unpaid: String(s.unpaidObligations?.waived?.unpaid ?? "0") },
         resolvedOther: { count: num(s.unpaidObligations?.resolvedOther?.count) },

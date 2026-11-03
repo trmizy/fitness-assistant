@@ -68,6 +68,7 @@ function obligationsFixture() {
           approvedForPayment: { count: 10, unpaid: "1000000.00" },
           awaitingEvidence: { count: 11, unpaid: "1100000.00" },
           paidVerified: { count: 12, amount: "1200000.00" },
+          paidViaLedger: { count: 22 },
           paidExternally: { count: 13, amount: "1300000.00" },
           waived: { count: 14, unpaid: "1400000.00" },
           resolvedOther: { count: 15 },
@@ -155,12 +156,22 @@ describe("B4 chip state in the URL", () => {
 });
 
 // ───────────────────────────────────────────────────── 22 nhóm ngoại lệ ──
-describe("B4 exceptions — all 22 existing groups survive (T1: count them)", () => {
-  it("registry has exactly 22 groups with unique ids and test ids", () => {
-    assert.equal(EXCEPTION_GROUPS.length, 22);
-    assert.equal(new Set(EXCEPTION_GROUPS.map((g) => g.id)).size, 22);
-    assert.equal(new Set(EXCEPTION_GROUPS.map((g) => g.testId)).size, 22);
-    assert.equal(EXCEPTION_GROUPS.filter((g) => g.source === "P13").length, 18);
+// D1: the registry grew from 22 to 23 groups ("Đã trả vào ví Gymini" — those rows used to vanish while still being counted).
+// The 22 original groups are still asserted one by one below; only the totals changed (22→23, P13 18→19, with P2 23→24).
+const ORIGINAL_22 = [
+  "negative-subledgers", "negative-wallets", "wallet-mismatch", "pt-holdback", "receivables", "obligations-open", "obligations-under-review", "obligations-approved",
+  "obligations-awaiting", "obligations-paid-verified", "obligations-unverified", "obligations-waived", "obligations-resolved-other", "obligations-legacy",
+  "paid-not-activated", "cancelled-paid", "refund-outcomes", "target-unverified", "needs-attention", "endings-unconfirmed", "ended-unsettled", "disputes",
+];
+describe("B4 exceptions — all 22 original groups survive + 1 added in D1 (T1: count them)", () => {
+  it("registry has the 22 original groups plus obligations-paid-via-ledger = 23, unique ids and test ids", () => {
+    assert.equal(ORIGINAL_22.length, 22);
+    for (const id of ORIGINAL_22) assert.ok(EXCEPTION_GROUPS.some((g) => g.id === id), id);
+    assert.ok(EXCEPTION_GROUPS.some((g) => g.id === "obligations-paid-via-ledger"));
+    assert.equal(EXCEPTION_GROUPS.length, 23);
+    assert.equal(new Set(EXCEPTION_GROUPS.map((g) => g.id)).size, 23);
+    assert.equal(new Set(EXCEPTION_GROUPS.map((g) => g.testId)).size, 23);
+    assert.equal(EXCEPTION_GROUPS.filter((g) => g.source === "P13").length, 19);
     assert.equal(EXCEPTION_GROUPS.filter((g) => g.source === "U2").length, 4);
     for (const g of EXCEPTION_GROUPS) {
       assert.equal(g.level, "L1", g.id);
@@ -169,18 +180,18 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
     }
   });
 
-  it("the P2 gateway group is extra (L2) and is NOT one of the 22", () => {
+  it("the P2 gateway group is extra (L2) and is NOT one of the 23", () => {
     assert.equal(GATEWAY_GROUP.level, "L2");
     assert.equal(GATEWAY_GROUP.source, "P2");
     assert.ok(!EXCEPTION_GROUPS.some((g) => g.id === GATEWAY_GROUP.id));
-    assert.equal(ALL_GROUP_DEFS.length, 23);
+    assert.equal(ALL_GROUP_DEFS.length, 24);
     assert.equal(GROUP_BY_TEST_ID["recon-gateway-discrepancies"], GATEWAY_GROUP);
   });
 
-  it("the component source renders every registry group exactly once (23 <Block>s = 22 + P2) and reads count/truncated from stats", () => {
+  it("the component source renders every registry group exactly once (24 <Block>s = 23 + P2) and reads count/truncated from stats", () => {
     const src = here("AdminReconciliationBlocks.tsx");
     const blocks = src.match(/<Block\b/g) ?? [];
-    assert.equal(blocks.length, 23);
+    assert.equal(blocks.length, 24);
     for (const g of ALL_GROUP_DEFS) {
       const occurrences = src.split(`testId="${g.testId}"`).length - 1;
       assert.equal(occurrences, 1, `${g.testId} rendered ${occurrences}x`);
@@ -193,7 +204,7 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
 
   it("every group reports its own count and truncated flag (distinct numbers expose cross-wiring)", () => {
     const stats = exceptionGroupStats(normalizeObligationsReport(obligationsFixture()), normalizeSessionsReport(sessionsFixture()));
-    assert.equal(Object.keys(stats).length, 22);
+    assert.equal(Object.keys(stats).length, 23);
     const counts = Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, v.count]));
     assert.deepEqual(counts, {
       "negative-subledgers": 3,
@@ -206,6 +217,7 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
       "obligations-approved": 10,
       "obligations-awaiting": 11,
       "obligations-paid-verified": 12,
+      "obligations-paid-via-ledger": 22,
       "obligations-unverified": 13,
       "obligations-waived": 14,
       "obligations-resolved-other": 15,
@@ -230,16 +242,17 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
       "negative-wallets",
       "obligations-legacy",
       "obligations-paid-verified",
+      "obligations-paid-via-ledger",
       "obligations-resolved-other",
       "obligations-unverified",
       "obligations-waived",
       "refund-outcomes",
     ]);
     const ov = overviewOfGroups(stats);
-    assert.equal(ov.total, 22);
-    assert.equal(ov.known, 22);
-    assert.equal(ov.withItems, 21); // only ended-unsettled is empty
-    assert.equal(ov.truncated, 8);
+    assert.equal(ov.total, 23);
+    assert.equal(ov.known, 23);
+    assert.equal(ov.withItems, 22); // only ended-unsettled is empty
+    assert.equal(ov.truncated, 9);
   });
 
   it("a source that has not loaded contributes NO entries — unknown is never turned into 0", () => {
@@ -247,13 +260,13 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
     assert.equal(Object.keys(onlySessions).length, 4);
     assert.equal(onlySessions["negative-wallets"], undefined);
     const onlyPayment = exceptionGroupStats(normalizeObligationsReport(obligationsFixture()), null);
-    assert.equal(Object.keys(onlyPayment).length, 18);
+    assert.equal(Object.keys(onlyPayment).length, 19);
     assert.equal(onlyPayment["disputes"], undefined);
-    assert.equal(overviewOfGroups(onlyPayment).known, 18);
+    assert.equal(overviewOfGroups(onlyPayment).known, 19);
     assert.deepEqual(exceptionGroupStats(null, null), {});
   });
 
-  it("empty exceptions: all 22 groups present with count 0, none truncated", () => {
+  it("empty exceptions: all 23 groups present with count 0, none truncated", () => {
     const f = obligationsFixture();
     const empty = {
       ...f,
@@ -272,6 +285,7 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
             approvedForPayment: { count: 0, unpaid: "0" },
             awaitingEvidence: { count: 0, unpaid: "0" },
             paidVerified: { count: 0, amount: "0" },
+            paidViaLedger: { count: 0 },
             paidExternally: { count: 0, amount: "0" },
             waived: { count: 0, unpaid: "0" },
             resolvedOther: { count: 0 },
@@ -286,10 +300,10 @@ describe("B4 exceptions — all 22 existing groups survive (T1: count them)", ()
     };
     const none = { generatedAt: "", needsAttention: { items: [] }, endingsUnconfirmed: { items: [] }, endedWithoutSettledEnding: { items: [] }, disputes: { items: [] } };
     const stats = exceptionGroupStats(normalizeObligationsReport(empty), normalizeSessionsReport(none));
-    assert.equal(Object.keys(stats).length, 22);
+    assert.equal(Object.keys(stats).length, 23);
     assert.ok(Object.values(stats).every((s) => s.count === 0 && !s.truncated));
     const ov = overviewOfGroups(stats);
-    assert.deepEqual({ known: ov.known, withItems: ov.withItems, truncated: ov.truncated }, { known: 22, withItems: 0, truncated: 0 });
+    assert.deepEqual({ known: ov.known, withItems: ov.withItems, truncated: ov.truncated }, { known: 23, withItems: 0, truncated: 0 });
   });
 });
 

@@ -1,0 +1,56 @@
+import { formatAge } from "../../withdrawals/withdrawalQueue";
+import { formatDateTime } from "../workspace/format";
+import { CARD, Pill } from "../workspace/WorkspaceParts";
+import { LegacyRuling } from "./LegacyRuling";
+import { OpenCaseButton } from "./OpenCaseButton";
+import { SLA_LABEL, SLA_TONE, type SessionRowModel } from "./queueModel";
+
+/** One card per session: the reason and age first, then the primary action, then the demoted legacy ruling. */
+export function SessionList({ rows, now, onRefresh }: { rows: SessionRowModel[]; now: number; onRefresh: () => void }) {
+  return (
+    <ul className="space-y-3" data-testid="d2-session-list" aria-label="Buổi tập đang bị khiếu nại">
+      {rows.map((s) => (
+        <li key={s.id} className={`${CARD} space-y-3 p-4`} data-testid="d2-session-row" data-session-id={s.id}>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-adm-text">Buổi tập lúc {formatDateTime(s.scheduledStartAt)}</p>
+              <p className="mt-0.5 text-xs text-adm-text-2">
+                Hợp đồng: {s.packageName ?? "chưa có tên gói"} · Khách mã {s.clientRef} · PT mã {s.ptRef}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span data-testid="dispute-type-badge" data-dispute-type={s.disputeType ?? ""}>
+                <Pill tone="neutral">{s.typeLabel}</Pill>
+              </span>
+              {s.sla && (
+                <span data-testid="d2-sla-chip" data-sla={s.sla}>
+                  <Pill tone={SLA_TONE[s.sla]}>{SLA_LABEL[s.sla]}</Pill>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <p className="text-xs text-adm-text-2" data-testid="d2-session-age">
+            {s.disputedAt ? `Bị khiếu nại ${formatAge(s.disputedAt, now)} trước (${formatDateTime(s.disputedAt)})` : "Chưa rõ thời điểm khiếu nại"}
+          </p>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3">
+              <p className="mb-1 text-xs font-semibold text-adm-text-2">PT báo cáo</p>
+              <p className="whitespace-pre-wrap break-words text-sm text-adm-text">{s.ptNotes || "(không có ghi chú)"}</p>
+            </div>
+            <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3">
+              <p className="mb-1 text-xs font-semibold text-adm-text-2">Lý do khách khiếu nại</p>
+              <p className="whitespace-pre-wrap break-words text-sm text-adm-text" data-testid="d2-session-reason">
+                {s.clientReason || "(không có lý do)"}
+              </p>
+            </div>
+          </div>
+
+          <OpenCaseButton sessionId={s.id} onRefreshList={onRefresh} />
+          <LegacyRuling session={s} onDone={onRefresh} />
+        </li>
+      ))}
+    </ul>
+  );
+}

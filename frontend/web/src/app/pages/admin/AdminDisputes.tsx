@@ -1,200 +1,240 @@
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { WarningIcon as AlertTriangle, CheckIcon as Check, GavelIcon as Gavel, CircleNotchIcon as Loader2, UserMinusIcon as UserX, XIcon as X } from "@phosphor-icons/react";
+import { useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
+import { ArrowClockwiseIcon, CaretLeftIcon, CaretRightIcon, GavelIcon } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
-import type { Session } from "../../types";
+import { Button } from "../../components/ui/button";
+import { disputeCaseApi, listDisputedSessions } from "./disputes/disputeCaseApi";
+import { parseDisputeError } from "./disputes/disputeCaseErrors";
+import { CASE_STATUS_LABEL, DISPUTE_PAGE_PENDING_SENTENCE } from "./disputes/disputeCaseLabels";
+import { CASE_STATUSES, type CaseStatus } from "./disputes/disputeCaseTypes";
+import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "./disputes/disputeQueryKeys";
+import { CaseList } from "./disputes/queue/CaseList";
+import { SessionList } from "./disputes/queue/SessionList";
+import {
+  CASES_NOTE_NO_NAMES,
+  CASES_NOTE_NO_POLLING,
+  PAGE_SIZE,
+  QUEUE_VIEWS,
+  SESSIONS_NOTE_NO_PT_ABSENT,
+  SESSIONS_NOTE_OPEN_EXISTING,
+  buildQueueParams,
+  buildSlaIndex,
+  describeListFailure,
+  joinSla,
+  normalizeCaseItems,
+  normalizeDisputedSessions,
+  offsetOfPage,
+  pageCountOf,
+  parseQueueState,
+  parseStatus,
+  rangeText,
+  type QueueView,
+} from "./disputes/queue/queueModel";
+import { FOCUS, FailurePanel, LoadingSkeleton, Muted, Notice } from "./disputes/workspace/WorkspaceParts";
+import { formatDateTime } from "./disputes/workspace/format";
 
 /**
- * Money-flow redesign plan item 4.2 — "màn hình xử lý tranh chấp cho quản trị viên".
- *
- * Backend has had GET /admin/sessions/disputed and POST /admin/sessions/:id/resolve since the
- * client-confirmation feature (VĐ2) shipped — no admin UI ever called either one, so a
- * disputed session's money stayed frozen (quota untouched, nothing settled) with no way for
- * anyone to actually rule on it.
+ * D2 / M1 - "Xử lý khiếu nại buổi tập": the dispute queue. One surface, two chips kept in the URL (`?view=cases|sessions&status=&page=`):
+ *  - `cases`    A2 - the cases, offset paging (50 per page, the server's real `total`), filter by status only. No names (the list has none),
+ *               no client-side search (it would only search one page), no "escalated" chip (the flag is never written), no polling.
+ *  - `sessions` C1 + the SLA of C2 - disputed sessions without a case yet; "Mở hồ sơ" (A1) from the list, plus the old one-admin ruling
+ *               behind a secondary disclosure.
+ * Every read of A2 writes an access-log row per case, so reload is always a click.
  */
 
-// Vòng 4 / Phase E4 — audit/admin-screen label only, purely informational.
-const DISPUTE_TYPE_LABEL: Record<string, string> = {
-  DELIVERY_DISPUTE: "Khiếu nại báo cáo hoàn thành",
-  PT_NO_SHOW_CLAIM: "Khách tố PT vắng mặt — PT phản đối",
-  CLIENT_NO_SHOW_CLAIM: "PT báo khách vắng mặt — khách phản đối",
-};
-
-function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) +
-    " " +
-    d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-  );
-}
+const CHIP_LABEL: Record<QueueView, string> = { cases: "Hồ sơ", sessions: "Buổi chưa xử lý" };
 
 export function AdminDisputes() {
-  const queryClient = useQueryClient();
-  const [rulingId, setRulingId] = useState<string | null>(null);
-  const [rulingAction, setRulingAction] = useState<"COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED" | null>(null);
-  const [note, setNote] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const state = parseQueueState(searchParams);
+  const { keys, userId } = useDisputeQueryKeys();
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "disputed-sessions"],
-    queryFn: () => adminService.listDisputedSessions(),
+  const go = (next: Partial<typeof state>) => setSearchParams(buildQueueParams({ ...state, page: 1, ...next }));
+
+  const casesQuery = useQuery({
+    queryKey: keys ? keys.list({ status: state.status ?? undefined, limit: PAGE_SIZE, offset: offsetOfPage(state.page) }) : ["dispute-case", "disabled", "list"],
+    queryFn: () => disputeCaseApi.listCases({ status: state.status ?? undefined, limit: PAGE_SIZE, offset: offsetOfPage(state.page) }),
+    enabled: !!keys && state.view === "cases",
+    ...DISPUTE_QUERY_OPTIONS,
   });
-  const sessions: Session[] = data ?? [];
-
-  const resolveMutation = useMutation({
-    mutationFn: ({ id, resolution, note }: { id: string; resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED"; note: string }) =>
-      adminService.resolveSessionDispute(id, resolution, note),
-    onSuccess: () => {
-      toast.success("Đã phân xử khiếu nại");
-      setRulingId(null);
-      setRulingAction(null);
-      setNote("");
-      queryClient.invalidateQueries({ queryKey: ["admin", "disputed-sessions"] });
-    },
-    onError: (error: any) => toast.error(error?.response?.data?.error || "Không thể phân xử"),
+  const sessionsQuery = useQuery({
+    queryKey: keys ? keys.disputedSessions() : ["dispute-case", "disabled", "sessions"],
+    queryFn: () => listDisputedSessions(),
+    enabled: !!keys && state.view === "sessions",
+    ...DISPUTE_QUERY_OPTIONS,
+  });
+  // SLA of the same sessions (C2). Optional: when it fails the sessions still show, just without the chip.
+  const slaQuery = useQuery({
+    queryKey: keys ? [...keys.all, "sla"] : ["dispute-case", "disabled", "sla"],
+    queryFn: () => adminService.getSessionsReconciliation({ limit: 200 }),
+    enabled: !!keys && state.view === "sessions",
+    ...DISPUTE_QUERY_OPTIONS,
   });
 
-  const openRuling = (sessionId: string, action: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED") => {
-    setRulingId(sessionId);
-    setRulingAction(action);
-    setNote("");
+  const active = state.view === "cases" ? casesQuery : sessionsQuery;
+  const now = useMemo(() => Date.now(), [casesQuery.dataUpdatedAt, sessionsQuery.dataUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cases = normalizeCaseItems(casesQuery.data);
+  const sessions = useMemo(() => {
+    const { rows, ignored } = normalizeDisputedSessions(sessionsQuery.data);
+    const index = slaQuery.data ? buildSlaIndex(slaQuery.data) : null;
+    return { rows: joinSla(rows, index), ignored, slaReadable: !!index, slaTruncated: !!index?.truncated };
+  }, [sessionsQuery.data, slaQuery.data]);
+
+  const refresh = () => {
+    if (state.view === "cases") void casesQuery.refetch();
+    else {
+      void sessionsQuery.refetch();
+      void slaQuery.refetch();
+    }
+  };
+  const refreshSessionsAfterAction = () => {
+    void sessionsQuery.refetch();
+    void slaQuery.refetch();
+    headingRef.current?.focus();
   };
 
+  const hasData = active.data !== undefined;
+  const loading = !keys || (active.isLoading && !hasData);
+  const error = active.error;
+  const failure = active.isError && !hasData ? describeListFailure(parseDisputeError(error), state.view) : null;
+  const staleView = active.isError && hasData ? parseDisputeError(error) : null;
+
+  const pageCount = pageCountOf(cases.total);
+
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Gavel className="w-5 h-5 text-amber-400" /> Xử lý khiếu nại buổi tập
-        </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">
-          Khách đã khiếu nại báo cáo của PT — buổi tập không bị trừ và tiền chưa được quyết
-          toán cho tới khi có kết luận.
-        </p>
+    <div className="mx-auto max-w-6xl space-y-5 p-4 md:p-6" data-testid="d2-queue-page">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 ref={headingRef} tabIndex={-1} className="flex items-center gap-2 text-xl font-bold text-adm-text outline-none">
+            <GavelIcon className="size-5 shrink-0 text-adm-text-2" aria-hidden /> Xử lý khiếu nại buổi tập
+          </h1>
+          <p className="mt-0.5 text-sm text-adm-text-2">{DISPUTE_PAGE_PENDING_SENTENCE}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {hasData && active.dataUpdatedAt > 0 && <span className="text-xs tabular-nums text-adm-text-2">Cập nhật lúc {formatDateTime(new Date(active.dataUpdatedAt).toISOString())}</span>}
+          <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={!keys || active.isFetching} aria-busy={active.isFetching} className="min-h-11 xl:min-h-8" data-testid="d2-queue-reload">
+            <ArrowClockwiseIcon aria-hidden className={active.isFetching ? "animate-spin" : ""} /> Tải lại
+          </Button>
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
-        </div>
-      ) : sessions.length === 0 ? (
-        <div className="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl py-20 text-center">
-          <Gavel className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-          <p className="text-zinc-600 text-sm">Không có khiếu nại nào đang chờ xử lý.</p>
+      {/* chips (URL: ?view=) */}
+      <div role="group" aria-label="Chọn danh sách" className="flex flex-wrap gap-2" data-testid="d2-chips">
+        {QUEUE_VIEWS.map((v) => {
+          const selected = v === state.view;
+          return (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={selected}
+              data-testid={`d2-chip-${v}`}
+              onClick={() => go({ view: v, status: null })}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors motion-reduce:transition-none xl:min-h-10 ${FOCUS} ${
+                selected ? "border-adm-text bg-adm-text text-adm-bg" : "border-adm-border bg-adm-surface text-adm-text hover:bg-adm-surface-2"
+              }`}
+            >
+              {CHIP_LABEL[v]}
+              {v === "cases" && selected && hasData && (
+                <span className="rounded-full bg-adm-bg/20 px-2 py-px text-xs font-semibold tabular-nums" data-testid="d2-chip-count-cases">
+                  {cases.total}
+                </span>
+              )}
+              {v === "sessions" && selected && hasData && (
+                <span className="rounded-full bg-adm-bg/20 px-2 py-px text-xs font-semibold tabular-nums" data-testid="d2-chip-count-sessions">
+                  {sessions.rows.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {state.view === "cases" ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="d2-status-filter" className="text-sm font-medium text-adm-text">
+              Trạng thái hồ sơ
+            </label>
+            <select
+              id="d2-status-filter"
+              data-testid="d2-status-filter"
+              value={state.status ?? ""}
+              onChange={(e) => go({ status: parseStatus(e.target.value) })}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text xl:min-h-9 ${FOCUS}`}
+            >
+              <option value="">Tất cả trạng thái</option>
+              {CASE_STATUSES.map((s: CaseStatus) => (
+                <option key={s} value={s}>
+                  {CASE_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Muted testId="d2-note-no-names">{CASES_NOTE_NO_NAMES}</Muted>
+          <Muted testId="d2-note-no-polling">{CASES_NOTE_NO_POLLING}</Muted>
         </div>
       ) : (
-        <div className="space-y-4">
-          {sessions.map((s: any) => (
-            <div key={s.id} className="bg-zinc-900 rounded-xl border border-amber-500/30 p-5">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-200">
-                    Buổi tập lúc {formatDateTime(s.scheduledStartAt)}
-                  </p>
-                  <p className="text-xs text-zinc-600 mt-0.5">
-                    Hợp đồng: {s.contract?.packageName ?? s.contractId.slice(0, 8)} · Khách{" "}
-                    {s.clientUserId.slice(0, 8)}... · PT {s.ptUserId.slice(0, 8)}...
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-red-400 whitespace-nowrap">
-                    Đang khiếu nại
-                  </span>
-                  {s.disputeType && DISPUTE_TYPE_LABEL[s.disputeType] && (
-                    <span data-testid="dispute-type-badge" data-dispute-type={s.disputeType} className="text-[10px] px-2 py-0.5 rounded-full border bg-zinc-800/60 border-zinc-700/60 text-zinc-400 whitespace-nowrap">
-                      {DISPUTE_TYPE_LABEL[s.disputeType]}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Evidence: what each side said */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <div className="bg-zinc-800/40 border border-zinc-700/40 rounded-lg p-3">
-                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
-                    PT báo cáo
-                  </p>
-                  <p className="text-xs text-zinc-400">{s.ptNotes || "(không có ghi chú)"}</p>
-                </div>
-                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-                  <p className="text-[10px] font-bold text-red-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> Khách khiếu nại
-                  </p>
-                  <p className="text-xs text-zinc-300">{s.disputeReason || "(không có lý do)"}</p>
-                </div>
-              </div>
-
-              {rulingId === s.id ? (
-                <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3">
-                  <p className="text-xs text-zinc-400 mb-2">
-                    Kết luận:{" "}
-                    <span
-                      className={
-                        rulingAction === "COMPLETED"
-                          ? "text-blue-400 font-bold"
-                          : rulingAction === "PT_NO_SHOW_CONFIRMED"
-                            ? "text-amber-400 font-bold"
-                            : "text-red-400 font-bold"
-                      }
-                    >
-                      {rulingAction === "COMPLETED"
-                        ? "Buổi tập ĐÃ diễn ra — trừ quota, PT được trả tiền"
-                        : rulingAction === "PT_NO_SHOW_CONFIRMED"
-                          ? "Xác nhận PT vắng mặt — hoàn giá trị buổi cho khách; buổi được đóng là «không diễn ra — hoàn tiền» và vẫn tính là đã dùng (giống PT tự nhận vắng)"
-                          : "Buổi tập KHÔNG diễn ra — không trừ quota"}
-                    </span>
-                  </p>
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Ghi rõ căn cứ phân xử..."
-                    className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-200 mb-2 min-h-[70px]"
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => {
-                        setRulingId(null);
-                        setRulingAction(null);
-                      }}
-                      className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
-                    >
-                      Huỷ
-                    </button>
-                    <button
-                      onClick={() => rulingAction && resolveMutation.mutate({ id: s.id, resolution: rulingAction, note })}
-                      disabled={!note.trim() || resolveMutation.isPending}
-                      className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
-                    >
-                      Xác nhận kết luận
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => openRuling(s.id, "COMPLETED")}
-                    className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Buổi tập đã diễn ra
-                  </button>
-                  <button
-                    onClick={() => openRuling(s.id, "PT_NO_SHOW_CONFIRMED")}
-                    className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                    title="Xác nhận khiếu nại của khách là đúng — PT thực sự đã vắng mặt. Hoàn giá trị buổi cho khách; buổi tập được đóng là «không diễn ra — hoàn tiền» và vẫn tính là đã dùng, giống hệt khi PT tự nhận vắng."
-                  >
-                    <UserX className="w-3.5 h-3.5" /> Xác nhận PT vắng mặt
-                  </button>
-                  <button
-                    onClick={() => openRuling(s.id, "CANCELLED")}
-                    className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" /> Buổi tập không diễn ra
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="space-y-2">
+          <Muted testId="d2-note-pt-absent">{SESSIONS_NOTE_NO_PT_ABSENT}</Muted>
+          <Muted>{SESSIONS_NOTE_OPEN_EXISTING}</Muted>
+          {hasData && !sessions.slaReadable && <Muted testId="d2-note-sla-missing">Chưa đọc được hạn xử lý của các buổi nên chưa hiện nhãn «trong hạn / quá hạn».</Muted>}
+          {hasData && sessions.slaReadable && sessions.slaTruncated && <Muted testId="d2-note-sla-truncated">Báo cáo hạn xử lý bị cắt bớt, nên một số buổi không có nhãn hạn.</Muted>}
         </div>
+      )}
+
+      {staleView && (
+        <Notice tone="pending" role="status" testId="d2-queue-refresh-failed">
+          Không làm mới được: {staleView.message} Đang hiện dữ liệu cũ.
+        </Notice>
+      )}
+
+      {loading ? (
+        <LoadingSkeleton testId="d2-queue-loading" />
+      ) : failure ? (
+        <FailurePanel failure={failure} onReload={refresh} reloading={active.isFetching} testId="d2-queue-failure" />
+      ) : state.view === "cases" ? (
+        cases.items.length === 0 ? (
+          <div data-testid="d2-cases-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
+            <GavelIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
+            <p className="text-sm text-adm-text">{state.page > 1 ? "Không còn hồ sơ ở trang này." : state.status ? "Không có hồ sơ nào ở trạng thái này." : "Chưa có hồ sơ khiếu nại nào."}</p>
+            {state.page > 1 && (
+              <Button type="button" variant="outline" size="sm" className="mt-3 min-h-11 xl:min-h-8" onClick={() => go({ page: 1 })}>
+                Về trang đầu
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            {cases.ignored > 0 && <p className="text-xs text-adm-text-2">Có {cases.ignored} hồ sơ không đọc được trong phản hồi nên không hiển thị.</p>}
+            <CaseList items={cases.items as never} currentUserId={userId} now={now} />
+            <nav aria-label="Phân trang" className="flex flex-wrap items-center justify-between gap-3" data-testid="d2-pager">
+              <p className="text-sm tabular-nums text-adm-text-2" data-testid="d2-range">
+                {rangeText(state.page, cases.total, cases.items.length)} · Trang {state.page}/{pageCount}
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" className="min-h-11 xl:min-h-8" disabled={state.page <= 1} onClick={() => go({ page: state.page - 1 })} data-testid="d2-page-prev">
+                  <CaretLeftIcon aria-hidden /> Trang trước
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="min-h-11 xl:min-h-8" disabled={state.page >= pageCount} onClick={() => go({ page: state.page + 1 })} data-testid="d2-page-next">
+                  Trang sau <CaretRightIcon aria-hidden />
+                </Button>
+              </div>
+            </nav>
+          </>
+        )
+      ) : sessions.rows.length === 0 ? (
+        <div data-testid="d2-sessions-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
+          <GavelIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
+          <p className="text-sm text-adm-text">Không có khiếu nại nào đang chờ xử lý.</p>
+        </div>
+      ) : (
+        <>
+          {sessions.ignored > 0 && <p className="text-xs text-adm-text-2">Có {sessions.ignored} buổi không đọc được trong phản hồi nên không hiển thị.</p>}
+          <SessionList rows={sessions.rows} now={now} onRefresh={refreshSessionsAfterAction} />
+        </>
       )}
     </div>
   );

@@ -105,7 +105,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     id: "cases",
     title: "Xử lý vụ việc",
     items: [
-      // Plain link to the existing page — the dispute workstream is owned elsewhere; no badge.
+      // Dispute queue + Case Workspace (`/admin/disputes[/:caseId]`). No badge: a count would need an extra list read, and every read of the case list writes access-log rows.
       { id: "disputes", label: "Tranh chấp buổi tập", to: "/admin/disputes", iconKey: "disputes" },
       { id: "complaints", label: "Khiếu nại phòng gym", to: "/admin/complaints", iconKey: "complaints" },
       { id: "marketplace", label: "Chợ kế hoạch", to: "/admin/marketplace", iconKey: "marketplace" },

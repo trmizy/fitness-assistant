@@ -63,7 +63,7 @@ import {
 /**
  * Chip "Ngoại lệ" của Tài chính › Đối soát — các nhóm CHỈ ĐỌC (FH-4, DQ-6): không có nút chuyển tiền, hoàn tiền hay
  * sửa. Mỗi nhóm cho admin thấy "cái gì đang kẹt và kẹt bao lâu"; xử lý đi qua công cụ có kiểm toán phía vận hành.
- * 22 nhóm P13/U2 (L1, `EXCEPTION_GROUPS`) + 1 nhóm P2 (L2). Nguồn độc lập: nếu một bên lỗi, bên kia vẫn hiện.
+ * 23 nhóm P13/U2 (L1, `EXCEPTION_GROUPS`: 22 nhóm cũ + «Đã trả vào ví Gymini» thêm ở D1) + 1 nhóm P2 (L2). Nguồn độc lập: nếu một bên lỗi, bên kia vẫn hiện.
  * Số nhóm chỉ ĐẾM, không cộng thành tiền.
  */
 
@@ -146,6 +146,7 @@ function History({ events }: { events: ObligationEventRow[] | undefined }) {
 }
 const TONE_CLASS: Record<string, string> = {
   verified: "text-st-success",
+  ledgerPaid: "text-st-success",
   unverified: "text-st-warning font-semibold",
   pending: "text-st-info",
   open: "text-adm-text",
@@ -196,6 +197,17 @@ const verifiedCols: Column<UnpaidObligationRow>[] = [
   { header: "Đã trả và được xác minh", cell: (r) => <span className="text-st-success font-semibold">{money(r.verifiedPaid)}</span>, right: true },
   { header: "Phải trả", cell: (r) => money(r.owed), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+// Đã trả vào ví Gymini (bút toán sổ cái nội bộ): KHÔNG phải chuyển khoản ngân hàng, KHÔNG gộp với "được xác minh"
+const ledgerPaidCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Đã trả vào ví Gymini", cell: (r) => <span className="text-st-success font-semibold">{money(r.paid)}</span>, right: true },
+  { header: "Phải trả", cell: (r) => money(r.owed), right: true },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Buổi", cell: (r) => shortId(r.sessionId) },
   { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
   { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
 ];
@@ -453,6 +465,17 @@ function PaymentBlocks({ r, stats }: { r: ObligationsReport; stats: Record<strin
           Tổng đã trả và được xác minh (gồm các lần trả một phần): <span className="text-st-success font-semibold">{money(s.unpaidObligations.paidVerified.amount)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.closedObligations, "PAID_VERIFIED")} columns={verifiedCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-paid-via-ledger"
+        title="Đã trả vào ví Gymini"
+        hint="Khoản được trả bằng bút toán trong sổ cái nội bộ của Gymini (vào ví của khách), không phải chuyển khoản ngân hàng và không qua bước xác minh chứng từ. Tách riêng khỏi nhóm «Đã thanh toán được xác minh»."
+        count={stats["obligations-paid-via-ledger"].count}
+        tone="neutral"
+        truncated={stats["obligations-paid-via-ledger"].truncated}
+        emptyText="Chưa có khoản nào được trả vào ví Gymini."
+      >
+        <Rows rows={rowsWithStatus(r.closedObligations, "PAID_VIA_LEDGER")} columns={ledgerPaidCols} rowKey={(x) => x.id} />
       </Block>
       <Block
         testId="recon-obligations-unverified"

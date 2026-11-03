@@ -2,7 +2,7 @@
  * B4 — pure part of "Tài chính › Đối soát" (runs under `npx tsx --test`, no React).
  *
  *  - which chip is open (`?view=balance|exceptions`, default balance; old values still land somewhere sensible);
- *  - the registry of the 22 existing exception groups (P13 / U2) + the one L2 group (P2 gateway discrepancies):
+ *  - the registry of the 22 original exception groups (P13 / U2) + 1 added in D1 (obligations-paid-via-ledger) + the one L2 group (P2 gateway discrepancies):
  *    id, source, level, tone, and how each group's COUNT and `truncated` flag are read from the two reports;
  *  - the P2 normaliser (money read through B3's bigint parser, never `Number()`);
  *  - the level labels (L1 internal ledger invariant / L2 callbacks the system stored / L3 independent PSP report = BLOCKED).
@@ -100,7 +100,7 @@ export const SECTION_PAYMENTS = "Thanh toán chưa hoàn tất";
 export const SECTION_SESSIONS = "Tất toán hợp đồng và buổi tập";
 export const SECTION_GATEWAY = "Cổng báo số tiền khác số Gymini";
 
-/** The 22 groups the page had before the redesign — NONE may be dropped (B4 test T1 counts them). */
+/** The 22 groups the page had before the redesign — NONE may be dropped (B4 test T1 counts them) — plus "Đã trả vào ví Gymini" (D1: those rows used to vanish from the page while still being counted). */
 export const EXCEPTION_GROUPS: readonly ExceptionGroupDef[] = [
   P13("negative-subledgers", SECTION_LEDGER, "critical", "Tiền chờ của hợp đồng bị rút quá mức"),
   P13("negative-wallets", SECTION_LEDGER, "critical", "Ví có số dư âm"),
@@ -112,6 +112,7 @@ export const EXCEPTION_GROUPS: readonly ExceptionGroupDef[] = [
   P13("obligations-approved", SECTION_OPEN_OBLIGATIONS, "watch", "Đã phê duyệt chi"),
   P13("obligations-awaiting", SECTION_OPEN_OBLIGATIONS, "watch", "Đang chờ chứng từ"),
   P13("obligations-paid-verified", SECTION_CLOSED_OBLIGATIONS, "neutral", "Đã thanh toán được xác minh"),
+  P13("obligations-paid-via-ledger", SECTION_CLOSED_OBLIGATIONS, "neutral", "Đã trả vào ví Gymini"),
   P13("obligations-unverified", SECTION_CLOSED_OBLIGATIONS, "watch", "Đã ghi nhận chứng từ — CHƯA xác minh (bản ghi cũ)"),
   P13("obligations-waived", SECTION_CLOSED_OBLIGATIONS, "neutral", "Không truy đòi"),
   P13("obligations-resolved-other", SECTION_CLOSED_OBLIGATIONS, "neutral", "Đã giải quyết bằng phương thức khác"),
@@ -167,6 +168,7 @@ export function exceptionGroupStats(payment: ObligationsReport | null, sessions:
     out["obligations-approved"] = { count: u.approvedForPayment.count, truncated: t.inFlightObligations };
     out["obligations-awaiting"] = { count: u.awaitingEvidence.count, truncated: t.inFlightObligations };
     out["obligations-paid-verified"] = { count: u.paidVerified.count, truncated: t.closedObligations };
+    out["obligations-paid-via-ledger"] = { count: u.paidViaLedger.count, truncated: t.closedObligations };
     out["obligations-unverified"] = { count: u.paidExternally.count, truncated: t.closedObligations };
     out["obligations-waived"] = { count: u.waived.count, truncated: t.closedObligations };
     out["obligations-resolved-other"] = { count: u.resolvedOther.count, truncated: t.closedObligations };

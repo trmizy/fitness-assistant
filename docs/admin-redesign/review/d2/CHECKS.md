@@ -1,0 +1,51 @@
+# D2 - Dispute V2.1 queue (M1) and Case Workspace read tabs (M2, M4, M5): checks
+
+Labels used: **MOCK BROWSER TEST** = real Chromium (Playwright 1.61, runtime only from `D:/fitnessassistant-playwright-e2e`) driving the real Vite dev server of this worktree, every `/api/**` call answered by `page.route` from D1/D2 fixtures. No backend, no database, no docker was touched. It is NOT E2E and NOT REAL HTTP/API. **TEST FIXTURE** = pure-function unit tests (`tsx --test`). **CODE AUDIT** = a test that reads source text.
+
+## Numbers
+| Check | Command / how | Result |
+|---|---|---|
+| Web unit tests | `npx tsx --test $(find src -path '*__tests__*' -name '*.test.ts')` from `frontend/web` | **939 / 939 pass**, 0 fail, 0 skipped (baseline 829; +110 new: d2-queue-model 27, d2-workspace-model 39, d2-evidence-model 34, d2-source-guards 10). TEST FIXTURE (source guards: CODE AUDIT) |
+| `vite build` | temp config with `cacheDir` and `outDir` in the scratchpad (`node_modules/.vite` untouched) | passes (built in ~23-31 s) |
+| `tsc` | temp web-only config `tsconfig.d2tmp.json` (the exact brief config), deleted afterwards | **215 errors** with D2 in the tree; 0 of them in `pages/admin/disputes/**`, `AdminDisputes.tsx`, `routes.tsx` additions or `adminNav.ts`. The 215 are the pre-existing ones (two copies of `@types/react`: every `<Link>`, `Toaster`, `Outlet` etc.). A first attempt used `<Link>` and added 5 TS2786 errors (220); fixed with `DisputeLink` (built on `useHref` + `useLinkClickHandler`, like `AdminLink`). Not measured at the very start of D2 (before my first file); 215 matches the number in the master plan and D1's non-D1 files. D1's CHECKS quoted 239 under a different measurement; not reconciled |
+| Queue, MOCK BROWSER TEST | `run-queue.mts` | **121 / 121** checks pass |
+| Workspace, MOCK BROWSER TEST | `run-workspace.mts` | **201 / 201** checks pass in the final run (36 of them axe runs) |
+
+## What the mock-browser runs covered
+Queue (`/admin/disputes`):
+- cases chip: 50 rows, chip count and range text from the server `total` (120 -> "1–50 trên 120 · Trang 1/3"), `limit=50&offset=0/50/100` requested, last page 20 rows, next disabled, no new list read after 4 s (no polling);
+- `?status=` deep link (select shows it, request carries it, only that status listed), changing the filter resets the page, hostile `status`/`page` fall back; no "Đã chuyển cấp" chip; no search box; muted "no names" note; "Phân loại tạm" chip on LEGACY rows; "Chưa có người phụ trách" / "Bạn phụ trách";
+- table header visible only at 1440; cards at 1279/412/390/375/360; open-link tap height >= 44 on phones;
+- loading skeleton; failure panels for 500 / 403 / network (each is NOT an empty list; retry recovers); empty list; empty filtered list;
+- sessions chip: 4 sessions, oldest first, SLA chip joined by `sessionId` (a session absent from the report has NO chip), SLA report failing -> sessions still shown + note, truncated report -> note, R-05 note, old `dispute-type-badge` test id kept, chip switching writes/clears `?view=`;
+- open case (A1): `created:true` and `created:false` both navigate into the case (created:false shows an info toast, no error); exactly one POST with body `{sessionId}` and an `Idempotency-Key`; double click = ONE request; each error (SESSION_NOT_DISPUTED + list refresh button, CONFLICT_OF_INTEREST, CASE_DECISION_PENDING_EXECUTION + link to `details.caseId`, SESSION_NOT_FOUND, DISPUTE_TYPE_UNKNOWN, 500, network) shows mapped Vietnamese and no raw code; retry after an unknown outcome REUSES the key;
+- legacy ruling: closed by default behind "Phán quyết theo đường cũ (một người duyệt, không qua hồ sơ)", warning sentence, three old buttons, dialog with DQ-2(a) consequence and no amount input, confirm disabled until a note is typed, Tab trap (8 presses), Esc closes and focus returns to the opener button, double-click confirm = ONE POST `/admin/sessions/:id/resolve {resolution, note}`, and each refusal (POLICY_ELIGIBILITY_UNVERIFIED, POLICY_EXCEPTION_APPLIES, CANCELLED_BLOCKED_BY_D77, CONTRACT_ENDING, SESSION_ALREADY_PROCESSED, CASE_REQUIRED, 500, no answer) shows the mapped sentence inside the dialog, 1 POST, and blocks a blind retry;
+- axe serious+critical = **0** on 7 queue states (cases 1440 light / 1440 dark / 390; sessions 1440 light / 1440 dark / 390; sessions with the legacy disclosure open 390 dark); this clears the 3 AdminDisputes findings of B10 (the first axe pass found 2 new contrast hits on my own primary button; fixed with `bg-st-success text-adm-bg`); no horizontal overflow at 360/375/390/412 in both views.
+
+Workspace (`/admin/disputes/:caseId`):
+- header (type, status, investigator, money chip, "Đang chờ" note), nine tabs in the briefed order, exactly one A3 read and none after 4 s, `?tab=` written/read for all 9 tabs, unknown tab -> overview, ArrowRight/ArrowLeft/Home/End select + focus, roving tabindex, tabpanel `aria-labelledby`;
+- loading skeleton, 404 (back link lands on the queue), 403 (no reload), 500 / network / `CASE_VERSION_CONFLICT` (reload recovers; text says "not an empty case"), failed refresh keeps the data and says so, invalid id in the path = not found with no request;
+- blocked banner from `decision.executionBlockedReason` in business wording (no code); stuck states POLICY_PENDING / NOT_A_DISPUTE / DECISION_APPROVED each name who decides and carry no button or link; AWAITING_PARTIES says the parties are not notified;
+- overview from the `SESSION_ROW` payload, claims, issues, timeline; evidence: grouped by source, `eventAt`/`capturedAt` on the same row, version disclosure, server `provenanceLabel`, DERIVED label, party-claim label, sensitivity pills, `notProven` on gym check-ins, `found:false` = "Không có bản ghi quét trong ngày", TECH_GAP = "Không đọc được nguồn", storage key absent from the DOM text AND the page HTML, no file link, unknown keys in a collapsed technical block, "Mỗi lần xem được ghi lại";
+- statements (by party/version, v1 labelled), assessments (titles, no uuids), findings (table labelled "Minh hoạ, máy chủ tính lại khi lập đề xuất", 7 rows incl. header), approvals, history ("Tối đa 200 sự kiện gần nhất", codes mapped or hidden, newest first);
+- money: all 12 states rendered, WAIVED/RESOLVED_OTHER never say paid, wallet not bank, amounts only from obligation strings, UNAVAILABLE says "không phải 0 đ" + reload re-reads once, NO_RECORDED_SETTLEMENT is its own notice, the ONLY controls are "Tải lại" and the link to `/admin/finance/reconciliation`;
+- execution: `execStatus` absent (with and without DECISION_APPROVED, and with the constant `BLOCKED: SLICE_2_NOT_ENABLED` present in the payload: never shown), present (EXEC_BLOCKED + reason + 5-row table with the current one marked, BUSINESS_DONE is "not money arrived"); no button in the panel;
+- no raw enum (`[A-Z]{3,}_[A-Z]...`), no full uuid, no D77/B-1 text in any read tab; no button inside any panel that does nothing (the slots render null);
+- axe serious+critical = **0** on 12 workspace states x {1440 light, 1440 dark, 390 light} = 36 runs; no horizontal overflow on any of the 9 tabs at 360/375/390/412/1440; tab strip scrolls sideways at <= 412 and the selected tab is in view (converges after the web font settles; first versions of the check measured too early); tab tap height 44; header sticky from md up (after scrolling `main` 900 px it is still at top 0).
+
+Screenshots (this folder): `q-cases-{1440,1440-dark,390,360}.png`, `q-sessions-{1440,360}.png`, `w-{overview,evidence,money}-{1440,1440-dark,390,360}.png`, `w-findings-{390,360}.png`. The run scripts, harness and logs are in the session scratchpad (`.../scratchpad/d2/`), not in the repo.
+
+## Run history (honest)
+- Queue: first run 118/121 (the legacy dialog did not return focus to its opener after Esc; my primary "Mở hồ sơ" button had contrast 3.76:1 in light), fixed (`useRestoreFocus`, token colours), then 121/121. Two weak checks of mine (`created:false`, error regex) were tightened and the run repeated: 121/121.
+- Workspace: first run 196/201 (a fixture mismatch in the assessment check; the tab strip did not scroll the selected tab into view before the font settled). Fixed (fixture ids, a `ResizeObserver` re-alignment for 2 s). One intermediate run showed a stuck-state check failing while I was running `tsc`/`vite build` at the same time (load flake; the same check passed alone and in the final run). Final run with nothing else running: **201 / 201**.
+- After the last code change: unit tests 939/939, `tsc` 215 (0 in D2 files); `vite build` was green before the last edit (the last edit is the scroll effect in `AdminDisputeCasePage.tsx`; the final dev-server run compiled it).
+
+## Not checked / limits
+- No REAL BROWSER against a real stack, no REAL HTTP/API: no server answered a single request. Shapes come from the D1 fixtures (commit fd199953) and the collector/external-evidence source; the backend is still "CODE AUDIT only" as the handoff says.
+- The 40 s timeout of A3 (slow ledger) and the "hang" state were not exercised (a never-answering request would need 40 s of waiting).
+- No WebKit/Firefox; Chromium only. No physical phone, only viewport emulation at 360/375/390/412.
+- Account isolation across logout/login was not driven in the browser: user-scoped keys come from D1 `useDisputeQueryKeys` (user id in every key) and all D2 queries use it (source-guard test checks the root key); the app-level `queryClient.clear()` is D1/AppContext, unchanged.
+- The `unavailable` evidence row, `found:false`, and the extra money/exec states use fixtures built by me from the collector source, not captured from a server.
+- `AdminDisputes` list/sessions reads happen together with the existing sidebar badge reads (`/admin/sessions/reconciliation` appears in the request log even on the cases chip: that is the shell's nav badge, not D2).
+- D2 shows short refs ("ma xxxxxxxx") for investigators/authors because the API returns ids only (R-04). They are quoted ids, not labels of people.
+- "Đã duyệt. Chưa thực thi." on the Execution tab is stated from `status = DECISION_APPROVED` when `execStatus` is absent, as briefed; it is an assumption that holds only while the executor is off (contract section 0), which is also when the case can never leave that state.
