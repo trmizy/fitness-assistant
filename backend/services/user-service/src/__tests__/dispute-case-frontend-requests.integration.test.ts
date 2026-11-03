@@ -364,3 +364,55 @@ test("R-03 + R-05: policy review rows carry evidenceIds, reasoning, supersedesId
   const mine = (await call("GET", `/admin/dispute-cases/queue?contractId=${s.contract.id}`, A(admin()))).json.items[0];
   assert.equal(mine.caseId, w.caseId);
 });
+
+// ═══ HTTP coverage of the case routes no other suite drove over HTTP ═════════════════════════════════════════════════
+
+test("HTTP: classify, request-more, evidence-change-ack, shares and reconcile-execution answer over HTTP with their documented shapes and codes", async () => {
+  // classify (LEGACY_UNCLASSIFIED -> a real type), investigator only
+  const sL = await mkSession({ disputeType: null });
+  const inv = admin();
+  const legacyId = (await call("POST", "/admin/dispute-cases", A(inv), { sessionId: sL.session.id })).json.case.id;
+  await call("POST", `/admin/dispute-cases/${legacyId}/assign`, A(inv), {});
+  assert.equal((await call("POST", `/admin/dispute-cases/${legacyId}/classify`, A(admin()), { type: "PT_DELIVERY" })).json.code, "NOT_ASSIGNED_INVESTIGATOR");
+  assert.equal((await call("POST", `/admin/dispute-cases/${legacyId}/classify`, A(inv), { type: "LEGACY_UNCLASSIFIED" })).status, 400);
+  const cls = await call("POST", `/admin/dispute-cases/${legacyId}/classify`, A(inv), { type: "PT_DELIVERY" });
+  assert.deepEqual([cls.status, cls.json.from, cls.json.to], [200, "LEGACY_UNCLASSIFIED", "PT_DELIVERY"]);
+  assert.equal((await call("POST", `/admin/dispute-cases/${legacyId}/classify`, A(inv), { type: "PT_DELIVERY" })).json.code, "ALREADY_CLASSIFIED");
+
+  // request-more: ASSESSING -> AWAITING_PARTIES with a note
+  const s = await mkSession();
+  const w = await caseAtFinding(s.session.id, "VERIFIED_PT_ABSENT");
+  await call("POST", `/admin/dispute-cases/${w.caseId}/transition`, A(w.investigator), { to: "ASSESSING" }).catch(() => null);
+  const bad = await call("POST", `/admin/dispute-cases/${w.caseId}/request-more`, A(w.investigator), { to: "AWAITING_PARTIES", note: "x" });
+  assert.equal(bad.json.code, "CASE_STATE_NOT_ALLOWED"); // FINDING_RECORDED: not a state that asks for more
+  assert.deepEqual(bad.json.details.allowed, ["ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"]);
+
+  // shares: a system NORMAL row to the client; the same body twice is two shares (no key needed), a party row can never be shared
+  const ev = await prisma.disputeCaseEvidence.findFirstOrThrow({ where: { caseId: w.caseId, subject: "SESSION_ROW" } });
+  const sh = await call("POST", `/admin/dispute-cases/${w.caseId}/shares`, A(w.investigator), { evidenceId: ev.id, sharedWithRole: "CLIENT", reason: "Cho khách xem dữ liệu buổi" });
+  assert.equal(sh.status, 201, JSON.stringify(sh.json));
+  assert.ok(sh.json.id);
+  assert.equal((await call("POST", `/admin/dispute-cases/${w.caseId}/shares`, A(w.investigator), { evidenceId: ev.id, statementId: randomUUID(), sharedWithRole: "CLIENT", reason: "x" })).status, 400);
+
+  // evidence-change-ack: only while AWAITING_APPROVAL
+  assert.equal((await call("POST", `/admin/dispute-cases/${w.caseId}/evidence-change-ack`, A(w.investigator), { note: "đã xem" })).json.code, "CASE_STATE_NOT_ALLOWED");
+  const prop = await call("POST", `/admin/dispute-cases/${w.caseId}/proposals`, A(w.investigator), {});
+  assert.equal(prop.status, 201, JSON.stringify(prop.json));
+  const ack = await call("POST", `/admin/dispute-cases/${w.caseId}/evidence-change-ack`, A(w.investigator), { note: "đã xem thay đổi" });
+  assert.deepEqual([ack.status, ack.json.acknowledged, Array.isArray(ack.json.changedIds)], [200, true, true]);
+
+  // request-more on a case that can: reject the proposal -> ASSESSING, then ask the parties
+  const rej = await call("POST", `/admin/dispute-cases/${w.caseId}/approvals`, A(admin()), { result: "REJECTED", reason: "Cần thêm lời khai", conflictOfInterestDeclaredNone: true });
+  assert.equal(rej.status, 200, JSON.stringify(rej.json));
+  const more = await call("POST", `/admin/dispute-cases/${w.caseId}/request-more`, A(w.investigator), { to: "AWAITING_PARTIES", note: "Mời hai bên bổ sung" });
+  assert.deepEqual([more.status, more.json.from, more.json.to], [200, "ASSESSING", "AWAITING_PARTIES"]);
+
+  // reconcile-execution: flag off -> 409; flag on and nothing running -> NOTHING_TO_RECONCILE
+  const s2 = await mkSession();
+  const ap = await approvedCaseFor(s2.session.id, FINDING_FOR.CANCELLED);
+  assert.equal((await call("POST", `/admin/dispute-cases/${ap.caseId}/reconcile-execution`, A(admin()), {})).json.code, "EXECUTION_DISABLED");
+  enableExecutionFlags({ execution: true });
+  const rec = await call("POST", `/admin/dispute-cases/${ap.caseId}/reconcile-execution`, A(admin()), {});
+  assert.deepEqual([rec.status, rec.json.action, rec.json.execStatus], [200, "NOTHING_TO_RECONCILE", "NOT_STARTED"]);
+  assert.equal((await call("POST", `/admin/dispute-cases/${ap.caseId}/reconcile-execution`, `CUSTOMER:${s2.clientUserId}`, {})).status, 403);
+});
