@@ -9,22 +9,25 @@ import { prepareReleasedPilot } from "./prepare";
 import { approvedConfigurationHash, PilotError, type SessionConfig } from "./config";
 import type { EvaluationDesign } from "./design";
 import { loadConfiguredClaimRegistry, readConfiguredClaimInputs } from "../../knowledge/scientific-claim-map-v3/load";
+import { IntakeFakeFileSchema } from "../case-intake/converter";
+import { validateIntakeAdmission } from "../case-intake/admission";
 
 export const implementationRoot = path.resolve(__dirname, "../../../../../..");
 export const CORPUS_FILES = ["data/eval/advisory-progress-dev/evidence-pack.json", "data/eval/advisory-progress-dev/evidence-claim-map-v2.json", "data/eval/ai-coach-dev/corpus-supplement.json", "data/eval/ai-coach-dev/source-registry.json"];
-const ReleasedFileSchema = z.object({ version: z.literal("released-pilot-input-v1"), scope: z.literal("OWNER_REVIEWED_NON_SAFETY_CASES_ONLY"), released: z.array(z.unknown()).min(1), expectedManifests: z.array(z.unknown()).min(1), ownerReceiptHashes: z.array(z.string()).min(1) }).strict();
+const ReleasedFileSchema = z.union([z.object({ version: z.literal("released-pilot-input-v1"), scope: z.literal("OWNER_REVIEWED_NON_SAFETY_CASES_ONLY"), released: z.array(z.unknown()).min(1), expectedManifests: z.array(z.unknown()).min(1), ownerReceiptHashes: z.array(z.string()).min(1) }).strict(), IntakeFakeFileSchema]);
 function git(root: string, args: string[]) { return execFileSync("git", args, { cwd: root, encoding: "utf8", windowsHide: true }).trim(); }
 export function assertCleanWorkingTree(root: string) {
   if (git(root, ["status", "--porcelain", "--untracked-files=all"])) throw new PilotError("WORKING_TREE_DIRTY");
 }
 function bytes(file: string) { return createHash("sha256").update(fs.readFileSync(file)).digest("hex"); }
-type ClaimSources = Pick<NonNullable<SessionConfig["sources"]>, "claimRegistryConfigFile" | "protocolDecisionsFile">;
+type ClaimSources = Pick<NonNullable<SessionConfig["sources"]>, "claimRegistryConfigFile" | "protocolDecisionsFile" | "intakeSidecarFile">;
 function claimSnapshot(sources?: ClaimSources) {
   if (!sources?.claimRegistryConfigFile) return null;
   const { config } = readConfiguredClaimInputs(sources.claimRegistryConfigFile);
   return { adapter: "claim-pilot-v1", config: bytes(sources.claimRegistryConfigFile), bundle: bytes(config.inputBundleFile),
     map: bytes(config.claimMapFile), currentOwner: bytes(config.currentOwnerDecisionsFile),
-    protocolDecisions: sources.protocolDecisionsFile ? bytes(sources.protocolDecisionsFile) : null };
+    protocolDecisions: sources.protocolDecisionsFile ? bytes(sources.protocolDecisionsFile) : null,
+    ...(sources.intakeSidecarFile ? {intakeSidecar:bytes(sources.intakeSidecarFile)} : {}) };
 }
 function snapshot(rootValue: string, casesFile: string, claimSources?: ClaimSources) {
   const root = fs.realpathSync(rootValue);
@@ -40,6 +43,11 @@ function snapshot(rootValue: string, casesFile: string, claimSources?: ClaimSour
 }
 export async function loadPilotPreparation(root: string, casesFile: string, design?: EvaluationDesign, claimSources?: ClaimSources) {
   const input = ReleasedFileSchema.parse(JSON.parse(fs.readFileSync(casesFile, "utf8")));
+  if (input.version === "released-intake-fake-input-v1" && !claimSources?.claimRegistryConfigFile) throw new PilotError("INTAKE_REQUIRES_CLAIM_REGISTRY");
+  if (input.version === "released-intake-fake-input-v1") {
+    if(!claimSources?.intakeSidecarFile)throw new PilotError("INTAKE_PRIVATE_SIDECAR_REQUIRED");
+    validateIntakeAdmission(input,JSON.parse(fs.readFileSync(claimSources.intakeSidecarFile,"utf8")));
+  }
   if (claimSources?.claimRegistryConfigFile) {
     const { registry } = loadConfiguredClaimRegistry(claimSources.claimRegistryConfigFile);
     // No legacy corpus/vector IO is read or called by the claim arm.
@@ -63,6 +71,11 @@ function match(actual: unknown, expected: unknown, field: string) {
 }
 export async function verifySessionPins(config: SessionConfig): Promise<VerifiedPins> {
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
+  // Intake confirmation is not an independent review or LIVE release. Keep this new input scope FAKE-only.
+  if (JSON.parse(fs.readFileSync(config.sources.casesFile, "utf8")).version === "released-intake-fake-input-v1") {
+    if (config.mode !== "FAKE") throw new PilotError("INTAKE_INPUT_FAKE_ONLY");
+    if (config.outputContract !== "CLAIM_MAP_V3" || config.reviewerMode !== "OWNER_ONLY_EXPLORATORY") throw new PilotError("INTAKE_REQUIRES_CLAIM_CONTRACT_AND_OWNER_ONLY");
+  }
   if (config.mode === "LIVE" && fs.realpathSync(config.sources.workspaceRoot).toLowerCase() !== fs.realpathSync(implementationRoot).toLowerCase()) throw new PilotError("LOADED_IMPLEMENTATION_ROOT_MISMATCH");
   if ((config.outputContract === "CLAIM_MAP_V3") !== !!config.sources.claimRegistryConfigFile) throw new PilotError("ClaimContractSourcesRequired");
   const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
