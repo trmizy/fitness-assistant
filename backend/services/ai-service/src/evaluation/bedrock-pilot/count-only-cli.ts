@@ -68,7 +68,7 @@ export async function prepare(f: Record<string, string>, now = new Date()) {
   const caseId = z.enum(["CAL01", "CAL06"]).parse(f.case), suffix = caseId === "CAL01" ? "01" : "06", caseKey = `case-warmup-cal${suffix}` as const;
   const arm = z.enum(["LAYERED_CONTEXT", "LAYERED_CONTEXT_RAG"]).parse(f.arm), repeatIndex = z.union([z.literal(0), z.literal(1)]).parse(Number(f.repeat));
   const hours = Number(f.hours ?? "24"); if (!(hours > 0 && hours <= 24)) throw new PilotError("COUNT_CLI_USAGE");
-  const prepared = await calculatePilotPins(c.sources.workspaceRoot, c.sources.casesFile, c.design, c.sources);
+  const prepared = await calculatePilotPins(c.sources.workspaceRoot, c.sources.casesFile, c.design, c.sources, z.enum(["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2"]).optional().parse((c as { promptVersion?: unknown }).promptVersion));
   const row = prepared.preparation.rows.find(r => r.caseKey === caseKey && r.arm === arm && r.policy === "MINIMAL" && r.repeatIndex === repeatIndex);
   const bundle = (JSON.parse(fs.readFileSync(c.sources.casesFile, "utf8")).released as { freeze: { caseKey: string }; request: { caseId: string } }[]).find(b => b.freeze.caseKey === caseKey);
   if (!row || !bundle) throw new PilotError("COUNT_SELECTED_ROW_MISSING");

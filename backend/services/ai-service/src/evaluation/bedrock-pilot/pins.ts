@@ -9,6 +9,7 @@ import { prepareReleasedPilot } from "./prepare";
 import { approvedConfigurationHash, PilotError, type SessionConfig } from "./config";
 import type { EvaluationDesign } from "./design";
 import { loadConfiguredClaimRegistry, readConfiguredClaimInputs } from "../../knowledge/scientific-claim-map-v3/load";
+import type { ClaimPromptVersion } from "../ai-coach-claim-dev/pipeline";
 import { IntakeFakeFileSchema } from "../case-intake/converter";
 import { validateIntakeAdmission } from "../case-intake/admission";
 
@@ -41,7 +42,7 @@ function snapshot(rootValue: string, casesFile: string, claimSources?: ClaimSour
     code: claims ? digest({ workspace: files.map(f => [f, bytes(path.join(root, f))]), execution }) : digest(files.map((f) => [f, bytes(path.join(root, f))])),
     corpus: claims ? digest(claims) : digest(CORPUS_FILES.map((f) => [f, bytes(path.join(root, f))])), cases: bytes(casesFile) };
 }
-export async function loadPilotPreparation(root: string, casesFile: string, design?: EvaluationDesign, claimSources?: ClaimSources) {
+export async function loadPilotPreparation(root: string, casesFile: string, design?: EvaluationDesign, claimSources?: ClaimSources, promptVersion?: ClaimPromptVersion) {
   const input = ReleasedFileSchema.parse(JSON.parse(fs.readFileSync(casesFile, "utf8")));
   if (input.version === "released-intake-fake-input-v1" && !claimSources?.claimRegistryConfigFile) throw new PilotError("INTAKE_REQUIRES_CLAIM_REGISTRY");
   if (input.version === "released-intake-fake-input-v1") {
@@ -52,15 +53,16 @@ export async function loadPilotPreparation(root: string, casesFile: string, desi
     const { registry } = loadConfiguredClaimRegistry(claimSources.claimRegistryConfigFile);
     // No legacy corpus/vector IO is read or called by the claim arm.
     const io = { embed: async () => { throw new Error("LegacyRetrievalForbiddenInClaimPilot"); }, search: async () => { throw new Error("LegacyRetrievalForbiddenInClaimPilot"); }, toDoc: () => { throw new Error("LegacyRetrievalForbiddenInClaimPilot"); } };
-    return prepareReleasedPilot(input.released, input.expectedManifests, input.ownerReceiptHashes, { corpus: [], io }, "MINIMAL", design, registry);
+    return prepareReleasedPilot(input.released, input.expectedManifests, input.ownerReceiptHashes, { corpus: [], io }, "MINIMAL", design, registry, promptVersion);
   }
   const read = (i: number) => JSON.parse(fs.readFileSync(path.join(root, CORPUS_FILES[i]), "utf8"));
   const corpus = prepareCorpus(read(0), read(1), read(2));
   const preparation = await prepareReleasedPilot(input.released, input.expectedManifests, input.ownerReceiptHashes, { corpus, io: createFixtureIo(corpus).io }, "MINIMAL", design);
   return preparation;
 }
-export async function calculatePilotPins(root: string, casesFile: string, design?: EvaluationDesign, claimSources?: ClaimSources) {
-  const before = snapshot(root, casesFile, claimSources), preparation = await loadPilotPreparation(root, casesFile, design, claimSources), after = snapshot(root, casesFile, claimSources);
+export async function calculatePilotPins(root: string, casesFile: string, design?: EvaluationDesign, claimSources?: ClaimSources, promptVersion?: ClaimPromptVersion) {
+  if (promptVersion && !claimSources?.claimRegistryConfigFile) throw new PilotError("PROMPT_VERSION_REQUIRES_CLAIM_REGISTRY");
+  const before = snapshot(root, casesFile, claimSources), preparation = await loadPilotPreparation(root, casesFile, design, claimSources, promptVersion), after = snapshot(root, casesFile, claimSources);
   if (digest(before) !== digest(after)) throw new PilotError("INPUTS_CHANGED_DURING_PREPARATION");
   return { preparation, dirty: after.dirty, pins: { commit: after.commit, code: after.code, corpus: after.corpus, cases: after.cases, promptHashes: preparation.rows.map((r) => r.promptHash) } };
 }
@@ -78,7 +80,7 @@ export async function verifySessionPins(config: SessionConfig): Promise<Verified
   }
   if (config.mode === "LIVE" && fs.realpathSync(config.sources.workspaceRoot).toLowerCase() !== fs.realpathSync(implementationRoot).toLowerCase()) throw new PilotError("LOADED_IMPLEMENTATION_ROOT_MISMATCH");
   if ((config.outputContract === "CLAIM_MAP_V3") !== !!config.sources.claimRegistryConfigFile) throw new PilotError("ClaimContractSourcesRequired");
-  const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
+  const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources, config.promptVersion);
   if (config.mode === "LIVE") assertCleanWorkingTree(config.sources.workspaceRoot);
   for (const key of ["commit", "code", "corpus", "cases", "promptHashes"] as const) match(result.pins[key], config.pins[key], key);
   const receipt: VerifiedPins = Object.freeze({ status: "VERIFIED_FROM_FILES" });

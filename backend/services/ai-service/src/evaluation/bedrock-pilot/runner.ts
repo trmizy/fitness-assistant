@@ -44,7 +44,7 @@ export async function runControlledPilot(options: RunnerOptions) {
   assertSeparate(options.directory, reviewerDirectory);
   fs.mkdirSync(reviewerDirectory, { recursive: true }); realDirectory(reviewerDirectory);
   for (const slot of reviewerSlots) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
-  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources);
+  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design, config.sources, config.promptVersion);
   if (config.transportProtocol && (preparation.rows.length !== 8 || preparation.routed.length || new Set(preparation.rows.map(r => r.caseKey)).size !== 2)) throw new PilotError(config.transportProtocol === "MANTLE_MESSAGES" ? "MANTLE_WARMUP_CASES_REQUIRED" : "NOVA_WARMUP_CASES_REQUIRED");
   // Each measured preflight is billed: exactly one per unique prompt (4 = 2 cases x 2 arms; repeats reuse the measurement).
   if (config.transportProtocol === "NOVA_CONVERSE_MEASURED" && new Set(preparation.rows.map(r => r.promptHash)).size !== 4) throw new PilotError("NOVA_WARMUP_CASES_REQUIRED");

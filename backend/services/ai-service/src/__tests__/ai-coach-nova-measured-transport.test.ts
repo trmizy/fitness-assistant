@@ -38,7 +38,7 @@ function transport(options: { measured?: number; measure?: (r: NovaFakeRequest) 
 function novaConfig(root: string) {
   const c = pilotConfig();
   c.transportProtocol = "NOVA_CONVERSE_MEASURED"; c.modelId = NOVA_MODEL; c.region = NOVA_REGION; c.inferenceProfile = null;
-  c.outputContract = "CLAIM_MAP_V3"; c.reviewerMode = "OWNER_ONLY_EXPLORATORY";
+  c.outputContract = "CLAIM_MAP_V3"; c.reviewerMode = "OWNER_ONLY_EXPLORATORY"; c.promptVersion = "CLAIM_PROMPT_V2";
   c.design = { arms: ["LAYERED_CONTEXT", "LAYERED_CONTEXT_RAG"], policies: ["MINIMAL"], repeats: 2 };
   c.budget = { maxCalls: 8, maxInputTokensPerCall: 12000, maxInputTokens: 144000, maxOutputTokens: 16388, maxEstimatedUsd: 1, maxFailures: 2 };
   c.pricing.modelId = NOVA_MODEL; c.pricing.region = NOVA_REGION; c.pricing.inferenceProfile = null;
@@ -185,7 +185,7 @@ async function prepared() {
   fs.writeFileSync(file("bundle.json"), JSON.stringify(synthetic.input)); fs.writeFileSync(file("map.json"), JSON.stringify(synthetic.map)); fs.writeFileSync(file("owner.json"), synthetic.input.files.owner.text);
   fs.writeFileSync(file("registry.json"), JSON.stringify({ version: "claim-registry-local-config-v1", inputBundleFile: file("bundle.json"), claimMapFile: file("map.json"), currentOwnerDecisionsFile: file("owner.json"), trustedPins: synthetic.pins }));
   const c = novaConfig(a.root); c.sources = { workspaceRoot: a.root, casesFile: a.casesFile, claimRegistryConfigFile: file("registry.json") };
-  c.pins = (await calculatePilotPins(a.root, a.casesFile, c.design, c.sources)).pins;
+  c.pins = (await calculatePilotPins(a.root, a.casesFile, c.design, c.sources, c.promptVersion)).pins;
   return { ...a, config: c };
 }
 

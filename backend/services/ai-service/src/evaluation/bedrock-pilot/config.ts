@@ -12,6 +12,8 @@ export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
   transportProtocol: z.enum(["MANTLE_MESSAGES", "NOVA_CONVERSE_MEASURED"]).optional(),
+  // Model-facing claim prompt projection; absent = CLAIM_PROMPT_V1 (historical E2/E3 prompts stay byte-identical).
+  promptVersion: z.enum(["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2"]).optional(),
   outputContract: z.enum(["LEGACY_V3", "CLAIM_MAP_V3"]).optional(),
   reviewerMode: z.enum(["TWO_RATER", "OWNER_ONLY_EXPLORATORY"]).optional(),
   design: EvaluationDesignSchema.optional(),
@@ -30,6 +32,7 @@ export function parseConfiguration(value: unknown): SessionConfig {
   if (!parsed.success) throw new PilotError("CONFIG_INVALID", { paths: parsed.error.issues.map((i) => i.path.join(".")) });
   const c = parsed.data;
   if ((c.outputContract === "CLAIM_MAP_V3") !== !!c.sources?.claimRegistryConfigFile) throw new PilotError("ClaimContractSourcesRequired");
+  if (c.promptVersion && c.outputContract !== "CLAIM_MAP_V3") throw new PilotError("PROMPT_VERSION_REQUIRES_CLAIM_CONTRACT");
   assertCurrentAuthorization(c);
   return c;
 }
@@ -46,6 +49,8 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     // still stops it with NOVA_LIVE_LOCKED after the trust/ledger gates.
     if (c.mode === "FAKE" && c.liveOptIn) throw new PilotError("NOVA_LIVE_LOCKED");
     if (c.modelId !== "amazon.nova-pro-v1:0" || c.region !== "us-east-1" || c.inferenceProfile !== null) throw new PilotError("NOVA_TARGET_MISMATCH");
+    // Owner-reviewed Nova warmup prompts are the V2 projection (no local paths, contract includes claimLinks).
+    if (c.promptVersion !== "CLAIM_PROMPT_V2") throw new PilotError("NOVA_PROMPT_VERSION_REQUIRED");
     if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY") throw new PilotError("NOVA_CLAIM_SCOPE_REQUIRED");
     if (c.mode === "FAKE" && (c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null)) throw new PilotError("NOVA_FAKE_CLAIM_SCOPE_REQUIRED");
     if (c.mode === "LIVE" && (!c.sources?.claimRegistryConfigFile || c.parameters.retries !== 0)) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");

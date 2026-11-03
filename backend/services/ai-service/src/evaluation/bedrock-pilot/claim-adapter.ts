@@ -1,18 +1,19 @@
 /** E2 preparation/verification adapter. CPU only; no provider, vector or database defaults. */
 import { prepareClaimContext, excerptId, type ClaimContext } from "../ai-coach-claim-dev/context";
-import { buildClaimPrompt, gateInput, verifyClaimAnalysis } from "../ai-coach-claim-dev/pipeline";
+import { buildClaimPrompt, gateInput, verifyClaimAnalysis, type ClaimPromptVersion } from "../ai-coach-claim-dev/pipeline";
 import { retrieveClaims, type ClaimRegistry } from "../ai-coach-claim-dev/retrieval";
 import type { DevRequest } from "../ai-coach-dev/context";
 import type { Arm, PolicyVariant } from "../ai-coach-dev/pipeline";
 import type { Passage } from "../ai-coach-dev/retrieval";
 
-export function prepareClaimPilot(request: DevRequest, registry: ClaimRegistry, arm: Arm, policy: PolicyVariant) {
+export function prepareClaimPilot(request: DevRequest, registry: ClaimRegistry, arm: Arm, policy: PolicyVariant, promptVersion: ClaimPromptVersion = "CLAIM_PROMPT_V1") {
   if (!["LAYERED_CONTEXT", "LAYERED_CONTEXT_RAG"].includes(arm) || policy !== "MINIMAL") throw new Error("UnsupportedClaimPilotDesign");
   // Bounded warmup policy: preserve complete scope/excerpts for two ranked claims; never raise the token cap.
   const context = prepareClaimContext(request, registry, arm === "LAYERED_CONTEXT" ? { restrictTo: [] } : {
     retrieve: question => retrieveClaims(registry, question, { maxClaims: 2 }),
   });
-  const input = gateInput(context), prompt = buildClaimPrompt(context);
+  // V2 (selected by config.promptVersion) changes only the model-facing projection; verification/receipts keep the full ClaimContext.
+  const input = gateInput(context), prompt = buildClaimPrompt(context, promptVersion);
   const passages: Passage[] = input.sources.map(source => ({ source: { ...source,
     applicability: context.retrieval.matches.filter(m => m.claim.evidenceReferences.some(e => e.sourceId === source.id))
       .map(m => `[${m.claim.id}] ${[...m.claim.population, ...m.claim.applicability].join("; ")}`).join("\n"),

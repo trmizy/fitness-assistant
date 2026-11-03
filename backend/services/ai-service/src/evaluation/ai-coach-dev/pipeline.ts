@@ -25,7 +25,7 @@ export interface MockProvider {
   // No case ID, labels, arm name or expected answer enters this boundary.
   complete(request: { prompt: Prompt; settings: typeof SETTINGS }): Promise<unknown>;
 }
-const OUTPUT_CONTRACT = {
+export const OUTPUT_CONTRACT = {
   analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA|OBSERVED_PROGRESS|NO_OBSERVED_CHANGE",
     assessmentBasis: { outcome: "ESTIMATED_STRENGTH|MUSCLE_SIZE|UNSPECIFIED", factIds: ["existing-fact-id"] },
     claims: [{ claimType: "OBSERVATION|GENERAL_PRINCIPLE|MEASUREMENT_LIMITATION|PERSONAL_HYPOTHESIS", text: "bounded claim", factIds: [], evidenceIds: [] }],
