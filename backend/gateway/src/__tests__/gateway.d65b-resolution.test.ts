@@ -87,6 +87,8 @@ test.after(async () => {
 const CALLS: Array<[string, string, unknown?]> = [
   ["POST", "/admin/unconfirmed-session-resolutions/sessions/s-1/proposals", { reason: "x", evidenceRefs: ["e"] }],
   ["POST", "/admin/unconfirmed-session-resolutions/6f1c2f0e-0000-4000-8000-000000000000/approve", { reason: "x", conflictOfInterestDeclaredNone: true }],
+  ["POST", "/admin/unconfirmed-session-resolutions/6f1c2f0e-0000-4000-8000-000000000000/reject", { reason: "x", conflictOfInterestDeclaredNone: true }],
+  ["POST", "/admin/unconfirmed-session-resolutions/6f1c2f0e-0000-4000-8000-000000000000/handover", { reason: "x", conflictOfInterestDeclaredNone: true }],
   ["GET", "/admin/unconfirmed-session-resolutions"],
   ["GET", "/admin/unconfirmed-session-resolutions/sessions/s-1"],
   ["GET", "/admin/unconfirmed-session-resolutions/6f1c2f0e-0000-4000-8000-000000000000"],
