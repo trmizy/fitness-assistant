@@ -8,6 +8,17 @@ export class PilotError extends Error {
 }
 export const Hash = z.string().regex(/^[a-f0-9]{64}$/).refine((s) => !/^0+$/.test(s), "PlaceholderHashForbidden");
 export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: z.string().min(1), approvedBy: z.string().min(1), scope: z.literal("BEDROCK_EVALUATION_PILOT"), configHash: Hash, expiresAt: z.string().datetime(), signature: z.string().min(1) }).strict();
+/** Owner acknowledgements recorded inside the signed configuration; PENDING_OWNER keeps Nova LIVE blocked. */
+export const NOVA_ACCEPTED = { pricing: "PUBLIC_PLANNING_RATES_ACCEPTED_NOT_INVOICE", retentionLogging: "SYNTHETIC_ONLY_INVOCATION_LOGGING_OFF_NO_NEW_TRAIL_ACCEPTED" } as const;
+export const NOVA_APPROVAL_MAX_LIFETIME_MS = 72 * 3600 * 1000;
+// Signed Nova execution scope: the exact owner-approved token-bearing payloads, call counts and AWS profile.
+// Absent = no Nova LIVE (default locked). A named shared-config profile may be an STS role profile.
+export const NovaScopeSchema = z.object({
+  tokenPayloadHashes: z.array(Hash).min(1).max(4).refine((a) => new Set(a).size === a.length, "DuplicatePayloadHash"),
+  measureCalls: z.number().int().min(1).max(4), inferenceCalls: z.number().int().min(1).max(8),
+  awsProfile: z.string().regex(/^[A-Za-z0-9_.-]{1,64}$/).refine((p) => p !== "default", "DefaultProfileForbidden"),
+  ownerAcknowledgements: z.object({ pricing: z.enum(["PENDING_OWNER", NOVA_ACCEPTED.pricing]), retentionLogging: z.enum(["PENDING_OWNER", NOVA_ACCEPTED.retentionLogging]) }).strict(),
+}).strict();
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
@@ -23,6 +34,7 @@ export const SessionConfigSchema = z.object({
   budget: z.object({ maxCalls: z.number().int().positive(), maxInputTokensPerCall: z.number().int().positive(), maxInputTokens: z.number().int().positive(), maxOutputTokens: z.number().int().positive(), maxEstimatedUsd: z.number().finite().positive(), maxFailures: z.number().int().positive() }).strict(),
   pricing: z.object({ authority: z.enum(["FAKE_TEST_ONLY", "OWNER_CONFIRMED_AWS"]), sourceUrl: z.literal("https://aws.amazon.com/bedrock/pricing/"), tokenUnit: z.literal("USD_PER_MILLION_TOKENS"), version: z.string().min(1), checkedAt: z.string().datetime(), expiresAt: z.string().datetime(), modelId: z.string(), inferenceProfile: z.string().nullable(), region: z.string(), inputUsdPerMillion: z.number().finite().positive(), outputUsdPerMillion: z.number().finite().positive(), confirmedBy: z.string().min(1), evidenceHash: Hash }).strict(),
   approval: ApprovalSchema.nullable(),
+  novaScope: NovaScopeSchema.optional(),
 }).strict();
 export type SessionConfig = z.infer<typeof SessionConfigSchema>;
 export type Approval = z.infer<typeof ApprovalSchema>;
@@ -37,6 +49,8 @@ export function parseConfiguration(value: unknown): SessionConfig {
   return c;
 }
 export function assertCurrentAuthorization(c: SessionConfig) {
+  const now = Date.now();
+  if (c.novaScope && c.transportProtocol !== "NOVA_CONVERSE_MEASURED") throw new PilotError("NOVA_SCOPE_PROTOCOL_MISMATCH");
   if (c.transportProtocol === "MANTLE_MESSAGES" || c.modelId === "anthropic.claude-haiku-4-5") {
     if (c.mode !== "FAKE" || c.liveOptIn) throw new PilotError("MANTLE_LIVE_LOCKED");
     if (c.transportProtocol !== "MANTLE_MESSAGES" || c.modelId !== "anthropic.claude-haiku-4-5" || c.region !== "us-east-2" || c.inferenceProfile !== null) throw new PilotError("MANTLE_TARGET_MISMATCH");
@@ -57,8 +71,16 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     // 8 inference calls plus at most 4 billed measured preflights (one per unique prompt, maxTokens=1), each <=12,000 input.
     const b = c.budget, d = c.design;
     if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 144000 || b.maxOutputTokens > 16388 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("NOVA_WARMUP_LIMIT_EXCEEDED");
+    const s = c.novaScope;
+    if (s && (s.measureCalls !== s.tokenPayloadHashes.length || s.inferenceCalls > b.maxCalls)) throw new PilotError("NOVA_SCOPE_INVALID");
+    if (c.mode === "LIVE") {
+      // LIVE runs only the full owner-approved warmup: 4 approved payloads, 4 measures, 8 inferences.
+      if (!s || s.tokenPayloadHashes.length !== 4 || s.measureCalls !== 4 || s.inferenceCalls !== 8 || b.maxCalls !== 8) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");
+      if (s.ownerAcknowledgements.pricing !== NOVA_ACCEPTED.pricing || s.ownerAcknowledgements.retentionLogging !== NOVA_ACCEPTED.retentionLogging) throw new PilotError("NOVA_OWNER_ACKNOWLEDGEMENT_REQUIRED");
+      if (c.approval && Date.parse(c.approval.expiresAt) > now + NOVA_APPROVAL_MAX_LIFETIME_MS) throw new PilotError("NOVA_APPROVAL_LIFETIME_EXCEEDED");
+    }
   }
-  const now = Date.now(), p = c.pricing;
+  const p = c.pricing;
   if (p.modelId !== c.modelId || p.inferenceProfile !== c.inferenceProfile || p.region !== c.region || Date.parse(p.expiresAt) <= now || Date.parse(p.checkedAt) > now || Date.parse(p.expiresAt) <= Date.parse(p.checkedAt)) throw new PilotError("PricingNotValid");
   if (c.mode === "LIVE" && (!c.liveOptIn || !c.profileModelConfirmed || p.authority !== "OWNER_CONFIRMED_AWS" || !c.approval || c.approval.configHash !== approvedConfigurationHash(c) || Date.parse(c.approval.expiresAt) <= now)) throw new PilotError("LiveNotApproved");
 }

@@ -1,4 +1,7 @@
-/** Controlled DEV runner. There is deliberately NO executable LIVE branch. */
+/**
+ * Controlled DEV runner. The only executable LIVE branch is the Nova measured warmup, and the session admits it only
+ * after every owner gate (signed config + Nova scope, clean pins, trust root/Ed25519, scoped OWNER_SIGNED ledger).
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { createAnnotationPackets } from "../evaluation-kit/annotations";
@@ -8,14 +11,14 @@ import { outputLifecycle } from "../evaluation-kit/lifecycle";
 import { verifyRawEvaluation } from "../ai-coach-dev/pipeline";
 import { approvedConfigurationHash, estimatedCost, parseConfiguration, PilotError } from "./config";
 import { calculatePilotPins, verifySessionPins } from "./pins";
-import { openEvaluationSession, redact, type EvaluationTransport } from "./session";
+import { converseInput, openEvaluationSession, redact, type EvaluationTransport, type LiveRehearsal } from "./session";
 import { assertSeparate, atomicCreate, openJournal, realDirectory } from "./storage";
 import { attemptIdentity } from "./design";
 import { verifyClaimPilot } from "./claim-adapter";
 import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
 import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
 import { createScriptedMantleTransport } from "./mantle-transport";
-import { createScriptedNovaTransport } from "./nova-converse-transport";
+import { createScriptedNovaTransport, serializeNova } from "./nova-converse-transport";
 import type { SessionConfig } from "./config";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
@@ -27,6 +30,8 @@ export interface RunnerOptions {
   onPreview?: (value: unknown) => void;
   /** FAKE-only fault probes, never a live authorization/provider bypass. */
   onStage?: (stage: PilotStage) => void;
+  /** TEST FIXTURE ONLY (see session LiveRehearsal): never constructs the AWS client. */
+  liveRehearsal?: LiveRehearsal;
 }
 function fakeTransport(claims: boolean, protocol?: SessionConfig["transportProtocol"]): EvaluationTransport {
   const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [], ...(claims ? { claimLinks: [] } : {}) });
@@ -37,7 +42,9 @@ function fakeTransport(claims: boolean, protocol?: SessionConfig["transportProto
 }
 export async function runControlledPilot(options: RunnerOptions) {
   const config = parseConfiguration(options.config);
-  if (config.mode !== "FAKE") throw new PilotError("RUNNER_LIVE_LOCKED");
+  if (config.mode !== "FAKE" && config.transportProtocol !== "NOVA_CONVERSE_MEASURED") throw new PilotError("RUNNER_LIVE_LOCKED");
+  const live = config.mode === "LIVE", rehearsal = !!options.liveRehearsal, awsCalls = live && !rehearsal;
+  if (live && options.transport) throw new PilotError("LiveTransportCannotBeOverridden");
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
   const reviewerDirectory = options.reviewerDirectory ?? path.resolve(options.directory) + "-reviewers";
   const reviewerSlots = config.reviewerMode === "OWNER_ONLY_EXPLORATORY" ? ["R1"] : ["R1", "R2"];
@@ -48,9 +55,15 @@ export async function runControlledPilot(options: RunnerOptions) {
   if (config.transportProtocol && (preparation.rows.length !== 8 || preparation.routed.length || new Set(preparation.rows.map(r => r.caseKey)).size !== 2)) throw new PilotError(config.transportProtocol === "MANTLE_MESSAGES" ? "MANTLE_WARMUP_CASES_REQUIRED" : "NOVA_WARMUP_CASES_REQUIRED");
   // Each measured preflight is billed: exactly one per unique prompt (4 = 2 cases x 2 arms; repeats reuse the measurement).
   if (config.transportProtocol === "NOVA_CONVERSE_MEASURED" && new Set(preparation.rows.map(r => r.promptHash)).size !== 4) throw new PilotError("NOVA_WARMUP_CASES_REQUIRED");
+  if (config.novaScope) {
+    // The prepared token-bearing payloads must be exactly the owner-approved set (checked before any session/ledger work).
+    const prepared = new Set(preparation.rows.map(r => serializeNova(converseInput(config, r.prompt)).identity.tokenPayloadHash)), approved = new Set(config.novaScope.tokenPayloadHashes);
+    if (prepared.size !== approved.size || [...prepared].some(h => !approved.has(h))) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
+  }
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
+  const transport = live ? undefined : options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol);
+  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, transport, { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins, liveRehearsal: options.liveRehearsal });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
@@ -77,17 +90,18 @@ export async function runControlledPilot(options: RunnerOptions) {
     const counts = await session.previewTokenCounts(preparation.rows.map((r) => r.prompt));
     // Nova measured preflights are billed model calls: one per unique prompt, full input plus at most 1 output token.
     const measured = config.transportProtocol === "NOVA_CONVERSE_MEASURED" ? [...new Map(counts.map(c => [c.promptHash, c.inputTokens])).values()] : [];
-    const measuredPreflight = measured.length ? { authority: "FAKE_TEST_ONLY_NOT_MODEL_TOKENS", calls: measured.length, inputTokens: measured.reduce((n, t) => n + t, 0), outputTokenCeiling: measured.length } : null;
+    const tokenAuthority = awsCalls ? "AWS_REPORTED_USAGE" : rehearsal ? "REHEARSAL_FIXTURE_NOT_MODEL_TOKENS" : "FAKE_TEST_ONLY_NOT_MODEL_TOKENS";
+    const measuredPreflight = measured.length ? { authority: tokenAuthority, calls: measured.length, inputTokens: measured.reduce((n, t) => n + t, 0), outputTokenCeiling: measured.length } : null;
     const inputCeiling = counts.reduce((n, r) => n + r.inputTokens, 0) + (measuredPreflight?.inputTokens ?? 0), outputCeiling = preparation.rows.length * config.parameters.maxTokens + (measuredPreflight?.outputTokenCeiling ?? 0);
     const tokenLengthControls = preparation.rows.filter((r) => r.arm === "LAYERED_CONTEXT_PLACEBO").map((row) => {
       const index = preparation.rows.indexOf(row), pairedIndex = preparation.rows.findIndex((r) => r.caseKey === row.caseKey && r.policy === row.policy && r.repeatIndex === row.repeatIndex && r.arm === "LAYERED_CONTEXT");
       return { caseKey: row.caseKey, authority: "FAKE_TEST_ONLY", contextTokens: counts[pairedIndex]?.inputTokens ?? null, paddedTokens: counts[index].inputTokens, delta: pairedIndex < 0 ? null : counts[index].inputTokens - counts[pairedIndex].inputTokens, modelTokenMatch: "NOT_EVALUATED" };
     });
-    const preview = { mode: "FAKE", configHash, approvalId: session.approvalId, target: session.target, pins: config.pins, inferenceCallsCeiling: preparation.rows.length, countApiCallsCeiling: new Set(config.pins.promptHashes).size,
-      tokenAuthority: "FAKE_TEST_ONLY_NOT_MODEL_TOKENS", inputTokenCeiling: inputCeiling, outputTokenCeiling: outputCeiling, estimatedUsdCeiling: estimatedCost(config, inputCeiling, outputCeiling), approvedUsdCap: config.budget.maxEstimatedUsd,
+    const preview = { mode: config.mode, configHash, approvalId: session.approvalId, target: session.target, pins: config.pins, inferenceCallsCeiling: preparation.rows.length, countApiCallsCeiling: new Set(config.pins.promptHashes).size,
+      tokenAuthority, inputTokenCeiling: inputCeiling, outputTokenCeiling: outputCeiling, estimatedUsdCeiling: estimatedCost(config, inputCeiling, outputCeiling), approvedUsdCap: config.budget.maxEstimatedUsd,
       stopConditions: ["CALL_TOKEN_SPEND_CAP", "PIN_OR_APPROVAL_DRIFT", "UNKNOWN_USAGE", "FAILURE_THRESHOLD", "PERSISTENCE_OR_LOCK_FAILURE", "SAFETY_OUT_OF_DOMAIN_ROUTED"], tokenLengthControls,
       ...(measuredPreflight ? { measuredPreflight } : {}),
-      countsByRow: counts.map((c, i) => ({ caseKey: preparation.rows[i].caseKey, arm: preparation.rows[i].arm, promptHash: c.promptHash, fakeInputTokens: c.inputTokens, modelInputTokens: null, contextSize: preparation.rows[i].contextSize })) };
+      countsByRow: counts.map((c, i) => ({ caseKey: preparation.rows[i].caseKey, arm: preparation.rows[i].arm, promptHash: c.promptHash, fakeInputTokens: awsCalls ? null : c.inputTokens, modelInputTokens: awsCalls ? c.inputTokens : null, contextSize: preparation.rows[i].contextSize })) };
     options.onPreview?.(preview);
     if (!fs.existsSync(path.join(options.directory, "preview.json"))) atomicCreate(path.join(options.directory, "preview.json"), preview);
     journal.append({ event: "PREVIEW", previewHash: digest(preview) }); options.onStage?.("PREVIEWED");
@@ -150,12 +164,12 @@ export async function runControlledPilot(options: RunnerOptions) {
       if (session.state().stopped) break;
     }
     const state = session.state();
-    const summary = { status: state.stopped ? "STOPPED" : "FAKE_COMPLETED_REVIEW_ONLY", mode: "FAKE", configHash, approvalId: session.approvalId, target: session.target,
+    const summary = { status: state.stopped ? "STOPPED" : awsCalls ? "LIVE_COMPLETED_REVIEW_ONLY" : rehearsal ? "LIVE_REHEARSAL_FIXTURE_COMPLETED_REVIEW_ONLY" : "FAKE_COMPLETED_REVIEW_ONLY", mode: config.mode, configHash, approvalId: session.approvalId, target: session.target,
       denominators: { scheduled: preparation.rows.length + preparation.routed.length, routedBeforeGeneration: preparation.routed.length, generationEligible: preparation.rows.length, inferenceAttempts: state.inferenceCalls, finishedOutputs: outputs.filter((o) => o.generated).length,
         recordedOutputs: outputs.length, validGenerated: outputs.filter((o) => !o.failed).length, failed: outputs.filter((o) => o.failed).length, redactedOutputs: outputs.filter((o) => o.redacted).length,
         parseOrProviderFailures: outputs.filter((o) => o.failed).length, postGateEligible: outputs.filter((o) => o.generated && !o.blocked && !o.failed).length, blocked: outputs.filter((o) => o.generated && o.blocked).length, notAttempted: preparation.rows.length - state.inferenceCalls },
       routed: preparation.routed, budget: state, rawCorrectness: null, postGateCorrectness: null, scientificPass: null,
-      reviewAuthority: config.reviewerMode === "OWNER_ONLY_EXPLORATORY" ? "EXPLORATORY_OWNER_REVIEWED" : "PENDING_INDEPENDENT_REVIEW", actualBedrockCalls: 0, actualEmbeddingCalls: 0, actualVectorDbCalls: 0 };
+      reviewAuthority: config.reviewerMode === "OWNER_ONLY_EXPLORATORY" ? "EXPLORATORY_OWNER_REVIEWED" : "PENDING_INDEPENDENT_REVIEW", actualBedrockCalls: awsCalls ? state.countCalls + state.inferenceCalls : 0, actualEmbeddingCalls: 0, actualVectorDbCalls: 0 };
     atomicCreate(summaryFile, summary); journal.append({ event: "PILOT_COMPLETED", summaryHash: digest(summary) });
     return summary;
   } catch (e) {

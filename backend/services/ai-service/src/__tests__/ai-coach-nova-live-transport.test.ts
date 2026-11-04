@@ -7,8 +7,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { ConverseCommandInput, ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
 import { NOVA_MODEL, NOVA_REGION } from "../evaluation/bedrock-pilot/nova-converse-transport";
-import { createLiveNovaTransport, createNovaRuntimeClient, NOVA_AWS_PROFILE, NOVA_LIVE_EXECUTION_LOCKED, type NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
-import { approvedConfigurationHash, parseConfiguration } from "../evaluation/bedrock-pilot/config";
+import { createLiveNovaTransport, createNovaRuntimeClient, type NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
+import { approvedConfigurationHash, NOVA_ACCEPTED, parseConfiguration } from "../evaluation/bedrock-pilot/config";
 import { openEvaluationSession } from "../evaluation/bedrock-pilot/session";
 import { runControlledPilot } from "../evaluation/bedrock-pilot/runner";
 import { assertIssuedLedger, installedApproval, installedTrustFile } from "../evaluation/bedrock-pilot/ledger";
@@ -30,9 +30,9 @@ function mock(handler: (i: ConverseCommandInput) => ConverseCommandOutput | Prom
 const sdkError = (name: string, status?: number, message = "TEST FIXTURE error") => Object.assign(new Error(message), { name, $fault: status && status >= 500 ? "server" : "client", ...(status ? { $metadata: { httpStatusCode: status, requestId: "req-err" } } : {}) });
 
 test("runtime client is pinned to us-east-1 with SDK retries disabled; constructing it sends nothing", async () => {
-  const client = createNovaRuntimeClient();
+  const client = createNovaRuntimeClient("gymini-fixture-profile");
   assert.equal(await client.config.region(), "us-east-1"); assert.equal(NOVA_REGION, "us-east-1");
-  assert.equal(await client.config.maxAttempts(), 1); assert.equal(NOVA_AWS_PROFILE, "divuzha");
+  assert.equal(await client.config.maxAttempts(), 1);
   client.destroy();
   const source = fs.readFileSync(path.resolve(__dirname, "../evaluation/bedrock-pilot/nova-live-transport.ts"), "utf8");
   assert.doesNotMatch(source, /process\.env|CountTokensCommand|InvokeModelCommand|bedrock-mantle|global\.|us\.amazon|apac\./);
@@ -91,6 +91,7 @@ function liveConfig(root: string) {
     budget: { maxCalls: 8, maxInputTokensPerCall: 12000, maxInputTokens: 144000, maxOutputTokens: 16388, maxEstimatedUsd: 1, maxFailures: 2 },
     sources: { workspaceRoot: root, casesFile: path.join(root, "cases.json"), claimRegistryConfigFile: path.join(root, "registry.json") } });
   Object.assign(c.pricing, { authority: "OWNER_CONFIRMED_AWS", modelId: NOVA_MODEL, region: NOVA_REGION, inferenceProfile: null, confirmedBy: "TEST FIXTURE owner" });
+  c.novaScope = { tokenPayloadHashes: ["1", "2", "3", "4"].map(d => d.repeat(64)), measureCalls: 4, inferenceCalls: 8, awsProfile: "gymini-fixture-profile", ownerAcknowledgements: { ...NOVA_ACCEPTED } };
   // Structurally valid approval bound to this config; its signature is a fixture and verifies against nothing installed.
   c.approval = { approvalId: randomUUID(), issuer: "fixture-issuer", approvedBy: "fixture-owner", scope: "BEDROCK_EVALUATION_PILOT", configHash: approvedConfigurationHash(c), expiresAt: new Date(Date.now() + 3600000).toISOString(), signature: "VEVTVCBGSVhUVVJF" };
   return c;
@@ -107,23 +108,19 @@ test("Nova LIVE config parses only with the full signed-configuration conditions
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test("LIVE session stops at the pinned-input gate first; cannot take an injected transport; runner stays LIVE-locked", async () => {
+test("LIVE session stops at the pinned-input gate first; neither session nor runner takes an injected transport; Mantle LIVE stays locked", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gymini-nova-live-"));
   try {
     const c = liveConfig(root), dir = path.join(root, "run");
     assert.throws(() => openEvaluationSession(c, dir), /VERIFIED_INPUTS_REQUIRED/);
     assert.throws(() => openEvaluationSession(c, dir, mock(() => sdkOutput("{}", 1, 1)).transport), /LiveTransportCannotBeOverridden/);
+    await assert.rejects(runControlledPilot({ config: c, directory: dir, transport: mock(() => sdkOutput("{}", 1, 1)).transport }), /LiveTransportCannotBeOverridden/);
+    await assert.rejects(runControlledPilot({ config: c, directory: dir }));
     assert.equal(fs.existsSync(dir), false);
-    await assert.rejects(runControlledPilot({ config: c, directory: dir }), /RUNNER_LIVE_LOCKED/);
+    const { novaScope: _scope, ...withoutScope } = c, mantle = { ...withoutScope, transportProtocol: "MANTLE_MESSAGES", modelId: "anthropic.claude-haiku-4-5", region: "us-east-2" };
+    await assert.rejects(runControlledPilot({ config: mantle, directory: dir }), /MANTLE_LIVE_LOCKED/);
     void pilotPrompt;
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
-});
-
-test("session source orders every owner gate before the execution lock, and the lock before any claim or transport", () => {
-  assert.equal(NOVA_LIVE_EXECUTION_LOCKED, true);
-  const s = fs.readFileSync(path.resolve(__dirname, "../evaluation/bedrock-pilot/session.ts"), "utf8");
-  const order = ["const config = parseConfiguration(value)", "assertVerifiedPins(config, options.verifiedPins);","installedApproval(config) : null", "assertIssuedLedger({", "if (NOVA_LIVE_EXECUTION_LOCKED) throw", "const ledger = openBudgetLedger(", "createLiveNovaTransport()"].map(k => s.indexOf(k));
-  assert.ok(order.every(i => i >= 0), JSON.stringify(order)); assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 
 test("installed trust root is required (absent on this machine) and is read from a fixed path only", { skip: fs.existsSync(installedTrustFile()) ? "trust file present on this machine" : false }, () => {

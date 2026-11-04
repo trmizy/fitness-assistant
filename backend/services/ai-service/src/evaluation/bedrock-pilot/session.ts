@@ -9,12 +9,12 @@ import { digest } from "../evaluation-kit/identity";
 import { protect, redact } from "../evaluation-kit/representation";
 export { redact } from "../evaluation-kit/representation";
 import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, parseConfiguration, PilotError, type SessionConfig } from "./config";
-import { assertIssuedLedger, installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
-import { createLiveNovaTransport, NOVA_LIVE_EXECUTION_LOCKED } from "./nova-live-transport";
+import { approvalFromTrust, assertIssuedLedger, assertNovaLedgerScope, installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
+import { createLiveNovaTransport, createNovaRuntimeClient, novaRuntimeSend, type NovaSend } from "./nova-live-transport";
 import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
 import type { MantleWireIdentity } from "./mantle-transport";
-import type { NovaWireIdentity } from "./nova-converse-transport";
+import { serializeNova, type NovaWireIdentity } from "./nova-converse-transport";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 type WireIdentity = MantleWireIdentity | NovaWireIdentity;
@@ -60,36 +60,52 @@ async function deadline<T>(ms: number, work: (signal: AbortSignal) => Promise<T>
   try { return await Promise.race([work(controller.signal), new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); const e = new Error("Deadline"); e.name = "TimeoutError"; reject(e); }, ms); })]); }
   finally { clearTimeout(timer); }
 }
-export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins }
+/**
+ * TEST FIXTURE ONLY. Drives the complete Nova LIVE gate sequence with a fixture trust root, a FAKE_TEST_ONLY ledger
+ * issue and a fixture send. A rehearsal never constructs the AWS client and never accepts an OWNER_SIGNED ledger,
+ * so neither a fixture trust root nor a real owner issue can be combined with the other path.
+ */
+export interface LiveRehearsal { trust: unknown; send: NovaSend }
+export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins; liveRehearsal?: LiveRehearsal }
+/** The exact Converse input the session sends for a prompt (shared with the runner's payload-approval check). */
+export function converseInput(config: SessionConfig, prompt: Prompt) {
+  const input = buildConverseTextInput({ system: prompt.system, userText: prompt.user, modelId: inferenceTarget(config).identifier, maxTokens: config.parameters.maxTokens, temperature: config.parameters.temperature });
+  if (config.parameters.topP !== undefined) input.inferenceConfig!.topP = config.parameters.topP;
+  return input;
+}
 export function openEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
   const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
+  const nova = config.transportProtocol === "NOVA_CONVERSE_MEASURED", rehearsal = options.liveRehearsal;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
+  if (rehearsal && (config.mode !== "LIVE" || !nova || typeof rehearsal.send !== "function")) throw new PilotError("REHEARSAL_SCOPE_INVALID");
   if (config.mode === "FAKE") {
     if ((config.transportProtocol ?? null) !== (fake?.protocol ?? null)) throw new PilotError(config.transportProtocol === "NOVA_CONVERSE_MEASURED" || fake?.protocol === "NOVA_CONVERSE_MEASURED" ? "NOVA_TRANSPORT_REQUIRED" : "MANTLE_TRANSPORT_REQUIRED");
     if (!!fake?.billedCount !== (config.transportProtocol === "NOVA_CONVERSE_MEASURED")) throw new PilotError("BILLED_COUNT_DECLARATION_MISMATCH");
   }
-  // Owner gates, in order, before anything is claimed or sent: signed configuration (parseConfiguration),
-  // pinned payload/clean checkout, installed trust root + signature, then the owner-issued ledger (read-only).
+  // Owner gates, in order, before anything is claimed or sent: signed configuration incl. Nova scope (parseConfiguration),
+  // pinned payload/clean checkout, trust root + Ed25519 signature, then the issued ledger and its explicit scope (read-only).
   if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
-  const approval = config.mode === "LIVE" ? installedApproval(config) : null;
-  if (approval && config.transportProtocol === "NOVA_CONVERSE_MEASURED") {
-    assertIssuedLedger({ directory: approval.directory, approvalId: approval.approval.approvalId, approvalHash: digest(approval.approval), configHash });
-    // Execution lock: all gates passed, nothing claimed, no credentials resolved, no request sent.
-    if (NOVA_LIVE_EXECUTION_LOCKED) throw new PilotError("NOVA_LIVE_LOCKED");
+  const currentApproval = () => rehearsal ? approvalFromTrust(config, rehearsal.trust) : installedApproval(config);
+  const liveAuthority = rehearsal ? "FAKE_TEST_ONLY" as const : "OWNER_SIGNED" as const;
+  const approval = config.mode === "LIVE" ? currentApproval() : null;
+  if (approval && nova) {
+    const issued = assertIssuedLedger({ directory: approval.directory, approvalId: approval.approval.approvalId, approvalHash: digest(approval.approval), configHash, authority: liveAuthority });
+    assertNovaLedgerScope(issued, config);
   }
   const ledgerDirectory = approval?.directory ?? options.fixtureLedgerDirectory ?? path.join(path.dirname(path.resolve(directory)), "fixture-ledger");
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
   const approvalHash = approval ? digest(approval.approval) : digest({ authority: "FAKE_TEST_ONLY", approvalId, configHash });
   if (config.mode === "FAKE" && !options.resume && !fs.existsSync(path.join(ledgerDirectory, approvalId + ".jsonl"))) issueFixtureLedger(ledgerDirectory, approvalId, configHash, approvalHash);
-  const ledger = openBudgetLedger({ directory: ledgerDirectory, approvalId, approvalHash, configHash, runDirectory: directory, mode: config.mode, resume: !!options.resume });
-  const transport = fake ?? (config.transportProtocol === "NOVA_CONVERSE_MEASURED" ? createLiveNovaTransport() : liveTransport());
+  const ledger = openBudgetLedger({ directory: ledgerDirectory, approvalId, approvalHash, configHash, runDirectory: directory, mode: config.mode, resume: !!options.resume, liveAuthority });
+  // Every gate has passed and the ledger is claimed: only now is a LIVE IO built. The real client exists only without a rehearsal.
+  const transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? rehearsal.send : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile))) : liveTransport());
   let journal: ReturnType<typeof openJournal>;
   try {
     if (!options.resume) {
       fs.mkdirSync(directory);
-      atomicCreate(path.join(directory, "manifest.json"), redact({ version: "bedrock-evaluation-v2", createdAt: new Date().toISOString(), mode: config.mode, approvalId, configHash, target, config }));
+      atomicCreate(path.join(directory, "manifest.json"), redact({ version: "bedrock-evaluation-v2", createdAt: new Date().toISOString(), mode: config.mode, approvalId, configHash, target, config, ...(rehearsal ? { rehearsal: "TEST_FIXTURE_NO_AWS_CALL" } : {}) }));
     } else {
       const m = JSON.parse(fs.readFileSync(path.join(directory, "manifest.json"), "utf8"));
       if (m.configHash !== configHash || m.approvalId !== approvalId || digest(m.target) !== digest(target)) throw new PilotError("RESUME_MANIFEST_MISMATCH");
@@ -103,19 +119,20 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     if (closed || fatal || ledger.state().stopped) throw new PilotError("BudgetStopped");
     assertCurrentAuthorization(config);
     if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
-    if (config.mode === "LIVE") { const current = installedApproval(config); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
+    if (config.mode === "LIVE") { const current = currentApproval(); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
   };
   const inputFor = (prompt: Prompt) => {
     const hash = digest({ system: prompt.system, user: prompt.user });
     if (!config.pins.promptHashes.includes(hash)) throw new PilotError("PromptNotFrozen");
-    const input = buildConverseTextInput({ system: prompt.system, userText: prompt.user, modelId: target.identifier, maxTokens: config.parameters.maxTokens, temperature: config.parameters.temperature });
-    if (config.parameters.topP !== undefined) input.inferenceConfig!.topP = config.parameters.topP;
+    const input = converseInput(config, prompt);
+    // Only the exact owner-approved token-bearing payloads may be sent.
+    if (config.novaScope && !config.novaScope.tokenPayloadHashes.includes(serializeNova(input).identity.tokenPayloadHash)) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
     return { hash, input };
   };
   async function count(prompt: Prompt) {
     authorize(); const { hash, input } = inputFor(prompt); const state = ledger.state();
     if (state.counts[hash] !== undefined) return state.counts[hash];
-    if (state.countCalls >= config.budget.maxCalls) throw new PilotError("CountApiBudgetStopped");
+    if (state.countCalls >= (config.novaScope?.measureCalls ?? config.budget.maxCalls)) throw new PilotError("CountApiBudgetStopped");
     // A billed measured preflight sends the full prompt before its size is known: reserve the per-call input cap
     // plus its 1 output token durably first, then reconcile to AWS-reported usage (which may exceed the reservation).
     const billed = !!transport.billedCount, reserveIn = config.budget.maxInputTokensPerCall, reserveOut = 1;
@@ -150,7 +167,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     const key = attemptKey ?? "attempt-" + (before.attempts + 1);
     if (before.attemptKeys.includes(key)) throw new PilotError("ATTEMPT_ALREADY_RESERVED");
     if (config.mode === "LIVE" && config.pins.promptHashes.some((h) => before.counts[h] === undefined)) throw new PilotError("BatchTokenPreflightRequired");
-    if (before.failures >= config.budget.maxFailures || before.attempts >= config.budget.maxCalls) throw new PilotError("BudgetStopped");
+    if (before.failures >= config.budget.maxFailures || before.attempts >= Math.min(config.budget.maxCalls, config.novaScope?.inferenceCalls ?? Infinity)) throw new PilotError("BudgetStopped");
     const started = Date.now(), countStarted = Date.now();
     const inputCount = await count(prompt), countLatencyMs = Date.now() - countStarted;
     authorize(); const s = ledger.state(), cap = config.parameters.maxTokens;

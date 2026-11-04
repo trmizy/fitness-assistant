@@ -9,10 +9,25 @@ import { assertSeparate, openJournal, realDirectory } from "./storage";
 const StateSchema = z.object({ attempts: z.number().int().nonnegative(), inferenceCalls: z.number().int().nonnegative(), countCalls: z.number().int().nonnegative(), inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), estimatedUsd: z.number().finite().nonnegative(), failures: z.number().int().nonnegative(), stopped: z.boolean(), counts: z.record(z.number().int().nonnegative()), attemptKeys: z.array(z.string()) }).strict();
 export type LedgerState = z.infer<typeof StateSchema>;
 export const initialState = (): LedgerState => ({ attempts: 0, inferenceCalls: 0, countCalls: 0, inputTokens: 0, outputTokens: 0, estimatedUsd: 0, failures: 0, stopped: false, counts: {}, attemptKeys: [] });
-const IssuedSchema = z.object({ event: z.literal("ISSUED"), authority: z.enum(["FAKE_TEST_ONLY", "OWNER_SIGNED"]), approvalId: z.string(), approvalHash: z.string(), configHash: z.string() }).strict();
+const NovaLedgerScopeSchema = z.object({ protocol: z.literal("NOVA_CONVERSE_MEASURED"), modelId: z.string(), region: z.string(), tokenPayloadHashes: z.array(z.string()),
+  measureCalls: z.number().int(), inferenceCalls: z.number().int(), maxEstimatedUsd: z.number() }).strict();
+const IssuedSchema = z.object({ event: z.literal("ISSUED"), authority: z.enum(["FAKE_TEST_ONLY", "OWNER_SIGNED"]), approvalId: z.string(), approvalHash: z.string(), configHash: z.string(),
+  scope: NovaLedgerScopeSchema.optional() }).strict();
+type LedgerAuthority = z.infer<typeof IssuedSchema>["authority"];
+/** The explicit scope an owner writes into a Nova ISSUED record; it must equal the signed configuration. */
+export function novaLedgerScope(c: SessionConfig): z.infer<typeof NovaLedgerScopeSchema> {
+  if (c.transportProtocol !== "NOVA_CONVERSE_MEASURED" || !c.novaScope) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");
+  return { protocol: "NOVA_CONVERSE_MEASURED", modelId: c.modelId, region: c.region, tokenPayloadHashes: [...c.novaScope.tokenPayloadHashes].sort(),
+    measureCalls: c.novaScope.measureCalls, inferenceCalls: c.novaScope.inferenceCalls, maxEstimatedUsd: c.budget.maxEstimatedUsd };
+}
+export function assertNovaLedgerScope(issued: { scope?: z.infer<typeof NovaLedgerScopeSchema> }, c: SessionConfig) {
+  if (!issued.scope || canonical({ ...issued.scope, tokenPayloadHashes: [...issued.scope.tokenPayloadHashes].sort() }) !== canonical(novaLedgerScope(c))) throw new PilotError("NOVA_LEDGER_SCOPE_MISMATCH");
+}
 
 // Fixed bootstrap location; never taken from env or an artifact/config payload.
 export const installedTrustFile = () => process.platform === "win32" ? "C:/ProgramData/Gymini/Evaluation/trust.json" : "/etc/gymini-evaluation/trust.json";
+const TrustSchema = z.object({ version: z.literal("owner-trust-v1"), issuer: z.string(), publicKeyPem: z.string(), ledgerDirectory: z.string() }).strict();
+export type TrustRoot = z.infer<typeof TrustSchema>;
 export function verifySignedApproval(value: unknown, trust: { issuer: string; publicKeyPem: string }) {
   const a = ApprovalSchema.parse(value), { signature, ...body } = a;
   const key = createPublicKey(trust.publicKeyPem);
@@ -24,14 +39,22 @@ export function installedApproval(c: Pick<SessionConfig, "approval" | "sources">
   try {
     const file = installedTrustFile(); realDirectory(path.dirname(file));
     if (fs.lstatSync(file).isSymbolicLink()) throw new Error();
-    const trust = z.object({ version: z.literal("owner-trust-v1"), issuer: z.string(), publicKeyPem: z.string(), ledgerDirectory: z.string() }).strict().parse(JSON.parse(fs.readFileSync(file, "utf8")));
-    const directory = realDirectory(trust.ledgerDirectory);
+    return approvalFromTrust(c, TrustSchema.parse(JSON.parse(fs.readFileSync(file, "utf8"))));
+  } catch (e) { if (e instanceof PilotError) throw e; throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); }
+}
+/**
+ * Same verification against a given trust root. Production only reaches it through installedApproval; the session
+ * uses a supplied trust root solely for a TEST FIXTURE rehearsal, which can never construct the real AWS client.
+ */
+export function approvalFromTrust(c: Pick<SessionConfig, "approval" | "sources">, trustValue: unknown): { directory: string; approval: Approval } {
+  try {
+    const trust = TrustSchema.parse(trustValue), directory = realDirectory(trust.ledgerDirectory);
     if (c.sources) assertSeparate(directory, c.sources.workspaceRoot);
     return { directory, approval: verifySignedApproval(c.approval, trust) };
   } catch (e) { if (e instanceof PilotError) throw e; throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); }
 }
-/** Read-only pre-check (no lock, no claim, no write): an unused OWNER_SIGNED ledger bound to this approval and config. */
-export function assertIssuedLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string }) {
+/** Read-only pre-check (no lock, no claim, no write): an unused ledger issue of the required authority bound to this approval and config. */
+export function assertIssuedLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; authority?: LedgerAuthority }) {
   if (!/^[a-zA-Z0-9-]{1,100}$/.test(args.approvalId)) throw new PilotError("APPROVAL_ID_INVALID");
   let records: unknown[];
   try {
@@ -40,8 +63,9 @@ export function assertIssuedLedger(args: { directory: string; approvalId: string
     records = openJournal(file).records;
   } catch (e) { if (e instanceof PilotError && e.code !== "UNTRUSTED_LEDGER_PATH") throw e; throw new PilotError("LEDGER_UNVERIFIABLE"); }
   const issued = IssuedSchema.safeParse(records[0]);
-  if (!issued.success || issued.data.authority !== "OWNER_SIGNED" || issued.data.approvalId !== args.approvalId || issued.data.approvalHash !== args.approvalHash || issued.data.configHash !== args.configHash) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
+  if (!issued.success || issued.data.authority !== (args.authority ?? "OWNER_SIGNED") || issued.data.approvalId !== args.approvalId || issued.data.approvalHash !== args.approvalHash || issued.data.configHash !== args.configHash) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
   if (records.length !== 1) throw new PilotError("APPROVAL_ALREADY_USED");
+  return issued.data;
 }
 /** TEST FIXTURE ONLY. Live needs an owner-preissued, durable ISSUED journal. */
 export function issueFixtureLedger(directory: string, approvalId: string, configHash: string, approvalHash: string) {
@@ -49,7 +73,7 @@ export function issueFixtureLedger(directory: string, approvalId: string, config
   const journal = openJournal(path.join(realDirectory(directory), approvalId + ".jsonl"), true);
   journal.append({ event: "ISSUED", authority: "FAKE_TEST_ONLY", approvalId, approvalHash, configHash });
 }
-export function openBudgetLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; runDirectory: string; mode: "FAKE" | "LIVE"; resume: boolean }) {
+export function openBudgetLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; runDirectory: string; mode: "FAKE" | "LIVE"; resume: boolean; liveAuthority?: LedgerAuthority }) {
   const root = realDirectory(args.directory); assertSeparate(root, args.runDirectory);
   realDirectory(path.dirname(path.resolve(args.runDirectory)));
   if (fs.existsSync(args.runDirectory) && fs.lstatSync(args.runDirectory).isSymbolicLink()) throw new PilotError("UNTRUSTED_RUN_PATH");
@@ -63,7 +87,7 @@ export function openBudgetLedger(args: { directory: string; approvalId: string; 
   try {
     if (fs.lstatSync(file).isSymbolicLink()) throw new PilotError("LEDGER_UNVERIFIABLE");
     const journal = openJournal(file), issued = IssuedSchema.parse(journal.records[0]);
-    if (issued.approvalId !== args.approvalId || issued.approvalHash !== args.approvalHash || issued.configHash !== args.configHash || (args.mode === "LIVE" && issued.authority !== "OWNER_SIGNED")) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
+    if (issued.approvalId !== args.approvalId || issued.approvalHash !== args.approvalHash || issued.configHash !== args.configHash || (args.mode === "LIVE" && issued.authority !== (args.liveAuthority ?? "OWNER_SIGNED"))) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
     const claims = journal.records.slice(1) as { event: string; runDirectory: string; state: LedgerState }[];
     const previous = claims.at(-1);
     if (previous && (!args.resume || previous.runDirectory !== path.resolve(args.runDirectory))) throw new PilotError("APPROVAL_ALREADY_USED");
