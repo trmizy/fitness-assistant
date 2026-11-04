@@ -60,9 +60,9 @@ export async function runControlledPilot(options: RunnerOptions) {
     const prepared = new Set(preparation.rows.map(r => serializeNova(converseInput(config, r.prompt)).identity.tokenPayloadHash)), approved = new Set(config.novaScope.tokenPayloadHashes);
     if (prepared.size !== approved.size || [...prepared].some(h => !approved.has(h))) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
   }
-  // Inference order only: V4 Nova warmup interleaves case/arm by repeat (owner engineering decision); V1–V3 keep prepared order.
+  // Inference order only: V4/V4.1 Nova warmup interleaves case/arm by repeat (owner engineering decision); V1–V3 keep prepared order.
   // Preparation order, pins.promptHashes, measurements and attempt identities are unchanged.
-  const scheduledRows = config.transportProtocol === "NOVA_CONVERSE_MEASURED" && config.promptVersion === "CLAIM_PROMPT_V4" ? interleaveNovaWarmupRows(preparation.rows) : preparation.rows;
+  const scheduledRows = config.transportProtocol === "NOVA_CONVERSE_MEASURED" && (config.promptVersion === "CLAIM_PROMPT_V4" || config.promptVersion === "CLAIM_PROMPT_V4_1") ? interleaveNovaWarmupRows(preparation.rows) : preparation.rows;
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
   const transport = live ? undefined : options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol);

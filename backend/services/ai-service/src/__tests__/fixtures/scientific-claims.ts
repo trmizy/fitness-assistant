@@ -2,7 +2,9 @@
 import { buildClaimMap, digest, sha256 } from "../../knowledge/scientific-claim-map-v3/builder";
 import type { InputBundle } from "../../knowledge/scientific-claim-map-v3/schema";
 
-export function syntheticClaimData() {
+type SyntheticExcerpt = { sourceId: string; quote: string; locator: string; role: string };
+/** excerptOverrides replaces the bound excerpts of the named claims (absent = the historical fixture, byte-identical). */
+export function syntheticClaimData(options: { excerptOverrides?: Record<string, SyntheticExcerpt[]> } = {}) {
   const wording: Record<string, string> = {
     C01: "Tiến triển tập luyện theo mục tiêu là chủ đề progressive overload trong fixture.",
     C02: "Khuyến nghị cần được hiểu trong bối cảnh tập luyện của từng người.",
@@ -50,6 +52,7 @@ export function syntheticClaimData() {
     additionalApplicability: ["Synthetic applicability; not a research recommendation.", ...(id === "C32b" ? ["Thời gian mỗi pha khác toàn bộ repetition trong fixture."] : [])],
     additionalLimitations: id === "C21" ? ["Fixture không phải kết quả systematic search."] : [],
     additionalUnsupportedInferences: id === "C21" ? ["Người Việt cần công thức khác: không được suy ra từ fixture."] : [], unresolvedEvidence: id === "C22" ? ["SYNTHETIC_BINDING_PENDING"] : [] }]));
+  for (const [id, excerpts] of Object.entries(options.excerptOverrides ?? {})) bindings[id].excerpts = excerpts;
   const review = { claims: originals, sources: originals.map(c => ({ id: c.sourceId, population: "Synthetic participants, not a real population", limits: ["SYNTHETIC TEST ONLY"] })) };
   const values: Record<string, unknown> = { owner, review, followupReport: "Synthetic follow-up text only.", followups: { items: { C21: { aiRevisionVi: "Synthetic AI wording differs from accepted fixture wording." } } },
     engineering: { items: [{ id: "E01", title: "Synthetic undecided engineering item" }] }, calibration: {}, extras: {}, archivedAbstracts: {}, sources: { records }, bindings: { claims: bindings }, codeE1rm: "synthetic product definition", codeOutcome: "synthetic product definition", priority17: [] };

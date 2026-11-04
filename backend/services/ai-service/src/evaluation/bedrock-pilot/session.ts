@@ -198,9 +198,9 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         const latest = ledger.state(); save({ outputTokens: latest.outputTokens - cap + outputTokens!, estimatedUsd: estimatedCost(config, latest.inputTokens, latest.outputTokens - cap + outputTokens!) }, "USAGE_RECONCILED"); reconciled = true;
         try { parseConverseText(response); } catch { providerError = "MODEL_REFUSAL"; }
         if (!providerError) { try { parsedCandidate = JSON.parse(rawText); } catch { parseError = "INVALID_JSON"; }
-          // V4 only: with empty model-facing allowlists the model writes `analysis` alone; the empty link arrays are
+          // V4/V4.1 only: with empty model-facing allowlists the model writes `analysis` alone; the empty link arrays are
           // server-derived and recorded below. rawText stays exactly as returned; every other shape is judged as produced.
-          if (!parseError && config.promptVersion === "CLAIM_PROMPT_V4") { const completed = completeClaimEnvelopeV4(prompt.user, parsedCandidate); parsedCandidate = completed.candidate; structuralDerivation = completed.derivation; }
+          if (!parseError && (config.promptVersion === "CLAIM_PROMPT_V4" || config.promptVersion === "CLAIM_PROMPT_V4_1")) { const completed = completeClaimEnvelopeV4(prompt.user, parsedCandidate); parsedCandidate = completed.candidate; structuralDerivation = completed.derivation; }
           if (!parseError && !outputSchema.safeParse(parsedCandidate).success) parseError = "SCHEMA_INVALID";
         }
       }

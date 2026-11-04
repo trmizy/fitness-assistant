@@ -14,7 +14,7 @@ export const ClaimAnalysisSchema = AnalysisEnvelopeSchema.extend({ claimLinks: z
 }).strict()).max(12) }).strict();
 export type ClaimAnalysis = z.infer<typeof ClaimAnalysisSchema>;
 
-export type ClaimPromptVersion = "CLAIM_PROMPT_V1" | "CLAIM_PROMPT_V2" | "CLAIM_PROMPT_V3" | "CLAIM_PROMPT_V4";
+export type ClaimPromptVersion = "CLAIM_PROMPT_V1" | "CLAIM_PROMPT_V2" | "CLAIM_PROMPT_V3" | "CLAIM_PROMPT_V4" | "CLAIM_PROMPT_V4_1";
 /** Example of the exact ClaimAnalysisSchema top level (analysis, sourceLinks, claimLinks); no field beyond the schema. */
 export const CLAIM_OUTPUT_CONTRACT = { ...OUTPUT_CONTRACT,
   claimLinks: [{ claimIndex: 0, knowledgeClaimId: "existing-knowledge-claim-id", knowledgeClaimHash: "existing-knowledge-claim-hash" }] };
@@ -53,9 +53,10 @@ export function modelFacingClaimPayload(context: ClaimContext) {
   return payload;
 }
 export function buildClaimPrompt(context: ClaimContext, version: ClaimPromptVersion = "CLAIM_PROMPT_V1"): Prompt {
-  if (!["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2", "CLAIM_PROMPT_V3", "CLAIM_PROMPT_V4"].includes(version)) throw new Error("CLAIM_PROMPT_VERSION_UNSUPPORTED");
+  if (!["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2", "CLAIM_PROMPT_V3", "CLAIM_PROMPT_V4", "CLAIM_PROMPT_V4_1"].includes(version)) throw new Error("CLAIM_PROMPT_VERSION_UNSUPPORTED");
   if (version === "CLAIM_PROMPT_V3") return buildClaimPromptV3(context);
   if (version === "CLAIM_PROMPT_V4") return buildClaimPromptV4(context);
+  if (version === "CLAIM_PROMPT_V4_1") return buildClaimPromptV41(context);
   const v1 = buildClaimPromptV1(context);
   if (version === "CLAIM_PROMPT_V1") return v1;
   const lines = v1.system.split("\n"), at = lines.findIndex(l => l.startsWith(CONTRACT_LINE));
@@ -139,6 +140,53 @@ function buildClaimPromptV4(context: ClaimContext): Prompt {
     "USEFULNESS: fact e1RM có quality SUFFICIENT/PARTIAL phù hợp câu hỏi thì mô tả định lượng thay đổi e1RM ước tính bằng giá trị được cấp; không thay quan sát đủ dữ liệu bằng \"chưa đủ dữ liệu\". Chỉ nêu khoảng thời gian có trong câu hỏi hoặc window của facts.",
     "missingInformation chỉ hỏi dữ liệu thật sự còn thiếu để trả lời rõ hơn câu hỏi của case này; tự viết câu hỏi, không chép câu chữ trong hướng dẫn.");
   return { ...v2, system: lines.join("\n") };
+}
+/**
+ * Typed citation manifest, one entry per approved knowledge claim, derived from the same PRIMARY_SCIENTIFIC references and
+ * excerptId function the verifier checks (verifyClaimAnalysis). evidenceIds are sourceIds; excerptIds live only in
+ * sourceLinks. Non-scientific references (CODE_PRODUCT_DEFINITION) are never citable and never appear here.
+ */
+export function citationManifest(context: ClaimContext) {
+  return context.payload.approvedScientificKnowledge.map(k => {
+    const bySource = new Map<string, string[]>();
+    for (const e of context.payload.evidenceProvenance) {
+      if (e.knowledgeClaimId !== k.id || e.kind !== "PRIMARY_SCIENTIFIC") continue;
+      const ids = bySource.get(e.sourceId) ?? [];
+      if (!ids.includes(e.excerptId)) ids.push(e.excerptId);
+      bySource.set(e.sourceId, ids);
+    }
+    return { knowledgeClaimId: k.id, knowledgeClaimHash: k.claimHash, evidenceIds: [...bySource.keys()],
+      sourceLinks: [...bySource].map(([sourceId, excerptIds]) => ({ sourceId, excerptIds })) };
+  });
+}
+const V2_PROVENANCE_LINE = "evidenceProvenance: mỗi excerpt ghi knowledgeClaimIds mà nó được bind; sourceLinks của mỗi claim có nguồn phải gồm mọi excerptId được bind cho claim đó. url chỉ có với nguồn web công khai.";
+/**
+ * CLAIM_PROMPT_V4_1 (Nova-only). V4 plus a RAG reference contract built from the typed manifest: explicit ID namespaces
+ * (evidenceIds hold sourceIds, never excerptIds), a citable flag on every provenance excerpt (product-code definitions are
+ * context, not citations), one citing claim per knowledge claim, compact JSON and an explicit required-key list.
+ * The full private context, allowlists and verifier are unchanged; nothing is repaired after generation.
+ */
+function buildClaimPromptV41(context: ClaimContext): Prompt {
+  const v4 = buildClaimPromptV4(context), lines = v4.system.split("\n");
+  const replaceOnce = (match: (l: string) => boolean, replacement: (line: string) => string[]) => {
+    const at = lines.findIndex(match);
+    if (at < 0 || lines.filter(match).length !== 1) throw new Error("CLAIM_V4_1_ANCHOR_NOT_UNIQUE");
+    lines.splice(at, 1, ...replacement(lines[at]));
+  };
+  replaceOnce(l => l === V2_PROVENANCE_LINE, () => ["evidenceProvenance: mỗi excerpt ghi knowledgeClaimIds mà nó được bind và citable. Chỉ excerpt citable=true (PRIMARY_SCIENTIFIC) mới được dẫn. Excerpt citable=false (ví dụ CODE_PRODUCT_DEFINITION, readScope CODE_NOT_SCIENTIFIC_EVIDENCE) chỉ để hiểu định nghĩa sản phẩm; không bao giờ đưa vào sourceLinks hoặc evidenceIds. url chỉ có với nguồn web công khai."]);
+  replaceOnce(l => l.startsWith("REFERENCE CONTRACT:"), () => [
+    "ID NAMESPACE: knowledgeClaimId/knowledgeClaimHash định danh một knowledge claim; sourceId định danh một nguồn và không chứa dấu \":\"; excerptId định danh một đoạn trích, có dạng sourceId + \":\" + 16 ký tự hex. evidenceIds của một claim CHỈ chứa sourceId, không bao giờ chứa excerptId; excerptId CHỈ nằm trong sourceLinks[].excerptIds.",
+    "REFERENCE CONTRACT: chỉ dẫn knowledge claim có trong allowedReferences.citationManifest, và chép nguyên mục đó: claimLinks thêm {claimIndex, knowledgeClaimId, knowledgeClaimHash}; claim.evidenceIds = đúng danh sách evidenceIds của mục; với mỗi phần tử sourceLinks của mục, thêm {claimIndex, sourceId, excerptIds} với đúng excerptIds đó. Không thêm, bớt hay đổi ID. Mỗi knowledgeClaimId chỉ được dẫn bởi một claim. Chỉ GENERAL_PRINCIPLE và PERSONAL_HYPOTHESIS dẫn nguồn; OBSERVATION và MEASUREMENT_LIMITATION luôn evidenceIds=[] và không có claimLinks/sourceLinks. Không bao giờ tự tạo, đoán hay tính claim ID, hash, excerpt ID, source ID hoặc fact ID. OBSERVATION chỉ dùng factIds trong allowedReferences.factIds.",
+  ]);
+  const template = "từ <baselineKg> lên <currentKg> kg";
+  replaceOnce(l => l.startsWith("EXERCISE_E1RM_CHANGE từ training logs") && l.includes(template), line => [line.replace(template, "từ <baselineKg> kg lên <currentKg> kg, mỗi số chỉ kèm đơn vị một lần")]);
+  lines.push(
+    "REQUIRED KEYS: analysis luôn có đủ 7 key version, assessment, assessmentBasis, claims, missingInformation, rationaleSummary, proposedAction; luôn ghi \"proposedAction\":null, không được bỏ key nào. Thiếu key là output không hợp lệ và không được hệ thống tự điền.",
+    "FORMAT: trả về đúng một JSON object gọn trên một dòng, không thụt lề, không xuống dòng, không markdown; không lặp lại cùng một ID trong một danh sách.");
+  const user = JSON.parse(v4.user);
+  user.evidenceProvenance = user.evidenceProvenance.map((e: { kind: string }) => ({ ...e, citable: e.kind === "PRIMARY_SCIENTIFIC" }));
+  user.allowedReferences = { ...user.allowedReferences, citationManifest: citationManifest(context) };
+  return { ...v4, system: lines.join("\n"), user: JSON.stringify(user) };
 }
 export const SERVER_DERIVED_EMPTY_ALLOWLIST = "SERVER_DERIVED_EMPTY_ALLOWLIST" as const;
 export interface ClaimEnvelopeDerivation {
