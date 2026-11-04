@@ -47,7 +47,7 @@ services:
       - ./e2e-dispute/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
       - e2e_dispute_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gymini_e2e -d gymini_e2e_admin"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U gymini_e2e -d gymini_e2e_admin"]
       interval: 5s
       timeout: 5s
       retries: 20
