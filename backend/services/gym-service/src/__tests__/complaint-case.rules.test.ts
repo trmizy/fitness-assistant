@@ -186,3 +186,10 @@ test('evidence change guard: new rows need an acknowledgement AFTER the last cha
   const stale = diffAgainstSnapshot({ snapshot: [], current: [], staleLive: ['MEMBERSHIP_RECORD#m'] });
   assert.equal(changeAcknowledged(stale, true, [t1]), false);
 });
+
+test('Q31 four eyes: a user linked to the gym / brand (linkedUserIds) is refused as approver; an unlinked admin passes', () => {
+  const base = { approverId: 'a2', approverRole: 'ADMIN', proposerId: 'a1', investigatorId: 'a1', reporterUserId: 'm1', gymOwnerId: 'o1', conflictOfInterestDeclaredNone: true };
+  assert.deepEqual(checkApprover({ ...base, linkedUserIds: ['staff-1', 'brand-owner'] }), { ok: true });
+  assert.equal((checkApprover({ ...base, approverId: 'staff-1', linkedUserIds: ['staff-1'] }) as any).code, 'CONFLICT_OF_INTEREST');
+  assert.equal((checkApprover({ ...base, approverId: 'brand-owner', linkedUserIds: ['staff-1', 'brand-owner'] }) as any).code, 'CONFLICT_OF_INTEREST');
+});
