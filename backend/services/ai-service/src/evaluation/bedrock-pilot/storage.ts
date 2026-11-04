@@ -11,15 +11,16 @@ export function openJournal(file: string, create = false) {
   const identity = fs.statSync(file); let expectedText = text;
   if (text && !text.endsWith("\n")) throw new PilotError("JOURNAL_INCOMPLETE");
   let previous = "GENESIS", sequence = 0;
-  const records: unknown[] = [];
+  const records: unknown[] = [], hashes: string[] = [];
   for (const line of text.trimEnd().split("\n").filter(Boolean)) {
     let row: { sequence: number; previous: string; record: unknown; hash: string };
     try { row = JSON.parse(line); } catch { throw new PilotError("JOURNAL_INVALID"); }
     if (row.sequence !== ++sequence || row.previous !== previous || row.hash !== digest({ sequence: row.sequence, previous: row.previous, record: row.record })) throw new PilotError("JOURNAL_INTEGRITY_FAILED");
-    previous = row.hash; records.push(row.record);
+    previous = row.hash; records.push(row.record); hashes.push(row.hash);
   }
   let broken = false;
-  return { records, append(record: unknown) {
+  // hashes[i] is the chained row hash of records[i]; append returns the new row hash.
+  return { records, hashes, append(record: unknown): string {
     if (broken) throw new PilotError("JOURNAL_UNUSABLE");
     const body = { sequence: sequence + 1, previous, record }, row = { ...body, hash: digest(body) };
     let fd: number | undefined;
@@ -31,7 +32,8 @@ export function openJournal(file: string, create = false) {
     }
     catch { broken = true; throw new PilotError("PersistenceFailure"); }
     finally { if (fd !== undefined) fs.closeSync(fd); }
-    sequence++; previous = row.hash; records.push(record);
+    sequence++; previous = row.hash; records.push(record); hashes.push(row.hash);
+    return row.hash;
   } };
 }
 /** Atomic immutable outputs. Never replace an existing review result on resume. */

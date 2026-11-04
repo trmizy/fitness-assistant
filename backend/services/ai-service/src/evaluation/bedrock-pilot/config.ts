@@ -11,6 +11,7 @@ export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: 
 /** Owner acknowledgements recorded inside the signed configuration; PENDING_OWNER keeps Nova LIVE blocked. */
 export const NOVA_ACCEPTED = { pricing: "PUBLIC_PLANNING_RATES_ACCEPTED_NOT_INVOICE", retentionLogging: "SYNTHETIC_ONLY_INVOCATION_LOGGING_OFF_NO_NEW_TRAIL_ACCEPTED" } as const;
 export const NOVA_APPROVAL_MAX_LIFETIME_MS = 72 * 3600 * 1000;
+export const NOVA_TWO_PHASE = "MEASURE_THEN_OWNER_RELEASE" as const;
 // Signed Nova execution scope: the exact owner-approved token-bearing payloads, call counts and AWS profile.
 // Absent = no Nova LIVE (default locked). A named shared-config profile may be an STS role profile.
 export const NovaScopeSchema = z.object({
@@ -18,6 +19,9 @@ export const NovaScopeSchema = z.object({
   measureCalls: z.number().int().min(1).max(4), inferenceCalls: z.number().int().min(1).max(8),
   awsProfile: z.string().regex(/^[A-Za-z0-9_.-]{1,64}$/).refine((p) => p !== "default", "DefaultProfileForbidden"),
   ownerAcknowledgements: z.object({ pricing: z.enum(["PENDING_OWNER", NOVA_ACCEPTED.pricing]), retentionLogging: z.enum(["PENDING_OWNER", NOVA_ACCEPTED.retentionLogging]) }).strict(),
+  // Two-phase LIVE (owner decision E3_NOVA_V4_1_TWO_PHASE_OPTION_A): a measure-only run, then inference only after a
+  // separate owner-signed inference release bound to the recorded measurements. Absent = historical one-shot run.
+  phases: z.literal(NOVA_TWO_PHASE).optional(),
 }).strict();
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
@@ -76,6 +80,8 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     if (c.parameters.maxTokens > 2048 || b.maxCalls > 8 || b.maxInputTokensPerCall > 12000 || b.maxInputTokens > 144000 || b.maxOutputTokens > 16388 || b.maxEstimatedUsd > 1 || b.maxFailures > 2 || !d || d.repeats !== 2 || d.arms.length !== 2 || !d.arms.includes("LAYERED_CONTEXT") || !d.arms.includes("LAYERED_CONTEXT_RAG") || d.policies.length !== 1 || d.policies[0] !== "MINIMAL") throw new PilotError("NOVA_WARMUP_LIMIT_EXCEEDED");
     const s = c.novaScope;
     if (s && (s.measureCalls !== s.tokenPayloadHashes.length || s.inferenceCalls > b.maxCalls)) throw new PilotError("NOVA_SCOPE_INVALID");
+    // The inference release is verified against the installed owner trust root, which only LIVE has.
+    if (s?.phases && c.mode !== "LIVE") throw new PilotError("NOVA_TWO_PHASE_LIVE_ONLY");
     if (c.mode === "LIVE") {
       // LIVE runs only the full owner-approved warmup: 4 approved payloads, 4 measures, 8 inferences.
       if (!s || s.tokenPayloadHashes.length !== 4 || s.measureCalls !== 4 || s.inferenceCalls !== 8 || b.maxCalls !== 8) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");

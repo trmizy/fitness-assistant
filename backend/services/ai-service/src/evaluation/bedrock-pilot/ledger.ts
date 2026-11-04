@@ -2,15 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { createPublicKey, verify } from "node:crypto";
 import { z } from "zod";
-import { canonical } from "../evaluation-kit/identity";
-import { ApprovalSchema, PilotError, type SessionConfig, type Approval } from "./config";
+import { canonical, digest } from "../evaluation-kit/identity";
+import { ApprovalSchema, Hash, NOVA_TWO_PHASE, PilotError, type SessionConfig, type Approval } from "./config";
 import { assertSeparate, openJournal, realDirectory } from "./storage";
 
 const StateSchema = z.object({ attempts: z.number().int().nonnegative(), inferenceCalls: z.number().int().nonnegative(), countCalls: z.number().int().nonnegative(), inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), estimatedUsd: z.number().finite().nonnegative(), failures: z.number().int().nonnegative(), stopped: z.boolean(), counts: z.record(z.number().int().nonnegative()), attemptKeys: z.array(z.string()) }).strict();
 export type LedgerState = z.infer<typeof StateSchema>;
 export const initialState = (): LedgerState => ({ attempts: 0, inferenceCalls: 0, countCalls: 0, inputTokens: 0, outputTokens: 0, estimatedUsd: 0, failures: 0, stopped: false, counts: {}, attemptKeys: [] });
 const NovaLedgerScopeSchema = z.object({ protocol: z.literal("NOVA_CONVERSE_MEASURED"), modelId: z.string(), region: z.string(), tokenPayloadHashes: z.array(z.string()),
-  measureCalls: z.number().int(), inferenceCalls: z.number().int(), maxEstimatedUsd: z.number() }).strict();
+  measureCalls: z.number().int(), inferenceCalls: z.number().int(), maxEstimatedUsd: z.number(), phases: z.literal(NOVA_TWO_PHASE).optional() }).strict();
 const IssuedSchema = z.object({ event: z.literal("ISSUED"), authority: z.enum(["FAKE_TEST_ONLY", "OWNER_SIGNED"]), approvalId: z.string(), approvalHash: z.string(), configHash: z.string(),
   scope: NovaLedgerScopeSchema.optional() }).strict();
 type LedgerAuthority = z.infer<typeof IssuedSchema>["authority"];
@@ -18,7 +18,8 @@ type LedgerAuthority = z.infer<typeof IssuedSchema>["authority"];
 export function novaLedgerScope(c: SessionConfig): z.infer<typeof NovaLedgerScopeSchema> {
   if (c.transportProtocol !== "NOVA_CONVERSE_MEASURED" || !c.novaScope) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");
   return { protocol: "NOVA_CONVERSE_MEASURED", modelId: c.modelId, region: c.region, tokenPayloadHashes: [...c.novaScope.tokenPayloadHashes].sort(),
-    measureCalls: c.novaScope.measureCalls, inferenceCalls: c.novaScope.inferenceCalls, maxEstimatedUsd: c.budget.maxEstimatedUsd };
+    measureCalls: c.novaScope.measureCalls, inferenceCalls: c.novaScope.inferenceCalls, maxEstimatedUsd: c.budget.maxEstimatedUsd,
+    ...(c.novaScope.phases ? { phases: c.novaScope.phases } : {}) };
 }
 export function assertNovaLedgerScope(issued: { scope?: z.infer<typeof NovaLedgerScopeSchema> }, c: SessionConfig) {
   if (!issued.scope || canonical({ ...issued.scope, tokenPayloadHashes: [...issued.scope.tokenPayloadHashes].sort() }) !== canonical(novaLedgerScope(c))) throw new PilotError("NOVA_LEDGER_SCOPE_MISMATCH");
@@ -35,12 +36,53 @@ export function verifySignedApproval(value: unknown, trust: { issuer: string; pu
   if (Date.parse(a.expiresAt) <= Date.now()) throw new PilotError("APPROVAL_EXPIRED");
   return a;
 }
-export function installedApproval(c: Pick<SessionConfig, "approval" | "sources">): { directory: string; approval: Approval } {
+/** The installed owner trust root (fixed path, no symlink); the same read installedApproval uses. */
+export function installedTrust(): TrustRoot {
   try {
     const file = installedTrustFile(); realDirectory(path.dirname(file));
     if (fs.lstatSync(file).isSymbolicLink()) throw new Error();
-    return approvalFromTrust(c, TrustSchema.parse(JSON.parse(fs.readFileSync(file, "utf8"))));
+    return TrustSchema.parse(JSON.parse(fs.readFileSync(file, "utf8")));
   } catch (e) { if (e instanceof PilotError) throw e; throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); }
+}
+export function parseTrust(value: unknown): TrustRoot {
+  const t = TrustSchema.safeParse(value); if (!t.success) throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); return t.data;
+}
+export function installedApproval(c: Pick<SessionConfig, "approval" | "sources">): { directory: string; approval: Approval } {
+  return approvalFromTrust(c, installedTrust());
+}
+/**
+ * Two-phase Nova LIVE: the owner-signed inference release. It binds the signed approval and configuration, the exact
+ * ledger row that closed the measurement phase (chained hash) and the four measured input-token counts, and it can only
+ * shorten, never extend, the approval lifetime. Stored by the owner next to the ledger, never in the run directory.
+ */
+export const InferenceReleaseSchema = z.object({ version: z.literal("nova-inference-release-v1"), approvalId: z.string().uuid(), approvalHash: Hash, configHash: Hash,
+  issuer: z.string().min(1), releasedBy: z.string().min(1), measurementRecordHash: Hash, measuredCounts: z.record(Hash, z.number().int().nonnegative()),
+  expiresAt: z.string().datetime(), signature: z.string().min(1) }).strict();
+export type InferenceRelease = z.infer<typeof InferenceReleaseSchema>;
+export const inferenceReleaseFile = (ledgerDirectory: string, approvalId: string) => {
+  if (!/^[a-zA-Z0-9-]{1,100}$/.test(approvalId)) throw new PilotError("APPROVAL_ID_INVALID");
+  return path.join(ledgerDirectory, approvalId + ".inference-release.json");
+};
+export const MEASUREMENT_PHASE_EVENT = "MEASUREMENT_PHASE_COMPLETED";
+/** Last MEASUREMENT_PHASE_COMPLETED row of an approval's ledger: its chained hash and recorded state (read only). */
+export function measurementPhaseRecord(ledgerDirectory: string, approvalId: string): { hash: string; state: LedgerState } | null {
+  const journal = openJournal(path.join(realDirectory(ledgerDirectory), approvalId + ".jsonl"));
+  for (let i = journal.records.length - 1; i >= 0; i--) {
+    const r = journal.records[i] as { event?: string; state?: unknown };
+    if (r.event === MEASUREMENT_PHASE_EVENT) return { hash: journal.hashes[i], state: StateSchema.parse(r.state) };
+  }
+  return null;
+}
+export function verifyInferenceRelease(args: { release: unknown; trust: Pick<TrustRoot, "issuer" | "publicKeyPem">; approval: Approval; configHash: string; measurement: { hash: string; state: LedgerState } }): InferenceRelease {
+  const parsed = InferenceReleaseSchema.safeParse(args.release);
+  if (!parsed.success) throw new PilotError("INFERENCE_RELEASE_INVALID");
+  const r = parsed.data, { signature, ...body } = r, key = createPublicKey(args.trust.publicKeyPem);
+  if (key.asymmetricKeyType !== "ed25519" || r.issuer !== args.trust.issuer || !verify(null, Buffer.from(canonical(body)), key, Buffer.from(signature, "base64"))) throw new PilotError("INFERENCE_RELEASE_SIGNATURE_INVALID");
+  if (r.approvalId !== args.approval.approvalId || r.approvalHash !== digest(args.approval) || r.configHash !== args.configHash) throw new PilotError("INFERENCE_RELEASE_BINDING_MISMATCH");
+  if (r.measurementRecordHash !== args.measurement.hash || canonical(r.measuredCounts) !== canonical(args.measurement.state.counts)) throw new PilotError("INFERENCE_RELEASE_MEASUREMENT_MISMATCH");
+  if (Date.parse(r.expiresAt) <= Date.now()) throw new PilotError("INFERENCE_RELEASE_EXPIRED");
+  if (Date.parse(r.expiresAt) > Date.parse(args.approval.expiresAt)) throw new PilotError("INFERENCE_RELEASE_OUTLIVES_APPROVAL");
+  return r;
 }
 /**
  * Same verification against a given trust root. Production only reaches it through installedApproval; the session
@@ -54,7 +96,7 @@ export function approvalFromTrust(c: Pick<SessionConfig, "approval" | "sources">
   } catch (e) { if (e instanceof PilotError) throw e; throw new PilotError("TRUSTED_APPROVAL_STORE_UNAVAILABLE"); }
 }
 /** Read-only pre-check (no lock, no claim, no write): an unused ledger issue of the required authority bound to this approval and config. */
-export function assertIssuedLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; authority?: LedgerAuthority }) {
+export function assertIssuedLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; authority?: LedgerAuthority; allowClaimed?: boolean }) {
   if (!/^[a-zA-Z0-9-]{1,100}$/.test(args.approvalId)) throw new PilotError("APPROVAL_ID_INVALID");
   let records: unknown[];
   try {
@@ -64,7 +106,7 @@ export function assertIssuedLedger(args: { directory: string; approvalId: string
   } catch (e) { if (e instanceof PilotError && e.code !== "UNTRUSTED_LEDGER_PATH") throw e; throw new PilotError("LEDGER_UNVERIFIABLE"); }
   const issued = IssuedSchema.safeParse(records[0]);
   if (!issued.success || issued.data.authority !== (args.authority ?? "OWNER_SIGNED") || issued.data.approvalId !== args.approvalId || issued.data.approvalHash !== args.approvalHash || issued.data.configHash !== args.configHash) throw new PilotError("APPROVAL_LEDGER_BINDING_MISMATCH");
-  if (records.length !== 1) throw new PilotError("APPROVAL_ALREADY_USED");
+  if (records.length !== 1 && !(args.allowClaimed && records.length > 1)) throw new PilotError("APPROVAL_ALREADY_USED");
   return issued.data;
 }
 /** TEST FIXTURE ONLY. Live needs an owner-preissued, durable ISSUED journal. */
@@ -93,11 +135,12 @@ export function openBudgetLedger(args: { directory: string; approvalId: string; 
     if (previous && (!args.resume || previous.runDirectory !== path.resolve(args.runDirectory))) throw new PilotError("APPROVAL_ALREADY_USED");
     if (!previous && args.resume) throw new PilotError("RESUME_WITHOUT_CLAIM");
     let state = StateSchema.parse(previous?.state ?? initialState());
-    const save = (next: LedgerState, event: string) => {
+    const save = (next: LedgerState, event: string): string => {
       if (closed) throw new PilotError("LEDGER_CLOSED");
       // Missing/replaced ledger/lock or a partial append cannot silently reset accounting.
       if (!fs.existsSync(lock) || !fs.existsSync(file)) throw new PilotError("LEDGER_UNVERIFIABLE");
-      journal.append({ event, runDirectory: path.resolve(args.runDirectory), state: StateSchema.parse(next) }); state = structuredClone(next);
+      const hash = journal.append({ event, runDirectory: path.resolve(args.runDirectory), state: StateSchema.parse(next) }); state = structuredClone(next);
+      return hash;
     };
     save(state, args.resume ? "RESUMED" : "CLAIMED");
     return { state: () => structuredClone(state), save, close };

@@ -32,6 +32,8 @@ export interface RunnerOptions {
   onStage?: (stage: PilotStage) => void;
   /** TEST FIXTURE ONLY (see session LiveRehearsal): never constructs the AWS client. */
   liveRehearsal?: LiveRehearsal;
+  /** Two-phase Nova LIVE measurement phase: measure, persist measurement-report.json, close the phase, never infer. */
+  measureOnly?: boolean;
 }
 function fakeTransport(claims: boolean, protocol?: SessionConfig["transportProtocol"]): EvaluationTransport {
   const output = JSON.stringify({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic runner plumbing response; no scientific conclusion.", proposedAction: null }, sourceLinks: [], ...(claims ? { claimLinks: [] } : {}) });
@@ -60,13 +62,14 @@ export async function runControlledPilot(options: RunnerOptions) {
     const prepared = new Set(preparation.rows.map(r => serializeNova(converseInput(config, r.prompt)).identity.tokenPayloadHash)), approved = new Set(config.novaScope.tokenPayloadHashes);
     if (prepared.size !== approved.size || [...prepared].some(h => !approved.has(h))) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
   }
+  if (options.measureOnly && !live) throw new PilotError("MEASURE_ONLY_REQUIRES_TWO_PHASE_SCOPE");
   // Inference order only: V4/V4.1 Nova warmup interleaves case/arm by repeat (owner engineering decision); V1–V3 keep prepared order.
   // Preparation order, pins.promptHashes, measurements and attempt identities are unchanged.
   const scheduledRows = config.transportProtocol === "NOVA_CONVERSE_MEASURED" && (config.promptVersion === "CLAIM_PROMPT_V4" || config.promptVersion === "CLAIM_PROMPT_V4_1") ? interleaveNovaWarmupRows(preparation.rows) : preparation.rows;
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
   const transport = live ? undefined : options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol);
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, transport, { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins, liveRehearsal: options.liveRehearsal });
+  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, transport, { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins, liveRehearsal: options.liveRehearsal, measureOnly: options.measureOnly });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
@@ -109,6 +112,24 @@ export async function runControlledPilot(options: RunnerOptions) {
     if (!fs.existsSync(path.join(options.directory, "preview.json"))) atomicCreate(path.join(options.directory, "preview.json"), preview);
     journal.append({ event: "PREVIEW", previewHash: digest(preview) }); options.onStage?.("PREVIEWED");
     if (preparation.rows.length > config.budget.maxCalls || inputCeiling > config.budget.maxInputTokens || outputCeiling > config.budget.maxOutputTokens || preview.estimatedUsdCeiling > config.budget.maxEstimatedUsd) throw new PilotError("PREVIEW_EXCEEDS_BUDGET");
+    if (options.measureOnly) {
+      // Durable stop between the phases: the ledger row closing the measurement phase is what the owner's inference
+      // release must bind. No inference is reserved or sent here, and nothing here authorizes one.
+      const phase = await session.completeMeasurementPhase(), byPrompt = new Map(preparation.rows.map((r) => [r.promptHash, r]));
+      const report = { version: "nova-measurement-phase-report-v1", status: "MEASURED_AWAITING_OWNER_INFERENCE_RELEASE", mode: config.mode, configHash, approvalId: session.approvalId, approvalExpiresAt: phase.approvalExpiresAt,
+        target: session.target, tokenAuthority, ledgerRecordHash: phase.ledgerRecordHash,
+        measurements: [...new Set(config.pins.promptHashes)].map((h) => { const r = byPrompt.get(h)!, inputTokens = phase.counts[h];
+          return { promptHash: h, caseKey: r.caseKey, arm: r.arm, tokenPayloadHash: serializeNova(converseInput(config, r.prompt)).identity.tokenPayloadHash, inputTokens, maxInputTokensPerCall: config.budget.maxInputTokensPerCall, withinCap: inputTokens <= config.budget.maxInputTokensPerCall }; }),
+        inferencePlan: { inferenceCalls: preparation.rows.length, inputTokens: preparation.rows.reduce((n, r) => n + phase.counts[r.promptHash], 0), outputTokenCap: preparation.rows.length * config.parameters.maxTokens,
+          estimatedUsdCeilingIncludingMeasurements: preview.estimatedUsdCeiling, approvedUsdCap: config.budget.maxEstimatedUsd },
+        spent: { measureCalls: phase.state.countCalls, inferenceCalls: phase.state.inferenceCalls, inputTokens: phase.state.inputTokens, outputTokens: phase.state.outputTokens, estimatedUsd: phase.state.estimatedUsd },
+        actualBedrockCalls: awsCalls ? phase.state.countCalls : 0, scientificPass: null, next: "OWNER_SIGNED_INFERENCE_RELEASE_REQUIRED_BEFORE_RESUME" };
+      const reportFile = path.join(options.directory, "measurement-report.json");
+      if (fs.existsSync(reportFile)) { if (digest(JSON.parse(fs.readFileSync(reportFile, "utf8"))) !== digest(report)) throw new PilotError("MEASUREMENT_REPORT_INTEGRITY_FAILED"); }
+      else atomicCreate(reportFile, report);
+      journal.append({ event: "MEASUREMENT_PHASE_COMPLETED", reportHash: digest(report), ledgerRecordHash: phase.ledgerRecordHash });
+      return report;
+    }
     const rawRecords = session.records() as { event: string; attemptKey?: string; [key: string]: unknown }[];
     const finished = new Map(rawRecords.filter((r) => r.event === "ATTEMPT_FINISHED").map((r) => [r.attemptKey!, r]));
     const pending = session.state().attemptKeys.filter((k) => !finished.has(k));

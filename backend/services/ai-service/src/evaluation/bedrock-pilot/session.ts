@@ -5,11 +5,11 @@ import { ConverseCommand, CountTokensCommand, type ConverseCommandInput, type Co
 import { BEDROCK_REGION, bedrockRuntimeDeps, buildConverseTextInput, parseConverseText } from "../../services/bedrock.client";
 import { AnalysisEnvelopeSchema, type Prompt } from "../ai-coach-dev/pipeline";
 import { ClaimAnalysisSchema, completeClaimEnvelopeV4, type ClaimEnvelopeDerivation } from "../ai-coach-claim-dev/pipeline";
-import { digest } from "../evaluation-kit/identity";
+import { canonical, digest } from "../evaluation-kit/identity";
 import { protect, redact } from "../evaluation-kit/representation";
 export { redact } from "../evaluation-kit/representation";
-import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, parseConfiguration, PilotError, type SessionConfig } from "./config";
-import { approvalFromTrust, assertIssuedLedger, assertNovaLedgerScope, installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
+import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, NOVA_TWO_PHASE, parseConfiguration, PilotError, type SessionConfig } from "./config";
+import { approvalFromTrust, assertIssuedLedger, assertNovaLedgerScope, inferenceReleaseFile, installedApproval, installedTrust, issueFixtureLedger, MEASUREMENT_PHASE_EVENT, measurementPhaseRecord, openBudgetLedger, parseTrust, verifyInferenceRelease, type InferenceRelease } from "./ledger";
 import { createLiveNovaTransport, createNovaRuntimeClient, novaRuntimeSend, type NovaSend } from "./nova-live-transport";
 import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
@@ -66,7 +66,8 @@ async function deadline<T>(ms: number, work: (signal: AbortSignal) => Promise<T>
  * so neither a fixture trust root nor a real owner issue can be combined with the other path.
  */
 export interface LiveRehearsal { trust: unknown; send: NovaSend }
-export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins; liveRehearsal?: LiveRehearsal }
+/** measureOnly: two-phase Nova LIVE measurement phase (4 billed measurements, then a durable stop; never inference). */
+export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins; liveRehearsal?: LiveRehearsal; measureOnly?: boolean }
 /** The exact Converse input the session sends for a prompt (shared with the runner's payload-approval check). */
 export function converseInput(config: SessionConfig, prompt: Prompt) {
   const input = buildConverseTextInput({ system: prompt.system, userText: prompt.user, modelId: inferenceTarget(config).identifier, maxTokens: config.parameters.maxTokens, temperature: config.parameters.temperature });
@@ -90,15 +91,42 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const currentApproval = () => rehearsal ? approvalFromTrust(config, rehearsal.trust) : installedApproval(config);
   const liveAuthority = rehearsal ? "FAKE_TEST_ONLY" as const : "OWNER_SIGNED" as const;
   const approval = config.mode === "LIVE" ? currentApproval() : null;
+  // Two-phase Nova LIVE. The first run must be measure-only; inference only resumes with an owner-signed release that
+  // binds this approval, configuration and the recorded measurement phase. Checked before the ledger is claimed or resumed.
+  const twoPhase = config.novaScope?.phases === NOVA_TWO_PHASE, inferencePhase = twoPhase && !options.measureOnly;
+  if (options.measureOnly && !twoPhase) throw new PilotError("MEASURE_ONLY_REQUIRES_TWO_PHASE_SCOPE");
+  if (twoPhase && !options.resume && !options.measureOnly) throw new PilotError("TWO_PHASE_STARTS_WITH_MEASURE_ONLY");
   if (approval && nova) {
-    const issued = assertIssuedLedger({ directory: approval.directory, approvalId: approval.approval.approvalId, approvalHash: digest(approval.approval), configHash, authority: liveAuthority });
+    // Only a two-phase resume may continue an already-claimed issue (same binding and scope; openBudgetLedger then
+    // requires the same run directory). One-shot LIVE keeps the unused-issue requirement unchanged.
+    const issued = assertIssuedLedger({ directory: approval.directory, approvalId: approval.approval.approvalId, approvalHash: digest(approval.approval), configHash, authority: liveAuthority, allowClaimed: twoPhase && !!options.resume });
     assertNovaLedgerScope(issued, config);
   }
+  const currentTrust = () => rehearsal ? parseTrust(rehearsal.trust) : installedTrust();
+  const releaseFor = (a: NonNullable<typeof approval>): InferenceRelease => {
+    const measurement = measurementPhaseRecord(a.directory, a.approval.approvalId);
+    if (!measurement) throw new PilotError("MEASUREMENT_PHASE_INCOMPLETE");
+    const file = inferenceReleaseFile(a.directory, a.approval.approvalId);
+    if (!fs.existsSync(file)) throw new PilotError("INFERENCE_RELEASE_REQUIRED");
+    if (fs.lstatSync(file).isSymbolicLink()) throw new PilotError("INFERENCE_RELEASE_INVALID");
+    let value: unknown; try { value = JSON.parse(fs.readFileSync(file, "utf8")); } catch { throw new PilotError("INFERENCE_RELEASE_INVALID"); }
+    return verifyInferenceRelease({ release: value, trust: currentTrust(), approval: a.approval, configHash, measurement });
+  };
+  const release: InferenceRelease | null = inferencePhase && approval ? releaseFor(approval) : null;
+  if (inferencePhase && !release) throw new PilotError("INFERENCE_RELEASE_REQUIRED");
   const ledgerDirectory = approval?.directory ?? options.fixtureLedgerDirectory ?? path.join(path.dirname(path.resolve(directory)), "fixture-ledger");
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
   const approvalHash = approval ? digest(approval.approval) : digest({ authority: "FAKE_TEST_ONLY", approvalId, configHash });
   if (config.mode === "FAKE" && !options.resume && !fs.existsSync(path.join(ledgerDirectory, approvalId + ".jsonl"))) issueFixtureLedger(ledgerDirectory, approvalId, configHash, approvalHash);
   const ledger = openBudgetLedger({ directory: ledgerDirectory, approvalId, approvalHash, configHash, runDirectory: directory, mode: config.mode, resume: !!options.resume, liveAuthority });
+  if (twoPhase) {
+    const s = ledger.state();
+    // An unresolved billed measurement (reserved, never recorded) must not be re-sent on resume.
+    const unresolved = s.countCalls !== Object.keys(s.counts).length;
+    // The release must still describe the ledger as it is now, under the lock: same closing row and same counts.
+    const drifted = !!release && (measurementPhaseRecord(ledgerDirectory, approvalId)?.hash !== release.measurementRecordHash || canonical(s.counts) !== canonical(release.measuredCounts));
+    if (unresolved || drifted) { ledger.close(); throw new PilotError(unresolved ? "UNRESOLVED_MEASUREMENT_REQUIRES_OWNER_AUDIT" : "INFERENCE_RELEASE_MEASUREMENT_MISMATCH"); }
+  }
   // Every gate has passed and the ledger is claimed: only now is a LIVE IO built. The real client exists only without a rehearsal.
   const transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? rehearsal.send : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile))) : liveTransport());
   let journal: ReturnType<typeof openJournal>;
@@ -132,6 +160,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   async function count(prompt: Prompt) {
     authorize(); const { hash, input } = inputFor(prompt); const state = ledger.state();
     if (state.counts[hash] !== undefined) return state.counts[hash];
+    // The inference phase only reuses the measurements the owner released; it never measures again.
+    if (inferencePhase) throw new PilotError("MEASUREMENT_AFTER_RELEASE_FORBIDDEN");
     if (state.countCalls >= (config.novaScope?.measureCalls ?? config.budget.maxCalls)) throw new PilotError("CountApiBudgetStopped");
     // A billed measured preflight sends the full prompt before its size is known: reserve the per-call input cap
     // plus its 1 output token durably first, then reconcile to AWS-reported usage (which may exceed the reservation).
@@ -163,7 +193,10 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
       ...(countResponse ? { providerResponse: countResponse, wire: countWire } : !!transport.protocol && e instanceof PilotError ? { providerResponse: protect(e.details.providerResponse ?? null), wire: e.details.wire ?? null } : {}) }); throw new PilotError("TokenPreflightFailed"); }
   }
   async function attempt(prompt: Prompt, attemptKey?: string) {
-    authorize(); const { hash, input } = inputFor(prompt), before = ledger.state();
+    authorize();
+    if (twoPhase && options.measureOnly) throw new PilotError("MEASURE_ONLY_SESSION");
+    if (twoPhase && (!release || Date.parse(release.expiresAt) <= Date.now())) throw new PilotError(release ? "INFERENCE_RELEASE_EXPIRED" : "INFERENCE_RELEASE_REQUIRED");
+    const { hash, input } = inputFor(prompt), before = ledger.state();
     const key = attemptKey ?? "attempt-" + (before.attempts + 1);
     if (before.attemptKeys.includes(key)) throw new PilotError("ATTEMPT_ALREADY_RESERVED");
     if (config.mode === "LIVE" && config.pins.promptHashes.some((h) => before.counts[h] === undefined)) throw new PilotError("BatchTokenPreflightRequired");
@@ -226,6 +259,21 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   return { configHash, target, approvalId, records: () => structuredClone(journal.records), state: () => ledger.state(),
     previewTokenCounts(prompts: Prompt[]) { const next = chain.then(async () => { const receipts = []; for (const prompt of prompts) receipts.push({ promptHash: inputFor(prompt).hash, inputTokens: await count(prompt), target }); return receipts; }); chain = next.catch(() => undefined); return next; },
     evaluate(prompt: Prompt, attemptKey?: string) { const next = chain.then(() => attempt(prompt, attemptKey)); chain = next.catch(() => undefined); return next; },
+    /** Two-phase measure-only: durably close the measurement phase in the ledger (idempotent) after all prompts are measured. */
+    completeMeasurementPhase() {
+      const next = chain.then(async () => {
+        authorize();
+        if (!twoPhase || !options.measureOnly) throw new PilotError("MEASURE_ONLY_SESSION_REQUIRED");
+        const s = ledger.state(), unique = [...new Set(config.pins.promptHashes)];
+        if (s.attempts !== 0 || s.inferenceCalls !== 0 || s.countCalls !== unique.length || Object.keys(s.counts).length !== unique.length || unique.some((h) => s.counts[h] === undefined)) throw new PilotError("MEASUREMENT_PHASE_INCOMPLETE");
+        const existing = measurementPhaseRecord(ledgerDirectory, approvalId);
+        const ledgerRecordHash = existing && canonical(existing.state) === canonical(s) ? existing.hash : save(s, MEASUREMENT_PHASE_EVENT);
+        append({ event: MEASUREMENT_PHASE_EVENT, ledgerRecordHash, counts: s.counts });
+        return { ledgerRecordHash, counts: s.counts, state: s, approvalId, approvalExpiresAt: approval?.approval.expiresAt ?? null };
+      });
+      chain = next.catch(() => undefined); return next;
+    },
+    inferenceRelease: () => release ? { releasedBy: release.releasedBy, expiresAt: release.expiresAt, measurementRecordHash: release.measurementRecordHash } : null,
     async close() { await chain; if (!closed) { closed = true; ledger.close(); } },
   };
 }
