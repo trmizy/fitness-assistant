@@ -123,6 +123,8 @@ export interface ApproverCheckInput {
   reporterUserId: string;
   /** the gym's owner (a party to the complaint's subject): an admin that IS the owner cannot decide it */
   gymOwnerId: string | null;
+  /** Q31: everyone with a real staff / owner relation to the gym or its brand (owner, brand owner, every non-revoked GymPartnerAccount of the partner). */
+  linkedUserIds?: readonly string[];
   conflictOfInterestDeclaredNone: boolean;
 }
 export type ApproverVerdict = { ok: true } | { ok: false; status: number; code: string; message: string };
@@ -135,7 +137,7 @@ export function checkApprover(i: ApproverCheckInput): ApproverVerdict {
   if (i.investigatorId && i.approverId === i.investigatorId) {
     return { ok: false, status: 403, code: 'SELF_APPROVAL_FORBIDDEN', message: 'Điều tra viên của hồ sơ không được duyệt đề xuất của chính hồ sơ đó' };
   }
-  if (i.approverId === i.reporterUserId || (i.gymOwnerId && i.approverId === i.gymOwnerId)) {
+  if (i.approverId === i.reporterUserId || (i.gymOwnerId && i.approverId === i.gymOwnerId) || (i.linkedUserIds ?? []).includes(i.approverId)) {
     return { ok: false, status: 403, code: 'CONFLICT_OF_INTEREST', message: 'Người duyệt là một bên của vụ việc nên không được duyệt' };
   }
   if (i.conflictOfInterestDeclaredNone !== true) {

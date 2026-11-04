@@ -9,6 +9,7 @@ import { profileClient } from '../clients/profile.client';
 import { gymService } from './gym.service';
 import { collaborationService } from './collaboration.service';
 import { paymentClient } from '../clients/payment.client';
+import { assertRefundNotBypassingCase } from './complaint-case/refund-guard';
 import { isPlanOnSale } from './plan.service';
 import { partnerGuard } from './partner-guard.service';
 import { commissionRateService } from './commission-rate.service';
@@ -335,8 +336,10 @@ export const membershipService = {
    * GET /admin/payments/reconciliation before retrying by hand; the guarantee this closes is
    * only that the retry itself is now safe, not that failures become invisible.
    */
-  async refundByAdmin(membershipId: string, adminId: string, reason: AdminRefundReason) {
+  async refundByAdmin(membershipId: string, adminId: string, reason: AdminRefundReason, opts: { caseDecisionId?: string } = {}) {
     if (!ADMIN_REFUND_REASONS.includes(reason)) throw err('INVALID_REFUND_REASON', 400);
+    // Q21: an independent refund stays allowed; one that would bypass an open Gym Case / contradict an approved decision is refused (409, stable code).
+    await assertRefundNotBypassingCase(membershipId, opts);
 
     const contract = await membershipRepository.findByIdWithReferral(membershipId);
     if (!contract) throw err('Membership not found', 404);
@@ -590,6 +593,19 @@ export const membershipService = {
     if (!refund || refund.status !== 'PAID' || refund.refundOfTransactionId !== originalTransactionId) {
       throw err('Refund transaction verification failed', 400);
     }
+    // Q21 door 6: payment-service already moved the money. Record it on the member's open case (audit); never refuse the callback.
+    await recordDirectRefundOnCase(membershipId, refundTransactionId).catch(() => undefined);
     return membershipRepository.cancelAfterRefund(membershipId);
   },
 };
+
+async function recordDirectRefundOnCase(membershipId: string, refundTransactionId: string) {
+  const { prisma } = await import('../repositories/prisma');
+  const cases = await prisma.gymComplaintCase.findMany({ where: { membershipId, status: { not: 'REJECTED_INTAKE' } }, select: { id: true, status: true, execStatus: true } });
+  for (const c of cases) {
+    if (c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE') continue;
+    await prisma.gymCaseEvent.create({
+      data: { caseId: c.id, actorUserId: 'payment-service', actorRole: 'SYSTEM', action: 'DIRECT_REFUND_OBSERVED', note: 'Gói hội viên được hoàn tiền ngoài hồ sơ qua payment-service', payload: { refundTransactionId, status: c.status, execStatus: c.execStatus } },
+    });
+  }
+}
