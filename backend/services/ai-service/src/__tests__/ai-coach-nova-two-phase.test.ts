@@ -20,6 +20,7 @@ import { NOVA_MODEL, NOVA_REGION, serializeNova } from "../evaluation/bedrock-pi
 import type { NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
 import { openJournal } from "../evaluation/bedrock-pilot/storage";
 import { canonical, digest } from "../evaluation/evaluation-kit/identity";
+import { verifyReviewerExport } from "../evaluation/evaluation-kit/reviewer-export";
 import { claimDevScenarios } from "../evaluation/ai-coach-claim-dev/fixtures";
 import { fixturePilotInput } from "./fixtures/pilot-input";
 import { syntheticClaimData } from "./fixtures/scientific-claims";
@@ -187,6 +188,15 @@ test("crash/resume never duplicates: an interrupted measurement phase and an int
     assert.equal(f.inferences().length, 8, "remaining 5 only");
     assert.deepEqual(f.inferences().map(i => f.label.get(serializeNova(i).identity.tokenPayloadHash)), OWNER_ORDER, "each scheduled row sent exactly once, in order");
     assert.equal(summary.budget.inferenceCalls, 8); assert.equal(f.measures().length, 4);
+    const reviewerDir = path.join(dir + "-reviewers", "R1");
+    const receipts = fs.readdirSync(reviewerDir).filter(n => n.endsWith(".json"));
+    assert.equal(receipts.length, 8, "crash/resume preserves exactly eight reviewer exports");
+    const receiptPins = new Map<string, string>();
+    for (const file of fs.readdirSync(dir).filter(n => n.startsWith("answer-") && n.endsWith(".json"))) {
+      const stored = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
+      for (const p of stored.packets.reviewers) if (p.reviewerSlot === "R1") receiptPins.set(p.body.instanceId, p.reviewerExportHashes.R1);
+    }
+    for (const file of receipts) { const exported = JSON.parse(fs.readFileSync(path.join(reviewerDir, file), "utf8")); verifyReviewerExport(exported, receiptPins.get(exported.opaqueId)!); }
   } finally { f.close(); }
 });
 
@@ -230,14 +240,78 @@ test("fail closed in the inference phase: token parity mismatch stops; two failu
 });
 
 test("approval expiry ends both phases: after the approval expires the inference phase is refused", needsClean, async () => {
+  const original = Date.now; let now = original(); Date.now = () => now;
   const f = await fixture();
   try {
-    // Long enough for the measure-only run (LIVE pins are re-verified before every send), short enough to wait out.
-    const c = signed(f.base, new Date(Date.now() + 240000).toISOString()); f.issue(c);
+    const c = signed(f.base); f.issue(c);
     const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
-    await new Promise(r => setTimeout(r, Math.max(0, Date.parse(c.approval!.expiresAt) - Date.now() + 200)));
+    now = Date.parse(c.approval!.expiresAt) + 1;
     await assert.rejects(f.run(c, dir, { resume: true }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
     assert.equal(f.inferences().length, 0);
+  } finally { Date.now = original; f.close(); }
+});
+
+test("dispatch boundary: approval expiring after a measurement reservation sends no request", needsClean, async () => {
+  const originalNow = Date.now, originalWrite = fs.writeFileSync; let now = originalNow(); Date.now = () => now;
+  const f = await fixture();
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); let advanced = false;
+    fs.writeFileSync = ((...args: Parameters<typeof fs.writeFileSync>) => {
+      originalWrite(...args);
+      if (typeof args[1] === "string" && args[1].includes('"event":"MEASURE_RESERVED"')) { now = Date.parse(c.approval!.expiresAt) + 1; advanced = true; }
+    }) as typeof fs.writeFileSync;
+    await assert.rejects(f.run(c, dir, { measureOnly: true }), /TokenPreflightFailed/);
+    assert.equal(advanced, true); assert.equal(f.sent.length, 0, "approval checked after durable reservation, before measurement send");
+    const records = openJournal(path.join(f.ledger, c.approval!.approvalId + ".jsonl")).records as { event: string; state?: { countCalls: number; stopped: boolean } }[];
+    assert.ok(records.some(r => r.event === "COUNT_FAILED" && r.state?.stopped));
+    assert.equal(measurementPhaseRecord(f.ledger, c.approval!.approvalId), null);
+    await assert.rejects(f.run(c, dir, { measureOnly: true, resume: true }), /LiveNotApproved|APPROVAL_EXPIRED/);
+    assert.equal(f.sent.length, 0);
+  } finally { fs.writeFileSync = originalWrite; Date.now = originalNow; f.close(); }
+});
+
+test("dispatch boundary: separate release expiry after inference reservation blocks dispatch and survives resume", needsClean, async () => {
+  const originalNow = Date.now, originalWrite = fs.writeFileSync; let now = originalNow(); Date.now = () => now;
+  const f = await fixture();
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true });
+    const expiresAt = new Date(now + 60000).toISOString(); f.release(c, { expiresAt }); let advanced = false;
+    fs.writeFileSync = ((...args: Parameters<typeof fs.writeFileSync>) => {
+      originalWrite(...args);
+      if (typeof args[1] === "string" && args[1].includes('"event":"INFERENCE_RESERVED"')) { now = Date.parse(expiresAt) + 1; advanced = true; }
+    }) as typeof fs.writeFileSync;
+    await assert.rejects(f.run(c, dir, { resume: true }), /INFERENCE_RELEASE_EXPIRED/);
+    fs.writeFileSync = originalWrite;
+    assert.equal(advanced, true); assert.equal(f.measures().length, 4); assert.equal(f.inferences().length, 0);
+    const records = openJournal(path.join(dir, "results.jsonl")).records as { event: string; providerError?: string; conservativeReservationRetained?: boolean }[];
+    assert.ok(records.some(r => r.event === "ATTEMPT_FINISHED" && r.providerError === "INFERENCE_RELEASE_EXPIRED" && r.conservativeReservationRetained));
+    const before = f.records(c).length;
+    await assert.rejects(f.run(c, dir, { resume: true }), /INFERENCE_RELEASE_EXPIRED/);
+    assert.equal(f.records(c).length, before, "expired release cannot create a new RESUMED record"); assert.equal(f.sent.length, 4);
+  } finally { fs.writeFileSync = originalWrite; Date.now = originalNow; f.close(); }
+});
+
+test("approval expiring between inferences blocks every subsequent dispatch without remeasurement", needsClean, async () => {
+  const original = Date.now; let now = original(); Date.now = () => now;
+  const f = await fixture();
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
+    let persisted = false;
+    await assert.rejects(f.run(c, dir, { resume: true, onStage: s => { if (s === "PERSISTED") { persisted = true; now = Date.parse(c.approval!.expiresAt) + 1; } } }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
+    assert.equal(persisted, true); assert.equal(f.inferences().length, 1); assert.equal(f.measures().length, 4);
+    await assert.rejects(f.run(c, dir, { resume: true }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
+    assert.equal(f.inferences().length, 1);
+  } finally { Date.now = original; f.close(); }
+});
+
+test("two-phase inference cache usage fails closed with no retry or remeasurement", needsClean, async () => {
+  const f = await fixture();
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
+    f.setReply(i => ({ ...output(answer, tokensOf(i), 40, "end_turn"), usage: { inputTokens: tokensOf(i), outputTokens: 40, totalTokens: tokensOf(i) + 40, cacheReadInputTokens: 1 } }));
+    const summary = await f.run(c, dir, { resume: true });
+    assert.equal(summary.status, "STOPPED"); assert.equal(f.inferences().length, 1); assert.equal(f.measures().length, 4);
+    assert.deepEqual(await f.run(c, dir, { resume: true }), summary); assert.equal(f.inferences().length, 1);
   } finally { f.close(); }
 });
 

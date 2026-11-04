@@ -15,6 +15,7 @@ import { atomicCreate, openJournal } from "./storage";
 import { assertVerifiedPins, type VerifiedPins } from "./pins";
 import type { MantleWireIdentity } from "./mantle-transport";
 import { serializeNova, type NovaWireIdentity } from "./nova-converse-transport";
+import { assertCurrentInferenceRelease, dispatchWithInferenceRelease } from "./inference-release-deadline";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 type WireIdentity = MantleWireIdentity | NovaWireIdentity;
@@ -148,6 +149,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     assertCurrentAuthorization(config);
     if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
     if (config.mode === "LIVE") { const current = currentApproval(); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
+    // Pins/approval checks can cross the separately signed release's earlier expiry.
+    if (inferencePhase) assertCurrentInferenceRelease(release);
   };
   const inputFor = (prompt: Prompt) => {
     const hash = digest({ system: prompt.system, user: prompt.user });
@@ -156,6 +159,11 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     // Only the exact owner-approved token-bearing payloads may be sent.
     if (config.novaScope && !config.novaScope.tokenPayloadHashes.includes(serializeNova(input).identity.tokenPayloadHash)) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
     return { hash, input };
+  };
+  const dispatchAuthorized = <T>(dispatch: () => T): T => {
+    // Reservations/persistence can outlive the approval after the earlier, expensive pins check.
+    assertCurrentAuthorization(config);
+    return inferencePhase ? dispatchWithInferenceRelease(release, dispatch) : dispatch();
   };
   async function count(prompt: Prompt) {
     authorize(); const { hash, input } = inputFor(prompt); const state = ledger.state();
@@ -172,7 +180,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     save({ countCalls: state.countCalls + 1, ...(billed ? { inputTokens: state.inputTokens + reserveIn, outputTokens: state.outputTokens + reserveOut, estimatedUsd: estimatedCost(config, state.inputTokens + reserveIn, state.outputTokens + reserveOut) } : {}) }, billed ? "MEASURE_RESERVED" : "COUNT_RESERVED");
     let countResponse: ReturnType<typeof protect> | undefined, countWire: unknown;
     try {
-      const response = await deadline(config.parameters.timeoutMs, (signal) => transport.count(input, signal));
+      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.count(input, signal)));
       const tokens = typeof response === "number" ? response : response.inputTokens;
       if (typeof response !== "number") {
         countResponse = protect(response.providerResponse); countWire = response.wire;
@@ -218,7 +226,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     let providerResponse: ReturnType<typeof protect> | undefined, wire: unknown, structuralDerivation: ClaimEnvelopeDerivation | null = null;
     const inferenceStarted = Date.now();
     try {
-      const response = await deadline(config.parameters.timeoutMs, (signal) => transport.invoke(input, signal));
+      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.invoke(input, signal)));
       if (transport.protocol) { providerResponse = protect(response.providerResponse ?? null); wire = response.wire; }
       rawText = (response.output?.message?.content ?? []).map((b) => "text" in b ? b.text ?? "" : "").join("");
       stopReason = response.stopReason ?? null; inputTokens = response.usage?.inputTokens ?? null; outputTokens = response.usage?.outputTokens ?? null;
