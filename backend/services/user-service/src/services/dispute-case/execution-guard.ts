@@ -185,7 +185,7 @@ export function assertEntryAllowed(ctx: CaseDecisionCtx | undefined): void {
  */
 export async function assertNoCaseForOldDoor(tx: Tx, ctx: CaseDecisionCtx | undefined, sessionId: string): Promise<void> {
   if (ctx) return;
-  const open = await tx.disputeCase.findFirst({ where: { sessionId, status: { not: "REJECTED_INTAKE" } }, select: { id: true, status: true } });
+  const open = await tx.disputeCase.findFirst({ where: { sessionId, status: { notIn: ["REJECTED_INTAKE", "CLOSED"] } }, select: { id: true, status: true } });
   if (!open) return;
   throw execError(
     409,

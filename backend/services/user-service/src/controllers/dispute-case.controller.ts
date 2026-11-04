@@ -243,6 +243,17 @@ export const disputeCaseController = {
       "closeOrphan",
     ),
 
+  closeExecuted: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await disputeCaseService.closeExecuted(actor, idOf(req), parse(closeBody, req.body).reason, idempotencyKeyOf(req));
+        return { body: r.result, replayed: r.replayed };
+      },
+      req,
+      "closeExecuted",
+    ),
+
   closeNotADispute: (req: any, res: Response) =>
     run(
       res,

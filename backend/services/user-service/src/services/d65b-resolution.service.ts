@@ -140,7 +140,7 @@ async function assessDb(db: Db, sessionId: string, mode: "PROPOSE" | "EXECUTE"):
   }
   if (session.status !== SessionStatus.NO_SHOW) throw err(409, "SESSION_NOT_NO_SHOW", "Chỉ áp dụng cho buổi PT vắng mặt (NO_SHOW)", { status: session.status });
   if (session.resolvedBy || session.resolvedByCaseDecisionId) throw err(409, "SESSION_WENT_THROUGH_DISPUTE", "Buổi tập đã được phán quyết: không dùng đường này");
-  const anyCase = await db.disputeCase.findFirst({ where: { sessionId, status: { not: "REJECTED_INTAKE" } }, select: { id: true, status: true } });
+  const anyCase = await db.disputeCase.findFirst({ where: { sessionId, status: { notIn: ["REJECTED_INTAKE", "CLOSED"] } }, select: { id: true, status: true } });
   if (anyCase) throw err(409, "CASE_EXISTS", "Buổi tập đã có hồ sơ khiếu nại: phải đi qua hồ sơ", { caseStatus: anyCase.status });
   if (await hasD77Trace(db as Tx, sessionId)) throw err(409, "SESSION_HAS_D77", "Buổi tập có khoản bồi thường đi muộn (D77): không dùng đường này");
 

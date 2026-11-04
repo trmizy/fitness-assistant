@@ -617,7 +617,7 @@ export async function lateOpenGate(sessionId: string): Promise<{ settle: boolean
     }
   }
   const contested = await prisma.disputeCaseIssue.findFirst({
-    where: { kind: "PT_LATE", finding: { in: ["LATE_CONTESTED", "NOT_LATE"] }, case: { sessionId, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE"] } } },
+    where: { kind: "PT_LATE", finding: { in: ["LATE_CONTESTED", "NOT_LATE"] }, case: { sessionId, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE", "CLOSED"] } } },
     select: { id: true, finding: true },
   });
   if (contested) return { settle: false, hold: `the late arrival of this session is contested in an open dispute case (${contested.finding})` };

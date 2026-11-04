@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { Prisma } from "../../generated/prisma";
+import { now as clockNow } from "./clock";
 import { prisma } from "../../repositories/profile.repository";
 import { resolveDisputeCore } from "../booking.service";
 import { isContractEnding } from "../contract-lock";
 import { caseError } from "./errors";
-import { ackTimesOf, evidenceGuard, type Actor } from "./dispute-case.service";
+import { ackTimesOf, enrichEvidenceSourceError, evidenceGuard, type Actor } from "./dispute-case.service";
 import { buildFinancialView, hasLateArrivalStep } from "./financial";
 import { executionEnabled } from "./flags";
 import { d77Key, readLateState, type D77Read } from "./d77-key";
@@ -193,6 +195,24 @@ async function recordNeedsHuman(c: ExecCase, approval: { id: string; proposal: {
 const outcomeOf = (s: { status: string; ptAtFault: boolean }) =>
   s.status === "COMPLETED" ? "COMPLETED" : s.status === "CANCELLED" ? "CANCELLED" : s.status === "NO_SHOW" && s.ptAtFault ? "PT_NO_SHOW_CONFIRMED" : null;
 
+export const EXEC_LEASE_MS = Number(process.env.DISPUTE_EXEC_LEASE_MS ?? 120_000);
+
+/** Compare-and-set on the REAL state: the case must still be EXECUTING and the lease free or expired. */
+async function acquireExecLease(caseId: string, owner: string): Promise<{ acquired: boolean; until: Date | null }> {
+  const t = clockNow();
+  const until = new Date(t.getTime() + EXEC_LEASE_MS);
+  const r = await prisma.disputeCase.updateMany({
+    where: { id: caseId, execStatus: "EXECUTING", OR: [{ execLeaseUntil: null }, { execLeaseUntil: { lt: t } }] },
+    data: { execLeaseOwner: owner, execLeaseUntil: until },
+  });
+  if (r.count === 1) return { acquired: true, until };
+  const cur = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { execLeaseUntil: true } });
+  return { acquired: false, until: cur?.execLeaseUntil ?? null };
+}
+async function releaseExecLease(caseId: string, owner: string): Promise<void> {
+  await prisma.disputeCase.updateMany({ where: { id: caseId, execLeaseOwner: owner }, data: { execLeaseOwner: null, execLeaseUntil: null } });
+}
+
 async function moneyAxis(sessionId: string) {
   try {
     const v = await buildFinancialView(prisma, sessionId);
@@ -291,7 +311,11 @@ export const executionService = {
     if (session.status !== "DISPUTED") {
       throw caseError(409, "SESSION_ALREADY_PROCESSED", "Buổi tập không còn ở trạng thái đang khiếu nại", { status: session.status });
     }
-    await assertEvidenceUnchanged(l);
+    try {
+      await assertEvidenceUnchanged(l);
+    } catch (e) {
+      throw await enrichEvidenceSourceError(e, c.id, actor); // C3: counted, backed off, escalated
+    }
     if (await isContractEnding(session.contractId)) {
       await recordBlocked(c, approval, actor, "CONTRACT_ENDING", "Hợp đồng đang được kết thúc nhưng khoản tiền chưa được xác nhận; thử lại sau");
     }
@@ -343,6 +367,24 @@ export const executionService = {
   async reconcileExecution(actor: Actor, caseId: string, deps: ExecDeps = defaultExecDeps()) {
     if (actor.role !== "ADMIN") throw caseError(403, "ADMIN_ONLY", "Chỉ quản trị viên được thực hiện");
     if (!executionEnabled()) throw caseError(409, EXECUTION_DISABLED, "Bộ thực thi quyết định hồ sơ đang tắt");
+    if (!UUID_RE.test(caseId)) throw caseError(404, "CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
+    const c0 = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { id: true, execStatus: true, execDecisionId: true } });
+    if (!c0) throw caseError(404, "CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
+    if (c0.execStatus !== "EXECUTING" || !c0.execDecisionId) return { action: "NOTHING_TO_RECONCILE" as const, execStatus: c0.execStatus };
+    // C4 (Ngai 05/11): a runner (the sweep, an admin) re-enters an EXECUTING case ONLY after winning a compare-and-set LEASE on the real state. A second runner while the lease is held does nothing;
+    // a lease left by a dead runner expires, and the next runner re-reads the real state (the ruling core's own compare-and-set from DISPUTED still blocks any double write).
+    const owner = `${actor.id}:${randomUUID()}`;
+    const lease = await acquireExecLease(c0.id, owner);
+    if (!lease.acquired) return { action: "LEASE_HELD" as const, execStatus: c0.execStatus, leaseUntil: lease.until };
+    try {
+      return await executionService.reconcileExecutionLeased(actor, caseId, deps);
+    } finally {
+      await releaseExecLease(c0.id, owner);
+    }
+  },
+
+  /** The reconciliation proper (reads the real state first). Call it only through reconcileExecution, which holds the lease. */
+  async reconcileExecutionLeased(actor: Actor, caseId: string, deps: ExecDeps = defaultExecDeps()) {
     const c = await prisma.disputeCase.findUnique({ where: { id: caseId } });
     if (!c) throw caseError(404, "CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
     if (c.execStatus !== "EXECUTING" || !c.execDecisionId) return { action: "NOTHING_TO_RECONCILE" as const, execStatus: c.execStatus };

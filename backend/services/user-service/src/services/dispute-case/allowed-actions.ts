@@ -68,6 +68,7 @@ export const ACTION_NAMES = [
   "acknowledgeNeedsHuman",
   "closeNotADispute",
   "closeOrphan",
+  "closeExecuted",
   "readEvidenceFile",
 ] as const;
 export type ActionName = (typeof ACTION_NAMES)[number];
@@ -149,7 +150,7 @@ export function computeAllowedActions(i: AllowedActionsInput): Record<ActionName
   }
   out.acknowledgeEvidenceChange = investigatorOnly() ?? stateOnly(["AWAITING_APPROVAL"]) ?? ok();
   out.proposePolicyEligibility =
-    investigatorOnly() ?? classified() ?? (status === "INTAKE" || status === "REJECTED_INTAKE" ? no("CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này") : null) ?? ok();
+    investigatorOnly() ?? classified() ?? (status === "INTAKE" || status === "REJECTED_INTAKE" || status === "CLOSED" ? no("CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này") : null) ?? ok();
   {
     const base = adminOnly();
     if (base) out.approvePolicyEligibility = base;
@@ -195,6 +196,13 @@ export function computeAllowedActions(i: AllowedActionsInput): Record<ActionName
     notTerminal() ??
     (i.sessionStatus === null ? no("SESSION_UNKNOWN", "Không đọc được trạng thái buổi tập") : null) ??
     (sessionStillInDispute(i.sessionStatus) ? no("SESSION_STILL_IN_DISPUTE", "Buổi tập vẫn đang trong khiếu nại nên hồ sơ không phải hồ sơ mồ côi") : null) ??
+    ok();
+
+  out.closeExecuted =
+    adminOnly() ??
+    notParty() ??
+    stateOnly(["DECISION_APPROVED"]) ??
+    (c.execStatus === "BUSINESS_DONE" ? null : no("DECISION_NOT_EXECUTED", "Quyết định đã duyệt chưa được thực thi xong; đóng hồ sơ không thay cho thực thi")) ??
     ok();
 
   out.readEvidenceFile = adminOnly() ?? notParty() ?? (i.flags.evidenceStorageEnabled ? null : no("FEATURE_DISABLED", "Chức năng lưu tệp bằng chứng chưa được bật")) ?? ok();

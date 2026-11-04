@@ -50,7 +50,7 @@ export async function runLegacyMigration(o: { apply: boolean; env?: NodeJS.Proce
     orderBy: [{ disputedAt: "asc" }, { id: "asc" }],
   });
   const withCase = new Set(
-    (await prisma.disputeCase.findMany({ where: { sessionId: { in: sessions.map((s) => s.id) }, status: { not: "REJECTED_INTAKE" } }, select: { sessionId: true } })).map((c) => c.sessionId),
+    (await prisma.disputeCase.findMany({ where: { sessionId: { in: sessions.map((s) => s.id) }, status: { notIn: ["REJECTED_INTAKE", "CLOSED"] } }, select: { sessionId: true } })).map((c) => c.sessionId),
   );
   const candidates: LegacyCandidate[] = sessions
     .filter((s) => !withCase.has(s.id))

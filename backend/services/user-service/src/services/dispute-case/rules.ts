@@ -46,9 +46,13 @@ export type CaseStatus =
   | "PROPOSED"
   | "AWAITING_APPROVAL"
   | "DECISION_APPROVED"
-  | "REJECTED_INTAKE";
+  | "REJECTED_INTAKE"
+  /** A5: a real end (closeReason + audit). Never releases money, never changes the session, never reopens. */
+  | "CLOSED";
 
-export const TERMINAL_STATUSES: readonly CaseStatus[] = ["DECISION_APPROVED", "REJECTED_INTAKE"];
+/** A5: closeReason values of a CLOSED case. */
+export const CLOSE_REASONS = ["ORPHAN_SESSION_LEFT_DISPUTE", "NOT_A_DISPUTE", "EXECUTED", "APPEAL_CONCLUDED"] as const;
+export const TERMINAL_STATUSES: readonly CaseStatus[] = ["DECISION_APPROVED", "REJECTED_INTAKE", "CLOSED"];
 export const isTerminal = (s: CaseStatus) => TERMINAL_STATUSES.includes(s);
 
 /** Every transition the code can ever perform. Anything else is refused. */
@@ -64,6 +68,7 @@ export const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = 
   AWAITING_APPROVAL: ["DECISION_APPROVED", "ASSESSING"],
   DECISION_APPROVED: [],
   REJECTED_INTAKE: [],
+  CLOSED: [],
 };
 
 export function canTransition(from: CaseStatus, to: CaseStatus): boolean {

@@ -10,6 +10,7 @@ import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdi
 import { assertRealAdmin } from "./admin-account";
 import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
+import { satisfyDeadlines } from "./party-notices";
 import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
 import {
   D77_BLOCK_REASON,
@@ -155,15 +156,15 @@ async function casStatus(ctx: Ctx, c: CaseRow, to: CaseStatus, note?: string): P
   c.version += 1;
 }
 
-/** Closes a case WITHOUT a decision: REJECTED_INTAKE (the terminal state every "open case" filter already knows) + the reason. Compare-and-swap like every status change. */
+/** A5: closes a case with CLOSED + closeReason (+ the audit event of the caller). Never touches the session, money or quota. Compare-and-swap like every status change. */
 async function casClose(ctx: Ctx, c: CaseRow, closeReason: string, note?: string): Promise<void> {
   const r = await ctx.tx.disputeCase.updateMany({
     where: { id: c.id, version: c.version, status: c.status },
-    data: { status: "REJECTED_INTAKE", closeReason, version: { increment: 1 } },
+    data: { status: "CLOSED", closeReason, version: { increment: 1 } },
   });
   if (r.count !== 1) throw versionConflict();
-  ctx.transitions.push({ from: c.status as CaseStatus, to: "REJECTED_INTAKE", note });
-  c.status = "REJECTED_INTAKE";
+  ctx.transitions.push({ from: c.status as CaseStatus, to: "CLOSED", note });
+  c.status = "CLOSED";
   c.closeReason = closeReason;
   c.version += 1;
 }
@@ -340,6 +341,9 @@ export const disputeCaseService = {
     }
     const open = await prisma.disputeCase.findFirst({ where: { sessionId, status: { notIn: [...TERMINAL_STATUSES] as any } } });
     if (open) return { result: { created: false, case: summary(open) }, replayed: false };
+    // A5: a session whose case was CLOSED is never reopened by opening another case (no endless reopen); the close reason is on the closed case.
+    const closed = await prisma.disputeCase.findFirst({ where: { sessionId, status: "CLOSED" }, select: { id: true, closeReason: true } });
+    if (closed) throw caseError(409, "CASE_CLOSED_NO_REOPEN", "Hồ sơ của buổi tập này đã được đóng; không mở lại hồ sơ mới cho cùng một buổi", { caseId: closed.id, closeReason: closed.closeReason });
     const decided = await prisma.disputeCase.findFirst({ where: { sessionId, status: "DECISION_APPROVED" }, select: { id: true } });
     if (decided) {
       throw caseError(409, "CASE_DECISION_PENDING_EXECUTION", "Buổi tập này đã có hồ sơ được duyệt nhưng chưa được thực thi (Slice 2). Chưa mở hồ sơ mới", { caseId: decided.id });
@@ -999,9 +1003,55 @@ export const disputeCaseService = {
     });
   },
 
+  /**
+   * A5/C1: the normal end of a case whose approved decision WAS executed (execStatus BUSINESS_DONE): CLOSED, closeReason EXECUTED (APPEAL_CONCLUDED when appeals took part). ONE admin who is
+   * not a party may do it - it has no money effect and can never release money, skip an approved decision, or run one: an approved decision that is not BUSINESS_DONE is refused. It is
+   * also refused while an appeal is undecided or a consequence of an appeal is still OPEN. Whether the money axis is final is NOT decided here: `financial` and `closure` keep saying so.
+   */
+  async closeExecuted(actor: Actor, caseId: string, reason: string, idempotencyKey?: string) {
+    assertAdmin(actor);
+    return mutate({
+      actor,
+      action: "CASE_CLOSED_EXECUTED",
+      scope: caseId,
+      idempotencyKey,
+      body: { reason },
+      run: async (ctx) => {
+        const c = await lockCase(ctx.tx, caseId);
+        if (actor.id === c.clientUserId || actor.id === c.ptUserId) throw caseError(403, "CONFLICT_OF_INTEREST", "Quản trị viên là một bên của vụ việc nên không được đóng hồ sơ");
+        if (c.status !== "DECISION_APPROVED") throw stateNotAllowed(c, ["DECISION_APPROVED"]);
+        if (c.execStatus !== "BUSINESS_DONE") {
+          throw caseError(409, "DECISION_NOT_EXECUTED", "Quyết định đã duyệt chưa được thực thi xong nên chưa đóng được hồ sơ (đóng không bao giờ thay cho thực thi)", { execStatus: c.execStatus });
+        }
+        const appeals = await ctx.tx.disputeCaseAppeal.findMany({ where: { caseId: c.id }, select: { status: true } });
+        if (appeals.some((a) => a.status !== "DECIDED")) throw caseError(409, "APPEAL_PENDING", "Còn yêu cầu xem xét lại chưa có kết quả nên chưa đóng được hồ sơ");
+        const open = await ctx.tx.disputeCaseAppealConsequence.count({ where: { caseId: c.id, status: "OPEN" } });
+        if (open > 0) throw caseError(409, "APPEAL_CONSEQUENCE_OPEN", "Kết quả xem xét lại còn việc chưa xử lý (tiền, buổi hoặc lỗi PT) nên chưa đóng được hồ sơ", { open });
+        const from = c.status;
+        const closeReason = appeals.length > 0 ? "APPEAL_CONCLUDED" : "EXECUTED";
+        await casClose(ctx, c, closeReason, reason);
+        return { caseId: c.id, result: { closed: true, from, to: c.status, closeReason, version: c.version, moneyMoved: false }, note: reason };
+      },
+    });
+  },
+
   // ── Four-eyes decision ────────────────────────────────────────────────────────────────────────────────────────────
 
+  /** C3: an unreadable evidence source at approval is counted, backed off and escalated (recordEvidenceSourceFailure); every other outcome is unchanged. */
   async decide(
+    actor: Actor,
+    caseId: string,
+    b: { result: "APPROVED" | "REJECTED"; reason: string; conflictOfInterestDeclaredNone: boolean; evidenceChangeAcknowledged: boolean },
+    idempotencyKey?: string,
+  ) {
+    try {
+      return await disputeCaseService.decideOnce(actor, caseId, b, idempotencyKey);
+    } catch (e) {
+      throw await enrichEvidenceSourceError(e, caseId, actor);
+    }
+  },
+
+  async decideOnce(
     actor: Actor,
     caseId: string,
     b: { result: "APPROVED" | "REJECTED"; reason: string; conflictOfInterestDeclaredNone: boolean; evidenceChangeAcknowledged: boolean },
@@ -1191,6 +1241,8 @@ export const disputeCaseService = {
       evidenceStorage: verdict(DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE),
       lateOpenReconciliation: verdict(DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION),
       d65bResolution: verdict(DISPUTE_CASE_FLAGS.D65B_RESOLUTION),
+      timers: verdict(DISPUTE_CASE_FLAGS.TIMERS),
+      appeals: verdict(DISPUTE_CASE_FLAGS.APPEALS),
     };
     return {
       execution: d.execution.effective,
@@ -1198,6 +1250,8 @@ export const disputeCaseService = {
       evidenceStorage: d.evidenceStorage.effective,
       lateOpenReconciliation: d.lateOpenReconciliation.effective,
       d65bResolution: d.d65bResolution.effective,
+      timers: d.timers.effective,
+      appeals: d.appeals.effective,
       details: d,
       runtime: { mode: gateVerdict().mode, open: gateVerdict().open, ...(gateVerdict().refusedBecause ? { refusedBecause: gateVerdict().refusedBecause } : {}) },
     };
@@ -1261,7 +1315,7 @@ export const disputeCaseService = {
         roomClientJoinedAt: s.roomClientJoinedAt,
       },
       contract: s.contract,
-      openCase: cases.find((c) => c.status !== "REJECTED_INTAKE") ?? null,
+      openCase: cases.find((c) => c.status !== "REJECTED_INTAKE" && c.status !== "CLOSED") ?? null,
       cases,
     };
   },
@@ -1442,6 +1496,7 @@ export const disputeCaseService = {
               contentHash: statementHash({ partyRole: role, version, text: b.text, supplementReason: version > 1 ? b.supplementReason : null }),
             },
           });
+          await satisfyDeadlines(ctx.tx, c.id, actor.id); // V2.1: the party answered, its response clock is satisfied
           return { caseId: c.id, result: { id: row.id, version } };
         },
       });
@@ -1492,6 +1547,7 @@ export const disputeCaseService = {
           },
           { submittedBy: actor.id, submittedRole: role, provenanceType: "EXTERNAL_DOCUMENT", verificationStatus: "CLIENT_CLAIMED_UNVERIFIED" },
         );
+        await satisfyDeadlines(ctx.tx, c.id, actor.id);
         return { caseId: c.id, result: { id: row.id } };
       },
     });
@@ -1554,6 +1610,7 @@ export const disputeCaseService = {
             },
             { submittedBy: actor.id, submittedRole: role, provenanceType: "EXTERNAL_DOCUMENT", verificationStatus: "SERVER_VERIFIED" },
           );
+          await satisfyDeadlines(ctx.tx, c.id, actor.id);
           return { caseId: c.id, result: { id: row.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes, mime: stored.mime, verificationStatus: "SERVER_VERIFIED", sensitivity: "RESTRICTED", shareable: false } };
         },
       });
@@ -1753,5 +1810,48 @@ async function logAccess(db: Db, rows: Array<{ caseId: string; viewer: Actor; ac
   });
 }
 
+/**
+ * C3 (Ngai 05/11): EVIDENCE_SOURCE_UNAVAILABLE is not left to the caller. Each refusal is recorded (append-only event, outside the failed transaction), the answer carries a backoff
+ * (30 s, 60 s, 120 s ... capped at 8 min: ADVICE, the next try still reads the live source), and after EVIDENCE_RETRY.maxAttempts consecutive failures the case is ESCALATED
+ * (escalated flag, event, notice) with the responsible admin (the investigator) named. A decision or an execution start ends the streak. It moves no money and approves nothing.
+ */
+export const EVIDENCE_RETRY = { maxAttempts: 5, baseSeconds: 30, capSeconds: 480 } as const;
+const STREAK_RESET_ACTIONS = ["DECISION_APPROVED", "DECISION_REJECTED", "EXECUTION_STARTED"];
+
+export async function recordEvidenceSourceFailure(caseId: string, actor: Actor, unreadable: string[]) {
+  const c = await prisma.disputeCase.findUnique({ where: { id: caseId } });
+  if (!c) throw notFoundCase();
+  const lastReset = await prisma.disputeCaseEvent.findFirst({ where: { caseId, action: { in: STREAK_RESET_ACTIONS } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { createdAt: true } });
+  const streak = await prisma.disputeCaseEvent.count({ where: { caseId, action: "EVIDENCE_SOURCE_UNAVAILABLE", ...(lastReset ? { createdAt: { gt: lastReset.createdAt } } : {}) } });
+  const attempt = streak + 1;
+  const retryAfterSeconds = Math.min(EVIDENCE_RETRY.baseSeconds * 2 ** (attempt - 1), EVIDENCE_RETRY.capSeconds);
+  await prisma.disputeCaseEvent.create({
+    data: { caseId, actorUserId: actor.id, actorRole: actor.role, action: "EVIDENCE_SOURCE_UNAVAILABLE", note: `lần ${attempt}`, payload: toJson({ attempt, unreadable, retryAfterSeconds }) },
+  });
+  let escalated = c.escalated;
+  if (attempt >= EVIDENCE_RETRY.maxAttempts && !(await prisma.disputeCaseEvent.findFirst({ where: { caseId, action: "EVIDENCE_SOURCE_ESCALATED", ...(lastReset ? { createdAt: { gt: lastReset.createdAt } } : {}) }, select: { id: true } }))) {
+    await prisma.disputeCase.updateMany({ where: { id: caseId }, data: { escalated: true, version: { increment: 1 } } });
+    await prisma.disputeCaseEvent.create({
+      data: { caseId, actorUserId: actor.id, actorRole: actor.role, action: "EVIDENCE_SOURCE_ESCALATED", note: `sau ${attempt} lần không đọc được nguồn`, payload: toJson({ attempt, unreadable, responsibleAdminId: c.investigatorId }) },
+    });
+    await sendNotices([noticesFor("EVIDENCE_SOURCE_ESCALATED", c)]);
+    escalated = true;
+  }
+  return { attempt, maxAttempts: EVIDENCE_RETRY.maxAttempts, retryAfterSeconds, escalated, responsibleAdminId: c.investigatorId };
+}
+
+/** Turns the plain 503 into the C3 answer; any other error passes through untouched. */
+export async function enrichEvidenceSourceError(e: unknown, caseId: string, actor: Actor): Promise<unknown> {
+  const err = e as { code?: string; message?: string; details?: { unreadable?: string[] } };
+  if (err?.code !== "EVIDENCE_SOURCE_UNAVAILABLE" || !UUID_RE.test(caseId)) return e;
+  try {
+    const info = await recordEvidenceSourceFailure(caseId, actor, err.details?.unreadable ?? []);
+    return caseError(503, "EVIDENCE_SOURCE_UNAVAILABLE", err.message ?? "Chưa đọc được nguồn bằng chứng", { ...(err.details ?? {}), retryable: true, ...info });
+  } catch {
+    return e;
+  }
+}
+
+export const __internals = { mutate, lockCase, casStatus, casData, casClose, stateNotAllowed, requireUuid, summary, assertAdmin, assertInvestigator, toJson, displayNames, nameOf };
 export const __test__ = { canonicalJson, sha256Hex };
 export type { PartyRole };

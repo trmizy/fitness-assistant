@@ -755,7 +755,7 @@ test("11. orphan case (HTTP): a case whose session left dispute is flagged, clos
 
   // [TEST FIXTURE] the session leaves DISPUTED outside the case (the old route ruled it)
   await prisma.session.update({ where: { id: s.session.id }, data: { status: "CANCELLED", cancelledBy: "ADMIN" } });
-  const openLikeLateOpen = () => prisma.disputeCase.count({ where: { sessionId: s.session.id, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE"] } } });
+  const openLikeLateOpen = () => prisma.disputeCase.count({ where: { sessionId: s.session.id, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE", "CLOSED"] } } });
   assert.equal(await openLikeLateOpen(), 1, "before: the orphan blocks the late-open path (OPEN_CASE_EXISTS)");
   const d = await call("GET", `/admin/dispute-cases/${caseId}`, A(P));
   assert.equal(d.json.case.orphan, true);
@@ -775,12 +775,12 @@ test("11. orphan case (HTTP): a case whose session left dispute is flagged, clos
   const closer = admin();
   const closed = await call("POST", `/admin/dispute-cases/${caseId}/close-orphan`, A(closer), { reason: "Buổi đã được phán qua đường cũ" }, { "Idempotency-Key": "k-orphan" });
   assert.equal(closed.status, 200, JSON.stringify(closed.json));
-  assert.deepEqual([closed.json.closed, closed.json.to, closed.json.closeReason, closed.json.moneyMoved], [true, "REJECTED_INTAKE", "ORPHAN_SESSION_LEFT_DISPUTE", false]);
+  assert.deepEqual([closed.json.closed, closed.json.to, closed.json.closeReason, closed.json.moneyMoved], [true, "CLOSED", "ORPHAN_SESSION_LEFT_DISPUTE", false]);
   const row = await caseRow(caseId);
-  assert.deepEqual([row.status, row.closeReason], ["REJECTED_INTAKE", "ORPHAN_SESSION_LEFT_DISPUTE"]);
+  assert.deepEqual([row.status, row.closeReason], ["CLOSED", "ORPHAN_SESSION_LEFT_DISPUTE"]);
   assert.equal(await openLikeLateOpen(), 0, "after: the case no longer blocks the late-open path");
   const evt = await prisma.disputeCaseEvent.findFirstOrThrow({ where: { caseId, action: "CASE_CLOSED_ORPHAN" } });
-  assert.deepEqual([evt.actorUserId, evt.note, evt.fromStatus, evt.toStatus], [closer.id, "Buổi đã được phán qua đường cũ", "INTAKE", "REJECTED_INTAKE"]);
+  assert.deepEqual([evt.actorUserId, evt.note, evt.fromStatus, evt.toStatus], [closer.id, "Buổi đã được phán qua đường cũ", "INTAKE", "CLOSED"]);
   // NO money, NO session, NO quota
   assert.deepEqual((await sessionRow(s.session.id)).status, sessionBefore.status);
   assert.equal((await sessionRow(s.session.id)).resolvedByCaseDecisionId, sessionBefore.resolvedByCaseDecisionId);
@@ -794,7 +794,7 @@ test("11. orphan case (HTTP): a case whose session left dispute is flagged, clos
   assert.ok((await prisma.notification.count({ where: { userId: s.clientUserId, entityType: "DISPUTE_CASE", entityId: caseId } })) >= 2, "parties are told the file was closed");
 });
 
-test("11. NOT_A_DISPUTE (HTTP): the investigator closes the case with a reason; no money, the session is untouched and returns to the queue without a case", async () => {
+test("11. NOT_A_DISPUTE (HTTP): the investigator closes the case with a reason; no money, the session is untouched and stays in the queue with its CLOSED case (never reopened)", async () => {
   const s = await mkSession();
   const P = admin();
   const caseId = (await call("POST", "/admin/dispute-cases", A(P), { sessionId: s.session.id })).json.case.id;
@@ -817,12 +817,12 @@ test("11. NOT_A_DISPUTE (HTTP): the investigator closes the case with a reason; 
   const settlementsBefore = await prisma.sessionSettlement.count({ where: { contractId: s.contract.id } });
   const closed = await call("POST", `/admin/dispute-cases/${caseId}/close-not-a-dispute`, A(P), { reason: "Khách rút khiếu nại, không có tranh chấp" });
   assert.equal(closed.status, 200, JSON.stringify(closed.json));
-  assert.deepEqual([closed.json.to, closed.json.closeReason, closed.json.moneyMoved], ["REJECTED_INTAKE", "NOT_A_DISPUTE", false]);
+  assert.deepEqual([closed.json.to, closed.json.closeReason, closed.json.moneyMoved], ["CLOSED", "NOT_A_DISPUTE", false]);
   assert.equal((await sessionRow(s.session.id)).status, "DISPUTED", "the session is not touched");
   assert.equal(await prisma.sessionSettlement.count({ where: { contractId: s.contract.id } }), settlementsBefore);
   assert.equal(writeCalls.length, 0);
   const queue = (await call("GET", `/admin/dispute-cases/queue?contractId=${s.contract.id}`, A(P))).json;
-  assert.deepEqual([queue.items[0].hasCase, queue.items[0].needsCase], [false, true]);
+  assert.deepEqual([queue.items[0].hasCase, queue.items[0].needsCase, queue.items[0].caseStatus], [true, false, "CLOSED"], "A5: a CLOSED case is not reopened: the session shows its closed case, not a free slot");
 });
 
 // ═══ the old behaviours that must NOT move ═══════════════════════════════════════════════════════════════════════════

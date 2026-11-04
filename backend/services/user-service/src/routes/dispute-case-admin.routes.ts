@@ -47,5 +47,6 @@ router.post("/:id/reconcile-execution", c.reconcileExecution);
 router.post("/:id/acknowledge-needs-human", c.acknowledgeNeedsHuman);
 router.post("/:id/close-orphan", c.closeOrphan);
 router.post("/:id/close-not-a-dispute", c.closeNotADispute);
+router.post("/:id/close-executed", c.closeExecuted);
 
 export default router;

@@ -203,7 +203,7 @@ async function assessDb(db: Tx | typeof prisma, rowId: string): Promise<Assessed
   }
 
   // no Case at all that is open, nothing contested
-  const openCases = await db.disputeCase.count({ where: { sessionId, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE"] } } });
+  const openCases = await db.disputeCase.count({ where: { sessionId, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE", "CLOSED"] } } });
   if (openCases > 0) throw new Blocked("OPEN_CASE_EXISTS", "Buổi tập có hồ sơ khiếu nại đang mở: phải đi qua hồ sơ, không dùng đường này");
   if ((await db.disputeCase.count({ where: { sessionId, status: "DECISION_APPROVED" } })) > 0) throw new Blocked("SESSION_WENT_THROUGH_DISPUTE", "Buổi tập đã có hồ sơ khiếu nại được duyệt quyết định: không dùng đường này");
   const contested = await db.disputeCaseIssue.findFirst({ where: { kind: "PT_LATE", finding: { in: ["LATE_CONTESTED", "NOT_LATE"] }, case: { sessionId } }, select: { id: true } });

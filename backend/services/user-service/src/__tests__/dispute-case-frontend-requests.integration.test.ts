@@ -95,7 +95,7 @@ const A = (a: { id: string }) => `ADMIN:${a.id}`;
 // ═══ R-02 capabilities ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 test("R-02: GET /admin/dispute-cases/capabilities returns the REAL verdict of each flag (read-only), with the reason a flag asked for on is still off; admin only", async () => {
-  const keys = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution"];
+  const keys = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution", "timers", "appeals"];
   const caps = async () => (await call("GET", "/admin/dispute-cases/capabilities", A(admin()))).json;
 
   const off = await caps();
@@ -107,6 +107,8 @@ test("R-02: GET /admin/dispute-cases/capabilities returns the REAL verdict of ea
   const savedEnv = { late: process.env.DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED, d65b: process.env.DISPUTE_CASE_D65B_RESOLUTION_ENABLED };
   process.env.DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED = "true";
   process.env.DISPUTE_CASE_D65B_RESOLUTION_ENABLED = "true";
+  process.env.DISPUTE_CASE_TIMERS_ENABLED = "true";
+  process.env.DISPUTE_CASE_APPEALS_ENABLED = "true";
   try {
     const on = await caps();
     for (const k of keys) assert.equal(on[k], true, k);
@@ -127,6 +129,8 @@ test("R-02: GET /admin/dispute-cases/capabilities returns the REAL verdict of ea
       console.warn = realWarn;
     }
   } finally {
+    delete process.env.DISPUTE_CASE_TIMERS_ENABLED;
+    delete process.env.DISPUTE_CASE_APPEALS_ENABLED;
     for (const [k, v] of [["DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED", savedEnv.late], ["DISPUTE_CASE_D65B_RESOLUTION_ENABLED", savedEnv.d65b]] as const) {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;

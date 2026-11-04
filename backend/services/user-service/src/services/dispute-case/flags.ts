@@ -33,6 +33,10 @@ export const DISPUTE_CASE_FLAGS = {
   LATE_OPEN_RECONCILIATION: "DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED",
   /** D65-B: every MUTATING route of the four-eyes admin resolution of a held NO_SHOW session (POST propose / approve, retries and resumes included). Reads stay open. OFF = 409 D65B_RESOLUTION_DISABLED. */
   D65B_RESOLUTION: "DISPUTE_CASE_D65B_RESOLUTION_ENABLED",
+  /** V2.1 (Ngai 05/11): the response clocks and everything a timer does (48h / 72h deadlines, S2.4 PT silent -> DISPUTED, SLA day 10/14, held-money review sweep). Moves no money. OFF = the sweep does nothing and no clock starts. */
+  TIMERS: "DISPUTE_CASE_TIMERS_ENABLED",
+  /** V2.1 (Ngai 05/11): mutating routes of mutual agreement, appeal (review request), its consequences and the quota correction. OFF = 409 DISPUTE_PROCESS_DISABLED. Reads stay open. */
+  APPEALS: "DISPUTE_CASE_APPEALS_ENABLED",
 } as const;
 
 export type DisputeCaseFlag = (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_CASE_FLAGS];
@@ -60,6 +64,7 @@ export const E2E_PERMITTED_FLAGS: ReadonlySet<DisputeCaseFlag> = new Set<Dispute
   DISPUTE_CASE_FLAGS.EXECUTION,
   DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE,
   DISPUTE_CASE_FLAGS.D65B_RESOLUTION,
+  DISPUTE_CASE_FLAGS.TIMERS,
 ]);
 
 /** Flags that move money / settle sessions: in e2e mode they additionally need payment-service to agree on the gate verdict. */
@@ -120,6 +125,8 @@ export const t0Enabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.T0);
 export const evidenceStorageEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE);
 export const lateOpenReconciliationEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION);
 export const d65bResolutionEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.D65B_RESOLUTION);
+export const timersEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.TIMERS);
+export const appealsEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.APPEALS);
 
 /** For tests only: forget which warnings were already printed. */
 export const __resetFlagWarnings = () => warned.clear();

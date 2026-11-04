@@ -1702,6 +1702,8 @@ enum DisputeCaseStatus {
   AWAITING_APPROVAL
   DECISION_APPROVED
   REJECTED_INTAKE
+  /// A5 (Ngai 05/11): a real end of a case. closeReason says why; closing never releases money, never changes the session, never reopens.
+  CLOSED
 }
 
 enum DisputeCaseIssueKind {
@@ -1835,6 +1837,9 @@ model DisputeCase {
   execDecisionId String?           @map("exec_decision_id") @db.Uuid
   /// Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
   closeReason    String?           @map("close_reason")
+  /// C4: lease on the real execution state. A runner (sweep / admin) re-enters an EXECUTING case only after winning this compare-and-set; an expired lease can be taken over.
+  execLeaseOwner String?           @map("exec_lease_owner")
+  execLeaseUntil DateTime?         @map("exec_lease_until") @db.Timestamptz(3)
   version        Int               @default(1)
   createdBy      String            @map("created_by")
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -1852,6 +1857,10 @@ model DisputeCase {
   accessLogs  DisputeCaseAccessLog[]
   executions  DisputeCaseExecution[]
   policyReviews DisputeCasePolicyEligibilityReview[]
+  partyNotices  DisputeCasePartyNotice[]
+  deadlines     DisputeCaseDeadline[]
+  agreements    DisputeCaseAgreement[]
+  appeals       DisputeCaseAppeal[]
 
   @@index([sessionId])
   @@index([status])
@@ -2295,4 +2304,187 @@ model D65bResolutionEvent {
 
   @@index([resolutionId, createdAt])
   @@map("d65b_resolution_events")
+}
+
+
+// ─── Dispute V2.1 process (Ngai 05/11/2026): response deadlines, mutual agreement, appeal ─────────────────────────────────────────────────────
+
+/// The in-app notice a party VALIDLY received (the notification row exists): the moment a response clock starts (RESPONSE_REQUESTED / PT_NO_SHOW_ANSWER) or the 14-day appeal window starts (CONCLUSION). Email / push never start a clock.
+model DisputeCasePartyNotice {
+  id             String   @id @default(uuid()) @db.Uuid
+  caseId         String?  @map("case_id") @db.Uuid
+  sessionId      String   @map("session_id")
+  userId         String   @map("user_id")
+  partyRole      String   @map("party_role")
+  kind           String
+  notificationId String   @unique @map("notification_id")
+  recordedAt     DateTime @map("recorded_at") @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case DisputeCase? @relation(fields: [caseId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, kind, userId])
+  @@index([sessionId, kind])
+  @@map("dispute_case_party_notices")
+}
+
+/// One response clock of one party: 48 h (PT answering a no-show report) / 72 h (first response) / 48 h (each supplement round), continuous hours from the notice, paused while the party's account is locked.
+/// Expiry records NO_RESPONSE_RECORDED and moves the step; it never rules against the silent party and never pays.
+model DisputeCaseDeadline {
+  id            String    @id @default(uuid()) @db.Uuid
+  caseId        String?   @map("case_id") @db.Uuid
+  sessionId     String    @map("session_id")
+  userId        String    @map("user_id")
+  partyRole     String    @map("party_role")
+  kind          String
+  hours         Int
+  startedAt     DateTime  @map("started_at") @db.Timestamptz(3)
+  pausedAt      DateTime? @map("paused_at") @db.Timestamptz(3)
+  pausedSeconds Int       @default(0) @map("paused_seconds")
+  status        String    @default("OPEN")
+  satisfiedAt   DateTime? @map("satisfied_at") @db.Timestamptz(3)
+  expiredAt     DateTime? @map("expired_at") @db.Timestamptz(3)
+  noticeId      String?   @map("notice_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  case DisputeCase? @relation(fields: [caseId], references: [id], onDelete: Restrict)
+
+  @@index([status, kind])
+  @@index([caseId, status])
+  @@map("dispute_case_deadlines")
+}
+
+/// A proposed outcome both parties confirm by the SAME content hash. It becomes a finding; the normal proposal / four-eyes / executor path follows.
+model DisputeCaseAgreement {
+  id          String    @id @default(uuid()) @db.Uuid
+  caseId      String    @map("case_id") @db.Uuid
+  outcome     String
+  contentHash String    @map("content_hash")
+  note        String
+  proposedBy  String    @map("proposed_by")
+  status      String    @default("PROPOSED")
+  agreedAt    DateTime? @map("agreed_at") @db.Timestamptz(3)
+  findingId   String?   @map("finding_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case          DisputeCase                       @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  confirmations DisputeCaseAgreementConfirmation[]
+
+  @@index([caseId, status])
+  @@map("dispute_case_agreements")
+}
+
+model DisputeCaseAgreementConfirmation {
+  id            String   @id @default(uuid()) @db.Uuid
+  agreementId   String   @map("agreement_id") @db.Uuid
+  partyRole     String   @map("party_role")
+  userId        String   @map("user_id")
+  confirmedHash String   @map("confirmed_hash")
+  confirmedAt   DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(3)
+
+  agreement DisputeCaseAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+
+  @@unique([agreementId, partyRole])
+  @@map("dispute_case_agreement_confirmations")
+}
+
+/// A review request: each party once per case, within 14 days of the CONCLUSION notice recorded for THAT party. The outcome only records a NEW finding that references the old one.
+model DisputeCaseAppeal {
+  id                String    @id @default(uuid()) @db.Uuid
+  caseId            String    @map("case_id") @db.Uuid
+  partyRole         String    @map("party_role")
+  requestedBy       String    @map("requested_by")
+  reason            String
+  noticeRecordedAt  DateTime  @map("notice_recorded_at") @db.Timestamptz(3)
+  status            String    @default("REQUESTED")
+  reviewerId        String?   @map("reviewer_id")
+  reviewerAssignedBy String?  @map("reviewer_assigned_by")
+  result            String?
+  reasoning         String?
+  previousFindingId String?   @map("previous_finding_id") @db.Uuid
+  newFindingId      String?   @map("new_finding_id") @db.Uuid
+  decidedAt         DateTime? @map("decided_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case         DisputeCase                     @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  consequences DisputeCaseAppealConsequence[]
+
+  @@unique([caseId, partyRole])
+  @@map("dispute_case_appeals")
+}
+
+/// What a won appeal leaves to settle: MONEY (never a fake debt: NEEDS_RECONCILIATION unless the finding establishes amount and responsible party), QUOTA (separate four-eyes correction), PT_AT_FAULT (record + escalate only).
+model DisputeCaseAppealConsequence {
+  id         String    @id @default(uuid()) @db.Uuid
+  appealId   String    @map("appeal_id") @db.Uuid
+  caseId     String    @map("case_id") @db.Uuid
+  kind       String
+  status     String    @default("OPEN")
+  detail     Json?
+  note       String?
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(3)
+  resolvedBy String?   @map("resolved_by")
+
+  appeal           DisputeCaseAppeal        @relation(fields: [appealId], references: [id], onDelete: Restrict)
+  quotaCorrections DisputeCaseQuotaCorrection[]
+
+  @@index([caseId, status])
+  @@map("dispute_case_appeal_consequences")
+}
+
+/// B3: a correction of contracts.used_sessions after an appeal. Proposed by one admin, applied on approval by ANOTHER, under the contract lock, bounded 0 <= used <= total, idempotent. History (sessions) is never touched.
+model DisputeCaseQuotaCorrection {
+  id             String    @id @default(uuid()) @db.Uuid
+  consequenceId  String    @map("consequence_id") @db.Uuid
+  caseId         String    @map("case_id") @db.Uuid
+  contractId     String    @map("contract_id")
+  delta          Int
+  reason         String
+  proposedBy     String    @map("proposed_by")
+  approvedBy     String?   @map("approved_by")
+  approvedAt     DateTime? @map("approved_at") @db.Timestamptz(3)
+  appliedAt      DateTime? @map("applied_at") @db.Timestamptz(3)
+  usedBefore     Int?      @map("used_before")
+  usedAfter      Int?      @map("used_after")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  consequence DisputeCaseAppealConsequence @relation(fields: [consequenceId], references: [id], onDelete: Restrict)
+
+  @@index([consequenceId])
+  @@map("dispute_case_quota_corrections")
+}
+
+/// Held-money review: every 7 days a mandatory recorded decision (keep holding + reason, or an exit reference); after 30 days the owner is escalated. Nothing is paid or written off automatically.
+model DisputeHeldMoneyReview {
+  id               String    @id @default(uuid()) @db.Uuid
+  settlementRowId  String    @unique @map("settlement_row_id")
+  sessionId        String    @map("session_id")
+  contractId       String    @map("contract_id")
+  firstSeenAt      DateTime  @map("first_seen_at") @db.Timestamptz(3)
+  nextReviewDueAt  DateTime  @map("next_review_due_at") @db.Timestamptz(3)
+  ownerEscalatedAt DateTime? @map("owner_escalated_at") @db.Timestamptz(3)
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  decisions DisputeHeldMoneyDecision[]
+
+  @@index([closedAt, nextReviewDueAt])
+  @@map("dispute_held_money_reviews")
+}
+
+model DisputeHeldMoneyDecision {
+  id         String   @id @default(uuid()) @db.Uuid
+  reviewId   String   @map("review_id") @db.Uuid
+  decision   String
+  reason     String
+  exitRef    String?  @map("exit_ref")
+  decidedBy  String   @map("decided_by")
+  decidedAt  DateTime @default(now()) @map("decided_at") @db.Timestamptz(3)
+
+  review DisputeHeldMoneyReview @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+
+  @@index([reviewId, decidedAt])
+  @@map("dispute_held_money_decisions")
 }

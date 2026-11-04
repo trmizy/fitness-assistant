@@ -147,6 +147,7 @@ const STATUS_ENUM = z.enum([
   "AWAITING_APPROVAL",
   "DECISION_APPROVED",
   "REJECTED_INTAKE",
+  "CLOSED",
 ]);
 /** A query-string boolean: only the exact strings "true" / "false". */
 const queryBool = z.enum(["true", "false"]).transform((v) => v === "true");
@@ -182,6 +183,7 @@ export const queueQuery = z
 
 /** Closing a case without a decision: the reason is required (it is the audit). */
 export const closeBody = z.object({ reason: text(2000) }).strict();
+export const closeExecutedBody = closeBody;
 export const acknowledgeNeedsHumanBody = z.object({ note: text(2000) }).strict();
 /** R-19: the access log of one case. */
 export const accessLogQuery = z

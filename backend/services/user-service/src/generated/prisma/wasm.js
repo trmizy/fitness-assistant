@@ -740,6 +740,8 @@ exports.Prisma.DisputeCaseScalarFieldEnum = {
   execStatus: 'execStatus',
   execDecisionId: 'execDecisionId',
   closeReason: 'closeReason',
+  execLeaseOwner: 'execLeaseOwner',
+  execLeaseUntil: 'execLeaseUntil',
   version: 'version',
   createdBy: 'createdBy',
   createdAt: 'createdAt',
@@ -1017,6 +1019,128 @@ exports.Prisma.D65bResolutionEventScalarFieldEnum = {
   payload: 'payload',
   idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCasePartyNoticeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  sessionId: 'sessionId',
+  userId: 'userId',
+  partyRole: 'partyRole',
+  kind: 'kind',
+  notificationId: 'notificationId',
+  recordedAt: 'recordedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseDeadlineScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  sessionId: 'sessionId',
+  userId: 'userId',
+  partyRole: 'partyRole',
+  kind: 'kind',
+  hours: 'hours',
+  startedAt: 'startedAt',
+  pausedAt: 'pausedAt',
+  pausedSeconds: 'pausedSeconds',
+  status: 'status',
+  satisfiedAt: 'satisfiedAt',
+  expiredAt: 'expiredAt',
+  noticeId: 'noticeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DisputeCaseAgreementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  outcome: 'outcome',
+  contentHash: 'contentHash',
+  note: 'note',
+  proposedBy: 'proposedBy',
+  status: 'status',
+  agreedAt: 'agreedAt',
+  findingId: 'findingId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAgreementConfirmationScalarFieldEnum = {
+  id: 'id',
+  agreementId: 'agreementId',
+  partyRole: 'partyRole',
+  userId: 'userId',
+  confirmedHash: 'confirmedHash',
+  confirmedAt: 'confirmedAt'
+};
+
+exports.Prisma.DisputeCaseAppealScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  partyRole: 'partyRole',
+  requestedBy: 'requestedBy',
+  reason: 'reason',
+  noticeRecordedAt: 'noticeRecordedAt',
+  status: 'status',
+  reviewerId: 'reviewerId',
+  reviewerAssignedBy: 'reviewerAssignedBy',
+  result: 'result',
+  reasoning: 'reasoning',
+  previousFindingId: 'previousFindingId',
+  newFindingId: 'newFindingId',
+  decidedAt: 'decidedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAppealConsequenceScalarFieldEnum = {
+  id: 'id',
+  appealId: 'appealId',
+  caseId: 'caseId',
+  kind: 'kind',
+  status: 'status',
+  detail: 'detail',
+  note: 'note',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy'
+};
+
+exports.Prisma.DisputeCaseQuotaCorrectionScalarFieldEnum = {
+  id: 'id',
+  consequenceId: 'consequenceId',
+  caseId: 'caseId',
+  contractId: 'contractId',
+  delta: 'delta',
+  reason: 'reason',
+  proposedBy: 'proposedBy',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  appliedAt: 'appliedAt',
+  usedBefore: 'usedBefore',
+  usedAfter: 'usedAfter',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeHeldMoneyReviewScalarFieldEnum = {
+  id: 'id',
+  settlementRowId: 'settlementRowId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  firstSeenAt: 'firstSeenAt',
+  nextReviewDueAt: 'nextReviewDueAt',
+  ownerEscalatedAt: 'ownerEscalatedAt',
+  closedAt: 'closedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeHeldMoneyDecisionScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  decision: 'decision',
+  reason: 'reason',
+  exitRef: 'exitRef',
+  decidedBy: 'decidedBy',
+  decidedAt: 'decidedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1347,7 +1471,8 @@ exports.DisputeCaseStatus = exports.$Enums.DisputeCaseStatus = {
   PROPOSED: 'PROPOSED',
   AWAITING_APPROVAL: 'AWAITING_APPROVAL',
   DECISION_APPROVED: 'DECISION_APPROVED',
-  REJECTED_INTAKE: 'REJECTED_INTAKE'
+  REJECTED_INTAKE: 'REJECTED_INTAKE',
+  CLOSED: 'CLOSED'
 };
 
 exports.DisputeCaseExecStatus = exports.$Enums.DisputeCaseExecStatus = {
@@ -1517,7 +1642,16 @@ exports.Prisma.ModelName = {
   LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
   LateOpenRecovery: 'LateOpenRecovery',
   D65bResolution: 'D65bResolution',
-  D65bResolutionEvent: 'D65bResolutionEvent'
+  D65bResolutionEvent: 'D65bResolutionEvent',
+  DisputeCasePartyNotice: 'DisputeCasePartyNotice',
+  DisputeCaseDeadline: 'DisputeCaseDeadline',
+  DisputeCaseAgreement: 'DisputeCaseAgreement',
+  DisputeCaseAgreementConfirmation: 'DisputeCaseAgreementConfirmation',
+  DisputeCaseAppeal: 'DisputeCaseAppeal',
+  DisputeCaseAppealConsequence: 'DisputeCaseAppealConsequence',
+  DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
+  DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
+  DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision'
 };
 
 /**

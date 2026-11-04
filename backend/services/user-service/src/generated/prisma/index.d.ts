@@ -294,6 +294,52 @@ export type D65bResolution = $Result.DefaultSelection<Prisma.$D65bResolutionPayl
  * APPEND-ONLY audit of the D65-B path (proposed, approved, execution started / failed / blocked / done).
  */
 export type D65bResolutionEvent = $Result.DefaultSelection<Prisma.$D65bResolutionEventPayload>
+/**
+ * Model DisputeCasePartyNotice
+ * The in-app notice a party VALIDLY received (the notification row exists): the moment a response clock starts (RESPONSE_REQUESTED / PT_NO_SHOW_ANSWER) or the 14-day appeal window starts (CONCLUSION). Email / push never start a clock.
+ */
+export type DisputeCasePartyNotice = $Result.DefaultSelection<Prisma.$DisputeCasePartyNoticePayload>
+/**
+ * Model DisputeCaseDeadline
+ * One response clock of one party: 48 h (PT answering a no-show report) / 72 h (first response) / 48 h (each supplement round), continuous hours from the notice, paused while the party's account is locked.
+ * Expiry records NO_RESPONSE_RECORDED and moves the step; it never rules against the silent party and never pays.
+ */
+export type DisputeCaseDeadline = $Result.DefaultSelection<Prisma.$DisputeCaseDeadlinePayload>
+/**
+ * Model DisputeCaseAgreement
+ * A proposed outcome both parties confirm by the SAME content hash. It becomes a finding; the normal proposal / four-eyes / executor path follows.
+ */
+export type DisputeCaseAgreement = $Result.DefaultSelection<Prisma.$DisputeCaseAgreementPayload>
+/**
+ * Model DisputeCaseAgreementConfirmation
+ * 
+ */
+export type DisputeCaseAgreementConfirmation = $Result.DefaultSelection<Prisma.$DisputeCaseAgreementConfirmationPayload>
+/**
+ * Model DisputeCaseAppeal
+ * A review request: each party once per case, within 14 days of the CONCLUSION notice recorded for THAT party. The outcome only records a NEW finding that references the old one.
+ */
+export type DisputeCaseAppeal = $Result.DefaultSelection<Prisma.$DisputeCaseAppealPayload>
+/**
+ * Model DisputeCaseAppealConsequence
+ * What a won appeal leaves to settle: MONEY (never a fake debt: NEEDS_RECONCILIATION unless the finding establishes amount and responsible party), QUOTA (separate four-eyes correction), PT_AT_FAULT (record + escalate only).
+ */
+export type DisputeCaseAppealConsequence = $Result.DefaultSelection<Prisma.$DisputeCaseAppealConsequencePayload>
+/**
+ * Model DisputeCaseQuotaCorrection
+ * B3: a correction of contracts.used_sessions after an appeal. Proposed by one admin, applied on approval by ANOTHER, under the contract lock, bounded 0 <= used <= total, idempotent. History (sessions) is never touched.
+ */
+export type DisputeCaseQuotaCorrection = $Result.DefaultSelection<Prisma.$DisputeCaseQuotaCorrectionPayload>
+/**
+ * Model DisputeHeldMoneyReview
+ * Held-money review: every 7 days a mandatory recorded decision (keep holding + reason, or an exit reference); after 30 days the owner is escalated. Nothing is paid or written off automatically.
+ */
+export type DisputeHeldMoneyReview = $Result.DefaultSelection<Prisma.$DisputeHeldMoneyReviewPayload>
+/**
+ * Model DisputeHeldMoneyDecision
+ * 
+ */
+export type DisputeHeldMoneyDecision = $Result.DefaultSelection<Prisma.$DisputeHeldMoneyDecisionPayload>
 
 /**
  * Enums
@@ -694,7 +740,8 @@ export const DisputeCaseStatus: {
   PROPOSED: 'PROPOSED',
   AWAITING_APPROVAL: 'AWAITING_APPROVAL',
   DECISION_APPROVED: 'DECISION_APPROVED',
-  REJECTED_INTAKE: 'REJECTED_INTAKE'
+  REJECTED_INTAKE: 'REJECTED_INTAKE',
+  CLOSED: 'CLOSED'
 };
 
 export type DisputeCaseStatus = (typeof DisputeCaseStatus)[keyof typeof DisputeCaseStatus]
@@ -1707,6 +1754,96 @@ export class PrismaClient<
     * ```
     */
   get d65bResolutionEvent(): Prisma.D65bResolutionEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCasePartyNotice`: Exposes CRUD operations for the **DisputeCasePartyNotice** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCasePartyNotices
+    * const disputeCasePartyNotices = await prisma.disputeCasePartyNotice.findMany()
+    * ```
+    */
+  get disputeCasePartyNotice(): Prisma.DisputeCasePartyNoticeDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseDeadline`: Exposes CRUD operations for the **DisputeCaseDeadline** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseDeadlines
+    * const disputeCaseDeadlines = await prisma.disputeCaseDeadline.findMany()
+    * ```
+    */
+  get disputeCaseDeadline(): Prisma.DisputeCaseDeadlineDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseAgreement`: Exposes CRUD operations for the **DisputeCaseAgreement** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseAgreements
+    * const disputeCaseAgreements = await prisma.disputeCaseAgreement.findMany()
+    * ```
+    */
+  get disputeCaseAgreement(): Prisma.DisputeCaseAgreementDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseAgreementConfirmation`: Exposes CRUD operations for the **DisputeCaseAgreementConfirmation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseAgreementConfirmations
+    * const disputeCaseAgreementConfirmations = await prisma.disputeCaseAgreementConfirmation.findMany()
+    * ```
+    */
+  get disputeCaseAgreementConfirmation(): Prisma.DisputeCaseAgreementConfirmationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseAppeal`: Exposes CRUD operations for the **DisputeCaseAppeal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseAppeals
+    * const disputeCaseAppeals = await prisma.disputeCaseAppeal.findMany()
+    * ```
+    */
+  get disputeCaseAppeal(): Prisma.DisputeCaseAppealDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseAppealConsequence`: Exposes CRUD operations for the **DisputeCaseAppealConsequence** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseAppealConsequences
+    * const disputeCaseAppealConsequences = await prisma.disputeCaseAppealConsequence.findMany()
+    * ```
+    */
+  get disputeCaseAppealConsequence(): Prisma.DisputeCaseAppealConsequenceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeCaseQuotaCorrection`: Exposes CRUD operations for the **DisputeCaseQuotaCorrection** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeCaseQuotaCorrections
+    * const disputeCaseQuotaCorrections = await prisma.disputeCaseQuotaCorrection.findMany()
+    * ```
+    */
+  get disputeCaseQuotaCorrection(): Prisma.DisputeCaseQuotaCorrectionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeHeldMoneyReview`: Exposes CRUD operations for the **DisputeHeldMoneyReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeHeldMoneyReviews
+    * const disputeHeldMoneyReviews = await prisma.disputeHeldMoneyReview.findMany()
+    * ```
+    */
+  get disputeHeldMoneyReview(): Prisma.DisputeHeldMoneyReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeHeldMoneyDecision`: Exposes CRUD operations for the **DisputeHeldMoneyDecision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeHeldMoneyDecisions
+    * const disputeHeldMoneyDecisions = await prisma.disputeHeldMoneyDecision.findMany()
+    * ```
+    */
+  get disputeHeldMoneyDecision(): Prisma.DisputeHeldMoneyDecisionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -2198,7 +2335,16 @@ export namespace Prisma {
     LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
     LateOpenRecovery: 'LateOpenRecovery',
     D65bResolution: 'D65bResolution',
-    D65bResolutionEvent: 'D65bResolutionEvent'
+    D65bResolutionEvent: 'D65bResolutionEvent',
+    DisputeCasePartyNotice: 'DisputeCasePartyNotice',
+    DisputeCaseDeadline: 'DisputeCaseDeadline',
+    DisputeCaseAgreement: 'DisputeCaseAgreement',
+    DisputeCaseAgreementConfirmation: 'DisputeCaseAgreementConfirmation',
+    DisputeCaseAppeal: 'DisputeCaseAppeal',
+    DisputeCaseAppealConsequence: 'DisputeCaseAppealConsequence',
+    DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
+    DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
+    DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2214,7 +2360,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputePolicyReviewEvent" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputePolicyReviewEvent" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent" | "disputeCasePartyNotice" | "disputeCaseDeadline" | "disputeCaseAgreement" | "disputeCaseAgreementConfirmation" | "disputeCaseAppeal" | "disputeCaseAppealConsequence" | "disputeCaseQuotaCorrection" | "disputeHeldMoneyReview" | "disputeHeldMoneyDecision"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5788,6 +5934,636 @@ export namespace Prisma {
           }
         }
       }
+      DisputeCasePartyNotice: {
+        payload: Prisma.$DisputeCasePartyNoticePayload<ExtArgs>
+        fields: Prisma.DisputeCasePartyNoticeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCasePartyNoticeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCasePartyNoticeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCasePartyNoticeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCasePartyNoticeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCasePartyNoticeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCasePartyNoticeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCasePartyNoticeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCasePartyNoticeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCasePartyNoticeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          update: {
+            args: Prisma.DisputeCasePartyNoticeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCasePartyNoticeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCasePartyNoticeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCasePartyNoticeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCasePartyNoticePayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCasePartyNoticeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCasePartyNotice>
+          }
+          groupBy: {
+            args: Prisma.DisputeCasePartyNoticeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCasePartyNoticeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCasePartyNoticeCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCasePartyNoticeCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseDeadline: {
+        payload: Prisma.$DisputeCaseDeadlinePayload<ExtArgs>
+        fields: Prisma.DisputeCaseDeadlineFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseDeadlineFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseDeadlineFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseDeadlineFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseDeadlineFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseDeadlineFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseDeadlineCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseDeadlineCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseDeadlineCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseDeadlineDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseDeadlineUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseDeadlineDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseDeadlineUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseDeadlineUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseDeadlinePayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseDeadlineAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseDeadline>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseDeadlineGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseDeadlineGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseDeadlineCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseDeadlineCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseAgreement: {
+        payload: Prisma.$DisputeCaseAgreementPayload<ExtArgs>
+        fields: Prisma.DisputeCaseAgreementFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseAgreementFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseAgreementFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseAgreementFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseAgreementFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseAgreementFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseAgreementCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseAgreementCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseAgreementCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseAgreementDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseAgreementUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseAgreementDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseAgreementUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseAgreementUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseAgreementAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseAgreement>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseAgreementGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAgreementGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseAgreementCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAgreementCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseAgreementConfirmation: {
+        payload: Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>
+        fields: Prisma.DisputeCaseAgreementConfirmationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseAgreementConfirmationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseAgreementConfirmationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseAgreementConfirmationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseAgreementConfirmationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseAgreementConfirmationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseAgreementConfirmationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseAgreementConfirmationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseAgreementConfirmationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseAgreementConfirmationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseAgreementConfirmationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseAgreementConfirmationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseAgreementConfirmationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseAgreementConfirmationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAgreementConfirmationPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseAgreementConfirmationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseAgreementConfirmation>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseAgreementConfirmationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAgreementConfirmationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseAgreementConfirmationCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAgreementConfirmationCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseAppeal: {
+        payload: Prisma.$DisputeCaseAppealPayload<ExtArgs>
+        fields: Prisma.DisputeCaseAppealFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseAppealFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseAppealFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseAppealFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseAppealFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseAppealFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseAppealCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseAppealCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseAppealCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseAppealDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseAppealUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseAppealDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseAppealUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseAppealUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseAppealAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseAppeal>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseAppealGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAppealGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseAppealCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAppealCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseAppealConsequence: {
+        payload: Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>
+        fields: Prisma.DisputeCaseAppealConsequenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseAppealConsequenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseAppealConsequenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseAppealConsequenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseAppealConsequenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseAppealConsequenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseAppealConsequenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseAppealConsequenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseAppealConsequenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseAppealConsequenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseAppealConsequenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseAppealConsequenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseAppealConsequenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseAppealConsequenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseAppealConsequencePayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseAppealConsequenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseAppealConsequence>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseAppealConsequenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAppealConsequenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseAppealConsequenceCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseAppealConsequenceCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeCaseQuotaCorrection: {
+        payload: Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>
+        fields: Prisma.DisputeCaseQuotaCorrectionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeCaseQuotaCorrectionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeCaseQuotaCorrectionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeCaseQuotaCorrectionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeCaseQuotaCorrectionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeCaseQuotaCorrectionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeCaseQuotaCorrectionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeCaseQuotaCorrectionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeCaseQuotaCorrectionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeCaseQuotaCorrectionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          update: {
+            args: Prisma.DisputeCaseQuotaCorrectionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeCaseQuotaCorrectionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeCaseQuotaCorrectionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeCaseQuotaCorrectionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeCaseQuotaCorrectionPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeCaseQuotaCorrectionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeCaseQuotaCorrection>
+          }
+          groupBy: {
+            args: Prisma.DisputeCaseQuotaCorrectionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseQuotaCorrectionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeCaseQuotaCorrectionCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeCaseQuotaCorrectionCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeHeldMoneyReview: {
+        payload: Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>
+        fields: Prisma.DisputeHeldMoneyReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeHeldMoneyReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeHeldMoneyReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeHeldMoneyReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeHeldMoneyReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeHeldMoneyReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeHeldMoneyReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeHeldMoneyReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeHeldMoneyReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeHeldMoneyReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          update: {
+            args: Prisma.DisputeHeldMoneyReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeHeldMoneyReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeHeldMoneyReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeHeldMoneyReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeHeldMoneyReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeHeldMoneyReview>
+          }
+          groupBy: {
+            args: Prisma.DisputeHeldMoneyReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHeldMoneyReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeHeldMoneyReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHeldMoneyReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeHeldMoneyDecision: {
+        payload: Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>
+        fields: Prisma.DisputeHeldMoneyDecisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeHeldMoneyDecisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeHeldMoneyDecisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeHeldMoneyDecisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeHeldMoneyDecisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeHeldMoneyDecisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeHeldMoneyDecisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeHeldMoneyDecisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeHeldMoneyDecisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeHeldMoneyDecisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          update: {
+            args: Prisma.DisputeHeldMoneyDecisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeHeldMoneyDecisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeHeldMoneyDecisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeHeldMoneyDecisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHeldMoneyDecisionPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeHeldMoneyDecisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeHeldMoneyDecision>
+          }
+          groupBy: {
+            args: Prisma.DisputeHeldMoneyDecisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHeldMoneyDecisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeHeldMoneyDecisionCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHeldMoneyDecisionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -6344,6 +7120,10 @@ export namespace Prisma {
     accessLogs: number
     executions: number
     policyReviews: number
+    partyNotices: number
+    deadlines: number
+    agreements: number
+    appeals: number
   }
 
   export type DisputeCaseCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6359,6 +7139,10 @@ export namespace Prisma {
     accessLogs?: boolean | DisputeCaseCountOutputTypeCountAccessLogsArgs
     executions?: boolean | DisputeCaseCountOutputTypeCountExecutionsArgs
     policyReviews?: boolean | DisputeCaseCountOutputTypeCountPolicyReviewsArgs
+    partyNotices?: boolean | DisputeCaseCountOutputTypeCountPartyNoticesArgs
+    deadlines?: boolean | DisputeCaseCountOutputTypeCountDeadlinesArgs
+    agreements?: boolean | DisputeCaseCountOutputTypeCountAgreementsArgs
+    appeals?: boolean | DisputeCaseCountOutputTypeCountAppealsArgs
   }
 
   // Custom InputTypes
@@ -6454,6 +7238,34 @@ export namespace Prisma {
    */
   export type DisputeCaseCountOutputTypeCountPolicyReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DisputeCasePolicyEligibilityReviewWhereInput
+  }
+
+  /**
+   * DisputeCaseCountOutputType without action
+   */
+  export type DisputeCaseCountOutputTypeCountPartyNoticesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCasePartyNoticeWhereInput
+  }
+
+  /**
+   * DisputeCaseCountOutputType without action
+   */
+  export type DisputeCaseCountOutputTypeCountDeadlinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseDeadlineWhereInput
+  }
+
+  /**
+   * DisputeCaseCountOutputType without action
+   */
+  export type DisputeCaseCountOutputTypeCountAgreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAgreementWhereInput
+  }
+
+  /**
+   * DisputeCaseCountOutputType without action
+   */
+  export type DisputeCaseCountOutputTypeCountAppealsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAppealWhereInput
   }
 
 
@@ -6658,6 +7470,130 @@ export namespace Prisma {
    */
   export type D65bResolutionCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: D65bResolutionEventWhereInput
+  }
+
+
+  /**
+   * Count Type DisputeCaseAgreementCountOutputType
+   */
+
+  export type DisputeCaseAgreementCountOutputType = {
+    confirmations: number
+  }
+
+  export type DisputeCaseAgreementCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    confirmations?: boolean | DisputeCaseAgreementCountOutputTypeCountConfirmationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAgreementCountOutputType without action
+   */
+  export type DisputeCaseAgreementCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementCountOutputType
+     */
+    select?: DisputeCaseAgreementCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAgreementCountOutputType without action
+   */
+  export type DisputeCaseAgreementCountOutputTypeCountConfirmationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAgreementConfirmationWhereInput
+  }
+
+
+  /**
+   * Count Type DisputeCaseAppealCountOutputType
+   */
+
+  export type DisputeCaseAppealCountOutputType = {
+    consequences: number
+  }
+
+  export type DisputeCaseAppealCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    consequences?: boolean | DisputeCaseAppealCountOutputTypeCountConsequencesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAppealCountOutputType without action
+   */
+  export type DisputeCaseAppealCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealCountOutputType
+     */
+    select?: DisputeCaseAppealCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAppealCountOutputType without action
+   */
+  export type DisputeCaseAppealCountOutputTypeCountConsequencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+
+  /**
+   * Count Type DisputeCaseAppealConsequenceCountOutputType
+   */
+
+  export type DisputeCaseAppealConsequenceCountOutputType = {
+    quotaCorrections: number
+  }
+
+  export type DisputeCaseAppealConsequenceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    quotaCorrections?: boolean | DisputeCaseAppealConsequenceCountOutputTypeCountQuotaCorrectionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAppealConsequenceCountOutputType without action
+   */
+  export type DisputeCaseAppealConsequenceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequenceCountOutputType
+     */
+    select?: DisputeCaseAppealConsequenceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAppealConsequenceCountOutputType without action
+   */
+  export type DisputeCaseAppealConsequenceCountOutputTypeCountQuotaCorrectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseQuotaCorrectionWhereInput
+  }
+
+
+  /**
+   * Count Type DisputeHeldMoneyReviewCountOutputType
+   */
+
+  export type DisputeHeldMoneyReviewCountOutputType = {
+    decisions: number
+  }
+
+  export type DisputeHeldMoneyReviewCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    decisions?: boolean | DisputeHeldMoneyReviewCountOutputTypeCountDecisionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DisputeHeldMoneyReviewCountOutputType without action
+   */
+  export type DisputeHeldMoneyReviewCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReviewCountOutputType
+     */
+    select?: DisputeHeldMoneyReviewCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DisputeHeldMoneyReviewCountOutputType without action
+   */
+  export type DisputeHeldMoneyReviewCountOutputTypeCountDecisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeHeldMoneyDecisionWhereInput
   }
 
 
@@ -40899,6 +41835,8 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
     closeReason: string | null
+    execLeaseOwner: string | null
+    execLeaseUntil: Date | null
     version: number | null
     createdBy: string | null
     createdAt: Date | null
@@ -40918,6 +41856,8 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
     closeReason: string | null
+    execLeaseOwner: string | null
+    execLeaseUntil: Date | null
     version: number | null
     createdBy: string | null
     createdAt: Date | null
@@ -40937,6 +41877,8 @@ export namespace Prisma {
     execStatus: number
     execDecisionId: number
     closeReason: number
+    execLeaseOwner: number
+    execLeaseUntil: number
     version: number
     createdBy: number
     createdAt: number
@@ -40966,6 +41908,8 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    execLeaseOwner?: true
+    execLeaseUntil?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -40985,6 +41929,8 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    execLeaseOwner?: true
+    execLeaseUntil?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -41004,6 +41950,8 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    execLeaseOwner?: true
+    execLeaseUntil?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -41110,6 +42058,8 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus
     execDecisionId: string | null
     closeReason: string | null
+    execLeaseOwner: string | null
+    execLeaseUntil: Date | null
     version: number
     createdBy: string
     createdAt: Date
@@ -41148,6 +42098,8 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    execLeaseOwner?: boolean
+    execLeaseUntil?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -41164,6 +42116,10 @@ export namespace Prisma {
     accessLogs?: boolean | DisputeCase$accessLogsArgs<ExtArgs>
     executions?: boolean | DisputeCase$executionsArgs<ExtArgs>
     policyReviews?: boolean | DisputeCase$policyReviewsArgs<ExtArgs>
+    partyNotices?: boolean | DisputeCase$partyNoticesArgs<ExtArgs>
+    deadlines?: boolean | DisputeCase$deadlinesArgs<ExtArgs>
+    agreements?: boolean | DisputeCase$agreementsArgs<ExtArgs>
+    appeals?: boolean | DisputeCase$appealsArgs<ExtArgs>
     _count?: boolean | DisputeCaseCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["disputeCase"]>
 
@@ -41180,6 +42136,8 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    execLeaseOwner?: boolean
+    execLeaseUntil?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -41199,6 +42157,8 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    execLeaseOwner?: boolean
+    execLeaseUntil?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -41218,6 +42178,10 @@ export namespace Prisma {
     accessLogs?: boolean | DisputeCase$accessLogsArgs<ExtArgs>
     executions?: boolean | DisputeCase$executionsArgs<ExtArgs>
     policyReviews?: boolean | DisputeCase$policyReviewsArgs<ExtArgs>
+    partyNotices?: boolean | DisputeCase$partyNoticesArgs<ExtArgs>
+    deadlines?: boolean | DisputeCase$deadlinesArgs<ExtArgs>
+    agreements?: boolean | DisputeCase$agreementsArgs<ExtArgs>
+    appeals?: boolean | DisputeCase$appealsArgs<ExtArgs>
     _count?: boolean | DisputeCaseCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DisputeCaseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -41237,6 +42201,10 @@ export namespace Prisma {
       accessLogs: Prisma.$DisputeCaseAccessLogPayload<ExtArgs>[]
       executions: Prisma.$DisputeCaseExecutionPayload<ExtArgs>[]
       policyReviews: Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>[]
+      partyNotices: Prisma.$DisputeCasePartyNoticePayload<ExtArgs>[]
+      deadlines: Prisma.$DisputeCaseDeadlinePayload<ExtArgs>[]
+      agreements: Prisma.$DisputeCaseAgreementPayload<ExtArgs>[]
+      appeals: Prisma.$DisputeCaseAppealPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -41260,6 +42228,11 @@ export namespace Prisma {
        * Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
        */
       closeReason: string | null
+      /**
+       * C4: lease on the real execution state. A runner (sweep / admin) re-enters an EXECUTING case only after winning this compare-and-set; an expired lease can be taken over.
+       */
+      execLeaseOwner: string | null
+      execLeaseUntil: Date | null
       version: number
       createdBy: string
       createdAt: Date
@@ -41640,6 +42613,10 @@ export namespace Prisma {
     accessLogs<T extends DisputeCase$accessLogsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$accessLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAccessLogPayload<ExtArgs>, T, "findMany"> | Null>
     executions<T extends DisputeCase$executionsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$executionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseExecutionPayload<ExtArgs>, T, "findMany"> | Null>
     policyReviews<T extends DisputeCase$policyReviewsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$policyReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    partyNotices<T extends DisputeCase$partyNoticesArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$partyNoticesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findMany"> | Null>
+    deadlines<T extends DisputeCase$deadlinesArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$deadlinesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findMany"> | Null>
+    agreements<T extends DisputeCase$agreementsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$agreementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findMany"> | Null>
+    appeals<T extends DisputeCase$appealsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCase$appealsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -41681,6 +42658,8 @@ export namespace Prisma {
     readonly execStatus: FieldRef<"DisputeCase", 'DisputeCaseExecStatus'>
     readonly execDecisionId: FieldRef<"DisputeCase", 'String'>
     readonly closeReason: FieldRef<"DisputeCase", 'String'>
+    readonly execLeaseOwner: FieldRef<"DisputeCase", 'String'>
+    readonly execLeaseUntil: FieldRef<"DisputeCase", 'DateTime'>
     readonly version: FieldRef<"DisputeCase", 'Int'>
     readonly createdBy: FieldRef<"DisputeCase", 'String'>
     readonly createdAt: FieldRef<"DisputeCase", 'DateTime'>
@@ -42236,6 +43215,86 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DisputeCasePolicyEligibilityReviewScalarFieldEnum | DisputeCasePolicyEligibilityReviewScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCase.partyNotices
+   */
+  export type DisputeCase$partyNoticesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    where?: DisputeCasePartyNoticeWhereInput
+    orderBy?: DisputeCasePartyNoticeOrderByWithRelationInput | DisputeCasePartyNoticeOrderByWithRelationInput[]
+    cursor?: DisputeCasePartyNoticeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCasePartyNoticeScalarFieldEnum | DisputeCasePartyNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCase.deadlines
+   */
+  export type DisputeCase$deadlinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    where?: DisputeCaseDeadlineWhereInput
+    orderBy?: DisputeCaseDeadlineOrderByWithRelationInput | DisputeCaseDeadlineOrderByWithRelationInput[]
+    cursor?: DisputeCaseDeadlineWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseDeadlineScalarFieldEnum | DisputeCaseDeadlineScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCase.agreements
+   */
+  export type DisputeCase$agreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    where?: DisputeCaseAgreementWhereInput
+    orderBy?: DisputeCaseAgreementOrderByWithRelationInput | DisputeCaseAgreementOrderByWithRelationInput[]
+    cursor?: DisputeCaseAgreementWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseAgreementScalarFieldEnum | DisputeCaseAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCase.appeals
+   */
+  export type DisputeCase$appealsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    where?: DisputeCaseAppealWhereInput
+    orderBy?: DisputeCaseAppealOrderByWithRelationInput | DisputeCaseAppealOrderByWithRelationInput[]
+    cursor?: DisputeCaseAppealWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseAppealScalarFieldEnum | DisputeCaseAppealScalarFieldEnum[]
   }
 
   /**
@@ -61777,6 +62836,9202 @@ export namespace Prisma {
 
 
   /**
+   * Model DisputeCasePartyNotice
+   */
+
+  export type AggregateDisputeCasePartyNotice = {
+    _count: DisputeCasePartyNoticeCountAggregateOutputType | null
+    _min: DisputeCasePartyNoticeMinAggregateOutputType | null
+    _max: DisputeCasePartyNoticeMaxAggregateOutputType | null
+  }
+
+  export type DisputeCasePartyNoticeMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    sessionId: string | null
+    userId: string | null
+    partyRole: string | null
+    kind: string | null
+    notificationId: string | null
+    recordedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCasePartyNoticeMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    sessionId: string | null
+    userId: string | null
+    partyRole: string | null
+    kind: string | null
+    notificationId: string | null
+    recordedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCasePartyNoticeCountAggregateOutputType = {
+    id: number
+    caseId: number
+    sessionId: number
+    userId: number
+    partyRole: number
+    kind: number
+    notificationId: number
+    recordedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeCasePartyNoticeMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    notificationId?: true
+    recordedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeCasePartyNoticeMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    notificationId?: true
+    recordedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeCasePartyNoticeCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    notificationId?: true
+    recordedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeCasePartyNoticeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCasePartyNotice to aggregate.
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCasePartyNotices to fetch.
+     */
+    orderBy?: DisputeCasePartyNoticeOrderByWithRelationInput | DisputeCasePartyNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCasePartyNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCasePartyNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCasePartyNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCasePartyNotices
+    **/
+    _count?: true | DisputeCasePartyNoticeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCasePartyNoticeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCasePartyNoticeMaxAggregateInputType
+  }
+
+  export type GetDisputeCasePartyNoticeAggregateType<T extends DisputeCasePartyNoticeAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCasePartyNotice]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCasePartyNotice[P]>
+      : GetScalarType<T[P], AggregateDisputeCasePartyNotice[P]>
+  }
+
+
+
+
+  export type DisputeCasePartyNoticeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCasePartyNoticeWhereInput
+    orderBy?: DisputeCasePartyNoticeOrderByWithAggregationInput | DisputeCasePartyNoticeOrderByWithAggregationInput[]
+    by: DisputeCasePartyNoticeScalarFieldEnum[] | DisputeCasePartyNoticeScalarFieldEnum
+    having?: DisputeCasePartyNoticeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCasePartyNoticeCountAggregateInputType | true
+    _min?: DisputeCasePartyNoticeMinAggregateInputType
+    _max?: DisputeCasePartyNoticeMaxAggregateInputType
+  }
+
+  export type DisputeCasePartyNoticeGroupByOutputType = {
+    id: string
+    caseId: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date
+    createdAt: Date
+    _count: DisputeCasePartyNoticeCountAggregateOutputType | null
+    _min: DisputeCasePartyNoticeMinAggregateOutputType | null
+    _max: DisputeCasePartyNoticeMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCasePartyNoticeGroupByPayload<T extends DisputeCasePartyNoticeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCasePartyNoticeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCasePartyNoticeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCasePartyNoticeGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCasePartyNoticeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCasePartyNoticeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    notificationId?: boolean
+    recordedAt?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCasePartyNotice$caseArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCasePartyNotice"]>
+
+  export type DisputeCasePartyNoticeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    notificationId?: boolean
+    recordedAt?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCasePartyNotice$caseArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCasePartyNotice"]>
+
+  export type DisputeCasePartyNoticeSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    notificationId?: boolean
+    recordedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeCasePartyNoticeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCasePartyNotice$caseArgs<ExtArgs>
+  }
+  export type DisputeCasePartyNoticeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCasePartyNotice$caseArgs<ExtArgs>
+  }
+
+  export type $DisputeCasePartyNoticePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCasePartyNotice"
+    objects: {
+      case: Prisma.$DisputeCasePayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string | null
+      sessionId: string
+      userId: string
+      partyRole: string
+      kind: string
+      notificationId: string
+      recordedAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["disputeCasePartyNotice"]>
+    composites: {}
+  }
+
+  type DisputeCasePartyNoticeGetPayload<S extends boolean | null | undefined | DisputeCasePartyNoticeDefaultArgs> = $Result.GetResult<Prisma.$DisputeCasePartyNoticePayload, S>
+
+  type DisputeCasePartyNoticeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCasePartyNoticeFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCasePartyNoticeCountAggregateInputType | true
+    }
+
+  export interface DisputeCasePartyNoticeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCasePartyNotice'], meta: { name: 'DisputeCasePartyNotice' } }
+    /**
+     * Find zero or one DisputeCasePartyNotice that matches the filter.
+     * @param {DisputeCasePartyNoticeFindUniqueArgs} args - Arguments to find a DisputeCasePartyNotice
+     * @example
+     * // Get one DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCasePartyNoticeFindUniqueArgs>(args: SelectSubset<T, DisputeCasePartyNoticeFindUniqueArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCasePartyNotice that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCasePartyNoticeFindUniqueOrThrowArgs} args - Arguments to find a DisputeCasePartyNotice
+     * @example
+     * // Get one DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCasePartyNoticeFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCasePartyNoticeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCasePartyNotice that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeFindFirstArgs} args - Arguments to find a DisputeCasePartyNotice
+     * @example
+     * // Get one DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCasePartyNoticeFindFirstArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeFindFirstArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCasePartyNotice that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeFindFirstOrThrowArgs} args - Arguments to find a DisputeCasePartyNotice
+     * @example
+     * // Get one DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCasePartyNoticeFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCasePartyNotices that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCasePartyNotices
+     * const disputeCasePartyNotices = await prisma.disputeCasePartyNotice.findMany()
+     * 
+     * // Get first 10 DisputeCasePartyNotices
+     * const disputeCasePartyNotices = await prisma.disputeCasePartyNotice.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCasePartyNoticeWithIdOnly = await prisma.disputeCasePartyNotice.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCasePartyNoticeFindManyArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCasePartyNotice.
+     * @param {DisputeCasePartyNoticeCreateArgs} args - Arguments to create a DisputeCasePartyNotice.
+     * @example
+     * // Create one DisputeCasePartyNotice
+     * const DisputeCasePartyNotice = await prisma.disputeCasePartyNotice.create({
+     *   data: {
+     *     // ... data to create a DisputeCasePartyNotice
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCasePartyNoticeCreateArgs>(args: SelectSubset<T, DisputeCasePartyNoticeCreateArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCasePartyNotices.
+     * @param {DisputeCasePartyNoticeCreateManyArgs} args - Arguments to create many DisputeCasePartyNotices.
+     * @example
+     * // Create many DisputeCasePartyNotices
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCasePartyNoticeCreateManyArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCasePartyNotices and returns the data saved in the database.
+     * @param {DisputeCasePartyNoticeCreateManyAndReturnArgs} args - Arguments to create many DisputeCasePartyNotices.
+     * @example
+     * // Create many DisputeCasePartyNotices
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCasePartyNotices and only return the `id`
+     * const disputeCasePartyNoticeWithIdOnly = await prisma.disputeCasePartyNotice.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCasePartyNoticeCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCasePartyNotice.
+     * @param {DisputeCasePartyNoticeDeleteArgs} args - Arguments to delete one DisputeCasePartyNotice.
+     * @example
+     * // Delete one DisputeCasePartyNotice
+     * const DisputeCasePartyNotice = await prisma.disputeCasePartyNotice.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCasePartyNotice
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCasePartyNoticeDeleteArgs>(args: SelectSubset<T, DisputeCasePartyNoticeDeleteArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCasePartyNotice.
+     * @param {DisputeCasePartyNoticeUpdateArgs} args - Arguments to update one DisputeCasePartyNotice.
+     * @example
+     * // Update one DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCasePartyNoticeUpdateArgs>(args: SelectSubset<T, DisputeCasePartyNoticeUpdateArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCasePartyNotices.
+     * @param {DisputeCasePartyNoticeDeleteManyArgs} args - Arguments to filter DisputeCasePartyNotices to delete.
+     * @example
+     * // Delete a few DisputeCasePartyNotices
+     * const { count } = await prisma.disputeCasePartyNotice.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCasePartyNoticeDeleteManyArgs>(args?: SelectSubset<T, DisputeCasePartyNoticeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCasePartyNotices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCasePartyNotices
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCasePartyNoticeUpdateManyArgs>(args: SelectSubset<T, DisputeCasePartyNoticeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCasePartyNotice.
+     * @param {DisputeCasePartyNoticeUpsertArgs} args - Arguments to update or create a DisputeCasePartyNotice.
+     * @example
+     * // Update or create a DisputeCasePartyNotice
+     * const disputeCasePartyNotice = await prisma.disputeCasePartyNotice.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCasePartyNotice
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCasePartyNotice we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCasePartyNoticeUpsertArgs>(args: SelectSubset<T, DisputeCasePartyNoticeUpsertArgs<ExtArgs>>): Prisma__DisputeCasePartyNoticeClient<$Result.GetResult<Prisma.$DisputeCasePartyNoticePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCasePartyNotices.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeCountArgs} args - Arguments to filter DisputeCasePartyNotices to count.
+     * @example
+     * // Count the number of DisputeCasePartyNotices
+     * const count = await prisma.disputeCasePartyNotice.count({
+     *   where: {
+     *     // ... the filter for the DisputeCasePartyNotices we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCasePartyNoticeCountArgs>(
+      args?: Subset<T, DisputeCasePartyNoticeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCasePartyNoticeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCasePartyNotice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCasePartyNoticeAggregateArgs>(args: Subset<T, DisputeCasePartyNoticeAggregateArgs>): Prisma.PrismaPromise<GetDisputeCasePartyNoticeAggregateType<T>>
+
+    /**
+     * Group by DisputeCasePartyNotice.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCasePartyNoticeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCasePartyNoticeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCasePartyNoticeGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCasePartyNoticeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCasePartyNoticeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCasePartyNoticeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCasePartyNotice model
+   */
+  readonly fields: DisputeCasePartyNoticeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCasePartyNotice.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCasePartyNoticeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends DisputeCasePartyNotice$caseArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePartyNotice$caseArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCasePartyNotice model
+   */ 
+  interface DisputeCasePartyNoticeFieldRefs {
+    readonly id: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly caseId: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly sessionId: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly userId: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly partyRole: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly kind: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly notificationId: FieldRef<"DisputeCasePartyNotice", 'String'>
+    readonly recordedAt: FieldRef<"DisputeCasePartyNotice", 'DateTime'>
+    readonly createdAt: FieldRef<"DisputeCasePartyNotice", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCasePartyNotice findUnique
+   */
+  export type DisputeCasePartyNoticeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCasePartyNotice to fetch.
+     */
+    where: DisputeCasePartyNoticeWhereUniqueInput
+  }
+
+  /**
+   * DisputeCasePartyNotice findUniqueOrThrow
+   */
+  export type DisputeCasePartyNoticeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCasePartyNotice to fetch.
+     */
+    where: DisputeCasePartyNoticeWhereUniqueInput
+  }
+
+  /**
+   * DisputeCasePartyNotice findFirst
+   */
+  export type DisputeCasePartyNoticeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCasePartyNotice to fetch.
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCasePartyNotices to fetch.
+     */
+    orderBy?: DisputeCasePartyNoticeOrderByWithRelationInput | DisputeCasePartyNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCasePartyNotices.
+     */
+    cursor?: DisputeCasePartyNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCasePartyNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCasePartyNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCasePartyNotices.
+     */
+    distinct?: DisputeCasePartyNoticeScalarFieldEnum | DisputeCasePartyNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCasePartyNotice findFirstOrThrow
+   */
+  export type DisputeCasePartyNoticeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCasePartyNotice to fetch.
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCasePartyNotices to fetch.
+     */
+    orderBy?: DisputeCasePartyNoticeOrderByWithRelationInput | DisputeCasePartyNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCasePartyNotices.
+     */
+    cursor?: DisputeCasePartyNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCasePartyNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCasePartyNotices.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCasePartyNotices.
+     */
+    distinct?: DisputeCasePartyNoticeScalarFieldEnum | DisputeCasePartyNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCasePartyNotice findMany
+   */
+  export type DisputeCasePartyNoticeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCasePartyNotices to fetch.
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCasePartyNotices to fetch.
+     */
+    orderBy?: DisputeCasePartyNoticeOrderByWithRelationInput | DisputeCasePartyNoticeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCasePartyNotices.
+     */
+    cursor?: DisputeCasePartyNoticeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCasePartyNotices from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCasePartyNotices.
+     */
+    skip?: number
+    distinct?: DisputeCasePartyNoticeScalarFieldEnum | DisputeCasePartyNoticeScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCasePartyNotice create
+   */
+  export type DisputeCasePartyNoticeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCasePartyNotice.
+     */
+    data: XOR<DisputeCasePartyNoticeCreateInput, DisputeCasePartyNoticeUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCasePartyNotice createMany
+   */
+  export type DisputeCasePartyNoticeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCasePartyNotices.
+     */
+    data: DisputeCasePartyNoticeCreateManyInput | DisputeCasePartyNoticeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCasePartyNotice createManyAndReturn
+   */
+  export type DisputeCasePartyNoticeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCasePartyNotices.
+     */
+    data: DisputeCasePartyNoticeCreateManyInput | DisputeCasePartyNoticeCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCasePartyNotice update
+   */
+  export type DisputeCasePartyNoticeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCasePartyNotice.
+     */
+    data: XOR<DisputeCasePartyNoticeUpdateInput, DisputeCasePartyNoticeUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCasePartyNotice to update.
+     */
+    where: DisputeCasePartyNoticeWhereUniqueInput
+  }
+
+  /**
+   * DisputeCasePartyNotice updateMany
+   */
+  export type DisputeCasePartyNoticeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCasePartyNotices.
+     */
+    data: XOR<DisputeCasePartyNoticeUpdateManyMutationInput, DisputeCasePartyNoticeUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCasePartyNotices to update
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+  }
+
+  /**
+   * DisputeCasePartyNotice upsert
+   */
+  export type DisputeCasePartyNoticeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCasePartyNotice to update in case it exists.
+     */
+    where: DisputeCasePartyNoticeWhereUniqueInput
+    /**
+     * In case the DisputeCasePartyNotice found by the `where` argument doesn't exist, create a new DisputeCasePartyNotice with this data.
+     */
+    create: XOR<DisputeCasePartyNoticeCreateInput, DisputeCasePartyNoticeUncheckedCreateInput>
+    /**
+     * In case the DisputeCasePartyNotice was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCasePartyNoticeUpdateInput, DisputeCasePartyNoticeUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCasePartyNotice delete
+   */
+  export type DisputeCasePartyNoticeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCasePartyNotice to delete.
+     */
+    where: DisputeCasePartyNoticeWhereUniqueInput
+  }
+
+  /**
+   * DisputeCasePartyNotice deleteMany
+   */
+  export type DisputeCasePartyNoticeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCasePartyNotices to delete
+     */
+    where?: DisputeCasePartyNoticeWhereInput
+  }
+
+  /**
+   * DisputeCasePartyNotice.case
+   */
+  export type DisputeCasePartyNotice$caseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCase
+     */
+    select?: DisputeCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseInclude<ExtArgs> | null
+    where?: DisputeCaseWhereInput
+  }
+
+  /**
+   * DisputeCasePartyNotice without action
+   */
+  export type DisputeCasePartyNoticeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCasePartyNotice
+     */
+    select?: DisputeCasePartyNoticeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCasePartyNoticeInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseDeadline
+   */
+
+  export type AggregateDisputeCaseDeadline = {
+    _count: DisputeCaseDeadlineCountAggregateOutputType | null
+    _avg: DisputeCaseDeadlineAvgAggregateOutputType | null
+    _sum: DisputeCaseDeadlineSumAggregateOutputType | null
+    _min: DisputeCaseDeadlineMinAggregateOutputType | null
+    _max: DisputeCaseDeadlineMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseDeadlineAvgAggregateOutputType = {
+    hours: number | null
+    pausedSeconds: number | null
+  }
+
+  export type DisputeCaseDeadlineSumAggregateOutputType = {
+    hours: number | null
+    pausedSeconds: number | null
+  }
+
+  export type DisputeCaseDeadlineMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    sessionId: string | null
+    userId: string | null
+    partyRole: string | null
+    kind: string | null
+    hours: number | null
+    startedAt: Date | null
+    pausedAt: Date | null
+    pausedSeconds: number | null
+    status: string | null
+    satisfiedAt: Date | null
+    expiredAt: Date | null
+    noticeId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DisputeCaseDeadlineMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    sessionId: string | null
+    userId: string | null
+    partyRole: string | null
+    kind: string | null
+    hours: number | null
+    startedAt: Date | null
+    pausedAt: Date | null
+    pausedSeconds: number | null
+    status: string | null
+    satisfiedAt: Date | null
+    expiredAt: Date | null
+    noticeId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DisputeCaseDeadlineCountAggregateOutputType = {
+    id: number
+    caseId: number
+    sessionId: number
+    userId: number
+    partyRole: number
+    kind: number
+    hours: number
+    startedAt: number
+    pausedAt: number
+    pausedSeconds: number
+    status: number
+    satisfiedAt: number
+    expiredAt: number
+    noticeId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type DisputeCaseDeadlineAvgAggregateInputType = {
+    hours?: true
+    pausedSeconds?: true
+  }
+
+  export type DisputeCaseDeadlineSumAggregateInputType = {
+    hours?: true
+    pausedSeconds?: true
+  }
+
+  export type DisputeCaseDeadlineMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    hours?: true
+    startedAt?: true
+    pausedAt?: true
+    pausedSeconds?: true
+    status?: true
+    satisfiedAt?: true
+    expiredAt?: true
+    noticeId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DisputeCaseDeadlineMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    hours?: true
+    startedAt?: true
+    pausedAt?: true
+    pausedSeconds?: true
+    status?: true
+    satisfiedAt?: true
+    expiredAt?: true
+    noticeId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DisputeCaseDeadlineCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    sessionId?: true
+    userId?: true
+    partyRole?: true
+    kind?: true
+    hours?: true
+    startedAt?: true
+    pausedAt?: true
+    pausedSeconds?: true
+    status?: true
+    satisfiedAt?: true
+    expiredAt?: true
+    noticeId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type DisputeCaseDeadlineAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseDeadline to aggregate.
+     */
+    where?: DisputeCaseDeadlineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseDeadlines to fetch.
+     */
+    orderBy?: DisputeCaseDeadlineOrderByWithRelationInput | DisputeCaseDeadlineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseDeadlineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseDeadlines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseDeadlines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseDeadlines
+    **/
+    _count?: true | DisputeCaseDeadlineCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DisputeCaseDeadlineAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DisputeCaseDeadlineSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseDeadlineMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseDeadlineMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseDeadlineAggregateType<T extends DisputeCaseDeadlineAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseDeadline]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseDeadline[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseDeadline[P]>
+  }
+
+
+
+
+  export type DisputeCaseDeadlineGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseDeadlineWhereInput
+    orderBy?: DisputeCaseDeadlineOrderByWithAggregationInput | DisputeCaseDeadlineOrderByWithAggregationInput[]
+    by: DisputeCaseDeadlineScalarFieldEnum[] | DisputeCaseDeadlineScalarFieldEnum
+    having?: DisputeCaseDeadlineScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseDeadlineCountAggregateInputType | true
+    _avg?: DisputeCaseDeadlineAvgAggregateInputType
+    _sum?: DisputeCaseDeadlineSumAggregateInputType
+    _min?: DisputeCaseDeadlineMinAggregateInputType
+    _max?: DisputeCaseDeadlineMaxAggregateInputType
+  }
+
+  export type DisputeCaseDeadlineGroupByOutputType = {
+    id: string
+    caseId: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date
+    pausedAt: Date | null
+    pausedSeconds: number
+    status: string
+    satisfiedAt: Date | null
+    expiredAt: Date | null
+    noticeId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: DisputeCaseDeadlineCountAggregateOutputType | null
+    _avg: DisputeCaseDeadlineAvgAggregateOutputType | null
+    _sum: DisputeCaseDeadlineSumAggregateOutputType | null
+    _min: DisputeCaseDeadlineMinAggregateOutputType | null
+    _max: DisputeCaseDeadlineMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseDeadlineGroupByPayload<T extends DisputeCaseDeadlineGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseDeadlineGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseDeadlineGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseDeadlineGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseDeadlineGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseDeadlineSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    hours?: boolean
+    startedAt?: boolean
+    pausedAt?: boolean
+    pausedSeconds?: boolean
+    status?: boolean
+    satisfiedAt?: boolean
+    expiredAt?: boolean
+    noticeId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    case?: boolean | DisputeCaseDeadline$caseArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseDeadline"]>
+
+  export type DisputeCaseDeadlineSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    hours?: boolean
+    startedAt?: boolean
+    pausedAt?: boolean
+    pausedSeconds?: boolean
+    status?: boolean
+    satisfiedAt?: boolean
+    expiredAt?: boolean
+    noticeId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    case?: boolean | DisputeCaseDeadline$caseArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseDeadline"]>
+
+  export type DisputeCaseDeadlineSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    sessionId?: boolean
+    userId?: boolean
+    partyRole?: boolean
+    kind?: boolean
+    hours?: boolean
+    startedAt?: boolean
+    pausedAt?: boolean
+    pausedSeconds?: boolean
+    status?: boolean
+    satisfiedAt?: boolean
+    expiredAt?: boolean
+    noticeId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type DisputeCaseDeadlineInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDeadline$caseArgs<ExtArgs>
+  }
+  export type DisputeCaseDeadlineIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDeadline$caseArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseDeadlinePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseDeadline"
+    objects: {
+      case: Prisma.$DisputeCasePayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string | null
+      sessionId: string
+      userId: string
+      partyRole: string
+      kind: string
+      hours: number
+      startedAt: Date
+      pausedAt: Date | null
+      pausedSeconds: number
+      status: string
+      satisfiedAt: Date | null
+      expiredAt: Date | null
+      noticeId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["disputeCaseDeadline"]>
+    composites: {}
+  }
+
+  type DisputeCaseDeadlineGetPayload<S extends boolean | null | undefined | DisputeCaseDeadlineDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseDeadlinePayload, S>
+
+  type DisputeCaseDeadlineCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseDeadlineFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseDeadlineCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseDeadlineDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseDeadline'], meta: { name: 'DisputeCaseDeadline' } }
+    /**
+     * Find zero or one DisputeCaseDeadline that matches the filter.
+     * @param {DisputeCaseDeadlineFindUniqueArgs} args - Arguments to find a DisputeCaseDeadline
+     * @example
+     * // Get one DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseDeadlineFindUniqueArgs>(args: SelectSubset<T, DisputeCaseDeadlineFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseDeadline that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseDeadlineFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseDeadline
+     * @example
+     * // Get one DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseDeadlineFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseDeadlineFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseDeadline that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineFindFirstArgs} args - Arguments to find a DisputeCaseDeadline
+     * @example
+     * // Get one DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseDeadlineFindFirstArgs>(args?: SelectSubset<T, DisputeCaseDeadlineFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseDeadline that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseDeadline
+     * @example
+     * // Get one DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseDeadlineFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseDeadlineFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseDeadlines that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseDeadlines
+     * const disputeCaseDeadlines = await prisma.disputeCaseDeadline.findMany()
+     * 
+     * // Get first 10 DisputeCaseDeadlines
+     * const disputeCaseDeadlines = await prisma.disputeCaseDeadline.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseDeadlineWithIdOnly = await prisma.disputeCaseDeadline.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseDeadlineFindManyArgs>(args?: SelectSubset<T, DisputeCaseDeadlineFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseDeadline.
+     * @param {DisputeCaseDeadlineCreateArgs} args - Arguments to create a DisputeCaseDeadline.
+     * @example
+     * // Create one DisputeCaseDeadline
+     * const DisputeCaseDeadline = await prisma.disputeCaseDeadline.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseDeadline
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseDeadlineCreateArgs>(args: SelectSubset<T, DisputeCaseDeadlineCreateArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseDeadlines.
+     * @param {DisputeCaseDeadlineCreateManyArgs} args - Arguments to create many DisputeCaseDeadlines.
+     * @example
+     * // Create many DisputeCaseDeadlines
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseDeadlineCreateManyArgs>(args?: SelectSubset<T, DisputeCaseDeadlineCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseDeadlines and returns the data saved in the database.
+     * @param {DisputeCaseDeadlineCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseDeadlines.
+     * @example
+     * // Create many DisputeCaseDeadlines
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseDeadlines and only return the `id`
+     * const disputeCaseDeadlineWithIdOnly = await prisma.disputeCaseDeadline.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseDeadlineCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseDeadlineCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseDeadline.
+     * @param {DisputeCaseDeadlineDeleteArgs} args - Arguments to delete one DisputeCaseDeadline.
+     * @example
+     * // Delete one DisputeCaseDeadline
+     * const DisputeCaseDeadline = await prisma.disputeCaseDeadline.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseDeadline
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseDeadlineDeleteArgs>(args: SelectSubset<T, DisputeCaseDeadlineDeleteArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseDeadline.
+     * @param {DisputeCaseDeadlineUpdateArgs} args - Arguments to update one DisputeCaseDeadline.
+     * @example
+     * // Update one DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseDeadlineUpdateArgs>(args: SelectSubset<T, DisputeCaseDeadlineUpdateArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseDeadlines.
+     * @param {DisputeCaseDeadlineDeleteManyArgs} args - Arguments to filter DisputeCaseDeadlines to delete.
+     * @example
+     * // Delete a few DisputeCaseDeadlines
+     * const { count } = await prisma.disputeCaseDeadline.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseDeadlineDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseDeadlineDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseDeadlines.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseDeadlines
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseDeadlineUpdateManyArgs>(args: SelectSubset<T, DisputeCaseDeadlineUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseDeadline.
+     * @param {DisputeCaseDeadlineUpsertArgs} args - Arguments to update or create a DisputeCaseDeadline.
+     * @example
+     * // Update or create a DisputeCaseDeadline
+     * const disputeCaseDeadline = await prisma.disputeCaseDeadline.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseDeadline
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseDeadline we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseDeadlineUpsertArgs>(args: SelectSubset<T, DisputeCaseDeadlineUpsertArgs<ExtArgs>>): Prisma__DisputeCaseDeadlineClient<$Result.GetResult<Prisma.$DisputeCaseDeadlinePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseDeadlines.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineCountArgs} args - Arguments to filter DisputeCaseDeadlines to count.
+     * @example
+     * // Count the number of DisputeCaseDeadlines
+     * const count = await prisma.disputeCaseDeadline.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseDeadlines we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseDeadlineCountArgs>(
+      args?: Subset<T, DisputeCaseDeadlineCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseDeadlineCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseDeadline.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseDeadlineAggregateArgs>(args: Subset<T, DisputeCaseDeadlineAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseDeadlineAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseDeadline.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseDeadlineGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseDeadlineGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseDeadlineGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseDeadlineGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseDeadlineGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseDeadlineGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseDeadline model
+   */
+  readonly fields: DisputeCaseDeadlineFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseDeadline.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseDeadlineClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends DisputeCaseDeadline$caseArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseDeadline$caseArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseDeadline model
+   */ 
+  interface DisputeCaseDeadlineFieldRefs {
+    readonly id: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly caseId: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly sessionId: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly userId: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly partyRole: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly kind: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly hours: FieldRef<"DisputeCaseDeadline", 'Int'>
+    readonly startedAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+    readonly pausedAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+    readonly pausedSeconds: FieldRef<"DisputeCaseDeadline", 'Int'>
+    readonly status: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly satisfiedAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+    readonly expiredAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+    readonly noticeId: FieldRef<"DisputeCaseDeadline", 'String'>
+    readonly createdAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+    readonly updatedAt: FieldRef<"DisputeCaseDeadline", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseDeadline findUnique
+   */
+  export type DisputeCaseDeadlineFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseDeadline to fetch.
+     */
+    where: DisputeCaseDeadlineWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseDeadline findUniqueOrThrow
+   */
+  export type DisputeCaseDeadlineFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseDeadline to fetch.
+     */
+    where: DisputeCaseDeadlineWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseDeadline findFirst
+   */
+  export type DisputeCaseDeadlineFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseDeadline to fetch.
+     */
+    where?: DisputeCaseDeadlineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseDeadlines to fetch.
+     */
+    orderBy?: DisputeCaseDeadlineOrderByWithRelationInput | DisputeCaseDeadlineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseDeadlines.
+     */
+    cursor?: DisputeCaseDeadlineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseDeadlines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseDeadlines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseDeadlines.
+     */
+    distinct?: DisputeCaseDeadlineScalarFieldEnum | DisputeCaseDeadlineScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseDeadline findFirstOrThrow
+   */
+  export type DisputeCaseDeadlineFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseDeadline to fetch.
+     */
+    where?: DisputeCaseDeadlineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseDeadlines to fetch.
+     */
+    orderBy?: DisputeCaseDeadlineOrderByWithRelationInput | DisputeCaseDeadlineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseDeadlines.
+     */
+    cursor?: DisputeCaseDeadlineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseDeadlines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseDeadlines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseDeadlines.
+     */
+    distinct?: DisputeCaseDeadlineScalarFieldEnum | DisputeCaseDeadlineScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseDeadline findMany
+   */
+  export type DisputeCaseDeadlineFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseDeadlines to fetch.
+     */
+    where?: DisputeCaseDeadlineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseDeadlines to fetch.
+     */
+    orderBy?: DisputeCaseDeadlineOrderByWithRelationInput | DisputeCaseDeadlineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseDeadlines.
+     */
+    cursor?: DisputeCaseDeadlineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseDeadlines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseDeadlines.
+     */
+    skip?: number
+    distinct?: DisputeCaseDeadlineScalarFieldEnum | DisputeCaseDeadlineScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseDeadline create
+   */
+  export type DisputeCaseDeadlineCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseDeadline.
+     */
+    data: XOR<DisputeCaseDeadlineCreateInput, DisputeCaseDeadlineUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseDeadline createMany
+   */
+  export type DisputeCaseDeadlineCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseDeadlines.
+     */
+    data: DisputeCaseDeadlineCreateManyInput | DisputeCaseDeadlineCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseDeadline createManyAndReturn
+   */
+  export type DisputeCaseDeadlineCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseDeadlines.
+     */
+    data: DisputeCaseDeadlineCreateManyInput | DisputeCaseDeadlineCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseDeadline update
+   */
+  export type DisputeCaseDeadlineUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseDeadline.
+     */
+    data: XOR<DisputeCaseDeadlineUpdateInput, DisputeCaseDeadlineUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseDeadline to update.
+     */
+    where: DisputeCaseDeadlineWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseDeadline updateMany
+   */
+  export type DisputeCaseDeadlineUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseDeadlines.
+     */
+    data: XOR<DisputeCaseDeadlineUpdateManyMutationInput, DisputeCaseDeadlineUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseDeadlines to update
+     */
+    where?: DisputeCaseDeadlineWhereInput
+  }
+
+  /**
+   * DisputeCaseDeadline upsert
+   */
+  export type DisputeCaseDeadlineUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseDeadline to update in case it exists.
+     */
+    where: DisputeCaseDeadlineWhereUniqueInput
+    /**
+     * In case the DisputeCaseDeadline found by the `where` argument doesn't exist, create a new DisputeCaseDeadline with this data.
+     */
+    create: XOR<DisputeCaseDeadlineCreateInput, DisputeCaseDeadlineUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseDeadline was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseDeadlineUpdateInput, DisputeCaseDeadlineUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseDeadline delete
+   */
+  export type DisputeCaseDeadlineDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseDeadline to delete.
+     */
+    where: DisputeCaseDeadlineWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseDeadline deleteMany
+   */
+  export type DisputeCaseDeadlineDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseDeadlines to delete
+     */
+    where?: DisputeCaseDeadlineWhereInput
+  }
+
+  /**
+   * DisputeCaseDeadline.case
+   */
+  export type DisputeCaseDeadline$caseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCase
+     */
+    select?: DisputeCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseInclude<ExtArgs> | null
+    where?: DisputeCaseWhereInput
+  }
+
+  /**
+   * DisputeCaseDeadline without action
+   */
+  export type DisputeCaseDeadlineDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseDeadline
+     */
+    select?: DisputeCaseDeadlineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseDeadlineInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseAgreement
+   */
+
+  export type AggregateDisputeCaseAgreement = {
+    _count: DisputeCaseAgreementCountAggregateOutputType | null
+    _min: DisputeCaseAgreementMinAggregateOutputType | null
+    _max: DisputeCaseAgreementMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseAgreementMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    outcome: string | null
+    contentHash: string | null
+    note: string | null
+    proposedBy: string | null
+    status: string | null
+    agreedAt: Date | null
+    findingId: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseAgreementMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    outcome: string | null
+    contentHash: string | null
+    note: string | null
+    proposedBy: string | null
+    status: string | null
+    agreedAt: Date | null
+    findingId: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseAgreementCountAggregateOutputType = {
+    id: number
+    caseId: number
+    outcome: number
+    contentHash: number
+    note: number
+    proposedBy: number
+    status: number
+    agreedAt: number
+    findingId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeCaseAgreementMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    outcome?: true
+    contentHash?: true
+    note?: true
+    proposedBy?: true
+    status?: true
+    agreedAt?: true
+    findingId?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseAgreementMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    outcome?: true
+    contentHash?: true
+    note?: true
+    proposedBy?: true
+    status?: true
+    agreedAt?: true
+    findingId?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseAgreementCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    outcome?: true
+    contentHash?: true
+    note?: true
+    proposedBy?: true
+    status?: true
+    agreedAt?: true
+    findingId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeCaseAgreementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAgreement to aggregate.
+     */
+    where?: DisputeCaseAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreements to fetch.
+     */
+    orderBy?: DisputeCaseAgreementOrderByWithRelationInput | DisputeCaseAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseAgreements
+    **/
+    _count?: true | DisputeCaseAgreementCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseAgreementMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseAgreementMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseAgreementAggregateType<T extends DisputeCaseAgreementAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseAgreement]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseAgreement[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseAgreement[P]>
+  }
+
+
+
+
+  export type DisputeCaseAgreementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAgreementWhereInput
+    orderBy?: DisputeCaseAgreementOrderByWithAggregationInput | DisputeCaseAgreementOrderByWithAggregationInput[]
+    by: DisputeCaseAgreementScalarFieldEnum[] | DisputeCaseAgreementScalarFieldEnum
+    having?: DisputeCaseAgreementScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseAgreementCountAggregateInputType | true
+    _min?: DisputeCaseAgreementMinAggregateInputType
+    _max?: DisputeCaseAgreementMaxAggregateInputType
+  }
+
+  export type DisputeCaseAgreementGroupByOutputType = {
+    id: string
+    caseId: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status: string
+    agreedAt: Date | null
+    findingId: string | null
+    createdAt: Date
+    _count: DisputeCaseAgreementCountAggregateOutputType | null
+    _min: DisputeCaseAgreementMinAggregateOutputType | null
+    _max: DisputeCaseAgreementMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseAgreementGroupByPayload<T extends DisputeCaseAgreementGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseAgreementGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseAgreementGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseAgreementGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseAgreementGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseAgreementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    outcome?: boolean
+    contentHash?: boolean
+    note?: boolean
+    proposedBy?: boolean
+    status?: boolean
+    agreedAt?: boolean
+    findingId?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    confirmations?: boolean | DisputeCaseAgreement$confirmationsArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAgreementCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAgreement"]>
+
+  export type DisputeCaseAgreementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    outcome?: boolean
+    contentHash?: boolean
+    note?: boolean
+    proposedBy?: boolean
+    status?: boolean
+    agreedAt?: boolean
+    findingId?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAgreement"]>
+
+  export type DisputeCaseAgreementSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    outcome?: boolean
+    contentHash?: boolean
+    note?: boolean
+    proposedBy?: boolean
+    status?: boolean
+    agreedAt?: boolean
+    findingId?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeCaseAgreementInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    confirmations?: boolean | DisputeCaseAgreement$confirmationsArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAgreementCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DisputeCaseAgreementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseAgreementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseAgreement"
+    objects: {
+      case: Prisma.$DisputeCasePayload<ExtArgs>
+      confirmations: Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      outcome: string
+      contentHash: string
+      note: string
+      proposedBy: string
+      status: string
+      agreedAt: Date | null
+      findingId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeCaseAgreement"]>
+    composites: {}
+  }
+
+  type DisputeCaseAgreementGetPayload<S extends boolean | null | undefined | DisputeCaseAgreementDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseAgreementPayload, S>
+
+  type DisputeCaseAgreementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseAgreementFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseAgreementCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseAgreementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseAgreement'], meta: { name: 'DisputeCaseAgreement' } }
+    /**
+     * Find zero or one DisputeCaseAgreement that matches the filter.
+     * @param {DisputeCaseAgreementFindUniqueArgs} args - Arguments to find a DisputeCaseAgreement
+     * @example
+     * // Get one DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseAgreementFindUniqueArgs>(args: SelectSubset<T, DisputeCaseAgreementFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseAgreement that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseAgreementFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseAgreement
+     * @example
+     * // Get one DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseAgreementFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseAgreementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAgreement that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementFindFirstArgs} args - Arguments to find a DisputeCaseAgreement
+     * @example
+     * // Get one DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseAgreementFindFirstArgs>(args?: SelectSubset<T, DisputeCaseAgreementFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAgreement that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseAgreement
+     * @example
+     * // Get one DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseAgreementFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseAgreementFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseAgreements that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseAgreements
+     * const disputeCaseAgreements = await prisma.disputeCaseAgreement.findMany()
+     * 
+     * // Get first 10 DisputeCaseAgreements
+     * const disputeCaseAgreements = await prisma.disputeCaseAgreement.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseAgreementWithIdOnly = await prisma.disputeCaseAgreement.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseAgreementFindManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseAgreement.
+     * @param {DisputeCaseAgreementCreateArgs} args - Arguments to create a DisputeCaseAgreement.
+     * @example
+     * // Create one DisputeCaseAgreement
+     * const DisputeCaseAgreement = await prisma.disputeCaseAgreement.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseAgreement
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseAgreementCreateArgs>(args: SelectSubset<T, DisputeCaseAgreementCreateArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseAgreements.
+     * @param {DisputeCaseAgreementCreateManyArgs} args - Arguments to create many DisputeCaseAgreements.
+     * @example
+     * // Create many DisputeCaseAgreements
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseAgreementCreateManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseAgreements and returns the data saved in the database.
+     * @param {DisputeCaseAgreementCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseAgreements.
+     * @example
+     * // Create many DisputeCaseAgreements
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseAgreements and only return the `id`
+     * const disputeCaseAgreementWithIdOnly = await prisma.disputeCaseAgreement.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseAgreementCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseAgreementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseAgreement.
+     * @param {DisputeCaseAgreementDeleteArgs} args - Arguments to delete one DisputeCaseAgreement.
+     * @example
+     * // Delete one DisputeCaseAgreement
+     * const DisputeCaseAgreement = await prisma.disputeCaseAgreement.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseAgreement
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseAgreementDeleteArgs>(args: SelectSubset<T, DisputeCaseAgreementDeleteArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseAgreement.
+     * @param {DisputeCaseAgreementUpdateArgs} args - Arguments to update one DisputeCaseAgreement.
+     * @example
+     * // Update one DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseAgreementUpdateArgs>(args: SelectSubset<T, DisputeCaseAgreementUpdateArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseAgreements.
+     * @param {DisputeCaseAgreementDeleteManyArgs} args - Arguments to filter DisputeCaseAgreements to delete.
+     * @example
+     * // Delete a few DisputeCaseAgreements
+     * const { count } = await prisma.disputeCaseAgreement.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseAgreementDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseAgreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseAgreements
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseAgreementUpdateManyArgs>(args: SelectSubset<T, DisputeCaseAgreementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseAgreement.
+     * @param {DisputeCaseAgreementUpsertArgs} args - Arguments to update or create a DisputeCaseAgreement.
+     * @example
+     * // Update or create a DisputeCaseAgreement
+     * const disputeCaseAgreement = await prisma.disputeCaseAgreement.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseAgreement
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseAgreement we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseAgreementUpsertArgs>(args: SelectSubset<T, DisputeCaseAgreementUpsertArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseAgreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementCountArgs} args - Arguments to filter DisputeCaseAgreements to count.
+     * @example
+     * // Count the number of DisputeCaseAgreements
+     * const count = await prisma.disputeCaseAgreement.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseAgreements we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseAgreementCountArgs>(
+      args?: Subset<T, DisputeCaseAgreementCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseAgreementCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseAgreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseAgreementAggregateArgs>(args: Subset<T, DisputeCaseAgreementAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseAgreementAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseAgreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseAgreementGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseAgreementGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseAgreementGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseAgreementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseAgreementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseAgreement model
+   */
+  readonly fields: DisputeCaseAgreementFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseAgreement.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseAgreementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends DisputeCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseDefaultArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    confirmations<T extends DisputeCaseAgreement$confirmationsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAgreement$confirmationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseAgreement model
+   */ 
+  interface DisputeCaseAgreementFieldRefs {
+    readonly id: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly caseId: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly outcome: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly contentHash: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly note: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly proposedBy: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly status: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly agreedAt: FieldRef<"DisputeCaseAgreement", 'DateTime'>
+    readonly findingId: FieldRef<"DisputeCaseAgreement", 'String'>
+    readonly createdAt: FieldRef<"DisputeCaseAgreement", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAgreement findUnique
+   */
+  export type DisputeCaseAgreementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreement to fetch.
+     */
+    where: DisputeCaseAgreementWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreement findUniqueOrThrow
+   */
+  export type DisputeCaseAgreementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreement to fetch.
+     */
+    where: DisputeCaseAgreementWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreement findFirst
+   */
+  export type DisputeCaseAgreementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreement to fetch.
+     */
+    where?: DisputeCaseAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreements to fetch.
+     */
+    orderBy?: DisputeCaseAgreementOrderByWithRelationInput | DisputeCaseAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAgreements.
+     */
+    cursor?: DisputeCaseAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAgreements.
+     */
+    distinct?: DisputeCaseAgreementScalarFieldEnum | DisputeCaseAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreement findFirstOrThrow
+   */
+  export type DisputeCaseAgreementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreement to fetch.
+     */
+    where?: DisputeCaseAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreements to fetch.
+     */
+    orderBy?: DisputeCaseAgreementOrderByWithRelationInput | DisputeCaseAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAgreements.
+     */
+    cursor?: DisputeCaseAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAgreements.
+     */
+    distinct?: DisputeCaseAgreementScalarFieldEnum | DisputeCaseAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreement findMany
+   */
+  export type DisputeCaseAgreementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreements to fetch.
+     */
+    where?: DisputeCaseAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreements to fetch.
+     */
+    orderBy?: DisputeCaseAgreementOrderByWithRelationInput | DisputeCaseAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseAgreements.
+     */
+    cursor?: DisputeCaseAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreements.
+     */
+    skip?: number
+    distinct?: DisputeCaseAgreementScalarFieldEnum | DisputeCaseAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreement create
+   */
+  export type DisputeCaseAgreementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseAgreement.
+     */
+    data: XOR<DisputeCaseAgreementCreateInput, DisputeCaseAgreementUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseAgreement createMany
+   */
+  export type DisputeCaseAgreementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseAgreements.
+     */
+    data: DisputeCaseAgreementCreateManyInput | DisputeCaseAgreementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseAgreement createManyAndReturn
+   */
+  export type DisputeCaseAgreementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseAgreements.
+     */
+    data: DisputeCaseAgreementCreateManyInput | DisputeCaseAgreementCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAgreement update
+   */
+  export type DisputeCaseAgreementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseAgreement.
+     */
+    data: XOR<DisputeCaseAgreementUpdateInput, DisputeCaseAgreementUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseAgreement to update.
+     */
+    where: DisputeCaseAgreementWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreement updateMany
+   */
+  export type DisputeCaseAgreementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseAgreements.
+     */
+    data: XOR<DisputeCaseAgreementUpdateManyMutationInput, DisputeCaseAgreementUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseAgreements to update
+     */
+    where?: DisputeCaseAgreementWhereInput
+  }
+
+  /**
+   * DisputeCaseAgreement upsert
+   */
+  export type DisputeCaseAgreementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseAgreement to update in case it exists.
+     */
+    where: DisputeCaseAgreementWhereUniqueInput
+    /**
+     * In case the DisputeCaseAgreement found by the `where` argument doesn't exist, create a new DisputeCaseAgreement with this data.
+     */
+    create: XOR<DisputeCaseAgreementCreateInput, DisputeCaseAgreementUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseAgreement was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseAgreementUpdateInput, DisputeCaseAgreementUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseAgreement delete
+   */
+  export type DisputeCaseAgreementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseAgreement to delete.
+     */
+    where: DisputeCaseAgreementWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreement deleteMany
+   */
+  export type DisputeCaseAgreementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAgreements to delete
+     */
+    where?: DisputeCaseAgreementWhereInput
+  }
+
+  /**
+   * DisputeCaseAgreement.confirmations
+   */
+  export type DisputeCaseAgreement$confirmationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithRelationInput | DisputeCaseAgreementConfirmationOrderByWithRelationInput[]
+    cursor?: DisputeCaseAgreementConfirmationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseAgreementConfirmationScalarFieldEnum | DisputeCaseAgreementConfirmationScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreement without action
+   */
+  export type DisputeCaseAgreementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreement
+     */
+    select?: DisputeCaseAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseAgreementConfirmation
+   */
+
+  export type AggregateDisputeCaseAgreementConfirmation = {
+    _count: DisputeCaseAgreementConfirmationCountAggregateOutputType | null
+    _min: DisputeCaseAgreementConfirmationMinAggregateOutputType | null
+    _max: DisputeCaseAgreementConfirmationMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseAgreementConfirmationMinAggregateOutputType = {
+    id: string | null
+    agreementId: string | null
+    partyRole: string | null
+    userId: string | null
+    confirmedHash: string | null
+    confirmedAt: Date | null
+  }
+
+  export type DisputeCaseAgreementConfirmationMaxAggregateOutputType = {
+    id: string | null
+    agreementId: string | null
+    partyRole: string | null
+    userId: string | null
+    confirmedHash: string | null
+    confirmedAt: Date | null
+  }
+
+  export type DisputeCaseAgreementConfirmationCountAggregateOutputType = {
+    id: number
+    agreementId: number
+    partyRole: number
+    userId: number
+    confirmedHash: number
+    confirmedAt: number
+    _all: number
+  }
+
+
+  export type DisputeCaseAgreementConfirmationMinAggregateInputType = {
+    id?: true
+    agreementId?: true
+    partyRole?: true
+    userId?: true
+    confirmedHash?: true
+    confirmedAt?: true
+  }
+
+  export type DisputeCaseAgreementConfirmationMaxAggregateInputType = {
+    id?: true
+    agreementId?: true
+    partyRole?: true
+    userId?: true
+    confirmedHash?: true
+    confirmedAt?: true
+  }
+
+  export type DisputeCaseAgreementConfirmationCountAggregateInputType = {
+    id?: true
+    agreementId?: true
+    partyRole?: true
+    userId?: true
+    confirmedHash?: true
+    confirmedAt?: true
+    _all?: true
+  }
+
+  export type DisputeCaseAgreementConfirmationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAgreementConfirmation to aggregate.
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreementConfirmations to fetch.
+     */
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithRelationInput | DisputeCaseAgreementConfirmationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseAgreementConfirmationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreementConfirmations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreementConfirmations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseAgreementConfirmations
+    **/
+    _count?: true | DisputeCaseAgreementConfirmationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseAgreementConfirmationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseAgreementConfirmationMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseAgreementConfirmationAggregateType<T extends DisputeCaseAgreementConfirmationAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseAgreementConfirmation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseAgreementConfirmation[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseAgreementConfirmation[P]>
+  }
+
+
+
+
+  export type DisputeCaseAgreementConfirmationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithAggregationInput | DisputeCaseAgreementConfirmationOrderByWithAggregationInput[]
+    by: DisputeCaseAgreementConfirmationScalarFieldEnum[] | DisputeCaseAgreementConfirmationScalarFieldEnum
+    having?: DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseAgreementConfirmationCountAggregateInputType | true
+    _min?: DisputeCaseAgreementConfirmationMinAggregateInputType
+    _max?: DisputeCaseAgreementConfirmationMaxAggregateInputType
+  }
+
+  export type DisputeCaseAgreementConfirmationGroupByOutputType = {
+    id: string
+    agreementId: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt: Date
+    _count: DisputeCaseAgreementConfirmationCountAggregateOutputType | null
+    _min: DisputeCaseAgreementConfirmationMinAggregateOutputType | null
+    _max: DisputeCaseAgreementConfirmationMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseAgreementConfirmationGroupByPayload<T extends DisputeCaseAgreementConfirmationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseAgreementConfirmationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseAgreementConfirmationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseAgreementConfirmationGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseAgreementConfirmationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseAgreementConfirmationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    agreementId?: boolean
+    partyRole?: boolean
+    userId?: boolean
+    confirmedHash?: boolean
+    confirmedAt?: boolean
+    agreement?: boolean | DisputeCaseAgreementDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAgreementConfirmation"]>
+
+  export type DisputeCaseAgreementConfirmationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    agreementId?: boolean
+    partyRole?: boolean
+    userId?: boolean
+    confirmedHash?: boolean
+    confirmedAt?: boolean
+    agreement?: boolean | DisputeCaseAgreementDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAgreementConfirmation"]>
+
+  export type DisputeCaseAgreementConfirmationSelectScalar = {
+    id?: boolean
+    agreementId?: boolean
+    partyRole?: boolean
+    userId?: boolean
+    confirmedHash?: boolean
+    confirmedAt?: boolean
+  }
+
+  export type DisputeCaseAgreementConfirmationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agreement?: boolean | DisputeCaseAgreementDefaultArgs<ExtArgs>
+  }
+  export type DisputeCaseAgreementConfirmationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agreement?: boolean | DisputeCaseAgreementDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseAgreementConfirmationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseAgreementConfirmation"
+    objects: {
+      agreement: Prisma.$DisputeCaseAgreementPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      agreementId: string
+      partyRole: string
+      userId: string
+      confirmedHash: string
+      confirmedAt: Date
+    }, ExtArgs["result"]["disputeCaseAgreementConfirmation"]>
+    composites: {}
+  }
+
+  type DisputeCaseAgreementConfirmationGetPayload<S extends boolean | null | undefined | DisputeCaseAgreementConfirmationDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload, S>
+
+  type DisputeCaseAgreementConfirmationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseAgreementConfirmationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseAgreementConfirmationCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseAgreementConfirmationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseAgreementConfirmation'], meta: { name: 'DisputeCaseAgreementConfirmation' } }
+    /**
+     * Find zero or one DisputeCaseAgreementConfirmation that matches the filter.
+     * @param {DisputeCaseAgreementConfirmationFindUniqueArgs} args - Arguments to find a DisputeCaseAgreementConfirmation
+     * @example
+     * // Get one DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseAgreementConfirmationFindUniqueArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseAgreementConfirmation that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseAgreementConfirmationFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseAgreementConfirmation
+     * @example
+     * // Get one DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseAgreementConfirmationFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAgreementConfirmation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationFindFirstArgs} args - Arguments to find a DisputeCaseAgreementConfirmation
+     * @example
+     * // Get one DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseAgreementConfirmationFindFirstArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAgreementConfirmation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseAgreementConfirmation
+     * @example
+     * // Get one DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseAgreementConfirmationFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseAgreementConfirmations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseAgreementConfirmations
+     * const disputeCaseAgreementConfirmations = await prisma.disputeCaseAgreementConfirmation.findMany()
+     * 
+     * // Get first 10 DisputeCaseAgreementConfirmations
+     * const disputeCaseAgreementConfirmations = await prisma.disputeCaseAgreementConfirmation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseAgreementConfirmationWithIdOnly = await prisma.disputeCaseAgreementConfirmation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseAgreementConfirmationFindManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseAgreementConfirmation.
+     * @param {DisputeCaseAgreementConfirmationCreateArgs} args - Arguments to create a DisputeCaseAgreementConfirmation.
+     * @example
+     * // Create one DisputeCaseAgreementConfirmation
+     * const DisputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseAgreementConfirmation
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseAgreementConfirmationCreateArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationCreateArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseAgreementConfirmations.
+     * @param {DisputeCaseAgreementConfirmationCreateManyArgs} args - Arguments to create many DisputeCaseAgreementConfirmations.
+     * @example
+     * // Create many DisputeCaseAgreementConfirmations
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseAgreementConfirmationCreateManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseAgreementConfirmations and returns the data saved in the database.
+     * @param {DisputeCaseAgreementConfirmationCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseAgreementConfirmations.
+     * @example
+     * // Create many DisputeCaseAgreementConfirmations
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseAgreementConfirmations and only return the `id`
+     * const disputeCaseAgreementConfirmationWithIdOnly = await prisma.disputeCaseAgreementConfirmation.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseAgreementConfirmationCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseAgreementConfirmation.
+     * @param {DisputeCaseAgreementConfirmationDeleteArgs} args - Arguments to delete one DisputeCaseAgreementConfirmation.
+     * @example
+     * // Delete one DisputeCaseAgreementConfirmation
+     * const DisputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseAgreementConfirmation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseAgreementConfirmationDeleteArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationDeleteArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseAgreementConfirmation.
+     * @param {DisputeCaseAgreementConfirmationUpdateArgs} args - Arguments to update one DisputeCaseAgreementConfirmation.
+     * @example
+     * // Update one DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseAgreementConfirmationUpdateArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationUpdateArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseAgreementConfirmations.
+     * @param {DisputeCaseAgreementConfirmationDeleteManyArgs} args - Arguments to filter DisputeCaseAgreementConfirmations to delete.
+     * @example
+     * // Delete a few DisputeCaseAgreementConfirmations
+     * const { count } = await prisma.disputeCaseAgreementConfirmation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseAgreementConfirmationDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseAgreementConfirmationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseAgreementConfirmations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseAgreementConfirmations
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseAgreementConfirmationUpdateManyArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseAgreementConfirmation.
+     * @param {DisputeCaseAgreementConfirmationUpsertArgs} args - Arguments to update or create a DisputeCaseAgreementConfirmation.
+     * @example
+     * // Update or create a DisputeCaseAgreementConfirmation
+     * const disputeCaseAgreementConfirmation = await prisma.disputeCaseAgreementConfirmation.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseAgreementConfirmation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseAgreementConfirmation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseAgreementConfirmationUpsertArgs>(args: SelectSubset<T, DisputeCaseAgreementConfirmationUpsertArgs<ExtArgs>>): Prisma__DisputeCaseAgreementConfirmationClient<$Result.GetResult<Prisma.$DisputeCaseAgreementConfirmationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseAgreementConfirmations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationCountArgs} args - Arguments to filter DisputeCaseAgreementConfirmations to count.
+     * @example
+     * // Count the number of DisputeCaseAgreementConfirmations
+     * const count = await prisma.disputeCaseAgreementConfirmation.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseAgreementConfirmations we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseAgreementConfirmationCountArgs>(
+      args?: Subset<T, DisputeCaseAgreementConfirmationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseAgreementConfirmationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseAgreementConfirmation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseAgreementConfirmationAggregateArgs>(args: Subset<T, DisputeCaseAgreementConfirmationAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseAgreementConfirmationAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseAgreementConfirmation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAgreementConfirmationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseAgreementConfirmationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseAgreementConfirmationGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseAgreementConfirmationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseAgreementConfirmationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseAgreementConfirmationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseAgreementConfirmation model
+   */
+  readonly fields: DisputeCaseAgreementConfirmationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseAgreementConfirmation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseAgreementConfirmationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    agreement<T extends DisputeCaseAgreementDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAgreementDefaultArgs<ExtArgs>>): Prisma__DisputeCaseAgreementClient<$Result.GetResult<Prisma.$DisputeCaseAgreementPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseAgreementConfirmation model
+   */ 
+  interface DisputeCaseAgreementConfirmationFieldRefs {
+    readonly id: FieldRef<"DisputeCaseAgreementConfirmation", 'String'>
+    readonly agreementId: FieldRef<"DisputeCaseAgreementConfirmation", 'String'>
+    readonly partyRole: FieldRef<"DisputeCaseAgreementConfirmation", 'String'>
+    readonly userId: FieldRef<"DisputeCaseAgreementConfirmation", 'String'>
+    readonly confirmedHash: FieldRef<"DisputeCaseAgreementConfirmation", 'String'>
+    readonly confirmedAt: FieldRef<"DisputeCaseAgreementConfirmation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAgreementConfirmation findUnique
+   */
+  export type DisputeCaseAgreementConfirmationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreementConfirmation to fetch.
+     */
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation findUniqueOrThrow
+   */
+  export type DisputeCaseAgreementConfirmationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreementConfirmation to fetch.
+     */
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation findFirst
+   */
+  export type DisputeCaseAgreementConfirmationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreementConfirmation to fetch.
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreementConfirmations to fetch.
+     */
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithRelationInput | DisputeCaseAgreementConfirmationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAgreementConfirmations.
+     */
+    cursor?: DisputeCaseAgreementConfirmationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreementConfirmations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreementConfirmations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAgreementConfirmations.
+     */
+    distinct?: DisputeCaseAgreementConfirmationScalarFieldEnum | DisputeCaseAgreementConfirmationScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation findFirstOrThrow
+   */
+  export type DisputeCaseAgreementConfirmationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreementConfirmation to fetch.
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreementConfirmations to fetch.
+     */
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithRelationInput | DisputeCaseAgreementConfirmationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAgreementConfirmations.
+     */
+    cursor?: DisputeCaseAgreementConfirmationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreementConfirmations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreementConfirmations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAgreementConfirmations.
+     */
+    distinct?: DisputeCaseAgreementConfirmationScalarFieldEnum | DisputeCaseAgreementConfirmationScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation findMany
+   */
+  export type DisputeCaseAgreementConfirmationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAgreementConfirmations to fetch.
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAgreementConfirmations to fetch.
+     */
+    orderBy?: DisputeCaseAgreementConfirmationOrderByWithRelationInput | DisputeCaseAgreementConfirmationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseAgreementConfirmations.
+     */
+    cursor?: DisputeCaseAgreementConfirmationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAgreementConfirmations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAgreementConfirmations.
+     */
+    skip?: number
+    distinct?: DisputeCaseAgreementConfirmationScalarFieldEnum | DisputeCaseAgreementConfirmationScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation create
+   */
+  export type DisputeCaseAgreementConfirmationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseAgreementConfirmation.
+     */
+    data: XOR<DisputeCaseAgreementConfirmationCreateInput, DisputeCaseAgreementConfirmationUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation createMany
+   */
+  export type DisputeCaseAgreementConfirmationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseAgreementConfirmations.
+     */
+    data: DisputeCaseAgreementConfirmationCreateManyInput | DisputeCaseAgreementConfirmationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation createManyAndReturn
+   */
+  export type DisputeCaseAgreementConfirmationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseAgreementConfirmations.
+     */
+    data: DisputeCaseAgreementConfirmationCreateManyInput | DisputeCaseAgreementConfirmationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation update
+   */
+  export type DisputeCaseAgreementConfirmationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseAgreementConfirmation.
+     */
+    data: XOR<DisputeCaseAgreementConfirmationUpdateInput, DisputeCaseAgreementConfirmationUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseAgreementConfirmation to update.
+     */
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation updateMany
+   */
+  export type DisputeCaseAgreementConfirmationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseAgreementConfirmations.
+     */
+    data: XOR<DisputeCaseAgreementConfirmationUpdateManyMutationInput, DisputeCaseAgreementConfirmationUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseAgreementConfirmations to update
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation upsert
+   */
+  export type DisputeCaseAgreementConfirmationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseAgreementConfirmation to update in case it exists.
+     */
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+    /**
+     * In case the DisputeCaseAgreementConfirmation found by the `where` argument doesn't exist, create a new DisputeCaseAgreementConfirmation with this data.
+     */
+    create: XOR<DisputeCaseAgreementConfirmationCreateInput, DisputeCaseAgreementConfirmationUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseAgreementConfirmation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseAgreementConfirmationUpdateInput, DisputeCaseAgreementConfirmationUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation delete
+   */
+  export type DisputeCaseAgreementConfirmationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseAgreementConfirmation to delete.
+     */
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation deleteMany
+   */
+  export type DisputeCaseAgreementConfirmationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAgreementConfirmations to delete
+     */
+    where?: DisputeCaseAgreementConfirmationWhereInput
+  }
+
+  /**
+   * DisputeCaseAgreementConfirmation without action
+   */
+  export type DisputeCaseAgreementConfirmationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAgreementConfirmation
+     */
+    select?: DisputeCaseAgreementConfirmationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAgreementConfirmationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseAppeal
+   */
+
+  export type AggregateDisputeCaseAppeal = {
+    _count: DisputeCaseAppealCountAggregateOutputType | null
+    _min: DisputeCaseAppealMinAggregateOutputType | null
+    _max: DisputeCaseAppealMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseAppealMinAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    partyRole: string | null
+    requestedBy: string | null
+    reason: string | null
+    noticeRecordedAt: Date | null
+    status: string | null
+    reviewerId: string | null
+    reviewerAssignedBy: string | null
+    result: string | null
+    reasoning: string | null
+    previousFindingId: string | null
+    newFindingId: string | null
+    decidedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseAppealMaxAggregateOutputType = {
+    id: string | null
+    caseId: string | null
+    partyRole: string | null
+    requestedBy: string | null
+    reason: string | null
+    noticeRecordedAt: Date | null
+    status: string | null
+    reviewerId: string | null
+    reviewerAssignedBy: string | null
+    result: string | null
+    reasoning: string | null
+    previousFindingId: string | null
+    newFindingId: string | null
+    decidedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseAppealCountAggregateOutputType = {
+    id: number
+    caseId: number
+    partyRole: number
+    requestedBy: number
+    reason: number
+    noticeRecordedAt: number
+    status: number
+    reviewerId: number
+    reviewerAssignedBy: number
+    result: number
+    reasoning: number
+    previousFindingId: number
+    newFindingId: number
+    decidedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeCaseAppealMinAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    requestedBy?: true
+    reason?: true
+    noticeRecordedAt?: true
+    status?: true
+    reviewerId?: true
+    reviewerAssignedBy?: true
+    result?: true
+    reasoning?: true
+    previousFindingId?: true
+    newFindingId?: true
+    decidedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseAppealMaxAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    requestedBy?: true
+    reason?: true
+    noticeRecordedAt?: true
+    status?: true
+    reviewerId?: true
+    reviewerAssignedBy?: true
+    result?: true
+    reasoning?: true
+    previousFindingId?: true
+    newFindingId?: true
+    decidedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseAppealCountAggregateInputType = {
+    id?: true
+    caseId?: true
+    partyRole?: true
+    requestedBy?: true
+    reason?: true
+    noticeRecordedAt?: true
+    status?: true
+    reviewerId?: true
+    reviewerAssignedBy?: true
+    result?: true
+    reasoning?: true
+    previousFindingId?: true
+    newFindingId?: true
+    decidedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeCaseAppealAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAppeal to aggregate.
+     */
+    where?: DisputeCaseAppealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppeals to fetch.
+     */
+    orderBy?: DisputeCaseAppealOrderByWithRelationInput | DisputeCaseAppealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseAppealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseAppeals
+    **/
+    _count?: true | DisputeCaseAppealCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseAppealMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseAppealMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseAppealAggregateType<T extends DisputeCaseAppealAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseAppeal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseAppeal[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseAppeal[P]>
+  }
+
+
+
+
+  export type DisputeCaseAppealGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAppealWhereInput
+    orderBy?: DisputeCaseAppealOrderByWithAggregationInput | DisputeCaseAppealOrderByWithAggregationInput[]
+    by: DisputeCaseAppealScalarFieldEnum[] | DisputeCaseAppealScalarFieldEnum
+    having?: DisputeCaseAppealScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseAppealCountAggregateInputType | true
+    _min?: DisputeCaseAppealMinAggregateInputType
+    _max?: DisputeCaseAppealMaxAggregateInputType
+  }
+
+  export type DisputeCaseAppealGroupByOutputType = {
+    id: string
+    caseId: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date
+    status: string
+    reviewerId: string | null
+    reviewerAssignedBy: string | null
+    result: string | null
+    reasoning: string | null
+    previousFindingId: string | null
+    newFindingId: string | null
+    decidedAt: Date | null
+    createdAt: Date
+    _count: DisputeCaseAppealCountAggregateOutputType | null
+    _min: DisputeCaseAppealMinAggregateOutputType | null
+    _max: DisputeCaseAppealMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseAppealGroupByPayload<T extends DisputeCaseAppealGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseAppealGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseAppealGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseAppealGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseAppealGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseAppealSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    requestedBy?: boolean
+    reason?: boolean
+    noticeRecordedAt?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewerAssignedBy?: boolean
+    result?: boolean
+    reasoning?: boolean
+    previousFindingId?: boolean
+    newFindingId?: boolean
+    decidedAt?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    consequences?: boolean | DisputeCaseAppeal$consequencesArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAppealCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAppeal"]>
+
+  export type DisputeCaseAppealSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    requestedBy?: boolean
+    reason?: boolean
+    noticeRecordedAt?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewerAssignedBy?: boolean
+    result?: boolean
+    reasoning?: boolean
+    previousFindingId?: boolean
+    newFindingId?: boolean
+    decidedAt?: boolean
+    createdAt?: boolean
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAppeal"]>
+
+  export type DisputeCaseAppealSelectScalar = {
+    id?: boolean
+    caseId?: boolean
+    partyRole?: boolean
+    requestedBy?: boolean
+    reason?: boolean
+    noticeRecordedAt?: boolean
+    status?: boolean
+    reviewerId?: boolean
+    reviewerAssignedBy?: boolean
+    result?: boolean
+    reasoning?: boolean
+    previousFindingId?: boolean
+    newFindingId?: boolean
+    decidedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeCaseAppealInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    consequences?: boolean | DisputeCaseAppeal$consequencesArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAppealCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DisputeCaseAppealIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseAppealPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseAppeal"
+    objects: {
+      case: Prisma.$DisputeCasePayload<ExtArgs>
+      consequences: Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      caseId: string
+      partyRole: string
+      requestedBy: string
+      reason: string
+      noticeRecordedAt: Date
+      status: string
+      reviewerId: string | null
+      reviewerAssignedBy: string | null
+      result: string | null
+      reasoning: string | null
+      previousFindingId: string | null
+      newFindingId: string | null
+      decidedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeCaseAppeal"]>
+    composites: {}
+  }
+
+  type DisputeCaseAppealGetPayload<S extends boolean | null | undefined | DisputeCaseAppealDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseAppealPayload, S>
+
+  type DisputeCaseAppealCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseAppealFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseAppealCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseAppealDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseAppeal'], meta: { name: 'DisputeCaseAppeal' } }
+    /**
+     * Find zero or one DisputeCaseAppeal that matches the filter.
+     * @param {DisputeCaseAppealFindUniqueArgs} args - Arguments to find a DisputeCaseAppeal
+     * @example
+     * // Get one DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseAppealFindUniqueArgs>(args: SelectSubset<T, DisputeCaseAppealFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseAppeal that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseAppealFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseAppeal
+     * @example
+     * // Get one DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseAppealFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseAppealFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAppeal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealFindFirstArgs} args - Arguments to find a DisputeCaseAppeal
+     * @example
+     * // Get one DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseAppealFindFirstArgs>(args?: SelectSubset<T, DisputeCaseAppealFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAppeal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseAppeal
+     * @example
+     * // Get one DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseAppealFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseAppealFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseAppeals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseAppeals
+     * const disputeCaseAppeals = await prisma.disputeCaseAppeal.findMany()
+     * 
+     * // Get first 10 DisputeCaseAppeals
+     * const disputeCaseAppeals = await prisma.disputeCaseAppeal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseAppealWithIdOnly = await prisma.disputeCaseAppeal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseAppealFindManyArgs>(args?: SelectSubset<T, DisputeCaseAppealFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseAppeal.
+     * @param {DisputeCaseAppealCreateArgs} args - Arguments to create a DisputeCaseAppeal.
+     * @example
+     * // Create one DisputeCaseAppeal
+     * const DisputeCaseAppeal = await prisma.disputeCaseAppeal.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseAppeal
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseAppealCreateArgs>(args: SelectSubset<T, DisputeCaseAppealCreateArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseAppeals.
+     * @param {DisputeCaseAppealCreateManyArgs} args - Arguments to create many DisputeCaseAppeals.
+     * @example
+     * // Create many DisputeCaseAppeals
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseAppealCreateManyArgs>(args?: SelectSubset<T, DisputeCaseAppealCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseAppeals and returns the data saved in the database.
+     * @param {DisputeCaseAppealCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseAppeals.
+     * @example
+     * // Create many DisputeCaseAppeals
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseAppeals and only return the `id`
+     * const disputeCaseAppealWithIdOnly = await prisma.disputeCaseAppeal.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseAppealCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseAppealCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseAppeal.
+     * @param {DisputeCaseAppealDeleteArgs} args - Arguments to delete one DisputeCaseAppeal.
+     * @example
+     * // Delete one DisputeCaseAppeal
+     * const DisputeCaseAppeal = await prisma.disputeCaseAppeal.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseAppeal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseAppealDeleteArgs>(args: SelectSubset<T, DisputeCaseAppealDeleteArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseAppeal.
+     * @param {DisputeCaseAppealUpdateArgs} args - Arguments to update one DisputeCaseAppeal.
+     * @example
+     * // Update one DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseAppealUpdateArgs>(args: SelectSubset<T, DisputeCaseAppealUpdateArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseAppeals.
+     * @param {DisputeCaseAppealDeleteManyArgs} args - Arguments to filter DisputeCaseAppeals to delete.
+     * @example
+     * // Delete a few DisputeCaseAppeals
+     * const { count } = await prisma.disputeCaseAppeal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseAppealDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseAppealDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseAppeals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseAppeals
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseAppealUpdateManyArgs>(args: SelectSubset<T, DisputeCaseAppealUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseAppeal.
+     * @param {DisputeCaseAppealUpsertArgs} args - Arguments to update or create a DisputeCaseAppeal.
+     * @example
+     * // Update or create a DisputeCaseAppeal
+     * const disputeCaseAppeal = await prisma.disputeCaseAppeal.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseAppeal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseAppeal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseAppealUpsertArgs>(args: SelectSubset<T, DisputeCaseAppealUpsertArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseAppeals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealCountArgs} args - Arguments to filter DisputeCaseAppeals to count.
+     * @example
+     * // Count the number of DisputeCaseAppeals
+     * const count = await prisma.disputeCaseAppeal.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseAppeals we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseAppealCountArgs>(
+      args?: Subset<T, DisputeCaseAppealCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseAppealCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseAppeal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseAppealAggregateArgs>(args: Subset<T, DisputeCaseAppealAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseAppealAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseAppeal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseAppealGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseAppealGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseAppealGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseAppealGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseAppealGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseAppeal model
+   */
+  readonly fields: DisputeCaseAppealFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseAppeal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseAppealClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    case<T extends DisputeCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseDefaultArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    consequences<T extends DisputeCaseAppeal$consequencesArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAppeal$consequencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseAppeal model
+   */ 
+  interface DisputeCaseAppealFieldRefs {
+    readonly id: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly caseId: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly partyRole: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly requestedBy: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly reason: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly noticeRecordedAt: FieldRef<"DisputeCaseAppeal", 'DateTime'>
+    readonly status: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly reviewerId: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly reviewerAssignedBy: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly result: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly reasoning: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly previousFindingId: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly newFindingId: FieldRef<"DisputeCaseAppeal", 'String'>
+    readonly decidedAt: FieldRef<"DisputeCaseAppeal", 'DateTime'>
+    readonly createdAt: FieldRef<"DisputeCaseAppeal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAppeal findUnique
+   */
+  export type DisputeCaseAppealFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppeal to fetch.
+     */
+    where: DisputeCaseAppealWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppeal findUniqueOrThrow
+   */
+  export type DisputeCaseAppealFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppeal to fetch.
+     */
+    where: DisputeCaseAppealWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppeal findFirst
+   */
+  export type DisputeCaseAppealFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppeal to fetch.
+     */
+    where?: DisputeCaseAppealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppeals to fetch.
+     */
+    orderBy?: DisputeCaseAppealOrderByWithRelationInput | DisputeCaseAppealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAppeals.
+     */
+    cursor?: DisputeCaseAppealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAppeals.
+     */
+    distinct?: DisputeCaseAppealScalarFieldEnum | DisputeCaseAppealScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppeal findFirstOrThrow
+   */
+  export type DisputeCaseAppealFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppeal to fetch.
+     */
+    where?: DisputeCaseAppealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppeals to fetch.
+     */
+    orderBy?: DisputeCaseAppealOrderByWithRelationInput | DisputeCaseAppealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAppeals.
+     */
+    cursor?: DisputeCaseAppealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAppeals.
+     */
+    distinct?: DisputeCaseAppealScalarFieldEnum | DisputeCaseAppealScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppeal findMany
+   */
+  export type DisputeCaseAppealFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppeals to fetch.
+     */
+    where?: DisputeCaseAppealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppeals to fetch.
+     */
+    orderBy?: DisputeCaseAppealOrderByWithRelationInput | DisputeCaseAppealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseAppeals.
+     */
+    cursor?: DisputeCaseAppealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppeals.
+     */
+    skip?: number
+    distinct?: DisputeCaseAppealScalarFieldEnum | DisputeCaseAppealScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppeal create
+   */
+  export type DisputeCaseAppealCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseAppeal.
+     */
+    data: XOR<DisputeCaseAppealCreateInput, DisputeCaseAppealUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseAppeal createMany
+   */
+  export type DisputeCaseAppealCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseAppeals.
+     */
+    data: DisputeCaseAppealCreateManyInput | DisputeCaseAppealCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseAppeal createManyAndReturn
+   */
+  export type DisputeCaseAppealCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseAppeals.
+     */
+    data: DisputeCaseAppealCreateManyInput | DisputeCaseAppealCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAppeal update
+   */
+  export type DisputeCaseAppealUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseAppeal.
+     */
+    data: XOR<DisputeCaseAppealUpdateInput, DisputeCaseAppealUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseAppeal to update.
+     */
+    where: DisputeCaseAppealWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppeal updateMany
+   */
+  export type DisputeCaseAppealUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseAppeals.
+     */
+    data: XOR<DisputeCaseAppealUpdateManyMutationInput, DisputeCaseAppealUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseAppeals to update
+     */
+    where?: DisputeCaseAppealWhereInput
+  }
+
+  /**
+   * DisputeCaseAppeal upsert
+   */
+  export type DisputeCaseAppealUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseAppeal to update in case it exists.
+     */
+    where: DisputeCaseAppealWhereUniqueInput
+    /**
+     * In case the DisputeCaseAppeal found by the `where` argument doesn't exist, create a new DisputeCaseAppeal with this data.
+     */
+    create: XOR<DisputeCaseAppealCreateInput, DisputeCaseAppealUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseAppeal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseAppealUpdateInput, DisputeCaseAppealUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseAppeal delete
+   */
+  export type DisputeCaseAppealDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseAppeal to delete.
+     */
+    where: DisputeCaseAppealWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppeal deleteMany
+   */
+  export type DisputeCaseAppealDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAppeals to delete
+     */
+    where?: DisputeCaseAppealWhereInput
+  }
+
+  /**
+   * DisputeCaseAppeal.consequences
+   */
+  export type DisputeCaseAppeal$consequencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    where?: DisputeCaseAppealConsequenceWhereInput
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithRelationInput | DisputeCaseAppealConsequenceOrderByWithRelationInput[]
+    cursor?: DisputeCaseAppealConsequenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseAppealConsequenceScalarFieldEnum | DisputeCaseAppealConsequenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppeal without action
+   */
+  export type DisputeCaseAppealDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppeal
+     */
+    select?: DisputeCaseAppealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseAppealConsequence
+   */
+
+  export type AggregateDisputeCaseAppealConsequence = {
+    _count: DisputeCaseAppealConsequenceCountAggregateOutputType | null
+    _min: DisputeCaseAppealConsequenceMinAggregateOutputType | null
+    _max: DisputeCaseAppealConsequenceMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseAppealConsequenceMinAggregateOutputType = {
+    id: string | null
+    appealId: string | null
+    caseId: string | null
+    kind: string | null
+    status: string | null
+    note: string | null
+    createdAt: Date | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+  }
+
+  export type DisputeCaseAppealConsequenceMaxAggregateOutputType = {
+    id: string | null
+    appealId: string | null
+    caseId: string | null
+    kind: string | null
+    status: string | null
+    note: string | null
+    createdAt: Date | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+  }
+
+  export type DisputeCaseAppealConsequenceCountAggregateOutputType = {
+    id: number
+    appealId: number
+    caseId: number
+    kind: number
+    status: number
+    detail: number
+    note: number
+    createdAt: number
+    resolvedAt: number
+    resolvedBy: number
+    _all: number
+  }
+
+
+  export type DisputeCaseAppealConsequenceMinAggregateInputType = {
+    id?: true
+    appealId?: true
+    caseId?: true
+    kind?: true
+    status?: true
+    note?: true
+    createdAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+  }
+
+  export type DisputeCaseAppealConsequenceMaxAggregateInputType = {
+    id?: true
+    appealId?: true
+    caseId?: true
+    kind?: true
+    status?: true
+    note?: true
+    createdAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+  }
+
+  export type DisputeCaseAppealConsequenceCountAggregateInputType = {
+    id?: true
+    appealId?: true
+    caseId?: true
+    kind?: true
+    status?: true
+    detail?: true
+    note?: true
+    createdAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    _all?: true
+  }
+
+  export type DisputeCaseAppealConsequenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAppealConsequence to aggregate.
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppealConsequences to fetch.
+     */
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithRelationInput | DisputeCaseAppealConsequenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseAppealConsequenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppealConsequences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppealConsequences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseAppealConsequences
+    **/
+    _count?: true | DisputeCaseAppealConsequenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseAppealConsequenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseAppealConsequenceMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseAppealConsequenceAggregateType<T extends DisputeCaseAppealConsequenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseAppealConsequence]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseAppealConsequence[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseAppealConsequence[P]>
+  }
+
+
+
+
+  export type DisputeCaseAppealConsequenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseAppealConsequenceWhereInput
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithAggregationInput | DisputeCaseAppealConsequenceOrderByWithAggregationInput[]
+    by: DisputeCaseAppealConsequenceScalarFieldEnum[] | DisputeCaseAppealConsequenceScalarFieldEnum
+    having?: DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseAppealConsequenceCountAggregateInputType | true
+    _min?: DisputeCaseAppealConsequenceMinAggregateInputType
+    _max?: DisputeCaseAppealConsequenceMaxAggregateInputType
+  }
+
+  export type DisputeCaseAppealConsequenceGroupByOutputType = {
+    id: string
+    appealId: string
+    caseId: string
+    kind: string
+    status: string
+    detail: JsonValue | null
+    note: string | null
+    createdAt: Date
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    _count: DisputeCaseAppealConsequenceCountAggregateOutputType | null
+    _min: DisputeCaseAppealConsequenceMinAggregateOutputType | null
+    _max: DisputeCaseAppealConsequenceMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseAppealConsequenceGroupByPayload<T extends DisputeCaseAppealConsequenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseAppealConsequenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseAppealConsequenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseAppealConsequenceGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseAppealConsequenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseAppealConsequenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    appealId?: boolean
+    caseId?: boolean
+    kind?: boolean
+    status?: boolean
+    detail?: boolean
+    note?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    appeal?: boolean | DisputeCaseAppealDefaultArgs<ExtArgs>
+    quotaCorrections?: boolean | DisputeCaseAppealConsequence$quotaCorrectionsArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAppealConsequenceCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAppealConsequence"]>
+
+  export type DisputeCaseAppealConsequenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    appealId?: boolean
+    caseId?: boolean
+    kind?: boolean
+    status?: boolean
+    detail?: boolean
+    note?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    appeal?: boolean | DisputeCaseAppealDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseAppealConsequence"]>
+
+  export type DisputeCaseAppealConsequenceSelectScalar = {
+    id?: boolean
+    appealId?: boolean
+    caseId?: boolean
+    kind?: boolean
+    status?: boolean
+    detail?: boolean
+    note?: boolean
+    createdAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+  }
+
+  export type DisputeCaseAppealConsequenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    appeal?: boolean | DisputeCaseAppealDefaultArgs<ExtArgs>
+    quotaCorrections?: boolean | DisputeCaseAppealConsequence$quotaCorrectionsArgs<ExtArgs>
+    _count?: boolean | DisputeCaseAppealConsequenceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DisputeCaseAppealConsequenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    appeal?: boolean | DisputeCaseAppealDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseAppealConsequencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseAppealConsequence"
+    objects: {
+      appeal: Prisma.$DisputeCaseAppealPayload<ExtArgs>
+      quotaCorrections: Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      appealId: string
+      caseId: string
+      kind: string
+      status: string
+      detail: Prisma.JsonValue | null
+      note: string | null
+      createdAt: Date
+      resolvedAt: Date | null
+      resolvedBy: string | null
+    }, ExtArgs["result"]["disputeCaseAppealConsequence"]>
+    composites: {}
+  }
+
+  type DisputeCaseAppealConsequenceGetPayload<S extends boolean | null | undefined | DisputeCaseAppealConsequenceDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload, S>
+
+  type DisputeCaseAppealConsequenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseAppealConsequenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseAppealConsequenceCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseAppealConsequenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseAppealConsequence'], meta: { name: 'DisputeCaseAppealConsequence' } }
+    /**
+     * Find zero or one DisputeCaseAppealConsequence that matches the filter.
+     * @param {DisputeCaseAppealConsequenceFindUniqueArgs} args - Arguments to find a DisputeCaseAppealConsequence
+     * @example
+     * // Get one DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseAppealConsequenceFindUniqueArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseAppealConsequence that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseAppealConsequenceFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseAppealConsequence
+     * @example
+     * // Get one DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseAppealConsequenceFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAppealConsequence that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceFindFirstArgs} args - Arguments to find a DisputeCaseAppealConsequence
+     * @example
+     * // Get one DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseAppealConsequenceFindFirstArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseAppealConsequence that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseAppealConsequence
+     * @example
+     * // Get one DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseAppealConsequenceFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseAppealConsequences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseAppealConsequences
+     * const disputeCaseAppealConsequences = await prisma.disputeCaseAppealConsequence.findMany()
+     * 
+     * // Get first 10 DisputeCaseAppealConsequences
+     * const disputeCaseAppealConsequences = await prisma.disputeCaseAppealConsequence.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseAppealConsequenceWithIdOnly = await prisma.disputeCaseAppealConsequence.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseAppealConsequenceFindManyArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseAppealConsequence.
+     * @param {DisputeCaseAppealConsequenceCreateArgs} args - Arguments to create a DisputeCaseAppealConsequence.
+     * @example
+     * // Create one DisputeCaseAppealConsequence
+     * const DisputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseAppealConsequence
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseAppealConsequenceCreateArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceCreateArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseAppealConsequences.
+     * @param {DisputeCaseAppealConsequenceCreateManyArgs} args - Arguments to create many DisputeCaseAppealConsequences.
+     * @example
+     * // Create many DisputeCaseAppealConsequences
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseAppealConsequenceCreateManyArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseAppealConsequences and returns the data saved in the database.
+     * @param {DisputeCaseAppealConsequenceCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseAppealConsequences.
+     * @example
+     * // Create many DisputeCaseAppealConsequences
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseAppealConsequences and only return the `id`
+     * const disputeCaseAppealConsequenceWithIdOnly = await prisma.disputeCaseAppealConsequence.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseAppealConsequenceCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseAppealConsequence.
+     * @param {DisputeCaseAppealConsequenceDeleteArgs} args - Arguments to delete one DisputeCaseAppealConsequence.
+     * @example
+     * // Delete one DisputeCaseAppealConsequence
+     * const DisputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseAppealConsequence
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseAppealConsequenceDeleteArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceDeleteArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseAppealConsequence.
+     * @param {DisputeCaseAppealConsequenceUpdateArgs} args - Arguments to update one DisputeCaseAppealConsequence.
+     * @example
+     * // Update one DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseAppealConsequenceUpdateArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceUpdateArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseAppealConsequences.
+     * @param {DisputeCaseAppealConsequenceDeleteManyArgs} args - Arguments to filter DisputeCaseAppealConsequences to delete.
+     * @example
+     * // Delete a few DisputeCaseAppealConsequences
+     * const { count } = await prisma.disputeCaseAppealConsequence.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseAppealConsequenceDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseAppealConsequenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseAppealConsequences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseAppealConsequences
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseAppealConsequenceUpdateManyArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseAppealConsequence.
+     * @param {DisputeCaseAppealConsequenceUpsertArgs} args - Arguments to update or create a DisputeCaseAppealConsequence.
+     * @example
+     * // Update or create a DisputeCaseAppealConsequence
+     * const disputeCaseAppealConsequence = await prisma.disputeCaseAppealConsequence.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseAppealConsequence
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseAppealConsequence we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseAppealConsequenceUpsertArgs>(args: SelectSubset<T, DisputeCaseAppealConsequenceUpsertArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseAppealConsequences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceCountArgs} args - Arguments to filter DisputeCaseAppealConsequences to count.
+     * @example
+     * // Count the number of DisputeCaseAppealConsequences
+     * const count = await prisma.disputeCaseAppealConsequence.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseAppealConsequences we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseAppealConsequenceCountArgs>(
+      args?: Subset<T, DisputeCaseAppealConsequenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseAppealConsequenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseAppealConsequence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseAppealConsequenceAggregateArgs>(args: Subset<T, DisputeCaseAppealConsequenceAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseAppealConsequenceAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseAppealConsequence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseAppealConsequenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseAppealConsequenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseAppealConsequenceGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseAppealConsequenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseAppealConsequenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseAppealConsequenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseAppealConsequence model
+   */
+  readonly fields: DisputeCaseAppealConsequenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseAppealConsequence.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseAppealConsequenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    appeal<T extends DisputeCaseAppealDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAppealDefaultArgs<ExtArgs>>): Prisma__DisputeCaseAppealClient<$Result.GetResult<Prisma.$DisputeCaseAppealPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    quotaCorrections<T extends DisputeCaseAppealConsequence$quotaCorrectionsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAppealConsequence$quotaCorrectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseAppealConsequence model
+   */ 
+  interface DisputeCaseAppealConsequenceFieldRefs {
+    readonly id: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly appealId: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly caseId: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly kind: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly status: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly detail: FieldRef<"DisputeCaseAppealConsequence", 'Json'>
+    readonly note: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+    readonly createdAt: FieldRef<"DisputeCaseAppealConsequence", 'DateTime'>
+    readonly resolvedAt: FieldRef<"DisputeCaseAppealConsequence", 'DateTime'>
+    readonly resolvedBy: FieldRef<"DisputeCaseAppealConsequence", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseAppealConsequence findUnique
+   */
+  export type DisputeCaseAppealConsequenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppealConsequence to fetch.
+     */
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence findUniqueOrThrow
+   */
+  export type DisputeCaseAppealConsequenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppealConsequence to fetch.
+     */
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence findFirst
+   */
+  export type DisputeCaseAppealConsequenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppealConsequence to fetch.
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppealConsequences to fetch.
+     */
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithRelationInput | DisputeCaseAppealConsequenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAppealConsequences.
+     */
+    cursor?: DisputeCaseAppealConsequenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppealConsequences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppealConsequences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAppealConsequences.
+     */
+    distinct?: DisputeCaseAppealConsequenceScalarFieldEnum | DisputeCaseAppealConsequenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppealConsequence findFirstOrThrow
+   */
+  export type DisputeCaseAppealConsequenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppealConsequence to fetch.
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppealConsequences to fetch.
+     */
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithRelationInput | DisputeCaseAppealConsequenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseAppealConsequences.
+     */
+    cursor?: DisputeCaseAppealConsequenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppealConsequences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppealConsequences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseAppealConsequences.
+     */
+    distinct?: DisputeCaseAppealConsequenceScalarFieldEnum | DisputeCaseAppealConsequenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppealConsequence findMany
+   */
+  export type DisputeCaseAppealConsequenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseAppealConsequences to fetch.
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseAppealConsequences to fetch.
+     */
+    orderBy?: DisputeCaseAppealConsequenceOrderByWithRelationInput | DisputeCaseAppealConsequenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseAppealConsequences.
+     */
+    cursor?: DisputeCaseAppealConsequenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseAppealConsequences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseAppealConsequences.
+     */
+    skip?: number
+    distinct?: DisputeCaseAppealConsequenceScalarFieldEnum | DisputeCaseAppealConsequenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppealConsequence create
+   */
+  export type DisputeCaseAppealConsequenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseAppealConsequence.
+     */
+    data: XOR<DisputeCaseAppealConsequenceCreateInput, DisputeCaseAppealConsequenceUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseAppealConsequence createMany
+   */
+  export type DisputeCaseAppealConsequenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseAppealConsequences.
+     */
+    data: DisputeCaseAppealConsequenceCreateManyInput | DisputeCaseAppealConsequenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseAppealConsequence createManyAndReturn
+   */
+  export type DisputeCaseAppealConsequenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseAppealConsequences.
+     */
+    data: DisputeCaseAppealConsequenceCreateManyInput | DisputeCaseAppealConsequenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseAppealConsequence update
+   */
+  export type DisputeCaseAppealConsequenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseAppealConsequence.
+     */
+    data: XOR<DisputeCaseAppealConsequenceUpdateInput, DisputeCaseAppealConsequenceUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseAppealConsequence to update.
+     */
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence updateMany
+   */
+  export type DisputeCaseAppealConsequenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseAppealConsequences.
+     */
+    data: XOR<DisputeCaseAppealConsequenceUpdateManyMutationInput, DisputeCaseAppealConsequenceUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseAppealConsequences to update
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence upsert
+   */
+  export type DisputeCaseAppealConsequenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseAppealConsequence to update in case it exists.
+     */
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+    /**
+     * In case the DisputeCaseAppealConsequence found by the `where` argument doesn't exist, create a new DisputeCaseAppealConsequence with this data.
+     */
+    create: XOR<DisputeCaseAppealConsequenceCreateInput, DisputeCaseAppealConsequenceUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseAppealConsequence was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseAppealConsequenceUpdateInput, DisputeCaseAppealConsequenceUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseAppealConsequence delete
+   */
+  export type DisputeCaseAppealConsequenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseAppealConsequence to delete.
+     */
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence deleteMany
+   */
+  export type DisputeCaseAppealConsequenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseAppealConsequences to delete
+     */
+    where?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+  /**
+   * DisputeCaseAppealConsequence.quotaCorrections
+   */
+  export type DisputeCaseAppealConsequence$quotaCorrectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithRelationInput | DisputeCaseQuotaCorrectionOrderByWithRelationInput[]
+    cursor?: DisputeCaseQuotaCorrectionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeCaseQuotaCorrectionScalarFieldEnum | DisputeCaseQuotaCorrectionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseAppealConsequence without action
+   */
+  export type DisputeCaseAppealConsequenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseAppealConsequence
+     */
+    select?: DisputeCaseAppealConsequenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseAppealConsequenceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeCaseQuotaCorrection
+   */
+
+  export type AggregateDisputeCaseQuotaCorrection = {
+    _count: DisputeCaseQuotaCorrectionCountAggregateOutputType | null
+    _avg: DisputeCaseQuotaCorrectionAvgAggregateOutputType | null
+    _sum: DisputeCaseQuotaCorrectionSumAggregateOutputType | null
+    _min: DisputeCaseQuotaCorrectionMinAggregateOutputType | null
+    _max: DisputeCaseQuotaCorrectionMaxAggregateOutputType | null
+  }
+
+  export type DisputeCaseQuotaCorrectionAvgAggregateOutputType = {
+    delta: number | null
+    usedBefore: number | null
+    usedAfter: number | null
+  }
+
+  export type DisputeCaseQuotaCorrectionSumAggregateOutputType = {
+    delta: number | null
+    usedBefore: number | null
+    usedAfter: number | null
+  }
+
+  export type DisputeCaseQuotaCorrectionMinAggregateOutputType = {
+    id: string | null
+    consequenceId: string | null
+    caseId: string | null
+    contractId: string | null
+    delta: number | null
+    reason: string | null
+    proposedBy: string | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    appliedAt: Date | null
+    usedBefore: number | null
+    usedAfter: number | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseQuotaCorrectionMaxAggregateOutputType = {
+    id: string | null
+    consequenceId: string | null
+    caseId: string | null
+    contractId: string | null
+    delta: number | null
+    reason: string | null
+    proposedBy: string | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    appliedAt: Date | null
+    usedBefore: number | null
+    usedAfter: number | null
+    createdAt: Date | null
+  }
+
+  export type DisputeCaseQuotaCorrectionCountAggregateOutputType = {
+    id: number
+    consequenceId: number
+    caseId: number
+    contractId: number
+    delta: number
+    reason: number
+    proposedBy: number
+    approvedBy: number
+    approvedAt: number
+    appliedAt: number
+    usedBefore: number
+    usedAfter: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeCaseQuotaCorrectionAvgAggregateInputType = {
+    delta?: true
+    usedBefore?: true
+    usedAfter?: true
+  }
+
+  export type DisputeCaseQuotaCorrectionSumAggregateInputType = {
+    delta?: true
+    usedBefore?: true
+    usedAfter?: true
+  }
+
+  export type DisputeCaseQuotaCorrectionMinAggregateInputType = {
+    id?: true
+    consequenceId?: true
+    caseId?: true
+    contractId?: true
+    delta?: true
+    reason?: true
+    proposedBy?: true
+    approvedBy?: true
+    approvedAt?: true
+    appliedAt?: true
+    usedBefore?: true
+    usedAfter?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseQuotaCorrectionMaxAggregateInputType = {
+    id?: true
+    consequenceId?: true
+    caseId?: true
+    contractId?: true
+    delta?: true
+    reason?: true
+    proposedBy?: true
+    approvedBy?: true
+    approvedAt?: true
+    appliedAt?: true
+    usedBefore?: true
+    usedAfter?: true
+    createdAt?: true
+  }
+
+  export type DisputeCaseQuotaCorrectionCountAggregateInputType = {
+    id?: true
+    consequenceId?: true
+    caseId?: true
+    contractId?: true
+    delta?: true
+    reason?: true
+    proposedBy?: true
+    approvedBy?: true
+    approvedAt?: true
+    appliedAt?: true
+    usedBefore?: true
+    usedAfter?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeCaseQuotaCorrectionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseQuotaCorrection to aggregate.
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseQuotaCorrections to fetch.
+     */
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithRelationInput | DisputeCaseQuotaCorrectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeCaseQuotaCorrectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseQuotaCorrections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseQuotaCorrections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeCaseQuotaCorrections
+    **/
+    _count?: true | DisputeCaseQuotaCorrectionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DisputeCaseQuotaCorrectionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DisputeCaseQuotaCorrectionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeCaseQuotaCorrectionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeCaseQuotaCorrectionMaxAggregateInputType
+  }
+
+  export type GetDisputeCaseQuotaCorrectionAggregateType<T extends DisputeCaseQuotaCorrectionAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeCaseQuotaCorrection]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeCaseQuotaCorrection[P]>
+      : GetScalarType<T[P], AggregateDisputeCaseQuotaCorrection[P]>
+  }
+
+
+
+
+  export type DisputeCaseQuotaCorrectionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithAggregationInput | DisputeCaseQuotaCorrectionOrderByWithAggregationInput[]
+    by: DisputeCaseQuotaCorrectionScalarFieldEnum[] | DisputeCaseQuotaCorrectionScalarFieldEnum
+    having?: DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeCaseQuotaCorrectionCountAggregateInputType | true
+    _avg?: DisputeCaseQuotaCorrectionAvgAggregateInputType
+    _sum?: DisputeCaseQuotaCorrectionSumAggregateInputType
+    _min?: DisputeCaseQuotaCorrectionMinAggregateInputType
+    _max?: DisputeCaseQuotaCorrectionMaxAggregateInputType
+  }
+
+  export type DisputeCaseQuotaCorrectionGroupByOutputType = {
+    id: string
+    consequenceId: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy: string | null
+    approvedAt: Date | null
+    appliedAt: Date | null
+    usedBefore: number | null
+    usedAfter: number | null
+    createdAt: Date
+    _count: DisputeCaseQuotaCorrectionCountAggregateOutputType | null
+    _avg: DisputeCaseQuotaCorrectionAvgAggregateOutputType | null
+    _sum: DisputeCaseQuotaCorrectionSumAggregateOutputType | null
+    _min: DisputeCaseQuotaCorrectionMinAggregateOutputType | null
+    _max: DisputeCaseQuotaCorrectionMaxAggregateOutputType | null
+  }
+
+  type GetDisputeCaseQuotaCorrectionGroupByPayload<T extends DisputeCaseQuotaCorrectionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeCaseQuotaCorrectionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeCaseQuotaCorrectionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeCaseQuotaCorrectionGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeCaseQuotaCorrectionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeCaseQuotaCorrectionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    consequenceId?: boolean
+    caseId?: boolean
+    contractId?: boolean
+    delta?: boolean
+    reason?: boolean
+    proposedBy?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    appliedAt?: boolean
+    usedBefore?: boolean
+    usedAfter?: boolean
+    createdAt?: boolean
+    consequence?: boolean | DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseQuotaCorrection"]>
+
+  export type DisputeCaseQuotaCorrectionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    consequenceId?: boolean
+    caseId?: boolean
+    contractId?: boolean
+    delta?: boolean
+    reason?: boolean
+    proposedBy?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    appliedAt?: boolean
+    usedBefore?: boolean
+    usedAfter?: boolean
+    createdAt?: boolean
+    consequence?: boolean | DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeCaseQuotaCorrection"]>
+
+  export type DisputeCaseQuotaCorrectionSelectScalar = {
+    id?: boolean
+    consequenceId?: boolean
+    caseId?: boolean
+    contractId?: boolean
+    delta?: boolean
+    reason?: boolean
+    proposedBy?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    appliedAt?: boolean
+    usedBefore?: boolean
+    usedAfter?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeCaseQuotaCorrectionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    consequence?: boolean | DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>
+  }
+  export type DisputeCaseQuotaCorrectionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    consequence?: boolean | DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeCaseQuotaCorrectionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeCaseQuotaCorrection"
+    objects: {
+      consequence: Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      consequenceId: string
+      caseId: string
+      contractId: string
+      delta: number
+      reason: string
+      proposedBy: string
+      approvedBy: string | null
+      approvedAt: Date | null
+      appliedAt: Date | null
+      usedBefore: number | null
+      usedAfter: number | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeCaseQuotaCorrection"]>
+    composites: {}
+  }
+
+  type DisputeCaseQuotaCorrectionGetPayload<S extends boolean | null | undefined | DisputeCaseQuotaCorrectionDefaultArgs> = $Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload, S>
+
+  type DisputeCaseQuotaCorrectionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeCaseQuotaCorrectionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeCaseQuotaCorrectionCountAggregateInputType | true
+    }
+
+  export interface DisputeCaseQuotaCorrectionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeCaseQuotaCorrection'], meta: { name: 'DisputeCaseQuotaCorrection' } }
+    /**
+     * Find zero or one DisputeCaseQuotaCorrection that matches the filter.
+     * @param {DisputeCaseQuotaCorrectionFindUniqueArgs} args - Arguments to find a DisputeCaseQuotaCorrection
+     * @example
+     * // Get one DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeCaseQuotaCorrectionFindUniqueArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionFindUniqueArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeCaseQuotaCorrection that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeCaseQuotaCorrectionFindUniqueOrThrowArgs} args - Arguments to find a DisputeCaseQuotaCorrection
+     * @example
+     * // Get one DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeCaseQuotaCorrectionFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseQuotaCorrection that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionFindFirstArgs} args - Arguments to find a DisputeCaseQuotaCorrection
+     * @example
+     * // Get one DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeCaseQuotaCorrectionFindFirstArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionFindFirstArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeCaseQuotaCorrection that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionFindFirstOrThrowArgs} args - Arguments to find a DisputeCaseQuotaCorrection
+     * @example
+     * // Get one DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeCaseQuotaCorrectionFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeCaseQuotaCorrections that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeCaseQuotaCorrections
+     * const disputeCaseQuotaCorrections = await prisma.disputeCaseQuotaCorrection.findMany()
+     * 
+     * // Get first 10 DisputeCaseQuotaCorrections
+     * const disputeCaseQuotaCorrections = await prisma.disputeCaseQuotaCorrection.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeCaseQuotaCorrectionWithIdOnly = await prisma.disputeCaseQuotaCorrection.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeCaseQuotaCorrectionFindManyArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeCaseQuotaCorrection.
+     * @param {DisputeCaseQuotaCorrectionCreateArgs} args - Arguments to create a DisputeCaseQuotaCorrection.
+     * @example
+     * // Create one DisputeCaseQuotaCorrection
+     * const DisputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.create({
+     *   data: {
+     *     // ... data to create a DisputeCaseQuotaCorrection
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeCaseQuotaCorrectionCreateArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionCreateArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeCaseQuotaCorrections.
+     * @param {DisputeCaseQuotaCorrectionCreateManyArgs} args - Arguments to create many DisputeCaseQuotaCorrections.
+     * @example
+     * // Create many DisputeCaseQuotaCorrections
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeCaseQuotaCorrectionCreateManyArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeCaseQuotaCorrections and returns the data saved in the database.
+     * @param {DisputeCaseQuotaCorrectionCreateManyAndReturnArgs} args - Arguments to create many DisputeCaseQuotaCorrections.
+     * @example
+     * // Create many DisputeCaseQuotaCorrections
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeCaseQuotaCorrections and only return the `id`
+     * const disputeCaseQuotaCorrectionWithIdOnly = await prisma.disputeCaseQuotaCorrection.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeCaseQuotaCorrectionCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeCaseQuotaCorrection.
+     * @param {DisputeCaseQuotaCorrectionDeleteArgs} args - Arguments to delete one DisputeCaseQuotaCorrection.
+     * @example
+     * // Delete one DisputeCaseQuotaCorrection
+     * const DisputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeCaseQuotaCorrection
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeCaseQuotaCorrectionDeleteArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionDeleteArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeCaseQuotaCorrection.
+     * @param {DisputeCaseQuotaCorrectionUpdateArgs} args - Arguments to update one DisputeCaseQuotaCorrection.
+     * @example
+     * // Update one DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeCaseQuotaCorrectionUpdateArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionUpdateArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeCaseQuotaCorrections.
+     * @param {DisputeCaseQuotaCorrectionDeleteManyArgs} args - Arguments to filter DisputeCaseQuotaCorrections to delete.
+     * @example
+     * // Delete a few DisputeCaseQuotaCorrections
+     * const { count } = await prisma.disputeCaseQuotaCorrection.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeCaseQuotaCorrectionDeleteManyArgs>(args?: SelectSubset<T, DisputeCaseQuotaCorrectionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeCaseQuotaCorrections.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeCaseQuotaCorrections
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeCaseQuotaCorrectionUpdateManyArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeCaseQuotaCorrection.
+     * @param {DisputeCaseQuotaCorrectionUpsertArgs} args - Arguments to update or create a DisputeCaseQuotaCorrection.
+     * @example
+     * // Update or create a DisputeCaseQuotaCorrection
+     * const disputeCaseQuotaCorrection = await prisma.disputeCaseQuotaCorrection.upsert({
+     *   create: {
+     *     // ... data to create a DisputeCaseQuotaCorrection
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeCaseQuotaCorrection we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeCaseQuotaCorrectionUpsertArgs>(args: SelectSubset<T, DisputeCaseQuotaCorrectionUpsertArgs<ExtArgs>>): Prisma__DisputeCaseQuotaCorrectionClient<$Result.GetResult<Prisma.$DisputeCaseQuotaCorrectionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeCaseQuotaCorrections.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionCountArgs} args - Arguments to filter DisputeCaseQuotaCorrections to count.
+     * @example
+     * // Count the number of DisputeCaseQuotaCorrections
+     * const count = await prisma.disputeCaseQuotaCorrection.count({
+     *   where: {
+     *     // ... the filter for the DisputeCaseQuotaCorrections we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeCaseQuotaCorrectionCountArgs>(
+      args?: Subset<T, DisputeCaseQuotaCorrectionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeCaseQuotaCorrectionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeCaseQuotaCorrection.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeCaseQuotaCorrectionAggregateArgs>(args: Subset<T, DisputeCaseQuotaCorrectionAggregateArgs>): Prisma.PrismaPromise<GetDisputeCaseQuotaCorrectionAggregateType<T>>
+
+    /**
+     * Group by DisputeCaseQuotaCorrection.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeCaseQuotaCorrectionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeCaseQuotaCorrectionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeCaseQuotaCorrectionGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeCaseQuotaCorrectionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeCaseQuotaCorrectionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeCaseQuotaCorrectionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeCaseQuotaCorrection model
+   */
+  readonly fields: DisputeCaseQuotaCorrectionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeCaseQuotaCorrection.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeCaseQuotaCorrectionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    consequence<T extends DisputeCaseAppealConsequenceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>>): Prisma__DisputeCaseAppealConsequenceClient<$Result.GetResult<Prisma.$DisputeCaseAppealConsequencePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeCaseQuotaCorrection model
+   */ 
+  interface DisputeCaseQuotaCorrectionFieldRefs {
+    readonly id: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly consequenceId: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly caseId: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly contractId: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly delta: FieldRef<"DisputeCaseQuotaCorrection", 'Int'>
+    readonly reason: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly proposedBy: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly approvedBy: FieldRef<"DisputeCaseQuotaCorrection", 'String'>
+    readonly approvedAt: FieldRef<"DisputeCaseQuotaCorrection", 'DateTime'>
+    readonly appliedAt: FieldRef<"DisputeCaseQuotaCorrection", 'DateTime'>
+    readonly usedBefore: FieldRef<"DisputeCaseQuotaCorrection", 'Int'>
+    readonly usedAfter: FieldRef<"DisputeCaseQuotaCorrection", 'Int'>
+    readonly createdAt: FieldRef<"DisputeCaseQuotaCorrection", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeCaseQuotaCorrection findUnique
+   */
+  export type DisputeCaseQuotaCorrectionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseQuotaCorrection to fetch.
+     */
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection findUniqueOrThrow
+   */
+  export type DisputeCaseQuotaCorrectionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseQuotaCorrection to fetch.
+     */
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection findFirst
+   */
+  export type DisputeCaseQuotaCorrectionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseQuotaCorrection to fetch.
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseQuotaCorrections to fetch.
+     */
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithRelationInput | DisputeCaseQuotaCorrectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseQuotaCorrections.
+     */
+    cursor?: DisputeCaseQuotaCorrectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseQuotaCorrections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseQuotaCorrections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseQuotaCorrections.
+     */
+    distinct?: DisputeCaseQuotaCorrectionScalarFieldEnum | DisputeCaseQuotaCorrectionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection findFirstOrThrow
+   */
+  export type DisputeCaseQuotaCorrectionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseQuotaCorrection to fetch.
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseQuotaCorrections to fetch.
+     */
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithRelationInput | DisputeCaseQuotaCorrectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeCaseQuotaCorrections.
+     */
+    cursor?: DisputeCaseQuotaCorrectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseQuotaCorrections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseQuotaCorrections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeCaseQuotaCorrections.
+     */
+    distinct?: DisputeCaseQuotaCorrectionScalarFieldEnum | DisputeCaseQuotaCorrectionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection findMany
+   */
+  export type DisputeCaseQuotaCorrectionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeCaseQuotaCorrections to fetch.
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeCaseQuotaCorrections to fetch.
+     */
+    orderBy?: DisputeCaseQuotaCorrectionOrderByWithRelationInput | DisputeCaseQuotaCorrectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeCaseQuotaCorrections.
+     */
+    cursor?: DisputeCaseQuotaCorrectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeCaseQuotaCorrections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeCaseQuotaCorrections.
+     */
+    skip?: number
+    distinct?: DisputeCaseQuotaCorrectionScalarFieldEnum | DisputeCaseQuotaCorrectionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection create
+   */
+  export type DisputeCaseQuotaCorrectionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeCaseQuotaCorrection.
+     */
+    data: XOR<DisputeCaseQuotaCorrectionCreateInput, DisputeCaseQuotaCorrectionUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection createMany
+   */
+  export type DisputeCaseQuotaCorrectionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeCaseQuotaCorrections.
+     */
+    data: DisputeCaseQuotaCorrectionCreateManyInput | DisputeCaseQuotaCorrectionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection createManyAndReturn
+   */
+  export type DisputeCaseQuotaCorrectionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeCaseQuotaCorrections.
+     */
+    data: DisputeCaseQuotaCorrectionCreateManyInput | DisputeCaseQuotaCorrectionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection update
+   */
+  export type DisputeCaseQuotaCorrectionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeCaseQuotaCorrection.
+     */
+    data: XOR<DisputeCaseQuotaCorrectionUpdateInput, DisputeCaseQuotaCorrectionUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeCaseQuotaCorrection to update.
+     */
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection updateMany
+   */
+  export type DisputeCaseQuotaCorrectionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeCaseQuotaCorrections.
+     */
+    data: XOR<DisputeCaseQuotaCorrectionUpdateManyMutationInput, DisputeCaseQuotaCorrectionUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeCaseQuotaCorrections to update
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection upsert
+   */
+  export type DisputeCaseQuotaCorrectionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeCaseQuotaCorrection to update in case it exists.
+     */
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+    /**
+     * In case the DisputeCaseQuotaCorrection found by the `where` argument doesn't exist, create a new DisputeCaseQuotaCorrection with this data.
+     */
+    create: XOR<DisputeCaseQuotaCorrectionCreateInput, DisputeCaseQuotaCorrectionUncheckedCreateInput>
+    /**
+     * In case the DisputeCaseQuotaCorrection was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeCaseQuotaCorrectionUpdateInput, DisputeCaseQuotaCorrectionUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection delete
+   */
+  export type DisputeCaseQuotaCorrectionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeCaseQuotaCorrection to delete.
+     */
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection deleteMany
+   */
+  export type DisputeCaseQuotaCorrectionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeCaseQuotaCorrections to delete
+     */
+    where?: DisputeCaseQuotaCorrectionWhereInput
+  }
+
+  /**
+   * DisputeCaseQuotaCorrection without action
+   */
+  export type DisputeCaseQuotaCorrectionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCaseQuotaCorrection
+     */
+    select?: DisputeCaseQuotaCorrectionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseQuotaCorrectionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeHeldMoneyReview
+   */
+
+  export type AggregateDisputeHeldMoneyReview = {
+    _count: DisputeHeldMoneyReviewCountAggregateOutputType | null
+    _min: DisputeHeldMoneyReviewMinAggregateOutputType | null
+    _max: DisputeHeldMoneyReviewMaxAggregateOutputType | null
+  }
+
+  export type DisputeHeldMoneyReviewMinAggregateOutputType = {
+    id: string | null
+    settlementRowId: string | null
+    sessionId: string | null
+    contractId: string | null
+    firstSeenAt: Date | null
+    nextReviewDueAt: Date | null
+    ownerEscalatedAt: Date | null
+    closedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeHeldMoneyReviewMaxAggregateOutputType = {
+    id: string | null
+    settlementRowId: string | null
+    sessionId: string | null
+    contractId: string | null
+    firstSeenAt: Date | null
+    nextReviewDueAt: Date | null
+    ownerEscalatedAt: Date | null
+    closedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DisputeHeldMoneyReviewCountAggregateOutputType = {
+    id: number
+    settlementRowId: number
+    sessionId: number
+    contractId: number
+    firstSeenAt: number
+    nextReviewDueAt: number
+    ownerEscalatedAt: number
+    closedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeHeldMoneyReviewMinAggregateInputType = {
+    id?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    firstSeenAt?: true
+    nextReviewDueAt?: true
+    ownerEscalatedAt?: true
+    closedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeHeldMoneyReviewMaxAggregateInputType = {
+    id?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    firstSeenAt?: true
+    nextReviewDueAt?: true
+    ownerEscalatedAt?: true
+    closedAt?: true
+    createdAt?: true
+  }
+
+  export type DisputeHeldMoneyReviewCountAggregateInputType = {
+    id?: true
+    settlementRowId?: true
+    sessionId?: true
+    contractId?: true
+    firstSeenAt?: true
+    nextReviewDueAt?: true
+    ownerEscalatedAt?: true
+    closedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeHeldMoneyReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHeldMoneyReview to aggregate.
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyReviews to fetch.
+     */
+    orderBy?: DisputeHeldMoneyReviewOrderByWithRelationInput | DisputeHeldMoneyReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeHeldMoneyReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeHeldMoneyReviews
+    **/
+    _count?: true | DisputeHeldMoneyReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeHeldMoneyReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeHeldMoneyReviewMaxAggregateInputType
+  }
+
+  export type GetDisputeHeldMoneyReviewAggregateType<T extends DisputeHeldMoneyReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeHeldMoneyReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeHeldMoneyReview[P]>
+      : GetScalarType<T[P], AggregateDisputeHeldMoneyReview[P]>
+  }
+
+
+
+
+  export type DisputeHeldMoneyReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeHeldMoneyReviewWhereInput
+    orderBy?: DisputeHeldMoneyReviewOrderByWithAggregationInput | DisputeHeldMoneyReviewOrderByWithAggregationInput[]
+    by: DisputeHeldMoneyReviewScalarFieldEnum[] | DisputeHeldMoneyReviewScalarFieldEnum
+    having?: DisputeHeldMoneyReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeHeldMoneyReviewCountAggregateInputType | true
+    _min?: DisputeHeldMoneyReviewMinAggregateInputType
+    _max?: DisputeHeldMoneyReviewMaxAggregateInputType
+  }
+
+  export type DisputeHeldMoneyReviewGroupByOutputType = {
+    id: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date
+    nextReviewDueAt: Date
+    ownerEscalatedAt: Date | null
+    closedAt: Date | null
+    createdAt: Date
+    _count: DisputeHeldMoneyReviewCountAggregateOutputType | null
+    _min: DisputeHeldMoneyReviewMinAggregateOutputType | null
+    _max: DisputeHeldMoneyReviewMaxAggregateOutputType | null
+  }
+
+  type GetDisputeHeldMoneyReviewGroupByPayload<T extends DisputeHeldMoneyReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeHeldMoneyReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeHeldMoneyReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeHeldMoneyReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeHeldMoneyReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeHeldMoneyReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    firstSeenAt?: boolean
+    nextReviewDueAt?: boolean
+    ownerEscalatedAt?: boolean
+    closedAt?: boolean
+    createdAt?: boolean
+    decisions?: boolean | DisputeHeldMoneyReview$decisionsArgs<ExtArgs>
+    _count?: boolean | DisputeHeldMoneyReviewCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeHeldMoneyReview"]>
+
+  export type DisputeHeldMoneyReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    firstSeenAt?: boolean
+    nextReviewDueAt?: boolean
+    ownerEscalatedAt?: boolean
+    closedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["disputeHeldMoneyReview"]>
+
+  export type DisputeHeldMoneyReviewSelectScalar = {
+    id?: boolean
+    settlementRowId?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    firstSeenAt?: boolean
+    nextReviewDueAt?: boolean
+    ownerEscalatedAt?: boolean
+    closedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeHeldMoneyReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    decisions?: boolean | DisputeHeldMoneyReview$decisionsArgs<ExtArgs>
+    _count?: boolean | DisputeHeldMoneyReviewCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DisputeHeldMoneyReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $DisputeHeldMoneyReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeHeldMoneyReview"
+    objects: {
+      decisions: Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      settlementRowId: string
+      sessionId: string
+      contractId: string
+      firstSeenAt: Date
+      nextReviewDueAt: Date
+      ownerEscalatedAt: Date | null
+      closedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeHeldMoneyReview"]>
+    composites: {}
+  }
+
+  type DisputeHeldMoneyReviewGetPayload<S extends boolean | null | undefined | DisputeHeldMoneyReviewDefaultArgs> = $Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload, S>
+
+  type DisputeHeldMoneyReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeHeldMoneyReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeHeldMoneyReviewCountAggregateInputType | true
+    }
+
+  export interface DisputeHeldMoneyReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeHeldMoneyReview'], meta: { name: 'DisputeHeldMoneyReview' } }
+    /**
+     * Find zero or one DisputeHeldMoneyReview that matches the filter.
+     * @param {DisputeHeldMoneyReviewFindUniqueArgs} args - Arguments to find a DisputeHeldMoneyReview
+     * @example
+     * // Get one DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeHeldMoneyReviewFindUniqueArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewFindUniqueArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeHeldMoneyReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeHeldMoneyReviewFindUniqueOrThrowArgs} args - Arguments to find a DisputeHeldMoneyReview
+     * @example
+     * // Get one DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeHeldMoneyReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeHeldMoneyReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewFindFirstArgs} args - Arguments to find a DisputeHeldMoneyReview
+     * @example
+     * // Get one DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeHeldMoneyReviewFindFirstArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewFindFirstArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeHeldMoneyReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewFindFirstOrThrowArgs} args - Arguments to find a DisputeHeldMoneyReview
+     * @example
+     * // Get one DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeHeldMoneyReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeHeldMoneyReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeHeldMoneyReviews
+     * const disputeHeldMoneyReviews = await prisma.disputeHeldMoneyReview.findMany()
+     * 
+     * // Get first 10 DisputeHeldMoneyReviews
+     * const disputeHeldMoneyReviews = await prisma.disputeHeldMoneyReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeHeldMoneyReviewWithIdOnly = await prisma.disputeHeldMoneyReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeHeldMoneyReviewFindManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeHeldMoneyReview.
+     * @param {DisputeHeldMoneyReviewCreateArgs} args - Arguments to create a DisputeHeldMoneyReview.
+     * @example
+     * // Create one DisputeHeldMoneyReview
+     * const DisputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.create({
+     *   data: {
+     *     // ... data to create a DisputeHeldMoneyReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeHeldMoneyReviewCreateArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewCreateArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeHeldMoneyReviews.
+     * @param {DisputeHeldMoneyReviewCreateManyArgs} args - Arguments to create many DisputeHeldMoneyReviews.
+     * @example
+     * // Create many DisputeHeldMoneyReviews
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeHeldMoneyReviewCreateManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeHeldMoneyReviews and returns the data saved in the database.
+     * @param {DisputeHeldMoneyReviewCreateManyAndReturnArgs} args - Arguments to create many DisputeHeldMoneyReviews.
+     * @example
+     * // Create many DisputeHeldMoneyReviews
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeHeldMoneyReviews and only return the `id`
+     * const disputeHeldMoneyReviewWithIdOnly = await prisma.disputeHeldMoneyReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeHeldMoneyReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeHeldMoneyReview.
+     * @param {DisputeHeldMoneyReviewDeleteArgs} args - Arguments to delete one DisputeHeldMoneyReview.
+     * @example
+     * // Delete one DisputeHeldMoneyReview
+     * const DisputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeHeldMoneyReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeHeldMoneyReviewDeleteArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewDeleteArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeHeldMoneyReview.
+     * @param {DisputeHeldMoneyReviewUpdateArgs} args - Arguments to update one DisputeHeldMoneyReview.
+     * @example
+     * // Update one DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeHeldMoneyReviewUpdateArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewUpdateArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeHeldMoneyReviews.
+     * @param {DisputeHeldMoneyReviewDeleteManyArgs} args - Arguments to filter DisputeHeldMoneyReviews to delete.
+     * @example
+     * // Delete a few DisputeHeldMoneyReviews
+     * const { count } = await prisma.disputeHeldMoneyReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeHeldMoneyReviewDeleteManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeHeldMoneyReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeHeldMoneyReviews
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeHeldMoneyReviewUpdateManyArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeHeldMoneyReview.
+     * @param {DisputeHeldMoneyReviewUpsertArgs} args - Arguments to update or create a DisputeHeldMoneyReview.
+     * @example
+     * // Update or create a DisputeHeldMoneyReview
+     * const disputeHeldMoneyReview = await prisma.disputeHeldMoneyReview.upsert({
+     *   create: {
+     *     // ... data to create a DisputeHeldMoneyReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeHeldMoneyReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeHeldMoneyReviewUpsertArgs>(args: SelectSubset<T, DisputeHeldMoneyReviewUpsertArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeHeldMoneyReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewCountArgs} args - Arguments to filter DisputeHeldMoneyReviews to count.
+     * @example
+     * // Count the number of DisputeHeldMoneyReviews
+     * const count = await prisma.disputeHeldMoneyReview.count({
+     *   where: {
+     *     // ... the filter for the DisputeHeldMoneyReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeHeldMoneyReviewCountArgs>(
+      args?: Subset<T, DisputeHeldMoneyReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeHeldMoneyReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeHeldMoneyReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeHeldMoneyReviewAggregateArgs>(args: Subset<T, DisputeHeldMoneyReviewAggregateArgs>): Prisma.PrismaPromise<GetDisputeHeldMoneyReviewAggregateType<T>>
+
+    /**
+     * Group by DisputeHeldMoneyReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeHeldMoneyReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeHeldMoneyReviewGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeHeldMoneyReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeHeldMoneyReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeHeldMoneyReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeHeldMoneyReview model
+   */
+  readonly fields: DisputeHeldMoneyReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeHeldMoneyReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeHeldMoneyReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    decisions<T extends DisputeHeldMoneyReview$decisionsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeHeldMoneyReview$decisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeHeldMoneyReview model
+   */ 
+  interface DisputeHeldMoneyReviewFieldRefs {
+    readonly id: FieldRef<"DisputeHeldMoneyReview", 'String'>
+    readonly settlementRowId: FieldRef<"DisputeHeldMoneyReview", 'String'>
+    readonly sessionId: FieldRef<"DisputeHeldMoneyReview", 'String'>
+    readonly contractId: FieldRef<"DisputeHeldMoneyReview", 'String'>
+    readonly firstSeenAt: FieldRef<"DisputeHeldMoneyReview", 'DateTime'>
+    readonly nextReviewDueAt: FieldRef<"DisputeHeldMoneyReview", 'DateTime'>
+    readonly ownerEscalatedAt: FieldRef<"DisputeHeldMoneyReview", 'DateTime'>
+    readonly closedAt: FieldRef<"DisputeHeldMoneyReview", 'DateTime'>
+    readonly createdAt: FieldRef<"DisputeHeldMoneyReview", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeHeldMoneyReview findUnique
+   */
+  export type DisputeHeldMoneyReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyReview to fetch.
+     */
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview findUniqueOrThrow
+   */
+  export type DisputeHeldMoneyReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyReview to fetch.
+     */
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview findFirst
+   */
+  export type DisputeHeldMoneyReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyReview to fetch.
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyReviews to fetch.
+     */
+    orderBy?: DisputeHeldMoneyReviewOrderByWithRelationInput | DisputeHeldMoneyReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHeldMoneyReviews.
+     */
+    cursor?: DisputeHeldMoneyReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHeldMoneyReviews.
+     */
+    distinct?: DisputeHeldMoneyReviewScalarFieldEnum | DisputeHeldMoneyReviewScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyReview findFirstOrThrow
+   */
+  export type DisputeHeldMoneyReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyReview to fetch.
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyReviews to fetch.
+     */
+    orderBy?: DisputeHeldMoneyReviewOrderByWithRelationInput | DisputeHeldMoneyReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHeldMoneyReviews.
+     */
+    cursor?: DisputeHeldMoneyReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHeldMoneyReviews.
+     */
+    distinct?: DisputeHeldMoneyReviewScalarFieldEnum | DisputeHeldMoneyReviewScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyReview findMany
+   */
+  export type DisputeHeldMoneyReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyReviews to fetch.
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyReviews to fetch.
+     */
+    orderBy?: DisputeHeldMoneyReviewOrderByWithRelationInput | DisputeHeldMoneyReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeHeldMoneyReviews.
+     */
+    cursor?: DisputeHeldMoneyReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyReviews.
+     */
+    skip?: number
+    distinct?: DisputeHeldMoneyReviewScalarFieldEnum | DisputeHeldMoneyReviewScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyReview create
+   */
+  export type DisputeHeldMoneyReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeHeldMoneyReview.
+     */
+    data: XOR<DisputeHeldMoneyReviewCreateInput, DisputeHeldMoneyReviewUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeHeldMoneyReview createMany
+   */
+  export type DisputeHeldMoneyReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeHeldMoneyReviews.
+     */
+    data: DisputeHeldMoneyReviewCreateManyInput | DisputeHeldMoneyReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeHeldMoneyReview createManyAndReturn
+   */
+  export type DisputeHeldMoneyReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeHeldMoneyReviews.
+     */
+    data: DisputeHeldMoneyReviewCreateManyInput | DisputeHeldMoneyReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeHeldMoneyReview update
+   */
+  export type DisputeHeldMoneyReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeHeldMoneyReview.
+     */
+    data: XOR<DisputeHeldMoneyReviewUpdateInput, DisputeHeldMoneyReviewUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeHeldMoneyReview to update.
+     */
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview updateMany
+   */
+  export type DisputeHeldMoneyReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeHeldMoneyReviews.
+     */
+    data: XOR<DisputeHeldMoneyReviewUpdateManyMutationInput, DisputeHeldMoneyReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeHeldMoneyReviews to update
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview upsert
+   */
+  export type DisputeHeldMoneyReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeHeldMoneyReview to update in case it exists.
+     */
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+    /**
+     * In case the DisputeHeldMoneyReview found by the `where` argument doesn't exist, create a new DisputeHeldMoneyReview with this data.
+     */
+    create: XOR<DisputeHeldMoneyReviewCreateInput, DisputeHeldMoneyReviewUncheckedCreateInput>
+    /**
+     * In case the DisputeHeldMoneyReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeHeldMoneyReviewUpdateInput, DisputeHeldMoneyReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeHeldMoneyReview delete
+   */
+  export type DisputeHeldMoneyReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeHeldMoneyReview to delete.
+     */
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview deleteMany
+   */
+  export type DisputeHeldMoneyReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHeldMoneyReviews to delete
+     */
+    where?: DisputeHeldMoneyReviewWhereInput
+  }
+
+  /**
+   * DisputeHeldMoneyReview.decisions
+   */
+  export type DisputeHeldMoneyReview$decisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    where?: DisputeHeldMoneyDecisionWhereInput
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithRelationInput | DisputeHeldMoneyDecisionOrderByWithRelationInput[]
+    cursor?: DisputeHeldMoneyDecisionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeHeldMoneyDecisionScalarFieldEnum | DisputeHeldMoneyDecisionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyReview without action
+   */
+  export type DisputeHeldMoneyReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyReview
+     */
+    select?: DisputeHeldMoneyReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeHeldMoneyDecision
+   */
+
+  export type AggregateDisputeHeldMoneyDecision = {
+    _count: DisputeHeldMoneyDecisionCountAggregateOutputType | null
+    _min: DisputeHeldMoneyDecisionMinAggregateOutputType | null
+    _max: DisputeHeldMoneyDecisionMaxAggregateOutputType | null
+  }
+
+  export type DisputeHeldMoneyDecisionMinAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    decision: string | null
+    reason: string | null
+    exitRef: string | null
+    decidedBy: string | null
+    decidedAt: Date | null
+  }
+
+  export type DisputeHeldMoneyDecisionMaxAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    decision: string | null
+    reason: string | null
+    exitRef: string | null
+    decidedBy: string | null
+    decidedAt: Date | null
+  }
+
+  export type DisputeHeldMoneyDecisionCountAggregateOutputType = {
+    id: number
+    reviewId: number
+    decision: number
+    reason: number
+    exitRef: number
+    decidedBy: number
+    decidedAt: number
+    _all: number
+  }
+
+
+  export type DisputeHeldMoneyDecisionMinAggregateInputType = {
+    id?: true
+    reviewId?: true
+    decision?: true
+    reason?: true
+    exitRef?: true
+    decidedBy?: true
+    decidedAt?: true
+  }
+
+  export type DisputeHeldMoneyDecisionMaxAggregateInputType = {
+    id?: true
+    reviewId?: true
+    decision?: true
+    reason?: true
+    exitRef?: true
+    decidedBy?: true
+    decidedAt?: true
+  }
+
+  export type DisputeHeldMoneyDecisionCountAggregateInputType = {
+    id?: true
+    reviewId?: true
+    decision?: true
+    reason?: true
+    exitRef?: true
+    decidedBy?: true
+    decidedAt?: true
+    _all?: true
+  }
+
+  export type DisputeHeldMoneyDecisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHeldMoneyDecision to aggregate.
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyDecisions to fetch.
+     */
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithRelationInput | DisputeHeldMoneyDecisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeHeldMoneyDecisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyDecisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyDecisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeHeldMoneyDecisions
+    **/
+    _count?: true | DisputeHeldMoneyDecisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeHeldMoneyDecisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeHeldMoneyDecisionMaxAggregateInputType
+  }
+
+  export type GetDisputeHeldMoneyDecisionAggregateType<T extends DisputeHeldMoneyDecisionAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeHeldMoneyDecision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeHeldMoneyDecision[P]>
+      : GetScalarType<T[P], AggregateDisputeHeldMoneyDecision[P]>
+  }
+
+
+
+
+  export type DisputeHeldMoneyDecisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeHeldMoneyDecisionWhereInput
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithAggregationInput | DisputeHeldMoneyDecisionOrderByWithAggregationInput[]
+    by: DisputeHeldMoneyDecisionScalarFieldEnum[] | DisputeHeldMoneyDecisionScalarFieldEnum
+    having?: DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeHeldMoneyDecisionCountAggregateInputType | true
+    _min?: DisputeHeldMoneyDecisionMinAggregateInputType
+    _max?: DisputeHeldMoneyDecisionMaxAggregateInputType
+  }
+
+  export type DisputeHeldMoneyDecisionGroupByOutputType = {
+    id: string
+    reviewId: string
+    decision: string
+    reason: string
+    exitRef: string | null
+    decidedBy: string
+    decidedAt: Date
+    _count: DisputeHeldMoneyDecisionCountAggregateOutputType | null
+    _min: DisputeHeldMoneyDecisionMinAggregateOutputType | null
+    _max: DisputeHeldMoneyDecisionMaxAggregateOutputType | null
+  }
+
+  type GetDisputeHeldMoneyDecisionGroupByPayload<T extends DisputeHeldMoneyDecisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeHeldMoneyDecisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeHeldMoneyDecisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeHeldMoneyDecisionGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeHeldMoneyDecisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeHeldMoneyDecisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    decision?: boolean
+    reason?: boolean
+    exitRef?: boolean
+    decidedBy?: boolean
+    decidedAt?: boolean
+    review?: boolean | DisputeHeldMoneyReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeHeldMoneyDecision"]>
+
+  export type DisputeHeldMoneyDecisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    decision?: boolean
+    reason?: boolean
+    exitRef?: boolean
+    decidedBy?: boolean
+    decidedAt?: boolean
+    review?: boolean | DisputeHeldMoneyReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeHeldMoneyDecision"]>
+
+  export type DisputeHeldMoneyDecisionSelectScalar = {
+    id?: boolean
+    reviewId?: boolean
+    decision?: boolean
+    reason?: boolean
+    exitRef?: boolean
+    decidedBy?: boolean
+    decidedAt?: boolean
+  }
+
+  export type DisputeHeldMoneyDecisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | DisputeHeldMoneyReviewDefaultArgs<ExtArgs>
+  }
+  export type DisputeHeldMoneyDecisionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | DisputeHeldMoneyReviewDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeHeldMoneyDecisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeHeldMoneyDecision"
+    objects: {
+      review: Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      reviewId: string
+      decision: string
+      reason: string
+      exitRef: string | null
+      decidedBy: string
+      decidedAt: Date
+    }, ExtArgs["result"]["disputeHeldMoneyDecision"]>
+    composites: {}
+  }
+
+  type DisputeHeldMoneyDecisionGetPayload<S extends boolean | null | undefined | DisputeHeldMoneyDecisionDefaultArgs> = $Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload, S>
+
+  type DisputeHeldMoneyDecisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeHeldMoneyDecisionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeHeldMoneyDecisionCountAggregateInputType | true
+    }
+
+  export interface DisputeHeldMoneyDecisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeHeldMoneyDecision'], meta: { name: 'DisputeHeldMoneyDecision' } }
+    /**
+     * Find zero or one DisputeHeldMoneyDecision that matches the filter.
+     * @param {DisputeHeldMoneyDecisionFindUniqueArgs} args - Arguments to find a DisputeHeldMoneyDecision
+     * @example
+     * // Get one DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeHeldMoneyDecisionFindUniqueArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionFindUniqueArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeHeldMoneyDecision that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeHeldMoneyDecisionFindUniqueOrThrowArgs} args - Arguments to find a DisputeHeldMoneyDecision
+     * @example
+     * // Get one DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeHeldMoneyDecisionFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeHeldMoneyDecision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionFindFirstArgs} args - Arguments to find a DisputeHeldMoneyDecision
+     * @example
+     * // Get one DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeHeldMoneyDecisionFindFirstArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionFindFirstArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeHeldMoneyDecision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionFindFirstOrThrowArgs} args - Arguments to find a DisputeHeldMoneyDecision
+     * @example
+     * // Get one DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeHeldMoneyDecisionFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeHeldMoneyDecisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeHeldMoneyDecisions
+     * const disputeHeldMoneyDecisions = await prisma.disputeHeldMoneyDecision.findMany()
+     * 
+     * // Get first 10 DisputeHeldMoneyDecisions
+     * const disputeHeldMoneyDecisions = await prisma.disputeHeldMoneyDecision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeHeldMoneyDecisionWithIdOnly = await prisma.disputeHeldMoneyDecision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeHeldMoneyDecisionFindManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeHeldMoneyDecision.
+     * @param {DisputeHeldMoneyDecisionCreateArgs} args - Arguments to create a DisputeHeldMoneyDecision.
+     * @example
+     * // Create one DisputeHeldMoneyDecision
+     * const DisputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.create({
+     *   data: {
+     *     // ... data to create a DisputeHeldMoneyDecision
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeHeldMoneyDecisionCreateArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionCreateArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeHeldMoneyDecisions.
+     * @param {DisputeHeldMoneyDecisionCreateManyArgs} args - Arguments to create many DisputeHeldMoneyDecisions.
+     * @example
+     * // Create many DisputeHeldMoneyDecisions
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeHeldMoneyDecisionCreateManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeHeldMoneyDecisions and returns the data saved in the database.
+     * @param {DisputeHeldMoneyDecisionCreateManyAndReturnArgs} args - Arguments to create many DisputeHeldMoneyDecisions.
+     * @example
+     * // Create many DisputeHeldMoneyDecisions
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeHeldMoneyDecisions and only return the `id`
+     * const disputeHeldMoneyDecisionWithIdOnly = await prisma.disputeHeldMoneyDecision.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeHeldMoneyDecisionCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeHeldMoneyDecision.
+     * @param {DisputeHeldMoneyDecisionDeleteArgs} args - Arguments to delete one DisputeHeldMoneyDecision.
+     * @example
+     * // Delete one DisputeHeldMoneyDecision
+     * const DisputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeHeldMoneyDecision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeHeldMoneyDecisionDeleteArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionDeleteArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeHeldMoneyDecision.
+     * @param {DisputeHeldMoneyDecisionUpdateArgs} args - Arguments to update one DisputeHeldMoneyDecision.
+     * @example
+     * // Update one DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeHeldMoneyDecisionUpdateArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionUpdateArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeHeldMoneyDecisions.
+     * @param {DisputeHeldMoneyDecisionDeleteManyArgs} args - Arguments to filter DisputeHeldMoneyDecisions to delete.
+     * @example
+     * // Delete a few DisputeHeldMoneyDecisions
+     * const { count } = await prisma.disputeHeldMoneyDecision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeHeldMoneyDecisionDeleteManyArgs>(args?: SelectSubset<T, DisputeHeldMoneyDecisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeHeldMoneyDecisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeHeldMoneyDecisions
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeHeldMoneyDecisionUpdateManyArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeHeldMoneyDecision.
+     * @param {DisputeHeldMoneyDecisionUpsertArgs} args - Arguments to update or create a DisputeHeldMoneyDecision.
+     * @example
+     * // Update or create a DisputeHeldMoneyDecision
+     * const disputeHeldMoneyDecision = await prisma.disputeHeldMoneyDecision.upsert({
+     *   create: {
+     *     // ... data to create a DisputeHeldMoneyDecision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeHeldMoneyDecision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeHeldMoneyDecisionUpsertArgs>(args: SelectSubset<T, DisputeHeldMoneyDecisionUpsertArgs<ExtArgs>>): Prisma__DisputeHeldMoneyDecisionClient<$Result.GetResult<Prisma.$DisputeHeldMoneyDecisionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeHeldMoneyDecisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionCountArgs} args - Arguments to filter DisputeHeldMoneyDecisions to count.
+     * @example
+     * // Count the number of DisputeHeldMoneyDecisions
+     * const count = await prisma.disputeHeldMoneyDecision.count({
+     *   where: {
+     *     // ... the filter for the DisputeHeldMoneyDecisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeHeldMoneyDecisionCountArgs>(
+      args?: Subset<T, DisputeHeldMoneyDecisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeHeldMoneyDecisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeHeldMoneyDecision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeHeldMoneyDecisionAggregateArgs>(args: Subset<T, DisputeHeldMoneyDecisionAggregateArgs>): Prisma.PrismaPromise<GetDisputeHeldMoneyDecisionAggregateType<T>>
+
+    /**
+     * Group by DisputeHeldMoneyDecision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHeldMoneyDecisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeHeldMoneyDecisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeHeldMoneyDecisionGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeHeldMoneyDecisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeHeldMoneyDecisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeHeldMoneyDecisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeHeldMoneyDecision model
+   */
+  readonly fields: DisputeHeldMoneyDecisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeHeldMoneyDecision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeHeldMoneyDecisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    review<T extends DisputeHeldMoneyReviewDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeHeldMoneyReviewDefaultArgs<ExtArgs>>): Prisma__DisputeHeldMoneyReviewClient<$Result.GetResult<Prisma.$DisputeHeldMoneyReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeHeldMoneyDecision model
+   */ 
+  interface DisputeHeldMoneyDecisionFieldRefs {
+    readonly id: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly reviewId: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly decision: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly reason: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly exitRef: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly decidedBy: FieldRef<"DisputeHeldMoneyDecision", 'String'>
+    readonly decidedAt: FieldRef<"DisputeHeldMoneyDecision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeHeldMoneyDecision findUnique
+   */
+  export type DisputeHeldMoneyDecisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyDecision to fetch.
+     */
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision findUniqueOrThrow
+   */
+  export type DisputeHeldMoneyDecisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyDecision to fetch.
+     */
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision findFirst
+   */
+  export type DisputeHeldMoneyDecisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyDecision to fetch.
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyDecisions to fetch.
+     */
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithRelationInput | DisputeHeldMoneyDecisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHeldMoneyDecisions.
+     */
+    cursor?: DisputeHeldMoneyDecisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyDecisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyDecisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHeldMoneyDecisions.
+     */
+    distinct?: DisputeHeldMoneyDecisionScalarFieldEnum | DisputeHeldMoneyDecisionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyDecision findFirstOrThrow
+   */
+  export type DisputeHeldMoneyDecisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyDecision to fetch.
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyDecisions to fetch.
+     */
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithRelationInput | DisputeHeldMoneyDecisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHeldMoneyDecisions.
+     */
+    cursor?: DisputeHeldMoneyDecisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyDecisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyDecisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHeldMoneyDecisions.
+     */
+    distinct?: DisputeHeldMoneyDecisionScalarFieldEnum | DisputeHeldMoneyDecisionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyDecision findMany
+   */
+  export type DisputeHeldMoneyDecisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHeldMoneyDecisions to fetch.
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHeldMoneyDecisions to fetch.
+     */
+    orderBy?: DisputeHeldMoneyDecisionOrderByWithRelationInput | DisputeHeldMoneyDecisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeHeldMoneyDecisions.
+     */
+    cursor?: DisputeHeldMoneyDecisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHeldMoneyDecisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHeldMoneyDecisions.
+     */
+    skip?: number
+    distinct?: DisputeHeldMoneyDecisionScalarFieldEnum | DisputeHeldMoneyDecisionScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHeldMoneyDecision create
+   */
+  export type DisputeHeldMoneyDecisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeHeldMoneyDecision.
+     */
+    data: XOR<DisputeHeldMoneyDecisionCreateInput, DisputeHeldMoneyDecisionUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeHeldMoneyDecision createMany
+   */
+  export type DisputeHeldMoneyDecisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeHeldMoneyDecisions.
+     */
+    data: DisputeHeldMoneyDecisionCreateManyInput | DisputeHeldMoneyDecisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeHeldMoneyDecision createManyAndReturn
+   */
+  export type DisputeHeldMoneyDecisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeHeldMoneyDecisions.
+     */
+    data: DisputeHeldMoneyDecisionCreateManyInput | DisputeHeldMoneyDecisionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeHeldMoneyDecision update
+   */
+  export type DisputeHeldMoneyDecisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeHeldMoneyDecision.
+     */
+    data: XOR<DisputeHeldMoneyDecisionUpdateInput, DisputeHeldMoneyDecisionUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeHeldMoneyDecision to update.
+     */
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision updateMany
+   */
+  export type DisputeHeldMoneyDecisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeHeldMoneyDecisions.
+     */
+    data: XOR<DisputeHeldMoneyDecisionUpdateManyMutationInput, DisputeHeldMoneyDecisionUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeHeldMoneyDecisions to update
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision upsert
+   */
+  export type DisputeHeldMoneyDecisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeHeldMoneyDecision to update in case it exists.
+     */
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+    /**
+     * In case the DisputeHeldMoneyDecision found by the `where` argument doesn't exist, create a new DisputeHeldMoneyDecision with this data.
+     */
+    create: XOR<DisputeHeldMoneyDecisionCreateInput, DisputeHeldMoneyDecisionUncheckedCreateInput>
+    /**
+     * In case the DisputeHeldMoneyDecision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeHeldMoneyDecisionUpdateInput, DisputeHeldMoneyDecisionUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeHeldMoneyDecision delete
+   */
+  export type DisputeHeldMoneyDecisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeHeldMoneyDecision to delete.
+     */
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision deleteMany
+   */
+  export type DisputeHeldMoneyDecisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHeldMoneyDecisions to delete
+     */
+    where?: DisputeHeldMoneyDecisionWhereInput
+  }
+
+  /**
+   * DisputeHeldMoneyDecision without action
+   */
+  export type DisputeHeldMoneyDecisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHeldMoneyDecision
+     */
+    select?: DisputeHeldMoneyDecisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHeldMoneyDecisionInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -62501,6 +72756,8 @@ export namespace Prisma {
     execStatus: 'execStatus',
     execDecisionId: 'execDecisionId',
     closeReason: 'closeReason',
+    execLeaseOwner: 'execLeaseOwner',
+    execLeaseUntil: 'execLeaseUntil',
     version: 'version',
     createdBy: 'createdBy',
     createdAt: 'createdAt',
@@ -62838,6 +73095,155 @@ export namespace Prisma {
   };
 
   export type D65bResolutionEventScalarFieldEnum = (typeof D65bResolutionEventScalarFieldEnum)[keyof typeof D65bResolutionEventScalarFieldEnum]
+
+
+  export const DisputeCasePartyNoticeScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    sessionId: 'sessionId',
+    userId: 'userId',
+    partyRole: 'partyRole',
+    kind: 'kind',
+    notificationId: 'notificationId',
+    recordedAt: 'recordedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeCasePartyNoticeScalarFieldEnum = (typeof DisputeCasePartyNoticeScalarFieldEnum)[keyof typeof DisputeCasePartyNoticeScalarFieldEnum]
+
+
+  export const DisputeCaseDeadlineScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    sessionId: 'sessionId',
+    userId: 'userId',
+    partyRole: 'partyRole',
+    kind: 'kind',
+    hours: 'hours',
+    startedAt: 'startedAt',
+    pausedAt: 'pausedAt',
+    pausedSeconds: 'pausedSeconds',
+    status: 'status',
+    satisfiedAt: 'satisfiedAt',
+    expiredAt: 'expiredAt',
+    noticeId: 'noticeId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type DisputeCaseDeadlineScalarFieldEnum = (typeof DisputeCaseDeadlineScalarFieldEnum)[keyof typeof DisputeCaseDeadlineScalarFieldEnum]
+
+
+  export const DisputeCaseAgreementScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    outcome: 'outcome',
+    contentHash: 'contentHash',
+    note: 'note',
+    proposedBy: 'proposedBy',
+    status: 'status',
+    agreedAt: 'agreedAt',
+    findingId: 'findingId',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeCaseAgreementScalarFieldEnum = (typeof DisputeCaseAgreementScalarFieldEnum)[keyof typeof DisputeCaseAgreementScalarFieldEnum]
+
+
+  export const DisputeCaseAgreementConfirmationScalarFieldEnum: {
+    id: 'id',
+    agreementId: 'agreementId',
+    partyRole: 'partyRole',
+    userId: 'userId',
+    confirmedHash: 'confirmedHash',
+    confirmedAt: 'confirmedAt'
+  };
+
+  export type DisputeCaseAgreementConfirmationScalarFieldEnum = (typeof DisputeCaseAgreementConfirmationScalarFieldEnum)[keyof typeof DisputeCaseAgreementConfirmationScalarFieldEnum]
+
+
+  export const DisputeCaseAppealScalarFieldEnum: {
+    id: 'id',
+    caseId: 'caseId',
+    partyRole: 'partyRole',
+    requestedBy: 'requestedBy',
+    reason: 'reason',
+    noticeRecordedAt: 'noticeRecordedAt',
+    status: 'status',
+    reviewerId: 'reviewerId',
+    reviewerAssignedBy: 'reviewerAssignedBy',
+    result: 'result',
+    reasoning: 'reasoning',
+    previousFindingId: 'previousFindingId',
+    newFindingId: 'newFindingId',
+    decidedAt: 'decidedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeCaseAppealScalarFieldEnum = (typeof DisputeCaseAppealScalarFieldEnum)[keyof typeof DisputeCaseAppealScalarFieldEnum]
+
+
+  export const DisputeCaseAppealConsequenceScalarFieldEnum: {
+    id: 'id',
+    appealId: 'appealId',
+    caseId: 'caseId',
+    kind: 'kind',
+    status: 'status',
+    detail: 'detail',
+    note: 'note',
+    createdAt: 'createdAt',
+    resolvedAt: 'resolvedAt',
+    resolvedBy: 'resolvedBy'
+  };
+
+  export type DisputeCaseAppealConsequenceScalarFieldEnum = (typeof DisputeCaseAppealConsequenceScalarFieldEnum)[keyof typeof DisputeCaseAppealConsequenceScalarFieldEnum]
+
+
+  export const DisputeCaseQuotaCorrectionScalarFieldEnum: {
+    id: 'id',
+    consequenceId: 'consequenceId',
+    caseId: 'caseId',
+    contractId: 'contractId',
+    delta: 'delta',
+    reason: 'reason',
+    proposedBy: 'proposedBy',
+    approvedBy: 'approvedBy',
+    approvedAt: 'approvedAt',
+    appliedAt: 'appliedAt',
+    usedBefore: 'usedBefore',
+    usedAfter: 'usedAfter',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeCaseQuotaCorrectionScalarFieldEnum = (typeof DisputeCaseQuotaCorrectionScalarFieldEnum)[keyof typeof DisputeCaseQuotaCorrectionScalarFieldEnum]
+
+
+  export const DisputeHeldMoneyReviewScalarFieldEnum: {
+    id: 'id',
+    settlementRowId: 'settlementRowId',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    firstSeenAt: 'firstSeenAt',
+    nextReviewDueAt: 'nextReviewDueAt',
+    ownerEscalatedAt: 'ownerEscalatedAt',
+    closedAt: 'closedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeHeldMoneyReviewScalarFieldEnum = (typeof DisputeHeldMoneyReviewScalarFieldEnum)[keyof typeof DisputeHeldMoneyReviewScalarFieldEnum]
+
+
+  export const DisputeHeldMoneyDecisionScalarFieldEnum: {
+    id: 'id',
+    reviewId: 'reviewId',
+    decision: 'decision',
+    reason: 'reason',
+    exitRef: 'exitRef',
+    decidedBy: 'decidedBy',
+    decidedAt: 'decidedAt'
+  };
+
+  export type DisputeHeldMoneyDecisionScalarFieldEnum = (typeof DisputeHeldMoneyDecisionScalarFieldEnum)[keyof typeof DisputeHeldMoneyDecisionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -67299,6 +77705,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableFilter<"DisputeCase"> | string | null
+    execLeaseOwner?: StringNullableFilter<"DisputeCase"> | string | null
+    execLeaseUntil?: DateTimeNullableFilter<"DisputeCase"> | Date | string | null
     version?: IntFilter<"DisputeCase"> | number
     createdBy?: StringFilter<"DisputeCase"> | string
     createdAt?: DateTimeFilter<"DisputeCase"> | Date | string
@@ -67315,6 +77723,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogListRelationFilter
     executions?: DisputeCaseExecutionListRelationFilter
     policyReviews?: DisputeCasePolicyEligibilityReviewListRelationFilter
+    partyNotices?: DisputeCasePartyNoticeListRelationFilter
+    deadlines?: DisputeCaseDeadlineListRelationFilter
+    agreements?: DisputeCaseAgreementListRelationFilter
+    appeals?: DisputeCaseAppealListRelationFilter
   }
 
   export type DisputeCaseOrderByWithRelationInput = {
@@ -67330,6 +77742,8 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
     closeReason?: SortOrderInput | SortOrder
+    execLeaseOwner?: SortOrderInput | SortOrder
+    execLeaseUntil?: SortOrderInput | SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -67346,6 +77760,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogOrderByRelationAggregateInput
     executions?: DisputeCaseExecutionOrderByRelationAggregateInput
     policyReviews?: DisputeCasePolicyEligibilityReviewOrderByRelationAggregateInput
+    partyNotices?: DisputeCasePartyNoticeOrderByRelationAggregateInput
+    deadlines?: DisputeCaseDeadlineOrderByRelationAggregateInput
+    agreements?: DisputeCaseAgreementOrderByRelationAggregateInput
+    appeals?: DisputeCaseAppealOrderByRelationAggregateInput
   }
 
   export type DisputeCaseWhereUniqueInput = Prisma.AtLeast<{
@@ -67364,6 +77782,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableFilter<"DisputeCase"> | string | null
+    execLeaseOwner?: StringNullableFilter<"DisputeCase"> | string | null
+    execLeaseUntil?: DateTimeNullableFilter<"DisputeCase"> | Date | string | null
     version?: IntFilter<"DisputeCase"> | number
     createdBy?: StringFilter<"DisputeCase"> | string
     createdAt?: DateTimeFilter<"DisputeCase"> | Date | string
@@ -67380,6 +77800,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogListRelationFilter
     executions?: DisputeCaseExecutionListRelationFilter
     policyReviews?: DisputeCasePolicyEligibilityReviewListRelationFilter
+    partyNotices?: DisputeCasePartyNoticeListRelationFilter
+    deadlines?: DisputeCaseDeadlineListRelationFilter
+    agreements?: DisputeCaseAgreementListRelationFilter
+    appeals?: DisputeCaseAppealListRelationFilter
   }, "id">
 
   export type DisputeCaseOrderByWithAggregationInput = {
@@ -67395,6 +77819,8 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
     closeReason?: SortOrderInput | SortOrder
+    execLeaseOwner?: SortOrderInput | SortOrder
+    execLeaseUntil?: SortOrderInput | SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -67422,6 +77848,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusWithAggregatesFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableWithAggregatesFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
+    execLeaseOwner?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
+    execLeaseUntil?: DateTimeNullableWithAggregatesFilter<"DisputeCase"> | Date | string | null
     version?: IntWithAggregatesFilter<"DisputeCase"> | number
     createdBy?: StringWithAggregatesFilter<"DisputeCase"> | string
     createdAt?: DateTimeWithAggregatesFilter<"DisputeCase"> | Date | string
@@ -69124,6 +79552,766 @@ export namespace Prisma {
     payload?: JsonNullableWithAggregatesFilter<"D65bResolutionEvent">
     idempotencyKey?: StringNullableWithAggregatesFilter<"D65bResolutionEvent"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"D65bResolutionEvent"> | Date | string
+  }
+
+  export type DisputeCasePartyNoticeWhereInput = {
+    AND?: DisputeCasePartyNoticeWhereInput | DisputeCasePartyNoticeWhereInput[]
+    OR?: DisputeCasePartyNoticeWhereInput[]
+    NOT?: DisputeCasePartyNoticeWhereInput | DisputeCasePartyNoticeWhereInput[]
+    id?: UuidFilter<"DisputeCasePartyNotice"> | string
+    caseId?: UuidNullableFilter<"DisputeCasePartyNotice"> | string | null
+    sessionId?: StringFilter<"DisputeCasePartyNotice"> | string
+    userId?: StringFilter<"DisputeCasePartyNotice"> | string
+    partyRole?: StringFilter<"DisputeCasePartyNotice"> | string
+    kind?: StringFilter<"DisputeCasePartyNotice"> | string
+    notificationId?: StringFilter<"DisputeCasePartyNotice"> | string
+    recordedAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+    createdAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+  }
+
+  export type DisputeCasePartyNoticeOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrderInput | SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    notificationId?: SortOrder
+    recordedAt?: SortOrder
+    createdAt?: SortOrder
+    case?: DisputeCaseOrderByWithRelationInput
+  }
+
+  export type DisputeCasePartyNoticeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    notificationId?: string
+    AND?: DisputeCasePartyNoticeWhereInput | DisputeCasePartyNoticeWhereInput[]
+    OR?: DisputeCasePartyNoticeWhereInput[]
+    NOT?: DisputeCasePartyNoticeWhereInput | DisputeCasePartyNoticeWhereInput[]
+    caseId?: UuidNullableFilter<"DisputeCasePartyNotice"> | string | null
+    sessionId?: StringFilter<"DisputeCasePartyNotice"> | string
+    userId?: StringFilter<"DisputeCasePartyNotice"> | string
+    partyRole?: StringFilter<"DisputeCasePartyNotice"> | string
+    kind?: StringFilter<"DisputeCasePartyNotice"> | string
+    recordedAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+    createdAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+  }, "id" | "notificationId">
+
+  export type DisputeCasePartyNoticeOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrderInput | SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    notificationId?: SortOrder
+    recordedAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeCasePartyNoticeCountOrderByAggregateInput
+    _max?: DisputeCasePartyNoticeMaxOrderByAggregateInput
+    _min?: DisputeCasePartyNoticeMinOrderByAggregateInput
+  }
+
+  export type DisputeCasePartyNoticeScalarWhereWithAggregatesInput = {
+    AND?: DisputeCasePartyNoticeScalarWhereWithAggregatesInput | DisputeCasePartyNoticeScalarWhereWithAggregatesInput[]
+    OR?: DisputeCasePartyNoticeScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCasePartyNoticeScalarWhereWithAggregatesInput | DisputeCasePartyNoticeScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    caseId?: UuidNullableWithAggregatesFilter<"DisputeCasePartyNotice"> | string | null
+    sessionId?: StringWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    userId?: StringWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    partyRole?: StringWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    kind?: StringWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    notificationId?: StringWithAggregatesFilter<"DisputeCasePartyNotice"> | string
+    recordedAt?: DateTimeWithAggregatesFilter<"DisputeCasePartyNotice"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCasePartyNotice"> | Date | string
+  }
+
+  export type DisputeCaseDeadlineWhereInput = {
+    AND?: DisputeCaseDeadlineWhereInput | DisputeCaseDeadlineWhereInput[]
+    OR?: DisputeCaseDeadlineWhereInput[]
+    NOT?: DisputeCaseDeadlineWhereInput | DisputeCaseDeadlineWhereInput[]
+    id?: UuidFilter<"DisputeCaseDeadline"> | string
+    caseId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    sessionId?: StringFilter<"DisputeCaseDeadline"> | string
+    userId?: StringFilter<"DisputeCaseDeadline"> | string
+    partyRole?: StringFilter<"DisputeCaseDeadline"> | string
+    kind?: StringFilter<"DisputeCaseDeadline"> | string
+    hours?: IntFilter<"DisputeCaseDeadline"> | number
+    startedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    pausedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    pausedSeconds?: IntFilter<"DisputeCaseDeadline"> | number
+    status?: StringFilter<"DisputeCaseDeadline"> | string
+    satisfiedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    expiredAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    noticeId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    updatedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+  }
+
+  export type DisputeCaseDeadlineOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrderInput | SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    hours?: SortOrder
+    startedAt?: SortOrder
+    pausedAt?: SortOrderInput | SortOrder
+    pausedSeconds?: SortOrder
+    status?: SortOrder
+    satisfiedAt?: SortOrderInput | SortOrder
+    expiredAt?: SortOrderInput | SortOrder
+    noticeId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    case?: DisputeCaseOrderByWithRelationInput
+  }
+
+  export type DisputeCaseDeadlineWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeCaseDeadlineWhereInput | DisputeCaseDeadlineWhereInput[]
+    OR?: DisputeCaseDeadlineWhereInput[]
+    NOT?: DisputeCaseDeadlineWhereInput | DisputeCaseDeadlineWhereInput[]
+    caseId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    sessionId?: StringFilter<"DisputeCaseDeadline"> | string
+    userId?: StringFilter<"DisputeCaseDeadline"> | string
+    partyRole?: StringFilter<"DisputeCaseDeadline"> | string
+    kind?: StringFilter<"DisputeCaseDeadline"> | string
+    hours?: IntFilter<"DisputeCaseDeadline"> | number
+    startedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    pausedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    pausedSeconds?: IntFilter<"DisputeCaseDeadline"> | number
+    status?: StringFilter<"DisputeCaseDeadline"> | string
+    satisfiedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    expiredAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    noticeId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    updatedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+  }, "id">
+
+  export type DisputeCaseDeadlineOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrderInput | SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    hours?: SortOrder
+    startedAt?: SortOrder
+    pausedAt?: SortOrderInput | SortOrder
+    pausedSeconds?: SortOrder
+    status?: SortOrder
+    satisfiedAt?: SortOrderInput | SortOrder
+    expiredAt?: SortOrderInput | SortOrder
+    noticeId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: DisputeCaseDeadlineCountOrderByAggregateInput
+    _avg?: DisputeCaseDeadlineAvgOrderByAggregateInput
+    _max?: DisputeCaseDeadlineMaxOrderByAggregateInput
+    _min?: DisputeCaseDeadlineMinOrderByAggregateInput
+    _sum?: DisputeCaseDeadlineSumOrderByAggregateInput
+  }
+
+  export type DisputeCaseDeadlineScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseDeadlineScalarWhereWithAggregatesInput | DisputeCaseDeadlineScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseDeadlineScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseDeadlineScalarWhereWithAggregatesInput | DisputeCaseDeadlineScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    caseId?: UuidNullableWithAggregatesFilter<"DisputeCaseDeadline"> | string | null
+    sessionId?: StringWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    userId?: StringWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    partyRole?: StringWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    kind?: StringWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    hours?: IntWithAggregatesFilter<"DisputeCaseDeadline"> | number
+    startedAt?: DateTimeWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string
+    pausedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string | null
+    pausedSeconds?: IntWithAggregatesFilter<"DisputeCaseDeadline"> | number
+    status?: StringWithAggregatesFilter<"DisputeCaseDeadline"> | string
+    satisfiedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string | null
+    expiredAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string | null
+    noticeId?: UuidNullableWithAggregatesFilter<"DisputeCaseDeadline"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"DisputeCaseDeadline"> | Date | string
+  }
+
+  export type DisputeCaseAgreementWhereInput = {
+    AND?: DisputeCaseAgreementWhereInput | DisputeCaseAgreementWhereInput[]
+    OR?: DisputeCaseAgreementWhereInput[]
+    NOT?: DisputeCaseAgreementWhereInput | DisputeCaseAgreementWhereInput[]
+    id?: UuidFilter<"DisputeCaseAgreement"> | string
+    caseId?: UuidFilter<"DisputeCaseAgreement"> | string
+    outcome?: StringFilter<"DisputeCaseAgreement"> | string
+    contentHash?: StringFilter<"DisputeCaseAgreement"> | string
+    note?: StringFilter<"DisputeCaseAgreement"> | string
+    proposedBy?: StringFilter<"DisputeCaseAgreement"> | string
+    status?: StringFilter<"DisputeCaseAgreement"> | string
+    agreedAt?: DateTimeNullableFilter<"DisputeCaseAgreement"> | Date | string | null
+    findingId?: UuidNullableFilter<"DisputeCaseAgreement"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAgreement"> | Date | string
+    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    confirmations?: DisputeCaseAgreementConfirmationListRelationFilter
+  }
+
+  export type DisputeCaseAgreementOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    outcome?: SortOrder
+    contentHash?: SortOrder
+    note?: SortOrder
+    proposedBy?: SortOrder
+    status?: SortOrder
+    agreedAt?: SortOrderInput | SortOrder
+    findingId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: DisputeCaseOrderByWithRelationInput
+    confirmations?: DisputeCaseAgreementConfirmationOrderByRelationAggregateInput
+  }
+
+  export type DisputeCaseAgreementWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeCaseAgreementWhereInput | DisputeCaseAgreementWhereInput[]
+    OR?: DisputeCaseAgreementWhereInput[]
+    NOT?: DisputeCaseAgreementWhereInput | DisputeCaseAgreementWhereInput[]
+    caseId?: UuidFilter<"DisputeCaseAgreement"> | string
+    outcome?: StringFilter<"DisputeCaseAgreement"> | string
+    contentHash?: StringFilter<"DisputeCaseAgreement"> | string
+    note?: StringFilter<"DisputeCaseAgreement"> | string
+    proposedBy?: StringFilter<"DisputeCaseAgreement"> | string
+    status?: StringFilter<"DisputeCaseAgreement"> | string
+    agreedAt?: DateTimeNullableFilter<"DisputeCaseAgreement"> | Date | string | null
+    findingId?: UuidNullableFilter<"DisputeCaseAgreement"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAgreement"> | Date | string
+    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    confirmations?: DisputeCaseAgreementConfirmationListRelationFilter
+  }, "id">
+
+  export type DisputeCaseAgreementOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    outcome?: SortOrder
+    contentHash?: SortOrder
+    note?: SortOrder
+    proposedBy?: SortOrder
+    status?: SortOrder
+    agreedAt?: SortOrderInput | SortOrder
+    findingId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeCaseAgreementCountOrderByAggregateInput
+    _max?: DisputeCaseAgreementMaxOrderByAggregateInput
+    _min?: DisputeCaseAgreementMinOrderByAggregateInput
+  }
+
+  export type DisputeCaseAgreementScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseAgreementScalarWhereWithAggregatesInput | DisputeCaseAgreementScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseAgreementScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseAgreementScalarWhereWithAggregatesInput | DisputeCaseAgreementScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    caseId?: UuidWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    outcome?: StringWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    contentHash?: StringWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    note?: StringWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    proposedBy?: StringWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    status?: StringWithAggregatesFilter<"DisputeCaseAgreement"> | string
+    agreedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseAgreement"> | Date | string | null
+    findingId?: UuidNullableWithAggregatesFilter<"DisputeCaseAgreement"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCaseAgreement"> | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationWhereInput = {
+    AND?: DisputeCaseAgreementConfirmationWhereInput | DisputeCaseAgreementConfirmationWhereInput[]
+    OR?: DisputeCaseAgreementConfirmationWhereInput[]
+    NOT?: DisputeCaseAgreementConfirmationWhereInput | DisputeCaseAgreementConfirmationWhereInput[]
+    id?: UuidFilter<"DisputeCaseAgreementConfirmation"> | string
+    agreementId?: UuidFilter<"DisputeCaseAgreementConfirmation"> | string
+    partyRole?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    userId?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedHash?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedAt?: DateTimeFilter<"DisputeCaseAgreementConfirmation"> | Date | string
+    agreement?: XOR<DisputeCaseAgreementRelationFilter, DisputeCaseAgreementWhereInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationOrderByWithRelationInput = {
+    id?: SortOrder
+    agreementId?: SortOrder
+    partyRole?: SortOrder
+    userId?: SortOrder
+    confirmedHash?: SortOrder
+    confirmedAt?: SortOrder
+    agreement?: DisputeCaseAgreementOrderByWithRelationInput
+  }
+
+  export type DisputeCaseAgreementConfirmationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    agreementId_partyRole?: DisputeCaseAgreementConfirmationAgreementIdPartyRoleCompoundUniqueInput
+    AND?: DisputeCaseAgreementConfirmationWhereInput | DisputeCaseAgreementConfirmationWhereInput[]
+    OR?: DisputeCaseAgreementConfirmationWhereInput[]
+    NOT?: DisputeCaseAgreementConfirmationWhereInput | DisputeCaseAgreementConfirmationWhereInput[]
+    agreementId?: UuidFilter<"DisputeCaseAgreementConfirmation"> | string
+    partyRole?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    userId?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedHash?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedAt?: DateTimeFilter<"DisputeCaseAgreementConfirmation"> | Date | string
+    agreement?: XOR<DisputeCaseAgreementRelationFilter, DisputeCaseAgreementWhereInput>
+  }, "id" | "agreementId_partyRole">
+
+  export type DisputeCaseAgreementConfirmationOrderByWithAggregationInput = {
+    id?: SortOrder
+    agreementId?: SortOrder
+    partyRole?: SortOrder
+    userId?: SortOrder
+    confirmedHash?: SortOrder
+    confirmedAt?: SortOrder
+    _count?: DisputeCaseAgreementConfirmationCountOrderByAggregateInput
+    _max?: DisputeCaseAgreementConfirmationMaxOrderByAggregateInput
+    _min?: DisputeCaseAgreementConfirmationMinOrderByAggregateInput
+  }
+
+  export type DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput | DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput | DisputeCaseAgreementConfirmationScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | string
+    agreementId?: UuidWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | string
+    partyRole?: StringWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | string
+    userId?: StringWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedHash?: StringWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedAt?: DateTimeWithAggregatesFilter<"DisputeCaseAgreementConfirmation"> | Date | string
+  }
+
+  export type DisputeCaseAppealWhereInput = {
+    AND?: DisputeCaseAppealWhereInput | DisputeCaseAppealWhereInput[]
+    OR?: DisputeCaseAppealWhereInput[]
+    NOT?: DisputeCaseAppealWhereInput | DisputeCaseAppealWhereInput[]
+    id?: UuidFilter<"DisputeCaseAppeal"> | string
+    caseId?: UuidFilter<"DisputeCaseAppeal"> | string
+    partyRole?: StringFilter<"DisputeCaseAppeal"> | string
+    requestedBy?: StringFilter<"DisputeCaseAppeal"> | string
+    reason?: StringFilter<"DisputeCaseAppeal"> | string
+    noticeRecordedAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+    status?: StringFilter<"DisputeCaseAppeal"> | string
+    reviewerId?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reviewerAssignedBy?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    result?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reasoning?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    previousFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    newFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    decidedAt?: DateTimeNullableFilter<"DisputeCaseAppeal"> | Date | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    consequences?: DisputeCaseAppealConsequenceListRelationFilter
+  }
+
+  export type DisputeCaseAppealOrderByWithRelationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    requestedBy?: SortOrder
+    reason?: SortOrder
+    noticeRecordedAt?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrderInput | SortOrder
+    reviewerAssignedBy?: SortOrderInput | SortOrder
+    result?: SortOrderInput | SortOrder
+    reasoning?: SortOrderInput | SortOrder
+    previousFindingId?: SortOrderInput | SortOrder
+    newFindingId?: SortOrderInput | SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    case?: DisputeCaseOrderByWithRelationInput
+    consequences?: DisputeCaseAppealConsequenceOrderByRelationAggregateInput
+  }
+
+  export type DisputeCaseAppealWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    caseId_partyRole?: DisputeCaseAppealCaseIdPartyRoleCompoundUniqueInput
+    AND?: DisputeCaseAppealWhereInput | DisputeCaseAppealWhereInput[]
+    OR?: DisputeCaseAppealWhereInput[]
+    NOT?: DisputeCaseAppealWhereInput | DisputeCaseAppealWhereInput[]
+    caseId?: UuidFilter<"DisputeCaseAppeal"> | string
+    partyRole?: StringFilter<"DisputeCaseAppeal"> | string
+    requestedBy?: StringFilter<"DisputeCaseAppeal"> | string
+    reason?: StringFilter<"DisputeCaseAppeal"> | string
+    noticeRecordedAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+    status?: StringFilter<"DisputeCaseAppeal"> | string
+    reviewerId?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reviewerAssignedBy?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    result?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reasoning?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    previousFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    newFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    decidedAt?: DateTimeNullableFilter<"DisputeCaseAppeal"> | Date | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    consequences?: DisputeCaseAppealConsequenceListRelationFilter
+  }, "id" | "caseId_partyRole">
+
+  export type DisputeCaseAppealOrderByWithAggregationInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    requestedBy?: SortOrder
+    reason?: SortOrder
+    noticeRecordedAt?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrderInput | SortOrder
+    reviewerAssignedBy?: SortOrderInput | SortOrder
+    result?: SortOrderInput | SortOrder
+    reasoning?: SortOrderInput | SortOrder
+    previousFindingId?: SortOrderInput | SortOrder
+    newFindingId?: SortOrderInput | SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeCaseAppealCountOrderByAggregateInput
+    _max?: DisputeCaseAppealMaxOrderByAggregateInput
+    _min?: DisputeCaseAppealMinOrderByAggregateInput
+  }
+
+  export type DisputeCaseAppealScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseAppealScalarWhereWithAggregatesInput | DisputeCaseAppealScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseAppealScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseAppealScalarWhereWithAggregatesInput | DisputeCaseAppealScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    caseId?: UuidWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    partyRole?: StringWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    requestedBy?: StringWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    reason?: StringWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    noticeRecordedAt?: DateTimeWithAggregatesFilter<"DisputeCaseAppeal"> | Date | string
+    status?: StringWithAggregatesFilter<"DisputeCaseAppeal"> | string
+    reviewerId?: StringNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    reviewerAssignedBy?: StringNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    result?: StringNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    reasoning?: StringNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    previousFindingId?: UuidNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    newFindingId?: UuidNullableWithAggregatesFilter<"DisputeCaseAppeal"> | string | null
+    decidedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseAppeal"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCaseAppeal"> | Date | string
+  }
+
+  export type DisputeCaseAppealConsequenceWhereInput = {
+    AND?: DisputeCaseAppealConsequenceWhereInput | DisputeCaseAppealConsequenceWhereInput[]
+    OR?: DisputeCaseAppealConsequenceWhereInput[]
+    NOT?: DisputeCaseAppealConsequenceWhereInput | DisputeCaseAppealConsequenceWhereInput[]
+    id?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    appealId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    caseId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    kind?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    status?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    detail?: JsonNullableFilter<"DisputeCaseAppealConsequence">
+    note?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppealConsequence"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"DisputeCaseAppealConsequence"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+    appeal?: XOR<DisputeCaseAppealRelationFilter, DisputeCaseAppealWhereInput>
+    quotaCorrections?: DisputeCaseQuotaCorrectionListRelationFilter
+  }
+
+  export type DisputeCaseAppealConsequenceOrderByWithRelationInput = {
+    id?: SortOrder
+    appealId?: SortOrder
+    caseId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    appeal?: DisputeCaseAppealOrderByWithRelationInput
+    quotaCorrections?: DisputeCaseQuotaCorrectionOrderByRelationAggregateInput
+  }
+
+  export type DisputeCaseAppealConsequenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeCaseAppealConsequenceWhereInput | DisputeCaseAppealConsequenceWhereInput[]
+    OR?: DisputeCaseAppealConsequenceWhereInput[]
+    NOT?: DisputeCaseAppealConsequenceWhereInput | DisputeCaseAppealConsequenceWhereInput[]
+    appealId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    caseId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    kind?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    status?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    detail?: JsonNullableFilter<"DisputeCaseAppealConsequence">
+    note?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppealConsequence"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"DisputeCaseAppealConsequence"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+    appeal?: XOR<DisputeCaseAppealRelationFilter, DisputeCaseAppealWhereInput>
+    quotaCorrections?: DisputeCaseQuotaCorrectionListRelationFilter
+  }, "id">
+
+  export type DisputeCaseAppealConsequenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    appealId?: SortOrder
+    caseId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    _count?: DisputeCaseAppealConsequenceCountOrderByAggregateInput
+    _max?: DisputeCaseAppealConsequenceMaxOrderByAggregateInput
+    _min?: DisputeCaseAppealConsequenceMinOrderByAggregateInput
+  }
+
+  export type DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput | DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput | DisputeCaseAppealConsequenceScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string
+    appealId?: UuidWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string
+    caseId?: UuidWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string
+    kind?: StringWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string
+    status?: StringWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string
+    detail?: JsonNullableWithAggregatesFilter<"DisputeCaseAppealConsequence">
+    note?: StringNullableWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCaseAppealConsequence"> | Date | string
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseAppealConsequence"> | Date | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"DisputeCaseAppealConsequence"> | string | null
+  }
+
+  export type DisputeCaseQuotaCorrectionWhereInput = {
+    AND?: DisputeCaseQuotaCorrectionWhereInput | DisputeCaseQuotaCorrectionWhereInput[]
+    OR?: DisputeCaseQuotaCorrectionWhereInput[]
+    NOT?: DisputeCaseQuotaCorrectionWhereInput | DisputeCaseQuotaCorrectionWhereInput[]
+    id?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    consequenceId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    caseId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    contractId?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    delta?: IntFilter<"DisputeCaseQuotaCorrection"> | number
+    reason?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    proposedBy?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    approvedBy?: StringNullableFilter<"DisputeCaseQuotaCorrection"> | string | null
+    approvedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    appliedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    usedBefore?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    usedAfter?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    createdAt?: DateTimeFilter<"DisputeCaseQuotaCorrection"> | Date | string
+    consequence?: XOR<DisputeCaseAppealConsequenceRelationFilter, DisputeCaseAppealConsequenceWhereInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionOrderByWithRelationInput = {
+    id?: SortOrder
+    consequenceId?: SortOrder
+    caseId?: SortOrder
+    contractId?: SortOrder
+    delta?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    usedBefore?: SortOrderInput | SortOrder
+    usedAfter?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    consequence?: DisputeCaseAppealConsequenceOrderByWithRelationInput
+  }
+
+  export type DisputeCaseQuotaCorrectionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeCaseQuotaCorrectionWhereInput | DisputeCaseQuotaCorrectionWhereInput[]
+    OR?: DisputeCaseQuotaCorrectionWhereInput[]
+    NOT?: DisputeCaseQuotaCorrectionWhereInput | DisputeCaseQuotaCorrectionWhereInput[]
+    consequenceId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    caseId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    contractId?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    delta?: IntFilter<"DisputeCaseQuotaCorrection"> | number
+    reason?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    proposedBy?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    approvedBy?: StringNullableFilter<"DisputeCaseQuotaCorrection"> | string | null
+    approvedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    appliedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    usedBefore?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    usedAfter?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    createdAt?: DateTimeFilter<"DisputeCaseQuotaCorrection"> | Date | string
+    consequence?: XOR<DisputeCaseAppealConsequenceRelationFilter, DisputeCaseAppealConsequenceWhereInput>
+  }, "id">
+
+  export type DisputeCaseQuotaCorrectionOrderByWithAggregationInput = {
+    id?: SortOrder
+    consequenceId?: SortOrder
+    caseId?: SortOrder
+    contractId?: SortOrder
+    delta?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    usedBefore?: SortOrderInput | SortOrder
+    usedAfter?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeCaseQuotaCorrectionCountOrderByAggregateInput
+    _avg?: DisputeCaseQuotaCorrectionAvgOrderByAggregateInput
+    _max?: DisputeCaseQuotaCorrectionMaxOrderByAggregateInput
+    _min?: DisputeCaseQuotaCorrectionMinOrderByAggregateInput
+    _sum?: DisputeCaseQuotaCorrectionSumOrderByAggregateInput
+  }
+
+  export type DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput = {
+    AND?: DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput | DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput[]
+    OR?: DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput[]
+    NOT?: DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput | DisputeCaseQuotaCorrectionScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    consequenceId?: UuidWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    caseId?: UuidWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    contractId?: StringWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    delta?: IntWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | number
+    reason?: StringWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    proposedBy?: StringWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string
+    approvedBy?: StringNullableWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | string | null
+    approvedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    appliedAt?: DateTimeNullableWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    usedBefore?: IntNullableWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | number | null
+    usedAfter?: IntNullableWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeCaseQuotaCorrection"> | Date | string
+  }
+
+  export type DisputeHeldMoneyReviewWhereInput = {
+    AND?: DisputeHeldMoneyReviewWhereInput | DisputeHeldMoneyReviewWhereInput[]
+    OR?: DisputeHeldMoneyReviewWhereInput[]
+    NOT?: DisputeHeldMoneyReviewWhereInput | DisputeHeldMoneyReviewWhereInput[]
+    id?: UuidFilter<"DisputeHeldMoneyReview"> | string
+    settlementRowId?: StringFilter<"DisputeHeldMoneyReview"> | string
+    sessionId?: StringFilter<"DisputeHeldMoneyReview"> | string
+    contractId?: StringFilter<"DisputeHeldMoneyReview"> | string
+    firstSeenAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    nextReviewDueAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    ownerEscalatedAt?: DateTimeNullableFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    closedAt?: DateTimeNullableFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    createdAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    decisions?: DisputeHeldMoneyDecisionListRelationFilter
+  }
+
+  export type DisputeHeldMoneyReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    firstSeenAt?: SortOrder
+    nextReviewDueAt?: SortOrder
+    ownerEscalatedAt?: SortOrderInput | SortOrder
+    closedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    decisions?: DisputeHeldMoneyDecisionOrderByRelationAggregateInput
+  }
+
+  export type DisputeHeldMoneyReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    settlementRowId?: string
+    AND?: DisputeHeldMoneyReviewWhereInput | DisputeHeldMoneyReviewWhereInput[]
+    OR?: DisputeHeldMoneyReviewWhereInput[]
+    NOT?: DisputeHeldMoneyReviewWhereInput | DisputeHeldMoneyReviewWhereInput[]
+    sessionId?: StringFilter<"DisputeHeldMoneyReview"> | string
+    contractId?: StringFilter<"DisputeHeldMoneyReview"> | string
+    firstSeenAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    nextReviewDueAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    ownerEscalatedAt?: DateTimeNullableFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    closedAt?: DateTimeNullableFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    createdAt?: DateTimeFilter<"DisputeHeldMoneyReview"> | Date | string
+    decisions?: DisputeHeldMoneyDecisionListRelationFilter
+  }, "id" | "settlementRowId">
+
+  export type DisputeHeldMoneyReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    firstSeenAt?: SortOrder
+    nextReviewDueAt?: SortOrder
+    ownerEscalatedAt?: SortOrderInput | SortOrder
+    closedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeHeldMoneyReviewCountOrderByAggregateInput
+    _max?: DisputeHeldMoneyReviewMaxOrderByAggregateInput
+    _min?: DisputeHeldMoneyReviewMinOrderByAggregateInput
+  }
+
+  export type DisputeHeldMoneyReviewScalarWhereWithAggregatesInput = {
+    AND?: DisputeHeldMoneyReviewScalarWhereWithAggregatesInput | DisputeHeldMoneyReviewScalarWhereWithAggregatesInput[]
+    OR?: DisputeHeldMoneyReviewScalarWhereWithAggregatesInput[]
+    NOT?: DisputeHeldMoneyReviewScalarWhereWithAggregatesInput | DisputeHeldMoneyReviewScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeHeldMoneyReview"> | string
+    settlementRowId?: StringWithAggregatesFilter<"DisputeHeldMoneyReview"> | string
+    sessionId?: StringWithAggregatesFilter<"DisputeHeldMoneyReview"> | string
+    contractId?: StringWithAggregatesFilter<"DisputeHeldMoneyReview"> | string
+    firstSeenAt?: DateTimeWithAggregatesFilter<"DisputeHeldMoneyReview"> | Date | string
+    nextReviewDueAt?: DateTimeWithAggregatesFilter<"DisputeHeldMoneyReview"> | Date | string
+    ownerEscalatedAt?: DateTimeNullableWithAggregatesFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    closedAt?: DateTimeNullableWithAggregatesFilter<"DisputeHeldMoneyReview"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeHeldMoneyReview"> | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionWhereInput = {
+    AND?: DisputeHeldMoneyDecisionWhereInput | DisputeHeldMoneyDecisionWhereInput[]
+    OR?: DisputeHeldMoneyDecisionWhereInput[]
+    NOT?: DisputeHeldMoneyDecisionWhereInput | DisputeHeldMoneyDecisionWhereInput[]
+    id?: UuidFilter<"DisputeHeldMoneyDecision"> | string
+    reviewId?: UuidFilter<"DisputeHeldMoneyDecision"> | string
+    decision?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    reason?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    exitRef?: StringNullableFilter<"DisputeHeldMoneyDecision"> | string | null
+    decidedBy?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    decidedAt?: DateTimeFilter<"DisputeHeldMoneyDecision"> | Date | string
+    review?: XOR<DisputeHeldMoneyReviewRelationFilter, DisputeHeldMoneyReviewWhereInput>
+  }
+
+  export type DisputeHeldMoneyDecisionOrderByWithRelationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    decision?: SortOrder
+    reason?: SortOrder
+    exitRef?: SortOrderInput | SortOrder
+    decidedBy?: SortOrder
+    decidedAt?: SortOrder
+    review?: DisputeHeldMoneyReviewOrderByWithRelationInput
+  }
+
+  export type DisputeHeldMoneyDecisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeHeldMoneyDecisionWhereInput | DisputeHeldMoneyDecisionWhereInput[]
+    OR?: DisputeHeldMoneyDecisionWhereInput[]
+    NOT?: DisputeHeldMoneyDecisionWhereInput | DisputeHeldMoneyDecisionWhereInput[]
+    reviewId?: UuidFilter<"DisputeHeldMoneyDecision"> | string
+    decision?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    reason?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    exitRef?: StringNullableFilter<"DisputeHeldMoneyDecision"> | string | null
+    decidedBy?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    decidedAt?: DateTimeFilter<"DisputeHeldMoneyDecision"> | Date | string
+    review?: XOR<DisputeHeldMoneyReviewRelationFilter, DisputeHeldMoneyReviewWhereInput>
+  }, "id">
+
+  export type DisputeHeldMoneyDecisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    decision?: SortOrder
+    reason?: SortOrder
+    exitRef?: SortOrderInput | SortOrder
+    decidedBy?: SortOrder
+    decidedAt?: SortOrder
+    _count?: DisputeHeldMoneyDecisionCountOrderByAggregateInput
+    _max?: DisputeHeldMoneyDecisionMaxOrderByAggregateInput
+    _min?: DisputeHeldMoneyDecisionMinOrderByAggregateInput
+  }
+
+  export type DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput = {
+    AND?: DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput | DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput[]
+    OR?: DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput[]
+    NOT?: DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput | DisputeHeldMoneyDecisionScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string
+    reviewId?: UuidWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string
+    decision?: StringWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string
+    reason?: StringWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string
+    exitRef?: StringNullableWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string | null
+    decidedBy?: StringWithAggregatesFilter<"DisputeHeldMoneyDecision"> | string
+    decidedAt?: DateTimeWithAggregatesFilter<"DisputeHeldMoneyDecision"> | Date | string
   }
 
   export type UserProfileCreateInput = {
@@ -73457,6 +84645,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -73473,6 +84663,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateInput = {
@@ -73488,6 +84682,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -73504,6 +84700,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUpdateInput = {
@@ -73519,6 +84719,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73535,6 +84737,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateInput = {
@@ -73550,6 +84756,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73566,6 +84774,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateManyInput = {
@@ -73581,6 +84793,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -73600,6 +84814,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73619,6 +84835,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -75541,6 +86759,868 @@ export namespace Prisma {
     payload?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCasePartyNoticeCreateInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+    case?: DisputeCaseCreateNestedOneWithoutPartyNoticesInput
+  }
+
+  export type DisputeCasePartyNoticeUncheckedCreateInput = {
+    id?: string
+    caseId?: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type DisputeCasePartyNoticeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneWithoutPartyNoticesNestedInput
+  }
+
+  export type DisputeCasePartyNoticeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCasePartyNoticeCreateManyInput = {
+    id?: string
+    caseId?: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type DisputeCasePartyNoticeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCasePartyNoticeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineCreateInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    case?: DisputeCaseCreateNestedOneWithoutDeadlinesInput
+  }
+
+  export type DisputeCaseDeadlineUncheckedCreateInput = {
+    id?: string
+    caseId?: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DisputeCaseDeadlineUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneWithoutDeadlinesNestedInput
+  }
+
+  export type DisputeCaseDeadlineUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineCreateManyInput = {
+    id?: string
+    caseId?: string | null
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DisputeCaseDeadlineUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementCreateInput = {
+    id?: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+    case: DisputeCaseCreateNestedOneWithoutAgreementsInput
+    confirmations?: DisputeCaseAgreementConfirmationCreateNestedManyWithoutAgreementInput
+  }
+
+  export type DisputeCaseAgreementUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+    confirmations?: DisputeCaseAgreementConfirmationUncheckedCreateNestedManyWithoutAgreementInput
+  }
+
+  export type DisputeCaseAgreementUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneRequiredWithoutAgreementsNestedInput
+    confirmations?: DisputeCaseAgreementConfirmationUpdateManyWithoutAgreementNestedInput
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmations?: DisputeCaseAgreementConfirmationUncheckedUpdateManyWithoutAgreementNestedInput
+  }
+
+  export type DisputeCaseAgreementCreateManyInput = {
+    id?: string
+    caseId: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateInput = {
+    id?: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+    agreement: DisputeCaseAgreementCreateNestedOneWithoutConfirmationsInput
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedCreateInput = {
+    id?: string
+    agreementId: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    agreement?: DisputeCaseAgreementUpdateOneRequiredWithoutConfirmationsNestedInput
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agreementId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateManyInput = {
+    id?: string
+    agreementId: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agreementId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAppealCreateInput = {
+    id?: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+    case: DisputeCaseCreateNestedOneWithoutAppealsInput
+    consequences?: DisputeCaseAppealConsequenceCreateNestedManyWithoutAppealInput
+  }
+
+  export type DisputeCaseAppealUncheckedCreateInput = {
+    id?: string
+    caseId: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+    consequences?: DisputeCaseAppealConsequenceUncheckedCreateNestedManyWithoutAppealInput
+  }
+
+  export type DisputeCaseAppealUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneRequiredWithoutAppealsNestedInput
+    consequences?: DisputeCaseAppealConsequenceUpdateManyWithoutAppealNestedInput
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consequences?: DisputeCaseAppealConsequenceUncheckedUpdateManyWithoutAppealNestedInput
+  }
+
+  export type DisputeCaseAppealCreateManyInput = {
+    id?: string
+    caseId: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseAppealUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAppealConsequenceCreateInput = {
+    id?: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    appeal: DisputeCaseAppealCreateNestedOneWithoutConsequencesInput
+    quotaCorrections?: DisputeCaseQuotaCorrectionCreateNestedManyWithoutConsequenceInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedCreateInput = {
+    id?: string
+    appealId: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionUncheckedCreateNestedManyWithoutConsequenceInput
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    appeal?: DisputeCaseAppealUpdateOneRequiredWithoutConsequencesNestedInput
+    quotaCorrections?: DisputeCaseQuotaCorrectionUpdateManyWithoutConsequenceNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appealId?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionUncheckedUpdateManyWithoutConsequenceNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceCreateManyInput = {
+    id?: string
+    appealId: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appealId?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateInput = {
+    id?: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+    consequence: DisputeCaseAppealConsequenceCreateNestedOneWithoutQuotaCorrectionsInput
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedCreateInput = {
+    id?: string
+    consequenceId: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consequence?: DisputeCaseAppealConsequenceUpdateOneRequiredWithoutQuotaCorrectionsNestedInput
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consequenceId?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateManyInput = {
+    id?: string
+    consequenceId: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consequenceId?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyReviewCreateInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date | string
+    nextReviewDueAt: Date | string
+    ownerEscalatedAt?: Date | string | null
+    closedAt?: Date | string | null
+    createdAt?: Date | string
+    decisions?: DisputeHeldMoneyDecisionCreateNestedManyWithoutReviewInput
+  }
+
+  export type DisputeHeldMoneyReviewUncheckedCreateInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date | string
+    nextReviewDueAt: Date | string
+    ownerEscalatedAt?: Date | string | null
+    closedAt?: Date | string | null
+    createdAt?: Date | string
+    decisions?: DisputeHeldMoneyDecisionUncheckedCreateNestedManyWithoutReviewInput
+  }
+
+  export type DisputeHeldMoneyReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decisions?: DisputeHeldMoneyDecisionUpdateManyWithoutReviewNestedInput
+  }
+
+  export type DisputeHeldMoneyReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decisions?: DisputeHeldMoneyDecisionUncheckedUpdateManyWithoutReviewNestedInput
+  }
+
+  export type DisputeHeldMoneyReviewCreateManyInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date | string
+    nextReviewDueAt: Date | string
+    ownerEscalatedAt?: Date | string | null
+    closedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionCreateInput = {
+    id?: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+    review: DisputeHeldMoneyReviewCreateNestedOneWithoutDecisionsInput
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedCreateInput = {
+    id?: string
+    reviewId: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: DisputeHeldMoneyReviewUpdateOneRequiredWithoutDecisionsNestedInput
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionCreateManyInput = {
+    id?: string
+    reviewId: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -78983,6 +91063,30 @@ export namespace Prisma {
     none?: DisputeCasePolicyEligibilityReviewWhereInput
   }
 
+  export type DisputeCasePartyNoticeListRelationFilter = {
+    every?: DisputeCasePartyNoticeWhereInput
+    some?: DisputeCasePartyNoticeWhereInput
+    none?: DisputeCasePartyNoticeWhereInput
+  }
+
+  export type DisputeCaseDeadlineListRelationFilter = {
+    every?: DisputeCaseDeadlineWhereInput
+    some?: DisputeCaseDeadlineWhereInput
+    none?: DisputeCaseDeadlineWhereInput
+  }
+
+  export type DisputeCaseAgreementListRelationFilter = {
+    every?: DisputeCaseAgreementWhereInput
+    some?: DisputeCaseAgreementWhereInput
+    none?: DisputeCaseAgreementWhereInput
+  }
+
+  export type DisputeCaseAppealListRelationFilter = {
+    every?: DisputeCaseAppealWhereInput
+    some?: DisputeCaseAppealWhereInput
+    none?: DisputeCaseAppealWhereInput
+  }
+
   export type DisputeCaseIssueOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -79031,6 +91135,22 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type DisputeCasePartyNoticeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseAgreementOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseAppealOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type DisputeCaseCountOrderByAggregateInput = {
     id?: SortOrder
     sessionId?: SortOrder
@@ -79044,6 +91164,8 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    execLeaseOwner?: SortOrder
+    execLeaseUntil?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -79067,6 +91189,8 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    execLeaseOwner?: SortOrder
+    execLeaseUntil?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -79086,6 +91210,8 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    execLeaseOwner?: SortOrder
+    execLeaseUntil?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -80340,6 +92466,462 @@ export namespace Prisma {
     note?: SortOrder
     idempotencyKey?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type DisputeCasePartyNoticeCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    notificationId?: SortOrder
+    recordedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCasePartyNoticeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    notificationId?: SortOrder
+    recordedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCasePartyNoticeMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    notificationId?: SortOrder
+    recordedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    hours?: SortOrder
+    startedAt?: SortOrder
+    pausedAt?: SortOrder
+    pausedSeconds?: SortOrder
+    status?: SortOrder
+    satisfiedAt?: SortOrder
+    expiredAt?: SortOrder
+    noticeId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineAvgOrderByAggregateInput = {
+    hours?: SortOrder
+    pausedSeconds?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    hours?: SortOrder
+    startedAt?: SortOrder
+    pausedAt?: SortOrder
+    pausedSeconds?: SortOrder
+    status?: SortOrder
+    satisfiedAt?: SortOrder
+    expiredAt?: SortOrder
+    noticeId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    sessionId?: SortOrder
+    userId?: SortOrder
+    partyRole?: SortOrder
+    kind?: SortOrder
+    hours?: SortOrder
+    startedAt?: SortOrder
+    pausedAt?: SortOrder
+    pausedSeconds?: SortOrder
+    status?: SortOrder
+    satisfiedAt?: SortOrder
+    expiredAt?: SortOrder
+    noticeId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DisputeCaseDeadlineSumOrderByAggregateInput = {
+    hours?: SortOrder
+    pausedSeconds?: SortOrder
+  }
+
+  export type DisputeCaseAgreementConfirmationListRelationFilter = {
+    every?: DisputeCaseAgreementConfirmationWhereInput
+    some?: DisputeCaseAgreementConfirmationWhereInput
+    none?: DisputeCaseAgreementConfirmationWhereInput
+  }
+
+  export type DisputeCaseAgreementConfirmationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseAgreementCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    outcome?: SortOrder
+    contentHash?: SortOrder
+    note?: SortOrder
+    proposedBy?: SortOrder
+    status?: SortOrder
+    agreedAt?: SortOrder
+    findingId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAgreementMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    outcome?: SortOrder
+    contentHash?: SortOrder
+    note?: SortOrder
+    proposedBy?: SortOrder
+    status?: SortOrder
+    agreedAt?: SortOrder
+    findingId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAgreementMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    outcome?: SortOrder
+    contentHash?: SortOrder
+    note?: SortOrder
+    proposedBy?: SortOrder
+    status?: SortOrder
+    agreedAt?: SortOrder
+    findingId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAgreementRelationFilter = {
+    is?: DisputeCaseAgreementWhereInput
+    isNot?: DisputeCaseAgreementWhereInput
+  }
+
+  export type DisputeCaseAgreementConfirmationAgreementIdPartyRoleCompoundUniqueInput = {
+    agreementId: string
+    partyRole: string
+  }
+
+  export type DisputeCaseAgreementConfirmationCountOrderByAggregateInput = {
+    id?: SortOrder
+    agreementId?: SortOrder
+    partyRole?: SortOrder
+    userId?: SortOrder
+    confirmedHash?: SortOrder
+    confirmedAt?: SortOrder
+  }
+
+  export type DisputeCaseAgreementConfirmationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    agreementId?: SortOrder
+    partyRole?: SortOrder
+    userId?: SortOrder
+    confirmedHash?: SortOrder
+    confirmedAt?: SortOrder
+  }
+
+  export type DisputeCaseAgreementConfirmationMinOrderByAggregateInput = {
+    id?: SortOrder
+    agreementId?: SortOrder
+    partyRole?: SortOrder
+    userId?: SortOrder
+    confirmedHash?: SortOrder
+    confirmedAt?: SortOrder
+  }
+
+  export type DisputeCaseAppealConsequenceListRelationFilter = {
+    every?: DisputeCaseAppealConsequenceWhereInput
+    some?: DisputeCaseAppealConsequenceWhereInput
+    none?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+  export type DisputeCaseAppealConsequenceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseAppealCaseIdPartyRoleCompoundUniqueInput = {
+    caseId: string
+    partyRole: string
+  }
+
+  export type DisputeCaseAppealCountOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    requestedBy?: SortOrder
+    reason?: SortOrder
+    noticeRecordedAt?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewerAssignedBy?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    previousFindingId?: SortOrder
+    newFindingId?: SortOrder
+    decidedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAppealMaxOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    requestedBy?: SortOrder
+    reason?: SortOrder
+    noticeRecordedAt?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewerAssignedBy?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    previousFindingId?: SortOrder
+    newFindingId?: SortOrder
+    decidedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAppealMinOrderByAggregateInput = {
+    id?: SortOrder
+    caseId?: SortOrder
+    partyRole?: SortOrder
+    requestedBy?: SortOrder
+    reason?: SortOrder
+    noticeRecordedAt?: SortOrder
+    status?: SortOrder
+    reviewerId?: SortOrder
+    reviewerAssignedBy?: SortOrder
+    result?: SortOrder
+    reasoning?: SortOrder
+    previousFindingId?: SortOrder
+    newFindingId?: SortOrder
+    decidedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseAppealRelationFilter = {
+    is?: DisputeCaseAppealWhereInput
+    isNot?: DisputeCaseAppealWhereInput
+  }
+
+  export type DisputeCaseQuotaCorrectionListRelationFilter = {
+    every?: DisputeCaseQuotaCorrectionWhereInput
+    some?: DisputeCaseQuotaCorrectionWhereInput
+    none?: DisputeCaseQuotaCorrectionWhereInput
+  }
+
+  export type DisputeCaseQuotaCorrectionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeCaseAppealConsequenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    appealId?: SortOrder
+    caseId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    detail?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+  }
+
+  export type DisputeCaseAppealConsequenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    appealId?: SortOrder
+    caseId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+  }
+
+  export type DisputeCaseAppealConsequenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    appealId?: SortOrder
+    caseId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+  }
+
+  export type DisputeCaseAppealConsequenceRelationFilter = {
+    is?: DisputeCaseAppealConsequenceWhereInput
+    isNot?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+  export type DisputeCaseQuotaCorrectionCountOrderByAggregateInput = {
+    id?: SortOrder
+    consequenceId?: SortOrder
+    caseId?: SortOrder
+    contractId?: SortOrder
+    delta?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    appliedAt?: SortOrder
+    usedBefore?: SortOrder
+    usedAfter?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseQuotaCorrectionAvgOrderByAggregateInput = {
+    delta?: SortOrder
+    usedBefore?: SortOrder
+    usedAfter?: SortOrder
+  }
+
+  export type DisputeCaseQuotaCorrectionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    consequenceId?: SortOrder
+    caseId?: SortOrder
+    contractId?: SortOrder
+    delta?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    appliedAt?: SortOrder
+    usedBefore?: SortOrder
+    usedAfter?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseQuotaCorrectionMinOrderByAggregateInput = {
+    id?: SortOrder
+    consequenceId?: SortOrder
+    caseId?: SortOrder
+    contractId?: SortOrder
+    delta?: SortOrder
+    reason?: SortOrder
+    proposedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    appliedAt?: SortOrder
+    usedBefore?: SortOrder
+    usedAfter?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeCaseQuotaCorrectionSumOrderByAggregateInput = {
+    delta?: SortOrder
+    usedBefore?: SortOrder
+    usedAfter?: SortOrder
+  }
+
+  export type DisputeHeldMoneyDecisionListRelationFilter = {
+    every?: DisputeHeldMoneyDecisionWhereInput
+    some?: DisputeHeldMoneyDecisionWhereInput
+    none?: DisputeHeldMoneyDecisionWhereInput
+  }
+
+  export type DisputeHeldMoneyDecisionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeHeldMoneyReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    firstSeenAt?: SortOrder
+    nextReviewDueAt?: SortOrder
+    ownerEscalatedAt?: SortOrder
+    closedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeHeldMoneyReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    firstSeenAt?: SortOrder
+    nextReviewDueAt?: SortOrder
+    ownerEscalatedAt?: SortOrder
+    closedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeHeldMoneyReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    settlementRowId?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    firstSeenAt?: SortOrder
+    nextReviewDueAt?: SortOrder
+    ownerEscalatedAt?: SortOrder
+    closedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeHeldMoneyReviewRelationFilter = {
+    is?: DisputeHeldMoneyReviewWhereInput
+    isNot?: DisputeHeldMoneyReviewWhereInput
+  }
+
+  export type DisputeHeldMoneyDecisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    decision?: SortOrder
+    reason?: SortOrder
+    exitRef?: SortOrder
+    decidedBy?: SortOrder
+    decidedAt?: SortOrder
+  }
+
+  export type DisputeHeldMoneyDecisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    decision?: SortOrder
+    reason?: SortOrder
+    exitRef?: SortOrder
+    decidedBy?: SortOrder
+    decidedAt?: SortOrder
+  }
+
+  export type DisputeHeldMoneyDecisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    decision?: SortOrder
+    reason?: SortOrder
+    exitRef?: SortOrder
+    decidedBy?: SortOrder
+    decidedAt?: SortOrder
   }
 
   export type UserProfileCreatesafetyScreeningFlagsInput = {
@@ -82108,6 +94690,34 @@ export namespace Prisma {
     connect?: DisputeCasePolicyEligibilityReviewWhereUniqueInput | DisputeCasePolicyEligibilityReviewWhereUniqueInput[]
   }
 
+  export type DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput> | DisputeCasePartyNoticeCreateWithoutCaseInput[] | DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput | DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCasePartyNoticeCreateManyCaseInputEnvelope
+    connect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+  }
+
+  export type DisputeCaseDeadlineCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput> | DisputeCaseDeadlineCreateWithoutCaseInput[] | DisputeCaseDeadlineUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseDeadlineCreateOrConnectWithoutCaseInput | DisputeCaseDeadlineCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseDeadlineCreateManyCaseInputEnvelope
+    connect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAgreementCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput> | DisputeCaseAgreementCreateWithoutCaseInput[] | DisputeCaseAgreementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutCaseInput | DisputeCaseAgreementCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseAgreementCreateManyCaseInputEnvelope
+    connect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAppealCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput> | DisputeCaseAppealCreateWithoutCaseInput[] | DisputeCaseAppealUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutCaseInput | DisputeCaseAppealCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseAppealCreateManyCaseInputEnvelope
+    connect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+  }
+
   export type DisputeCaseIssueUncheckedCreateNestedManyWithoutCaseInput = {
     create?: XOR<DisputeCaseIssueCreateWithoutCaseInput, DisputeCaseIssueUncheckedCreateWithoutCaseInput> | DisputeCaseIssueCreateWithoutCaseInput[] | DisputeCaseIssueUncheckedCreateWithoutCaseInput[]
     connectOrCreate?: DisputeCaseIssueCreateOrConnectWithoutCaseInput | DisputeCaseIssueCreateOrConnectWithoutCaseInput[]
@@ -82190,6 +94800,34 @@ export namespace Prisma {
     connectOrCreate?: DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutCaseInput | DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutCaseInput[]
     createMany?: DisputeCasePolicyEligibilityReviewCreateManyCaseInputEnvelope
     connect?: DisputeCasePolicyEligibilityReviewWhereUniqueInput | DisputeCasePolicyEligibilityReviewWhereUniqueInput[]
+  }
+
+  export type DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput> | DisputeCasePartyNoticeCreateWithoutCaseInput[] | DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput | DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCasePartyNoticeCreateManyCaseInputEnvelope
+    connect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+  }
+
+  export type DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput> | DisputeCaseDeadlineCreateWithoutCaseInput[] | DisputeCaseDeadlineUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseDeadlineCreateOrConnectWithoutCaseInput | DisputeCaseDeadlineCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseDeadlineCreateManyCaseInputEnvelope
+    connect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput> | DisputeCaseAgreementCreateWithoutCaseInput[] | DisputeCaseAgreementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutCaseInput | DisputeCaseAgreementCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseAgreementCreateManyCaseInputEnvelope
+    connect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput> | DisputeCaseAppealCreateWithoutCaseInput[] | DisputeCaseAppealUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutCaseInput | DisputeCaseAppealCreateOrConnectWithoutCaseInput[]
+    createMany?: DisputeCaseAppealCreateManyCaseInputEnvelope
+    connect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
   }
 
   export type EnumDisputeCaseTypeFieldUpdateOperationsInput = {
@@ -82372,6 +95010,62 @@ export namespace Prisma {
     deleteMany?: DisputeCasePolicyEligibilityReviewScalarWhereInput | DisputeCasePolicyEligibilityReviewScalarWhereInput[]
   }
 
+  export type DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput> | DisputeCasePartyNoticeCreateWithoutCaseInput[] | DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput | DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCasePartyNoticeUpsertWithWhereUniqueWithoutCaseInput | DisputeCasePartyNoticeUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCasePartyNoticeCreateManyCaseInputEnvelope
+    set?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    disconnect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    delete?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    connect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    update?: DisputeCasePartyNoticeUpdateWithWhereUniqueWithoutCaseInput | DisputeCasePartyNoticeUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCasePartyNoticeUpdateManyWithWhereWithoutCaseInput | DisputeCasePartyNoticeUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCasePartyNoticeScalarWhereInput | DisputeCasePartyNoticeScalarWhereInput[]
+  }
+
+  export type DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput> | DisputeCaseDeadlineCreateWithoutCaseInput[] | DisputeCaseDeadlineUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseDeadlineCreateOrConnectWithoutCaseInput | DisputeCaseDeadlineCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseDeadlineUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseDeadlineUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseDeadlineCreateManyCaseInputEnvelope
+    set?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    disconnect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    delete?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    connect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    update?: DisputeCaseDeadlineUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseDeadlineUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseDeadlineUpdateManyWithWhereWithoutCaseInput | DisputeCaseDeadlineUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseDeadlineScalarWhereInput | DisputeCaseDeadlineScalarWhereInput[]
+  }
+
+  export type DisputeCaseAgreementUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput> | DisputeCaseAgreementCreateWithoutCaseInput[] | DisputeCaseAgreementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutCaseInput | DisputeCaseAgreementCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseAgreementUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseAgreementUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseAgreementCreateManyCaseInputEnvelope
+    set?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    disconnect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    delete?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    connect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    update?: DisputeCaseAgreementUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseAgreementUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseAgreementUpdateManyWithWhereWithoutCaseInput | DisputeCaseAgreementUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseAgreementScalarWhereInput | DisputeCaseAgreementScalarWhereInput[]
+  }
+
+  export type DisputeCaseAppealUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput> | DisputeCaseAppealCreateWithoutCaseInput[] | DisputeCaseAppealUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutCaseInput | DisputeCaseAppealCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseAppealUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseAppealUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseAppealCreateManyCaseInputEnvelope
+    set?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    disconnect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    delete?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    connect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    update?: DisputeCaseAppealUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseAppealUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseAppealUpdateManyWithWhereWithoutCaseInput | DisputeCaseAppealUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseAppealScalarWhereInput | DisputeCaseAppealScalarWhereInput[]
+  }
+
   export type DisputeCaseIssueUncheckedUpdateManyWithoutCaseNestedInput = {
     create?: XOR<DisputeCaseIssueCreateWithoutCaseInput, DisputeCaseIssueUncheckedCreateWithoutCaseInput> | DisputeCaseIssueCreateWithoutCaseInput[] | DisputeCaseIssueUncheckedCreateWithoutCaseInput[]
     connectOrCreate?: DisputeCaseIssueCreateOrConnectWithoutCaseInput | DisputeCaseIssueCreateOrConnectWithoutCaseInput[]
@@ -82538,6 +95232,62 @@ export namespace Prisma {
     update?: DisputeCasePolicyEligibilityReviewUpdateWithWhereUniqueWithoutCaseInput | DisputeCasePolicyEligibilityReviewUpdateWithWhereUniqueWithoutCaseInput[]
     updateMany?: DisputeCasePolicyEligibilityReviewUpdateManyWithWhereWithoutCaseInput | DisputeCasePolicyEligibilityReviewUpdateManyWithWhereWithoutCaseInput[]
     deleteMany?: DisputeCasePolicyEligibilityReviewScalarWhereInput | DisputeCasePolicyEligibilityReviewScalarWhereInput[]
+  }
+
+  export type DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput> | DisputeCasePartyNoticeCreateWithoutCaseInput[] | DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput | DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCasePartyNoticeUpsertWithWhereUniqueWithoutCaseInput | DisputeCasePartyNoticeUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCasePartyNoticeCreateManyCaseInputEnvelope
+    set?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    disconnect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    delete?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    connect?: DisputeCasePartyNoticeWhereUniqueInput | DisputeCasePartyNoticeWhereUniqueInput[]
+    update?: DisputeCasePartyNoticeUpdateWithWhereUniqueWithoutCaseInput | DisputeCasePartyNoticeUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCasePartyNoticeUpdateManyWithWhereWithoutCaseInput | DisputeCasePartyNoticeUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCasePartyNoticeScalarWhereInput | DisputeCasePartyNoticeScalarWhereInput[]
+  }
+
+  export type DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput> | DisputeCaseDeadlineCreateWithoutCaseInput[] | DisputeCaseDeadlineUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseDeadlineCreateOrConnectWithoutCaseInput | DisputeCaseDeadlineCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseDeadlineUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseDeadlineUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseDeadlineCreateManyCaseInputEnvelope
+    set?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    disconnect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    delete?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    connect?: DisputeCaseDeadlineWhereUniqueInput | DisputeCaseDeadlineWhereUniqueInput[]
+    update?: DisputeCaseDeadlineUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseDeadlineUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseDeadlineUpdateManyWithWhereWithoutCaseInput | DisputeCaseDeadlineUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseDeadlineScalarWhereInput | DisputeCaseDeadlineScalarWhereInput[]
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput> | DisputeCaseAgreementCreateWithoutCaseInput[] | DisputeCaseAgreementUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutCaseInput | DisputeCaseAgreementCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseAgreementUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseAgreementUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseAgreementCreateManyCaseInputEnvelope
+    set?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    disconnect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    delete?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    connect?: DisputeCaseAgreementWhereUniqueInput | DisputeCaseAgreementWhereUniqueInput[]
+    update?: DisputeCaseAgreementUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseAgreementUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseAgreementUpdateManyWithWhereWithoutCaseInput | DisputeCaseAgreementUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseAgreementScalarWhereInput | DisputeCaseAgreementScalarWhereInput[]
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput> | DisputeCaseAppealCreateWithoutCaseInput[] | DisputeCaseAppealUncheckedCreateWithoutCaseInput[]
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutCaseInput | DisputeCaseAppealCreateOrConnectWithoutCaseInput[]
+    upsert?: DisputeCaseAppealUpsertWithWhereUniqueWithoutCaseInput | DisputeCaseAppealUpsertWithWhereUniqueWithoutCaseInput[]
+    createMany?: DisputeCaseAppealCreateManyCaseInputEnvelope
+    set?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    disconnect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    delete?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    connect?: DisputeCaseAppealWhereUniqueInput | DisputeCaseAppealWhereUniqueInput[]
+    update?: DisputeCaseAppealUpdateWithWhereUniqueWithoutCaseInput | DisputeCaseAppealUpdateWithWhereUniqueWithoutCaseInput[]
+    updateMany?: DisputeCaseAppealUpdateManyWithWhereWithoutCaseInput | DisputeCaseAppealUpdateManyWithWhereWithoutCaseInput[]
+    deleteMany?: DisputeCaseAppealScalarWhereInput | DisputeCaseAppealScalarWhereInput[]
   }
 
   export type DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutEventsInput = {
@@ -83365,6 +96115,290 @@ export namespace Prisma {
     upsert?: SessionSettlementUpsertWithoutD65bResolutionEventsInput
     connect?: SessionSettlementWhereUniqueInput
     update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionEventsInput, SessionSettlementUpdateWithoutD65bResolutionEventsInput>, SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput>
+  }
+
+  export type DisputeCaseCreateNestedOneWithoutPartyNoticesInput = {
+    create?: XOR<DisputeCaseCreateWithoutPartyNoticesInput, DisputeCaseUncheckedCreateWithoutPartyNoticesInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutPartyNoticesInput
+    connect?: DisputeCaseWhereUniqueInput
+  }
+
+  export type DisputeCaseUpdateOneWithoutPartyNoticesNestedInput = {
+    create?: XOR<DisputeCaseCreateWithoutPartyNoticesInput, DisputeCaseUncheckedCreateWithoutPartyNoticesInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutPartyNoticesInput
+    upsert?: DisputeCaseUpsertWithoutPartyNoticesInput
+    disconnect?: DisputeCaseWhereInput | boolean
+    delete?: DisputeCaseWhereInput | boolean
+    connect?: DisputeCaseWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseUpdateToOneWithWhereWithoutPartyNoticesInput, DisputeCaseUpdateWithoutPartyNoticesInput>, DisputeCaseUncheckedUpdateWithoutPartyNoticesInput>
+  }
+
+  export type DisputeCaseCreateNestedOneWithoutDeadlinesInput = {
+    create?: XOR<DisputeCaseCreateWithoutDeadlinesInput, DisputeCaseUncheckedCreateWithoutDeadlinesInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutDeadlinesInput
+    connect?: DisputeCaseWhereUniqueInput
+  }
+
+  export type DisputeCaseUpdateOneWithoutDeadlinesNestedInput = {
+    create?: XOR<DisputeCaseCreateWithoutDeadlinesInput, DisputeCaseUncheckedCreateWithoutDeadlinesInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutDeadlinesInput
+    upsert?: DisputeCaseUpsertWithoutDeadlinesInput
+    disconnect?: DisputeCaseWhereInput | boolean
+    delete?: DisputeCaseWhereInput | boolean
+    connect?: DisputeCaseWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseUpdateToOneWithWhereWithoutDeadlinesInput, DisputeCaseUpdateWithoutDeadlinesInput>, DisputeCaseUncheckedUpdateWithoutDeadlinesInput>
+  }
+
+  export type DisputeCaseCreateNestedOneWithoutAgreementsInput = {
+    create?: XOR<DisputeCaseCreateWithoutAgreementsInput, DisputeCaseUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutAgreementsInput
+    connect?: DisputeCaseWhereUniqueInput
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateNestedManyWithoutAgreementInput = {
+    create?: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput> | DisputeCaseAgreementConfirmationCreateWithoutAgreementInput[] | DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput[]
+    connectOrCreate?: DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput | DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput[]
+    createMany?: DisputeCaseAgreementConfirmationCreateManyAgreementInputEnvelope
+    connect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedCreateNestedManyWithoutAgreementInput = {
+    create?: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput> | DisputeCaseAgreementConfirmationCreateWithoutAgreementInput[] | DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput[]
+    connectOrCreate?: DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput | DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput[]
+    createMany?: DisputeCaseAgreementConfirmationCreateManyAgreementInputEnvelope
+    connect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+  }
+
+  export type DisputeCaseUpdateOneRequiredWithoutAgreementsNestedInput = {
+    create?: XOR<DisputeCaseCreateWithoutAgreementsInput, DisputeCaseUncheckedCreateWithoutAgreementsInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutAgreementsInput
+    upsert?: DisputeCaseUpsertWithoutAgreementsInput
+    connect?: DisputeCaseWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseUpdateToOneWithWhereWithoutAgreementsInput, DisputeCaseUpdateWithoutAgreementsInput>, DisputeCaseUncheckedUpdateWithoutAgreementsInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateManyWithoutAgreementNestedInput = {
+    create?: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput> | DisputeCaseAgreementConfirmationCreateWithoutAgreementInput[] | DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput[]
+    connectOrCreate?: DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput | DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput[]
+    upsert?: DisputeCaseAgreementConfirmationUpsertWithWhereUniqueWithoutAgreementInput | DisputeCaseAgreementConfirmationUpsertWithWhereUniqueWithoutAgreementInput[]
+    createMany?: DisputeCaseAgreementConfirmationCreateManyAgreementInputEnvelope
+    set?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    disconnect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    delete?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    connect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    update?: DisputeCaseAgreementConfirmationUpdateWithWhereUniqueWithoutAgreementInput | DisputeCaseAgreementConfirmationUpdateWithWhereUniqueWithoutAgreementInput[]
+    updateMany?: DisputeCaseAgreementConfirmationUpdateManyWithWhereWithoutAgreementInput | DisputeCaseAgreementConfirmationUpdateManyWithWhereWithoutAgreementInput[]
+    deleteMany?: DisputeCaseAgreementConfirmationScalarWhereInput | DisputeCaseAgreementConfirmationScalarWhereInput[]
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedUpdateManyWithoutAgreementNestedInput = {
+    create?: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput> | DisputeCaseAgreementConfirmationCreateWithoutAgreementInput[] | DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput[]
+    connectOrCreate?: DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput | DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput[]
+    upsert?: DisputeCaseAgreementConfirmationUpsertWithWhereUniqueWithoutAgreementInput | DisputeCaseAgreementConfirmationUpsertWithWhereUniqueWithoutAgreementInput[]
+    createMany?: DisputeCaseAgreementConfirmationCreateManyAgreementInputEnvelope
+    set?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    disconnect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    delete?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    connect?: DisputeCaseAgreementConfirmationWhereUniqueInput | DisputeCaseAgreementConfirmationWhereUniqueInput[]
+    update?: DisputeCaseAgreementConfirmationUpdateWithWhereUniqueWithoutAgreementInput | DisputeCaseAgreementConfirmationUpdateWithWhereUniqueWithoutAgreementInput[]
+    updateMany?: DisputeCaseAgreementConfirmationUpdateManyWithWhereWithoutAgreementInput | DisputeCaseAgreementConfirmationUpdateManyWithWhereWithoutAgreementInput[]
+    deleteMany?: DisputeCaseAgreementConfirmationScalarWhereInput | DisputeCaseAgreementConfirmationScalarWhereInput[]
+  }
+
+  export type DisputeCaseAgreementCreateNestedOneWithoutConfirmationsInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedCreateWithoutConfirmationsInput>
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutConfirmationsInput
+    connect?: DisputeCaseAgreementWhereUniqueInput
+  }
+
+  export type DisputeCaseAgreementUpdateOneRequiredWithoutConfirmationsNestedInput = {
+    create?: XOR<DisputeCaseAgreementCreateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedCreateWithoutConfirmationsInput>
+    connectOrCreate?: DisputeCaseAgreementCreateOrConnectWithoutConfirmationsInput
+    upsert?: DisputeCaseAgreementUpsertWithoutConfirmationsInput
+    connect?: DisputeCaseAgreementWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseAgreementUpdateToOneWithWhereWithoutConfirmationsInput, DisputeCaseAgreementUpdateWithoutConfirmationsInput>, DisputeCaseAgreementUncheckedUpdateWithoutConfirmationsInput>
+  }
+
+  export type DisputeCaseCreateNestedOneWithoutAppealsInput = {
+    create?: XOR<DisputeCaseCreateWithoutAppealsInput, DisputeCaseUncheckedCreateWithoutAppealsInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutAppealsInput
+    connect?: DisputeCaseWhereUniqueInput
+  }
+
+  export type DisputeCaseAppealConsequenceCreateNestedManyWithoutAppealInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput> | DisputeCaseAppealConsequenceCreateWithoutAppealInput[] | DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput[]
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput | DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput[]
+    createMany?: DisputeCaseAppealConsequenceCreateManyAppealInputEnvelope
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedCreateNestedManyWithoutAppealInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput> | DisputeCaseAppealConsequenceCreateWithoutAppealInput[] | DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput[]
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput | DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput[]
+    createMany?: DisputeCaseAppealConsequenceCreateManyAppealInputEnvelope
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+  }
+
+  export type DisputeCaseUpdateOneRequiredWithoutAppealsNestedInput = {
+    create?: XOR<DisputeCaseCreateWithoutAppealsInput, DisputeCaseUncheckedCreateWithoutAppealsInput>
+    connectOrCreate?: DisputeCaseCreateOrConnectWithoutAppealsInput
+    upsert?: DisputeCaseUpsertWithoutAppealsInput
+    connect?: DisputeCaseWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseUpdateToOneWithWhereWithoutAppealsInput, DisputeCaseUpdateWithoutAppealsInput>, DisputeCaseUncheckedUpdateWithoutAppealsInput>
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateManyWithoutAppealNestedInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput> | DisputeCaseAppealConsequenceCreateWithoutAppealInput[] | DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput[]
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput | DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput[]
+    upsert?: DisputeCaseAppealConsequenceUpsertWithWhereUniqueWithoutAppealInput | DisputeCaseAppealConsequenceUpsertWithWhereUniqueWithoutAppealInput[]
+    createMany?: DisputeCaseAppealConsequenceCreateManyAppealInputEnvelope
+    set?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    disconnect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    delete?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    update?: DisputeCaseAppealConsequenceUpdateWithWhereUniqueWithoutAppealInput | DisputeCaseAppealConsequenceUpdateWithWhereUniqueWithoutAppealInput[]
+    updateMany?: DisputeCaseAppealConsequenceUpdateManyWithWhereWithoutAppealInput | DisputeCaseAppealConsequenceUpdateManyWithWhereWithoutAppealInput[]
+    deleteMany?: DisputeCaseAppealConsequenceScalarWhereInput | DisputeCaseAppealConsequenceScalarWhereInput[]
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateManyWithoutAppealNestedInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput> | DisputeCaseAppealConsequenceCreateWithoutAppealInput[] | DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput[]
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput | DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput[]
+    upsert?: DisputeCaseAppealConsequenceUpsertWithWhereUniqueWithoutAppealInput | DisputeCaseAppealConsequenceUpsertWithWhereUniqueWithoutAppealInput[]
+    createMany?: DisputeCaseAppealConsequenceCreateManyAppealInputEnvelope
+    set?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    disconnect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    delete?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput | DisputeCaseAppealConsequenceWhereUniqueInput[]
+    update?: DisputeCaseAppealConsequenceUpdateWithWhereUniqueWithoutAppealInput | DisputeCaseAppealConsequenceUpdateWithWhereUniqueWithoutAppealInput[]
+    updateMany?: DisputeCaseAppealConsequenceUpdateManyWithWhereWithoutAppealInput | DisputeCaseAppealConsequenceUpdateManyWithWhereWithoutAppealInput[]
+    deleteMany?: DisputeCaseAppealConsequenceScalarWhereInput | DisputeCaseAppealConsequenceScalarWhereInput[]
+  }
+
+  export type DisputeCaseAppealCreateNestedOneWithoutConsequencesInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutConsequencesInput, DisputeCaseAppealUncheckedCreateWithoutConsequencesInput>
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutConsequencesInput
+    connect?: DisputeCaseAppealWhereUniqueInput
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateNestedManyWithoutConsequenceInput = {
+    create?: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput> | DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput[] | DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput[]
+    connectOrCreate?: DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput | DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput[]
+    createMany?: DisputeCaseQuotaCorrectionCreateManyConsequenceInputEnvelope
+    connect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedCreateNestedManyWithoutConsequenceInput = {
+    create?: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput> | DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput[] | DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput[]
+    connectOrCreate?: DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput | DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput[]
+    createMany?: DisputeCaseQuotaCorrectionCreateManyConsequenceInputEnvelope
+    connect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+  }
+
+  export type DisputeCaseAppealUpdateOneRequiredWithoutConsequencesNestedInput = {
+    create?: XOR<DisputeCaseAppealCreateWithoutConsequencesInput, DisputeCaseAppealUncheckedCreateWithoutConsequencesInput>
+    connectOrCreate?: DisputeCaseAppealCreateOrConnectWithoutConsequencesInput
+    upsert?: DisputeCaseAppealUpsertWithoutConsequencesInput
+    connect?: DisputeCaseAppealWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseAppealUpdateToOneWithWhereWithoutConsequencesInput, DisputeCaseAppealUpdateWithoutConsequencesInput>, DisputeCaseAppealUncheckedUpdateWithoutConsequencesInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateManyWithoutConsequenceNestedInput = {
+    create?: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput> | DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput[] | DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput[]
+    connectOrCreate?: DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput | DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput[]
+    upsert?: DisputeCaseQuotaCorrectionUpsertWithWhereUniqueWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpsertWithWhereUniqueWithoutConsequenceInput[]
+    createMany?: DisputeCaseQuotaCorrectionCreateManyConsequenceInputEnvelope
+    set?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    disconnect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    delete?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    connect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    update?: DisputeCaseQuotaCorrectionUpdateWithWhereUniqueWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpdateWithWhereUniqueWithoutConsequenceInput[]
+    updateMany?: DisputeCaseQuotaCorrectionUpdateManyWithWhereWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpdateManyWithWhereWithoutConsequenceInput[]
+    deleteMany?: DisputeCaseQuotaCorrectionScalarWhereInput | DisputeCaseQuotaCorrectionScalarWhereInput[]
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedUpdateManyWithoutConsequenceNestedInput = {
+    create?: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput> | DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput[] | DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput[]
+    connectOrCreate?: DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput | DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput[]
+    upsert?: DisputeCaseQuotaCorrectionUpsertWithWhereUniqueWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpsertWithWhereUniqueWithoutConsequenceInput[]
+    createMany?: DisputeCaseQuotaCorrectionCreateManyConsequenceInputEnvelope
+    set?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    disconnect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    delete?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    connect?: DisputeCaseQuotaCorrectionWhereUniqueInput | DisputeCaseQuotaCorrectionWhereUniqueInput[]
+    update?: DisputeCaseQuotaCorrectionUpdateWithWhereUniqueWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpdateWithWhereUniqueWithoutConsequenceInput[]
+    updateMany?: DisputeCaseQuotaCorrectionUpdateManyWithWhereWithoutConsequenceInput | DisputeCaseQuotaCorrectionUpdateManyWithWhereWithoutConsequenceInput[]
+    deleteMany?: DisputeCaseQuotaCorrectionScalarWhereInput | DisputeCaseQuotaCorrectionScalarWhereInput[]
+  }
+
+  export type DisputeCaseAppealConsequenceCreateNestedOneWithoutQuotaCorrectionsInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutQuotaCorrectionsInput>
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutQuotaCorrectionsInput
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateOneRequiredWithoutQuotaCorrectionsNestedInput = {
+    create?: XOR<DisputeCaseAppealConsequenceCreateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutQuotaCorrectionsInput>
+    connectOrCreate?: DisputeCaseAppealConsequenceCreateOrConnectWithoutQuotaCorrectionsInput
+    upsert?: DisputeCaseAppealConsequenceUpsertWithoutQuotaCorrectionsInput
+    connect?: DisputeCaseAppealConsequenceWhereUniqueInput
+    update?: XOR<XOR<DisputeCaseAppealConsequenceUpdateToOneWithWhereWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUpdateWithoutQuotaCorrectionsInput>, DisputeCaseAppealConsequenceUncheckedUpdateWithoutQuotaCorrectionsInput>
+  }
+
+  export type DisputeHeldMoneyDecisionCreateNestedManyWithoutReviewInput = {
+    create?: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput> | DisputeHeldMoneyDecisionCreateWithoutReviewInput[] | DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput | DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput[]
+    createMany?: DisputeHeldMoneyDecisionCreateManyReviewInputEnvelope
+    connect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedCreateNestedManyWithoutReviewInput = {
+    create?: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput> | DisputeHeldMoneyDecisionCreateWithoutReviewInput[] | DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput | DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput[]
+    createMany?: DisputeHeldMoneyDecisionCreateManyReviewInputEnvelope
+    connect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput> | DisputeHeldMoneyDecisionCreateWithoutReviewInput[] | DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput | DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput[]
+    upsert?: DisputeHeldMoneyDecisionUpsertWithWhereUniqueWithoutReviewInput | DisputeHeldMoneyDecisionUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: DisputeHeldMoneyDecisionCreateManyReviewInputEnvelope
+    set?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    disconnect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    delete?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    connect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    update?: DisputeHeldMoneyDecisionUpdateWithWhereUniqueWithoutReviewInput | DisputeHeldMoneyDecisionUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: DisputeHeldMoneyDecisionUpdateManyWithWhereWithoutReviewInput | DisputeHeldMoneyDecisionUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: DisputeHeldMoneyDecisionScalarWhereInput | DisputeHeldMoneyDecisionScalarWhereInput[]
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput> | DisputeHeldMoneyDecisionCreateWithoutReviewInput[] | DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput | DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput[]
+    upsert?: DisputeHeldMoneyDecisionUpsertWithWhereUniqueWithoutReviewInput | DisputeHeldMoneyDecisionUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: DisputeHeldMoneyDecisionCreateManyReviewInputEnvelope
+    set?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    disconnect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    delete?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    connect?: DisputeHeldMoneyDecisionWhereUniqueInput | DisputeHeldMoneyDecisionWhereUniqueInput[]
+    update?: DisputeHeldMoneyDecisionUpdateWithWhereUniqueWithoutReviewInput | DisputeHeldMoneyDecisionUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: DisputeHeldMoneyDecisionUpdateManyWithWhereWithoutReviewInput | DisputeHeldMoneyDecisionUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: DisputeHeldMoneyDecisionScalarWhereInput | DisputeHeldMoneyDecisionScalarWhereInput[]
+  }
+
+  export type DisputeHeldMoneyReviewCreateNestedOneWithoutDecisionsInput = {
+    create?: XOR<DisputeHeldMoneyReviewCreateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedCreateWithoutDecisionsInput>
+    connectOrCreate?: DisputeHeldMoneyReviewCreateOrConnectWithoutDecisionsInput
+    connect?: DisputeHeldMoneyReviewWhereUniqueInput
+  }
+
+  export type DisputeHeldMoneyReviewUpdateOneRequiredWithoutDecisionsNestedInput = {
+    create?: XOR<DisputeHeldMoneyReviewCreateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedCreateWithoutDecisionsInput>
+    connectOrCreate?: DisputeHeldMoneyReviewCreateOrConnectWithoutDecisionsInput
+    upsert?: DisputeHeldMoneyReviewUpsertWithoutDecisionsInput
+    connect?: DisputeHeldMoneyReviewWhereUniqueInput
+    update?: XOR<XOR<DisputeHeldMoneyReviewUpdateToOneWithWhereWithoutDecisionsInput, DisputeHeldMoneyReviewUpdateWithoutDecisionsInput>, DisputeHeldMoneyReviewUncheckedUpdateWithoutDecisionsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -91913,6 +104947,166 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type DisputeCasePartyNoticeCreateWithoutCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type DisputeCasePartyNoticeCreateOrConnectWithoutCaseInput = {
+    where: DisputeCasePartyNoticeWhereUniqueInput
+    create: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCasePartyNoticeCreateManyCaseInputEnvelope = {
+    data: DisputeCasePartyNoticeCreateManyCaseInput | DisputeCasePartyNoticeCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseDeadlineCreateWithoutCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DisputeCaseDeadlineUncheckedCreateWithoutCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DisputeCaseDeadlineCreateOrConnectWithoutCaseInput = {
+    where: DisputeCaseDeadlineWhereUniqueInput
+    create: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseDeadlineCreateManyCaseInputEnvelope = {
+    data: DisputeCaseDeadlineCreateManyCaseInput | DisputeCaseDeadlineCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseAgreementCreateWithoutCaseInput = {
+    id?: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+    confirmations?: DisputeCaseAgreementConfirmationCreateNestedManyWithoutAgreementInput
+  }
+
+  export type DisputeCaseAgreementUncheckedCreateWithoutCaseInput = {
+    id?: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+    confirmations?: DisputeCaseAgreementConfirmationUncheckedCreateNestedManyWithoutAgreementInput
+  }
+
+  export type DisputeCaseAgreementCreateOrConnectWithoutCaseInput = {
+    where: DisputeCaseAgreementWhereUniqueInput
+    create: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAgreementCreateManyCaseInputEnvelope = {
+    data: DisputeCaseAgreementCreateManyCaseInput | DisputeCaseAgreementCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseAppealCreateWithoutCaseInput = {
+    id?: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+    consequences?: DisputeCaseAppealConsequenceCreateNestedManyWithoutAppealInput
+  }
+
+  export type DisputeCaseAppealUncheckedCreateWithoutCaseInput = {
+    id?: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+    consequences?: DisputeCaseAppealConsequenceUncheckedCreateNestedManyWithoutAppealInput
+  }
+
+  export type DisputeCaseAppealCreateOrConnectWithoutCaseInput = {
+    where: DisputeCaseAppealWhereUniqueInput
+    create: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAppealCreateManyCaseInputEnvelope = {
+    data: DisputeCaseAppealCreateManyCaseInput | DisputeCaseAppealCreateManyCaseInput[]
+    skipDuplicates?: boolean
+  }
+
   export type DisputeCaseIssueUpsertWithWhereUniqueWithoutCaseInput = {
     where: DisputeCaseIssueWhereUniqueInput
     update: XOR<DisputeCaseIssueUpdateWithoutCaseInput, DisputeCaseIssueUncheckedUpdateWithoutCaseInput>
@@ -92301,6 +105495,144 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"DisputeCasePolicyEligibilityReview"> | Date | string
   }
 
+  export type DisputeCasePartyNoticeUpsertWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCasePartyNoticeWhereUniqueInput
+    update: XOR<DisputeCasePartyNoticeUpdateWithoutCaseInput, DisputeCasePartyNoticeUncheckedUpdateWithoutCaseInput>
+    create: XOR<DisputeCasePartyNoticeCreateWithoutCaseInput, DisputeCasePartyNoticeUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCasePartyNoticeUpdateWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCasePartyNoticeWhereUniqueInput
+    data: XOR<DisputeCasePartyNoticeUpdateWithoutCaseInput, DisputeCasePartyNoticeUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type DisputeCasePartyNoticeUpdateManyWithWhereWithoutCaseInput = {
+    where: DisputeCasePartyNoticeScalarWhereInput
+    data: XOR<DisputeCasePartyNoticeUpdateManyMutationInput, DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type DisputeCasePartyNoticeScalarWhereInput = {
+    AND?: DisputeCasePartyNoticeScalarWhereInput | DisputeCasePartyNoticeScalarWhereInput[]
+    OR?: DisputeCasePartyNoticeScalarWhereInput[]
+    NOT?: DisputeCasePartyNoticeScalarWhereInput | DisputeCasePartyNoticeScalarWhereInput[]
+    id?: UuidFilter<"DisputeCasePartyNotice"> | string
+    caseId?: UuidNullableFilter<"DisputeCasePartyNotice"> | string | null
+    sessionId?: StringFilter<"DisputeCasePartyNotice"> | string
+    userId?: StringFilter<"DisputeCasePartyNotice"> | string
+    partyRole?: StringFilter<"DisputeCasePartyNotice"> | string
+    kind?: StringFilter<"DisputeCasePartyNotice"> | string
+    notificationId?: StringFilter<"DisputeCasePartyNotice"> | string
+    recordedAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+    createdAt?: DateTimeFilter<"DisputeCasePartyNotice"> | Date | string
+  }
+
+  export type DisputeCaseDeadlineUpsertWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseDeadlineWhereUniqueInput
+    update: XOR<DisputeCaseDeadlineUpdateWithoutCaseInput, DisputeCaseDeadlineUncheckedUpdateWithoutCaseInput>
+    create: XOR<DisputeCaseDeadlineCreateWithoutCaseInput, DisputeCaseDeadlineUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseDeadlineUpdateWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseDeadlineWhereUniqueInput
+    data: XOR<DisputeCaseDeadlineUpdateWithoutCaseInput, DisputeCaseDeadlineUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type DisputeCaseDeadlineUpdateManyWithWhereWithoutCaseInput = {
+    where: DisputeCaseDeadlineScalarWhereInput
+    data: XOR<DisputeCaseDeadlineUpdateManyMutationInput, DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type DisputeCaseDeadlineScalarWhereInput = {
+    AND?: DisputeCaseDeadlineScalarWhereInput | DisputeCaseDeadlineScalarWhereInput[]
+    OR?: DisputeCaseDeadlineScalarWhereInput[]
+    NOT?: DisputeCaseDeadlineScalarWhereInput | DisputeCaseDeadlineScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseDeadline"> | string
+    caseId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    sessionId?: StringFilter<"DisputeCaseDeadline"> | string
+    userId?: StringFilter<"DisputeCaseDeadline"> | string
+    partyRole?: StringFilter<"DisputeCaseDeadline"> | string
+    kind?: StringFilter<"DisputeCaseDeadline"> | string
+    hours?: IntFilter<"DisputeCaseDeadline"> | number
+    startedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    pausedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    pausedSeconds?: IntFilter<"DisputeCaseDeadline"> | number
+    status?: StringFilter<"DisputeCaseDeadline"> | string
+    satisfiedAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    expiredAt?: DateTimeNullableFilter<"DisputeCaseDeadline"> | Date | string | null
+    noticeId?: UuidNullableFilter<"DisputeCaseDeadline"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+    updatedAt?: DateTimeFilter<"DisputeCaseDeadline"> | Date | string
+  }
+
+  export type DisputeCaseAgreementUpsertWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseAgreementWhereUniqueInput
+    update: XOR<DisputeCaseAgreementUpdateWithoutCaseInput, DisputeCaseAgreementUncheckedUpdateWithoutCaseInput>
+    create: XOR<DisputeCaseAgreementCreateWithoutCaseInput, DisputeCaseAgreementUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAgreementUpdateWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseAgreementWhereUniqueInput
+    data: XOR<DisputeCaseAgreementUpdateWithoutCaseInput, DisputeCaseAgreementUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAgreementUpdateManyWithWhereWithoutCaseInput = {
+    where: DisputeCaseAgreementScalarWhereInput
+    data: XOR<DisputeCaseAgreementUpdateManyMutationInput, DisputeCaseAgreementUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type DisputeCaseAgreementScalarWhereInput = {
+    AND?: DisputeCaseAgreementScalarWhereInput | DisputeCaseAgreementScalarWhereInput[]
+    OR?: DisputeCaseAgreementScalarWhereInput[]
+    NOT?: DisputeCaseAgreementScalarWhereInput | DisputeCaseAgreementScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseAgreement"> | string
+    caseId?: UuidFilter<"DisputeCaseAgreement"> | string
+    outcome?: StringFilter<"DisputeCaseAgreement"> | string
+    contentHash?: StringFilter<"DisputeCaseAgreement"> | string
+    note?: StringFilter<"DisputeCaseAgreement"> | string
+    proposedBy?: StringFilter<"DisputeCaseAgreement"> | string
+    status?: StringFilter<"DisputeCaseAgreement"> | string
+    agreedAt?: DateTimeNullableFilter<"DisputeCaseAgreement"> | Date | string | null
+    findingId?: UuidNullableFilter<"DisputeCaseAgreement"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAgreement"> | Date | string
+  }
+
+  export type DisputeCaseAppealUpsertWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseAppealWhereUniqueInput
+    update: XOR<DisputeCaseAppealUpdateWithoutCaseInput, DisputeCaseAppealUncheckedUpdateWithoutCaseInput>
+    create: XOR<DisputeCaseAppealCreateWithoutCaseInput, DisputeCaseAppealUncheckedCreateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAppealUpdateWithWhereUniqueWithoutCaseInput = {
+    where: DisputeCaseAppealWhereUniqueInput
+    data: XOR<DisputeCaseAppealUpdateWithoutCaseInput, DisputeCaseAppealUncheckedUpdateWithoutCaseInput>
+  }
+
+  export type DisputeCaseAppealUpdateManyWithWhereWithoutCaseInput = {
+    where: DisputeCaseAppealScalarWhereInput
+    data: XOR<DisputeCaseAppealUpdateManyMutationInput, DisputeCaseAppealUncheckedUpdateManyWithoutCaseInput>
+  }
+
+  export type DisputeCaseAppealScalarWhereInput = {
+    AND?: DisputeCaseAppealScalarWhereInput | DisputeCaseAppealScalarWhereInput[]
+    OR?: DisputeCaseAppealScalarWhereInput[]
+    NOT?: DisputeCaseAppealScalarWhereInput | DisputeCaseAppealScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseAppeal"> | string
+    caseId?: UuidFilter<"DisputeCaseAppeal"> | string
+    partyRole?: StringFilter<"DisputeCaseAppeal"> | string
+    requestedBy?: StringFilter<"DisputeCaseAppeal"> | string
+    reason?: StringFilter<"DisputeCaseAppeal"> | string
+    noticeRecordedAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+    status?: StringFilter<"DisputeCaseAppeal"> | string
+    reviewerId?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reviewerAssignedBy?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    result?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    reasoning?: StringNullableFilter<"DisputeCaseAppeal"> | string | null
+    previousFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    newFindingId?: UuidNullableFilter<"DisputeCaseAppeal"> | string | null
+    decidedAt?: DateTimeNullableFilter<"DisputeCaseAppeal"> | Date | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppeal"> | Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput = {
     id?: string
     contractId: string
@@ -92394,6 +105726,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92409,6 +105743,10 @@ export namespace Prisma {
     events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutPolicyReviewsInput = {
@@ -92424,6 +105762,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92439,6 +105779,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutPolicyReviewsInput = {
@@ -92583,6 +105927,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92598,6 +105944,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutPolicyReviewsInput = {
@@ -92613,6 +105963,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92628,6 +105980,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput = {
@@ -92734,6 +106090,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92749,6 +106107,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutIssuesInput = {
@@ -92764,6 +106126,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92779,6 +106143,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutIssuesInput = {
@@ -92810,6 +106178,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92825,6 +106195,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutIssuesInput = {
@@ -92840,6 +106214,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92855,6 +106231,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutClaimsInput = {
@@ -92870,6 +106250,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92885,6 +106267,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutClaimsInput = {
@@ -92900,6 +106286,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -92915,6 +106303,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutClaimsInput = {
@@ -92988,6 +106380,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93003,6 +106397,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutClaimsInput = {
@@ -93018,6 +106416,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93033,6 +106433,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseAssessmentUpsertWithWhereUniqueWithoutClaimInput = {
@@ -93064,6 +106468,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93079,6 +106485,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutEvidenceInput = {
@@ -93094,6 +106504,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93109,6 +106521,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutEvidenceInput = {
@@ -93140,6 +106556,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93155,6 +106573,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutEvidenceInput = {
@@ -93170,6 +106592,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93185,6 +106609,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutStatementsInput = {
@@ -93200,6 +106628,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93215,6 +106645,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutStatementsInput = {
@@ -93230,6 +106664,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93245,6 +106681,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutStatementsInput = {
@@ -93276,6 +106716,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93291,6 +106733,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutStatementsInput = {
@@ -93306,6 +106752,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93321,6 +106769,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutSharesInput = {
@@ -93336,6 +106788,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93351,6 +106805,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutSharesInput = {
@@ -93366,6 +106824,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93381,6 +106841,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutSharesInput = {
@@ -93412,6 +106876,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93427,6 +106893,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutSharesInput = {
@@ -93442,6 +106912,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93457,6 +106929,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutAssessmentsInput = {
@@ -93472,6 +106948,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93487,6 +106965,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutAssessmentsInput = {
@@ -93502,6 +106984,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93517,6 +107001,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutAssessmentsInput = {
@@ -93573,6 +107061,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93588,6 +107078,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutAssessmentsInput = {
@@ -93603,6 +107097,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93618,6 +107114,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseClaimUpsertWithoutAssessmentsInput = {
@@ -93664,6 +107164,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93679,6 +107181,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutFindingsInput = {
@@ -93694,6 +107200,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93709,6 +107217,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutFindingsInput = {
@@ -93772,6 +107284,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93787,6 +107301,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutFindingsInput = {
@@ -93802,6 +107320,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93817,6 +107337,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseProposalUpsertWithWhereUniqueWithoutFindingInput = {
@@ -93848,6 +107372,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93863,6 +107389,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutProposalsInput = {
@@ -93878,6 +107408,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -93893,6 +107425,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutProposalsInput = {
@@ -93979,6 +107515,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93994,6 +107532,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutProposalsInput = {
@@ -94009,6 +107551,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94024,6 +107568,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseFindingUpsertWithoutProposalsInput = {
@@ -94160,6 +107708,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94175,6 +107725,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutEventsInput = {
@@ -94190,6 +107744,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94205,6 +107761,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutEventsInput = {
@@ -94236,6 +107796,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94251,6 +107813,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutEventsInput = {
@@ -94266,6 +107832,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94281,6 +107849,10 @@ export namespace Prisma {
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutAccessLogsInput = {
@@ -94296,6 +107868,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94311,6 +107885,10 @@ export namespace Prisma {
     events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutAccessLogsInput = {
@@ -94326,6 +107904,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94341,6 +107921,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
     executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutAccessLogsInput = {
@@ -94372,6 +107956,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94387,6 +107973,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutAccessLogsInput = {
@@ -94402,6 +107992,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94417,6 +108009,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseCreateWithoutExecutionsInput = {
@@ -94432,6 +108028,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94447,6 +108045,10 @@ export namespace Prisma {
     events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
     accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseUncheckedCreateWithoutExecutionsInput = {
@@ -94462,6 +108064,8 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -94477,6 +108081,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
     accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
   }
 
   export type DisputeCaseCreateOrConnectWithoutExecutionsInput = {
@@ -94508,6 +108116,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94523,6 +108133,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
     accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
   }
 
   export type DisputeCaseUncheckedUpdateWithoutExecutionsInput = {
@@ -94538,6 +108152,8 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94553,6 +108169,10 @@ export namespace Prisma {
     events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
     accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
     policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
   }
 
   export type SessionSettlementCreateWithoutLateOpenReconciliationsInput = {
@@ -95585,6 +109205,1188 @@ export namespace Prisma {
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
     d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
+  }
+
+  export type DisputeCaseCreateWithoutPartyNoticesInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseUncheckedCreateWithoutPartyNoticesInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueUncheckedCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseCreateOrConnectWithoutPartyNoticesInput = {
+    where: DisputeCaseWhereUniqueInput
+    create: XOR<DisputeCaseCreateWithoutPartyNoticesInput, DisputeCaseUncheckedCreateWithoutPartyNoticesInput>
+  }
+
+  export type DisputeCaseUpsertWithoutPartyNoticesInput = {
+    update: XOR<DisputeCaseUpdateWithoutPartyNoticesInput, DisputeCaseUncheckedUpdateWithoutPartyNoticesInput>
+    create: XOR<DisputeCaseCreateWithoutPartyNoticesInput, DisputeCaseUncheckedCreateWithoutPartyNoticesInput>
+    where?: DisputeCaseWhereInput
+  }
+
+  export type DisputeCaseUpdateToOneWithWhereWithoutPartyNoticesInput = {
+    where?: DisputeCaseWhereInput
+    data: XOR<DisputeCaseUpdateWithoutPartyNoticesInput, DisputeCaseUncheckedUpdateWithoutPartyNoticesInput>
+  }
+
+  export type DisputeCaseUpdateWithoutPartyNoticesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseUncheckedUpdateWithoutPartyNoticesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseCreateWithoutDeadlinesInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseUncheckedCreateWithoutDeadlinesInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueUncheckedCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseCreateOrConnectWithoutDeadlinesInput = {
+    where: DisputeCaseWhereUniqueInput
+    create: XOR<DisputeCaseCreateWithoutDeadlinesInput, DisputeCaseUncheckedCreateWithoutDeadlinesInput>
+  }
+
+  export type DisputeCaseUpsertWithoutDeadlinesInput = {
+    update: XOR<DisputeCaseUpdateWithoutDeadlinesInput, DisputeCaseUncheckedUpdateWithoutDeadlinesInput>
+    create: XOR<DisputeCaseCreateWithoutDeadlinesInput, DisputeCaseUncheckedCreateWithoutDeadlinesInput>
+    where?: DisputeCaseWhereInput
+  }
+
+  export type DisputeCaseUpdateToOneWithWhereWithoutDeadlinesInput = {
+    where?: DisputeCaseWhereInput
+    data: XOR<DisputeCaseUpdateWithoutDeadlinesInput, DisputeCaseUncheckedUpdateWithoutDeadlinesInput>
+  }
+
+  export type DisputeCaseUpdateWithoutDeadlinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseUncheckedUpdateWithoutDeadlinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseCreateWithoutAgreementsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseUncheckedCreateWithoutAgreementsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueUncheckedCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    appeals?: DisputeCaseAppealUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseCreateOrConnectWithoutAgreementsInput = {
+    where: DisputeCaseWhereUniqueInput
+    create: XOR<DisputeCaseCreateWithoutAgreementsInput, DisputeCaseUncheckedCreateWithoutAgreementsInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateWithoutAgreementInput = {
+    id?: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput = {
+    id?: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateOrConnectWithoutAgreementInput = {
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+    create: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationCreateManyAgreementInputEnvelope = {
+    data: DisputeCaseAgreementConfirmationCreateManyAgreementInput | DisputeCaseAgreementConfirmationCreateManyAgreementInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseUpsertWithoutAgreementsInput = {
+    update: XOR<DisputeCaseUpdateWithoutAgreementsInput, DisputeCaseUncheckedUpdateWithoutAgreementsInput>
+    create: XOR<DisputeCaseCreateWithoutAgreementsInput, DisputeCaseUncheckedCreateWithoutAgreementsInput>
+    where?: DisputeCaseWhereInput
+  }
+
+  export type DisputeCaseUpdateToOneWithWhereWithoutAgreementsInput = {
+    where?: DisputeCaseWhereInput
+    data: XOR<DisputeCaseUpdateWithoutAgreementsInput, DisputeCaseUncheckedUpdateWithoutAgreementsInput>
+  }
+
+  export type DisputeCaseUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseUncheckedUpdateWithoutAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    appeals?: DisputeCaseAppealUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseAgreementConfirmationUpsertWithWhereUniqueWithoutAgreementInput = {
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+    update: XOR<DisputeCaseAgreementConfirmationUpdateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedUpdateWithoutAgreementInput>
+    create: XOR<DisputeCaseAgreementConfirmationCreateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedCreateWithoutAgreementInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateWithWhereUniqueWithoutAgreementInput = {
+    where: DisputeCaseAgreementConfirmationWhereUniqueInput
+    data: XOR<DisputeCaseAgreementConfirmationUpdateWithoutAgreementInput, DisputeCaseAgreementConfirmationUncheckedUpdateWithoutAgreementInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateManyWithWhereWithoutAgreementInput = {
+    where: DisputeCaseAgreementConfirmationScalarWhereInput
+    data: XOR<DisputeCaseAgreementConfirmationUpdateManyMutationInput, DisputeCaseAgreementConfirmationUncheckedUpdateManyWithoutAgreementInput>
+  }
+
+  export type DisputeCaseAgreementConfirmationScalarWhereInput = {
+    AND?: DisputeCaseAgreementConfirmationScalarWhereInput | DisputeCaseAgreementConfirmationScalarWhereInput[]
+    OR?: DisputeCaseAgreementConfirmationScalarWhereInput[]
+    NOT?: DisputeCaseAgreementConfirmationScalarWhereInput | DisputeCaseAgreementConfirmationScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseAgreementConfirmation"> | string
+    agreementId?: UuidFilter<"DisputeCaseAgreementConfirmation"> | string
+    partyRole?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    userId?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedHash?: StringFilter<"DisputeCaseAgreementConfirmation"> | string
+    confirmedAt?: DateTimeFilter<"DisputeCaseAgreementConfirmation"> | Date | string
+  }
+
+  export type DisputeCaseAgreementCreateWithoutConfirmationsInput = {
+    id?: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+    case: DisputeCaseCreateNestedOneWithoutAgreementsInput
+  }
+
+  export type DisputeCaseAgreementUncheckedCreateWithoutConfirmationsInput = {
+    id?: string
+    caseId: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementCreateOrConnectWithoutConfirmationsInput = {
+    where: DisputeCaseAgreementWhereUniqueInput
+    create: XOR<DisputeCaseAgreementCreateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedCreateWithoutConfirmationsInput>
+  }
+
+  export type DisputeCaseAgreementUpsertWithoutConfirmationsInput = {
+    update: XOR<DisputeCaseAgreementUpdateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedUpdateWithoutConfirmationsInput>
+    create: XOR<DisputeCaseAgreementCreateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedCreateWithoutConfirmationsInput>
+    where?: DisputeCaseAgreementWhereInput
+  }
+
+  export type DisputeCaseAgreementUpdateToOneWithWhereWithoutConfirmationsInput = {
+    where?: DisputeCaseAgreementWhereInput
+    data: XOR<DisputeCaseAgreementUpdateWithoutConfirmationsInput, DisputeCaseAgreementUncheckedUpdateWithoutConfirmationsInput>
+  }
+
+  export type DisputeCaseAgreementUpdateWithoutConfirmationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneRequiredWithoutAgreementsNestedInput
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateWithoutConfirmationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseCreateWithoutAppealsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseUncheckedCreateWithoutAppealsInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    type: $Enums.DisputeCaseType
+    status?: $Enums.DisputeCaseStatus
+    escalated?: boolean
+    investigatorId?: string | null
+    execStatus?: $Enums.DisputeCaseExecStatus
+    execDecisionId?: string | null
+    closeReason?: string | null
+    execLeaseOwner?: string | null
+    execLeaseUntil?: Date | string | null
+    version?: number
+    createdBy: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    issues?: DisputeCaseIssueUncheckedCreateNestedManyWithoutCaseInput
+    claims?: DisputeCaseClaimUncheckedCreateNestedManyWithoutCaseInput
+    evidence?: DisputeCaseEvidenceUncheckedCreateNestedManyWithoutCaseInput
+    statements?: DisputeCaseStatementUncheckedCreateNestedManyWithoutCaseInput
+    shares?: DisputeCaseShareUncheckedCreateNestedManyWithoutCaseInput
+    assessments?: DisputeCaseAssessmentUncheckedCreateNestedManyWithoutCaseInput
+    findings?: DisputeCaseFindingUncheckedCreateNestedManyWithoutCaseInput
+    proposals?: DisputeCaseProposalUncheckedCreateNestedManyWithoutCaseInput
+    events?: DisputeCaseEventUncheckedCreateNestedManyWithoutCaseInput
+    accessLogs?: DisputeCaseAccessLogUncheckedCreateNestedManyWithoutCaseInput
+    executions?: DisputeCaseExecutionUncheckedCreateNestedManyWithoutCaseInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutCaseInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedCreateNestedManyWithoutCaseInput
+    deadlines?: DisputeCaseDeadlineUncheckedCreateNestedManyWithoutCaseInput
+    agreements?: DisputeCaseAgreementUncheckedCreateNestedManyWithoutCaseInput
+  }
+
+  export type DisputeCaseCreateOrConnectWithoutAppealsInput = {
+    where: DisputeCaseWhereUniqueInput
+    create: XOR<DisputeCaseCreateWithoutAppealsInput, DisputeCaseUncheckedCreateWithoutAppealsInput>
+  }
+
+  export type DisputeCaseAppealConsequenceCreateWithoutAppealInput = {
+    id?: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionCreateNestedManyWithoutConsequenceInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput = {
+    id?: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionUncheckedCreateNestedManyWithoutConsequenceInput
+  }
+
+  export type DisputeCaseAppealConsequenceCreateOrConnectWithoutAppealInput = {
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+    create: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput>
+  }
+
+  export type DisputeCaseAppealConsequenceCreateManyAppealInputEnvelope = {
+    data: DisputeCaseAppealConsequenceCreateManyAppealInput | DisputeCaseAppealConsequenceCreateManyAppealInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseUpsertWithoutAppealsInput = {
+    update: XOR<DisputeCaseUpdateWithoutAppealsInput, DisputeCaseUncheckedUpdateWithoutAppealsInput>
+    create: XOR<DisputeCaseCreateWithoutAppealsInput, DisputeCaseUncheckedCreateWithoutAppealsInput>
+    where?: DisputeCaseWhereInput
+  }
+
+  export type DisputeCaseUpdateToOneWithWhereWithoutAppealsInput = {
+    where?: DisputeCaseWhereInput
+    data: XOR<DisputeCaseUpdateWithoutAppealsInput, DisputeCaseUncheckedUpdateWithoutAppealsInput>
+  }
+
+  export type DisputeCaseUpdateWithoutAppealsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseUncheckedUpdateWithoutAppealsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumDisputeCaseTypeFieldUpdateOperationsInput | $Enums.DisputeCaseType
+    status?: EnumDisputeCaseStatusFieldUpdateOperationsInput | $Enums.DisputeCaseStatus
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
+    execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
+    execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    issues?: DisputeCaseIssueUncheckedUpdateManyWithoutCaseNestedInput
+    claims?: DisputeCaseClaimUncheckedUpdateManyWithoutCaseNestedInput
+    evidence?: DisputeCaseEvidenceUncheckedUpdateManyWithoutCaseNestedInput
+    statements?: DisputeCaseStatementUncheckedUpdateManyWithoutCaseNestedInput
+    shares?: DisputeCaseShareUncheckedUpdateManyWithoutCaseNestedInput
+    assessments?: DisputeCaseAssessmentUncheckedUpdateManyWithoutCaseNestedInput
+    findings?: DisputeCaseFindingUncheckedUpdateManyWithoutCaseNestedInput
+    proposals?: DisputeCaseProposalUncheckedUpdateManyWithoutCaseNestedInput
+    events?: DisputeCaseEventUncheckedUpdateManyWithoutCaseNestedInput
+    accessLogs?: DisputeCaseAccessLogUncheckedUpdateManyWithoutCaseNestedInput
+    executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
+    policyReviews?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutCaseNestedInput
+    partyNotices?: DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseNestedInput
+    deadlines?: DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseNestedInput
+    agreements?: DisputeCaseAgreementUncheckedUpdateManyWithoutCaseNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceUpsertWithWhereUniqueWithoutAppealInput = {
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+    update: XOR<DisputeCaseAppealConsequenceUpdateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedUpdateWithoutAppealInput>
+    create: XOR<DisputeCaseAppealConsequenceCreateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutAppealInput>
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateWithWhereUniqueWithoutAppealInput = {
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+    data: XOR<DisputeCaseAppealConsequenceUpdateWithoutAppealInput, DisputeCaseAppealConsequenceUncheckedUpdateWithoutAppealInput>
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateManyWithWhereWithoutAppealInput = {
+    where: DisputeCaseAppealConsequenceScalarWhereInput
+    data: XOR<DisputeCaseAppealConsequenceUpdateManyMutationInput, DisputeCaseAppealConsequenceUncheckedUpdateManyWithoutAppealInput>
+  }
+
+  export type DisputeCaseAppealConsequenceScalarWhereInput = {
+    AND?: DisputeCaseAppealConsequenceScalarWhereInput | DisputeCaseAppealConsequenceScalarWhereInput[]
+    OR?: DisputeCaseAppealConsequenceScalarWhereInput[]
+    NOT?: DisputeCaseAppealConsequenceScalarWhereInput | DisputeCaseAppealConsequenceScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    appealId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    caseId?: UuidFilter<"DisputeCaseAppealConsequence"> | string
+    kind?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    status?: StringFilter<"DisputeCaseAppealConsequence"> | string
+    detail?: JsonNullableFilter<"DisputeCaseAppealConsequence">
+    note?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeCaseAppealConsequence"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"DisputeCaseAppealConsequence"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DisputeCaseAppealConsequence"> | string | null
+  }
+
+  export type DisputeCaseAppealCreateWithoutConsequencesInput = {
+    id?: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+    case: DisputeCaseCreateNestedOneWithoutAppealsInput
+  }
+
+  export type DisputeCaseAppealUncheckedCreateWithoutConsequencesInput = {
+    id?: string
+    caseId: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseAppealCreateOrConnectWithoutConsequencesInput = {
+    where: DisputeCaseAppealWhereUniqueInput
+    create: XOR<DisputeCaseAppealCreateWithoutConsequencesInput, DisputeCaseAppealUncheckedCreateWithoutConsequencesInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput = {
+    id?: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput = {
+    id?: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateOrConnectWithoutConsequenceInput = {
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+    create: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateManyConsequenceInputEnvelope = {
+    data: DisputeCaseQuotaCorrectionCreateManyConsequenceInput | DisputeCaseQuotaCorrectionCreateManyConsequenceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeCaseAppealUpsertWithoutConsequencesInput = {
+    update: XOR<DisputeCaseAppealUpdateWithoutConsequencesInput, DisputeCaseAppealUncheckedUpdateWithoutConsequencesInput>
+    create: XOR<DisputeCaseAppealCreateWithoutConsequencesInput, DisputeCaseAppealUncheckedCreateWithoutConsequencesInput>
+    where?: DisputeCaseAppealWhereInput
+  }
+
+  export type DisputeCaseAppealUpdateToOneWithWhereWithoutConsequencesInput = {
+    where?: DisputeCaseAppealWhereInput
+    data: XOR<DisputeCaseAppealUpdateWithoutConsequencesInput, DisputeCaseAppealUncheckedUpdateWithoutConsequencesInput>
+  }
+
+  export type DisputeCaseAppealUpdateWithoutConsequencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneRequiredWithoutAppealsNestedInput
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateWithoutConsequencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUpsertWithWhereUniqueWithoutConsequenceInput = {
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+    update: XOR<DisputeCaseQuotaCorrectionUpdateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedUpdateWithoutConsequenceInput>
+    create: XOR<DisputeCaseQuotaCorrectionCreateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedCreateWithoutConsequenceInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateWithWhereUniqueWithoutConsequenceInput = {
+    where: DisputeCaseQuotaCorrectionWhereUniqueInput
+    data: XOR<DisputeCaseQuotaCorrectionUpdateWithoutConsequenceInput, DisputeCaseQuotaCorrectionUncheckedUpdateWithoutConsequenceInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateManyWithWhereWithoutConsequenceInput = {
+    where: DisputeCaseQuotaCorrectionScalarWhereInput
+    data: XOR<DisputeCaseQuotaCorrectionUpdateManyMutationInput, DisputeCaseQuotaCorrectionUncheckedUpdateManyWithoutConsequenceInput>
+  }
+
+  export type DisputeCaseQuotaCorrectionScalarWhereInput = {
+    AND?: DisputeCaseQuotaCorrectionScalarWhereInput | DisputeCaseQuotaCorrectionScalarWhereInput[]
+    OR?: DisputeCaseQuotaCorrectionScalarWhereInput[]
+    NOT?: DisputeCaseQuotaCorrectionScalarWhereInput | DisputeCaseQuotaCorrectionScalarWhereInput[]
+    id?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    consequenceId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    caseId?: UuidFilter<"DisputeCaseQuotaCorrection"> | string
+    contractId?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    delta?: IntFilter<"DisputeCaseQuotaCorrection"> | number
+    reason?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    proposedBy?: StringFilter<"DisputeCaseQuotaCorrection"> | string
+    approvedBy?: StringNullableFilter<"DisputeCaseQuotaCorrection"> | string | null
+    approvedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    appliedAt?: DateTimeNullableFilter<"DisputeCaseQuotaCorrection"> | Date | string | null
+    usedBefore?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    usedAfter?: IntNullableFilter<"DisputeCaseQuotaCorrection"> | number | null
+    createdAt?: DateTimeFilter<"DisputeCaseQuotaCorrection"> | Date | string
+  }
+
+  export type DisputeCaseAppealConsequenceCreateWithoutQuotaCorrectionsInput = {
+    id?: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    appeal: DisputeCaseAppealCreateNestedOneWithoutConsequencesInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedCreateWithoutQuotaCorrectionsInput = {
+    id?: string
+    appealId: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+  }
+
+  export type DisputeCaseAppealConsequenceCreateOrConnectWithoutQuotaCorrectionsInput = {
+    where: DisputeCaseAppealConsequenceWhereUniqueInput
+    create: XOR<DisputeCaseAppealConsequenceCreateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutQuotaCorrectionsInput>
+  }
+
+  export type DisputeCaseAppealConsequenceUpsertWithoutQuotaCorrectionsInput = {
+    update: XOR<DisputeCaseAppealConsequenceUpdateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedUpdateWithoutQuotaCorrectionsInput>
+    create: XOR<DisputeCaseAppealConsequenceCreateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedCreateWithoutQuotaCorrectionsInput>
+    where?: DisputeCaseAppealConsequenceWhereInput
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateToOneWithWhereWithoutQuotaCorrectionsInput = {
+    where?: DisputeCaseAppealConsequenceWhereInput
+    data: XOR<DisputeCaseAppealConsequenceUpdateWithoutQuotaCorrectionsInput, DisputeCaseAppealConsequenceUncheckedUpdateWithoutQuotaCorrectionsInput>
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateWithoutQuotaCorrectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    appeal?: DisputeCaseAppealUpdateOneRequiredWithoutConsequencesNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateWithoutQuotaCorrectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appealId?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type DisputeHeldMoneyDecisionCreateWithoutReviewInput = {
+    id?: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput = {
+    id?: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionCreateOrConnectWithoutReviewInput = {
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+    create: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput>
+  }
+
+  export type DisputeHeldMoneyDecisionCreateManyReviewInputEnvelope = {
+    data: DisputeHeldMoneyDecisionCreateManyReviewInput | DisputeHeldMoneyDecisionCreateManyReviewInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeHeldMoneyDecisionUpsertWithWhereUniqueWithoutReviewInput = {
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+    update: XOR<DisputeHeldMoneyDecisionUpdateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedUpdateWithoutReviewInput>
+    create: XOR<DisputeHeldMoneyDecisionCreateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedCreateWithoutReviewInput>
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateWithWhereUniqueWithoutReviewInput = {
+    where: DisputeHeldMoneyDecisionWhereUniqueInput
+    data: XOR<DisputeHeldMoneyDecisionUpdateWithoutReviewInput, DisputeHeldMoneyDecisionUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateManyWithWhereWithoutReviewInput = {
+    where: DisputeHeldMoneyDecisionScalarWhereInput
+    data: XOR<DisputeHeldMoneyDecisionUpdateManyMutationInput, DisputeHeldMoneyDecisionUncheckedUpdateManyWithoutReviewInput>
+  }
+
+  export type DisputeHeldMoneyDecisionScalarWhereInput = {
+    AND?: DisputeHeldMoneyDecisionScalarWhereInput | DisputeHeldMoneyDecisionScalarWhereInput[]
+    OR?: DisputeHeldMoneyDecisionScalarWhereInput[]
+    NOT?: DisputeHeldMoneyDecisionScalarWhereInput | DisputeHeldMoneyDecisionScalarWhereInput[]
+    id?: UuidFilter<"DisputeHeldMoneyDecision"> | string
+    reviewId?: UuidFilter<"DisputeHeldMoneyDecision"> | string
+    decision?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    reason?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    exitRef?: StringNullableFilter<"DisputeHeldMoneyDecision"> | string | null
+    decidedBy?: StringFilter<"DisputeHeldMoneyDecision"> | string
+    decidedAt?: DateTimeFilter<"DisputeHeldMoneyDecision"> | Date | string
+  }
+
+  export type DisputeHeldMoneyReviewCreateWithoutDecisionsInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date | string
+    nextReviewDueAt: Date | string
+    ownerEscalatedAt?: Date | string | null
+    closedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyReviewUncheckedCreateWithoutDecisionsInput = {
+    id?: string
+    settlementRowId: string
+    sessionId: string
+    contractId: string
+    firstSeenAt: Date | string
+    nextReviewDueAt: Date | string
+    ownerEscalatedAt?: Date | string | null
+    closedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyReviewCreateOrConnectWithoutDecisionsInput = {
+    where: DisputeHeldMoneyReviewWhereUniqueInput
+    create: XOR<DisputeHeldMoneyReviewCreateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedCreateWithoutDecisionsInput>
+  }
+
+  export type DisputeHeldMoneyReviewUpsertWithoutDecisionsInput = {
+    update: XOR<DisputeHeldMoneyReviewUpdateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedUpdateWithoutDecisionsInput>
+    create: XOR<DisputeHeldMoneyReviewCreateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedCreateWithoutDecisionsInput>
+    where?: DisputeHeldMoneyReviewWhereInput
+  }
+
+  export type DisputeHeldMoneyReviewUpdateToOneWithWhereWithoutDecisionsInput = {
+    where?: DisputeHeldMoneyReviewWhereInput
+    data: XOR<DisputeHeldMoneyReviewUpdateWithoutDecisionsInput, DisputeHeldMoneyReviewUncheckedUpdateWithoutDecisionsInput>
+  }
+
+  export type DisputeHeldMoneyReviewUpdateWithoutDecisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyReviewUncheckedUpdateWithoutDecisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    settlementRowId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    firstSeenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextReviewDueAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerEscalatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ClientJourneyCreateManyUserInput = {
@@ -97259,6 +112061,64 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type DisputeCasePartyNoticeCreateManyCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    notificationId: string
+    recordedAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseDeadlineCreateManyCaseInput = {
+    id?: string
+    sessionId: string
+    userId: string
+    partyRole: string
+    kind: string
+    hours: number
+    startedAt: Date | string
+    pausedAt?: Date | string | null
+    pausedSeconds?: number
+    status?: string
+    satisfiedAt?: Date | string | null
+    expiredAt?: Date | string | null
+    noticeId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementCreateManyCaseInput = {
+    id?: string
+    outcome: string
+    contentHash: string
+    note: string
+    proposedBy: string
+    status?: string
+    agreedAt?: Date | string | null
+    findingId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseAppealCreateManyCaseInput = {
+    id?: string
+    partyRole: string
+    requestedBy: string
+    reason: string
+    noticeRecordedAt: Date | string
+    status?: string
+    reviewerId?: string | null
+    reviewerAssignedBy?: string | null
+    result?: string | null
+    reasoning?: string | null
+    previousFindingId?: string | null
+    newFindingId?: string | null
+    decidedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
   export type DisputeCaseIssueUpdateWithoutCaseInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: EnumDisputeCaseIssueKindFieldUpdateOperationsInput | $Enums.DisputeCaseIssueKind
@@ -97713,6 +112573,184 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputeCasePartyNoticeUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCasePartyNoticeUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCasePartyNoticeUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    notificationId?: StringFieldUpdateOperationsInput | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseDeadlineUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    hours?: IntFieldUpdateOperationsInput | number
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pausedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    pausedSeconds?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    satisfiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmations?: DisputeCaseAgreementConfirmationUpdateManyWithoutAgreementNestedInput
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmations?: DisputeCaseAgreementConfirmationUncheckedUpdateManyWithoutAgreementNestedInput
+  }
+
+  export type DisputeCaseAgreementUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    outcome?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    note?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    agreedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    findingId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAppealUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consequences?: DisputeCaseAppealConsequenceUpdateManyWithoutAppealNestedInput
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consequences?: DisputeCaseAppealConsequenceUncheckedUpdateManyWithoutAppealNestedInput
+  }
+
+  export type DisputeCaseAppealUncheckedUpdateManyWithoutCaseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    noticeRecordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    reviewerId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewerAssignedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    result?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    previousFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    newFindingId?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DisputePolicyReviewEventCreateManyReviewInput = {
     id?: string
     contractId: string
@@ -98139,6 +113177,184 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputeCaseAgreementConfirmationCreateManyAgreementInput = {
+    id?: string
+    partyRole: string
+    userId: string
+    confirmedHash: string
+    confirmedAt?: Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUpdateWithoutAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedUpdateWithoutAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAgreementConfirmationUncheckedUpdateManyWithoutAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partyRole?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    confirmedHash?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseAppealConsequenceCreateManyAppealInput = {
+    id?: string
+    caseId: string
+    kind: string
+    status?: string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: string | null
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+  }
+
+  export type DisputeCaseAppealConsequenceUpdateWithoutAppealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionUpdateManyWithoutConsequenceNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateWithoutAppealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    quotaCorrections?: DisputeCaseQuotaCorrectionUncheckedUpdateManyWithoutConsequenceNestedInput
+  }
+
+  export type DisputeCaseAppealConsequenceUncheckedUpdateManyWithoutAppealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type DisputeCaseQuotaCorrectionCreateManyConsequenceInput = {
+    id?: string
+    caseId: string
+    contractId: string
+    delta: number
+    reason: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    appliedAt?: Date | string | null
+    usedBefore?: number | null
+    usedAfter?: number | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUpdateWithoutConsequenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedUpdateWithoutConsequenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeCaseQuotaCorrectionUncheckedUpdateManyWithoutConsequenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    delta?: IntFieldUpdateOperationsInput | number
+    reason?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedBefore?: NullableIntFieldUpdateOperationsInput | number | null
+    usedAfter?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionCreateManyReviewInput = {
+    id?: string
+    decision: string
+    reason: string
+    exitRef?: string | null
+    decidedBy: string
+    decidedAt?: Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHeldMoneyDecisionUncheckedUpdateManyWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    exitRef?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedBy?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -98204,6 +113420,22 @@ export namespace Prisma {
      * @deprecated Use D65bResolutionCountOutputTypeDefaultArgs instead
      */
     export type D65bResolutionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = D65bResolutionCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAgreementCountOutputTypeDefaultArgs instead
+     */
+    export type DisputeCaseAgreementCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAgreementCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAppealCountOutputTypeDefaultArgs instead
+     */
+    export type DisputeCaseAppealCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAppealCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAppealConsequenceCountOutputTypeDefaultArgs instead
+     */
+    export type DisputeCaseAppealConsequenceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAppealConsequenceCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeHeldMoneyReviewCountOutputTypeDefaultArgs instead
+     */
+    export type DisputeHeldMoneyReviewCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeHeldMoneyReviewCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
@@ -98408,6 +113640,42 @@ export namespace Prisma {
      * @deprecated Use D65bResolutionEventDefaultArgs instead
      */
     export type D65bResolutionEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = D65bResolutionEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCasePartyNoticeDefaultArgs instead
+     */
+    export type DisputeCasePartyNoticeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCasePartyNoticeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseDeadlineDefaultArgs instead
+     */
+    export type DisputeCaseDeadlineArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseDeadlineDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAgreementDefaultArgs instead
+     */
+    export type DisputeCaseAgreementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAgreementDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAgreementConfirmationDefaultArgs instead
+     */
+    export type DisputeCaseAgreementConfirmationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAgreementConfirmationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAppealDefaultArgs instead
+     */
+    export type DisputeCaseAppealArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAppealDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseAppealConsequenceDefaultArgs instead
+     */
+    export type DisputeCaseAppealConsequenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseAppealConsequenceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeCaseQuotaCorrectionDefaultArgs instead
+     */
+    export type DisputeCaseQuotaCorrectionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseQuotaCorrectionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeHeldMoneyReviewDefaultArgs instead
+     */
+    export type DisputeHeldMoneyReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeHeldMoneyReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeHeldMoneyDecisionDefaultArgs instead
+     */
+    export type DisputeHeldMoneyDecisionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeHeldMoneyDecisionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany
