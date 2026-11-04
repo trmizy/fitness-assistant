@@ -1,27 +1,35 @@
 /**
- * Dispute V2.1 admin UI (D1) - typed client for A1-A18 (admin Case Workspace) and B1-B4 (party side), on the app's `api` axios instance.
+ * Dispute V2.1 admin UI (D1, adapted in D5) - typed client of the FINAL contract: A1-A29 (admin Case Workspace), S3, B1-B4 (party side),
+ * on the app's `api` axios instance.
  *
  * Rules enforced HERE (not left to callers):
- *  - every write requires an `idempotencyKey` and sends it as the `Idempotency-Key` header (checked against the server regex);
+ *  - every write requires an `idempotencyKey` and sends it as the `Idempotency-Key` header (checked against the server regex). The six
+ *    row-creating routes (claims, issues, assessments, party statements, party evidence, evidence files) REQUIRE it on the server
+ *    (`400 IDEMPOTENCY_KEY_REQUIRED`); the client sends it on every write, so a missing key can never reach the wire;
  *  - bodies are built by picking the documented fields one by one, so a stray `userId` / `adminId` / `amount` / `outcome`
  *    on a caller's object can never reach the wire (the server is `.strict()` and would answer 400 anyway);
  *  - no function takes the actor's id: identity comes from the token. `investigatorId` of `assign` is the TARGET of the action;
  *  - nothing is retried here; a failed write is the caller's decision (see useIdempotentAction + disputeCaseErrors).
  *
- * NOT built on purpose (flag-off or not proxied by the gateway; ask the backend, do not guess):
- *  - A19  GET  /admin/dispute-cases/:id/evidence/:evidenceId/file  - evidence-storage flag OFF outside tests (R-02).
- *  - A20  POST /admin/dispute-cases/:id/execute                    - execution flag OFF outside tests; API returns no execStatus (R-01, R-02).
- *  - A21  POST /admin/dispute-cases/:id/reconcile-execution        - same flag (R-01, R-02).
- *  - B5   POST /dispute-cases/:id/evidence-files                   - evidence-storage flag OFF (R-02).
- *  - B6   GET  /dispute-cases/:id/evidence/:evidenceId/file        - same flag (R-02).
- *  - D1-D11 /admin/late-open-reconciliations                       - gateway does not proxy it (R-11) and the writes are flag-off (R-02).
- *  - Review-list for D-NEW-12 policy reviews (R-03): A16/A17 exist, but nothing reads reviews back.
- * C1 (`listDisputedSessions`) and C3 (`resolveSessionDispute`) are re-exported unchanged from `adminService`.
+ * Routes behind a server flag (execute / reconcile / acknowledge-needs-human) are built here, but the screens show them only
+ * when `capabilities` says the flag is effective AND `allowedActions` lists the action.
+ * NOT built on purpose: A8 / B5 / B6 evidence files (flag `evidenceStorage`; the web still declares a hash only), D65-B and late-open
+ * (other batches). C1 (`listDisputedSessions`) and C3 (`resolveSessionDispute`) are re-exported unchanged from `adminService`.
  */
 import { adminService, api } from "../../../services/api";
 import type {
+  AccessLogResult,
   AckEvidenceChangeResult,
+  AckNeedsHumanResult,
+  AdminSessionDetail,
   AssignResult,
+  Capabilities,
+  CloseResult,
+  ExecuteResult,
+  PolicyReviewList,
+  QueueQuery,
+  QueueResult,
+  ReconcileResult,
   ClassifiableType,
   ClaimMove,
   ClaimantRole,
@@ -158,18 +166,49 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
 
   return {
     // ── A: admin Case Workspace ──
-    /** A1. 201 created / 200 existing open case (`created:false`). */
+    /** A9. 201 created / 200 existing open case (`created:false`). */
     openCase: (sessionId: string, idempotencyKey: string) =>
       postData<OpenCaseResult>(A, { sessionId }, idempotencyKey, SLOW_MS),
-    /** A2. Every call writes an access-log row per returned case: never poll. */
+    /** A2. Every call writes an access-log row per returned case: never poll. Strict query: only the documented filters are sent. */
     listCases: (query: ListCasesQuery = {}) =>
-      get<ListCasesResult>(A, compact({ status: query.status, limit: query.limit, offset: query.offset })),
-    /** A3. Calls the ledger for every money step (slow). */
+      get<ListCasesResult>(
+        A,
+        compact({
+          status: query.status,
+          execStatus: query.execStatus,
+          type: query.type,
+          investigatorId: query.unassigned ? undefined : query.investigatorId,
+          unassigned: query.unassigned ? true : undefined,
+          sessionId: query.sessionId,
+          contractId: query.contractId,
+          createdFrom: query.createdFrom,
+          createdTo: query.createdTo,
+          sort: query.sort,
+          order: query.order,
+          limit: query.limit,
+          offset: query.offset,
+        }),
+      ),
+    /** A3 (queue, R-05). Both DISPUTED and PT_NO_SHOW_REPORTED sessions, with `hasCase` / `caseId`. Reads no case (writes no access log). */
+    getQueue: (query: QueueQuery = {}) =>
+      get<QueueResult>(`${A}/queue`, compact({ sessionStatus: query.sessionStatus, hasCase: query.hasCase, contractId: query.contractId, limit: query.limit, offset: query.offset })),
+    /** A1 (capabilities, R-02). Read-only verdicts of the five server flags in this process. */
+    getCapabilities: () => get<Capabilities>(`${A}/capabilities`),
+    /** A5 (R-19). Reading the log writes nothing. */
+    getAccessLog: (caseId: string, query: { action?: "VIEW_CASE" | "VIEW_EVIDENCE"; limit?: number; offset?: number } = {}) =>
+      get<AccessLogResult>(`${A}/${enc(caseId)}/access-log`, compact({ action: query.action, limit: query.limit, offset: query.offset })),
+    /** A6 (R-03). The policy-eligibility reviews of the case's contract. */
+    getPolicyReviews: (caseId: string) => get<PolicyReviewList>(`${A}/${enc(caseId)}/policy-eligibility`),
+    /** A7. Same, by contract (empty `items` when the contract has no review). */
+    getContractPolicyReviews: (contractId: string) => get<PolicyReviewList>(`${A}/contracts/${enc(contractId)}/policy-eligibility`),
+    /** S3 (R-16). One session for an admin (GET /sessions/:id is refused to admins). */
+    getAdminSession: (sessionId: string) => get<AdminSessionDetail>(`/admin/sessions/${enc(sessionId)}`),
+    /** A4. Calls the ledger for every money step (slow). */
     getCase: (caseId: string) => get<DisputeCaseDetail>(`${A}/${enc(caseId)}`, undefined, SLOW_MS),
-    /** A4. `investigatorId` is the only target id; omit it to take the case yourself. */
+    /** A10. `investigatorId` is the only target id; omit it to take the case yourself. */
     assign: (caseId: string, input: { investigatorId?: string }, idempotencyKey: string) =>
       postData<AssignResult>(`${A}/${enc(caseId)}/assign`, compact({ investigatorId: input.investigatorId }), idempotencyKey),
-    /** A5. Re-collects the evidence sources. */
+    /** A11. Re-collects the evidence sources. Sources that could not be read come back in `skippedUnavailable`. */
     recollect: (caseId: string, idempotencyKey: string) =>
       postData<RecollectResult>(`${A}/${enc(caseId)}/recollect`, {}, idempotencyKey, SLOW_MS),
     /** A6. */
@@ -208,12 +247,25 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     recordFinding: (caseId: string, input: FindingInput, idempotencyKey: string) =>
       postData<RecordFindingResult>(`${A}/${enc(caseId)}/findings`, { finding: input.finding, reasoning: input.reasoning }, idempotencyKey),
     /**
-     * A13. HTTP 201 in BOTH cases. No outcome / amount is sent. `execution` of the answer (a hard-coded constant, F3) is dropped here.
-     * POLICY_PENDING = no proposal exists (cancel on a session with a late-arrival compensation); the case moved to POLICY_PENDING.
+     * A19 (F4). `201 {proposalCreated:true, ...}` = a proposal exists. `200 {proposalCreated:false, proposal:null, policyPending:true, ...}` = NO proposal
+     * (cancel on a session with a late-arrival compensation); the case moved to POLICY_PENDING. A proposal is only believed when `proposalCreated === true`
+     * (never from the HTTP status alone). No outcome / amount is sent.
      */
     propose: async (caseId: string, input: { note?: string }, idempotencyKey: string): Promise<ProposeResult> => {
       const raw = await postData<Record<string, unknown>>(`${A}/${enc(caseId)}/proposals`, compact({ note: input.note }), idempotencyKey, SLOW_MS);
-      if (raw && raw.policyPending === true) {
+      if (raw && raw.proposalCreated === true) {
+        return {
+          kind: "PROPOSED",
+          proposal: {
+            id: raw.id as string,
+            outcome: raw.outcome as ProposalCreated["outcome"],
+            executionBlockedReason: (raw.executionBlockedReason ?? null) as ProposalCreated["executionBlockedReason"],
+            caseStatus: raw.caseStatus as ProposalCreated["caseStatus"],
+            ...(typeof raw.execStatus === "string" ? { execStatus: raw.execStatus as ProposalCreated["execStatus"] } : {}),
+          },
+        };
+      }
+      if (raw && (raw.proposalCreated === false || raw.policyPending === true)) {
         return {
           kind: "POLICY_PENDING",
           policyPending: {
@@ -224,17 +276,10 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
           },
         };
       }
-      return {
-        kind: "PROPOSED",
-        proposal: {
-          id: raw.id as string,
-          outcome: raw.outcome as ProposalCreated["outcome"],
-          executionBlockedReason: (raw.executionBlockedReason ?? null) as ProposalCreated["executionBlockedReason"],
-          caseStatus: raw.caseStatus as ProposalCreated["caseStatus"],
-        },
-      };
+      // Neither flag present: an answer we do not understand is never "a proposal was created".
+      throw Object.assign(new Error("UNREADABLE_PROPOSAL_ANSWER"), { response: { status: 502, data: { error: "", code: "INTERNAL_ERROR" } } });
     },
-    /** A14. Four-eyes: the server re-checks the approver. */
+    /** A20. Four-eyes: the server re-checks the approver. */
     decide: async (caseId: string, input: ApprovalInput, idempotencyKey: string): Promise<DecideResult> => {
       const raw = await postData<Record<string, unknown>>(
         `${A}/${enc(caseId)}/approvals`,
@@ -246,39 +291,58 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
         }),
         idempotencyKey,
       );
-      // `execution` (hard-coded constant, F3) is dropped on purpose.
       return {
         approvalId: raw.approvalId as string,
         result: raw.result as DecideResult["result"],
         caseStatus: raw.caseStatus as DecideResult["caseStatus"],
         outcome: raw.outcome as DecideResult["outcome"],
+        ...(typeof raw.execStatus === "string" ? { execStatus: raw.execStatus as DecideResult["execStatus"] } : {}),
         ...(raw.executionBlockedReason !== undefined ? { executionBlockedReason: raw.executionBlockedReason as DecideResult["executionBlockedReason"] } : {}),
       };
     },
-    /** A15. */
+    /** A21. */
     acknowledgeEvidenceChange: (caseId: string, input: { note: string }, idempotencyKey: string) =>
       postData<AckEvidenceChangeResult>(`${A}/${enc(caseId)}/evidence-change-ack`, { note: input.note }, idempotencyKey),
-    /** A16. HTTP 200. Keep `reviewId` from the answer: no route reads reviews back (R-03). */
+    /** A22. HTTP 200. Read the reviews back with `getPolicyReviews`. */
     proposePolicyEligibility: (caseId: string, input: PolicyEligibilityInput, idempotencyKey: string) =>
       postData<PolicyReviewResult>(
         `${A}/${enc(caseId)}/policy-eligibility`,
         compact({ result: input.result, evidenceIds: input.evidenceIds, reasoning: input.reasoning, supersedesId: input.supersedesId }),
         idempotencyKey,
       ),
-    /** A17. */
+    /** A23. Four-eyes: the server re-checks the approver. */
     approvePolicyEligibility: (caseId: string, reviewId: string, input: PolicyApproveInput, idempotencyKey: string) =>
       postData<PolicyReviewResult>(
         `${A}/${enc(caseId)}/policy-eligibility/${enc(reviewId)}/approve`,
         { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone },
         idempotencyKey,
       ),
-    /** A18. Exactly one of evidenceId / statementId. */
+    /** A24. Exactly one of evidenceId / statementId. */
     share: (caseId: string, input: ShareInput, idempotencyKey: string) =>
       postData<CreatedId>(
         `${A}/${enc(caseId)}/shares`,
         compact({ evidenceId: input.evidenceId, statementId: input.statementId, sharedWithRole: input.sharedWithRole, reason: input.reason }),
         idempotencyKey,
       ),
+
+    // ── closing WITHOUT a decision (never touches the session, the quota or money) ──
+    /** A25. Only when the case's session left the dispute (`allowedActions` lists `closeOrphan`). */
+    closeOrphan: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
+      postData<CloseResult>(`${A}/${enc(caseId)}/close-orphan`, { reason: input.reason }, idempotencyKey),
+    /** A26. Investigator only, `FINDING_RECORDED` with a `NOT_A_DISPUTE` finding. The session stays DISPUTED and goes back to the queue. */
+    closeNotADispute: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
+      postData<CloseResult>(`${A}/${enc(caseId)}/close-not-a-dispute`, { reason: input.reason }, idempotencyKey),
+
+    // ── execution (server flag `execution`; `409 EXECUTION_DISABLED` when off) ──
+    /** A27. `decisionId` only CHOOSES among the case's approvals; the executor re-reads and re-checks everything. Changes the session, the quota and money. */
+    execute: (caseId: string, input: { decisionId?: string }, idempotencyKey: string) =>
+      postData<ExecuteResult>(`${A}/${enc(caseId)}/execute`, compact({ decisionId: input.decisionId }), idempotencyKey, SLOW_MS),
+    /** A28. Reads the real state of an execution left half-way, then finishes it or hands it to a person. */
+    reconcileExecution: (caseId: string, idempotencyKey: string) =>
+      postData<ReconcileResult>(`${A}/${enc(caseId)}/reconcile-execution`, {}, idempotencyKey, SLOW_MS),
+    /** A29. One admin, no four-eyes, MOVES NO MONEY. `STAYS_LOCKED` is a normal answer, not an error. */
+    acknowledgeNeedsHuman: (caseId: string, input: { note: string }, idempotencyKey: string) =>
+      postData<AckNeedsHumanResult>(`${A}/${enc(caseId)}/acknowledge-needs-human`, { note: input.note }, idempotencyKey),
 
     // ── B: party side (client / PT) ──
     /** B1. */

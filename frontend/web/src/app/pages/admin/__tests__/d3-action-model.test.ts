@@ -12,7 +12,6 @@ import { IDS, detailFixture, errBodies } from "../disputes/__fixtures__/disputeC
 import * as M from "../disputes/actions/actionModel";
 import * as T from "../disputes/actions/actionText";
 import { APPROVED_DONE } from "../disputes/actions/actionText";
-import { EXEC_APPROVED_NOT_EXECUTED } from "../disputes/workspace/workspaceModel";
 import { FINDING_CONSEQUENCE } from "../disputes/disputeCaseLabels";
 
 const ME = IDS.admin1;
@@ -25,86 +24,53 @@ function withCase(over: Partial<DisputeCaseDetail["case"]>, extra: Partial<Dispu
 const str = (n: number, ch = "a") => ch.repeat(n);
 
 describe("D3 permissions: which forms are shown (the server stays the authority)", () => {
-  const a = (status: CaseStatus, userId: string | null, over: Partial<DisputeCaseDetail["case"]> = {}) => M.availability(withCase({ status, ...over }), userId);
-
-  it("nobody signed in -> nothing", () => {
-    const x = a("ASSESSING", null);
-    assert.equal(x.signedIn, false);
-    for (const k of ["assign", "recollect", "transition", "requestMore", "classify", "addClaim", "addIssue", "assess", "recordFinding", "propose", "ack", "share", "decide"] as const) assert.equal(x[k], false, k);
+  const listed = (actions: string[], extra: Partial<DisputeCaseDetail> = {}) => withCase({ status: "ASSESSING" }, { allowedActions: actions as never, ...extra });
+  it("missing server list fails closed for every write", () => {
+    const a = M.availability(withCase({ status: "ASSESSING" }), ME);
+    assert.equal(a.serverList, false);
+    for (const k of ["assign", "recollect", "transition", "requestMore", "classify", "addClaim", "addIssue", "assess", "recordFinding", "propose", "ack", "share", "decide", "execute"] as const) assert.equal(a[k], false, k);
+    assert.equal(M.investigatorOnlyLine(withCase({ status: "ASSESSING" }), ME), T.NO_SERVER_LIST_LINE);
   });
-
-  it("investigator-only forms need case.investigatorId === currentUserId", () => {
-    for (const st of ["ASSESSING", "COLLECTING", "FINDING_RECORDED", "AWAITING_APPROVAL", "POLICY_PENDING"] as CaseStatus[]) {
-      const inv = a(st, ME, { investigatorId: ME });
-      const other = a(st, OTHER, { investigatorId: ME });
-      assert.equal(inv.investigator, true);
-      assert.equal(other.investigator, false);
-      for (const k of ["requestMore", "classify", "addClaim", "addIssue", "assess", "recordFinding", "propose", "ack", "share"] as const) assert.equal(other[k], false, `${st}/${k} must be hidden for a non-investigator`);
-    }
+  it("an explicit list offers only named actions and never acts for a signed-out user", () => {
+    const d = listed(["assign", "recollect", "addClaim", "addAssessment", "share"]);
+    const a = M.availability(d, ME);
+    assert.equal(a.assign, true);
+    assert.equal(a.recollect, true);
+    assert.equal(a.addClaim, true);
+    assert.equal(a.assess, true);
+    assert.equal(a.share, true);
+    assert.equal(a.propose, false);
+    assert.equal(M.availability(d, null).assign, false);
+    assert.equal(M.availability({ ...d, claims: [] }, ME).assess, false);
   });
-
-  it("any ADMIN may assign and recollect while the case is open; nobody on a terminal case", () => {
-    assert.equal(a("ASSESSING", OTHER, { investigatorId: ME }).assign, true);
-    assert.equal(a("ASSESSING", OTHER, { investigatorId: ME }).recollect, true);
-    for (const st of ["DECISION_APPROVED", "REJECTED_INTAKE"] as CaseStatus[]) {
-      const x = a(st, ME, { investigatorId: ME });
-      assert.equal(x.terminal, true);
-      for (const k of ["assign", "recollect", "transition", "requestMore", "addClaim", "share", "decide"] as const) assert.equal(x[k], false, `${st}/${k}`);
-    }
-  });
-
-  it("transition: at INTAKE any admin; later only the investigator; never from AWAITING_APPROVAL", () => {
-    assert.equal(a("INTAKE", OTHER, { investigatorId: null }).transition, true);
-    assert.equal(a("COLLECTING", OTHER, { investigatorId: ME }).transition, false);
-    assert.equal(a("COLLECTING", ME, { investigatorId: ME }).transition, true);
-    assert.equal(a("AWAITING_APPROVAL", ME, { investigatorId: ME }).transition, false);
+  it("transition targets must be listed by server, and invalid targets are discarded", () => {
+    const d = listed(["transition"], { actions: { transition: { allowed: true, options: ["ASSESSING", "BOGUS"] } } as never });
+    assert.deepEqual(M.transitionTargets(d), ["ASSESSING"]);
+    assert.deepEqual(M.transitionTargets({ ...d, allowedActions: [] }), []);
     assert.deepEqual(manualTransitions("AWAITING_APPROVAL"), []);
   });
-
-  it("status gates: request-more / claim+issue / assess+finding / propose / ack / share", () => {
-    const inv = (st: CaseStatus) => a(st, ME, { investigatorId: ME });
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).requestMore), ["ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"]);
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).addClaim), ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"]);
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).addIssue), ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"]);
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).recordFinding), ["ASSESSING"]);
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).propose), ["FINDING_RECORDED"]);
-    assert.deepEqual(CASE_STATUSES.filter((s) => inv(s).ack), ["AWAITING_APPROVAL"]);
-    assert.equal(inv("INTAKE").share, false, "no sharing at INTAKE");
-    assert.equal(inv("ASSESSING").share, true);
-    // assess needs ASSESSING AND at least one claim
-    assert.equal(inv("ASSESSING").assess, true);
-    assert.equal(M.availability(withCase({ status: "ASSESSING", investigatorId: ME }, { claims: [] }), ME).assess, false);
-    assert.equal(inv("COLLECTING").assess, false);
-  });
-
-  it("classify only for LEGACY_UNCLASSIFIED", () => {
-    assert.equal(a("COLLECTING", ME, { investigatorId: ME, type: "LEGACY_UNCLASSIFIED" }).classify, true);
-    assert.equal(a("COLLECTING", ME, { investigatorId: ME, type: "PT_DELIVERY" }).classify, false);
-  });
-
-  it("the muted line says who may act (and differs for 'nobody assigned', 'someone else', 'closed')", () => {
-    assert.equal(M.investigatorOnlyLine(withCase({ status: "ASSESSING", investigatorId: ME }), ME), null);
-    assert.match(M.investigatorOnlyLine(withCase({ status: "ASSESSING", investigatorId: ME }), OTHER) ?? "", /Chỉ điều tra viên được giao hồ sơ này mới làm được/);
-    assert.equal(M.investigatorOnlyLine(withCase({ status: "INTAKE", investigatorId: null }), OTHER), T.NO_INVESTIGATOR_LINE);
-    assert.equal(M.investigatorOnlyLine(withCase({ status: "DECISION_APPROVED", investigatorId: ME }), ME), T.TERMINAL_LINE);
+  it("server refusal code—not a local role guess—explains investigator-only access", () => {
+    const d = listed([], { actions: { addClaim: { allowed: false, code: "NOT_ASSIGNED_INVESTIGATOR" } } as never });
+    assert.match(M.investigatorOnlyLine(d, OTHER) ?? "", /Chỉ điều tra viên được giao hồ sơ này/);
+    assert.equal(M.investigatorOnlyLine({ ...d, case: { ...d.case, status: "DECISION_APPROVED" } }, ME), T.TERMINAL_LINE);
   });
 });
 
 describe("D3 approvals gate (four eyes, handoff M3)", () => {
-  const proposalBy = (proposerId: string) => {
+  const proposalBy = (proposerId: string, allowed = false, refusalCode?: string) => {
     const d = detailFixture();
-    return { ...d, case: { ...d.case, status: "AWAITING_APPROVAL" as const, investigatorId: ME }, proposals: d.proposals.map((p) => ({ ...p, proposerId })) };
+    return { ...d, case: { ...d.case, status: "AWAITING_APPROVAL" as const, investigatorId: ME }, proposals: d.proposals.map((p) => ({ ...p, proposerId })), allowedActions: (allowed ? ["decide"] : []) as never, actions: { decide: { allowed, code: refusalCode } } as never };
   };
   it("shown to a third admin only", () => {
-    assert.equal(M.decideGate(proposalBy(ME), "admin-0003").show, true);
+    assert.equal(M.decideGate(proposalBy(ME, true), "admin-0003").show, true);
   });
   it("hidden for the proposer, with the reason", () => {
-    const g = M.decideGate(proposalBy("admin-0003"), "admin-0003");
+    const g = M.decideGate(proposalBy("admin-0003", false, "SELF_APPROVAL_FORBIDDEN"), "admin-0003");
     assert.equal(g.show, false);
     assert.equal(g.reason, T.CANNOT_APPROVE_PROPOSER);
   });
   it("hidden for the investigator, with the reason", () => {
-    const g = M.decideGate(proposalBy("admin-0003"), ME);
+    const g = M.decideGate(proposalBy("admin-0003", false, "SELF_APPROVAL_FORBIDDEN"), ME);
     assert.equal(g.show, false);
     assert.equal(g.reason, T.CANNOT_APPROVE_INVESTIGATOR);
   });
@@ -116,7 +82,7 @@ describe("D3 approvals gate (four eyes, handoff M3)", () => {
   it("the NEWEST proposal decides who the proposer is", () => {
     const d = proposalBy("old-proposer");
     const newer = { ...d.proposals[0], id: "p-new", proposerId: "admin-0003", createdAt: "2026-11-02T09:00:00.000Z" };
-    const g = M.decideGate({ ...d, proposals: [d.proposals[0], newer] }, "admin-0003");
+    const g = M.decideGate({ ...d, actions: { decide: { allowed: false, code: "SELF_APPROVAL_FORBIDDEN" } } as never, proposals: [d.proposals[0], newer] }, "admin-0003");
     assert.equal(g.show, false);
   });
   it("summary: finding, outcome, consequence and the 'can not run yet' sentence come from the proposal", () => {
@@ -358,6 +324,7 @@ describe("D3 wire bodies through the real D1 client (fake transport): no forbidd
   const client: DisputeHttpClient = {
     async request(cfg) {
       seen.push({ url: String(cfg.url), data: (cfg.data ?? {}) as Record<string, unknown>, key: String(cfg.headers?.["Idempotency-Key"] ?? "") });
+      if (String(cfg.url).endsWith("/proposals")) return { data: { proposalCreated: true, id: "proposal-1", outcome: "COMPLETED", caseStatus: "AWAITING_APPROVAL" } as never, status: 201 };
       return { data: {} as never, status: 200 };
     },
   };
@@ -409,10 +376,9 @@ describe("D3 fixed wording", () => {
     assert.equal(T.CONFIRM_SHARE, "Không thể thu hồi.");
     assert.equal(T.CONFIRM_ASSIGN, "Người nhận sẽ có quyền làm mọi bước điều tra.");
   });
-  it("after an approval the page says approved + execution state unreadable, never 'Chưa thực thi'", () => {
-    assert.equal(APPROVED_DONE, "Đã duyệt. Chưa đọc được trạng thái thực thi.");
-    assert.equal(EXEC_APPROVED_NOT_EXECUTED, APPROVED_DONE, "the Execution tab and the approval note say the same thing");
-    assert.doesNotMatch(APPROVED_DONE, /Chưa thực thi/);
+  it("after an approval the page separates approval from execution and money", () => {
+    assert.equal(APPROVED_DONE, "Đã duyệt. Chưa thực thi.");
+    assert.match(T.APPROVED_DONE_HELP, /Duyệt chưa làm thay đổi buổi tập, quyền buổi hay tiền/);
   });
   it("no internal code in any D3 sentence", () => {
     const all = (Object.values(T) as unknown[]).filter((v) => typeof v === "string").join("\n");

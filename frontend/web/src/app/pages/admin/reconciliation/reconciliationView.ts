@@ -19,11 +19,20 @@ import {
 import { countAttention, type ObligationsReport, type SessionsReconciliationReport } from "../adminReconciliation.utils";
 
 // ───────────────────────────────────────────────────────────────── chip (URL) ──
-export type ReconView = "balance" | "exceptions";
-export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions"];
-export const RECON_VIEW_LABEL: Record<ReconView, string> = { balance: "Cân đối sổ", exceptions: "Ngoại lệ" };
-/** Both chips are L1: figures come from Gymini's own ledger / contracts. */
-export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1" };
+/**
+ * `balance` / `exceptions` are the B4 chips. D7 adds the two money-exception views of Dispute V2.1 INSIDE the same surface (no new route):
+ * `held-no-show` = "Khoản giữ của buổi PT vắng" (D65-B) and `late-open` = "Khoản bồi thường đến muộn còn mở".
+ */
+export type ReconView = "balance" | "exceptions" | "held-no-show" | "late-open";
+export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions", "held-no-show", "late-open"];
+export const RECON_VIEW_LABEL: Record<ReconView, string> = {
+  balance: "Cân đối sổ",
+  exceptions: "Ngoại lệ",
+  "held-no-show": "Khoản giữ buổi PT vắng",
+  "late-open": "Bồi thường đến muộn",
+};
+/** All chips are L1: figures come from Gymini's own ledger / contracts. */
+export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1", "held-no-show": "L1", "late-open": "L1" };
 
 /**
  * `?view=` → chip. Missing or unknown → balance. Two values are kept working from the earlier plan / prototype:
@@ -31,7 +40,7 @@ export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exce
  */
 export function parseReconView(raw: string | null | undefined): ReconView {
   const v = (raw ?? "").trim().toLowerCase();
-  if (v === "exceptions") return "exceptions";
+  if (v === "exceptions" || v === "held-no-show" || v === "late-open") return v;
   return "balance"; // "balance", "ledger", "gateway", "", anything else
 }
 
@@ -39,6 +48,16 @@ export function parseReconView(raw: string | null | undefined): ReconView {
 export function withReconView(prev: URLSearchParams, view: ReconView): URLSearchParams {
   const next = new URLSearchParams(prev);
   next.set("view", view);
+  return next;
+}
+
+/** The ids the D7 views keep in the URL (`row` = late-open row, `session` = D65-B preview, `resolution` = a D65-B proposal, `status` = late-open filter). */
+export const MONEY_VIEW_PARAMS = ["row", "session", "resolution", "status"] as const;
+
+/** A chip click: like `withReconView` but a selection of the previous view never leaks into the next one. */
+export function switchReconView(prev: URLSearchParams, view: ReconView): URLSearchParams {
+  const next = withReconView(prev, view);
+  for (const k of MONEY_VIEW_PARAMS) next.delete(k);
   return next;
 }
 

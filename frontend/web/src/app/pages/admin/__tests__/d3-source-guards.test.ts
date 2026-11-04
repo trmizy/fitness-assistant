@@ -33,27 +33,27 @@ describe("D3 source guards", () => {
     }
   });
 
-  it("never reads the constant `execution` field, the ledger result or the storage key", () => {
+  it("never reads the old decision/proposal execution constant, the ledger result or the storage key", () => {
     for (const p of owned) {
       const src = code(p);
-      assert.doesNotMatch(src, /\.execution\b(?!S)/, rel(p));
-      assert.doesNotMatch(src, /["']execution["']\s*\]|\bexecution\s*:/, rel(p));
+      assert.doesNotMatch(src, /(?:decision|proposal|p)\??\.execution\b/, rel(p));
       assert.doesNotMatch(src, /SLICE_2_NOT_ENABLED/, rel(p));
       assert.doesNotMatch(src, /ledger\??\.result\b/, rel(p));
       assert.doesNotMatch(src, /storedFile\??\.key\b/, rel(p));
     }
   });
 
-  it("no execute / reconcile / policy-eligibility / evidence-file call (flag-off or not proxied: R-01, R-02, R-03)", () => {
+  it("no evidence-file call (still not proxied)", () => {
     for (const p of owned) {
       const src = code(p);
-      assert.doesNotMatch(src, /\bexecute\s*\(|reconcile-execution|reconcileExecution|\/execute\b|late-open|proposePolicyEligibility|approvePolicyEligibility|policy-eligibility|evidence-files|readEvidenceFile/, rel(p));
+      assert.doesNotMatch(src, /evidence-files|readEvidenceFile/, rel(p));
     }
   });
 
-  it("the Execution slot is still null (no execute button)", () => {
+  it("the Execution slot is wired to the capability-gated action component", () => {
     const src = code(join(adminDir, "disputes", "workspace", "actionSlots.tsx"));
-    assert.match(src, /export function ExecutionActionsSlot\(_props: ActionSlotProps\): null \{\s*return null;\s*\}/);
+    assert.match(src, /export function ExecutionActionsSlot\(props: ActionSlotProps\): ReactElement/);
+    assert.match(src, /createElement\(ExecutionActions, props\)/);
   });
 
   it("no body can carry an actor or an amount: no userId / adminId / approvedBy / amount / outcome property is built in the forms", () => {
@@ -75,7 +75,7 @@ describe("D3 source guards", () => {
       const src = code(p);
       for (const m of src.matchAll(/disputeCaseApi\.(\w+)\(/g)) {
         const before = src.slice(Math.max(0, (m.index ?? 0) - 160), m.index);
-        assert.match(before, /\(key(?:, b)?\)\s*=>\s*$|\(key, b\) =>\s*$/, `${rel(p)}: disputeCaseApi.${m[1]} is not inside a submit callback`);
+        assert.match(before, /\(key(?:, b)?\)\s*=>\s*$|\(key, b\) =>\s*$|\(key: string, b: \{ reason: string \}\) =>\s*$/, `${rel(p)}: disputeCaseApi.${m[1]} is not inside a submit callback`);
       }
     }
   });

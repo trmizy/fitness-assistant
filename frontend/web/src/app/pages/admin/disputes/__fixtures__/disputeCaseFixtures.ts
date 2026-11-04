@@ -29,10 +29,15 @@ export function summaryFixture(over: Partial<DisputeCaseSummary> = {}): DisputeC
     id: IDS.case,
     sessionId: IDS.session,
     contractId: IDS.contract,
+    clientUserId: "client-0001",
+    ptUserId: "pt-0001",
     type: "PT_NO_SHOW_CLAIM",
     status: "AWAITING_APPROVAL",
     escalated: false,
     investigatorId: IDS.admin1,
+    execStatus: "NOT_STARTED",
+    execDecisionId: null,
+    closeReason: null,
     version: 9,
     createdAt: "2026-11-01T03:00:00.000Z",
     updatedAt: "2026-11-02T03:00:00.000Z",
@@ -189,8 +194,10 @@ export function partyDetailFixture(): PartyCaseDetail {
 }
 
 // ── answers of the write routes (as the controller sends them) ──
-export const proposeCreatedRaw = { id: IDS.proposal, outcome: "COMPLETED", executionBlockedReason: null, caseStatus: "AWAITING_APPROVAL", execution: EXECUTION_LIE };
+export const proposeCreatedRaw = { proposalCreated: true, id: IDS.proposal, outcome: "COMPLETED", executionBlockedReason: null, caseStatus: "AWAITING_APPROVAL", execution: EXECUTION_LIE };
 export const proposePolicyPendingRaw = {
+  proposalCreated: false,
+  proposal: null,
   policyPending: true,
   blocked: "CANCELLED_BLOCKED_BY_D77",
   caseStatus: "POLICY_PENDING",

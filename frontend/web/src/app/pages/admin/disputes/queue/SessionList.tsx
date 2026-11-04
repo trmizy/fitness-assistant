@@ -1,6 +1,6 @@
 import { formatAge } from "../../withdrawals/withdrawalQueue";
 import { formatDateTime } from "../workspace/format";
-import { CARD, Pill } from "../workspace/WorkspaceParts";
+import { CARD, DisputeLink, FOCUS, Pill, QUEUE_PATH } from "../workspace/WorkspaceParts";
 import { LegacyRuling } from "./LegacyRuling";
 import { OpenCaseButton } from "./OpenCaseButton";
 import { SLA_LABEL, SLA_TONE, type SessionRowModel } from "./queueModel";
@@ -15,7 +15,7 @@ export function SessionList({ rows, now, onRefresh }: { rows: SessionRowModel[];
             <div className="min-w-0">
               <p className="text-sm font-semibold text-adm-text">Buổi tập lúc {formatDateTime(s.scheduledStartAt)}</p>
               <p className="mt-0.5 text-xs text-adm-text-2">
-                Hợp đồng: {s.packageName ?? "chưa có tên gói"} · Khách mã {s.clientRef} · PT mã {s.ptRef}
+                {s.clientName ?? "Khách chưa có tên hiển thị"} · {s.ptName ?? "PT chưa có tên hiển thị"}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -34,7 +34,7 @@ export function SessionList({ rows, now, onRefresh }: { rows: SessionRowModel[];
             {s.disputedAt ? `Bị khiếu nại ${formatAge(s.disputedAt, now)} trước (${formatDateTime(s.disputedAt)})` : "Chưa rõ thời điểm khiếu nại"}
           </p>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {(s.clientReason || s.ptNotes) && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3">
               <p className="mb-1 text-xs font-semibold text-adm-text-2">PT báo cáo</p>
               <p className="whitespace-pre-wrap break-words text-sm text-adm-text">{s.ptNotes || "(không có ghi chú)"}</p>
@@ -45,10 +45,14 @@ export function SessionList({ rows, now, onRefresh }: { rows: SessionRowModel[];
                 {s.clientReason || "(không có lý do)"}
               </p>
             </div>
-          </div>
+          </div>}
 
-          <OpenCaseButton sessionId={s.id} onRefreshList={onRefresh} />
-          <LegacyRuling session={s} onDone={onRefresh} />
+          {s.hasCase && s.caseId ? (
+            <DisputeLink to={`${QUEUE_PATH}/${encodeURIComponent(s.caseId)}`} className={`inline-flex min-h-11 items-center rounded-md border border-adm-border bg-adm-surface px-4 text-sm font-medium text-adm-text ${FOCUS}`}>
+              Xem hồ sơ đang xử lý
+            </DisputeLink>
+          ) : s.needsCase !== false ? <OpenCaseButton sessionId={s.id} onRefreshList={onRefresh} /> : <p className="text-sm text-adm-text-2">Buổi này chưa thể mở hồ sơ. Hãy tải lại danh sách.</p>}
+          {!s.hasCase && s.sessionStatus !== "PT_NO_SHOW_REPORTED" && <LegacyRuling session={s} onDone={onRefresh} />}
         </li>
       ))}
     </ul>

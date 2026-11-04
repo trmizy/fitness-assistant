@@ -10,6 +10,7 @@ import type {
   CaptureStatus,
   CaseStatus,
   CaseType,
+  CloseReason,
   ClaimMove,
   ClaimResult,
   ClaimantRole,
@@ -37,22 +38,37 @@ export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
   PROPOSED: "Đang lập đề xuất",
   AWAITING_APPROVAL: "Chờ phê duyệt",
   DECISION_APPROVED: "Đã duyệt quyết định",
-  REJECTED_INTAKE: "Từ chối tiếp nhận",
+  // Not "bị từ chối": a case closed without a decision shares this status; `closeReason` (closeReasonLabel / caseStatusText) says why.
+  REJECTED_INTAKE: "Đã đóng, không có quyết định",
 };
+
+/** Why a case was closed without a decision (`closeReason`). */
+export const CLOSE_REASON_LABEL: Record<CloseReason, string> = {
+  INTAKE_REJECTED: "Đã từ chối tiếp nhận",
+  ORPHAN_SESSION_LEFT_DISPUTE: "Đã đóng: buổi tập không còn trong khiếu nại",
+  NOT_A_DISPUTE: "Đã đóng: không phải khiếu nại",
+};
+export const CLOSE_REASON_NOTE: Record<CloseReason, string> = {
+  INTAKE_REJECTED: "Hồ sơ bị từ chối ngay từ bước tiếp nhận. Không có quyết định nào về buổi tập hay tiền.",
+  ORPHAN_SESSION_LEFT_DISPUTE: "Buổi tập đã rời khỏi diện khiếu nại nên hồ sơ được đóng. Không có quyết định nào về buổi tập hay tiền, và việc đóng không thay đổi buổi tập, quyền buổi hay tiền.",
+  NOT_A_DISPUTE: "Kết luận là «Không phải khiếu nại» nên hồ sơ được đóng. Buổi tập không bị thay đổi (vẫn chờ xử lý trong hàng đợi) và việc đóng không đụng tới tiền.",
+};
+export const closeReasonLabel = (r: string | null | undefined): string | null =>
+  r != null && Object.prototype.hasOwnProperty.call(CLOSE_REASON_LABEL, r) ? CLOSE_REASON_LABEL[r as CloseReason] : null;
 
 /** One short line saying what the case is waiting for. Honest about what the system does NOT do yet. */
 export const CASE_STATUS_NOTE: Record<CaseStatus, string> = {
   INTAKE: "Chưa có người phụ trách. Quản trị viên bất kỳ có thể nhận hoặc từ chối.",
   COLLECTING: "Các bên được nộp thêm lời khai và bằng chứng.",
-  AWAITING_PARTIES: "Hệ thống chưa tự báo cho các bên và chưa có hạn trả lời.",
+  AWAITING_PARTIES: "Khách và PT được báo trong ứng dụng khi hồ sơ chuyển sang bước này. Chưa có hạn trả lời.",
   ASSESSING: "Chỉ ở bước này mới ghi được đánh giá và kết luận.",
   TECH_RECONCILIATION: "Đang đối chiếu dữ liệu kỹ thuật, chưa có thao tác riêng.",
   FINDING_RECORDED: "Đã có kết luận, chờ điều tra viên lập đề xuất.",
-  POLICY_PENDING: "Chưa có lối đóng hồ sơ ở bước này; chỉ có thể bổ sung bằng chứng.",
+  POLICY_PENDING: "Chờ quyết định về chính sách; ở bước này chỉ có thể bổ sung bằng chứng hoặc đánh giá lại.",
   PROPOSED: "Đang chuyển sang chờ phê duyệt.",
   AWAITING_APPROVAL: "Cần một quản trị viên khác duyệt (bốn mắt).",
   DECISION_APPROVED: "Đã duyệt. Việc thực thi nằm ở bước riêng và chưa chắc đã chạy.",
-  REJECTED_INTAKE: "Hồ sơ đã đóng.",
+  REJECTED_INTAKE: "Hồ sơ đã đóng, không có quyết định nào về buổi tập hay tiền.",
 };
 
 export const CASE_TYPE_LABEL: Record<CaseType, string> = {
@@ -161,7 +177,7 @@ export const SHARE_REFUSAL_LABEL: Record<string, string> = {
   NOT_NORMAL_SENSITIVITY: "Bằng chứng nhạy cảm hoặc hạn chế nên chưa chia sẻ được.",
 };
 
-/** Execution axis: the API does not return it yet (R-01); these exist so the screen can show the right sentence once it does. */
+/** Execution axis (`case.execStatus`). `BUSINESS_DONE` never says money arrived: the money axis is the `financial` block. */
 export const EXEC_STATUS_LABEL: Record<ExecStatus, string> = {
   NOT_STARTED: "Đã duyệt, chưa thực thi",
   EXECUTING: "Đang thực thi hoặc lần trước chưa kết thúc",
@@ -169,7 +185,7 @@ export const EXEC_STATUS_LABEL: Record<ExecStatus, string> = {
   EXEC_BLOCKED: "Chưa thực thi được",
   NEEDS_HUMAN: "Cần người xem xét",
 };
-export const EXEC_STATUS_UNREADABLE = "Chưa đọc được trạng thái thực thi (chờ phía máy chủ bổ sung).";
+export const EXEC_STATUS_UNREADABLE = "Chưa đọc được trạng thái thực thi.";
 
 export const EXEC_BLOCK_REASON_LABEL: Record<ExecBlockReason, string> = {
   PT_NO_SHOW_REPORTED_NOT_SUPPORTED: "Buổi còn chờ PT phản hồi, chưa hỗ trợ thực thi.",
@@ -177,6 +193,10 @@ export const EXEC_BLOCK_REASON_LABEL: Record<ExecBlockReason, string> = {
   LEDGER_UNREADABLE: "Chưa đọc được sổ cái tiền.",
   D77_COMBINATION_UNRESOLVED: "Buổi có khoản đền đến muộn, tổ hợp này chưa được cho phép thực thi.",
   CANCELLED_BLOCKED_BY_D77: "Buổi có khoản đền đến muộn nên không huỷ được.",
+  POLICY_ELIGIBILITY_UNVERIFIED: "Hợp đồng chưa có kết luận áp dụng chính sách đã được duyệt.",
+  POLICY_EXCEPTION_APPLIES: "Hợp đồng thuộc ngoại lệ lịch sử, cần xử lý riêng.",
+  EXECUTION_DISABLED: "Bộ thực thi quyết định đang tắt.",
+  SESSION_ALREADY_PROCESSED: "Buổi tập không còn ở trạng thái đang khiếu nại.",
 };
 
 export const PROPOSAL_BLOCKED_LABEL: Record<ProposalBlockedReason, string> = {
@@ -184,7 +204,7 @@ export const PROPOSAL_BLOCKED_LABEL: Record<ProposalBlockedReason, string> = {
 };
 
 // ───────────────────────────────────────────────────────── state machine hint ──
-/** Copy of `TRANSITIONS` in user-service rules.ts. A HINT for which buttons to show; the server decides (A6 answers `allowed: []`, R-10). */
+/** Copy of `TRANSITIONS` in user-service rules.ts. Only a FALLBACK now: the buttons come from `allowedActions` / `actions.transition.options`; the server decides. */
 const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = {
   INTAKE: ["COLLECTING", "REJECTED_INTAKE"],
   COLLECTING: ["AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION"],
@@ -250,6 +270,9 @@ const lookup = <K extends string>(table: Record<K, string>, key: string | null |
   key != null && Object.prototype.hasOwnProperty.call(table, key) ? table[key as K] : fallback;
 
 export const caseStatusLabel = (s: string | null | undefined) => lookup(CASE_STATUS_LABEL, s, "Chưa rõ trạng thái");
+/** The status text of a case: a case closed without a decision is named by its `closeReason`, never just "từ chối". */
+export const caseStatusText = (c: { status?: string | null; closeReason?: string | null }): string =>
+  c.status === "REJECTED_INTAKE" ? (closeReasonLabel(c.closeReason) ?? CASE_STATUS_LABEL.REJECTED_INTAKE) : caseStatusLabel(c.status);
 export const caseTypeLabel = (s: string | null | undefined) => lookup(CASE_TYPE_LABEL, s, "Loại khiếu nại khác");
 export const findingLabel = (s: string | null | undefined) => lookup(FINDING_LABEL, s, "Kết luận khác");
 export const outcomeLabel = (s: string | null | undefined) => lookup(OUTCOME_LABEL, s, "Kết quả khác");

@@ -43,6 +43,8 @@ import {
   terminationReasonLabel,
   toAmount,
 } from "./adminReconciliation.utils";
+import { AdminLink } from "../../components/layout/admin/AdminLink";
+import { exceptionLinksFor } from "./reconciliation/moneyExceptions/moneyExceptionModel";
 import { Block, ExpandContext, FOCUS, GroupTitle, LoadError, Rows, type Column, type ExpandControl } from "./reconciliation/ExceptionParts";
 import { EXCEPTIONS_MAX_AGE_MS, ForbiddenPanel, LevelNote, StaleChip, useNow } from "./reconciliation/ReconStates";
 import { errorView, useExceptionReports } from "./reconciliation/useReconciliationData";
@@ -261,6 +263,28 @@ const attentionCols: Column<SettlementAttentionItem>[] = [
   { header: "Số lần thử", cell: (r) => r.attempts, right: true },
   { header: "Treo", cell: (r) => formatAge(r.ageMinutes), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId) },
+  {
+    // D7: a row waiting for a person leads to the money-exception views (matched by the row id / session id); other rows have nothing to open
+    header: "Xử lý tiếp",
+    cell: (r) => {
+      const links = exceptionLinksFor(r);
+      if (links.length === 0) return <span className="text-adm-text-2">—</span>;
+      return (
+        <span className="flex flex-col items-start gap-1">
+          {links.map((l) => (
+            <AdminLink
+              key={l.view}
+              to={`?${l.search}`}
+              data-testid={`recon-attention-link-${l.view}`}
+              className={`inline-flex min-h-11 items-center font-semibold text-adm-text underline underline-offset-2 lg:min-h-0 ${FOCUS}`}
+            >
+              {l.label}
+            </AdminLink>
+          ))}
+        </span>
+      );
+    },
+  },
 ];
 const unconfirmedCols: Column<UnconfirmedEndingItem>[] = [
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId) },

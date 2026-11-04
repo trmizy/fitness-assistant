@@ -3,14 +3,15 @@ import { formatDateTime, shortRef } from "../format";
 import { ApprovalsActionsSlot, type ActionSlotProps } from "../actionSlots";
 import { blockedText } from "../workspaceModel";
 import { CARD, EmptyBox, Muted, Notice, Pill } from "../WorkspaceParts";
+import { PolicySection } from "./PolicySection";
 
-export function ApprovalsTab({ detail, currentUserId, onChanged }: ActionSlotProps) {
+export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }: ActionSlotProps) {
   const proposals = [...(detail.proposals ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const investigatorId = detail.case?.investigatorId ?? null;
   return (
     <div className="space-y-4" data-testid="d2-tab-approvals">
       <Muted>Người duyệt phải là một quản trị viên khác với người lập đề xuất, điều tra viên, khách và PT của buổi. Sau khi duyệt, hồ sơ không sửa hay huỷ duyệt được.</Muted>
-      <ApprovalsActionsSlot detail={detail} currentUserId={currentUserId} onChanged={onChanged} />
+      <ApprovalsActionsSlot detail={detail} currentUserId={currentUserId} onChanged={onChanged} capabilities={capabilities} />
       {proposals.length === 0 ? (
         <EmptyBox testId="d2-approvals-empty">Hồ sơ chưa có đề xuất nên chưa có gì để duyệt.</EmptyBox>
       ) : (
@@ -57,6 +58,7 @@ export function ApprovalsTab({ detail, currentUserId, onChanged }: ActionSlotPro
           );
         })
       )}
+      <PolicySection detail={detail} currentUserId={currentUserId} onChanged={onChanged} capabilities={capabilities} />
     </div>
   );
 }

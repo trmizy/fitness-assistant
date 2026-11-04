@@ -5,6 +5,7 @@
 import { useId, useState } from "react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { disputeCaseApi } from "../disputeCaseApi";
+import type { RecollectResult } from "../disputeCaseTypes";
 import type { ActionSlotProps } from "../workspace/actionSlots";
 import { ActionButton, ActionGroup, ButtonRow, ErrorBox, Field, FormCard, MutedLine, ResultNote, TextArea, counter, useWrite } from "./actionKit";
 import { LIMITS, availability, hasErrors, investigatorOnlyLine, shareableEvidenceChoices, validateAck, type Errors } from "./actionModel";
@@ -12,7 +13,7 @@ import { SHARE_NONE_ELIGIBLE } from "./actionText";
 import { ShareForm } from "./ShareForm";
 
 function RecollectCard({ detail, onChanged }: ActionSlotProps) {
-  const w = useWrite<Record<string, never>, { added: number; unchanged: number }>(onChanged);
+  const w = useWrite<Record<string, never>, RecollectResult>(onChanged);
   return (
     <FormCard title="Thu lại bằng chứng" caption="Đọc lại các nguồn của hệ thống. Chỉ thêm phiên bản mới cho nguồn có nội dung đã đổi; bản cũ vẫn được giữ. Quản trị viên nào cũng làm được." testId="d3-recollect">
       <ButtonRow>
@@ -28,8 +29,15 @@ function RecollectCard({ detail, onChanged }: ActionSlotProps) {
       </ButtonRow>
       <ErrorBox error={w.error} mustReload={w.mustReload} reloading={w.reloading} onReload={() => void w.reload()} onRetry={w.retry} pending={w.pending} testId="d3-recollect-error" />
       {w.result && !w.error && (
-        <ResultNote testId="d3-recollect-result">
-          Đã thu lại: thêm {w.result.added} phiên bản mới, {w.result.unchanged} nguồn không đổi.
+        <ResultNote tone={(w.result.skippedUnavailable ?? []).length > 0 ? "warning" : "success"} testId="d3-recollect-result">
+          <p>
+            Đã thu lại: thêm {w.result.added} phiên bản mới, {w.result.unchanged} nguồn không đổi.
+          </p>
+          {(w.result.skippedUnavailable ?? []).length > 0 && (
+            <p className="mt-1" data-testid="d3-recollect-skipped">
+              {(w.result.skippedUnavailable ?? []).length} nguồn không đọc được lần này nên bản đã có được giữ nguyên (không bị thay bằng «không đọc được»). Thử thu lại sau.
+            </p>
+          )}
         </ResultNote>
       )}
     </FormCard>

@@ -146,7 +146,7 @@ describe("D1 finding consequence (DQ-2(a))", () => {
     assert.ok(src("AdminDisputes.tsx").includes("DISPUTE_PAGE_PENDING_SENTENCE"));
     assert.ok(!/buổi tập không bị trừ/.test(src("AdminDisputes.tsx")));
     assert.ok(src("AdminDisputes.tsx").includes("parseDisputeError(error"));
-    assert.ok(src("AdminComplaintsPage.tsx").includes("COMPLAINT_NO_AUTO_REFUND_SENTENCE"));
+    assert.ok(src("AdminComplaintsPage.tsx").includes("COMPLAINT_RESOLVE_NOT_REFUND"));
     assert.equal(L.COMPLAINT_NO_AUTO_REFUND_SENTENCE, "Xử lý khiếu nại không tự hoàn tiền.");
   });
 });
@@ -260,9 +260,9 @@ describe("D1 money axis - all 12 states", () => {
     assert.ok(!/\.result\b/.test(src), "ledger.result must not be read");
     assert.ok(!/Number\(|parseFloat|parseInt|BigInt/.test(src));
   });
-  it("the F3 constant `execution` is never typed", () => {
+  it("the old decision/proposal execution constant is absent; the final case execution block is typed", () => {
     const types = readFileSync(join(dir, "..", "disputes", "disputeCaseTypes.ts"), "utf8");
-    assert.ok(/F3 - `decision\.execution`/.test(types), "F3 comment present");
-    assert.ok(!/^\s*execution\??:/m.test(types), "no `execution` field typed");
+    assert.ok(!/decision\s*:\s*\{[^}]*execution\s*:/s.test(types), "no old decision execution constant");
+    assert.match(types, /execution\??:\s*Execution/);
   });
 });

@@ -8,7 +8,7 @@
  */
 import { useEffect, useId, useState } from "react";
 import { disputeCaseApi } from "../disputeCaseApi";
-import { APPROVAL_RESULT_LABEL } from "../disputeCaseLabels";
+import { APPROVAL_RESULT_LABEL, EXEC_STATUS_LABEL } from "../disputeCaseLabels";
 import type { DecideResult } from "../disputeCaseTypes";
 import type { ActionSlotProps } from "../workspace/actionSlots";
 import { blockedText } from "../workspace/workspaceModel";
@@ -42,6 +42,8 @@ import {
 interface Done {
   result: "APPROVED" | "REJECTED";
   blocked: string | null;
+  /** execution state the approval answered with (NOT_STARTED = approved, not executed yet) */
+  exec: string | null;
 }
 
 function Summary({ detail }: Pick<ActionSlotProps, "detail">) {
@@ -117,7 +119,11 @@ function DecideForm({ detail, onChanged, onDone }: ActionSlotProps & { onDone: (
     if (r.ok) {
       setDeciding(null);
       setBranch(null);
-      onDone({ result, blocked: r.value.executionBlockedReason ? blockedText(r.value.executionBlockedReason, true) : null });
+      onDone({
+        result,
+        blocked: r.value.executionBlockedReason ? blockedText(r.value.executionBlockedReason, true) : null,
+        exec: r.value.execStatus ? EXEC_STATUS_LABEL[r.value.execStatus] ?? null : null,
+      });
     }
   }
 
@@ -228,6 +234,11 @@ export function ApprovalActions(props: ActionSlotProps) {
         <ResultNote testId="d3-approved-note">
           <p className="font-semibold">{APPROVED_DONE}</p>
           <p className="mt-1">{APPROVED_DONE_HELP}</p>
+          {done.exec && (
+            <p className="mt-1" data-testid="d5-approved-exec">
+              Trạng thái thực thi: {done.exec}.
+            </p>
+          )}
           {done.blocked && <p className="mt-1">{done.blocked}</p>}
         </ResultNote>
       )}

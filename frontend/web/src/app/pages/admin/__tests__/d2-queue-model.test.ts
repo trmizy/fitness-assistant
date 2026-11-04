@@ -199,10 +199,21 @@ describe("D2 queue - list failure is never an empty list", () => {
   });
 });
 
-describe("D2 queue - muted notes", () => {
-  it("say what the list does not have", () => {
-    assert.match(Q.CASES_NOTE_NO_NAMES, /chưa có tên khách và PT/);
-    assert.match(Q.SESSIONS_NOTE_NO_PT_ABSENT, /khách báo PT vắng mà PT chưa phản hồi/);
+describe("D2 queue - V2.1 queue contract", () => {
+  it("supports both session statuses, case ownership and server paging", () => {
+    const q = Q.normalizeQueueItems({ total: 120, hasMore: true, items: [
+      { sessionId: "s1", sessionStatus: "DISPUTED", clientUserId: "client-1", ptUserId: "pt-1", clientName: "An", ptName: "Bình", hasCase: true, needsCase: false, caseId: "case-1" },
+      { sessionId: "s2", sessionStatus: "PT_NO_SHOW_REPORTED", clientUserId: "client-2", ptUserId: "pt-2", clientName: "Chi", ptName: "Dũng", hasCase: false, needsCase: true, caseId: null },
+    ] });
+    assert.equal(q.total, 120);
+    assert.equal(q.hasMore, true);
+    assert.equal(q.rows.length, 2);
+    assert.equal(q.rows[0].caseId, "case-1");
+    assert.equal(q.rows[0].clientName, "An");
+    assert.equal(q.rows[1].sessionStatus, "PT_NO_SHOW_REPORTED");
+    assert.equal(q.rows[1].needsCase, true);
+  });
+  it("keeps the honest no-polling note", () => {
     assert.match(Q.CASES_NOTE_NO_POLLING, /không tự làm mới/);
   });
 });

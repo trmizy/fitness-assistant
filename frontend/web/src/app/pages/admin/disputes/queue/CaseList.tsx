@@ -1,6 +1,6 @@
 import { useLocation } from "react-router";
 import { ArrowRightIcon } from "@phosphor-icons/react";
-import { caseStatusLabel } from "../disputeCaseLabels";
+import { caseStatusLabel, caseStatusText } from "../disputeCaseLabels";
 import type { DisputeCaseSummary } from "../disputeCaseTypes";
 import { formatAge } from "../../withdrawals/withdrawalQueue";
 import { statusTone } from "../workspace/workspaceModel";
@@ -43,15 +43,16 @@ export function CaseList({ items, currentUserId, now }: { items: Array<Partial<D
                   </span>
                 )}
               </div>
+              <p className="mt-1 text-xs text-adm-text-2">{c.clientName ?? "Khách chưa có tên hiển thị"} · {c.ptName ?? "PT chưa có tên hiển thị"}</p>
             </div>
             <div role="cell">
               <p className={CELL_LABEL}>Trạng thái</p>
-              <Pill tone={statusTone(c.status)}>{caseStatusLabel(c.status)}</Pill>
+              <Pill tone={statusTone(c.status)}>{caseStatusText(c)}</Pill>
             </div>
             <div role="cell" className="min-w-0">
               <p className={CELL_LABEL}>Người phụ trách</p>
               <p className={`break-words ${c.investigatorId ? "text-adm-text" : "text-adm-text-2"}`} data-testid="d2-investigator">
-                {investigatorText(c.investigatorId, currentUserId)}
+                {c.investigatorId === currentUserId ? "Bạn phụ trách" : c.investigatorId ? (c.investigatorName ?? "Người phụ trách chưa có tên hiển thị") : investigatorText(null, currentUserId)}
               </p>
             </div>
             <div role="cell">

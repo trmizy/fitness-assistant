@@ -129,6 +129,9 @@ const AdminGymManagementOverview = lazy(() =>
   import("./pages/admin/AdminGymManagementOverview").then((m) => ({ default: m.AdminGymManagementOverview })),
 );
 const AdminComplaintsPage = lazy(() => import("./pages/admin/AdminComplaintsPage").then((m) => ({ default: m.AdminComplaintsPage })));
+const AdminComplaintCasePage = lazy(() => import("./pages/admin/complaints/AdminComplaintCasePage").then((m) => ({ default: m.AdminComplaintCasePage })));
+const MyGymComplaintCasesPage = lazy(() => import("./pages/complaints/MyGymComplaintCasesPage").then((m) => ({ default: m.MyGymComplaintCasesPage })));
+const MyGymComplaintCasePage = lazy(() => import("./pages/complaints/MyGymComplaintCasesPage").then((m) => ({ default: m.MyGymComplaintCasePage })));
 const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
 // Finance level-2 tabs (each a route; rendered inside AdminFinancePage's <Outlet/>).
 const AdminFinanceOverviewTab = lazy(() => import("./pages/admin/AdminFinanceOverviewTab").then((m) => ({ default: m.AdminFinanceOverviewTab })));
@@ -305,6 +308,14 @@ export const router = createBrowserRouter([
           { path: ":caseId", Component: DisputeCasePartyPage },
         ],
       },
+      {
+        path: "complaint-cases",
+        element: <RequireRole allow={["client", "pt"]}><RequireOnboarding><AppShell /></RequireOnboarding></RequireRole>,
+        children: [
+          { index: true, Component: MyGymComplaintCasesPage },
+          { path: ":caseId", Component: MyGymComplaintCasePage },
+        ],
+      },
 
       // ── PT workspace ─────────────────────────────────────────────────────
       {
@@ -400,6 +411,7 @@ export const router = createBrowserRouter([
           { path: "partners", Component: AdminPartnersPage },
           { path: "listings", Component: AdminListingsPage },
           { path: "complaints", Component: AdminComplaintsPage },
+          { path: "complaints/cases/:caseId", Component: AdminComplaintCasePage },
           { path: "ai-observability", Component: AdminAIObservability },
         ],
       },

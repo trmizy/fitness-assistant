@@ -9,6 +9,7 @@ import { FINDING_LABEL, OUTCOME_LABEL, POLICY_PENDING_NO_PROPOSAL, caseStatusLab
 import { FINDING_KINDS, type ProposeResult, type RecordFindingResult } from "../disputeCaseTypes";
 import type { ActionSlotProps } from "../workspace/actionSlots";
 import { latestFinding, blockedText } from "../workspace/workspaceModel";
+import { CloseCard } from "./CloseActions";
 import { ActionButton, ActionGroup, ButtonRow, ErrorBox, Field, FormCard, MutedLine, Select, SlotNotes, TextArea, counter, useSlotNotes, useWrite, type PushNote } from "./actionKit";
 import {
   LIMITS,
@@ -133,6 +134,7 @@ function ProposeCard({ detail, onChanged, push }: ActionSlotProps & { push: Push
     const r = await w.submit(proposalBody(form), (key, b) => disputeCaseApi.propose(detail.case.id, b, key));
     if (r.ok) {
       const v = r.value;
+      // F4: a proposal exists only when the server said proposalCreated:true (the client maps anything else to POLICY_PENDING or an error).
       if (v.kind === "POLICY_PENDING") push({ tone: "warning", testId: "d3-propose-policy-pending", text: POLICY_PENDING_NO_PROPOSAL });
       else {
         const blocked = v.proposal.executionBlockedReason ? blockedText(v.proposal.executionBlockedReason, false) : null;
@@ -190,6 +192,7 @@ export function FindingActions(props: ActionSlotProps) {
       <div className="grid grid-cols-1 items-start gap-4">
         {a.recordFinding && <RecordFindingCard {...props} push={push} />}
         {a.propose && <ProposeCard {...props} push={push} />}
+        {a.closeNotADispute && <CloseCard kind="notADispute" {...props} push={push} />}
       </div>
     </ActionGroup>
   );

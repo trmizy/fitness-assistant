@@ -63,6 +63,7 @@ const clientNavFull = [
   { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
   { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
   { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
+  { label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "/complaint-cases" },
   { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];

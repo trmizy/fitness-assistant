@@ -27,7 +27,7 @@ export interface WriteState<B, R> {
   /** a blind resend is not allowed until the case was reloaded (conflict, unknown outcome, state refusal) */
   mustReload: boolean;
   reloading: boolean;
-  submit: (body: B, send: (key: string, body: B) => Promise<R>) => Promise<{ ok: true; value: R } | { ok: false; error: DisputeErrorView | null }>;
+  submit: (body: B, send: (key: string, body: B) => Promise<R>) => Promise<{ ok: true; value: R; error?: undefined } | { ok: false; error: DisputeErrorView | null; value?: undefined }>;
   retry: () => void;
   reload: () => Promise<void>;
   clear: () => void;
@@ -85,12 +85,12 @@ export function useWrite<B, R>(onChanged: Reload): WriteState<B, R> {
     setReloading(true);
     try {
       await changed.current();
+      setMustReload(false);
+      setError(null);
     } catch {
       /* page-level banner */
     } finally {
       setReloading(false);
-      setMustReload(false);
-      setError(null);
     }
   }, []);
 

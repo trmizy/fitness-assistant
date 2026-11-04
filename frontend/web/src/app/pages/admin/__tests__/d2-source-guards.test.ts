@@ -64,11 +64,10 @@ describe("D2 source guards", () => {
     }
   });
 
-  it("never reads the constant `execution` field of a decision or proposal", () => {
+  it("reads execution state only from the new case execution block, never the old constant on a decision or proposal", () => {
     for (const p of owned) {
       const src = code(p);
-      assert.doesNotMatch(src, /\.execution\b(?!S)/, rel(p));
-      assert.doesNotMatch(src, /["']execution["']\s*\]|\bexecution\s*:/, rel(p));
+      assert.doesNotMatch(src, /(?:decision|proposal|p)\??\.execution\b/, rel(p));
       assert.doesNotMatch(src, /SLICE_2_NOT_ENABLED/, rel(p));
     }
   });

@@ -41,9 +41,10 @@ describe("D2 workspace - 'Đang chờ' note by status", () => {
     for (const s of CASE_STATUSES) assert.ok(W.WAITING_NOTE[s].length > 10, s);
     assert.match(W.waitingNote("WHATEVER"), /Chưa rõ/);
   });
-  it("AWAITING_PARTIES says the parties are not notified and there is no deadline (R-12)", () => {
-    assert.match(W.WAITING_NOTE.AWAITING_PARTIES, /chưa được hệ thống tự báo/);
-    assert.match(W.AWAITING_PARTIES_NOTE, /chưa tự báo cho các bên/);
+  it("AWAITING_PARTIES says the parties are notified in-app and there is no invented deadline", () => {
+    assert.match(W.WAITING_NOTE.AWAITING_PARTIES, /đã báo cho các bên trong ứng dụng/);
+    assert.match(W.AWAITING_PARTIES_NOTE, /được báo trong ứng dụng/);
+    assert.match(W.WAITING_NOTE.AWAITING_PARTIES, /chưa có hạn trả lời/);
   });
   it("no note shows an internal code", () => {
     for (const s of CASE_STATUSES) assert.doesNotMatch(W.WAITING_NOTE[s], /D77|B-1|[A-Z]{4,}_[A-Z]{2,}/);
@@ -95,19 +96,19 @@ describe("D2 workspace - execution-blocked banner", () => {
 
 describe("D2 workspace - Thực thi tab", () => {
   const constantLie = (): DisputeCaseDetail => {
-    const d = withCase({ status: "DECISION_APPROVED" });
+    const d = withCase({ status: "DECISION_APPROVED", execStatus: undefined });
     return { ...d, decision: { ...decisionRaw } as never, proposals: d.proposals.map((p) => ({ ...p, execution: EXECUTION_LIE })) as never };
   };
-  it("execStatus absent -> 'Chưa đọc được trạng thái thực thi' and, for DECISION_APPROVED, 'Đã duyệt. Chưa đọc được trạng thái thực thi.' (never 'Chưa thực thi')", () => {
+  it("execStatus absent -> unreadable, never an invented execution state", () => {
     const v = W.describeExecution(constantLie());
     assert.equal(v.readable, false);
     assert.equal(v.headline, "Chưa đọc được trạng thái thực thi");
-    assert.ok(v.lines.includes("Đã duyệt. Chưa đọc được trạng thái thực thi."));
+    assert.match(v.lines.join(" "), /Máy chủ không trả trạng thái thực thi/);
     assert.ok(!v.lines.some((l) => /Chưa thực thi/.test(l)), "absent execStatus must not claim 'not executed'");
     assert.equal(v.showTable, false);
-    const other = W.describeExecution(withCase({ status: "AWAITING_APPROVAL" }));
+    const other = W.describeExecution(withCase({ status: "AWAITING_APPROVAL", execStatus: undefined }));
     assert.equal(other.readable, false);
-    assert.ok(!other.lines.includes("Đã duyệt. Chưa đọc được trạng thái thực thi."));
+    assert.match(other.lines.join(" "), /Máy chủ không trả trạng thái thực thi/);
   });
   it("never derives anything from the constant `execution` (BLOCKED: SLICE_2_NOT_ENABLED)", () => {
     const text = JSON.stringify(W.describeExecution(constantLie()));
@@ -120,22 +121,22 @@ describe("D2 workspace - Thực thi tab", () => {
       assert.equal(v.status, status);
       assert.equal(v.showTable, true);
     }
-    const blocked = W.describeExecution(withCase({ status: "DECISION_APPROVED", execStatus: "EXEC_BLOCKED", execBlockReason: "CONTRACT_ENDING" }));
+    const blocked = W.describeExecution({ ...withCase({ status: "DECISION_APPROVED", execStatus: "EXEC_BLOCKED" }), execution: { status: "EXEC_BLOCKED", blockedReason: "CONTRACT_ENDING" } } as unknown as DisputeCaseDetail);
     assert.match(blocked.lines[0], /Hợp đồng đang kết thúc/);
-    const unknownReason = W.describeExecution(withCase({ status: "DECISION_APPROVED", execStatus: "EXEC_BLOCKED", execBlockReason: "NEW_THING" }));
-    assert.equal(unknownReason.lines[0], "Lý do chưa rõ.");
+    const unknownReason = W.describeExecution({ ...withCase({ status: "DECISION_APPROVED", execStatus: "EXEC_BLOCKED" }), execution: { status: "EXEC_BLOCKED", blockedReason: "NEW_THING" } } as unknown as DisputeCaseDetail);
+    assert.equal(unknownReason.lines[0], "Có một điều kiện chưa đạt.");
     const done = W.describeExecution(withCase({ status: "DECISION_APPROVED", execStatus: "BUSINESS_DONE" }));
     assert.match(done.lines.join(" "), /không phải xác nhận tiền đã về/);
     assert.doesNotMatch(done.lines.join(" "), /ngân hàng đã chuyển/i);
   });
-  it("execStatus can also come from the decision; an unknown value is treated as unreadable", () => {
-    const d = { ...withCase({ status: "DECISION_APPROVED" }), decision: { proposalId: "p", outcome: "COMPLETED", executionBlockedReason: null, execStatus: "NEEDS_HUMAN" } } as DisputeCaseDetail;
+  it("execution block is authoritative, with case execStatus fallback; unknown is unreadable", () => {
+    const d = { ...withCase({ status: "DECISION_APPROVED", execStatus: "NOT_STARTED" }), execution: { status: "NEEDS_HUMAN" } } as unknown as DisputeCaseDetail;
     assert.equal(W.describeExecution(d).status, "NEEDS_HUMAN");
     assert.equal(W.describeExecution(withCase({ execStatus: "BOGUS" })).readable, false);
   });
-  it("the state table covers the five states, NEEDS_HUMAN has no exit action", () => {
+  it("the state table covers the five states and NEEDS_HUMAN acknowledgement moves no money", () => {
     assert.deepEqual(W.EXEC_TABLE.map((r) => r.status).sort(), [...EXEC_STATUSES].sort());
-    assert.match(W.EXEC_TABLE.find((r) => r.status === "NEEDS_HUMAN")!.next, /Chưa có thao tác thoát/);
+    assert.match(W.EXEC_TABLE.find((r) => r.status === "NEEDS_HUMAN")!.next, /không chuyển tiền/);
   });
 });
 
@@ -226,7 +227,8 @@ describe("D2 workspace - events", () => {
   it("newest first and the 200 limit is stated", () => {
     const e = (id: string, t: string) => ({ id, createdAt: t }) as never;
     assert.deepEqual(W.sortedEvents([e("a", "2026-01-01T00:00:00Z"), e("b", "2026-02-01T00:00:00Z")]).map((x) => x.id), ["b", "a"]);
-    assert.match(W.HISTORY_LIMIT_NOTE, /Tối đa 200 sự kiện gần nhất/);
+    assert.match(W.historyLimitNote({ eventsLimit: 200, eventsTruncated: true }) ?? "", /200 sự kiện gần nhất/);
+    assert.equal(W.historyLimitNote({ eventsLimit: 200, eventsTruncated: false }), null);
   });
 });
 
@@ -276,7 +278,7 @@ describe("D2 workspace - load failures (a failed load is never an empty case)", 
   });
 });
 
-describe("D2 workspace - action slots (filled by D3, except Execution)", () => {
+describe("D2 workspace - action slots (filled by D3 and D5)", () => {
   const props = { detail: detailFixture(), currentUserId: "me", onChanged: () => undefined };
   const call = (name: string) => (S as unknown as Record<string, (p: typeof props) => unknown>)[name](props);
   it("each write-capable tab still has its named slot", () => {
@@ -291,8 +293,10 @@ describe("D2 workspace - action slots (filled by D3, except Execution)", () => {
       assert.deepEqual(el!.props, props, name);
     }
   });
-  it("the Execution slot STILL renders nothing: no execute button (executor is off outside tests, no execStatus in any GET: R-01, R-02)", () => {
-    assert.equal(call("ExecutionActionsSlot"), null);
+  it("the Execution slot returns a component; server capability and allowedActions gate its buttons", () => {
+    const el = call("ExecutionActionsSlot") as { type?: unknown; props?: unknown } | null;
+    assert.ok(el && typeof el.type === "function");
+    assert.deepEqual(el!.props, props);
   });
   it("money and history have no slot on purpose", () => {
     assert.equal("MoneyActionsSlot" in S, false);

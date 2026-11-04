@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { useLocation } from "react-router";
 import { toast } from "sonner";
 import { adminService } from "../../../../services/api";
 import { Button } from "../../../../components/ui/button";
 import { useRestoreFocus } from "../../shared/b9aReturnFocus";
 import { MoneyActionDialog } from "../../shared/MoneyActionDialog";
+import { parseDisputeError } from "../disputeCaseErrors";
 import { formatDateTime } from "../workspace/format";
-import { Notice } from "../workspace/WorkspaceParts";
+import { DisputeLink, FOCUS, Notice, QUEUE_PATH } from "../workspace/WorkspaceParts";
 import {
   LEGACY_BUTTON_LABEL,
   LEGACY_DIALOG_TITLE,
@@ -28,6 +30,8 @@ import {
 export function LegacyRuling({ session, onDone }: { session: SessionRowModel; onDone: () => void }) {
   const [resolution, setResolution] = useState<LegacyResolution | null>(null);
   const [note, setNote] = useState("");
+  const [caseExistsId, setCaseExistsId] = useState<string | null>(null);
+  const location = useLocation();
   // the dialog has no Trigger, so Radix would drop focus on <body> after Esc: give it back to the button that opened it
   useRestoreFocus(resolution !== null);
 
@@ -36,6 +40,8 @@ export function LegacyRuling({ session, onDone }: { session: SessionRowModel; on
     try {
       await adminService.resolveSessionDispute(session.id, resolution, note.trim());
     } catch (e) {
+      const view = parseDisputeError(e, { action: "write" });
+      if (view.code === "CASE_EXISTS" && typeof view.details?.caseId === "string") setCaseExistsId(view.details.caseId);
       throw toDialogError(e);
     }
     toast.success("Đã phân xử khiếu nại");
@@ -50,6 +56,7 @@ export function LegacyRuling({ session, onDone }: { session: SessionRowModel; on
         <Notice tone="warning" testId="d2-legacy-warning">
           {LEGACY_WARNING}
         </Notice>
+        {caseExistsId && <DisputeLink to={`${QUEUE_PATH}/${encodeURIComponent(caseExistsId)}`} state={{ queueSearch: location.search }} className={`inline-flex min-h-11 items-center rounded-md border border-adm-border px-3 text-sm text-adm-text ${FOCUS}`}>Xem hồ sơ đã có</DisputeLink>}
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {LEGACY_RESOLUTIONS.map((r) => (
             <Button

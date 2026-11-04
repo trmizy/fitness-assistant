@@ -27,6 +27,9 @@ function fake(answer: unknown = {}, status = 200) {
   const client: DisputeHttpClient = {
     async request(config) {
       calls.push({ method: config.method, url: config.url, data: config.data as Record<string, unknown>, params: config.params, headers: config.headers });
+      if (String(config.url).endsWith("/proposals") && !(answer && typeof answer === "object" && "proposalCreated" in answer)) {
+        return { data: { proposalCreated: true, id: "proposal-fixture", outcome: "COMPLETED", caseStatus: "AWAITING_APPROVAL" } as never, status: 201 };
+      }
       return { data: answer as never, status };
     },
   };
@@ -155,11 +158,11 @@ describe("D1 API client - URLs and bodies", () => {
     assert.deepEqual(calls[3].data, { claimantRole: "CLIENT", text: "t" });
     assert.deepEqual(calls[4].data, { result: "APPROVED", reason: "r", conflictOfInterestDeclaredNone: true });
   });
-  it("list query only carries status / limit / offset", async () => {
+  it("list query carries documented filters but never an actor id", async () => {
     const { calls, api } = fake({ items: [], total: 0 });
     await api.listCases({ status: "INTAKE", limit: 10, offset: 30, userId: "x", sessionId: "y" } as never);
     await api.listCases();
-    assert.deepEqual(calls[0].params, { status: "INTAKE", limit: 10, offset: 30 });
+    assert.deepEqual(calls[0].params, { status: "INTAKE", limit: 10, offset: 30, sessionId: "y" });
     assert.deepEqual(calls[1].params, {});
   });
   it("NO field the server computes or takes from the token ever reaches the wire, even if a caller passes it", async () => {
@@ -188,12 +191,14 @@ describe("D1 API client - URLs and bodies", () => {
     for (const f of ["userId", "adminId", "approvedBy", "amount"]) assert.ok(!new RegExp(`\\b${f}\\b`).test(src), `${f} appears in the client`);
     assert.ok(/investigatorId/.test(src));
   });
-  it("A19-A21, B5, B6 and D are not exposed", () => {
+  it("V2.1 executor routes are exposed, while evidence-file and late-open are not on this client", () => {
     const names = Object.keys(disputeCaseApi);
-    for (const n of names) assert.ok(!/execute|reconcileExecution|evidenceFile|lateOpen|downloadFile|readFile/i.test(n), n);
+    for (const n of ["execute", "reconcileExecution", "acknowledgeNeedsHuman"]) assert.ok(names.includes(n), n);
+    for (const n of names) assert.ok(!/evidenceFile|lateOpen|downloadFile|readFile/i.test(n), n);
     const src = readFileSync(join(dir, "..", "disputes", "disputeCaseApi.ts"), "utf8");
-    for (const id of ["A19", "A20", "A21", "B5", "B6", "R-01", "R-02", "R-11"]) assert.ok(src.includes(id), `${id} missing from the NOT BUILT comment`);
-    assert.ok(!/\/execute|reconcile-execution|evidence-files|late-open/.test(src.replace(/\/\*[\s\S]*?\*\//, "")));
+    assert.match(src, /\/execute/);
+    assert.match(src, /reconcile-execution/);
+    assert.ok(!/evidence-files|late-open/.test(src.replace(/\/\*[\s\S]*?\*\//g, "")));
   });
 });
 
@@ -210,8 +215,8 @@ describe("D1 API client - A13 discriminated union and the F3 constant", () => {
       assert.ok(!("execution" in r.proposal));
     }
   });
-  it("201 with NO proposal (policyPending) -> POLICY_PENDING", async () => {
-    const { api } = fake(proposePolicyPendingRaw, 201);
+  it("200 with NO proposal (policyPending) -> POLICY_PENDING", async () => {
+    const { api } = fake(proposePolicyPendingRaw, 200);
     const r = await api.propose(IDS.case, {}, KEY);
     assert.equal(r.kind, "POLICY_PENDING");
     if (r.kind === "POLICY_PENDING") {

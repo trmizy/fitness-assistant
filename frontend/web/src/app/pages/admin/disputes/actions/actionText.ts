@@ -11,8 +11,8 @@ export const CONFIRM_SHARE = "Không thể thu hồi.";
 export const CONFIRM_ASSIGN = "Người nhận sẽ có quyền làm mọi bước điều tra.";
 
 /** Shown after an approval went through: approval is not execution, and the execution state is not readable. */
-export const APPROVED_DONE = "Đã duyệt. Chưa đọc được trạng thái thực thi.";
-export const APPROVED_DONE_HELP = "Duyệt chưa làm thay đổi buổi tập, quyền buổi hay tiền. Xem tab Thực thi.";
+export const APPROVED_DONE = "Đã duyệt. Chưa thực thi.";
+export const APPROVED_DONE_HELP = "Duyệt chưa làm thay đổi buổi tập, quyền buổi hay tiền. Việc thực thi nằm ở tab Thực thi.";
 export const REJECTED_DONE = "Đã bác đề xuất. Hồ sơ quay lại bước «Đang đánh giá».";
 
 export const COI_LABEL = "Tôi khai báo không có xung đột lợi ích với vụ việc này.";
@@ -30,8 +30,10 @@ export const TERMINAL_LINE = "Hồ sơ đã ở trạng thái cuối nên không
 
 export const CANNOT_APPROVE_PROPOSER = "Bạn là người lập đề xuất này nên không duyệt được. Cần một quản trị viên khác.";
 export const CANNOT_APPROVE_INVESTIGATOR = "Bạn là điều tra viên của hồ sơ này nên không duyệt được. Cần một quản trị viên khác.";
+export const CANNOT_APPROVE_PARTY = "Bạn là một bên của vụ việc nên không duyệt được. Cần một quản trị viên khác.";
+export const NO_SERVER_LIST_LINE = "Máy chủ chưa trả danh sách thao tác được phép nên màn hình không hiện nút nào. Hãy tải lại hồ sơ.";
 export const APPROVER_PARTY_UNKNOWN_NOTE =
-  "Màn này chưa biết khách và PT của buổi là ai nên không tự kiểm được xung đột lợi ích. Nếu bạn là một bên của vụ việc, máy chủ sẽ từ chối và nói rõ lý do.";
+  "Máy chủ đã kiểm bạn không phải người lập đề xuất, điều tra viên, khách hay PT của buổi. Máy chủ vẫn kiểm lại khi bạn gửi.";
 
 export const SHARE_NONE_ELIGIBLE =
   "Chưa có bằng chứng nào chia sẻ được. Bằng chứng do chính một bên nộp, chưa được máy chủ xác minh, hoặc nhạy cảm/hạn chế thì không bao giờ chia sẻ cho bên kia.";

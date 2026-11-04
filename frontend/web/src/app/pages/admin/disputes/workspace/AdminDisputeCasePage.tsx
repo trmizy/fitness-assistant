@@ -59,11 +59,18 @@ export function AdminDisputeCasePage() {
     enabled: !!keys && !!caseId,
     ...DISPUTE_QUERY_OPTIONS,
   });
+  const capabilitiesQuery = useQuery({
+    queryKey: keys ? [...keys.all, "capabilities"] : ["dispute-case", "disabled", "capabilities"],
+    queryFn: disputeCaseApi.getCapabilities,
+    enabled: !!keys,
+    ...DISPUTE_QUERY_OPTIONS,
+  });
   const detail: DisputeCaseDetail | undefined = query.data;
 
   const onChanged = useCallback(async () => {
     if (keys) void queryClient.invalidateQueries({ queryKey: [...keys.all, "list"] });
-    await query.refetch();
+    const fresh = await query.refetch();
+    if (fresh.isError) throw fresh.error;
   }, [keys, queryClient, query]);
 
   const reload = useCallback(() => {
@@ -160,7 +167,7 @@ export function AdminDisputeCasePage() {
   const banner = blockedBanner(detail);
   const money = describeMoneyGroup(detail.financial ?? { group: "UNAVAILABLE", groupLabel: "Chưa đọc được thông tin tiền" });
   const counts = tabCounts(detail);
-  const slotProps = { detail, currentUserId: userId, onChanged };
+  const slotProps = { detail, currentUserId: userId, onChanged, capabilities: capabilitiesQuery.data ?? null };
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 md:p-6" data-testid="d2-case-page" data-case-status={c.status}>

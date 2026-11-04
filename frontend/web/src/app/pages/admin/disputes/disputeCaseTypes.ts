@@ -1,14 +1,14 @@
 /**
- * Dispute V2.1 admin UI (D1) - response types of the real endpoints A1-A18, B1-B4, C1, C2.
+ * Dispute V2.1 admin UI (D1, adapted in D5) - response types of the FINAL backend contract (branch `dispute-backend-completion`,
+ * `_warroom/sessions/DISPUTE_V21_API_CONTRACT_FINAL.md`).
  *
- * Source of truth is the code (user-service `services/dispute-case/{schemas,rules,financial}.ts`, `dispute-case.service.ts`,
+ * Source of truth is the code (user-service `services/dispute-case/{schemas,rules,allowed-actions,financial}.ts`, `dispute-case.service.ts`,
  * the Prisma enums), NOT the documents. Dates arrive as ISO strings; money arrives as decimal STRINGS (never do arithmetic on them).
  * Pure types: no runtime code except the `as const` enum lists (so a test can check every value is labelled).
  *
- * F3 - `decision.execution` and `proposals[].execution` (and `execution` in A13/A14 answers) are a HARD-CODED constant
- * ("BLOCKED: SLICE_2_NOT_ENABLED") that stays the same even after a decision was executed. They are deliberately NOT typed here and
- * must never be read or shown. The real execution state (`execStatus`, block reason) is not returned by any GET yet (request R-01),
- * so those fields are OPTIONAL below and the UI must treat "absent" as "not readable", never as "NOT_STARTED".
+ * The old hard-coded `execution: "BLOCKED: SLICE_2_NOT_ENABLED"` constant is GONE from the server (breaking change 2): the execution axis
+ * is `case.execStatus` and the `execution` block of the detail. A payload that still carries the constant is simply not read.
+ * `execStatus` stays optional where a stale or partial answer could lack it, so "absent" is never read as "NOT_STARTED".
  */
 
 // ───────────────────────────────────────────────────────────── enums (unions) ──
@@ -45,6 +45,10 @@ export type FindingKind = (typeof FINDING_KINDS)[number];
 
 export const OUTCOMES = ["COMPLETED", "CANCELLED", "PT_NO_SHOW_CONFIRMED"] as const;
 export type Outcome = (typeof OUTCOMES)[number];
+
+/** Why a case was closed WITHOUT a decision (`REJECTED_INTAKE` + `closeReason`; never call it "bị từ chối" without looking at this). */
+export const CLOSE_REASONS = ["INTAKE_REJECTED", "ORPHAN_SESSION_LEFT_DISPUTE", "NOT_A_DISPUTE"] as const;
+export type CloseReason = (typeof CLOSE_REASONS)[number];
 
 export const CLAIMANT_ROLES = ["CLIENT", "PT", "SYSTEM"] as const;
 export type ClaimantRole = (typeof CLAIMANT_ROLES)[number];
@@ -89,7 +93,7 @@ export type ApprovalResult = "APPROVED" | "REJECTED";
 export const POLICY_RESULTS = ["ELIGIBLE_CURRENT_POLICY", "EXCEPTION_APPLIES"] as const;
 export type PolicyResult = (typeof POLICY_RESULTS)[number];
 
-/** Execution axis. NOT returned by any GET today (R-01): every use is optional. */
+/** Execution axis (`case.execStatus`, `execution.status`). */
 export const EXEC_STATUSES = ["NOT_STARTED", "EXECUTING", "BUSINESS_DONE", "EXEC_BLOCKED", "NEEDS_HUMAN"] as const;
 export type ExecStatus = (typeof EXEC_STATUSES)[number];
 
@@ -99,10 +103,15 @@ export const EXEC_BLOCK_REASONS = [
   "LEDGER_UNREADABLE",
   "D77_COMBINATION_UNRESOLVED",
   "CANCELLED_BLOCKED_BY_D77",
+  // readable BEFORE executing (`execution.blockers[].code`)
+  "POLICY_ELIGIBILITY_UNVERIFIED",
+  "POLICY_EXCEPTION_APPLIES",
+  "EXECUTION_DISABLED",
+  "SESSION_ALREADY_PROCESSED",
 ] as const;
 export type ExecBlockReason = (typeof EXEC_BLOCK_REASONS)[number];
 
-/** Why a proposal cannot be executed (set at proposal time; the only block reason a GET returns today). */
+/** Why a proposal cannot be executed (set at proposal time). */
 export type ProposalBlockedReason = "D77_COMBINATION_UNRESOLVED";
 
 // Money axis (financial.ts / rules.ts)
@@ -126,38 +135,159 @@ export type CaseFinancialGroup = FinancialGroup | "NO_RECORDED_SETTLEMENT";
 export type F3Kind = "OUTSTANDING" | "VERIFICATION_REQUIRED";
 
 // ──────────────────────────────────────────────────────────────── A1 / A2 ──
+/** `Summary` of the contract (section 1). Names come with the list / detail / queue reads (null = no profile or lookup failed; never an e-mail). */
 export interface DisputeCaseSummary {
   id: string;
   sessionId: string;
   contractId: string;
+  clientUserId: string;
+  ptUserId: string;
   type: CaseType;
   status: CaseStatus;
   /** Always false today (no code writes it). Do not build an "escalated" chip. */
   escalated: boolean;
   investigatorId: string | null;
+  execStatus: ExecStatus;
+  execDecisionId: string | null;
+  /** null while the case is open or decided; set when it was closed without a decision. */
+  closeReason: CloseReason | null;
   version: number;
   createdAt: string;
   updatedAt: string;
-  // Not returned today (R-01 / R-04): optional so the UI never assumes them.
-  execStatus?: ExecStatus;
-  clientUserId?: string;
-  ptUserId?: string;
+  clientName?: string | null;
+  ptName?: string | null;
+  investigatorName?: string | null;
 }
 
+/** A9 answer: carries ids only (no names). */
 export interface OpenCaseResult {
   /** false = the session already had an open case (HTTP 200): navigate into it, do not show an error. */
   created: boolean;
   case: DisputeCaseSummary;
 }
 
+export const CASE_SORTS = ["createdAt", "updatedAt"] as const;
+export type CaseSort = (typeof CASE_SORTS)[number];
 export interface ListCasesQuery {
   status?: CaseStatus;
+  execStatus?: ExecStatus;
+  type?: CaseType;
+  investigatorId?: string;
+  unassigned?: boolean;
+  sessionId?: string;
+  contractId?: string;
+  /** ISO instants (createdTo is inclusive on the server). */
+  createdFrom?: string;
+  createdTo?: string;
+  sort?: CaseSort;
+  order?: "asc" | "desc";
   limit?: number;
   offset?: number;
 }
-export interface ListCasesResult {
+export interface Paged<T> {
   total: number;
-  items: DisputeCaseSummary[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  items: T[];
+}
+export type ListCasesResult = Paged<DisputeCaseSummary>;
+
+/** A3 (queue): one row per session in dispute or waiting for the PT's answer. */
+export type QueueSessionStatus = "DISPUTED" | "PT_NO_SHOW_REPORTED";
+export interface QueueQuery {
+  sessionStatus?: QueueSessionStatus;
+  hasCase?: boolean;
+  contractId?: string;
+  limit?: number;
+  offset?: number;
+}
+export interface QueueItem {
+  sessionId: string;
+  contractId: string;
+  sessionStatus: QueueSessionStatus;
+  disputeType: string | null;
+  disputedAt: string | null;
+  scheduledStartAt: string | null;
+  clientUserId: string;
+  ptUserId: string;
+  clientName: string | null;
+  ptName: string | null;
+  hasCase: boolean;
+  needsCase: boolean;
+  caseId: string | null;
+  caseStatus: CaseStatus | null;
+  caseType: CaseType | null;
+  execStatus: ExecStatus | null;
+  investigatorId: string | null;
+}
+export type QueueResult = Paged<QueueItem>;
+
+/** A1 (capabilities): read-only verdicts of the five server flags in THIS process. */
+export const CAPABILITY_FLAGS = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution"] as const;
+export type CapabilityFlag = (typeof CAPABILITY_FLAGS)[number];
+export interface Capabilities {
+  execution: boolean;
+  t0: boolean;
+  evidenceStorage: boolean;
+  lateOpenReconciliation: boolean;
+  d65bResolution: boolean;
+  details: Partial<Record<CapabilityFlag, { effective: boolean; refusedBecause?: string }>>;
+}
+
+/** A5 access log. */
+export interface AccessLogItem {
+  id: string;
+  viewerUserId: string;
+  viewerName: string | null;
+  viewerRole: string;
+  action: string;
+  evidenceId: string | null;
+  createdAt: string;
+}
+export type AccessLogResult = Paged<AccessLogItem>;
+
+/** S3 `GET /admin/sessions/:id` (no contract money, no split ratios). */
+export interface AdminSessionCaseRef {
+  id: string;
+  status: CaseStatus;
+  type: CaseType;
+  execStatus: ExecStatus;
+  investigatorId: string | null;
+  closeReason: CloseReason | null;
+  createdAt: string;
+}
+export interface AdminSessionDetail {
+  session: {
+    id: string;
+    contractId: string;
+    clientUserId: string;
+    clientName: string | null;
+    ptUserId: string;
+    ptName: string | null;
+    status: string;
+    sessionMode: string | null;
+    scheduledStartAt: string | null;
+    scheduledEndAt: string | null;
+    disputeType: string | null;
+    disputeReason: string | null;
+    ptNotes: string | null;
+    disputedAt: string | null;
+    completedAt: string | null;
+    sessionDeducted: boolean | null;
+    ptAtFault: boolean | null;
+    clientConfirmDeadline: string | null;
+    autoConfirmed: boolean | null;
+    cancelledBy: string | null;
+    resolvedBy: string | null;
+    resolvedAt: string | null;
+    resolvedByCaseDecisionId: string | null;
+    roomPtJoinedAt: string | null;
+    roomClientJoinedAt: string | null;
+  };
+  contract: { id: string; status: string; packageName: string | null; sessionMode: string | null; totalSessions: number | null; usedSessions: number | null } | null;
+  openCase: AdminSessionCaseRef | null;
+  cases: AdminSessionCaseRef[];
 }
 
 // ──────────────────────────────────────────────────────────────────── A3 ──
@@ -278,9 +408,6 @@ export interface DisputeApproval {
   createdAt: string;
 }
 
-/**
- * NOTE (F3): the raw row also carries a constant `execution` string. It is intentionally absent from this type; never read it.
- */
 export interface DisputeProposal {
   id: string;
   caseId: string;
@@ -294,28 +421,134 @@ export interface DisputeProposal {
   approvals: DisputeApproval[];
 }
 
-/** NOTE (F3): the raw `decision.execution` is the same constant lie; intentionally not typed. */
+/** The approved decision (null until an APPROVED approval exists). Its execution state is `execution` / `case.execStatus`. */
 export interface DisputeDecision {
   proposalId: string;
+  approvalId: string;
   outcome: Outcome;
+  approvedBy: string;
+  approvedAt: string;
   executionBlockedReason: ProposalBlockedReason | null;
-  // Real execution state: not returned yet (R-01).
-  execStatus?: ExecStatus;
-  execBlockReason?: ExecBlockReason;
 }
 
-/** The payload column is stripped by the server. */
+/** `latestProposal` / `latestApproval` of the detail (the newest ones, not the whole history). */
+export interface LatestProposal {
+  id: string;
+  outcome: Outcome;
+  proposerId: string;
+  executionBlockedReason: ProposalBlockedReason | null;
+  createdAt: string;
+}
+export interface LatestApproval {
+  id: string;
+  proposalId: string;
+  approverId: string;
+  result: ApprovalResult;
+  reason: string;
+  createdAt: string;
+}
+
+// ── execution block (R-01) ──
+export interface ExecutionBlocker {
+  code: string;
+  message: string;
+}
+export interface ExecutionHistoryItem {
+  id: string;
+  /** STARTED | BLOCKED | NEEDS_HUMAN | BUSINESS_DONE */
+  state: string;
+  attempt: number;
+  outcome: Outcome | null;
+  blockedReason: string | null;
+  note: string | null;
+  actorUserId: string;
+  /** Opaque JSON of the executor's answer. Never displayed raw. */
+  response: unknown;
+  createdAt: string;
+}
+export interface ExecutionView {
+  status: ExecStatus;
+  decisionId: string | null;
+  outcome: Outcome | null;
+  blockedReason: string | null;
+  blockedReasonText: string | null;
+  blockers: ExecutionBlocker[];
+  needsHuman: { reason: string | null; detail: unknown; sessionStatus: string | null } | null;
+  history: ExecutionHistoryItem[];
+  acknowledgements: Array<{ actorUserId: string; note: string | null; createdAt: string }>;
+  moneyNote: string;
+}
+
+// ── policy eligibility reviews (A6 / A7, D-NEW-12) ──
+export interface PolicyReviewItem {
+  reviewId: string;
+  caseId: string;
+  contractId: string;
+  result: PolicyResult;
+  status: "PENDING" | "APPROVED";
+  /** true = the review in force for the contract. */
+  current: boolean;
+  evidenceIds: string[];
+  reasoning: string;
+  proposedBy: string;
+  proposedAt: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  supersedesId: string | null;
+}
+export interface PolicyReviewList {
+  contractId: string;
+  currentReviewId: string | null;
+  currentResult: PolicyResult | null;
+  items: PolicyReviewItem[];
+}
+
+// ── allowedActions (contract 3.3): the server says what the viewer may do RIGHT NOW ──
+export const ACTION_NAMES = [
+  "assign",
+  "recollect",
+  "transition",
+  "requestMore",
+  "classify",
+  "addClaim",
+  "addIssue",
+  "addAssessment",
+  "recordFinding",
+  "propose",
+  "decide",
+  "acknowledgeEvidenceChange",
+  "proposePolicyEligibility",
+  "approvePolicyEligibility",
+  "share",
+  "execute",
+  "reconcileExecution",
+  "acknowledgeNeedsHuman",
+  "closeNotADispute",
+  "closeOrphan",
+  "readEvidenceFile",
+] as const;
+export type ActionName = (typeof ACTION_NAMES)[number];
+export interface ActionVerdict {
+  allowed: boolean;
+  /** stable machine code of the reason it is not allowed */
+  code?: string;
+  /** Vietnamese, no internal enum */
+  message?: string;
+  /** transition: the target states; decide: APPROVED / REJECTED; approvePolicyEligibility: the reviewIds the viewer may approve */
+  options?: string[];
+}
+
+/** R-14: no payload, no idempotency key. `summary` holds only the SHORT scalar facts the action recorded (ids, counts, results). */
 export interface DisputeEvent {
   id: string;
-  caseId: string;
   actorUserId: string;
   actorRole: string;
   action: string;
   fromStatus: CaseStatus | null;
   toStatus: CaseStatus | null;
   note: string | null;
-  idempotencyKey: string | null;
   createdAt: string;
+  summary?: Record<string, unknown> | null;
 }
 
 export type LedgerView =
@@ -342,8 +575,8 @@ export interface FinancialItem {
   /** Server Vietnamese label, present only for states that need their own wording. */
   label?: string;
   ledger: LedgerView;
-  /** RESOLVED_OTHER only: the lookup carries no reason (R-13). */
-  resolutionReason?: { available: false; note: string };
+  /** RESOLVED_OTHER only (R-13): `available:true` carries the note payment-service stored; `available:false` = older ledger rows, no reason. */
+  resolutionReason?: { available: false; note: string } | { available: true; note: string; resolvedAt?: string | null };
 }
 
 export interface FinancialView {
@@ -356,7 +589,12 @@ export interface FinancialView {
 }
 
 export interface DisputeCaseDetail {
-  case: DisputeCaseSummary;
+  case: DisputeCaseSummary & {
+    /** the REAL status of the case's session */
+    sessionStatus?: string | null;
+    /** a case still open whose session left the dispute */
+    orphan?: boolean;
+  };
   claims: DisputeClaim[];
   issues: DisputeIssue[];
   evidence: DisputeEvidence[];
@@ -365,9 +603,18 @@ export interface DisputeCaseDetail {
   assessments: DisputeAssessment[];
   findings: DisputeFinding[];
   proposals: DisputeProposal[];
+  latestProposal?: LatestProposal | null;
+  latestApproval?: LatestApproval | null;
   decision: DisputeDecision | null;
-  /** At most the newest 200 (no `truncated` flag, R-14). */
+  execution?: ExecutionView;
+  policyReviews?: PolicyReviewList;
+  /** Names of the actions allowed right now (server computed; four-eyes and conflict of interest aware). */
+  allowedActions?: ActionName[] | string[];
+  actions?: Partial<Record<ActionName, ActionVerdict>>;
+  /** newest first, at most `eventsLimit` */
   events: DisputeEvent[];
+  eventsLimit?: number;
+  eventsTruncated?: boolean;
   financial: FinancialView;
 }
 
@@ -379,6 +626,17 @@ export interface AssignResult {
 export interface RecollectResult {
   added: number;
   unchanged: number;
+  /** Sources that could not be read this time: the previous good copy was NOT overwritten. */
+  skippedUnavailable?: string[];
+}
+export interface CloseResult {
+  closed: boolean;
+  from: CaseStatus;
+  to: CaseStatus;
+  closeReason: CloseReason;
+  version: number;
+  moneyMoved: false;
+  sessionStatus?: string;
 }
 export interface MoveResult {
   from: CaseStatus | CaseType;
@@ -402,9 +660,11 @@ export interface ProposalCreated {
   outcome: Outcome;
   executionBlockedReason: ProposalBlockedReason | null;
   caseStatus: CaseStatus;
+  execStatus?: ExecStatus;
 }
 /**
- * HTTP 201 with NO proposal: the finding would cancel a session that has a late-arrival compensation. The case went to POLICY_PENDING.
+ * F4: HTTP 200 `{proposalCreated:false, proposal:null, policyPending:true, ...}` - NO proposal exists: the finding would cancel a session that has a
+ * late-arrival compensation. The case went to POLICY_PENDING. A proposal exists only when `proposalCreated === true` (HTTP 201).
  * `reason`/`nextStep` are server sentences that mention internal codes: the UI shows its own wording (disputeCaseLabels), not these.
  */
 export interface ProposalPolicyPending {
@@ -423,8 +683,36 @@ export interface DecideResult {
   result: ApprovalResult;
   caseStatus: CaseStatus;
   outcome: Outcome;
-  /** Real (set at proposal time). The sibling constant `execution` of the raw answer is not typed (F3). */
+  /** Only on APPROVED. An approval NEVER executes: `NOT_STARTED` here means "approved, not executed yet". */
+  execStatus?: ExecStatus;
   executionBlockedReason?: ProposalBlockedReason | null;
+}
+
+// ──────────────────────────────────────────────────────── A27 - A29 (flag `execution`) ──
+/** A27 - HTTP 200. `BUSINESS_DONE` is the business answer of the session; it is NOT "money arrived". */
+export interface ExecuteResult {
+  replayed: boolean;
+  executionState: "BUSINESS_DONE";
+  outcome: Outcome;
+  decisionId: string;
+  session?: { id: string; status: string; sessionDeducted?: boolean | null; ptAtFault?: boolean | null; resolvedByCaseDecisionId?: string | null };
+  /** derived money axis (group only) - never summed or shown as "paid" from here */
+  money?: unknown;
+}
+export type ReconcileAction = "NOTHING_TO_RECONCILE" | "RERAN_CORE" | "BUSINESS_DONE" | "NEEDS_HUMAN";
+export interface ReconcileResult {
+  action: ReconcileAction;
+  execStatus?: ExecStatus;
+  reason?: string;
+}
+export type AckNeedsHumanAction = "BUSINESS_DONE" | "STAYS_LOCKED";
+export interface AckNeedsHumanResult {
+  action: AckNeedsHumanAction;
+  execStatus?: ExecStatus;
+  /** STAYS_LOCKED only */
+  reason?: string;
+  sessionStatus?: string;
+  message?: string;
 }
 export interface AckEvidenceChangeResult {
   acknowledged: true;

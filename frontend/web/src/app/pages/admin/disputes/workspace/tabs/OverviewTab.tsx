@@ -1,4 +1,7 @@
-import { caseStatusLabel, caseTypeLabel, claimMoveLabel, claimantRoleLabel, ptLateFindingLabel, PT_LATE_ISSUE_NOTE } from "../../disputeCaseLabels";
+import { useQuery } from "@tanstack/react-query";
+import { disputeCaseApi } from "../../disputeCaseApi";
+import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../../disputeQueryKeys";
+import { caseStatusLabel, caseStatusText, caseTypeLabel, claimMoveLabel, claimantRoleLabel, ptLateFindingLabel, PT_LATE_ISSUE_NOTE } from "../../disputeCaseLabels";
 import { investigatorText } from "../../queue/queueModel";
 import { describePayload } from "../evidenceModel";
 import { formatDateTime, proseOrNull } from "../format";
@@ -10,6 +13,19 @@ const CONTRACT_LABELS = ["Tên gói", "Trạng thái hợp đồng", "Hình th�
 
 export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: ActionSlotProps & { onGoTab: (tab: WorkspaceTab) => void }) {
   const c = detail.case;
+  const { keys } = useDisputeQueryKeys();
+  const sessionQuery = useQuery({
+    queryKey: keys ? [...keys.all, "admin-session", c.sessionId] : ["dispute-case", "disabled", "admin-session"],
+    queryFn: () => disputeCaseApi.getAdminSession(c.sessionId),
+    enabled: !!keys,
+    ...DISPUTE_QUERY_OPTIONS,
+  });
+  const accessQuery = useQuery({
+    queryKey: keys ? [...keys.all, "access-log", c.id] : ["dispute-case", "disabled", "access-log"],
+    queryFn: () => disputeCaseApi.getAccessLog(c.id, { limit: 20 }),
+    enabled: !!keys,
+    ...DISPUTE_QUERY_OPTIONS,
+  });
   const stuck = stuckState(detail);
   const sessionRow = latestEvidenceOfSubject(detail.evidence, "SESSION_ROW");
   const contractRow = latestEvidenceOfSubject(detail.evidence, "CONTRACT_SNAPSHOT");
@@ -38,8 +54,10 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
         <FieldList
           fields={[
             { label: "Loại khiếu nại", value: caseTypeLabel(c.type) },
-            { label: "Trạng thái", value: caseStatusLabel(c.status) },
-            { label: "Người phụ trách", value: investigatorText(c.investigatorId, currentUserId) },
+            { label: "Trạng thái", value: caseStatusText(c) },
+            { label: "Khách hàng", value: c.clientName ?? "Chưa có tên hiển thị" },
+            { label: "Huấn luyện viên", value: c.ptName ?? "Chưa có tên hiển thị" },
+            { label: "Người phụ trách", value: c.investigatorId === currentUserId ? "Bạn phụ trách" : c.investigatorId ? (c.investigatorName ?? "Chưa có tên hiển thị") : investigatorText(null, currentUserId) },
             { label: "Mở lúc", value: formatDateTime(c.createdAt) },
             { label: "Cập nhật lần cuối", value: formatDateTime(c.updatedAt) },
           ]}
@@ -47,6 +65,14 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
       </Section>
 
       <Section title="Buổi tập bị khiếu nại" testId="d2-session-summary">
+        {sessionQuery.data && <FieldList fields={[
+          { label: "Giờ bắt đầu", value: formatDateTime(sessionQuery.data.session.scheduledStartAt) },
+          { label: "Giờ kết thúc", value: formatDateTime(sessionQuery.data.session.scheduledEndAt) },
+          { label: "Khách", value: sessionQuery.data.session.clientName ?? "Chưa có tên hiển thị" },
+          { label: "PT", value: sessionQuery.data.session.ptName ?? "Chưa có tên hiển thị" },
+          { label: "Gói", value: sessionQuery.data.contract?.packageName ?? "Chưa có tên gói" },
+        ]} />}
+        {sessionQuery.isError && <Muted>Chưa đọc được chi tiết buổi tập. Bạn có thể tải lại hồ sơ để thử lại.</Muted>}
         {sessionFields.length > 0 || contractFields.length > 0 ? (
           <>
             <FieldList fields={sessionFields} />
@@ -59,6 +85,16 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
           </>
         ) : (
           <Muted>Hồ sơ chưa có bản chụp thông tin buổi tập. Thông tin chi tiết của buổi chưa đọc được từ nơi khác.</Muted>
+        )}
+      </Section>
+
+      <Section title="Nhật ký truy cập" testId="d5-access-log">
+        {accessQuery.isLoading ? <Muted>Đang tải nhật ký truy cập…</Muted> : accessQuery.isError ? <Muted>Chưa đọc được nhật ký truy cập.</Muted> : !accessQuery.data?.items.length ? <Muted>Chưa có lượt truy cập được ghi nhận.</Muted> : (
+          <ul className="space-y-2 text-sm text-adm-text">
+            {accessQuery.data.items.map((a) => <li key={a.id} className="border-b border-adm-border-soft pb-2">
+              {a.viewerName ?? "Quản trị viên"} · {a.action === "VIEW_EVIDENCE" ? "Xem bằng chứng" : "Xem hồ sơ"} · {formatDateTime(a.createdAt)}
+            </li>)}
+          </ul>
         )}
       </Section>
 

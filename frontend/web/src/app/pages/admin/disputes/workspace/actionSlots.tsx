@@ -1,17 +1,19 @@
 import { createElement, type ReactElement } from "react";
-import type { DisputeCaseDetail } from "../disputeCaseTypes";
+import type { Capabilities, DisputeCaseDetail } from "../disputeCaseTypes";
 import { ApprovalActions } from "../actions/ApprovalActions";
 import { AssessmentActions } from "../actions/AssessmentActions";
 import { EvidenceActions } from "../actions/EvidenceActions";
+import { ExecutionActions } from "../actions/ExecutionActions";
 import { FindingActions } from "../actions/FindingActions";
 import { OverviewActions } from "../actions/OverviewActions";
 import { StatementActions } from "../actions/StatementActions";
 
 /**
  * D2 - the WRITE slots of the Case Workspace. The read views render each slot at the place where its actions live.
- * D3 filled every slot except Execution with the forms in `../actions/*` (one file per slot, tab layout untouched). The Execution slot
- * stays `null` on purpose: the executor is off outside tests and no GET returns `execStatus` (R-01, R-02), so there is no execute button.
- * The policy-eligibility routes (A16/A17) are not built either: nothing lists pending reviews (R-03, D-NEW-12).
+ * D3 filled every slot with the forms in `../actions/*` (one file per slot, tab layout untouched). D5 fills the Execution slot too: execute /
+ * reconcile / acknowledge-needs-human exist only when `capabilities.execution` is true AND the server lists the action in `allowedActions`;
+ * otherwise the slot shows a muted line saying the executor is off (no dead button). The policy-eligibility forms (A22/A23) live in the
+ * Approvals tab (`tabs/PolicySection.tsx`) because they are four-eyes too.
  *
  * Contract of every slot:
  *  - `detail`        the A3 answer currently on screen (read-only);
@@ -27,13 +29,15 @@ import { StatementActions } from "../actions/StatementActions";
  *  AssessmentsActionsSlot addClaim (A9), addAssessment (A11)
  *  FindingsActionsSlot    recordFinding (A12), propose (A13)
  *  ApprovalsActionsSlot   decide (A14)
- *  ExecutionActionsSlot   execute / reconcile (A20/A21): flag-off outside tests and no `execStatus` in any GET yet, so keep it null until both exist.
+ *  ExecutionActionsSlot   execute (A27), reconcileExecution (A28), acknowledgeNeedsHuman (A29) - behind the `execution` capability.
  * Money and history have no write action on purpose.
  */
 export interface ActionSlotProps {
   detail: DisputeCaseDetail;
   currentUserId: string | null;
   onChanged: () => void | Promise<unknown>;
+  /** Verdicts of the server flags (`GET /admin/dispute-cases/capabilities`); null = the read did not answer (the executor controls then stay hidden). */
+  capabilities?: Capabilities | null;
 }
 
 // createElement (not JSX) so that a plain `tsx --test` can call a slot without a React runtime in scope.
@@ -55,6 +59,6 @@ export function FindingsActionsSlot(props: ActionSlotProps): ReactElement {
 export function ApprovalsActionsSlot(props: ActionSlotProps): ReactElement {
   return createElement(ApprovalActions, props);
 }
-export function ExecutionActionsSlot(_props: ActionSlotProps): null {
-  return null;
+export function ExecutionActionsSlot(props: ActionSlotProps): ReactElement {
+  return createElement(ExecutionActions, props);
 }

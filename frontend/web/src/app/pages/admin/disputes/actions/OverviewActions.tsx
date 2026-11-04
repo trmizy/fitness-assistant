@@ -6,7 +6,7 @@ import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { disputeCaseApi } from "../disputeCaseApi";
 import { AWAITING_PARTIES_NOTE } from "../workspace/workspaceModel";
-import { CASE_TYPE_LABEL, PT_LATE_FINDING_LABEL, PT_LATE_ISSUE_NOTE, caseStatusLabel, manualTransitions } from "../disputeCaseLabels";
+import { CASE_TYPE_LABEL, PT_LATE_FINDING_LABEL, PT_LATE_ISSUE_NOTE, caseStatusLabel } from "../disputeCaseLabels";
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../disputeQueryKeys";
 import { CLASSIFIABLE_TYPES, PT_LATE_FINDINGS, type CaseStatus } from "../disputeCaseTypes";
 import type { ActionSlotProps } from "../workspace/actionSlots";
@@ -33,6 +33,7 @@ import {
   LIMITS,
   assignBody,
   availability,
+  transitionTargets,
   hasErrors,
   investigatorOnlyLine,
   issueBody,
@@ -47,6 +48,7 @@ import {
   type Errors,
 } from "./actionModel";
 import { listAdminOptions } from "./adminDirectory";
+import { CloseCard } from "./CloseActions";
 import { ASSIGN_LIST_EMPTY, ASSIGN_LIST_FAILED, ASSIGN_NOTE, CLASSIFY_NOTE, CONFIRM_ASSIGN, CONFIRM_REJECT_INTAKE } from "./actionText";
 import { shortRef } from "../workspace/format";
 
@@ -168,7 +170,7 @@ function AssignForm({ detail, currentUserId, onChanged }: ActionSlotProps) {
 function TransitionCard({ detail, onChanged, push }: ActionSlotProps & { push: PushNote }) {
   const id = useId();
   const status = detail.case.status;
-  const targets = manualTransitions(status);
+  const targets = transitionTargets(detail);
   const w = useWrite<ReturnType<typeof transitionBody>, { from: string; to: string; version: number }>(onChanged);
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
@@ -178,7 +180,7 @@ function TransitionCard({ detail, onChanged, push }: ActionSlotProps & { push: P
   useCloseOnResult(open, setOpen, w);
 
   const form = { to: to as never, reason, note };
-  const errs: Errors = { ...w.fieldErrors, ...(shown ? validateTransition(form, status) : {}) };
+  const errs: Errors = { ...w.fieldErrors, ...(shown ? validateTransition(form, status, targets) : {}) };
   const isReject = transitionNeedsReason(to);
 
   async function send() {
@@ -194,7 +196,7 @@ function TransitionCard({ detail, onChanged, push }: ActionSlotProps & { push: P
   }
   function click() {
     setShown(true);
-    if (hasErrors(validateTransition(form, status))) return;
+    if (hasErrors(validateTransition(form, status, targets))) return;
     if (isReject) setOpen(true);
     else void send();
   }
@@ -412,6 +414,7 @@ export function OverviewActions(props: ActionSlotProps) {
           {a.requestMore && <RequestMoreCard {...props} push={push} />}
           {a.classify && <ClassifyCard {...props} push={push} />}
           {a.addIssue && <IssueCard {...props} />}
+          {a.closeOrphan && <CloseCard kind="orphan" {...props} push={push} />}
         </div>
       )}
     </ActionGroup>

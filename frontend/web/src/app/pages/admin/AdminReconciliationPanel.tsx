@@ -2,6 +2,7 @@ import { InfoIcon } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { AdminReconciliationBlocks } from "./AdminReconciliationBlocks";
 import { BalanceView } from "./reconciliation/BalanceView";
+import { MoneyExceptionView } from "./reconciliation/moneyExceptions/MoneyExceptionView";
 import { FOCUS } from "./reconciliation/ExceptionParts";
 import { useExceptionReports } from "./reconciliation/useReconciliationData";
 import { exceptionAttention } from "./reconciliation/reconciliationView";
@@ -12,15 +13,16 @@ import {
   RECON_VIEW_LABEL,
   RECON_VIEW_LEVEL,
   parseReconView,
-  withReconView,
+  switchReconView,
   type ReconView,
 } from "./reconciliation/reconciliationView";
 
 /**
- * "Tài chính › Đối soát" (B4). Two chips kept in the URL (`?view=balance|exceptions`, default balance):
+ * "Tài chính › Đối soát" (B4, D7). Chips kept in the URL (`?view=balance|exceptions|held-no-show|late-open`, default balance):
  *   - Cân đối sổ (L1)  — the wallet invariant ESCROW = Σ claims (P3; HTTP 409 = drift with body, not a load error)
  *   - Ngoại lệ (L1)    — the 22 existing exception groups (P13 + U2, counted, never summed) + the L2 gateway-callback group (P2)
- * A third chip "Đối chiếu cổng ↔ Gymini" is shown DISABLED with its reason: L3 (independent PSP/bank report) has no source.
+ *   - Khoản giữ buổi PT vắng / Bồi thường đến muộn (D7, L1) — the two money-exception views of Dispute V2.1 (four-eyes; writes only behind the server flags)
+ * A last chip "Đối chiếu cổng ↔ Gymini" is shown DISABLED with its reason: L3 (independent PSP/bank report) has no source.
  * The page title / subtitle / "Làm mới" live in the Tài chính header (AdminFinancePage).
  */
 
@@ -35,7 +37,7 @@ export function AdminReconciliationPanel() {
 
   const select = (next: ReconView) => {
     if (next === view && search.get("view") === next) return;
-    setSearch((prev) => withReconView(prev, next), { replace: false });
+    setSearch((prev) => switchReconView(prev, next), { replace: false });
   };
 
   return (
@@ -89,7 +91,7 @@ export function AdminReconciliationPanel() {
         </span>
       </p>
 
-      {view === "balance" ? <BalanceView /> : <AdminReconciliationBlocks />}
+      {view === "balance" ? <BalanceView /> : view === "exceptions" ? <AdminReconciliationBlocks /> : <MoneyExceptionView view={view} />}
     </div>
   );
 }

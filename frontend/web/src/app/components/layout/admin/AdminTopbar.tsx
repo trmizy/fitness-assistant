@@ -124,8 +124,9 @@ function AdminNotificationBell() {
                 data-testid={`notification-item-${n.eventType}`}
                 onClick={() => {
                   if (n.unread) markRead.mutate(n.id);
-                  if (n.link) {
-                    navigate(n.link);
+                  const caseLink = n.entityType === "DISPUTE_CASE" && n.entityId ? `/admin/disputes/${encodeURIComponent(n.entityId)}` : null;
+                  if (caseLink || n.link) {
+                    navigate(caseLink ?? n.link!);
                     setOpen(false);
                   }
                 }}
@@ -134,6 +135,7 @@ function AdminNotificationBell() {
                 }`}
               >
                 <p className="text-sm">{n.text}</p>
+                {n.eventType === "DISPUTE_CASE_UPDATED" && <p className="text-xs text-adm-text-2">Cập nhật hồ sơ khiếu nại</p>}
                 <p className="mt-0.5 text-xs text-adm-text-2">
                   {new Date(n.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                 </p>

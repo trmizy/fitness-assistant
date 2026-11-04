@@ -7,7 +7,7 @@
  *  - SLA missing for a session = no chip at all, never a guessed "trong hạn";
  *  - a row that cannot be read is counted in `ignored`, not silently dropped.
  */
-import { CASE_STATUSES, type CaseStatus, type CaseType, type SlaState } from "../disputeCaseTypes";
+import { CASE_STATUSES, type CaseStatus, type CaseType, type QueueItem, type SlaState } from "../disputeCaseTypes";
 import { parseDisputeError, type DisputeErrorView } from "../disputeCaseErrors";
 import type { LoadFailure } from "../workspace/workspaceModel";
 import { CASE_TYPE_LABEL, FINDING_CONSEQUENCE, OUTCOME_CONSEQUENCE } from "../disputeCaseLabels";
@@ -128,6 +128,12 @@ export interface SessionRowModel {
   clientRef: string;
   ptRef: string;
   sla: SlaState | null;
+  sessionStatus?: "DISPUTED" | "PT_NO_SHOW_REPORTED";
+  clientName?: string | null;
+  ptName?: string | null;
+  hasCase?: boolean;
+  needsCase?: boolean;
+  caseId?: string | null;
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
@@ -156,6 +162,42 @@ export function normalizeDisputedSessions(data: unknown): { rows: SessionRowMode
   // oldest dispute first (the server already sorts so; keep it if a fixture does not)
   rows.sort((a, b) => (Date.parse(a.disputedAt ?? "") || Infinity) - (Date.parse(b.disputedAt ?? "") || Infinity));
   return { rows, ignored: raw.length - rows.length };
+}
+
+/** A3 is the authoritative paged queue. It covers both dispute states and tells the UI whether a Case already owns a session. */
+export function normalizeQueueItems(data: unknown): { rows: SessionRowModel[]; total: number; hasMore: boolean; ignored: number } {
+  const root = asRecord(data);
+  const raw = asArray(root?.items);
+  const rows: SessionRowModel[] = [];
+  for (const item of raw) {
+    const r = asRecord(item) as unknown as QueueItem | null;
+    if (!r || typeof r.sessionId !== "string" || !r.sessionId || !["DISPUTED", "PT_NO_SHOW_REPORTED"].includes(r.sessionStatus)) continue;
+    rows.push({
+      id: r.sessionId,
+      scheduledStartAt: str(r.scheduledStartAt),
+      disputedAt: str(r.disputedAt),
+      disputeType: str(r.disputeType),
+      typeLabel: r.sessionStatus === "PT_NO_SHOW_REPORTED" ? "Khách báo PT vắng, đang chờ PT phản hồi" : sessionTypeLabel(r.disputeType),
+      clientReason: "",
+      ptNotes: "",
+      packageName: null,
+      clientRef: shortRef(r.clientUserId),
+      ptRef: shortRef(r.ptUserId),
+      sla: null,
+      sessionStatus: r.sessionStatus,
+      clientName: str(r.clientName),
+      ptName: str(r.ptName),
+      hasCase: r.hasCase === true,
+      needsCase: r.needsCase === true,
+      caseId: str(r.caseId),
+    });
+  }
+  return {
+    rows,
+    total: typeof root?.total === "number" ? Math.max(0, root.total) : rows.length,
+    hasMore: root?.hasMore === true,
+    ignored: raw.length - rows.length,
+  };
 }
 
 export interface SlaIndex {
@@ -205,7 +247,7 @@ export const LEGACY_RESOLUTIONS: readonly LegacyResolution[] = ["COMPLETED", "PT
 
 export const LEGACY_DISCLOSURE_LABEL = "Phán quyết theo đường cũ (một người duyệt, không qua hồ sơ)";
 export const LEGACY_WARNING =
-  "Đường này chỉ cần một quản trị viên xác nhận, không có bước duyệt thứ hai, và không đọc hồ sơ khiếu nại của buổi. Nếu buổi đã có hồ sơ được duyệt, phán quyết này vẫn chạy độc lập với hồ sơ. Ưu tiên mở hồ sơ ở trên.";
+  "Đường này chỉ cần một quản trị viên xác nhận, không có bước duyệt thứ hai, và không đọc hồ sơ khiếu nại của buổi. Buổi đã có hồ sơ phải được xử lý trong hồ sơ; không thể dùng đường này.";
 export const LEGACY_BUTTON_LABEL: Record<LegacyResolution, string> = {
   COMPLETED: "Buổi tập đã diễn ra",
   PT_NO_SHOW_CONFIRMED: "Xác nhận PT vắng mặt",
@@ -234,10 +276,7 @@ export function legacyEffects(resolution: LegacyResolution): string[] {
 }
 
 /** Notes shown on the queue (muted). */
-export const CASES_NOTE_NO_NAMES = "Danh sách chưa có tên khách và PT (máy chủ chưa trả). Mở hồ sơ để xem chi tiết.";
 export const CASES_NOTE_NO_POLLING = "Danh sách không tự làm mới: mỗi lần mở danh sách, hệ thống ghi nhật ký truy cập của từng hồ sơ.";
-export const SESSIONS_NOTE_NO_PT_ABSENT =
-  "Chưa xem được ở đây các buổi khách báo PT vắng mà PT chưa phản hồi (máy chủ chưa trả danh sách này).";
 export const SESSIONS_NOTE_OPEN_EXISTING = "Nếu buổi đã có hồ sơ đang mở, hệ thống đưa bạn vào hồ sơ đó.";
 
 /**

@@ -107,9 +107,22 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   },
   EVIDENCE_NOT_IN_CASE: { kind: "blocked", message: "Có bằng chứng không thuộc hồ sơ này." },
   SUPERSEDES_INVALID: { kind: "blocked", message: "Kết luận cũ được thay thế phải cùng hợp đồng." },
-  EXECUTION_DISABLED: { kind: "blocked", message: "Bộ thực thi quyết định đang tắt." },
+  EXECUTION_DISABLED: { kind: "blocked", message: "Bộ thực thi quyết định đang tắt. Chưa có gì được thay đổi." },
   EXECUTION_IN_PROGRESS: { kind: "blocked", message: "Quyết định đang được thực thi. Hãy tải lại sau ít phút." },
+  EXECUTION_STATE_CHANGED: { kind: "conflictReload", message: "Trạng thái thực thi của hồ sơ vừa thay đổi. Hãy tải lại hồ sơ để xem kết quả." },
   NEEDS_HUMAN: { kind: "blocked", message: "Cần người xem xét. Hệ thống không tự thử lại." },
+  NOT_NEEDS_HUMAN: { kind: "blocked", message: "Việc thực thi không còn ở trạng thái chờ người xem xét. Hãy tải lại hồ sơ." },
+  DECISION_MISMATCH: { kind: "blocked", message: "Hồ sơ đã gắn với một quyết định khác. Hãy tải lại hồ sơ." },
+  DECISION_UNREADABLE: { kind: "blocked", message: "Không đọc được quyết định đã duyệt. Cần người xem xét." },
+  DECISION_WRONG_CASE: { kind: "blocked", message: "Quyết định này không thuộc hồ sơ." },
+  OUTCOME_MISMATCH: { kind: "blocked", message: "Kết quả của quyết định không khớp với đề xuất đã duyệt. Cần người xem xét." },
+  CASE_SESSION_MISMATCH: { kind: "blocked", message: "Hồ sơ và buổi tập không khớp nhau. Cần người xem xét." },
+  CASE_EXISTS: { kind: "blocked", message: "Buổi này đã có hồ sơ khiếu nại nên chỉ xử lý được trong hồ sơ, qua bước duyệt của người thứ hai. Chưa có gì được ghi vào buổi, quyền buổi hay tiền." },
+  CASE_NOT_ORPHAN: { kind: "blocked", message: "Buổi tập vẫn đang trong khiếu nại nên hồ sơ không phải hồ sơ mồ côi." },
+  FINDING_NOT_A_DISPUTE: { kind: "blocked", message: "Chỉ đóng được khi kết luận hiện tại là «Không phải khiếu nại»." },
+  ASSIGNEE_NOT_FOUND: { kind: "blocked", message: "Không tìm thấy người nhận hồ sơ này. Hãy chọn lại trong danh sách quản trị viên." },
+  ASSIGNEE_NOT_ADMIN: { kind: "blocked", message: "Người nhận phải là quản trị viên đang hoạt động. Hãy chọn lại trong danh sách." },
+  EVIDENCE_REQUIRED: { kind: "validation", message: "Cần chọn ít nhất một bằng chứng của hồ sơ này." },
   EXEC_BLOCKED: {
     kind: "blocked",
     message: (d) => (typeof d?.reason === "string" && EXEC_BLOCK_REASON_LABEL[d.reason as keyof typeof EXEC_BLOCK_REASON_LABEL]) || "Chưa thực thi được quyết định này.",
@@ -121,6 +134,7 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   // validation
   INVALID_INPUT: { kind: "validation", message: "Dữ liệu gửi lên chưa hợp lệ. Hãy kiểm tra các ô được đánh dấu." },
   INVALID_IDEMPOTENCY_KEY: { kind: "validation", message: "Không tạo được mã chống gửi trùng. Hãy mở lại biểu mẫu." },
+  IDEMPOTENCY_KEY_REQUIRED: { kind: "validation", message: "Thao tác này thiếu mã chống gửi trùng nên chưa ghi gì. Hãy mở lại biểu mẫu rồi gửi lại." },
   REASON_REQUIRED: { kind: "validation", message: "Cần nhập lý do." },
   SUPPLEMENT_REASON_REQUIRED: { kind: "validation", message: "Từ lời khai thứ hai trở đi cần nhập lý do bổ sung." },
   EVIDENCE_LISTED_TWICE: { kind: "validation", message: "Một bằng chứng chỉ được xếp vào một nhóm." },
@@ -128,6 +142,9 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   // unavailable: could NOT be verified, never success
   PAYMENT_UNAVAILABLE: { kind: "unavailable", message: "Chưa đọc được sổ cái tiền nên chưa xác minh được. Chưa có gì được ghi. Hãy thử lại." },
   LEDGER_UNAVAILABLE: { kind: "unavailable", message: "Chưa đọc được sổ cái tiền nên chưa xác minh được. Chưa có gì được ghi. Hãy thử lại." },
+  // 503: the chat / gym evidence source could not be read right now. Nothing was written and there is nothing to "acknowledge": just try again later.
+  EVIDENCE_SOURCE_UNAVAILABLE: { kind: "unavailable", message: "Chưa đọc được nguồn bằng chứng (chat hoặc phòng tập) lúc này nên chưa kiểm tra được. Chưa có gì được ghi. Hãy thử lại sau ít phút." },
+  ACCOUNT_LOOKUP_UNAVAILABLE: { kind: "unavailable", message: "Chưa kiểm tra được tài khoản người nhận lúc này. Chưa có gì được ghi. Hãy thử lại." },
   // unknown outcome
   INTERNAL_ERROR: { kind: "unknown", message: "Máy chủ gặp lỗi khi xử lý yêu cầu." },
 };

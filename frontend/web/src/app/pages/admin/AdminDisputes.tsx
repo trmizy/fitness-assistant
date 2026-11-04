@@ -2,36 +2,32 @@ import { useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { ArrowClockwiseIcon, CaretLeftIcon, CaretRightIcon, GavelIcon } from "@phosphor-icons/react";
-import { adminService } from "../../services/api";
 import { Button } from "../../components/ui/button";
-import { disputeCaseApi, listDisputedSessions } from "./disputes/disputeCaseApi";
+import { disputeCaseApi } from "./disputes/disputeCaseApi";
 import { parseDisputeError } from "./disputes/disputeCaseErrors";
-import { CASE_STATUS_LABEL, DISPUTE_PAGE_PENDING_SENTENCE } from "./disputes/disputeCaseLabels";
-import { CASE_STATUSES, type CaseStatus } from "./disputes/disputeCaseTypes";
+import { CASE_STATUS_LABEL, CASE_TYPE_LABEL, DISPUTE_PAGE_PENDING_SENTENCE, EXEC_STATUS_LABEL } from "./disputes/disputeCaseLabels";
+import { CASE_STATUSES, CASE_TYPES, EXEC_STATUSES, type CaseStatus, type CaseType, type ExecStatus } from "./disputes/disputeCaseTypes";
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "./disputes/disputeQueryKeys";
 import { CaseList } from "./disputes/queue/CaseList";
 import { SessionList } from "./disputes/queue/SessionList";
 import {
-  CASES_NOTE_NO_NAMES,
   CASES_NOTE_NO_POLLING,
   PAGE_SIZE,
   QUEUE_VIEWS,
-  SESSIONS_NOTE_NO_PT_ABSENT,
   SESSIONS_NOTE_OPEN_EXISTING,
-  buildQueueParams,
-  buildSlaIndex,
   describeListFailure,
-  joinSla,
   normalizeCaseItems,
-  normalizeDisputedSessions,
+  normalizeQueueItems,
   offsetOfPage,
   pageCountOf,
+  parsePage,
   parseQueueState,
   parseStatus,
   rangeText,
   type QueueView,
 } from "./disputes/queue/queueModel";
 import { FOCUS, FailurePanel, LoadingSkeleton, Muted, Notice } from "./disputes/workspace/WorkspaceParts";
+import { listAdminOptions } from "./disputes/actions/adminDirectory";
 import { formatDateTime } from "./disputes/workspace/format";
 
 /**
@@ -44,6 +40,11 @@ import { formatDateTime } from "./disputes/workspace/format";
  */
 
 const CHIP_LABEL: Record<QueueView, string> = { cases: "Hồ sơ", sessions: "Buổi chưa xử lý" };
+const dateBound = (value: string, end: boolean): string | undefined => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const d = new Date(`${value}T${end ? "23:59:59.999" : "00:00:00"}`);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+};
 
 export function AdminDisputes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,24 +52,64 @@ export function AdminDisputes() {
   const { keys, userId } = useDisputeQueryKeys();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const go = (next: Partial<typeof state>) => setSearchParams(buildQueueParams({ ...state, page: 1, ...next }));
+  const go = (next: Partial<typeof state>) => setSearchParams((old) => {
+    const p = new URLSearchParams(old);
+    if (next.view) {
+      if (next.view === "cases") p.delete("view");
+      else p.set("view", next.view);
+      p.delete("page");
+      p.delete("sPage");
+    }
+    if (next.status !== undefined) {
+      if (next.status) p.set("status", next.status);
+      else p.delete("status");
+      p.delete("page");
+    }
+    if (next.page !== undefined) {
+      if (next.page > 1) p.set("page", String(next.page));
+      else p.delete("page");
+    }
+    return p;
+  });
+  const setFilter = (key: string, value: string) => setSearchParams((old) => {
+    const p = new URLSearchParams(old);
+    if (value) p.set(key, value);
+    else p.delete(key);
+    p.delete("page");
+    if (key !== "sPage") p.delete("sPage");
+    return p;
+  });
+  const execStatus = EXEC_STATUSES.find((v) => v === searchParams.get("execStatus")) as ExecStatus | undefined;
+  const type = CASE_TYPES.find((v) => v === searchParams.get("type")) as CaseType | undefined;
+  const investigator = searchParams.get("investigator") ?? "";
+  const createdFrom = searchParams.get("createdFrom") ?? "";
+  const createdTo = searchParams.get("createdTo") ?? "";
+  const sessionPage = parsePage(searchParams.get("sPage"));
+  const sessionStatus = searchParams.get("sessionStatus") === "DISPUTED" || searchParams.get("sessionStatus") === "PT_NO_SHOW_REPORTED" ? searchParams.get("sessionStatus") as "DISPUTED" | "PT_NO_SHOW_REPORTED" : undefined;
+  const caseFilters = {
+    status: state.status ?? undefined, execStatus, type,
+    unassigned: investigator === "unassigned" ? true : undefined,
+    investigatorId: investigator && investigator !== "unassigned" ? investigator : undefined,
+    createdFrom: dateBound(createdFrom, false),
+    createdTo: dateBound(createdTo, true),
+    limit: PAGE_SIZE, offset: offsetOfPage(state.page),
+  };
+  const adminsQuery = useQuery({
+    queryKey: keys ? [...keys.all, "admin-options"] : ["dispute-case", "disabled", "admin-options"],
+    queryFn: () => listAdminOptions(userId),
+    enabled: !!keys && state.view === "cases",
+    ...DISPUTE_QUERY_OPTIONS,
+  });
 
   const casesQuery = useQuery({
-    queryKey: keys ? keys.list({ status: state.status ?? undefined, limit: PAGE_SIZE, offset: offsetOfPage(state.page) }) : ["dispute-case", "disabled", "list"],
-    queryFn: () => disputeCaseApi.listCases({ status: state.status ?? undefined, limit: PAGE_SIZE, offset: offsetOfPage(state.page) }),
+    queryKey: keys ? [...keys.all, "list", caseFilters] : ["dispute-case", "disabled", "list"],
+    queryFn: () => disputeCaseApi.listCases(caseFilters),
     enabled: !!keys && state.view === "cases",
     ...DISPUTE_QUERY_OPTIONS,
   });
   const sessionsQuery = useQuery({
-    queryKey: keys ? keys.disputedSessions() : ["dispute-case", "disabled", "sessions"],
-    queryFn: () => listDisputedSessions(),
-    enabled: !!keys && state.view === "sessions",
-    ...DISPUTE_QUERY_OPTIONS,
-  });
-  // SLA of the same sessions (C2). Optional: when it fails the sessions still show, just without the chip.
-  const slaQuery = useQuery({
-    queryKey: keys ? [...keys.all, "sla"] : ["dispute-case", "disabled", "sla"],
-    queryFn: () => adminService.getSessionsReconciliation({ limit: 200 }),
+    queryKey: keys ? [...keys.all, "queue", { sessionStatus, page: sessionPage }] : ["dispute-case", "disabled", "queue"],
+    queryFn: () => disputeCaseApi.getQueue({ sessionStatus, limit: PAGE_SIZE, offset: offsetOfPage(sessionPage) }),
     enabled: !!keys && state.view === "sessions",
     ...DISPUTE_QUERY_OPTIONS,
   });
@@ -77,22 +118,14 @@ export function AdminDisputes() {
   const now = useMemo(() => Date.now(), [casesQuery.dataUpdatedAt, sessionsQuery.dataUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cases = normalizeCaseItems(casesQuery.data);
-  const sessions = useMemo(() => {
-    const { rows, ignored } = normalizeDisputedSessions(sessionsQuery.data);
-    const index = slaQuery.data ? buildSlaIndex(slaQuery.data) : null;
-    return { rows: joinSla(rows, index), ignored, slaReadable: !!index, slaTruncated: !!index?.truncated };
-  }, [sessionsQuery.data, slaQuery.data]);
+  const sessions = useMemo(() => normalizeQueueItems(sessionsQuery.data), [sessionsQuery.data]);
 
   const refresh = () => {
     if (state.view === "cases") void casesQuery.refetch();
-    else {
-      void sessionsQuery.refetch();
-      void slaQuery.refetch();
-    }
+    else void sessionsQuery.refetch();
   };
   const refreshSessionsAfterAction = () => {
     void sessionsQuery.refetch();
-    void slaQuery.refetch();
     headingRef.current?.focus();
   };
 
@@ -144,7 +177,7 @@ export function AdminDisputes() {
               )}
               {v === "sessions" && selected && hasData && (
                 <span className="rounded-full bg-adm-bg/20 px-2 py-px text-xs font-semibold tabular-nums" data-testid="d2-chip-count-sessions">
-                  {sessions.rows.length}
+                  {sessions.total}
                 </span>
               )}
             </button>
@@ -172,16 +205,38 @@ export function AdminDisputes() {
                 </option>
               ))}
             </select>
+            <label htmlFor="d5-exec-filter" className="text-sm font-medium text-adm-text">Thực thi</label>
+            <select id="d5-exec-filter" value={execStatus ?? ""} onChange={(e) => setFilter("execStatus", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+              <option value="">Tất cả</option>
+              {EXEC_STATUSES.map((s) => <option key={s} value={s}>{EXEC_STATUS_LABEL[s]}</option>)}
+            </select>
+            <label htmlFor="d5-type-filter" className="text-sm font-medium text-adm-text">Loại</label>
+            <select id="d5-type-filter" value={type ?? ""} onChange={(e) => setFilter("type", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+              <option value="">Tất cả</option>
+              {CASE_TYPES.map((s) => <option key={s} value={s}>{CASE_TYPE_LABEL[s]}</option>)}
+            </select>
+            <label htmlFor="d5-investigator-filter" className="text-sm font-medium text-adm-text">Người phụ trách</label>
+            <select id="d5-investigator-filter" value={investigator} onChange={(e) => setFilter("investigator", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+              <option value="">Tất cả</option>
+              <option value="unassigned">Chưa giao</option>
+              {(adminsQuery.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+            </select>
+            <label htmlFor="d5-created-from" className="text-sm font-medium text-adm-text">Từ ngày</label>
+            <input id="d5-created-from" type="date" value={createdFrom} onChange={(e) => setFilter("createdFrom", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`} />
+            <label htmlFor="d5-created-to" className="text-sm font-medium text-adm-text">Đến ngày</label>
+            <input id="d5-created-to" type="date" value={createdTo} onChange={(e) => setFilter("createdTo", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`} />
           </div>
-          <Muted testId="d2-note-no-names">{CASES_NOTE_NO_NAMES}</Muted>
           <Muted testId="d2-note-no-polling">{CASES_NOTE_NO_POLLING}</Muted>
         </div>
       ) : (
         <div className="space-y-2">
-          <Muted testId="d2-note-pt-absent">{SESSIONS_NOTE_NO_PT_ABSENT}</Muted>
+          <label htmlFor="d5-session-status" className="text-sm font-medium text-adm-text">Tình trạng buổi</label>
+          <select id="d5-session-status" value={sessionStatus ?? ""} onChange={(e) => setFilter("sessionStatus", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+            <option value="">Tất cả</option>
+            <option value="DISPUTED">Đang khiếu nại</option>
+            <option value="PT_NO_SHOW_REPORTED">Khách báo PT vắng</option>
+          </select>
           <Muted>{SESSIONS_NOTE_OPEN_EXISTING}</Muted>
-          {hasData && !sessions.slaReadable && <Muted testId="d2-note-sla-missing">Chưa đọc được hạn xử lý của các buổi nên chưa hiện nhãn «trong hạn / quá hạn».</Muted>}
-          {hasData && sessions.slaReadable && sessions.slaTruncated && <Muted testId="d2-note-sla-truncated">Báo cáo hạn xử lý bị cắt bớt, nên một số buổi không có nhãn hạn.</Muted>}
         </div>
       )}
 
@@ -234,6 +289,13 @@ export function AdminDisputes() {
         <>
           {sessions.ignored > 0 && <p className="text-xs text-adm-text-2">Có {sessions.ignored} buổi không đọc được trong phản hồi nên không hiển thị.</p>}
           <SessionList rows={sessions.rows} now={now} onRefresh={refreshSessionsAfterAction} />
+          <nav aria-label="Phân trang buổi chưa xử lý" className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-adm-text-2">{rangeText(sessionPage, sessions.total, sessions.rows.length)} · Trang {sessionPage}/{pageCountOf(sessions.total)}</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" disabled={sessionPage <= 1} onClick={() => setFilter("sPage", String(sessionPage - 1))}>Trang trước</Button>
+              <Button type="button" variant="outline" disabled={!sessions.hasMore} onClick={() => setFilter("sPage", String(sessionPage + 1))}>Trang sau</Button>
+            </div>
+          </nav>
         </>
       )}
     </div>

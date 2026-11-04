@@ -9,10 +9,12 @@
  *  - limits are measured on the TRIMMED text, exactly like `z.string().trim().min(1).max(n)`;
  *  - nothing is derived from `decision.execution` / `proposals[].execution` (a constant lie) or from `ledger.result`.
  */
-import type { ApprovalInput, AssessmentInput, ClaimInput, FindingInput, IssueInput, RequestMoreInput, ShareInput, TransitionInput } from "../disputeCaseApi";
+import type { ApprovalInput, AssessmentInput, ClaimInput, FindingInput, IssueInput, PolicyApproveInput, PolicyEligibilityInput, RequestMoreInput, ShareInput, TransitionInput } from "../disputeCaseApi";
 import type { DisputeErrorView } from "../disputeCaseErrors";
 import { FINDING_CONSEQUENCE, FINDING_LABEL, OUTCOME_LABEL, isTerminalStatus, manualTransitions } from "../disputeCaseLabels";
 import type {
+  ActionName,
+  ActionVerdict,
   CaseStatus,
   ClaimMove,
   ClaimResult,
@@ -22,19 +24,22 @@ import type {
   DisputeProposal,
   DisputeStatement,
   FindingKind,
+  PolicyResult,
   PtLateFinding,
   ShareRole,
 } from "../disputeCaseTypes";
-import { CLAIM_MOVES, CLAIM_RESULTS, CLAIMANT_ROLES, CLASSIFIABLE_TYPES, FINDING_KINDS, PT_LATE_FINDINGS } from "../disputeCaseTypes";
+import { CLAIM_MOVES, CLAIM_RESULTS, CLAIMANT_ROLES, CLASSIFIABLE_TYPES, FINDING_KINDS, POLICY_RESULTS, PT_LATE_FINDINGS } from "../disputeCaseTypes";
 import { buildEvidenceGroups } from "../workspace/evidenceModel";
 import { shortRef } from "../workspace/format";
 import { FINDING_TO_OUTCOME, blockedText, latestFinding, outcomeConsequence } from "../workspace/workspaceModel";
 import {
   CANNOT_APPROVE_INVESTIGATOR,
+  CANNOT_APPROVE_PARTY,
   CANNOT_APPROVE_PROPOSER,
   FIELD_FALLBACK,
   NOT_INVESTIGATOR_PREFIX,
   NO_INVESTIGATOR_LINE,
+  NO_SERVER_LIST_LINE,
   REQUIRED,
   TERMINAL_LINE,
   tooLong,
@@ -55,17 +60,27 @@ export const LIMITS = {
   proposalNote: 2000,
   approvalReason: 4000,
   ackNote: 2000,
+  policyReasoning: 4000,
+  policyApproveReason: 4000,
+  policyEvidenceMax: 50,
+  closeReason: 2000,
+  needsHumanNote: 2000,
   shareReason: 2000,
   groupMax: 100,
   movesMax: 3,
 } as const;
 
 // ───────────────────────────────────────────────────────── permissions ──
+/**
+ * D5: WHICH forms to show comes from the server (`allowedActions` / `actions` of the detail, contract 3.3): the server knows the investigator, four-eyes and
+ * conflict of interest. The UI no longer guesses them from ids. "Allowed" means every condition the server can see passes; the write still re-checks, and an action
+ * that is NOT listed is certainly refused. If the answer carries no list at all, nothing is offered (fail closed) and the page says so.
+ */
 export const CLAIM_PHASE: readonly CaseStatus[] = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"];
-export const REQUEST_MORE_FROM: readonly CaseStatus[] = ["ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"];
 
 export const sameId = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a === b;
 
+/** Display only (a line saying who is in charge): never used to decide whether a control exists. */
 export function isInvestigator(detail: Pick<DisputeCaseDetail, "case">, userId: string | null | undefined): boolean {
   return sameId(detail.case?.investigatorId, userId);
 }
@@ -76,9 +91,47 @@ export function newestProposal(proposals: DisputeProposal[] | null | undefined):
   return list.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || (a.id < b.id ? 1 : -1))[0];
 }
 
+/** The names the server lists as allowed, or null when the answer has no list (then nothing is offered). */
+export function allowedSet(detail: Pick<DisputeCaseDetail, "allowedActions">): Set<string> | null {
+  return Array.isArray(detail.allowedActions) ? new Set(detail.allowedActions.filter((x): x is string => typeof x === "string")) : null;
+}
+export const hasServerActions = (detail: Pick<DisputeCaseDetail, "allowedActions">) => allowedSet(detail) !== null;
+export function isAllowed(detail: Pick<DisputeCaseDetail, "allowedActions">, name: ActionName): boolean {
+  return allowedSet(detail)?.has(name) ?? false;
+}
+/** `actions[name]` (allowed, stable code, Vietnamese message, options) or undefined. */
+export function verdictOf(detail: Pick<DisputeCaseDetail, "actions">, name: ActionName): ActionVerdict | undefined {
+  const v = detail.actions?.[name];
+  return v && typeof v === "object" ? v : undefined;
+}
+/** The Vietnamese message the server gave for a refused action, only when it really is Vietnamese. */
+export function refusalMessage(detail: Pick<DisputeCaseDetail, "actions">, name: ActionName): string | null {
+  const m = verdictOf(detail, name)?.message;
+  return typeof m === "string" && VIETNAMESE_LINE.test(m) ? m : null;
+}
+const VIETNAMESE_LINE = /[àáâãăạảấầẩẫậắằẳẵặèéêẹẻẽếềểễệìíĩỉịòóôõơọỏốồổỗộớờởỡợùúũưụủứừửữựỳỵỷỹđ]/i;
+
+const MANUAL_TARGET_SET = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "REJECTED_INTAKE"] as const;
+/** The targets the server offers for the "chuyển bước" form (`actions.transition.options`); the local state-machine hint only when the server gave none. */
+export function transitionTargets(detail: Pick<DisputeCaseDetail, "case" | "actions" | "allowedActions">): CaseStatus[] {
+  if (!isAllowed(detail, "transition")) return [];
+  const opts = verdictOf(detail, "transition")?.options;
+  if (Array.isArray(opts)) return opts.filter((o): o is CaseStatus => (MANUAL_TARGET_SET as readonly string[]).includes(o));
+  return manualTransitions(detail.case.status);
+}
+/** The policy reviews THIS viewer may approve (`actions.approvePolicyEligibility.options` = review ids). */
+export function approvableReviewIds(detail: Pick<DisputeCaseDetail, "actions" | "allowedActions">): string[] {
+  if (!isAllowed(detail, "approvePolicyEligibility")) return [];
+  const opts = verdictOf(detail, "approvePolicyEligibility")?.options;
+  return Array.isArray(opts) ? opts.filter((o): o is string => typeof o === "string") : [];
+}
+
 export interface Availability {
   signedIn: boolean;
+  /** false = the detail carries no `allowedActions`: nothing is offered */
+  serverList: boolean;
   terminal: boolean;
+  /** display only */
   investigator: boolean;
   assign: boolean;
   recollect: boolean;
@@ -93,34 +146,48 @@ export interface Availability {
   ack: boolean;
   share: boolean;
   decide: boolean;
+  proposePolicy: boolean;
+  approvePolicy: boolean;
+  closeNotADispute: boolean;
+  closeOrphan: boolean;
+  execute: boolean;
+  reconcile: boolean;
+  ackNeedsHuman: boolean;
 }
 
-/** Which forms to show. Investigator-only forms need `case.investigatorId === currentUserId`; the server re-checks every one. */
+/** Which forms to show, straight from the server's list. `assess` also needs a claim to assess (a data fact, not a permission). */
 export function availability(detail: DisputeCaseDetail, userId: string | null | undefined): Availability {
   const c = detail.case;
   const status = c?.status as CaseStatus | undefined;
   const signedIn = !!userId;
   const terminal = !status || isTerminalStatus(status);
-  const inv = signedIn && isInvestigator(detail, userId);
-  const live = signedIn && !terminal;
-  const proposal = newestProposal(detail.proposals);
+  const set = allowedSet(detail);
+  const has = (n: ActionName) => signedIn && !!set && set.has(n);
   return {
     signedIn,
+    serverList: set !== null,
     terminal,
-    investigator: inv,
-    assign: live,
-    recollect: live,
-    transition: live && !!status && manualTransitions(status).length > 0 && (status === "INTAKE" || inv),
-    requestMore: inv && !!status && REQUEST_MORE_FROM.includes(status),
-    classify: inv && !terminal && c?.type === "LEGACY_UNCLASSIFIED",
-    addClaim: inv && !!status && CLAIM_PHASE.includes(status),
-    addIssue: inv && !!status && CLAIM_PHASE.includes(status),
-    assess: inv && status === "ASSESSING" && (detail.claims ?? []).length > 0,
-    recordFinding: inv && status === "ASSESSING",
-    propose: inv && status === "FINDING_RECORDED",
-    ack: inv && status === "AWAITING_APPROVAL" && !!proposal,
-    share: inv && !!status && status !== "INTAKE" && !terminal,
-    decide: signedIn && status === "AWAITING_APPROVAL" && !!proposal && !sameId(proposal.proposerId, userId) && !sameId(c?.investigatorId, userId),
+    investigator: signedIn && isInvestigator(detail, userId),
+    assign: has("assign"),
+    recollect: has("recollect"),
+    transition: has("transition") && transitionTargets(detail).length > 0,
+    requestMore: has("requestMore"),
+    classify: has("classify"),
+    addClaim: has("addClaim"),
+    addIssue: has("addIssue"),
+    assess: has("addAssessment") && (detail.claims ?? []).length > 0,
+    recordFinding: has("recordFinding"),
+    propose: has("propose"),
+    ack: has("acknowledgeEvidenceChange"),
+    share: has("share"),
+    decide: has("decide"),
+    proposePolicy: has("proposePolicyEligibility"),
+    approvePolicy: has("approvePolicyEligibility") && approvableReviewIds(detail).length > 0,
+    closeNotADispute: has("closeNotADispute"),
+    closeOrphan: has("closeOrphan"),
+    execute: has("execute"),
+    reconcile: has("reconcileExecution"),
+    ackNeedsHuman: has("acknowledgeNeedsHuman"),
   };
 }
 
@@ -128,10 +195,14 @@ export function availability(detail: DisputeCaseDetail, userId: string | null | 
 export function investigatorOnlyLine(detail: DisputeCaseDetail, userId: string | null | undefined): string | null {
   const a = availability(detail, userId);
   if (a.terminal) return TERMINAL_LINE;
-  if (a.investigator) return null;
+  if (!a.serverList) return NO_SERVER_LIST_LINE;
+  if (a.addClaim || a.requestMore || a.recordFinding || a.propose || a.assess) return null;
   const inv = detail.case?.investigatorId ?? null;
   if (!inv) return NO_INVESTIGATOR_LINE;
-  return `${NOT_INVESTIGATOR_PREFIX} (mã ${shortRef(inv)}). Máy chủ vẫn kiểm lại từng thao tác.`;
+  if (verdictOf(detail, "addClaim")?.code === "NOT_ASSIGNED_INVESTIGATOR" || verdictOf(detail, "recordFinding")?.code === "NOT_ASSIGNED_INVESTIGATOR") {
+    return `${NOT_INVESTIGATOR_PREFIX}${detail.case?.investigatorName ? ` (${detail.case.investigatorName})` : ` (mã ${shortRef(inv)})`}. Máy chủ vẫn kiểm lại từng thao tác.`;
+  }
+  return null;
 }
 
 export interface DecideGate {
@@ -139,14 +210,20 @@ export interface DecideGate {
   /** why the decide buttons are hidden (shown as a muted line) */
   reason: string | null;
 }
+/** Four-eyes comes from `allowedActions` (`decide`); the refusal code only picks the sentence. */
 export function decideGate(detail: DisputeCaseDetail, userId: string | null | undefined): DecideGate {
   if (detail.case?.status !== "AWAITING_APPROVAL") return { show: false, reason: null };
-  const p = newestProposal(detail.proposals);
-  if (!p) return { show: false, reason: null };
+  if (!newestProposal(detail.proposals)) return { show: false, reason: null };
   if (!userId) return { show: false, reason: null };
-  if (sameId(p.proposerId, userId)) return { show: false, reason: CANNOT_APPROVE_PROPOSER };
-  if (sameId(detail.case.investigatorId, userId)) return { show: false, reason: CANNOT_APPROVE_INVESTIGATOR };
-  return { show: true, reason: null };
+  if (isAllowed(detail, "decide")) return { show: true, reason: null };
+  if (!hasServerActions(detail)) return { show: false, reason: NO_SERVER_LIST_LINE };
+  const v = verdictOf(detail, "decide");
+  if (v?.code === "SELF_APPROVAL_FORBIDDEN") {
+    const p = newestProposal(detail.proposals);
+    return { show: false, reason: sameId(p?.proposerId, userId) ? CANNOT_APPROVE_PROPOSER : CANNOT_APPROVE_INVESTIGATOR };
+  }
+  if (v?.code === "CONFLICT_OF_INTEREST") return { show: false, reason: CANNOT_APPROVE_PARTY };
+  return { show: false, reason: refusalMessage(detail, "decide") };
 }
 
 // ──────────────────────────────────────────────────────────── validators ──
@@ -185,10 +262,11 @@ export interface TransitionForm {
   note: string;
 }
 export const transitionNeedsReason = (to: string) => to === "REJECTED_INTAKE";
-export function validateTransition(f: TransitionForm, status: CaseStatus): Errors {
+/** `targets` = what the server offered (`actions.transition.options`); the local hint only when the caller has none. */
+export function validateTransition(f: TransitionForm, status: CaseStatus, targets?: readonly string[]): Errors {
   const e: Errors = {};
   if (!f.to) e.to = "Chọn bước muốn chuyển tới.";
-  else if (!manualTransitions(status).includes(f.to as CaseStatus)) e.to = "Hồ sơ không chuyển được tới bước này từ trạng thái hiện tại.";
+  else if (!(targets ?? manualTransitions(status)).includes(f.to)) e.to = "Hồ sơ không chuyển được tới bước này từ trạng thái hiện tại.";
   if (transitionNeedsReason(f.to)) put(e, "reason", textError(f.reason, LIMITS.transitionReason, true));
   else put(e, "note", textError(f.note, LIMITS.transitionNote, false));
   return e;
@@ -430,6 +508,58 @@ export type EvidenceChangeBranch = "recollect" | "acknowledge";
 export function evidenceChangeBranch(view: DisputeErrorView | null | undefined): EvidenceChangeBranch | null {
   if (!view || view.code !== "EVIDENCE_CHANGED" || !view.evidenceChange) return null;
   return view.evidenceChange.needsRecollect || view.evidenceChange.staleLive.length > 0 ? "recollect" : "acknowledge";
+}
+
+// ───────────────────────────────────────── policy eligibility (A22 / A23) ──
+export interface PolicyReviewForm {
+  result: PolicyResult | "";
+  /** ids of THIS case's evidence rows (at least one) */
+  evidenceIds: string[];
+  reasoning: string;
+  /** the review this one replaces (optional) */
+  supersedesId: string;
+}
+export function validatePolicyReview(f: PolicyReviewForm, knownEvidenceIds: readonly string[]): Errors {
+  const e: Errors = {};
+  if (!(POLICY_RESULTS as readonly string[]).includes(f.result)) e.result = "Chọn kết luận áp dụng chính sách.";
+  if (f.evidenceIds.length === 0) e.evidenceIds = "Chọn ít nhất một bằng chứng của hồ sơ.";
+  else if (f.evidenceIds.length > LIMITS.policyEvidenceMax) e.evidenceIds = "Tối đa 50 bằng chứng.";
+  else if (f.evidenceIds.some((id) => !knownEvidenceIds.includes(id))) e.evidenceIds = "Có bằng chứng không thuộc hồ sơ này.";
+  put(e, "reasoning", textError(f.reasoning, LIMITS.policyReasoning, true));
+  return e;
+}
+/** Only the documented fields. The contract is the case's own (never sent), and nothing is approved by this call. */
+export function policyReviewBody(f: PolicyReviewForm): PolicyEligibilityInput {
+  const supersedes = f.supersedesId.trim();
+  return {
+    result: f.result as PolicyResult,
+    evidenceIds: [...new Set(f.evidenceIds)],
+    reasoning: f.reasoning.trim(),
+    ...(supersedes ? { supersedesId: supersedes } : {}),
+  };
+}
+export interface PolicyApproveForm {
+  reason: string;
+  coi: boolean;
+}
+export function validatePolicyApprove(f: PolicyApproveForm): Errors {
+  const e: Errors = {};
+  put(e, "reason", textError(f.reason, LIMITS.policyApproveReason, true));
+  if (!f.coi) e.conflictOfInterestDeclaredNone = "Cần tích khai báo không có xung đột lợi ích.";
+  return e;
+}
+export const policyApproveBody = (f: PolicyApproveForm): PolicyApproveInput => ({ reason: f.reason.trim(), conflictOfInterestDeclaredNone: f.coi === true });
+
+// ───────────────────────────────────── close without a decision / needs human ──
+export function validateReasonOnly(value: string, max: number): Errors {
+  const e: Errors = {};
+  put(e, "reason", textError(value, max, true));
+  return e;
+}
+export function validateNeedsHumanNote(value: string): Errors {
+  const e: Errors = {};
+  put(e, "note", textError(value, LIMITS.needsHumanNote, true));
+  return e;
 }
 
 // ───────────────────────────────────────────────────────── ack (A15) ──
