@@ -263,18 +263,15 @@ test('conflict of interest: an admin who is the reporter or the gym owner cannot
   assert.equal((await call('POST', `/admin/complaint-cases/${opened.id}/assign`, normal.tok, { investigatorId: 'nobody' })).body.error.code, 'ADMIN_NOT_FOUND');
 });
 
-test('append-only tables, GYM party lock, DB-level four eyes and the one-approval-per-proposal index', { skip }, async () => {
+test('append-only tables, GYM claim lock, DB-level four eyes and the one-approval-per-proposal index', { skip }, async () => {
   const d = await driveToProposal({ caseClass: 'MEM_CLOSED', finding: 'ESTABLISHED' });
   assert.equal((await approve(d)).status, 200);
   for (const table of ['gym_case_events', 'gym_case_evidence', 'gym_case_approvals', 'gym_case_proposals', 'gym_case_findings', 'gym_case_claims', 'gym_case_assessments', 'gym_case_access_logs']) {
     await assert.rejects(() => prisma.$executeRawUnsafe(`UPDATE ${table} SET created_at = now()`), /append-only/, `${table} UPDATE`);
     await assert.rejects(() => prisma.$executeRawUnsafe(`DELETE FROM ${table}`), /append-only/, `${table} DELETE`);
   }
-  // the Gym party cannot be written, by any path
-  await assert.rejects(
-    () => prisma.gymCaseStatement.create({ data: { caseId: d.caseId, partyRole: 'GYM', authorUserId: d.ownerId, version: 1, text: 'giải trình', contentHash: 'h' } }),
-    /gym_party_locked|violates check/,
-  );
+  // C10: the Gym may write an EXPLANATION (statement) but never a CLAIM - the claim lock stays at the database
+  await prisma.gymCaseStatement.create({ data: { caseId: d.caseId, partyRole: 'GYM', authorUserId: d.ownerId, version: 1, text: 'giải trình', contentHash: 'h' } });
   await assert.rejects(() => prisma.gymCaseClaim.create({ data: { caseId: d.caseId, claimantRole: 'GYM', text: 'x', createdBy: d.ownerId } }), /gym_party_locked|violates check/);
   // four eyes at the database: the proposer cannot be recorded as an approver even with a hand-written insert
   const proposal = await prisma.gymCaseProposal.findFirstOrThrow({ where: { caseId: d.caseId } });

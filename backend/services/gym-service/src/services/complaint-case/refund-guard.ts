@@ -46,3 +46,45 @@ export async function assertRefundNotBypassingCase(membershipId: string, opts: {
     });
   }
 }
+
+/**
+ * B1 (Ngài APPROVED WITH CONDITIONS) - the membership expiry sweep must HOLD the unsettled money of ONE membership while a case about THAT membership is
+ * unfinished. Hold reasons (both about this membership only; never another membership, never the gym's other money):
+ *   OPEN_CASE                    a case on the membership that is not DECISION_APPROVED / REJECTED_INTAKE (includes APPEAL_REVIEW and every step in between)
+ *   APPROVED_REFUND_UNEXECUTED   the case is DECISION_APPROVED, its latest approved decision is a REFUND outcome, and its execution is not BUSINESS_DONE
+ *                                (NOT_STARTED, EXECUTING, EXEC_BLOCKED, NEEDS_HUMAN: an unfinished money step is never released from under a person)
+ * Released again - through the existing release path, idempotent by its MEMBERSHIP_RELEASE:<id> key - once the case is completed: closed with no refund
+ * (REJECTED_INTAKE, or an approved no-money decision), or the refund executed (BUSINESS_DONE).
+ */
+export type HoldReason = 'OPEN_CASE' | 'APPROVED_REFUND_UNEXECUTED';
+export interface Hold {
+  caseId: string;
+  reason: HoldReason;
+}
+type HoldDb = Pick<typeof prisma, 'gymComplaintCase'>;
+
+export async function membershipHolds(db: HoldDb, membershipIds: string[]): Promise<Map<string, Hold>> {
+  const out = new Map<string, Hold>();
+  if (membershipIds.length === 0) return out;
+  const cases = await db.gymComplaintCase.findMany({
+    where: { membershipId: { in: membershipIds }, status: { not: 'REJECTED_INTAKE' } },
+    select: {
+      id: true,
+      membershipId: true,
+      status: true,
+      execStatus: true,
+      proposals: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], select: { outcome: true, approvals: { where: { result: 'APPROVED' }, select: { id: true } } } },
+    },
+  });
+  for (const c of cases) {
+    if (!c.membershipId || out.has(c.membershipId)) continue;
+    if (c.status !== 'DECISION_APPROVED') {
+      out.set(c.membershipId, { caseId: c.id, reason: 'OPEN_CASE' });
+      continue;
+    }
+    const approved = c.proposals.find((p) => p.approvals.length > 0);
+    const refund = approved && String(approved.outcome).startsWith('REFUND_');
+    if (refund && c.execStatus !== 'BUSINESS_DONE') out.set(c.membershipId, { caseId: c.id, reason: 'APPROVED_REFUND_UNEXECUTED' });
+  }
+  return out;
+}

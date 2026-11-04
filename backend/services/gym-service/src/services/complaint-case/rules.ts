@@ -76,7 +76,8 @@ export type CaseStatus =
   | 'FINDING_RECORDED'
   | 'AWAITING_APPROVAL'
   | 'DECISION_APPROVED'
-  | 'REJECTED_INTAKE';
+  | 'REJECTED_INTAKE'
+  | 'APPEAL_REVIEW';
 export const CASE_STATUSES: readonly CaseStatus[] = [
   'INTAKE',
   'COLLECTING',
@@ -86,6 +87,7 @@ export const CASE_STATUSES: readonly CaseStatus[] = [
   'AWAITING_APPROVAL',
   'DECISION_APPROVED',
   'REJECTED_INTAKE',
+  'APPEAL_REVIEW',
 ];
 export const TERMINAL_STATUSES: readonly CaseStatus[] = ['DECISION_APPROVED', 'REJECTED_INTAKE'];
 
@@ -96,8 +98,10 @@ export const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = 
   ASSESSING: ['COLLECTING', 'AWAITING_PARTIES', 'FINDING_RECORDED'],
   FINDING_RECORDED: ['AWAITING_APPROVAL', 'ASSESSING'],
   AWAITING_APPROVAL: ['DECISION_APPROVED', 'ASSESSING'],
-  DECISION_APPROVED: [],
+  // A1: the ONLY way out of DECISION_APPROVED is the member's single appeal (appeal.service.fileAppeal); the manual endpoint can never target APPEAL_REVIEW.
+  DECISION_APPROVED: ['APPEAL_REVIEW'],
   REJECTED_INTAKE: [],
+  APPEAL_REVIEW: ['ASSESSING'],
 };
 export const canTransition = (from: CaseStatus, to: CaseStatus) => TRANSITIONS[from].includes(to);
 
@@ -108,7 +112,7 @@ export const canTransitionManually = (from: CaseStatus, to: CaseStatus) =>
   MANUAL_TARGETS.includes(to) && !MANUAL_FROM_BLOCKED.includes(from) && canTransition(from, to);
 
 /** States in which the member may add a statement / evidence record. */
-export const PARTY_SUBMIT_STATUSES: readonly CaseStatus[] = ['COLLECTING', 'AWAITING_PARTIES', 'ASSESSING'];
+export const PARTY_SUBMIT_STATUSES: readonly CaseStatus[] = ['COLLECTING', 'AWAITING_PARTIES', 'ASSESSING', 'APPEAL_REVIEW'];
 /** States in which the investigator may record claims, shares and on-behalf entries. */
 export const INVESTIGATION_STATUSES: readonly CaseStatus[] = ['COLLECTING', 'AWAITING_PARTIES', 'ASSESSING'];
 
@@ -149,10 +153,12 @@ export function checkApprover(i: ApproverCheckInput): ApproverVerdict {
 // ── Roles, branch and the locked GYM party ───────────────────────────────────────────────────────────────────────
 
 /**
- * D-NEW-9 (is the Gym a party?) and D-NEW-3 (appeal for the Gym) are OPEN POLICY decisions. This constant is the single place the lock is expressed in
- * CODE (the database refuses a GYM party row regardless). It is deliberately not read from the environment: turning it on is a code + migration change.
+ * C10 (Ngài approved): the Gym's role in a Gym Case is to PROVIDE EVIDENCE AND EXPLANATION within ITS BRANCH SCOPE, and nothing else. These two constants are the
+ * single place the rule is expressed in code (not read from the environment): the Gym can explain, it can NEVER decide (assess / finding / propose / approve /
+ * execute), never appeal, and never see the member's identity, money or the investigation. The database refuses a Gym CLAIM; statements and shares may carry the GYM role.
  */
-export const GYM_PARTY_ENABLED = false;
+export const GYM_EXPLAINER_ENABLED = true;
+export const GYM_CAN_DECIDE = false;
 
 export interface Viewer {
   userId: string;
@@ -165,8 +171,8 @@ export type ViewerKind = 'ADMIN' | 'MEMBER' | 'GYM' | 'NONE';
 export function viewerKind(v: Viewer, c: { reporterUserId: string; gymId: string }): ViewerKind {
   if (v.role === 'ADMIN') return 'ADMIN';
   if (v.userId === c.reporterUserId) return 'MEMBER';
-  // The gym's own people see NOTHING while the Gym is not a party; once it is, they see only THEIR branch.
-  if (GYM_PARTY_ENABLED && v.gymIds?.includes(c.gymId)) return 'GYM';
+  // The Gym's own people (owner / manager of THIS branch, resolved by the caller from the partner context) are explainers, never deciders.
+  if (GYM_EXPLAINER_ENABLED && v.gymIds?.includes(c.gymId)) return 'GYM';
   return 'NONE';
 }
 
@@ -194,7 +200,22 @@ export function evidenceVisibleTo(e: EvidenceLike, kind: ViewerKind, viewerId: s
     if (shares.some((s) => s.evidenceId === e.id && s.sharedWithRole === 'MEMBER')) return true;
     return e.sensitivity !== 'SENSITIVE' && MEMBER_OWN_SOURCES.includes(e.source);
   }
-  return false; // GYM / NONE: locked
+  if (kind === 'GYM') {
+    if (e.submittedBy === viewerId) return true;
+    if (shares.some((s) => s.evidenceId === e.id && s.sharedWithRole === 'GYM')) return true;
+    return e.sensitivity !== 'SENSITIVE' && GYM_OWN_SOURCES.includes(e.source); // the branch's own data + the complaint text it must answer; never the member's documents
+  }
+  return false;
+}
+
+/** Evidence sources the Gym may see about its own branch (C10). */
+export const GYM_OWN_SOURCES: readonly string[] = ['COMPLAINT_RECORD', 'GYM_RECORD', 'MEMBERSHIP_RECORD', 'CHECKIN_SUMMARY'];
+
+/** The Gym never learns who the member is: identity fields are removed from every payload it is shown. */
+export function gymSafePayload(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object') return payload;
+  const drop = new Set(['reporterUserId', 'clientId', 'paymentTxnId', 'declaredSha256']);
+  return Object.fromEntries(Object.entries(payload as Record<string, unknown>).filter(([k]) => !drop.has(k)));
 }
 
 export interface StatementLike {
@@ -205,6 +226,7 @@ export interface StatementLike {
 export function statementVisibleTo(s: StatementLike, kind: ViewerKind, viewerId: string, shares: readonly ShareLike[]): boolean {
   if (kind === 'ADMIN') return true;
   if (kind === 'MEMBER') return s.authorUserId === viewerId || s.partyRole === 'MEMBER' || shares.some((x) => x.statementId === s.id && x.sharedWithRole === 'MEMBER');
+  if (kind === 'GYM') return s.authorUserId === viewerId || s.partyRole === 'GYM' || shares.some((x) => x.statementId === s.id && x.sharedWithRole === 'GYM');
   return false;
 }
 
@@ -392,9 +414,56 @@ export function memberProgressLabel(status: CaseStatus, execStatus: string): str
       return 'Cần bạn bổ sung thông tin';
     case 'REJECTED_INTAKE':
       return 'Không tiếp nhận';
+    case 'APPEAL_REVIEW':
+      return 'Đang xem xét kháng nghị';
     case 'DECISION_APPROVED':
       return execStatus === 'BUSINESS_DONE' ? 'Đã xử lý' : 'Đang xem xét';
     default:
       return 'Đang xem xét';
   }
+}
+
+// ── A1: SLA, response deadlines, appeal window (pure) ────────────────────────────────────────────────────────────
+
+export const SLA_WARN_DAYS = 10;
+export const SLA_OVERDUE_DAYS = 14;
+export const FIRST_RESPONSE_HOURS = 72;
+export const SUPPLEMENT_ROUND_HOURS = 48;
+export const APPEAL_WINDOW_DAYS = 14;
+const DAY_MS = 24 * 3600 * 1000;
+
+export type SlaState = 'OK' | 'WARNING' | 'OVERDUE';
+/** D61-style: CALENDAR days from the first report. Being overdue only escalates and notifies; it never rules, releases or refunds. */
+export function slaOf(startedAt: Date, now: Date): { ageDays: number; state: SlaState } {
+  const ageDays = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / DAY_MS));
+  return { ageDays, state: ageDays >= SLA_OVERDUE_DAYS ? 'OVERDUE' : ageDays >= SLA_WARN_DAYS ? 'WARNING' : 'OK' };
+}
+
+export type DeadlineKind = 'FIRST_RESPONSE' | 'SUPPLEMENT_ROUND';
+/** The clock starts at the DELIVERED notice (never at the attempt) and runs in continuous hours. */
+export function deadlineDueAt(noticeAt: Date, kind: DeadlineKind): Date {
+  return new Date(noticeAt.getTime() + (kind === 'FIRST_RESPONSE' ? FIRST_RESPONSE_HOURS : SUPPLEMENT_ROUND_HOURS) * 3600 * 1000);
+}
+
+/** 14 days from the VALID (delivered) conclusion notice. No valid notice = the window never started, so it is not closed. */
+export function appealWindow(noticeAt: Date | null, now: Date): { open: boolean; closesAt: Date | null } {
+  if (!noticeAt) return { open: true, closesAt: null };
+  const closesAt = new Date(noticeAt.getTime() + APPEAL_WINDOW_DAYS * DAY_MS);
+  return { open: now.getTime() <= closesAt.getTime(), closesAt };
+}
+
+// ── C9: honest verification label of an evidence row (never "SERVER_VERIFIED") ────────────────────────────────────
+
+export type VerificationStatus = 'SERVER_OBSERVED' | 'RECORD_HASH_ONLY' | 'DECLARED_NOT_VERIFIED';
+/**
+ * SERVER_OBSERVED = the system read the value itself. RECORD_HASH_ONLY = the hash covers the stored RECORD (e.g. a photo token), NOT the file's bytes.
+ * DECLARED_NOT_VERIFIED = a party declared a file hash that nobody checked. No row of this layer is ever "SERVER_VERIFIED".
+ */
+export function verificationOf(source: string): VerificationStatus {
+  if (source === 'COMPLAINT_PHOTO') return 'RECORD_HASH_ONLY';
+  if (source === 'PARTY_DOCUMENT') return 'DECLARED_NOT_VERIFIED';
+  return 'SERVER_OBSERVED';
+}
+export function verificationLabelVi(v: VerificationStatus): string {
+  return v === 'RECORD_HASH_ONLY' ? 'Chỉ băm bản ghi của ảnh, chưa kiểm chứng nội dung tệp' : v === 'DECLARED_NOT_VERIFIED' ? 'Mã băm do người nộp tự khai, chưa kiểm chứng' : 'Hệ thống tự ghi nhận';
 }

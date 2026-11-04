@@ -6,6 +6,7 @@ import { logger, metricsMiddleware, register } from '@gym-coach/shared';
 import { isLambdaRuntime } from './utils/runtime.util';
 import publicRoutes from './routes/public.routes';
 import ownerRoutes from './routes/owner.routes';
+import ownerComplaintCaseRoutes from './routes/owner-complaint-case.routes';
 import clientRoutes from './routes/client.routes';
 import ptRoutes from './routes/pt.routes';
 import adminRoutes from './routes/admin.routes';
@@ -53,6 +54,7 @@ app.get('/metrics', async (_req, res) => {
 });
 
 app.use('/', publicRoutes);
+app.use('/owner/complaint-cases', ownerComplaintCaseRoutes);
 app.use('/owner', ownerRoutes);
 app.use('/', clientRoutes);
 app.use('/', ptRoutes);

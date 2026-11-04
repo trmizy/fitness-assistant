@@ -1854,6 +1854,14 @@ router.post(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
+// C10 - the Gym's evidence / explanation surface of a gym complaint case (gym-service re-checks the branch scope; there is no deciding route behind it).
+router.use(
+  '/owner/complaint-cases',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
 // Owner — gym/plan/membership/wallet management (gym-service verifies per-row ownership)
 router.use(
   '/owner/gyms',

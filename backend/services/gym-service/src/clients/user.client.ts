@@ -139,6 +139,20 @@ export const userClient = {
   },
 
   /**
+   * A1: like notifyUser, but the caller learns whether user-service ACCEPTED the notification (its row exists). A response deadline or the appeal window starts only
+   * from a delivered notice. Never throws.
+   */
+  async notifyUserChecked(params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }): Promise<boolean> {
+    try {
+      await axios.post(`${USER_SERVICE_URL}/internal/notifications`, params, { headers, timeout: 5000 });
+      return true;
+    } catch (e) {
+      logger.error({ err: (e as Error).message, userId: params.userId }, '[gym-service] gửi thông báo thất bại (không bắt đầu hạn nào từ thông báo này)');
+      return false;
+    }
+  },
+
+  /**
    * Listing Management B22 - realtime tell to the admins' open sessions (user-service `/internal/admin-broadcast`, which
    * relays to chat-service). Nothing is stored. Best-effort: a failure is logged and never reaches the caller.
    */

@@ -70,6 +70,7 @@ router.get('/complaint-photos/:token', ...gate, asyncHandler(complaintPhotoContr
 router.get('/me/complaint-cases', ...gate, asyncHandler(complaintCaseController.listMine));
 router.get('/me/complaint-cases/:id', ...gate, asyncHandler(complaintCaseController.detailMine));
 router.post('/me/complaint-cases/:id/statements', ...gate, asyncHandler(complaintCaseController.statementMine));
+router.post('/me/complaint-cases/:id/appeal', ...gate, asyncHandler(complaintCaseController.appealMine));
 router.post('/me/complaint-cases/:id/evidence', ...gate, asyncHandler(complaintCaseController.evidenceMine));
 
 export default router;

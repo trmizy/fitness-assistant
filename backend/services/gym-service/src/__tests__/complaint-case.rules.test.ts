@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  GYM_PARTY_ENABLED,
+  GYM_EXPLAINER_ENABLED,
+  GYM_CAN_DECIDE,
+  gymSafePayload,
+  slaOf,
+  deadlineDueAt,
+  appealWindow,
+  verificationOf,
+  verificationLabelVi,
+  
   MONEY_CLASSES,
   TRANSITIONS,
   canTransition,
@@ -56,7 +64,8 @@ test('MEM_ACCESS and GYM_GENERAL have NO money exit even when established; not e
 });
 
 test('status machine: terminal states have no exit; the manual endpoint cannot reach DECISION_APPROVED, AWAITING_APPROVAL or FINDING_RECORDED', () => {
-  assert.deepEqual(TRANSITIONS.DECISION_APPROVED, []);
+  assert.deepEqual(TRANSITIONS.DECISION_APPROVED, ['APPEAL_REVIEW'], 'the only way out is the single appeal');
+  assert.deepEqual(TRANSITIONS.APPEAL_REVIEW, ['ASSESSING']);
   assert.deepEqual(TRANSITIONS.REJECTED_INTAKE, []);
   assert.equal(canTransition('ASSESSING', 'FINDING_RECORDED'), true);
   assert.equal(canTransitionManually('ASSESSING', 'FINDING_RECORDED'), false);
@@ -77,17 +86,51 @@ test('four eyes: proposer, investigator, reporter, gym owner and a missing decla
   assert.equal((checkApprover({ ...base, approverRole: 'CUSTOMER' }) as any).code, 'ADMIN_ONLY');
 });
 
-test('the Gym is NOT a party (policy lock): its people see nothing, even when scoped to the branch', () => {
-  assert.equal(GYM_PARTY_ENABLED, false);
+test('C10: the Gym is an EXPLAINER inside its branch (evidence + explanation), never a decider; outsiders see nothing', () => {
+  assert.equal(GYM_EXPLAINER_ENABLED, true);
+  assert.equal(GYM_CAN_DECIDE, false);
   const c = { reporterUserId: 'm1', gymId: 'g1' };
-  assert.equal(viewerKind({ userId: 'o1', role: 'GYM_OWNER', gymIds: ['g1'] }, c), 'NONE');
+  assert.equal(viewerKind({ userId: 'o1', role: 'GYM_OWNER', gymIds: ['g1'] }, c), 'GYM');
+  assert.equal(viewerKind({ userId: 'o2', role: 'GYM_OWNER', gymIds: ['g2'] }, c), 'NONE', 'another branch');
+  assert.equal(viewerKind({ userId: 'o1', role: 'GYM_OWNER' }, c), 'NONE', 'no branch scope');
   assert.equal(viewerKind({ userId: 'a1', role: 'ADMIN' }, c), 'ADMIN');
   assert.equal(viewerKind({ userId: 'm1', role: 'CUSTOMER' }, c), 'MEMBER');
   assert.equal(viewerKind({ userId: 'm2', role: 'CUSTOMER' }, c), 'NONE');
-  const ev = { id: 'e1', source: 'GYM_RECORD', submittedBy: null, sensitivity: 'NORMAL', scopeGymId: 'g1' };
-  assert.equal(evidenceVisibleTo(ev, 'NONE', 'o1', 'g1', []), false);
-  assert.equal(evidenceVisibleTo(ev, 'GYM', 'o1', 'g1', []), false);
+  const mk = (source: string, over: object = {}) => ({ id: 'e-' + source, source, submittedBy: null, sensitivity: 'NORMAL', scopeGymId: 'g1', ...over });
+  for (const s of ['COMPLAINT_RECORD', 'GYM_RECORD', 'MEMBERSHIP_RECORD', 'CHECKIN_SUMMARY']) assert.equal(evidenceVisibleTo(mk(s), 'GYM', 'o1', 'g1', []), true, s);
+  assert.equal(evidenceVisibleTo(mk('PARTY_DOCUMENT', { submittedBy: 'm1' }), 'GYM', 'o1', 'g1', []), false, "the member's document stays hidden");
+  assert.equal(evidenceVisibleTo(mk('COMPLAINT_PHOTO'), 'GYM', 'o1', 'g1', []), false);
+  assert.equal(evidenceVisibleTo(mk('PARTY_DOCUMENT', { submittedBy: 'm1' }), 'GYM', 'o1', 'g1', [{ evidenceId: 'e-PARTY_DOCUMENT', statementId: null, sharedWithRole: 'GYM' }]), true, 'unless an admin shared it');
+  assert.equal(evidenceVisibleTo(mk('GYM_RECORD', { scopeGymId: 'g2' }), 'GYM', 'o1', 'g1', []), false, 'another branch');
+  assert.equal(evidenceVisibleTo(mk('GYM_RECORD'), 'NONE', 'x', 'g1', []), false);
+  assert.equal(statementVisibleTo({ id: 's', partyRole: 'MEMBER', authorUserId: 'm1' }, 'GYM', 'o1', []), false);
+  assert.equal(statementVisibleTo({ id: 's2', partyRole: 'GYM', authorUserId: 'o9' }, 'GYM', 'o1', []), true, "a teammate's explanation is the Gym's");
   assert.equal(statementVisibleTo({ id: 's', partyRole: 'MEMBER', authorUserId: 'm1' }, 'NONE', 'o1', []), false);
+  // the member's identity never reaches the Gym
+  assert.deepEqual(gymSafePayload({ reporterUserId: 'm1', clientId: 'm1', paymentTxnId: 't', issueType: 'BILLING', status: 'ACTIVE' }), { issueType: 'BILLING', status: 'ACTIVE' });
+});
+
+test('A1 pure rules: SLA day 10 / 14, deadlines 72h / 48h from a delivered notice, appeal 14 days from the delivered conclusion notice', () => {
+  const t0 = new Date('2026-11-01T00:00:00Z');
+  const at = (d: number, h = 0) => new Date(t0.getTime() + (d * 24 + h) * 3600_000);
+  assert.deepEqual([slaOf(t0, at(9, 23)).state, slaOf(t0, at(10)).state, slaOf(t0, at(13, 23)).state, slaOf(t0, at(14)).state], ['OK', 'WARNING', 'WARNING', 'OVERDUE']);
+  assert.equal(slaOf(t0, at(14)).ageDays, 14);
+  assert.equal(deadlineDueAt(t0, 'FIRST_RESPONSE').getTime() - t0.getTime(), 72 * 3600_000);
+  assert.equal(deadlineDueAt(t0, 'SUPPLEMENT_ROUND').getTime() - t0.getTime(), 48 * 3600_000);
+  assert.equal(appealWindow(t0, at(14)).open, true);
+  assert.equal(appealWindow(t0, at(14, 1)).open, false);
+  assert.deepEqual(appealWindow(null, at(400)), { open: true, closesAt: null }, 'no valid notice: the window never started');
+  assert.equal(TRANSITIONS.DECISION_APPROVED.join(), 'APPEAL_REVIEW');
+  assert.equal(canTransitionManually('DECISION_APPROVED', 'APPEAL_REVIEW'), false, 'only the appeal service can re-open');
+  assert.equal(canTransitionManually('REJECTED_INTAKE', 'ASSESSING'), false);
+});
+
+test('C9: photo evidence is labelled RECORD_HASH_ONLY, a party document DECLARED_NOT_VERIFIED, system rows SERVER_OBSERVED - nothing is ever SERVER_VERIFIED', () => {
+  assert.equal(verificationOf('COMPLAINT_PHOTO'), 'RECORD_HASH_ONLY');
+  assert.equal(verificationOf('PARTY_DOCUMENT'), 'DECLARED_NOT_VERIFIED');
+  for (const s of ['COMPLAINT_RECORD', 'GYM_RECORD', 'MEMBERSHIP_RECORD', 'CHECKIN_SUMMARY']) assert.equal(verificationOf(s), 'SERVER_OBSERVED');
+  for (const s of ['COMPLAINT_PHOTO', 'PARTY_DOCUMENT', 'COMPLAINT_RECORD', 'ANYTHING_ELSE']) assert.notEqual(verificationOf(s) as string, 'SERVER_VERIFIED');
+  assert.match(verificationLabelVi('RECORD_HASH_ONLY'), /chưa kiểm chứng nội dung tệp/);
 });
 
 test('evidence access by role and branch: member sees own/shared/own-data, never the gym record or another branch; admin sees all', () => {

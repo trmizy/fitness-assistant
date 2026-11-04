@@ -3,8 +3,12 @@ import { ZodError, z, type ZodTypeAny } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { complaintCaseService, type Actor } from '../services/complaint-case/case.service';
 import { complaintCaseExecutionService } from '../services/complaint-case/execution.service';
+import { appealService } from '../services/complaint-case/appeal.service';
+import { explainerService, type GymScope } from '../services/complaint-case/explainer.service';
 import {
   ackBody,
+  appealBody,
+  assignReviewerBody,
   assessmentBody,
   assignBody,
   claimBody,
@@ -70,6 +74,11 @@ async function run(
 }
 
 const idParam = (req: Request) => String(req.params.id);
+function gymScopeOf(req: Request): GymScope {
+  const p = req.partner;
+  if (!p || !req.user) throw Object.assign(new Error('Không xác định được tài khoản đối tác'), { status: 403, code: 'PARTNER_CONTEXT_UNRESOLVED' });
+  return { principalUserId: p.principalUserId, userId: req.user.userId, role: p.role, scopedGymIds: p.scopedGymIds };
+}
 const historyQuery = z.object({ limit: z.coerce.number().int().min(1).max(500).default(200), offset: z.coerce.number().int().min(0).max(100000).default(0) }).strict();
 
 export const complaintCaseController = {
@@ -96,7 +105,7 @@ export const complaintCaseController = {
   requestMore: (req: Request, res: Response) =>
     run(req, res, 'request-more', async (a, k) => {
       const b = parse(requestMoreBody, req.body);
-      const r = await complaintCaseService.requestMore(a, idParam(req), b.to, b.note, k);
+      const r = await complaintCaseService.requestMore(a, idParam(req), b.to, b.note, k, b.parties);
       return { data: r.result, replayed: r.replayed };
     }),
   recollect: (req: Request, res: Response) =>
@@ -158,7 +167,32 @@ export const complaintCaseController = {
       return { data: await complaintCaseExecutionService.reconcileExecution(a, idParam(req)) };
     }),
 
+  assignAppealReviewer: (req: Request, res: Response) =>
+    run(req, res, 'appeal-assign', async (a, k) => {
+      const r = await appealService.assignReviewer(a, idParam(req), parse(assignReviewerBody, req.body).reviewerId, k);
+      return { data: r.result, replayed: r.replayed };
+    }),
+
+  // ── Gym (C10: evidence + explanation within its branch scope; owner router resolves the partner context) ──
+  gymList: (req: Request, res: Response) => run(req, res, 'gym-list', async () => ({ data: await explainerService.list(gymScopeOf(req)) })),
+  gymDetail: (req: Request, res: Response) => run(req, res, 'gym-detail', async (a) => ({ data: await explainerService.get(a, gymScopeOf(req), idParam(req)) })),
+  gymExplain: (req: Request, res: Response) =>
+    run(req, res, 'gym-explain', async (a, k) => {
+      const r = await explainerService.explain(a, gymScopeOf(req), idParam(req), parse(statementBody, req.body), k);
+      return { status: 201, data: r.result, replayed: r.replayed };
+    }),
+  gymEvidence: (req: Request, res: Response) =>
+    run(req, res, 'gym-evidence', async (a, k) => {
+      const r = await explainerService.addEvidence(a, gymScopeOf(req), idParam(req), parse(evidenceBody, req.body), k);
+      return { status: 201, data: r.result, replayed: r.replayed };
+    }),
+
   // ── Member (reporter) ────────────────────────────────────────────────────────────────────────────────────────
+  appealMine: (req: Request, res: Response) =>
+    run(req, res, 'appeal', async (a, k) => {
+      const r = await appealService.fileAppeal(a, idParam(req), parse(appealBody, req.body), k);
+      return { status: 201, data: r.result, replayed: r.replayed };
+    }),
   listMine: (req: Request, res: Response) => run(req, res, 'list-mine', async (a) => ({ data: await complaintCaseService.listForMember(a) })),
   detailMine: (req: Request, res: Response) => run(req, res, 'detail-mine', async (a) => ({ data: await complaintCaseService.getForMember(a, idParam(req)) })),
   statementMine: (req: Request, res: Response) =>
