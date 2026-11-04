@@ -16,16 +16,16 @@ Original answer SHA-256: `1628d7944f4c357dbb2933d10c402490c77ca8fa68f7170182b57c
 - `ai-coach-claim-dev/pipeline.ts`: thêm version V3; giữ nguyên kết quả byte của V1/V2 cho các version hợp lệ, bao gồm cả ví dụ V2 lịch sử. Unknown runtime version fail-closed thay vì rơi vào V2.
 - V3 reuse nguyên user projection V2, chỉ thay output example trong system và thêm reference/measurement rules. Ví dụ V3 parse trực tiếp qua `ClaimAnalysisSchema`, không enum alternatives hoặc invented ID/hash. `factIds`, `sourceLinks`, `claimLinks` có đủ theo schema. Ví dụ format không phải đáp án/gold của case.
 - `claimLinks` chỉ copy exact ID/hash trong `allowedReferences.knowledgeClaims`; list rỗng phải có `claimLinks: []`. Không scientific excerpts thì `sourceLinks: []`, `evidenceIds: []`. C20/C23/C24 chỉ là product policies. Không tạo ID/hash/excerpt/fact giả.
-- `ESTIMATED_1RM` không được đổi thành `DIRECT_1RM`, bất kể delta lớn nhỏ. Mô tả e1RM tăng/giảm hữu ích phải giữ nhãn ước tính trong observation và rationale, copy metricAssertion từ projection khi đủ field; giữ quality/method/exercise/unit/window/provenance, nêu protocol chưa biết. Không tự tính lại số hoặc suy ra causality, training effectiveness hay independent verification.
+- `ESTIMATED_1RM` không được đổi thành `DIRECT_1RM`, bất kể delta lớn nhỏ. Mô tả e1RM tăng/giảm hữu ích phải giữ nhãn ước tính trong observation và rationale, copy metricAssertion từ projection khi đủ field; giữ quality/method/exercise/unit/window/provenance, nêu protocol chưa biết. Assessment scope vẫn theo câu hỏi/assessmentTask: có e1RM observation không buộc câu hỏi muscle-size đổi outcome thành estimated strength. Không tự tính lại số hoặc suy ra causality, training effectiveness hay independent verification.
 - `bedrock-pilot/config.ts`: cho phép chọn V3 **tường minh, chỉ với Nova protocol**. Explicit V2 còn để đọc/replay lịch sử; không có automatic fallback từ V3. V3 có prompt/config hashes khác nên approval V2 không bind được V3. Mặc định E2/V1, Mantle và các CLI khác không tự chuyển sang V3.
 
 Không đổi canonical output schema, retrieval/ranking, scientific packets, cases, transport, evaluator, gate, D1/D2/D3, budget, retries hoặc repair behavior. Existing schema đã chặn hai output gốc (`invalid_string` tại `claimLinks.0.knowledgeClaimHash`). Hash giả đủ 64 hex vẫn bị identity gate chặn; không cần viết lại gate.
 
 ## Regression và semantic boundary
 
-`ai-coach-claim-prompt-v3.test.ts`: **11/11 pass** trong targeted TEST FIXTURE run, trước clean-checkout regression. Bao gồm bảy cases bắt buộc: C20, fabricated hash, missing/malformed links, unavailable excerpt, fabricated evidence khi knowledge rỗng, valid Context và valid RAG exact bindings; phân biệt schema INVALID với schema VALID nhưng identity INVALID; raw không bị sửa.
+`ai-coach-claim-prompt-v3.test.ts`: **12/12 pass** trong targeted TEST FIXTURE run, trước final clean-checkout regression. Bao gồm bảy cases bắt buộc: C20, fabricated hash, missing/malformed links, unavailable excerpt, fabricated evidence khi knowledge rỗng, valid Context và valid RAG exact bindings; phân biệt schema INVALID với schema VALID nhưng identity INVALID; raw không bị sửa.
 
-Các checks khác: ví dụ JSON parse trực tiếp; reference/measurement instructions; structured estimated→direct mismatch bị BLOCKED; narrative và conclusion vẫn UNKNOWN cần semantic review; bốn fixed V1/V2 synthetic prompt digests từ checkout lịch sử; Nova-only version selection, unsupported version rejection, old approval binding khác, zero retries và LIVE thiếu authority bị từ chối.
+Các checks khác: ví dụ JSON parse trực tiếp; reference/measurement instructions; structured estimated→direct mismatch bị BLOCKED; narrative và conclusion vẫn UNKNOWN cần semantic review; e1RM observation vẫn cho phép MUSCLE_SIZE/UNSPECIFIED khi câu hỏi cần scope đó; bốn fixed V1/V2 synthetic prompt digests từ checkout lịch sử; Nova-only version selection, unsupported version rejection, old approval binding khác, zero retries và LIVE thiếu authority bị từ chối.
 
 Không dùng regex để tuyên bố scientific entailment. Structured metric copy đúng không xác nhận narrative. Human reviewer phải đọc mọi observation, conclusion và câu hỏi, kiểm tra estimated/direct distinction, causal/effectiveness overreach, method/quality/window/protocol và usefulness. Scientific support/personal applicability vẫn UNKNOWN. Prompt compliance/model quality V3 **NOT_MEASURED**.
 
@@ -39,24 +39,24 @@ Model `amazon.nova-pro-v1:0`, region `us-east-1`, policy MINIMAL. CAL01/CAL06 ×
 
 | Case / arm | tokenPayloadHash V3 |
 | --- | --- |
-| CAL01 / Context | `cf415ff20626e0e5623621bf1b6ae19fa73b5210270cb1887ce7d10d122a6e59` |
-| CAL01 / RAG | `4eacb7bc68c916a30891558e93890eeb97183840899d77880634092f00021622` |
-| CAL06 / Context | `a547ab564c5d81ebaeba80a2741a8a4faad4fafe65e4d1338342017416386f62` |
-| CAL06 / RAG | `2240e7f6bffb14f2bab061e024ff026a308e21d3c8304347b0b88e7bb4cadc46` |
+| CAL01 / Context | `8623d1c431fe45a569381a8739b6fdd28569831eec35878e46df2b0221f94944` |
+| CAL01 / RAG | `acdcb1b4ca81b115102342a7d03af4292b524a216916b8afc10e5e985cdab500` |
+| CAL06 / Context | `7a2ecc05d5893c2e8e559693cf5c7e66e5db02e946c3e864a50aac04cee96c75` |
+| CAL06 / RAG | `2a96fad2bb66d883b8d84ceedcd10b74471502905c67119b351dc6f0d8946176` |
 
 | Case / arm | measureRequestHash | inferenceRequestHash |
 | --- | --- | --- |
-| CAL01 / Context | `85eeea4bc02ea9c809a2451451fe115eabab9871538d6795b433eb611b668687` | `f0e607d76b1c3f685fb0a9fcad9f4d7b3c7008bb0629d8415a5870c16a355891` |
-| CAL01 / RAG | `317518f12f02b98822e136bfd5eda52b9ae7f9e97772e9af95a3716d9968e228` | `b365e55d47cccf62e9e4e02bfe36fc4cfab4c0f0721bc42dd8b3518ca3d87df5` |
-| CAL06 / Context | `671f63e42a5d85f399c45a6d2fc8bc2cb55db9aa7ccd9b12a7ea411a3149a66a` | `e98eb4c517afb4eb5d0490859f4c445141273fafea03bd7ab5428f8e0c4097c4` |
-| CAL06 / RAG | `c95ad0d0308890069a72195f7b277f2566a67d66c599a282b8c3d004a6cdc019` | `e2da82b016bc43fae7c2c6dc304114ff13e6cd71ad9c866f462f708bd0d3b557` |
+| CAL01 / Context | `fb6d4cfdb04f97f1565acad51635e12a730ce752cc79a60ea7ea5fcecda21baa` | `704dfca2ab082b5512933ec214bd456a9a7aec9180b47d4245cfffa2acce0a2b` |
+| CAL01 / RAG | `4669f8c82be036d34cff11c1464a1afae5d79b0c2295e52f6b176aed4fb313de` | `da7041006424c9b9895c75d620239e73999f31fc3eec8da8118fed46910e283b` |
+| CAL06 / Context | `38dcc1ae042d54d881cd79ac21d5a5371fb303ad8d84e532001e6d33871d437e` | `b8a86c25419f430408be0cb4a34ab96179bb5f4330de6befd37b08a27853a74f` |
+| CAL06 / RAG | `32710f003aec15e19d900dc921dc440ebd1822a96792357bc51e25d75bbe7f2a` | `d6d087ad8e93972df950c5e003526030d1936bb58f32b7c2ae011b8c57cc0354` |
 
-promptHashes (cùng thứ tự): `39d586924d7a9f8dbe8df55c831d4999a007be4d447d2c4f6f480cdcd1599700`, `fe0910fc955a599720b9262ed990f98aed0702c985b25fec7ba388911778f0b0`, `6c1c96132cfe080d9fe081d8292534ff4b968ef78e55f9b29b1fdc15706a658c`, `e4b175e51ac2d431a893d86fe16687713dd6efee088f2436a37b1069a46ae0c9`.
+promptHashes (cùng thứ tự): `7b6d5a4eed67442f95106662eca95a7810c6c3e5ba6ca642aad3599aa69c6d4f`, `bb2751f21d3cf33deba1e4c0f2ef8680f4c09741802b0e0126402627aef1652f`, `60bff7512863c5345348b7085428787481788e22c448240050c7ddc61ddf284c`, `8b9b2642b0125dfb3a934d16784d993391a7f66dc69657cc59daaa3ac3d1090a`.
 
-Inference request sizes: 12.655 / 28.352 / 12.633 / 20.179 bytes; không coi bytes là tokens hoặc tự nâng cap 12.000 tokens. V3 --check CPU preparation xác nhận V1/V2 khớp historical manifests; V2/V3 user bytes, requestHash, full ClaimContext, retrieval và exact excerpt bindings giữ nguyên. Không local paths, structured case-label keys hoặc frozen label hashes trong model-facing payload. Source owner-approval/policy metadata là provenance/policy hiện hành, không phải case gold; kiểm tra này không chứng minh mọi free-text privacy leak đã được phát hiện.
+Inference request sizes: 12.775 / 28.472 / 12.753 / 20.299 bytes; không coi bytes là tokens hoặc tự nâng cap 12.000 tokens. V3 --check CPU preparation xác nhận V1/V2 khớp historical manifests; V2/V3 user bytes, requestHash, full ClaimContext, retrieval và exact excerpt bindings giữ nguyên. Không local paths, structured case-label keys hoặc frozen label hashes trong model-facing payload. Source owner-approval/policy metadata là provenance/policy hiện hành, không phải case gold; kiểm tra này không chứng minh mọi free-text privacy leak đã được phát hiện.
 
 ## Owner / independent review location và giới hạn
 
-Private create-only package: `C:/D_Backup/project_personal/gymini-review-local/e3-owner-prep/nova-warmup-payload-preview-2026-11-04-v3/`. Chứa bốn exact measurement/inference pairs, system/user và full human preview, V2→V3 diff, prompt/payload/pins/hash manifest và provenance checks. Final package được sinh từ clean committed code; chỉ package mới, không ghi đè V2 hoặc owner decisions. Không commit package/fixtures/journal/private config.
+Private create-only final package: `C:/D_Backup/project_personal/gymini-review-local/e3-owner-prep/nova-warmup-payload-preview-2026-11-04-v3-r2/`. Chứa bốn exact measurement/inference pairs, system/user và full human preview, V2→V3 diff, prompt/payload/pins/hash manifest và provenance checks. Final package được sinh từ clean committed code; chỉ package mới, không ghi đè V2 hoặc owner decisions. Draft V3 tại `a0b99901` còn nguyên trong thư mục `...-v3/`, chưa được duyệt và được final manifest đánh dấu superseded; r2 chỉ làm rõ scope của assessment để không gán nhầm outcome vì một observation dùng e1RM. Không commit package/fixtures/journal/private config.
 
 V2 approvals, run-1 và CLAIMED ledger vẫn là lịch sử, không cấp quyền cho V3. V3 cần independent prompt review và owner quyết định mới trước một authorization task riêng; nhiệm vụ này không xin hoặc tạo LIVE authorization, signature/trust root/issued ledger. Thay prompt không chứng minh Nova đã tuân thủ hoặc tư vấn tốt hơn. Không tiếp tục AWS LIVE từ bàn giao này.

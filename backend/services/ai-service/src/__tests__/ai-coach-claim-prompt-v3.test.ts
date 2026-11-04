@@ -127,6 +127,21 @@ test("structured e1RM cannot become DIRECT_1RM; copied metrics never verify pros
   assert.equal(contradicted.raw, answer); assert.equal(contradicted.scientificPass, null);
 });
 
+test("an e1RM observation does not force the scope of a muscle-size assessment", () => {
+  const p = prepared("LAYERED_CONTEXT", 4);
+  assert.match(p.claimContext.personal.request.question, /cơ ngực/);
+  for (const outcome of ["MUSCLE_SIZE", "UNSPECIFIED"] as const) {
+    const answer = response(p);
+    answer.analysis.assessmentBasis = { outcome, factIds: [] };
+    const result = verifyClaimAnalysis(p.claimContext, answer);
+    assert.equal(result.contractValidity, "VALID");
+    assert.deepEqual(result.identityIssues, []);
+    assert.equal(result.release, "DEV_REVIEW_ONLY");
+    assert.equal(result.scientificPass, null);
+  }
+  assert.match(p.prompt.system, /Chọn assessmentBasis\.outcome theo câu hỏi\/assessmentTask/);
+});
+
 test("historical V1/V2 synthetic prompts remain byte-identical to reviewed cb7d020c outputs", () => {
   // Captured from untouched e3-nova-live-pinned checkout before V3 implementation, not regenerated expected values.
   const pins = {
