@@ -1,0 +1,221 @@
+# ISOLATED E2E environment for Dispute V2.1 (backend + Admin Redesign sessions test against REAL services here).
+#
+#   project name : gymini-e2e-dispute     (ALWAYS pass `-p gymini-e2e-dispute`; scripts/e2e-dispute/*.sh do)
+#   own postgres : container gymini-e2e-dispute-postgres + volume e2e_dispute_pgdata, databases gymini_{auth,user,payment,gym,chat}_e2e
+#   own ports    : 58100 gateway, 58101 auth, 58104 user, 58105 chat, 58106 gym, 58107 payment, 58132 postgres  (all bound to 127.0.0.1)
+#   own source   : every image is BUILT from the worktree this file lives in (src is copied in, Prisma generated in the image). NOTHING from the main tree
+#                  or the dev stack is mounted; there is no db-seeder, no env_file, no .env. Migrations are applied by each service itself at start
+#                  (`prisma migrate deploy`) to ITS OWN database only.
+#   runtime gate : DISPUTE_RUNTIME_MODE=e2e-isolated + DISPUTE_E2E_COMPOSE_MARKER (set only here) + DISPUTE_E2E_DB_ALLOWLIST + NODE_ENV=development.
+#                  ON : execution, evidence storage, D65-B, gym complaint case.   OFF (never permitted here): T0, late-open OPEN-L settlement.
+#   All passwords / secrets below are for THIS throw-away environment only.
+name: gymini-e2e-dispute
+
+x-build: &build
+  context: ../..
+  dockerfile: infra/compose/e2e-dispute/Dockerfile.e2e
+
+x-gate: &gate
+  DISPUTE_RUNTIME_MODE: e2e-isolated
+  DISPUTE_E2E_COMPOSE_MARKER: gymini-e2e-dispute-v1
+  DISPUTE_E2E_DB_ALLOWLIST: gymini_user_e2e,gymini_payment_e2e,gymini_gym_e2e
+
+x-secrets: &secrets
+  JWT_SECRET: e2e_dispute_jwt_secret_0123456789abcdef0123456789abcdef
+  JWT_REFRESH_SECRET: e2e_dispute_jwt_refresh_secret_0123456789abcdef0123456789
+  INTERNAL_SERVICE_SECRET: e2e_dispute_internal_service_secret_0123456789abcdef
+  INTERNAL_API_SECRET: e2e_dispute_internal_api_secret_0123456789abcdef01
+
+x-hc: &hc
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 40s
+
+services:
+  e2e-dispute-postgres:
+    image: postgres:15-alpine
+    container_name: gymini-e2e-dispute-postgres
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      POSTGRES_USER: gymini_e2e
+      POSTGRES_PASSWORD: e2e_dispute_pw
+      POSTGRES_DB: gymini_e2e_admin
+    ports:
+      - "127.0.0.1:58132:5432"
+    volumes:
+      - ./e2e-dispute/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+      - e2e_dispute_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U gymini_e2e -d gymini_e2e_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/auth-service, PKG: "@gym-coach/auth-service" }
+    image: gymini-e2e-dispute/auth-service:local
+    container_name: gymini-e2e-dispute-auth
+    ports: ["127.0.0.1:58101:3001"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3001
+      DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_auth_e2e
+      USER_SERVICE_URL: http://user-service:3004
+      JWT_ACCESS_EXPIRY: 3h
+      JWT_REFRESH_EXPIRY: 7d
+    depends_on: { e2e-dispute-postgres: { condition: service_healthy } }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"], <<: *hc }
+
+  payment-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/payment-service, PKG: "@gym-coach/payment-service" }
+    image: gymini-e2e-dispute/payment-service:local
+    container_name: gymini-e2e-dispute-payment
+    ports: ["127.0.0.1:58107:3007"]
+    environment:
+      <<: [*secrets, *gate]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3007
+      DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_payment_e2e
+      AUTH_SERVICE_URL: http://auth-service:3001
+      GYM_SERVICE_URL: http://gym-service:3006
+      USER_SERVICE_URL: http://user-service:3004
+      PLATFORM_COMMISSION_RATE: "0.10"
+      PAYMENT_PROVIDER: VNPAY
+      # demo checkout page of payment-service (no real money); ignored automatically if NODE_ENV were production
+      VNPAY_SIMULATE: "true"
+      VNPAY_TMN_CODE: E2EDISPUTE
+      VNPAY_HASH_SECRET: e2e_dispute_vnpay_hash_secret_0123456789
+      FRONTEND_URL: http://localhost:5173
+      # late-open OPEN-L settlement: deliberately NOT set (and never permitted by the e2e gate)
+    depends_on: { e2e-dispute-postgres: { condition: service_healthy } }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"], <<: *hc }
+
+  user-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/user-service, PKG: "@gym-coach/user-service" }
+    image: gymini-e2e-dispute/user-service:local
+    container_name: gymini-e2e-dispute-user
+    stop_grace_period: 45s
+    ports: ["127.0.0.1:58104:3004"]
+    environment:
+      <<: [*secrets, *gate]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3004
+      DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_user_e2e
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      CHAT_SERVICE_URL: http://chat-service:3005
+      REQUIRE_CONTRACT_ESIGN: "false"
+      # --- Dispute flags ON in this environment (each is still subject to the runtime gate) ---
+      DISPUTE_CASE_EXECUTION_ENABLED: "true"
+      DISPUTE_CASE_EVIDENCE_STORAGE_ENABLED: "true"
+      DISPUTE_CASE_D65B_RESOLUTION_ENABLED: "true"
+      DISPUTE_CASE_EVIDENCE_DIR: /var/lib/gymini-e2e/dispute-evidence
+      # --- OFF here, and never permitted by the e2e gate even if set: T0 and late-open OPEN-L ---
+      DISPUTE_CASE_T0: "false"
+      DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED: "false"
+      # the executor sweep ticks faster than the 60 s default so a crash-recovery demo does not take minutes
+      DISPUTE_EXECUTION_SWEEP_INTERVAL_MS: "30000"
+    volumes:
+      - e2e_dispute_evidence:/var/lib/gymini-e2e/dispute-evidence
+    depends_on:
+      e2e-dispute-postgres: { condition: service_healthy }
+      payment-service: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"], <<: *hc }
+
+  gym-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/gym-service, PKG: "@gym-coach/gym-service" }
+    image: gymini-e2e-dispute/gym-service:local
+    container_name: gymini-e2e-dispute-gym
+    ports: ["127.0.0.1:58106:3006"]
+    environment:
+      <<: [*secrets, *gate]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3006
+      DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_gym_e2e
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      USER_SERVICE_URL: http://user-service:3004
+      GYM_COMPLAINT_CASE_ENABLED: "true"
+      PARTNER_APPLICATION_DEV_ECHO: "false"
+    depends_on:
+      e2e-dispute-postgres: { condition: service_healthy }
+      payment-service: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"], <<: *hc }
+
+  chat-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/chat-service, PKG: "@gym-coach/chat-service" }
+    image: gymini-e2e-dispute/chat-service:local
+    container_name: gymini-e2e-dispute-chat
+    ports: ["127.0.0.1:58105:3005"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3005
+      CHAT_SERVICE_PORT: 3005
+      DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_chat_e2e
+      CHAT_DATABASE_URL: postgresql://gymini_e2e:e2e_dispute_pw@e2e-dispute-postgres:5432/gymini_chat_e2e
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CORS_ORIGIN: http://localhost:5173
+    depends_on: { e2e-dispute-postgres: { condition: service_healthy } }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"], <<: *hc }
+
+  api-gateway:
+    build:
+      <<: *build
+      args: { DIR: backend/gateway, PKG: "@gym-coach/api-gateway", PRISMA: "0" }
+    image: gymini-e2e-dispute/api-gateway:local
+    container_name: gymini-e2e-dispute-gateway
+    ports: ["127.0.0.1:58100:3000"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CHAT_SERVICE_URL: http://chat-service:3005
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      # fitness / ai are not part of this environment; their routes answer 502 if called
+      FITNESS_SERVICE_URL: http://fitness-service-not-in-this-env:3002
+      AI_SERVICE_URL: http://ai-service-not-in-this-env:3003
+      CORS_ORIGIN: http://localhost:5173
+      REQUIRE_CONTRACT_ESIGN: "false"
+      PARTNER_APPLICATION_START_RATE_MAX: "200"
+      PARTNER_APPLICATION_RATE_MAX: "600"
+    depends_on:
+      auth-service: { condition: service_healthy }
+      user-service: { condition: service_healthy }
+      gym-service: { condition: service_healthy }
+      chat-service: { condition: service_healthy }
+      payment-service: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"], <<: *hc }
+
+volumes:
+  e2e_dispute_pgdata:
+    name: gymini-e2e-dispute_pgdata
+  e2e_dispute_evidence:
+    name: gymini-e2e-dispute_evidence
+
+networks:
+  default:
+    name: gymini-e2e-dispute_net

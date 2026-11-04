@@ -1,0 +1,28 @@
+# Image of ONE service of the isolated Dispute E2E environment (project gymini-e2e-dispute).
+# Unlike the dev Dockerfiles, the service source is COPIED into the image (no bind mount of any working tree) and the Prisma client is generated here,
+# so what runs is exactly the checked-out worktree this image was built from. Build context = the repo root of that worktree.
+#   ARG DIR     service directory relative to the repo root (backend/services/user-service | backend/gateway)
+#   ARG PKG     pnpm package name
+#   ARG PRISMA  "1" for a service with a Prisma schema (generate at build, `migrate deploy` at start), "0" for the gateway
+FROM node:20-slim
+ARG DIR
+ARG PKG
+ARG PRISMA=1
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN apt-get update && apt-get install -y --no-install-recommends openssl wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY patches ./patches
+COPY backend/shared/package.json ./backend/shared/
+COPY ${DIR}/package.json ./${DIR}/
+RUN pnpm install --filter ${PKG}
+COPY tsconfig.base.json ./
+COPY backend/shared/tsconfig.json ./backend/shared/
+COPY backend/shared/src ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+COPY ${DIR} ./${DIR}
+RUN if [ "$PRISMA" = "1" ]; then pnpm --filter ${PKG} db:generate; fi
+WORKDIR /app/${DIR}
+ENV RUN_PRISMA=${PRISMA}
+CMD ["sh", "-c", "if [ \"$RUN_PRISMA\" = \"1\" ]; then node_modules/.bin/prisma migrate deploy || exit 1; fi; exec node_modules/.bin/tsx src/server.ts"]
