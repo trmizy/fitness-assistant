@@ -191,6 +191,11 @@ export type PtTermsAcceptance = $Result.DefaultSelection<Prisma.$PtTermsAcceptan
  */
 export type DisputeCase = $Result.DefaultSelection<Prisma.$DisputeCasePayload>
 /**
+ * Model DisputePolicyReviewEvent
+ * APPEND-ONLY (trigger). The audit trail of a CONTRACT-LEVEL policy review (it has no Case, so no dispute_case_events row): who proposed / approved, the stored answer for an Idempotency-Key.
+ */
+export type DisputePolicyReviewEvent = $Result.DefaultSelection<Prisma.$DisputePolicyReviewEventPayload>
+/**
  * Model DisputeCasePolicyEligibilityReview
  * APPEND-ONLY (trigger dispute_case_policy_review_guard): the only permitted UPDATE is the one-time approval stamp (approvedBy / approvedAt NULL -> value). The newest APPROVED
  * row of a contract is its effect; a later approved row supersedes an earlier one. A contract with no approved row is not eligible.
@@ -1514,6 +1519,16 @@ export class PrismaClient<
   get disputeCase(): Prisma.DisputeCaseDelegate<ExtArgs>;
 
   /**
+   * `prisma.disputePolicyReviewEvent`: Exposes CRUD operations for the **DisputePolicyReviewEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputePolicyReviewEvents
+    * const disputePolicyReviewEvents = await prisma.disputePolicyReviewEvent.findMany()
+    * ```
+    */
+  get disputePolicyReviewEvent(): Prisma.DisputePolicyReviewEventDelegate<ExtArgs>;
+
+  /**
    * `prisma.disputeCasePolicyEligibilityReview`: Exposes CRUD operations for the **DisputeCasePolicyEligibilityReview** model.
     * Example usage:
     * ```ts
@@ -2165,6 +2180,7 @@ export namespace Prisma {
     ClientCompatEvent: 'ClientCompatEvent',
     PtTermsAcceptance: 'PtTermsAcceptance',
     DisputeCase: 'DisputeCase',
+    DisputePolicyReviewEvent: 'DisputePolicyReviewEvent',
     DisputeCasePolicyEligibilityReview: 'DisputeCasePolicyEligibilityReview',
     DisputeCaseIssue: 'DisputeCaseIssue',
     DisputeCaseClaim: 'DisputeCaseClaim',
@@ -2198,7 +2214,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputePolicyReviewEvent" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4442,6 +4458,76 @@ export namespace Prisma {
           }
         }
       }
+      DisputePolicyReviewEvent: {
+        payload: Prisma.$DisputePolicyReviewEventPayload<ExtArgs>
+        fields: Prisma.DisputePolicyReviewEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputePolicyReviewEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputePolicyReviewEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputePolicyReviewEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputePolicyReviewEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          findMany: {
+            args: Prisma.DisputePolicyReviewEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>[]
+          }
+          create: {
+            args: Prisma.DisputePolicyReviewEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          createMany: {
+            args: Prisma.DisputePolicyReviewEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputePolicyReviewEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputePolicyReviewEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          update: {
+            args: Prisma.DisputePolicyReviewEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputePolicyReviewEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputePolicyReviewEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputePolicyReviewEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputePolicyReviewEventPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputePolicyReviewEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputePolicyReviewEvent>
+          }
+          groupBy: {
+            args: Prisma.DisputePolicyReviewEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputePolicyReviewEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputePolicyReviewEventCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputePolicyReviewEventCountAggregateOutputType> | number
+          }
+        }
+      }
       DisputeCasePolicyEligibilityReview: {
         payload: Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>
         fields: Prisma.DisputeCasePolicyEligibilityReviewFieldRefs
@@ -6367,10 +6453,12 @@ export namespace Prisma {
    */
 
   export type DisputeCasePolicyEligibilityReviewCountOutputType = {
+    events: number
     supersededBy: number
   }
 
   export type DisputeCasePolicyEligibilityReviewCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    events?: boolean | DisputeCasePolicyEligibilityReviewCountOutputTypeCountEventsArgs
     supersededBy?: boolean | DisputeCasePolicyEligibilityReviewCountOutputTypeCountSupersededByArgs
   }
 
@@ -6383,6 +6471,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the DisputeCasePolicyEligibilityReviewCountOutputType
      */
     select?: DisputeCasePolicyEligibilityReviewCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DisputeCasePolicyEligibilityReviewCountOutputType without action
+   */
+  export type DisputeCasePolicyEligibilityReviewCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputePolicyReviewEventWhereInput
   }
 
   /**
@@ -42145,6 +42240,995 @@ export namespace Prisma {
 
 
   /**
+   * Model DisputePolicyReviewEvent
+   */
+
+  export type AggregateDisputePolicyReviewEvent = {
+    _count: DisputePolicyReviewEventCountAggregateOutputType | null
+    _min: DisputePolicyReviewEventMinAggregateOutputType | null
+    _max: DisputePolicyReviewEventMaxAggregateOutputType | null
+  }
+
+  export type DisputePolicyReviewEventMinAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    contractId: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    action: string | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputePolicyReviewEventMaxAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    contractId: string | null
+    actorUserId: string | null
+    actorRole: string | null
+    action: string | null
+    note: string | null
+    idempotencyKey: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputePolicyReviewEventCountAggregateOutputType = {
+    id: number
+    reviewId: number
+    contractId: number
+    actorUserId: number
+    actorRole: number
+    action: number
+    note: number
+    idempotencyKey: number
+    payload: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputePolicyReviewEventMinAggregateInputType = {
+    id?: true
+    reviewId?: true
+    contractId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type DisputePolicyReviewEventMaxAggregateInputType = {
+    id?: true
+    reviewId?: true
+    contractId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    note?: true
+    idempotencyKey?: true
+    createdAt?: true
+  }
+
+  export type DisputePolicyReviewEventCountAggregateInputType = {
+    id?: true
+    reviewId?: true
+    contractId?: true
+    actorUserId?: true
+    actorRole?: true
+    action?: true
+    note?: true
+    idempotencyKey?: true
+    payload?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputePolicyReviewEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputePolicyReviewEvent to aggregate.
+     */
+    where?: DisputePolicyReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputePolicyReviewEvents to fetch.
+     */
+    orderBy?: DisputePolicyReviewEventOrderByWithRelationInput | DisputePolicyReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputePolicyReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputePolicyReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputePolicyReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputePolicyReviewEvents
+    **/
+    _count?: true | DisputePolicyReviewEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputePolicyReviewEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputePolicyReviewEventMaxAggregateInputType
+  }
+
+  export type GetDisputePolicyReviewEventAggregateType<T extends DisputePolicyReviewEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputePolicyReviewEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputePolicyReviewEvent[P]>
+      : GetScalarType<T[P], AggregateDisputePolicyReviewEvent[P]>
+  }
+
+
+
+
+  export type DisputePolicyReviewEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputePolicyReviewEventWhereInput
+    orderBy?: DisputePolicyReviewEventOrderByWithAggregationInput | DisputePolicyReviewEventOrderByWithAggregationInput[]
+    by: DisputePolicyReviewEventScalarFieldEnum[] | DisputePolicyReviewEventScalarFieldEnum
+    having?: DisputePolicyReviewEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputePolicyReviewEventCountAggregateInputType | true
+    _min?: DisputePolicyReviewEventMinAggregateInputType
+    _max?: DisputePolicyReviewEventMaxAggregateInputType
+  }
+
+  export type DisputePolicyReviewEventGroupByOutputType = {
+    id: string
+    reviewId: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note: string | null
+    idempotencyKey: string | null
+    payload: JsonValue | null
+    createdAt: Date
+    _count: DisputePolicyReviewEventCountAggregateOutputType | null
+    _min: DisputePolicyReviewEventMinAggregateOutputType | null
+    _max: DisputePolicyReviewEventMaxAggregateOutputType | null
+  }
+
+  type GetDisputePolicyReviewEventGroupByPayload<T extends DisputePolicyReviewEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputePolicyReviewEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputePolicyReviewEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputePolicyReviewEventGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputePolicyReviewEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputePolicyReviewEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    contractId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    review?: boolean | DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputePolicyReviewEvent"]>
+
+  export type DisputePolicyReviewEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    contractId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    review?: boolean | DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputePolicyReviewEvent"]>
+
+  export type DisputePolicyReviewEventSelectScalar = {
+    id?: boolean
+    reviewId?: boolean
+    contractId?: boolean
+    actorUserId?: boolean
+    actorRole?: boolean
+    action?: boolean
+    note?: boolean
+    idempotencyKey?: boolean
+    payload?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputePolicyReviewEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs>
+  }
+  export type DisputePolicyReviewEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputePolicyReviewEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputePolicyReviewEvent"
+    objects: {
+      review: Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      reviewId: string
+      contractId: string
+      actorUserId: string
+      actorRole: string
+      action: string
+      note: string | null
+      idempotencyKey: string | null
+      payload: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputePolicyReviewEvent"]>
+    composites: {}
+  }
+
+  type DisputePolicyReviewEventGetPayload<S extends boolean | null | undefined | DisputePolicyReviewEventDefaultArgs> = $Result.GetResult<Prisma.$DisputePolicyReviewEventPayload, S>
+
+  type DisputePolicyReviewEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputePolicyReviewEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputePolicyReviewEventCountAggregateInputType | true
+    }
+
+  export interface DisputePolicyReviewEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputePolicyReviewEvent'], meta: { name: 'DisputePolicyReviewEvent' } }
+    /**
+     * Find zero or one DisputePolicyReviewEvent that matches the filter.
+     * @param {DisputePolicyReviewEventFindUniqueArgs} args - Arguments to find a DisputePolicyReviewEvent
+     * @example
+     * // Get one DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputePolicyReviewEventFindUniqueArgs>(args: SelectSubset<T, DisputePolicyReviewEventFindUniqueArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputePolicyReviewEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputePolicyReviewEventFindUniqueOrThrowArgs} args - Arguments to find a DisputePolicyReviewEvent
+     * @example
+     * // Get one DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputePolicyReviewEventFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputePolicyReviewEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputePolicyReviewEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventFindFirstArgs} args - Arguments to find a DisputePolicyReviewEvent
+     * @example
+     * // Get one DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputePolicyReviewEventFindFirstArgs>(args?: SelectSubset<T, DisputePolicyReviewEventFindFirstArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputePolicyReviewEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventFindFirstOrThrowArgs} args - Arguments to find a DisputePolicyReviewEvent
+     * @example
+     * // Get one DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputePolicyReviewEventFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputePolicyReviewEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputePolicyReviewEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputePolicyReviewEvents
+     * const disputePolicyReviewEvents = await prisma.disputePolicyReviewEvent.findMany()
+     * 
+     * // Get first 10 DisputePolicyReviewEvents
+     * const disputePolicyReviewEvents = await prisma.disputePolicyReviewEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputePolicyReviewEventWithIdOnly = await prisma.disputePolicyReviewEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputePolicyReviewEventFindManyArgs>(args?: SelectSubset<T, DisputePolicyReviewEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputePolicyReviewEvent.
+     * @param {DisputePolicyReviewEventCreateArgs} args - Arguments to create a DisputePolicyReviewEvent.
+     * @example
+     * // Create one DisputePolicyReviewEvent
+     * const DisputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.create({
+     *   data: {
+     *     // ... data to create a DisputePolicyReviewEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputePolicyReviewEventCreateArgs>(args: SelectSubset<T, DisputePolicyReviewEventCreateArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputePolicyReviewEvents.
+     * @param {DisputePolicyReviewEventCreateManyArgs} args - Arguments to create many DisputePolicyReviewEvents.
+     * @example
+     * // Create many DisputePolicyReviewEvents
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputePolicyReviewEventCreateManyArgs>(args?: SelectSubset<T, DisputePolicyReviewEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputePolicyReviewEvents and returns the data saved in the database.
+     * @param {DisputePolicyReviewEventCreateManyAndReturnArgs} args - Arguments to create many DisputePolicyReviewEvents.
+     * @example
+     * // Create many DisputePolicyReviewEvents
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputePolicyReviewEvents and only return the `id`
+     * const disputePolicyReviewEventWithIdOnly = await prisma.disputePolicyReviewEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputePolicyReviewEventCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputePolicyReviewEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputePolicyReviewEvent.
+     * @param {DisputePolicyReviewEventDeleteArgs} args - Arguments to delete one DisputePolicyReviewEvent.
+     * @example
+     * // Delete one DisputePolicyReviewEvent
+     * const DisputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.delete({
+     *   where: {
+     *     // ... filter to delete one DisputePolicyReviewEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputePolicyReviewEventDeleteArgs>(args: SelectSubset<T, DisputePolicyReviewEventDeleteArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputePolicyReviewEvent.
+     * @param {DisputePolicyReviewEventUpdateArgs} args - Arguments to update one DisputePolicyReviewEvent.
+     * @example
+     * // Update one DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputePolicyReviewEventUpdateArgs>(args: SelectSubset<T, DisputePolicyReviewEventUpdateArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputePolicyReviewEvents.
+     * @param {DisputePolicyReviewEventDeleteManyArgs} args - Arguments to filter DisputePolicyReviewEvents to delete.
+     * @example
+     * // Delete a few DisputePolicyReviewEvents
+     * const { count } = await prisma.disputePolicyReviewEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputePolicyReviewEventDeleteManyArgs>(args?: SelectSubset<T, DisputePolicyReviewEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputePolicyReviewEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputePolicyReviewEvents
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputePolicyReviewEventUpdateManyArgs>(args: SelectSubset<T, DisputePolicyReviewEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputePolicyReviewEvent.
+     * @param {DisputePolicyReviewEventUpsertArgs} args - Arguments to update or create a DisputePolicyReviewEvent.
+     * @example
+     * // Update or create a DisputePolicyReviewEvent
+     * const disputePolicyReviewEvent = await prisma.disputePolicyReviewEvent.upsert({
+     *   create: {
+     *     // ... data to create a DisputePolicyReviewEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputePolicyReviewEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputePolicyReviewEventUpsertArgs>(args: SelectSubset<T, DisputePolicyReviewEventUpsertArgs<ExtArgs>>): Prisma__DisputePolicyReviewEventClient<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputePolicyReviewEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventCountArgs} args - Arguments to filter DisputePolicyReviewEvents to count.
+     * @example
+     * // Count the number of DisputePolicyReviewEvents
+     * const count = await prisma.disputePolicyReviewEvent.count({
+     *   where: {
+     *     // ... the filter for the DisputePolicyReviewEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputePolicyReviewEventCountArgs>(
+      args?: Subset<T, DisputePolicyReviewEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputePolicyReviewEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputePolicyReviewEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputePolicyReviewEventAggregateArgs>(args: Subset<T, DisputePolicyReviewEventAggregateArgs>): Prisma.PrismaPromise<GetDisputePolicyReviewEventAggregateType<T>>
+
+    /**
+     * Group by DisputePolicyReviewEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputePolicyReviewEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputePolicyReviewEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputePolicyReviewEventGroupByArgs['orderBy'] }
+        : { orderBy?: DisputePolicyReviewEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputePolicyReviewEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputePolicyReviewEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputePolicyReviewEvent model
+   */
+  readonly fields: DisputePolicyReviewEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputePolicyReviewEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputePolicyReviewEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    review<T extends DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePolicyEligibilityReviewDefaultArgs<ExtArgs>>): Prisma__DisputeCasePolicyEligibilityReviewClient<$Result.GetResult<Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputePolicyReviewEvent model
+   */ 
+  interface DisputePolicyReviewEventFieldRefs {
+    readonly id: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly reviewId: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly contractId: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly actorUserId: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly actorRole: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly action: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly note: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly idempotencyKey: FieldRef<"DisputePolicyReviewEvent", 'String'>
+    readonly payload: FieldRef<"DisputePolicyReviewEvent", 'Json'>
+    readonly createdAt: FieldRef<"DisputePolicyReviewEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputePolicyReviewEvent findUnique
+   */
+  export type DisputePolicyReviewEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputePolicyReviewEvent to fetch.
+     */
+    where: DisputePolicyReviewEventWhereUniqueInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent findUniqueOrThrow
+   */
+  export type DisputePolicyReviewEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputePolicyReviewEvent to fetch.
+     */
+    where: DisputePolicyReviewEventWhereUniqueInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent findFirst
+   */
+  export type DisputePolicyReviewEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputePolicyReviewEvent to fetch.
+     */
+    where?: DisputePolicyReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputePolicyReviewEvents to fetch.
+     */
+    orderBy?: DisputePolicyReviewEventOrderByWithRelationInput | DisputePolicyReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputePolicyReviewEvents.
+     */
+    cursor?: DisputePolicyReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputePolicyReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputePolicyReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputePolicyReviewEvents.
+     */
+    distinct?: DisputePolicyReviewEventScalarFieldEnum | DisputePolicyReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * DisputePolicyReviewEvent findFirstOrThrow
+   */
+  export type DisputePolicyReviewEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputePolicyReviewEvent to fetch.
+     */
+    where?: DisputePolicyReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputePolicyReviewEvents to fetch.
+     */
+    orderBy?: DisputePolicyReviewEventOrderByWithRelationInput | DisputePolicyReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputePolicyReviewEvents.
+     */
+    cursor?: DisputePolicyReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputePolicyReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputePolicyReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputePolicyReviewEvents.
+     */
+    distinct?: DisputePolicyReviewEventScalarFieldEnum | DisputePolicyReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * DisputePolicyReviewEvent findMany
+   */
+  export type DisputePolicyReviewEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputePolicyReviewEvents to fetch.
+     */
+    where?: DisputePolicyReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputePolicyReviewEvents to fetch.
+     */
+    orderBy?: DisputePolicyReviewEventOrderByWithRelationInput | DisputePolicyReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputePolicyReviewEvents.
+     */
+    cursor?: DisputePolicyReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputePolicyReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputePolicyReviewEvents.
+     */
+    skip?: number
+    distinct?: DisputePolicyReviewEventScalarFieldEnum | DisputePolicyReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * DisputePolicyReviewEvent create
+   */
+  export type DisputePolicyReviewEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputePolicyReviewEvent.
+     */
+    data: XOR<DisputePolicyReviewEventCreateInput, DisputePolicyReviewEventUncheckedCreateInput>
+  }
+
+  /**
+   * DisputePolicyReviewEvent createMany
+   */
+  export type DisputePolicyReviewEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputePolicyReviewEvents.
+     */
+    data: DisputePolicyReviewEventCreateManyInput | DisputePolicyReviewEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputePolicyReviewEvent createManyAndReturn
+   */
+  export type DisputePolicyReviewEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputePolicyReviewEvents.
+     */
+    data: DisputePolicyReviewEventCreateManyInput | DisputePolicyReviewEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputePolicyReviewEvent update
+   */
+  export type DisputePolicyReviewEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputePolicyReviewEvent.
+     */
+    data: XOR<DisputePolicyReviewEventUpdateInput, DisputePolicyReviewEventUncheckedUpdateInput>
+    /**
+     * Choose, which DisputePolicyReviewEvent to update.
+     */
+    where: DisputePolicyReviewEventWhereUniqueInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent updateMany
+   */
+  export type DisputePolicyReviewEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputePolicyReviewEvents.
+     */
+    data: XOR<DisputePolicyReviewEventUpdateManyMutationInput, DisputePolicyReviewEventUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputePolicyReviewEvents to update
+     */
+    where?: DisputePolicyReviewEventWhereInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent upsert
+   */
+  export type DisputePolicyReviewEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputePolicyReviewEvent to update in case it exists.
+     */
+    where: DisputePolicyReviewEventWhereUniqueInput
+    /**
+     * In case the DisputePolicyReviewEvent found by the `where` argument doesn't exist, create a new DisputePolicyReviewEvent with this data.
+     */
+    create: XOR<DisputePolicyReviewEventCreateInput, DisputePolicyReviewEventUncheckedCreateInput>
+    /**
+     * In case the DisputePolicyReviewEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputePolicyReviewEventUpdateInput, DisputePolicyReviewEventUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputePolicyReviewEvent delete
+   */
+  export type DisputePolicyReviewEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter which DisputePolicyReviewEvent to delete.
+     */
+    where: DisputePolicyReviewEventWhereUniqueInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent deleteMany
+   */
+  export type DisputePolicyReviewEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputePolicyReviewEvents to delete
+     */
+    where?: DisputePolicyReviewEventWhereInput
+  }
+
+  /**
+   * DisputePolicyReviewEvent without action
+   */
+  export type DisputePolicyReviewEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model DisputeCasePolicyEligibilityReview
    */
 
@@ -42186,6 +43270,7 @@ export namespace Prisma {
     contractId: number
     result: number
     evidenceIds: number
+    evidenceRefs: number
     reasoning: number
     proposedBy: number
     approvedBy: number
@@ -42228,6 +43313,7 @@ export namespace Prisma {
     contractId?: true
     result?: true
     evidenceIds?: true
+    evidenceRefs?: true
     reasoning?: true
     proposedBy?: true
     approvedBy?: true
@@ -42311,10 +43397,11 @@ export namespace Prisma {
 
   export type DisputeCasePolicyEligibilityReviewGroupByOutputType = {
     id: string
-    caseId: string
+    caseId: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds: string[]
+    evidenceRefs: JsonValue | null
     reasoning: string
     proposedBy: string
     approvedBy: string | null
@@ -42346,13 +43433,15 @@ export namespace Prisma {
     contractId?: boolean
     result?: boolean
     evidenceIds?: boolean
+    evidenceRefs?: boolean
     reasoning?: boolean
     proposedBy?: boolean
     approvedBy?: boolean
     approvedAt?: boolean
     supersedesId?: boolean
     createdAt?: boolean
-    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    case?: boolean | DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs>
+    events?: boolean | DisputeCasePolicyEligibilityReview$eventsArgs<ExtArgs>
     supersedes?: boolean | DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs>
     supersededBy?: boolean | DisputeCasePolicyEligibilityReview$supersededByArgs<ExtArgs>
     _count?: boolean | DisputeCasePolicyEligibilityReviewCountOutputTypeDefaultArgs<ExtArgs>
@@ -42364,13 +43453,14 @@ export namespace Prisma {
     contractId?: boolean
     result?: boolean
     evidenceIds?: boolean
+    evidenceRefs?: boolean
     reasoning?: boolean
     proposedBy?: boolean
     approvedBy?: boolean
     approvedAt?: boolean
     supersedesId?: boolean
     createdAt?: boolean
-    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    case?: boolean | DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs>
     supersedes?: boolean | DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs>
   }, ExtArgs["result"]["disputeCasePolicyEligibilityReview"]>
 
@@ -42380,6 +43470,7 @@ export namespace Prisma {
     contractId?: boolean
     result?: boolean
     evidenceIds?: boolean
+    evidenceRefs?: boolean
     reasoning?: boolean
     proposedBy?: boolean
     approvedBy?: boolean
@@ -42389,29 +43480,38 @@ export namespace Prisma {
   }
 
   export type DisputeCasePolicyEligibilityReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    case?: boolean | DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs>
+    events?: boolean | DisputeCasePolicyEligibilityReview$eventsArgs<ExtArgs>
     supersedes?: boolean | DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs>
     supersededBy?: boolean | DisputeCasePolicyEligibilityReview$supersededByArgs<ExtArgs>
     _count?: boolean | DisputeCasePolicyEligibilityReviewCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DisputeCasePolicyEligibilityReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    case?: boolean | DisputeCaseDefaultArgs<ExtArgs>
+    case?: boolean | DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs>
     supersedes?: boolean | DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs>
   }
 
   export type $DisputeCasePolicyEligibilityReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "DisputeCasePolicyEligibilityReview"
     objects: {
-      case: Prisma.$DisputeCasePayload<ExtArgs>
+      case: Prisma.$DisputeCasePayload<ExtArgs> | null
+      events: Prisma.$DisputePolicyReviewEventPayload<ExtArgs>[]
       supersedes: Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs> | null
       supersededBy: Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      caseId: string
+      /**
+       * NULL = a CONTRACT-LEVEL review (D-NEW-12, Ngai 03/11): no Case needed; its evidence is `evidenceRefs` (server-resolved references), not case evidence rows.
+       */
+      caseId: string | null
       contractId: string
       result: $Enums.DisputeCasePolicyEligibilityResult
       evidenceIds: string[]
+      /**
+       * Contract-level reviews only: [{kind, id, hash, summary}] - each reference was RESOLVED by the server against a real row of THIS contract (never free text).
+       */
+      evidenceRefs: Prisma.JsonValue | null
       reasoning: string
       proposedBy: string
       approvedBy: string | null
@@ -42782,7 +43882,8 @@ export namespace Prisma {
    */
   export interface Prisma__DisputeCasePolicyEligibilityReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    case<T extends DisputeCaseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCaseDefaultArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    case<T extends DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs>>): Prisma__DisputeCaseClient<$Result.GetResult<Prisma.$DisputeCasePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    events<T extends DisputeCasePolicyEligibilityReview$eventsArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePolicyEligibilityReview$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputePolicyReviewEventPayload<ExtArgs>, T, "findMany"> | Null>
     supersedes<T extends DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePolicyEligibilityReview$supersedesArgs<ExtArgs>>): Prisma__DisputeCasePolicyEligibilityReviewClient<$Result.GetResult<Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     supersededBy<T extends DisputeCasePolicyEligibilityReview$supersededByArgs<ExtArgs> = {}>(args?: Subset<T, DisputeCasePolicyEligibilityReview$supersededByArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeCasePolicyEligibilityReviewPayload<ExtArgs>, T, "findMany"> | Null>
     /**
@@ -42819,6 +43920,7 @@ export namespace Prisma {
     readonly contractId: FieldRef<"DisputeCasePolicyEligibilityReview", 'String'>
     readonly result: FieldRef<"DisputeCasePolicyEligibilityReview", 'DisputeCasePolicyEligibilityResult'>
     readonly evidenceIds: FieldRef<"DisputeCasePolicyEligibilityReview", 'String[]'>
+    readonly evidenceRefs: FieldRef<"DisputeCasePolicyEligibilityReview", 'Json'>
     readonly reasoning: FieldRef<"DisputeCasePolicyEligibilityReview", 'String'>
     readonly proposedBy: FieldRef<"DisputeCasePolicyEligibilityReview", 'String'>
     readonly approvedBy: FieldRef<"DisputeCasePolicyEligibilityReview", 'String'>
@@ -43140,6 +44242,41 @@ export namespace Prisma {
      * Filter which DisputeCasePolicyEligibilityReviews to delete
      */
     where?: DisputeCasePolicyEligibilityReviewWhereInput
+  }
+
+  /**
+   * DisputeCasePolicyEligibilityReview.case
+   */
+  export type DisputeCasePolicyEligibilityReview$caseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeCase
+     */
+    select?: DisputeCaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeCaseInclude<ExtArgs> | null
+    where?: DisputeCaseWhereInput
+  }
+
+  /**
+   * DisputeCasePolicyEligibilityReview.events
+   */
+  export type DisputeCasePolicyEligibilityReview$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputePolicyReviewEvent
+     */
+    select?: DisputePolicyReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputePolicyReviewEventInclude<ExtArgs> | null
+    where?: DisputePolicyReviewEventWhereInput
+    orderBy?: DisputePolicyReviewEventOrderByWithRelationInput | DisputePolicyReviewEventOrderByWithRelationInput[]
+    cursor?: DisputePolicyReviewEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputePolicyReviewEventScalarFieldEnum | DisputePolicyReviewEventScalarFieldEnum[]
   }
 
   /**
@@ -61320,12 +62457,29 @@ export namespace Prisma {
   export type DisputeCaseScalarFieldEnum = (typeof DisputeCaseScalarFieldEnum)[keyof typeof DisputeCaseScalarFieldEnum]
 
 
+  export const DisputePolicyReviewEventScalarFieldEnum: {
+    id: 'id',
+    reviewId: 'reviewId',
+    contractId: 'contractId',
+    actorUserId: 'actorUserId',
+    actorRole: 'actorRole',
+    action: 'action',
+    note: 'note',
+    idempotencyKey: 'idempotencyKey',
+    payload: 'payload',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputePolicyReviewEventScalarFieldEnum = (typeof DisputePolicyReviewEventScalarFieldEnum)[keyof typeof DisputePolicyReviewEventScalarFieldEnum]
+
+
   export const DisputeCasePolicyEligibilityReviewScalarFieldEnum: {
     id: 'id',
     caseId: 'caseId',
     contractId: 'contractId',
     result: 'result',
     evidenceIds: 'evidenceIds',
+    evidenceRefs: 'evidenceRefs',
     reasoning: 'reasoning',
     proposedBy: 'proposedBy',
     approvedBy: 'approvedBy',
@@ -66218,32 +67372,115 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"DisputeCase"> | Date | string
   }
 
+  export type DisputePolicyReviewEventWhereInput = {
+    AND?: DisputePolicyReviewEventWhereInput | DisputePolicyReviewEventWhereInput[]
+    OR?: DisputePolicyReviewEventWhereInput[]
+    NOT?: DisputePolicyReviewEventWhereInput | DisputePolicyReviewEventWhereInput[]
+    id?: UuidFilter<"DisputePolicyReviewEvent"> | string
+    reviewId?: UuidFilter<"DisputePolicyReviewEvent"> | string
+    contractId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorUserId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorRole?: StringFilter<"DisputePolicyReviewEvent"> | string
+    action?: StringFilter<"DisputePolicyReviewEvent"> | string
+    note?: StringNullableFilter<"DisputePolicyReviewEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"DisputePolicyReviewEvent"> | string | null
+    payload?: JsonNullableFilter<"DisputePolicyReviewEvent">
+    createdAt?: DateTimeFilter<"DisputePolicyReviewEvent"> | Date | string
+    review?: XOR<DisputeCasePolicyEligibilityReviewRelationFilter, DisputeCasePolicyEligibilityReviewWhereInput>
+  }
+
+  export type DisputePolicyReviewEventOrderByWithRelationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    contractId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    note?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    review?: DisputeCasePolicyEligibilityReviewOrderByWithRelationInput
+  }
+
+  export type DisputePolicyReviewEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: DisputePolicyReviewEventWhereInput | DisputePolicyReviewEventWhereInput[]
+    OR?: DisputePolicyReviewEventWhereInput[]
+    NOT?: DisputePolicyReviewEventWhereInput | DisputePolicyReviewEventWhereInput[]
+    reviewId?: UuidFilter<"DisputePolicyReviewEvent"> | string
+    contractId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorUserId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorRole?: StringFilter<"DisputePolicyReviewEvent"> | string
+    action?: StringFilter<"DisputePolicyReviewEvent"> | string
+    note?: StringNullableFilter<"DisputePolicyReviewEvent"> | string | null
+    payload?: JsonNullableFilter<"DisputePolicyReviewEvent">
+    createdAt?: DateTimeFilter<"DisputePolicyReviewEvent"> | Date | string
+    review?: XOR<DisputeCasePolicyEligibilityReviewRelationFilter, DisputeCasePolicyEligibilityReviewWhereInput>
+  }, "id" | "idempotencyKey">
+
+  export type DisputePolicyReviewEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    contractId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    note?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputePolicyReviewEventCountOrderByAggregateInput
+    _max?: DisputePolicyReviewEventMaxOrderByAggregateInput
+    _min?: DisputePolicyReviewEventMinOrderByAggregateInput
+  }
+
+  export type DisputePolicyReviewEventScalarWhereWithAggregatesInput = {
+    AND?: DisputePolicyReviewEventScalarWhereWithAggregatesInput | DisputePolicyReviewEventScalarWhereWithAggregatesInput[]
+    OR?: DisputePolicyReviewEventScalarWhereWithAggregatesInput[]
+    NOT?: DisputePolicyReviewEventScalarWhereWithAggregatesInput | DisputePolicyReviewEventScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    reviewId?: UuidWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    contractId?: StringWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    actorUserId?: StringWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    actorRole?: StringWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    action?: StringWithAggregatesFilter<"DisputePolicyReviewEvent"> | string
+    note?: StringNullableWithAggregatesFilter<"DisputePolicyReviewEvent"> | string | null
+    idempotencyKey?: StringNullableWithAggregatesFilter<"DisputePolicyReviewEvent"> | string | null
+    payload?: JsonNullableWithAggregatesFilter<"DisputePolicyReviewEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"DisputePolicyReviewEvent"> | Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewWhereInput = {
     AND?: DisputeCasePolicyEligibilityReviewWhereInput | DisputeCasePolicyEligibilityReviewWhereInput[]
     OR?: DisputeCasePolicyEligibilityReviewWhereInput[]
     NOT?: DisputeCasePolicyEligibilityReviewWhereInput | DisputeCasePolicyEligibilityReviewWhereInput[]
     id?: UuidFilter<"DisputeCasePolicyEligibilityReview"> | string
-    caseId?: UuidFilter<"DisputeCasePolicyEligibilityReview"> | string
+    caseId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     contractId?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     result?: EnumDisputeCasePolicyEligibilityResultFilter<"DisputeCasePolicyEligibilityReview"> | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: StringNullableListFilter<"DisputeCasePolicyEligibilityReview">
+    evidenceRefs?: JsonNullableFilter<"DisputeCasePolicyEligibilityReview">
     reasoning?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     proposedBy?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     approvedBy?: StringNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     approvedAt?: DateTimeNullableFilter<"DisputeCasePolicyEligibilityReview"> | Date | string | null
     supersedesId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     createdAt?: DateTimeFilter<"DisputeCasePolicyEligibilityReview"> | Date | string
-    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+    events?: DisputePolicyReviewEventListRelationFilter
     supersedes?: XOR<DisputeCasePolicyEligibilityReviewNullableRelationFilter, DisputeCasePolicyEligibilityReviewWhereInput> | null
     supersededBy?: DisputeCasePolicyEligibilityReviewListRelationFilter
   }
 
   export type DisputeCasePolicyEligibilityReviewOrderByWithRelationInput = {
     id?: SortOrder
-    caseId?: SortOrder
+    caseId?: SortOrderInput | SortOrder
     contractId?: SortOrder
     result?: SortOrder
     evidenceIds?: SortOrder
+    evidenceRefs?: SortOrderInput | SortOrder
     reasoning?: SortOrder
     proposedBy?: SortOrder
     approvedBy?: SortOrderInput | SortOrder
@@ -66251,6 +67488,7 @@ export namespace Prisma {
     supersedesId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     case?: DisputeCaseOrderByWithRelationInput
+    events?: DisputePolicyReviewEventOrderByRelationAggregateInput
     supersedes?: DisputeCasePolicyEligibilityReviewOrderByWithRelationInput
     supersededBy?: DisputeCasePolicyEligibilityReviewOrderByRelationAggregateInput
   }
@@ -66260,27 +67498,30 @@ export namespace Prisma {
     AND?: DisputeCasePolicyEligibilityReviewWhereInput | DisputeCasePolicyEligibilityReviewWhereInput[]
     OR?: DisputeCasePolicyEligibilityReviewWhereInput[]
     NOT?: DisputeCasePolicyEligibilityReviewWhereInput | DisputeCasePolicyEligibilityReviewWhereInput[]
-    caseId?: UuidFilter<"DisputeCasePolicyEligibilityReview"> | string
+    caseId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     contractId?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     result?: EnumDisputeCasePolicyEligibilityResultFilter<"DisputeCasePolicyEligibilityReview"> | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: StringNullableListFilter<"DisputeCasePolicyEligibilityReview">
+    evidenceRefs?: JsonNullableFilter<"DisputeCasePolicyEligibilityReview">
     reasoning?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     proposedBy?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     approvedBy?: StringNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     approvedAt?: DateTimeNullableFilter<"DisputeCasePolicyEligibilityReview"> | Date | string | null
     supersedesId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     createdAt?: DateTimeFilter<"DisputeCasePolicyEligibilityReview"> | Date | string
-    case?: XOR<DisputeCaseRelationFilter, DisputeCaseWhereInput>
+    case?: XOR<DisputeCaseNullableRelationFilter, DisputeCaseWhereInput> | null
+    events?: DisputePolicyReviewEventListRelationFilter
     supersedes?: XOR<DisputeCasePolicyEligibilityReviewNullableRelationFilter, DisputeCasePolicyEligibilityReviewWhereInput> | null
     supersededBy?: DisputeCasePolicyEligibilityReviewListRelationFilter
   }, "id">
 
   export type DisputeCasePolicyEligibilityReviewOrderByWithAggregationInput = {
     id?: SortOrder
-    caseId?: SortOrder
+    caseId?: SortOrderInput | SortOrder
     contractId?: SortOrder
     result?: SortOrder
     evidenceIds?: SortOrder
+    evidenceRefs?: SortOrderInput | SortOrder
     reasoning?: SortOrder
     proposedBy?: SortOrder
     approvedBy?: SortOrderInput | SortOrder
@@ -66297,10 +67538,11 @@ export namespace Prisma {
     OR?: DisputeCasePolicyEligibilityReviewScalarWhereWithAggregatesInput[]
     NOT?: DisputeCasePolicyEligibilityReviewScalarWhereWithAggregatesInput | DisputeCasePolicyEligibilityReviewScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string
-    caseId?: UuidWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string
+    caseId?: UuidNullableWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     contractId?: StringWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string
     result?: EnumDisputeCasePolicyEligibilityResultWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: StringNullableListFilter<"DisputeCasePolicyEligibilityReview">
+    evidenceRefs?: JsonNullableWithAggregatesFilter<"DisputeCasePolicyEligibilityReview">
     reasoning?: StringWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string
     proposedBy?: StringWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string
     approvedBy?: StringNullableWithAggregatesFilter<"DisputeCasePolicyEligibilityReview"> | string | null
@@ -72312,33 +73554,127 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputePolicyReviewEventCreateInput = {
+    id?: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    review: DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutEventsInput
+  }
+
+  export type DisputePolicyReviewEventUncheckedCreateInput = {
+    id?: string
+    reviewId: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type DisputePolicyReviewEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: DisputeCasePolicyEligibilityReviewUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type DisputePolicyReviewEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputePolicyReviewEventCreateManyInput = {
+    id?: string
+    reviewId: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type DisputePolicyReviewEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputePolicyReviewEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewCreateInput = {
     id?: string
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     createdAt?: Date | string
-    case: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    case?: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    events?: DisputePolicyReviewEventCreateNestedManyWithoutReviewInput
     supersedes?: DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutSupersededByInput
     supersededBy?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutSupersedesInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedCreateInput = {
     id?: string
-    caseId: string
+    caseId?: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     supersedesId?: string | null
     createdAt?: Date | string
+    events?: DisputePolicyReviewEventUncheckedCreateNestedManyWithoutReviewInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutSupersedesInput
   }
 
@@ -72347,37 +73683,42 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    case?: DisputeCaseUpdateOneRequiredWithoutPolicyReviewsNestedInput
+    case?: DisputeCaseUpdateOneWithoutPolicyReviewsNestedInput
+    events?: DisputePolicyReviewEventUpdateManyWithoutReviewNestedInput
     supersedes?: DisputeCasePolicyEligibilityReviewUpdateOneWithoutSupersededByNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutSupersedesNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    caseId?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewCreateManyInput = {
     id?: string
-    caseId: string
+    caseId?: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
@@ -72391,6 +73732,7 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -72400,10 +73742,11 @@ export namespace Prisma {
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    caseId?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -77716,6 +79059,48 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
+  export type DisputeCasePolicyEligibilityReviewRelationFilter = {
+    is?: DisputeCasePolicyEligibilityReviewWhereInput
+    isNot?: DisputeCasePolicyEligibilityReviewWhereInput
+  }
+
+  export type DisputePolicyReviewEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    contractId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputePolicyReviewEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    contractId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputePolicyReviewEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    contractId?: SortOrder
+    actorUserId?: SortOrder
+    actorRole?: SortOrder
+    action?: SortOrder
+    note?: SortOrder
+    idempotencyKey?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type EnumDisputeCasePolicyEligibilityResultFilter<$PrismaModel = never> = {
     equals?: $Enums.DisputeCasePolicyEligibilityResult | EnumDisputeCasePolicyEligibilityResultFieldRefInput<$PrismaModel>
     in?: $Enums.DisputeCasePolicyEligibilityResult[] | ListEnumDisputeCasePolicyEligibilityResultFieldRefInput<$PrismaModel>
@@ -77723,14 +79108,24 @@ export namespace Prisma {
     not?: NestedEnumDisputeCasePolicyEligibilityResultFilter<$PrismaModel> | $Enums.DisputeCasePolicyEligibilityResult
   }
 
-  export type DisputeCaseRelationFilter = {
-    is?: DisputeCaseWhereInput
-    isNot?: DisputeCaseWhereInput
+  export type DisputeCaseNullableRelationFilter = {
+    is?: DisputeCaseWhereInput | null
+    isNot?: DisputeCaseWhereInput | null
+  }
+
+  export type DisputePolicyReviewEventListRelationFilter = {
+    every?: DisputePolicyReviewEventWhereInput
+    some?: DisputePolicyReviewEventWhereInput
+    none?: DisputePolicyReviewEventWhereInput
   }
 
   export type DisputeCasePolicyEligibilityReviewNullableRelationFilter = {
     is?: DisputeCasePolicyEligibilityReviewWhereInput | null
     isNot?: DisputeCasePolicyEligibilityReviewWhereInput | null
+  }
+
+  export type DisputePolicyReviewEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type DisputeCasePolicyEligibilityReviewCountOrderByAggregateInput = {
@@ -77739,6 +79134,7 @@ export namespace Prisma {
     contractId?: SortOrder
     result?: SortOrder
     evidenceIds?: SortOrder
+    evidenceRefs?: SortOrder
     reasoning?: SortOrder
     proposedBy?: SortOrder
     approvedBy?: SortOrder
@@ -77795,6 +79191,11 @@ export namespace Prisma {
     in?: $Enums.DisputeCaseIssueFinding[] | ListEnumDisputeCaseIssueFindingFieldRefInput<$PrismaModel>
     notIn?: $Enums.DisputeCaseIssueFinding[] | ListEnumDisputeCaseIssueFindingFieldRefInput<$PrismaModel>
     not?: NestedEnumDisputeCaseIssueFindingFilter<$PrismaModel> | $Enums.DisputeCaseIssueFinding
+  }
+
+  export type DisputeCaseRelationFilter = {
+    is?: DisputeCaseWhereInput
+    isNot?: DisputeCaseWhereInput
   }
 
   export type DisputeCaseIssueCountOrderByAggregateInput = {
@@ -81023,6 +82424,20 @@ export namespace Prisma {
     deleteMany?: DisputeCasePolicyEligibilityReviewScalarWhereInput | DisputeCasePolicyEligibilityReviewScalarWhereInput[]
   }
 
+  export type DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutEventsInput = {
+    create?: XOR<DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutEventsInput
+    connect?: DisputeCasePolicyEligibilityReviewWhereUniqueInput
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutEventsInput
+    upsert?: DisputeCasePolicyEligibilityReviewUpsertWithoutEventsInput
+    connect?: DisputeCasePolicyEligibilityReviewWhereUniqueInput
+    update?: XOR<XOR<DisputeCasePolicyEligibilityReviewUpdateToOneWithWhereWithoutEventsInput, DisputeCasePolicyEligibilityReviewUpdateWithoutEventsInput>, DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutEventsInput>
+  }
+
   export type DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput = {
     set: string[]
   }
@@ -81031,6 +82446,13 @@ export namespace Prisma {
     create?: XOR<DisputeCaseCreateWithoutPolicyReviewsInput, DisputeCaseUncheckedCreateWithoutPolicyReviewsInput>
     connectOrCreate?: DisputeCaseCreateOrConnectWithoutPolicyReviewsInput
     connect?: DisputeCaseWhereUniqueInput
+  }
+
+  export type DisputePolicyReviewEventCreateNestedManyWithoutReviewInput = {
+    create?: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput> | DisputePolicyReviewEventCreateWithoutReviewInput[] | DisputePolicyReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputePolicyReviewEventCreateOrConnectWithoutReviewInput | DisputePolicyReviewEventCreateOrConnectWithoutReviewInput[]
+    createMany?: DisputePolicyReviewEventCreateManyReviewInputEnvelope
+    connect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
   }
 
   export type DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutSupersededByInput = {
@@ -81044,6 +82466,13 @@ export namespace Prisma {
     connectOrCreate?: DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutSupersedesInput | DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutSupersedesInput[]
     createMany?: DisputeCasePolicyEligibilityReviewCreateManySupersedesInputEnvelope
     connect?: DisputeCasePolicyEligibilityReviewWhereUniqueInput | DisputeCasePolicyEligibilityReviewWhereUniqueInput[]
+  }
+
+  export type DisputePolicyReviewEventUncheckedCreateNestedManyWithoutReviewInput = {
+    create?: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput> | DisputePolicyReviewEventCreateWithoutReviewInput[] | DisputePolicyReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputePolicyReviewEventCreateOrConnectWithoutReviewInput | DisputePolicyReviewEventCreateOrConnectWithoutReviewInput[]
+    createMany?: DisputePolicyReviewEventCreateManyReviewInputEnvelope
+    connect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutSupersedesInput = {
@@ -81062,12 +82491,28 @@ export namespace Prisma {
     push?: string | string[]
   }
 
-  export type DisputeCaseUpdateOneRequiredWithoutPolicyReviewsNestedInput = {
+  export type DisputeCaseUpdateOneWithoutPolicyReviewsNestedInput = {
     create?: XOR<DisputeCaseCreateWithoutPolicyReviewsInput, DisputeCaseUncheckedCreateWithoutPolicyReviewsInput>
     connectOrCreate?: DisputeCaseCreateOrConnectWithoutPolicyReviewsInput
     upsert?: DisputeCaseUpsertWithoutPolicyReviewsInput
+    disconnect?: DisputeCaseWhereInput | boolean
+    delete?: DisputeCaseWhereInput | boolean
     connect?: DisputeCaseWhereUniqueInput
     update?: XOR<XOR<DisputeCaseUpdateToOneWithWhereWithoutPolicyReviewsInput, DisputeCaseUpdateWithoutPolicyReviewsInput>, DisputeCaseUncheckedUpdateWithoutPolicyReviewsInput>
+  }
+
+  export type DisputePolicyReviewEventUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput> | DisputePolicyReviewEventCreateWithoutReviewInput[] | DisputePolicyReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputePolicyReviewEventCreateOrConnectWithoutReviewInput | DisputePolicyReviewEventCreateOrConnectWithoutReviewInput[]
+    upsert?: DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput | DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: DisputePolicyReviewEventCreateManyReviewInputEnvelope
+    set?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    disconnect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    delete?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    connect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    update?: DisputePolicyReviewEventUpdateWithWhereUniqueWithoutReviewInput | DisputePolicyReviewEventUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: DisputePolicyReviewEventUpdateManyWithWhereWithoutReviewInput | DisputePolicyReviewEventUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: DisputePolicyReviewEventScalarWhereInput | DisputePolicyReviewEventScalarWhereInput[]
   }
 
   export type DisputeCasePolicyEligibilityReviewUpdateOneWithoutSupersededByNestedInput = {
@@ -81092,6 +82537,20 @@ export namespace Prisma {
     update?: DisputeCasePolicyEligibilityReviewUpdateWithWhereUniqueWithoutSupersedesInput | DisputeCasePolicyEligibilityReviewUpdateWithWhereUniqueWithoutSupersedesInput[]
     updateMany?: DisputeCasePolicyEligibilityReviewUpdateManyWithWhereWithoutSupersedesInput | DisputeCasePolicyEligibilityReviewUpdateManyWithWhereWithoutSupersedesInput[]
     deleteMany?: DisputeCasePolicyEligibilityReviewScalarWhereInput | DisputeCasePolicyEligibilityReviewScalarWhereInput[]
+  }
+
+  export type DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput> | DisputePolicyReviewEventCreateWithoutReviewInput[] | DisputePolicyReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: DisputePolicyReviewEventCreateOrConnectWithoutReviewInput | DisputePolicyReviewEventCreateOrConnectWithoutReviewInput[]
+    upsert?: DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput | DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: DisputePolicyReviewEventCreateManyReviewInputEnvelope
+    set?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    disconnect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    delete?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    connect?: DisputePolicyReviewEventWhereUniqueInput | DisputePolicyReviewEventWhereUniqueInput[]
+    update?: DisputePolicyReviewEventUpdateWithWhereUniqueWithoutReviewInput | DisputePolicyReviewEventUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: DisputePolicyReviewEventUpdateManyWithWhereWithoutReviewInput | DisputePolicyReviewEventUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: DisputePolicyReviewEventScalarWhereInput | DisputePolicyReviewEventScalarWhereInput[]
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesNestedInput = {
@@ -90299,11 +91758,13 @@ export namespace Prisma {
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     createdAt?: Date | string
+    events?: DisputePolicyReviewEventCreateNestedManyWithoutReviewInput
     supersedes?: DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutSupersededByInput
     supersededBy?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutSupersedesInput
   }
@@ -90313,12 +91774,14 @@ export namespace Prisma {
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     supersedesId?: string | null
     createdAt?: Date | string
+    events?: DisputePolicyReviewEventUncheckedCreateNestedManyWithoutReviewInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutSupersedesInput
   }
 
@@ -90707,16 +92170,97 @@ export namespace Prisma {
     OR?: DisputeCasePolicyEligibilityReviewScalarWhereInput[]
     NOT?: DisputeCasePolicyEligibilityReviewScalarWhereInput | DisputeCasePolicyEligibilityReviewScalarWhereInput[]
     id?: UuidFilter<"DisputeCasePolicyEligibilityReview"> | string
-    caseId?: UuidFilter<"DisputeCasePolicyEligibilityReview"> | string
+    caseId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     contractId?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     result?: EnumDisputeCasePolicyEligibilityResultFilter<"DisputeCasePolicyEligibilityReview"> | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: StringNullableListFilter<"DisputeCasePolicyEligibilityReview">
+    evidenceRefs?: JsonNullableFilter<"DisputeCasePolicyEligibilityReview">
     reasoning?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     proposedBy?: StringFilter<"DisputeCasePolicyEligibilityReview"> | string
     approvedBy?: StringNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     approvedAt?: DateTimeNullableFilter<"DisputeCasePolicyEligibilityReview"> | Date | string | null
     supersedesId?: UuidNullableFilter<"DisputeCasePolicyEligibilityReview"> | string | null
     createdAt?: DateTimeFilter<"DisputeCasePolicyEligibilityReview"> | Date | string
+  }
+
+  export type DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput = {
+    id?: string
+    contractId: string
+    result: $Enums.DisputeCasePolicyEligibilityResult
+    evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
+    reasoning: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    createdAt?: Date | string
+    case?: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    supersedes?: DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutSupersededByInput
+    supersededBy?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutSupersedesInput
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutEventsInput = {
+    id?: string
+    caseId?: string | null
+    contractId: string
+    result: $Enums.DisputeCasePolicyEligibilityResult
+    evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
+    reasoning: string
+    proposedBy: string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    supersedesId?: string | null
+    createdAt?: Date | string
+    supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutSupersedesInput
+  }
+
+  export type DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutEventsInput = {
+    where: DisputeCasePolicyEligibilityReviewWhereUniqueInput
+    create: XOR<DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutEventsInput>
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUpsertWithoutEventsInput = {
+    update: XOR<DisputeCasePolicyEligibilityReviewUpdateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutEventsInput>
+    create: XOR<DisputeCasePolicyEligibilityReviewCreateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutEventsInput>
+    where?: DisputeCasePolicyEligibilityReviewWhereInput
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUpdateToOneWithWhereWithoutEventsInput = {
+    where?: DisputeCasePolicyEligibilityReviewWhereInput
+    data: XOR<DisputeCasePolicyEligibilityReviewUpdateWithoutEventsInput, DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
+    evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
+    reasoning?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    case?: DisputeCaseUpdateOneWithoutPolicyReviewsNestedInput
+    supersedes?: DisputeCasePolicyEligibilityReviewUpdateOneWithoutSupersededByNestedInput
+    supersededBy?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutSupersedesNestedInput
+  }
+
+  export type DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractId?: StringFieldUpdateOperationsInput | string
+    result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
+    evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
+    reasoning?: StringFieldUpdateOperationsInput | string
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesNestedInput
   }
 
   export type DisputeCaseCreateWithoutPolicyReviewsInput = {
@@ -90784,32 +92328,70 @@ export namespace Prisma {
     create: XOR<DisputeCaseCreateWithoutPolicyReviewsInput, DisputeCaseUncheckedCreateWithoutPolicyReviewsInput>
   }
 
+  export type DisputePolicyReviewEventCreateWithoutReviewInput = {
+    id?: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type DisputePolicyReviewEventUncheckedCreateWithoutReviewInput = {
+    id?: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type DisputePolicyReviewEventCreateOrConnectWithoutReviewInput = {
+    where: DisputePolicyReviewEventWhereUniqueInput
+    create: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput>
+  }
+
+  export type DisputePolicyReviewEventCreateManyReviewInputEnvelope = {
+    data: DisputePolicyReviewEventCreateManyReviewInput | DisputePolicyReviewEventCreateManyReviewInput[]
+    skipDuplicates?: boolean
+  }
+
   export type DisputeCasePolicyEligibilityReviewCreateWithoutSupersededByInput = {
     id?: string
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     createdAt?: Date | string
-    case: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    case?: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    events?: DisputePolicyReviewEventCreateNestedManyWithoutReviewInput
     supersedes?: DisputeCasePolicyEligibilityReviewCreateNestedOneWithoutSupersededByInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutSupersededByInput = {
     id?: string
-    caseId: string
+    caseId?: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     supersedesId?: string | null
     createdAt?: Date | string
+    events?: DisputePolicyReviewEventUncheckedCreateNestedManyWithoutReviewInput
   }
 
   export type DisputeCasePolicyEligibilityReviewCreateOrConnectWithoutSupersededByInput = {
@@ -90822,26 +92404,30 @@ export namespace Prisma {
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     createdAt?: Date | string
-    case: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    case?: DisputeCaseCreateNestedOneWithoutPolicyReviewsInput
+    events?: DisputePolicyReviewEventCreateNestedManyWithoutReviewInput
     supersededBy?: DisputeCasePolicyEligibilityReviewCreateNestedManyWithoutSupersedesInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutSupersedesInput = {
     id?: string
-    caseId: string
+    caseId?: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
     approvedAt?: Date | string | null
     createdAt?: Date | string
+    events?: DisputePolicyReviewEventUncheckedCreateNestedManyWithoutReviewInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedCreateNestedManyWithoutSupersedesInput
   }
 
@@ -90926,6 +92512,38 @@ export namespace Prisma {
     executions?: DisputeCaseExecutionUncheckedUpdateManyWithoutCaseNestedInput
   }
 
+  export type DisputePolicyReviewEventUpsertWithWhereUniqueWithoutReviewInput = {
+    where: DisputePolicyReviewEventWhereUniqueInput
+    update: XOR<DisputePolicyReviewEventUpdateWithoutReviewInput, DisputePolicyReviewEventUncheckedUpdateWithoutReviewInput>
+    create: XOR<DisputePolicyReviewEventCreateWithoutReviewInput, DisputePolicyReviewEventUncheckedCreateWithoutReviewInput>
+  }
+
+  export type DisputePolicyReviewEventUpdateWithWhereUniqueWithoutReviewInput = {
+    where: DisputePolicyReviewEventWhereUniqueInput
+    data: XOR<DisputePolicyReviewEventUpdateWithoutReviewInput, DisputePolicyReviewEventUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type DisputePolicyReviewEventUpdateManyWithWhereWithoutReviewInput = {
+    where: DisputePolicyReviewEventScalarWhereInput
+    data: XOR<DisputePolicyReviewEventUpdateManyMutationInput, DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewInput>
+  }
+
+  export type DisputePolicyReviewEventScalarWhereInput = {
+    AND?: DisputePolicyReviewEventScalarWhereInput | DisputePolicyReviewEventScalarWhereInput[]
+    OR?: DisputePolicyReviewEventScalarWhereInput[]
+    NOT?: DisputePolicyReviewEventScalarWhereInput | DisputePolicyReviewEventScalarWhereInput[]
+    id?: UuidFilter<"DisputePolicyReviewEvent"> | string
+    reviewId?: UuidFilter<"DisputePolicyReviewEvent"> | string
+    contractId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorUserId?: StringFilter<"DisputePolicyReviewEvent"> | string
+    actorRole?: StringFilter<"DisputePolicyReviewEvent"> | string
+    action?: StringFilter<"DisputePolicyReviewEvent"> | string
+    note?: StringNullableFilter<"DisputePolicyReviewEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"DisputePolicyReviewEvent"> | string | null
+    payload?: JsonNullableFilter<"DisputePolicyReviewEvent">
+    createdAt?: DateTimeFilter<"DisputePolicyReviewEvent"> | Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewUpsertWithoutSupersededByInput = {
     update: XOR<DisputeCasePolicyEligibilityReviewUpdateWithoutSupersededByInput, DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutSupersededByInput>
     create: XOR<DisputeCasePolicyEligibilityReviewCreateWithoutSupersededByInput, DisputeCasePolicyEligibilityReviewUncheckedCreateWithoutSupersededByInput>
@@ -90942,27 +92560,31 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    case?: DisputeCaseUpdateOneRequiredWithoutPolicyReviewsNestedInput
+    case?: DisputeCaseUpdateOneWithoutPolicyReviewsNestedInput
+    events?: DisputePolicyReviewEventUpdateManyWithoutReviewNestedInput
     supersedes?: DisputeCasePolicyEligibilityReviewUpdateOneWithoutSupersededByNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutSupersededByInput = {
     id?: StringFieldUpdateOperationsInput | string
-    caseId?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUpsertWithWhereUniqueWithoutSupersedesInput = {
@@ -95408,6 +97030,7 @@ export namespace Prisma {
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
@@ -95829,11 +97452,13 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: DisputePolicyReviewEventUpdateManyWithoutReviewNestedInput
     supersedes?: DisputeCasePolicyEligibilityReviewUpdateOneWithoutSupersededByNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutSupersedesNestedInput
   }
@@ -95843,12 +97468,14 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     supersedesId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesNestedInput
   }
 
@@ -95857,6 +97484,7 @@ export namespace Prisma {
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -95865,12 +97493,25 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputePolicyReviewEventCreateManyReviewInput = {
+    id?: string
+    contractId: string
+    actorUserId: string
+    actorRole: string
+    action: string
+    note?: string | null
+    idempotencyKey?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewCreateManySupersedesInput = {
     id?: string
-    caseId: string
+    caseId?: string | null
     contractId: string
     result: $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewCreateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning: string
     proposedBy: string
     approvedBy?: string | null
@@ -95878,40 +97519,81 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type DisputePolicyReviewEventUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputePolicyReviewEventUncheckedUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    actorRole?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DisputeCasePolicyEligibilityReviewUpdateWithoutSupersedesInput = {
     id?: StringFieldUpdateOperationsInput | string
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    case?: DisputeCaseUpdateOneRequiredWithoutPolicyReviewsNestedInput
+    case?: DisputeCaseUpdateOneWithoutPolicyReviewsNestedInput
+    events?: DisputePolicyReviewEventUpdateManyWithoutReviewNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUpdateManyWithoutSupersedesNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateWithoutSupersedesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    caseId?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: DisputePolicyReviewEventUncheckedUpdateManyWithoutReviewNestedInput
     supersededBy?: DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesNestedInput
   }
 
   export type DisputeCasePolicyEligibilityReviewUncheckedUpdateManyWithoutSupersedesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    caseId?: StringFieldUpdateOperationsInput | string
+    caseId?: NullableStringFieldUpdateOperationsInput | string | null
     contractId?: StringFieldUpdateOperationsInput | string
     result?: EnumDisputeCasePolicyEligibilityResultFieldUpdateOperationsInput | $Enums.DisputeCasePolicyEligibilityResult
     evidenceIds?: DisputeCasePolicyEligibilityReviewUpdateevidenceIdsInput | string[]
+    evidenceRefs?: NullableJsonNullValueInput | InputJsonValue
     reasoning?: StringFieldUpdateOperationsInput | string
     proposedBy?: StringFieldUpdateOperationsInput | string
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -96430,6 +98112,10 @@ export namespace Prisma {
      * @deprecated Use DisputeCaseDefaultArgs instead
      */
     export type DisputeCaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputePolicyReviewEventDefaultArgs instead
+     */
+    export type DisputePolicyReviewEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputePolicyReviewEventDefaultArgs<ExtArgs>
     /**
      * @deprecated Use DisputeCasePolicyEligibilityReviewDefaultArgs instead
      */

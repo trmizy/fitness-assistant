@@ -266,7 +266,19 @@ test("Q4 one-time approval: the stamp is ONE update (approver + time together, f
 
 test("no batch route exists: the router has exactly two WRITE policy routes, each under ONE case, and two read-only list routes (one case / one contract); the body schema is strict: no list, no 'all', no contract id", async () => {
   const routes = (router as any).stack.filter((l: any) => l.route && /policy/.test(l.route.path)).map((l: any) => `${Object.keys(l.route.methods).join(",")} ${l.route.path}`).sort();
-  assert.deepEqual(routes, ["get /:id/policy-eligibility", "get /contracts/:contractId/policy-eligibility", "post /:id/policy-eligibility", "post /:id/policy-eligibility/:reviewId/approve"], "writes: two, one case each; reads: the case's contract and one contract (backend completion, read-only)");
+  assert.deepEqual(
+    routes,
+    [
+      "get /:id/policy-eligibility",
+      "get /contracts/:contractId/policy-classification",
+      "get /contracts/:contractId/policy-eligibility",
+      "post /:id/policy-eligibility",
+      "post /:id/policy-eligibility/:reviewId/approve",
+      "post /contracts/:contractId/policy-eligibility",
+      "post /contracts/:contractId/policy-eligibility/:reviewId/approve",
+    ],
+    "writes: two per Case + two per ONE contract (D-NEW-12 contract-level, never a list/all); reads: the case's contract, one contract, one contract's classifier",
+  );
   const { policyEligibilityBody, policyEligibilityApproveBody } = await import("../services/dispute-case/schemas");
   const good = { result: "ELIGIBLE_CURRENT_POLICY", evidenceIds: [randomUUID()], reasoning: "x" };
   assert.ok(policyEligibilityBody.safeParse(good).success);

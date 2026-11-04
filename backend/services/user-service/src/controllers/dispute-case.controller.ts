@@ -3,6 +3,7 @@ import { ZodError, z, type ZodTypeAny } from "zod";
 import { logger } from "@gym-coach/shared";
 import { disputeCaseService, type Actor } from "../services/dispute-case/dispute-case.service";
 import { executionService } from "../services/dispute-case/execution.service";
+import { contractPolicyReviewService } from "../services/dispute-case/contract-policy-review.service";
 import { evidenceStorageEnabled } from "../services/dispute-case/flags";
 import { MAX_EVIDENCE_BYTES } from "../services/dispute-case/evidence-storage";
 import multer from "multer";
@@ -15,6 +16,7 @@ import {
   assignBody,
   claimBody,
   classifyBody,
+  contractPolicyReviewBody,
   closeBody,
   emptyBody,
   executeBody,
@@ -191,6 +193,31 @@ export const disputeCaseController = {
 
   list: (req: any, res: Response) =>
     run(res, async (actor) => ({ body: await disputeCaseService.list(actor, parse(listQuery, req.query)) }), req, "list"),
+
+  proposeContractPolicy: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await contractPolicyReviewService.propose(actor, String(req.params.contractId).slice(0, 64), parse(contractPolicyReviewBody, req.body), idempotencyKeyOf(req));
+        return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
+      },
+      req,
+      "proposeContractPolicy",
+    ),
+
+  approveContractPolicy: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await contractPolicyReviewService.approve(actor, String(req.params.contractId).slice(0, 64), String(req.params.reviewId).slice(0, 64), parse(policyEligibilityApproveBody, req.body), idempotencyKeyOf(req));
+        return { body: r.result, replayed: r.replayed };
+      },
+      req,
+      "approveContractPolicy",
+    ),
+
+  classifyContractPolicy: (req: any, res: Response) =>
+    run(res, async (actor) => ({ body: await contractPolicyReviewService.classify(actor, String(req.params.contractId).slice(0, 64)) }), req, "classifyContractPolicy"),
 
   capabilities: (req: any, res: Response) => run(res, async (actor) => ({ body: disputeCaseService.capabilities(actor) }), req, "capabilities"),
 

@@ -1315,7 +1315,7 @@ export const disputeCaseService = {
       sessionStatus,
       proposerId: latestProposal?.proposerId ?? null,
       latestFinding: findings.length ? findings[findings.length - 1].finding : null,
-      pendingPolicyReviews: reviews.items.filter((r) => r.status === "PENDING").map((r) => ({ id: r.reviewId, proposedBy: r.proposedBy })),
+      pendingPolicyReviews: reviews.items.filter((r) => r.status === "PENDING" && r.caseId === c.id).map((r) => ({ id: r.reviewId, proposedBy: r.proposedBy })),
       flags: { executionEnabled: executionEnabled(), evidenceStorageEnabled: evidenceStorageEnabled() },
     });
     return {
@@ -1621,7 +1621,7 @@ export function publicEvidencePayload(payload: unknown): unknown {
   return { ...p, storedFile: rest };
 }
 
-async function policyReviewsOf(db: Db, contractId: string) {
+export async function policyReviewsOf(db: Db, contractId: string) {
   const rows = await db.disputeCasePolicyEligibilityReview.findMany({ where: { contractId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] });
   const current = rows.filter((r) => r.approvedAt).sort((a, b) => b.approvedAt!.getTime() - a.approvedAt!.getTime() || b.id.localeCompare(a.id))[0];
   return {
@@ -1631,6 +1631,8 @@ async function policyReviewsOf(db: Db, contractId: string) {
     items: rows.map((r) => ({
       reviewId: r.id,
       caseId: r.caseId,
+      level: r.caseId ? ("CASE" as const) : ("CONTRACT" as const),
+      evidenceRefs: r.evidenceRefs ?? null,
       contractId: r.contractId,
       result: r.result,
       status: r.approvedAt ? ("APPROVED" as const) : ("PENDING" as const),

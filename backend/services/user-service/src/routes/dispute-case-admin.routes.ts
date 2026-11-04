@@ -14,6 +14,10 @@ router.get("/", c.list);
 router.get("/queue", c.queue);
 router.get("/capabilities", c.capabilities);
 router.get("/contracts/:contractId/policy-eligibility", c.policyReviewsOfContract);
+// D-NEW-12 contract-level review (NO Case needed), four-eyes, references resolved by the server; and the read-only classifier (never unlocks a ruling).
+router.post("/contracts/:contractId/policy-eligibility", c.proposeContractPolicy);
+router.post("/contracts/:contractId/policy-eligibility/:reviewId/approve", c.approveContractPolicy);
+router.get("/contracts/:contractId/policy-classification", c.classifyContractPolicy);
 router.get("/:id", c.get);
 router.get("/:id/access-log", c.accessLog);
 router.post("/:id/assign", c.assign);

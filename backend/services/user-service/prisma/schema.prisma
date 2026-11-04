@@ -1860,6 +1860,26 @@ model DisputeCase {
   @@map("dispute_cases")
 }
 
+/// APPEND-ONLY (trigger). The audit trail of a CONTRACT-LEVEL policy review (it has no Case, so no dispute_case_events row): who proposed / approved, the stored answer for an Idempotency-Key.
+model DisputePolicyReviewEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  reviewId       String   @map("review_id") @db.Uuid
+  contractId     String   @map("contract_id")
+  actorUserId    String   @map("actor_user_id")
+  actorRole      String   @map("actor_role")
+  action         String
+  note           String?
+  idempotencyKey String?  @unique @map("idempotency_key")
+  payload        Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  review DisputeCasePolicyEligibilityReview @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+
+  @@index([reviewId, createdAt])
+  @@index([contractId, createdAt])
+  @@map("dispute_policy_review_events")
+}
+
 /// D-NEW-12 guard (B-1 release gate): for ONE contract, on the evidence of ONE case, is it under the CURRENT dispute policy or under a historical exception?
 enum DisputeCasePolicyEligibilityResult {
   ELIGIBLE_CURRENT_POLICY
@@ -1870,10 +1890,13 @@ enum DisputeCasePolicyEligibilityResult {
 /// row of a contract is its effect; a later approved row supersedes an earlier one. A contract with no approved row is not eligible.
 model DisputeCasePolicyEligibilityReview {
   id           String                             @id @default(uuid()) @db.Uuid
-  caseId       String                             @map("case_id") @db.Uuid
+  /// NULL = a CONTRACT-LEVEL review (D-NEW-12, Ngai 03/11): no Case needed; its evidence is `evidenceRefs` (server-resolved references), not case evidence rows.
+  caseId       String?                            @map("case_id") @db.Uuid
   contractId   String                             @map("contract_id")
   result       DisputeCasePolicyEligibilityResult
   evidenceIds  String[]                           @map("evidence_ids") @db.Uuid
+  /// Contract-level reviews only: [{kind, id, hash, summary}] - each reference was RESOLVED by the server against a real row of THIS contract (never free text).
+  evidenceRefs Json?                              @map("evidence_refs")
   reasoning    String
   proposedBy   String                             @map("proposed_by")
   approvedBy   String?                            @map("approved_by")
@@ -1881,7 +1904,8 @@ model DisputeCasePolicyEligibilityReview {
   supersedesId String?                            @map("supersedes_id") @db.Uuid
   createdAt    DateTime                           @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  case         DisputeCase                           @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  case         DisputeCase?                          @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  events       DisputePolicyReviewEvent[]
   supersedes   DisputeCasePolicyEligibilityReview?   @relation("PolicyReviewSupersedes", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy DisputeCasePolicyEligibilityReview[]  @relation("PolicyReviewSupersedes")
 

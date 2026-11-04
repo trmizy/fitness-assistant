@@ -746,12 +746,26 @@ exports.Prisma.DisputeCaseScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.DisputePolicyReviewEventScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  contractId: 'contractId',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  action: 'action',
+  note: 'note',
+  idempotencyKey: 'idempotencyKey',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.DisputeCasePolicyEligibilityReviewScalarFieldEnum = {
   id: 'id',
   caseId: 'caseId',
   contractId: 'contractId',
   result: 'result',
   evidenceIds: 'evidenceIds',
+  evidenceRefs: 'evidenceRefs',
   reasoning: 'reasoning',
   proposedBy: 'proposedBy',
   approvedBy: 'approvedBy',
@@ -1482,6 +1496,7 @@ exports.Prisma.ModelName = {
   ClientCompatEvent: 'ClientCompatEvent',
   PtTermsAcceptance: 'PtTermsAcceptance',
   DisputeCase: 'DisputeCase',
+  DisputePolicyReviewEvent: 'DisputePolicyReviewEvent',
   DisputeCasePolicyEligibilityReview: 'DisputeCasePolicyEligibilityReview',
   DisputeCaseIssue: 'DisputeCaseIssue',
   DisputeCaseClaim: 'DisputeCaseClaim',

@@ -93,6 +93,17 @@ export const policyEligibilityBody = z
   })
   .strict();
 
+/** Contract-level review (no Case): the evidence is a list of REFERENCES the server resolves, never free text. Strict: no case id, no list of contracts, no amount. */
+export const contractPolicyEvidenceRef = z.object({ kind: z.enum(["PT_TERMS_ACCEPTANCE", "CONTRACT_AUDIT_LOG"]), id: uuid }).strict();
+export const contractPolicyReviewBody = z
+  .object({
+    result: z.enum(["ELIGIBLE_CURRENT_POLICY", "EXCEPTION_APPLIES"]),
+    evidenceRefs: z.array(contractPolicyEvidenceRef).min(1).max(20),
+    reasoning: text(4000),
+    supersedesId: uuid.optional(),
+  })
+  .strict();
+
 export const policyEligibilityApproveBody = z
   .object({
     reason: text(4000),
