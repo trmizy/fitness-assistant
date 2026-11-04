@@ -1,7 +1,10 @@
 /**
  * DISPUTE CASE slice 2 - feature flags, FAIL-CLOSED.
  *
- * A flag is EFFECTIVE only when ALL THREE hold:
+ * (Isolated E2E environment: runtime-gate.ts also opens the gate for DISPUTE_RUNTIME_MODE=e2e-isolated + compose marker + allowlisted *_e2e DB, for a fixed
+ *  subset of flags only (E2E_PERMITTED_FLAGS) and, for money flags, only while payment-service reports the same gate verdict - see payment-peer.ts.)
+ *
+ * In the test environment a flag is EFFECTIVE only when ALL THREE hold:
  *   1. its value is exactly the string "true",
  *   2. NODE_ENV === "test",
  *   3. the database-isolation preload (src/__tests__/setup/db-isolation.ts) accepted an isolated *_test database: DB_ISOLATION === "accepted".
@@ -10,6 +13,9 @@
  *
  * The functions read process.env on every call (a test flips them between cases); nothing is cached except the "already warned" marker.
  */
+
+import { evaluateRuntimeGate, type GateRefusal, type GateVerdict } from "./runtime-gate";
+import { peerAgrees } from "./payment-peer";
 
 export const DISPUTE_CASE_FLAGS = {
   /** S2.1 - the CaseDecision executor (the only door through which a Case may change a session / quota / money). */
@@ -33,31 +39,78 @@ export type DisputeCaseFlag = (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_C
 
 const warned = new Set<string>();
 
+export type FlagRefusal =
+  | GateRefusal
+  | "E2E_FLAG_NOT_PERMITTED"
+  | "PEER_UNCONFIRMED"
+  | "PEER_UNREACHABLE"
+  | "PEER_STALE"
+  | "PEER_MISMATCH";
+
 export interface FlagVerdict {
   effective: boolean;
   /** why it is off although the variable asks for on (undefined when the variable does not ask for on) */
-  refusedBecause?: "NOT_TEST_ENV" | "DB_ISOLATION_NOT_ACCEPTED";
+  refusedBecause?: FlagRefusal;
 }
 
-export function flagVerdict(name: DisputeCaseFlag, env: NodeJS.ProcessEnv = process.env): FlagVerdict {
+/**
+ * The only flags the isolated E2E environment may switch on. T0 and late-open OPEN-L settlement are NOT here: they stay test-only (owner decision).
+ */
+export const E2E_PERMITTED_FLAGS: ReadonlySet<DisputeCaseFlag> = new Set<DisputeCaseFlag>([
+  DISPUTE_CASE_FLAGS.EXECUTION,
+  DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE,
+  DISPUTE_CASE_FLAGS.D65B_RESOLUTION,
+]);
+
+/** Flags that move money / settle sessions: in e2e mode they additionally need payment-service to agree on the gate verdict. */
+const NEEDS_PAYMENT_PEER: ReadonlySet<DisputeCaseFlag> = new Set<DisputeCaseFlag>([
+  DISPUTE_CASE_FLAGS.EXECUTION,
+  DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION,
+  DISPUTE_CASE_FLAGS.D65B_RESOLUTION,
+]);
+
+export function gateVerdict(env: NodeJS.ProcessEnv = process.env): GateVerdict {
+  return evaluateRuntimeGate(env, env.DB_ISOLATION === "accepted");
+}
+
+export function flagVerdict(name: DisputeCaseFlag, env: NodeJS.ProcessEnv = process.env, now: number = Date.now()): FlagVerdict {
   if (env[name] !== "true") return { effective: false };
-  if (env.NODE_ENV !== "test") return warn(name, "NOT_TEST_ENV");
-  if (env.DB_ISOLATION !== "accepted") return warn(name, "DB_ISOLATION_NOT_ACCEPTED");
+  const gate = gateVerdict(env);
+  if (!gate.open) return warn(name, gate.refusedBecause!);
+  if (gate.mode === "test") return { effective: true };
+  // e2e-isolated
+  if (!E2E_PERMITTED_FLAGS.has(name)) return warn(name, "E2E_FLAG_NOT_PERMITTED");
+  if (NEEDS_PAYMENT_PEER.has(name)) {
+    const peer = peerAgrees(gate, now);
+    if (!peer.agrees) return warn(name, peer.why!);
+  }
   return { effective: true };
 }
 
-function warn(name: string, why: "NOT_TEST_ENV" | "DB_ISOLATION_NOT_ACCEPTED"): FlagVerdict {
+function warn(name: string, why: FlagRefusal): FlagVerdict {
   const k = `${name}:${why}`;
   if (!warned.has(k)) {
     warned.add(k);
     // eslint-disable-next-line no-console
     console.warn(
       `[dispute-case] ${name}=true IGNORED (flag stays OFF): ${
-        why === "NOT_TEST_ENV" ? "NODE_ENV is not 'test'" : "no isolated *_test database was accepted by the test preload (DB_ISOLATION !== 'accepted')"
-      }. This flag only works inside the isolated test environment.`,
+        why === "NOT_TEST_ENV"
+          ? "NODE_ENV is not 'test' and the e2e-isolated runtime mode is not requested"
+          : why === "DB_ISOLATION_NOT_ACCEPTED"
+            ? "no isolated *_test database was accepted by the test preload (DB_ISOLATION !== 'accepted')"
+            : why
+      }. This flag only works inside the isolated test / e2e environment.`,
     );
   }
   return { effective: false, refusedBecause: why };
+}
+
+/** One audit line at startup: the gate verdict and the verdict of every flag (payment's agreement is logged separately by payment-peer.ts once it has answered). */
+export function auditDisputeRuntimeGate(env: NodeJS.ProcessEnv = process.env): void {
+  const g = gateVerdict(env);
+  const flags = Object.values(DISPUTE_CASE_FLAGS).map((n) => `${n}=${env[n] === "true" ? (flagVerdict(n, env).refusedBecause ?? "ON") : "off"}`);
+  // eslint-disable-next-line no-console
+  console.log(`[dispute-runtime-gate] user-service mode=${g.mode} open=${g.open} db=${g.database || "?"}${g.refusedBecause ? ` refused=${g.refusedBecause}` : ""} ${flags.join(" ")}`);
 }
 
 export const isDisputeCaseFlagOn = (name: DisputeCaseFlag, env: NodeJS.ProcessEnv = process.env): boolean => flagVerdict(name, env).effective;

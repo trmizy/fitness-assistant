@@ -6,7 +6,7 @@ import { collectExternal, collectSources, draftHash, type Db, type EvidenceDraft
 import { buildFinancialView, hasLateArrivalStep, partyFinancialView } from "./financial";
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from "./errors";
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
-import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdict } from "./flags";
+import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdict, gateVerdict } from "./flags";
 import { assertRealAdmin } from "./admin-account";
 import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
@@ -1199,6 +1199,7 @@ export const disputeCaseService = {
       lateOpenReconciliation: d.lateOpenReconciliation.effective,
       d65bResolution: d.d65bResolution.effective,
       details: d,
+      runtime: { mode: gateVerdict().mode, open: gateVerdict().open, ...(gateVerdict().refusedBecause ? { refusedBecause: gateVerdict().refusedBecause } : {}) },
     };
   },
 

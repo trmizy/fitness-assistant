@@ -31,12 +31,19 @@ import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { IdempotencyKeyConflictError } from '../services/ledger-idempotency';
 import { RequestDoesNotMatchTransactionError } from '../services/contract-request-guard';
 import { ContractAlreadyTerminatedError, LateOpenReconciliationError, TerminateSnapshotStaleError, readLateOpenState } from '../services/contract-ledger.service';
+import { paymentGateVerdict } from '../services/late-open-settlement-flag';
 import ledgerOperationRoutes from './ledger-operations.routes';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
+
+// Dispute runtime gate: the verdict user-service compares with its own before it lets the executor / D65-B / late-open run (E2E-isolated environment). Read-only.
+router.get('/dispute-runtime-verdict', (_req: Request, res: Response) => {
+  const v = paymentGateVerdict();
+  res.json({ success: true, data: { service: 'payment-service', mode: v.mode, open: v.open, ...(v.refusedBecause ? { refusedBecause: v.refusedBecause } : {}) } });
+});
 
 // FH-2a: read-only lookup of ledger operations by idempotency key (no writes).
 router.use('/ledger-operations', ledgerOperationRoutes);

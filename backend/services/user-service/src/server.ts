@@ -12,6 +12,8 @@ import { startRoomCloseResolutionJob } from "./services/room-close-resolution.se
 import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
 import { startIpUaRetentionSweepJob } from "./services/ip-ua-retention.service";
 import { startDisputeExecutionSweepJob } from "./services/dispute-case/execution-sweep.service";
+import { auditDisputeRuntimeGate } from "./services/dispute-case/flags";
+import { startPeerVerdictMonitor } from "./services/dispute-case/payment-peer";
 import { installGracefulShutdown } from "./lifecycle";
 
 const PORT = process.env.PORT || 3004;
@@ -23,6 +25,8 @@ const server = app.listen(PORT, () => {
   logger.info(`👤 User Service running on port ${PORT}`);
   // Settles sessions the client never responded to, so a PT is not left uncredited
   // forever by silence (see session-autoconfirm.service.ts).
+  auditDisputeRuntimeGate();
+  stopJobs.push(startPeerVerdictMonitor());
   stopJobs.push(startSessionAutoConfirmJob());
   stopJobs.push(startRescheduleExpiryJob());
   // Retries no-show compensation / session release / contract termination that failed on

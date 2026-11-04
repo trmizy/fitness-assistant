@@ -15,9 +15,15 @@
  * before the check - and it changes no amount, formula or money source. env is read on every call (a test flips it between cases).
  */
 
+import { databaseNameOfUrl as gateDatabaseNameOfUrl, evaluateRuntimeGate, type GateVerdict } from './dispute-runtime-gate';
+
+/** payment-service's gate: test mode needs a DB named *_test (it has no DB_ISOLATION preload). */
+export const paymentGateVerdict = (env: NodeJS.ProcessEnv = process.env): GateVerdict =>
+  evaluateRuntimeGate(env, /_test$/.test(gateDatabaseNameOfUrl(env.DATABASE_URL)));
+
 export const LATE_OPEN_SETTLEMENT_FLAG = 'DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED';
 
-export type LateOpenFlagRefusal = 'NOT_TEST_ENV' | 'DATABASE_NOT_TEST';
+export type LateOpenFlagRefusal = 'NOT_TEST_ENV' | 'DATABASE_NOT_TEST' | 'E2E_FLAG_NOT_PERMITTED';
 
 export interface LateOpenFlagVerdict {
   effective: boolean;
@@ -26,21 +32,16 @@ export interface LateOpenFlagVerdict {
 }
 
 /** The database name of a Postgres URL, or "" when the URL is missing or unparsable. */
-export function databaseNameOfUrl(url: string | undefined): string {
-  if (!url) return '';
-  try {
-    return decodeURIComponent(new URL(url).pathname.replace(/^\/+/, ''));
-  } catch {
-    return '';
-  }
-}
+export const databaseNameOfUrl = gateDatabaseNameOfUrl;
 
 const warned = new Set<string>();
 
 export function lateOpenSettlementVerdict(env: NodeJS.ProcessEnv = process.env): LateOpenFlagVerdict {
   if (env[LATE_OPEN_SETTLEMENT_FLAG] !== 'true') return { effective: false };
-  if (env.NODE_ENV !== 'test') return warn('NOT_TEST_ENV');
-  if (!/_test$/.test(databaseNameOfUrl(env.DATABASE_URL))) return warn('DATABASE_NOT_TEST');
+  // The shared runtime gate: NODE_ENV=test AND a DB name ending _test, OR the isolated e2e environment. OPEN-L settlement is NEVER permitted in the e2e environment (owner decision).
+  const gate = paymentGateVerdict(env);
+  if (!gate.open) return warn(gate.mode === 'test' ? 'DATABASE_NOT_TEST' : gate.refusedBecause === 'NOT_TEST_ENV' ? 'NOT_TEST_ENV' : 'E2E_FLAG_NOT_PERMITTED');
+  if (gate.mode !== 'test') return warn('E2E_FLAG_NOT_PERMITTED');
   return { effective: true };
 }
 
@@ -50,7 +51,7 @@ function warn(why: LateOpenFlagRefusal): LateOpenFlagVerdict {
     // eslint-disable-next-line no-console
     console.warn(
       `[payment-service] ${LATE_OPEN_SETTLEMENT_FLAG}=true IGNORED (settlement of an OPEN late-arrival obligation stays OFF): ${
-        why === 'NOT_TEST_ENV' ? "NODE_ENV is not 'test'" : 'DATABASE_URL does not name a database ending _test'
+        why === 'NOT_TEST_ENV' ? "NODE_ENV is not 'test'" : why === 'E2E_FLAG_NOT_PERMITTED' ? 'settling OPEN L is never permitted in the isolated e2e environment (or the e2e gate is closed)' : 'DATABASE_URL does not name a database ending _test'
       }. This flag only works inside the isolated test environment.`,
     );
   }
