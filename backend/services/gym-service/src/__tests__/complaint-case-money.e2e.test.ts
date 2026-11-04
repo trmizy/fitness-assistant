@@ -214,8 +214,8 @@ test.afterEach(async () => {
 });
 
 /** A membership the client really PAYS for: purchase -> real checkout in payment-service -> signed gateway IPN (fixture) -> real activation callback. */
-async function paidMembership(o: { referral?: { ptUserId: string } } = {}) {
-  const { gym, ownerId } = await H.makeGym();
+async function paidMembership(o: { referral?: { ptUserId: string }; sameGymAs?: { gym: any; ownerId: string } } = {}) {
+  const { gym, ownerId } = o.sameGymAs ?? (await H.makeGym());
   const clientId = `member-${randomUUID().slice(0, 8)}`;
   const brandId = gym.brandId!;
   const plan = await svc.prisma.gymMembershipPlan.create({ data: { brandId, name: 'E2E Plan', price: PRICE, durationDays: DAYS } });
@@ -383,4 +383,56 @@ test('REAL ledger: a membership with a PT referral claws the commission back thr
   assert.equal(num(r.body.data.money.postedToMemberWallet), (await wallet('CLIENT', pm.clientId)).a);
   assert.deepEqual(await ledgerOps(`REFERRAL_CLAWBACK:${pm.membershipId}`), [`REFERRAL_CLAWBACK:${pm.membershipId}`]);
   await invariant('after referral refund');
+});
+
+test('REAL ledger B1: the expiry sweep holds ONLY the pending money of the membership with an unfinished case (same gym, other membership is released); it is released through the existing path once the case closes; a second sweep adds nothing', { skip }, async () => {
+  const { runSweep } = await import('../services/membershipPayout.sweep');
+  const A = await paidMembership(); // will have a case
+  const B = await paidMembership({ sameGymAs: { gym: A.gym, ownerId: A.ownerId } }); // same gym, no case
+  const inv = H.newAdmin();
+  const appr = H.newAdmin();
+  const complaint = await H.makeComplaint(A.gym.id, A.clientId);
+  const caseId = H.ok(await H.call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass: 'MEM_TXN', membershipId: A.membershipId }), 201, 'open').id as string;
+  // both terms are over (fixture): the sweep flips them to EXPIRED and then decides release / hold per membership
+  await svc.prisma.gymMembershipContract.updateMany({ where: { id: { in: [A.membershipId, B.membershipId] } }, data: { endDate: new Date(Date.now() - 86_400_000) } });
+  const gymBefore = await wallet('GYM', A.gym.id);
+  assert.ok(gymBefore.p > 0 && gymBefore.a === 0, 'all of it is pending before the sweep: ' + JSON.stringify(gymBefore));
+  const r1 = await runSweep();
+  assert.equal(r1.failed, 0);
+  assert.deepEqual(await ledgerOps(`MEMBERSHIP_RELEASE:${A.membershipId}`), [], "A's money was NOT released");
+  assert.equal((await ledgerOps(`MEMBERSHIP_RELEASE:${B.membershipId}`)).length, 1, "B's money WAS released");
+  const mid = await wallet('GYM', A.gym.id);
+  assert.ok(mid.a > 0 && mid.p > 0, "the gym has B's share available and A's still pending: " + JSON.stringify(mid));
+  assert.equal(Math.round((mid.a + mid.p) * 100), Math.round(gymBefore.p * 100), 'nothing created or lost');
+  assert.equal((await svc.prisma.gymMembershipContract.findUniqueOrThrow({ where: { id: A.membershipId } })).payoutReleasedAt, null);
+  assert.ok((await svc.prisma.gymMembershipContract.findUniqueOrThrow({ where: { id: B.membershipId } })).payoutReleasedAt);
+  await invariant('after the holding sweep');
+  const opsBefore = (await ledgerOps('MEMBERSHIP_RELEASE:%')).length;
+  await runSweep();
+  assert.equal((await ledgerOps('MEMBERSHIP_RELEASE:%')).length, opsBefore, 'a second sweep releases nothing more while the case is open');
+
+  // the case closes with NO refund (not established) -> the next sweep releases A through the same path
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/assign`, inv.tok, {}), 200, 'assign');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/transition`, inv.tok, { to: 'ASSESSING' }), 200, 'assessing');
+  const claim = H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/claims`, inv.tok, { claimantRole: 'MEMBER', text: 'x' }), 201, 'claim');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/assessments`, inv.tok, { claimId: claim.id, relevanceNote: 'a', verifiabilityNote: 'b', consistencyNote: 'c', result: 'NOT_ESTABLISHED', reasoning: 'r' }), 201, 'assess');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/finding`, inv.tok, { finding: 'NOT_ESTABLISHED', reasoning: 'r' }), 201, 'finding');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/recollect`, inv.tok, {}), 200, 'recollect');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/proposal`, inv.tok, {}), 201, 'proposal');
+  H.ok(await H.call('POST', `/admin/complaint-cases/${caseId}/decision`, appr.tok, { result: 'APPROVED', reason: 'ok', conflictOfInterestDeclaredNone: true }), 200, 'approve');
+  const ex = await H.call('POST', `/admin/complaint-cases/${caseId}/execute`, appr.tok, {});
+  assert.equal(ex.status, 200, JSON.stringify(ex.body));
+  assert.equal(ex.body.data.money.state, 'NO_MONEY_EFFECT');
+  assert.deepEqual(await ledgerOps(`MEMBERSHIP_RELEASE:${A.membershipId}`), [], 'closing the case did not move money by itself');
+  const r3 = await runSweep();
+  assert.equal(r3.failed, 0);
+  assert.equal((await ledgerOps(`MEMBERSHIP_RELEASE:${A.membershipId}`)).length, 1, "A's money is released once the case is closed");
+  const after = await wallet('GYM', A.gym.id);
+  assert.equal(after.p, 0);
+  assert.equal(Math.round(after.a * 100), Math.round(gymBefore.p * 100));
+  const opsAfter = (await ledgerOps('MEMBERSHIP_RELEASE:%')).length;
+  await runSweep();
+  assert.equal((await ledgerOps('MEMBERSHIP_RELEASE:%')).length, opsAfter, 'idempotent');
+  assert.equal((await wallet('CLIENT', A.clientId)).a, 0, 'no refund was paid');
+  await invariant('end');
 });
