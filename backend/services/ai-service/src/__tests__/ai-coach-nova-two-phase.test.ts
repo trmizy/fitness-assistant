@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { generateKeyPairSync, randomUUID, sign, type KeyObject } from "node:crypto";
 import type { ConverseCommandInput, ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
 import { approvedConfigurationHash, NOVA_ACCEPTED, NOVA_TWO_PHASE, parseConfiguration, type SessionConfig } from "../evaluation/bedrock-pilot/config";
-import { inferenceReleaseFile, measurementPhaseRecord, novaLedgerScope } from "../evaluation/bedrock-pilot/ledger";
+import { inferenceReleaseFile, measurementPhaseRecord, novaLedgerScope, verifyInferenceRelease } from "../evaluation/bedrock-pilot/ledger";
 import { converseInput } from "../evaluation/bedrock-pilot/session";
 import { runControlledPilot } from "../evaluation/bedrock-pilot/runner";
 import { calculatePilotPins, implementationRoot } from "../evaluation/bedrock-pilot/pins";
@@ -115,7 +115,7 @@ test("measure-only: 4 billed measurements, 0 inference, a durable ledger phase r
   } finally { f.close(); }
 });
 
-test("without the owner's release the inference phase is refused before anything is sent or the ledger is resumed; flags alone grant nothing", needsClean, async () => {
+test("owner boundary: no release → inference refused before anything is sent or resumed; a valid release admits 8 inferences in the owner order with 0 new measurements; flags alone grant nothing", needsClean, async () => {
   const f = await fixture();
   try {
     const c = signed(f.base); f.issue(c);
@@ -125,18 +125,10 @@ test("without the owner's release the inference phase is refused before anything
     const before = f.records(c).length;
     await assert.rejects(f.run(c, dir, { resume: true }), /INFERENCE_RELEASE_REQUIRED/);
     assert.equal(f.records(c).length, before, "no RESUMED record"); assert.equal(f.inferences().length, 0);
-    // --measure-only on a one-shot (historical) scope is refused before anything is claimed.
-    const g = await fixture({ phases: false });
-    try { const o = signed(g.base); g.issue(o); await assert.rejects(g.run(o, path.join(g.root, "run"), { measureOnly: true }), /MEASURE_ONLY_REQUIRES_TWO_PHASE_SCOPE/); assert.equal(g.records(o).length, 1); assert.equal(g.sent.length, 0); }
-    finally { g.close(); }
-  } finally { f.close(); }
-});
-
-test("a valid release admits the inference phase: 8 inferences in the owner order, 0 new measurements, no second ledger; repeat resume sends nothing", needsClean, async () => {
-  const f = await fixture();
-  try {
-    const c = signed(f.base); f.issue(c);
-    const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
+    f.release(c, {}, otherKeys.privateKey);
+    await assert.rejects(f.run(c, dir, { resume: true }), /INFERENCE_RELEASE_SIGNATURE_INVALID/, "end-to-end: a release from another key");
+    assert.equal(f.records(c).length, before); assert.equal(f.inferences().length, 0);
+    f.release(c);
     const summary = await f.run(c, dir, { resume: true });
     assert.equal(f.measures().length, 4, "measurements are reused from the ledger"); assert.equal(f.inferences().length, 8);
     assert.deepEqual(f.inferences().map(i => f.label.get(serializeNova(i).identity.tokenPayloadHash)), OWNER_ORDER);
@@ -145,27 +137,37 @@ test("a valid release admits the inference phase: 8 inferences in the owner orde
     assert.deepEqual(await f.run(c, dir, { resume: true }), summary); assert.equal(f.sent.length, 12, "completed run resumes to its stored summary");
     await assert.rejects(f.run(c, path.join(f.root, "elsewhere"), { resume: true }), /APPROVAL_ALREADY_USED|RESUME_MANIFEST|ENOENT/);
     assert.equal(f.sent.length, 12);
+    // --measure-only on a one-shot (historical) scope is refused before anything is claimed.
+    const g = await fixture({ phases: false });
+    try { const o = signed(g.base); g.issue(o); await assert.rejects(g.run(o, path.join(g.root, "run"), { measureOnly: true }), /MEASURE_ONLY_REQUIRES_TWO_PHASE_SCOPE/); assert.equal(g.records(o).length, 1); assert.equal(g.sent.length, 0); }
+    finally { g.close(); }
   } finally { f.close(); }
 });
 
-test("invalid inference releases are refused and send nothing (key, counts, record, binding, expiry, lifetime)", needsClean, async () => {
+test("release verification refuses every mismatch (key, issuer, counts, record, binding, expiry, lifetime, shape)", needsClean, async () => {
   const f = await fixture();
   try {
     const c = signed(f.base); f.issue(c);
-    const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true });
-    const m = measurementPhaseRecord(f.ledger, c.approval!.approvalId)!, firstHash = Object.keys(m.state.counts)[0];
-    const cases: [string, () => void, RegExp][] = [
-      ["another key", () => f.release(c, {}, otherKeys.privateKey), /INFERENCE_RELEASE_SIGNATURE_INVALID/],
-      ["another issuer", () => f.release(c, { issuer: "someone-else" }), /INFERENCE_RELEASE_SIGNATURE_INVALID/],
-      ["tampered count", () => f.release(c, { measuredCounts: { ...m.state.counts, [firstHash]: m.state.counts[firstHash] + 1 } }), /INFERENCE_RELEASE_MEASUREMENT_MISMATCH/],
-      ["other measurement row", () => f.release(c, { measurementRecordHash: "a".repeat(64) }), /INFERENCE_RELEASE_MEASUREMENT_MISMATCH/],
-      ["other approval hash", () => f.release(c, { approvalHash: "b".repeat(64) }), /INFERENCE_RELEASE_BINDING_MISMATCH/],
-      ["other config", () => f.release(c, { configHash: "c".repeat(64) }), /INFERENCE_RELEASE_BINDING_MISMATCH/],
-      ["expired", () => f.release(c, { expiresAt: new Date(Date.now() - 1000).toISOString() }), /INFERENCE_RELEASE_EXPIRED/],
-      ["outlives the approval", () => f.release(c, { expiresAt: new Date(Date.parse(c.approval!.expiresAt) + 60000).toISOString() }), /INFERENCE_RELEASE_OUTLIVES_APPROVAL/],
-      ["malformed", () => fs.writeFileSync(inferenceReleaseFile(f.ledger, c.approval!.approvalId), "{"), /INFERENCE_RELEASE_INVALID/],
+    await f.run(c, path.join(f.root, "run"), { measureOnly: true });
+    const m = measurementPhaseRecord(f.ledger, c.approval!.approvalId)!, firstHash = Object.keys(m.state.counts)[0], file = inferenceReleaseFile(f.ledger, c.approval!.approvalId);
+    const check = (patch: Record<string, unknown>, key?: KeyObject) => { f.release(c, patch, key); return () => verifyInferenceRelease({ release: JSON.parse(fs.readFileSync(file, "utf8")), trust: { issuer: ISSUER, publicKeyPem: pem(keys.publicKey) }, approval: c.approval!, configHash: approvedConfigurationHash(c), measurement: m }); };
+    assert.equal(check({})().measurementRecordHash, m.hash, "the valid release verifies");
+    const cases: [string, Record<string, unknown>, RegExp, KeyObject?][] = [
+      ["another key", {}, /INFERENCE_RELEASE_SIGNATURE_INVALID/, otherKeys.privateKey],
+      ["another issuer", { issuer: "someone-else" }, /INFERENCE_RELEASE_SIGNATURE_INVALID/],
+      ["tampered count", { measuredCounts: { ...m.state.counts, [firstHash]: m.state.counts[firstHash] + 1 } }, /INFERENCE_RELEASE_MEASUREMENT_MISMATCH/],
+      ["missing count", { measuredCounts: Object.fromEntries(Object.entries(m.state.counts).slice(1)) }, /INFERENCE_RELEASE_MEASUREMENT_MISMATCH/],
+      ["other measurement row", { measurementRecordHash: "a".repeat(64) }, /INFERENCE_RELEASE_MEASUREMENT_MISMATCH/],
+      ["other approval", { approvalId: randomUUID() }, /INFERENCE_RELEASE_BINDING_MISMATCH/],
+      ["other approval hash", { approvalHash: "b".repeat(64) }, /INFERENCE_RELEASE_BINDING_MISMATCH/],
+      ["other config", { configHash: "c".repeat(64) }, /INFERENCE_RELEASE_BINDING_MISMATCH/],
+      ["expired", { expiresAt: new Date(Date.now() - 1000).toISOString() }, /INFERENCE_RELEASE_EXPIRED/],
+      ["outlives the approval", { expiresAt: new Date(Date.parse(c.approval!.expiresAt) + 60000).toISOString() }, /INFERENCE_RELEASE_OUTLIVES_APPROVAL/],
+      ["extra field", { note: "x" }, /INFERENCE_RELEASE_INVALID/],
     ];
-    for (const [name, make, code] of cases) { make(); await assert.rejects(f.run(c, dir, { resume: true }), code, name); assert.equal(f.inferences().length, 0, name); }
+    for (const [name, patch, code, key] of cases) assert.throws(check(patch, key), code, name);
+    assert.throws(() => verifyInferenceRelease({ release: {}, trust: { issuer: ISSUER, publicKeyPem: pem(keys.publicKey) }, approval: c.approval!, configHash: approvedConfigurationHash(c), measurement: m }), /INFERENCE_RELEASE_INVALID/);
+    assert.equal(f.inferences().length, 0);
   } finally { f.close(); }
 });
 
