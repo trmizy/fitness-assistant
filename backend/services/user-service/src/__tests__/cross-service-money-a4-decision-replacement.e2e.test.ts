@@ -376,7 +376,7 @@ test("A4-6 CONCURRENCY: executing and proposing a replacement at the same instan
     for (let i = 0; i < 8; i++) {
       const fx = await approvedCase();
       const snap0 = await H.snapshot();
-      const [ex, pr] = await Promise.allSettled([execute(fx.caseId), propose(fx.caseId, A())]);
+      const [ex, pr] = await Promise.allSettled([execute(fx.caseId), new Promise((r) => setTimeout(r, i * 140)).then(() => propose(fx.caseId, A()))]);
       const executed = ex.status === "fulfilled" && (ex.value as any).executionState === "BUSINESS_DONE";
       const proposed = pr.status === "fulfilled" && pr.value.status === 201;
       assert.ok(!(executed && proposed), `round ${i}: execute AND propose both succeeded`);
