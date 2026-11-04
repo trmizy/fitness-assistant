@@ -60,9 +60,16 @@ async function main() {
       await mk("PENDING_CLIENT_CONFIRMATION", new Date(T - 2 * DAY), { clientConfirmDeadline: new Date(T + 2 * DAY), sessionMode: "OFFLINE", ptNotes: "E2E_DISPUTE:dispute-fixture PT báo đã dạy đủ buổi" });
       await mk("CONFIRMED", new Date(T - 3 * DAY), { sessionMode: "OFFLINE", ptNotes: "E2E_DISPUTE:noshow-fixture" });
     }
+    let extra: { id: string; status: string } | null = null;
+    if (process.env.E2E_NEW_DISPUTE === "1") {
+      const tag = `E2E_DISPUTE:extra-${Date.now()}`;
+      const T = Date.now();
+      await mk("PENDING_CLIENT_CONFIRMATION", new Date(T - 2 * DAY), { clientConfirmDeadline: new Date(T + 2 * DAY), sessionMode: "OFFLINE", ptNotes: `${tag} PT báo đã dạy đủ buổi` });
+      extra = await find(tag);
+    }
     const sDispute = await find("E2E_DISPUTE:dispute-fixture");
     const sNoShow = await find("E2E_DISPUTE:noshow-fixture");
-    console.log("FIXTURE_JSON " + JSON.stringify({ contractId: contract.id, status: contract.status, created, disputeSession: sDispute, noShowSession: sNoShow }));
+    console.log("FIXTURE_JSON " + JSON.stringify({ contractId: contract.id, status: contract.status, created, disputeSession: sDispute, noShowSession: sNoShow, extraSession: extra }));
   } finally {
     await db.$disconnect();
   }

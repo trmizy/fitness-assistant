@@ -4,7 +4,7 @@
 //  REAL HTTP/API: login, the client PAYS the contract (POST /contracts/:id/pay -> payment-service checkout -> demo-checkout success -> ledger + activation),
 //                 the client DISPUTES one session (POST /sessions/:id/dispute) and reports a PT no-show on the other (POST /sessions/:id/report-no-show).
 //  No ledger / wallet / transaction row is written by hand. The D-NEW-12 policy review is NOT seeded: it is done through the four-eyes API (see smoke.mjs).
-import { C, GATEWAY, PAYMENT, PASSWORD, USERS, docker, psql, http, login, must, data, sleep, saveState, HERE } from "./lib.mjs";
+import { C, GATEWAY, PAYMENT, PASSWORD, USERS, docker, psql, http, login, must, data, sleep, saveState, loadState, HERE } from "./lib.mjs";
 import { join } from "node:path";
 
 const log = (...a) => console.log("[seed]", ...a);
@@ -53,7 +53,18 @@ async function payContract(contractId, clientToken, status) {
   throw new Error("contract did not become ACTIVE after the demo checkout");
 }
 
+async function extraDispute() {
+  // `seed.sh --new-dispute`: one more DISPUTED session on the same paid contract (a case can be opened once per session; use it to re-run smoke.mjs).
+  const token = await login(USERS.client);
+  const uf = runFixture(C.user, "user-service", "user-fixture.ts", { E2E_CLIENT_ID: USERS.client.id, E2E_PT_ID: USERS.pt.id, E2E_NEW_DISPUTE: "1" });
+  must(await http("POST", `/sessions/${uf.extraSession.id}/dispute`, token, { reason: "E2E_DISPUTE: buổi tập bổ sung không như PT đã báo" }), 200, "dispute extra session");
+  const st = loadState();
+  saveState({ ...st, spareDisputeSessionIds: [...(st.spareDisputeSessionIds ?? []), uf.extraSession.id] });
+  console.log("[seed] new DISPUTED session:", uf.extraSession.id, "(run: SMOKE_SESSION_ID=" + uf.extraSession.id + " node scripts/e2e-dispute/smoke.mjs)");
+}
+
 async function main() {
+  if (process.argv.includes("--new-dispute")) return extraDispute();
   await ensureAccounts();
   const tokens = {};
   for (const [k, u] of Object.entries(USERS)) tokens[k] = await login(u);

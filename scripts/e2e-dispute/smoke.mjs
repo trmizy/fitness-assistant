@@ -44,7 +44,7 @@ try {
   });
 
   await step("open case on the DISPUTED session", async () => {
-    const r = expect(await http("POST", A, T.admin1, { sessionId: S.disputeSessionId }), [200, 201], "open");
+    const r = expect(await http("POST", A, T.admin1, { sessionId: process.env.SMOKE_SESSION_ID || S.disputeSessionId }), [200, 201], "open");
     caseId = r.result?.case?.id ?? r.case?.id ?? r.id;
     if (!caseId) throw new Error("no case id in " + short(r));
     return caseId;
@@ -90,7 +90,9 @@ try {
   });
   const review = await step("D-NEW-12 policy review PROPOSE (admin1) [TEST FIXTURE judgement]", async () => {
     const r = expect(await http("POST", `${A}/${caseId}/policy-eligibility`, T.admin1, { result: "ELIGIBLE_CURRENT_POLICY", evidenceIds: [evidence[0].id], reasoning: "TEST FIXTURE: hợp đồng E2E thuộc chính sách hiện hành" }), [200, 201], "policy propose");
-    return r.result?.id ?? r.review?.id ?? r.id;
+    const id = r.result?.reviewId ?? r.reviewId ?? r.result?.id ?? r.review?.reviewId ?? r.review?.id ?? r.id;
+    if (!id) throw new Error("no review id in " + short(r));
+    return id;
   });
   await step("D-NEW-12 policy review APPROVE (admin2, four-eyes)", async () => {
     expect(await http("POST", `${A}/${caseId}/policy-eligibility/${review}/approve`, T.admin2, { reason: "TEST FIXTURE: đồng ý", conflictOfInterestDeclaredNone: true }), [200, 201], "policy approve");

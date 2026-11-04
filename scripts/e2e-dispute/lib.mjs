@@ -1,4 +1,5 @@
 // Shared helpers of the isolated Dispute E2E environment scripts (project gymini-e2e-dispute ONLY). No dependencies beyond Node 20+.
+import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -43,7 +44,7 @@ export async function http(method, path, token, body, { base = GATEWAY, headers 
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const res = await fetch(base + path, {
     method,
-    headers: { ...(isForm || body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers },
+    headers: { ...(isForm || body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...(method === "POST" ? { "idempotency-key": randomUUID() } : {}), ...headers },
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     redirect: "manual",
   });
