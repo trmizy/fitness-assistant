@@ -26,8 +26,8 @@ export function prepareClaimPilot(request: DevRequest, registry: ClaimRegistry, 
   return { prompt, input, evidence: { passages }, claimContext: context, safetyHandling: context.route };
 }
 
-export function verifyClaimPilot(context: ClaimContext, candidate: unknown) {
-  const e2 = verifyClaimAnalysis(context, candidate);
+export function verifyClaimPilot(context: ClaimContext, candidate: unknown, failure?: Parameters<typeof verifyClaimAnalysis>[2]) {
+  const e2 = verifyClaimAnalysis(context, candidate, failure);
   return { blocked: e2.release === "BLOCKED", scientificPass: null, generationCalls: 0,
     blockerScopes: {
       structuredInvariant: e2.grounding.contentIssues.filter(i => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT"),

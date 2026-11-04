@@ -129,7 +129,7 @@ export async function runControlledPilot(options: RunnerOptions) {
       const attemptKey = attemptIdentity({ caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, configHash, promptHash: row.promptHash });
       const result = finished.get(attemptKey) ?? await session.evaluate(row.prompt, attemptKey);
       options.onStage?.("EVALUATED");
-      const verification = row.claimContext ? verifyClaimPilot(row.claimContext, result.parsedCandidate) : verifyRawEvaluation(row.verificationContext, result.parsedCandidate);
+      const verification = row.claimContext ? verifyClaimPilot(row.claimContext, result.parsedCandidate, { parseError: result.parseError, providerError: result.providerError }) : verifyRawEvaluation(row.verificationContext, result.parsedCandidate);
       const generationStatus = result.providerError || result.parseError ? "FAILED" as const : "GENERATED" as const;
       const postGate = { decision: generationStatus === "FAILED" ? "FAILED" as const : verification.blocked ? "BLOCKED" as const : "ELIGIBLE" as const,
         structuredInvariant: generationStatus === "GENERATED" && !!verification.blockerScopes.structuredInvariant.length,

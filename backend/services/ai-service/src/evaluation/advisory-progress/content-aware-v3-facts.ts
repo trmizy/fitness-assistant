@@ -13,6 +13,21 @@ const metrics = (input: AdvisoryInput) => input.facts.filter((f) => f.evidence.k
   .map((f) => ({ id: f.id, baseline: f.evidence.value.baselineKg as number, current: f.evidence.value.currentKg as number,
     exercise: typeof f.evidence.value.exercise === "string" ? f.evidence.value.exercise : null }));
 const issue = (severity: ContentIssue["severity"], code: string, path: string): ContentIssue => ({ severity, code, path, scope: "STRUCTURED_INVARIANT" });
+/** Only an explicitly asked integer week duration backed by the cited training
+ * window may bypass numeric membership, at that exact text span. Not a new
+ * globally allowed number, date inference or general unit converter. */
+function supportedWeekSpans(input: AdvisoryInput, unit: TextUnit, references: Record<string, string[]>) {
+  const ids = references[unit.path];
+  const scoped = ids === undefined ? input.facts : input.facts.filter(f => ids.includes(f.id));
+  const facts = scoped.filter(f => f.evidence.domain === "TRAINING" && f.evidence.provenance === "TRAINING_LOGS"
+    && ["SUFFICIENT", "PARTIAL"].includes(f.evidence.quality));
+  const weeks = (text: string) => [...text.matchAll(/(?<![\p{L}\p{N}_.,+-])([1-9]\d*)\s*(?:tuần|tuan|weeks?)(?![\p{L}\p{N}_])/giu)];
+  const asked = new Set(weeks(input.question).map(m => Number(m[1])));
+  return weeks(unit.text).filter(m => {
+    const n = Number(m[1]), days = n * 7;
+    return asked.has(n) && Number.isSafeInteger(days) && facts.length > 0 && facts.every(f => f.evidence.window?.days === days);
+  }).map(m => ({ start: m.index!, end: m.index! + m[0].length }));
+}
 function expectedChange(metric: ReturnType<typeof metrics>[number], unit: "KG" | "PERCENT"): number | null {
   const kg = metric.current - metric.baseline;
   const value = unit === "KG" ? kg : metric.baseline !== 0 ? kg / metric.baseline * 100 : NaN;
@@ -36,6 +51,7 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
   if (checkAnswer(input, adapter("")).includes("facts_not_addressed")) result.push(issue("HARD", "FACTS_NOT_ADDRESSED", "claims"));
   const allowed = new Set(numeric(JSON.stringify({ facts: input.facts, sources: input.sources })));
   for (const unit of units) {
+    const durationSpans = supportedWeekSpans(input, unit, references);
     const codes = checkAnswer(input, adapter(unit.text));
     if (codes.includes("unmapped_url")) {
       const urls = unit.text.match(/https?:\/\/[^\s<>"”]+/gi) ?? [];
@@ -84,7 +100,7 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
       if (bareLift) result.push(issue("SOFT", "ACTUAL_LOAD_CHANGE_NOT_ESTABLISHED_BY_E1RM", unit.path));
     }
     for (const m of unit.text.matchAll(/\d+(?:[.,]\d+)?/g)) {
-      if (extra.has(Number(m[0].replace(",", "."))) && !derivationSpans.some((span) => m.index! >= span.start && m.index! < span.end)) result.push(issue("HARD", "NUMBER_NOT_IN_INPUT", unit.path));
+      if (extra.has(Number(m[0].replace(",", "."))) && ![...derivationSpans, ...durationSpans].some((span) => m.index! >= span.start && m.index! < span.end)) result.push(issue("HARD", "NUMBER_NOT_IN_INPUT", unit.path));
     }
   }
   return result;

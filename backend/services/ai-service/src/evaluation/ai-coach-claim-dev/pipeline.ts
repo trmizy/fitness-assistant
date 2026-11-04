@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AnalysisEnvelopeSchema, MINIMAL_POLICY, OUTPUT_CONTRACT, SETTINGS, checkNamespaces, type MockProvider, type Prompt } from "../ai-coach-dev/pipeline";
-import { evaluateContentV3 } from "../advisory-progress/content-aware-v3";
+import { evaluateContentV3, type ContentReport } from "../advisory-progress/content-aware-v3";
 import type { AdvisoryInput, Source } from "../advisory-progress/experiment";
 import type { DevRequest } from "../ai-coach-dev/context";
 import type { ClaimRegistry } from "./retrieval";
@@ -92,7 +92,8 @@ function buildClaimPromptV3(context: ClaimContext): Prompt {
     "MEASUREMENT CONTRACT: phân biệt ESTIMATED_1RM và DIRECT_1RM theo measurement method/kind của fact, không theo độ lớn thay đổi. EXERCISE_E1RM_CHANGE/e1RM từ training logs là ước tính; mọi mô tả mức tăng/giảm phải nói rõ e1RM ước tính, kể cả rationaleSummary. Chọn assessmentBasis.outcome theo câu hỏi/assessmentTask; không đổi MUSCLE_SIZE hoặc UNSPECIFIED thành ESTIMATED_STRENGTH chỉ vì observations có e1RM. Không âm thầm đổi sang sức mạnh thực hoặc 1RM đo trực tiếp.",
     "Chỉ dùng DIRECT_1RM khi fact thực sự cung cấp phép đo trực tiếp; không đổi nhãn ESTIMATED_1RM thành DIRECT_1RM. Khi mô tả e1RM và projection có baselineKg/currentKg/changePct, copy đúng metricAssertion với measurement=ESTIMATED_1RM, factId và các giá trị đó; không tính lại e1RM hoặc delta của owning service.",
     "Giữ đúng quality, measurement method, exercise, unit, time window và provenance. Measurement protocol không có thì nói chưa biết; không tự thêm điều kiện đo tương đương hay kiểm chứng độc lập. Cùng quy tắc này áp dụng cho mọi estimated proxy và direct measurement khác.",
-    "Có thể nêu rõ các giá trị log/ước tính đã tăng hay giảm trong khoảng thời gian được cung cấp; không che thông tin hữu ích bằng bất định quá mức. Tăng giá trị ước tính không chứng minh true 1RM/real strength tăng cùng tỷ lệ, không chứng minh quan hệ nhân quả, hiệu quả chương trình tập hoặc tiến bộ đã được xác minh độc lập.");
+    "Có thể nêu rõ các giá trị log/ước tính đã tăng hay giảm trong khoảng thời gian được cung cấp; không che thông tin hữu ích bằng bất định quá mức. Tăng giá trị ước tính không chứng minh true 1RM/real strength tăng cùng tỷ lệ, không chứng minh quan hệ nhân quả, hiệu quả chương trình tập hoặc tiến bộ đã được xác minh độc lập.",
+    "USEFULNESS: Với fact e1RM/ESTIMATED_1RM, khi projection có baselineKg/currentKg/changePct và quality SUFFICIENT/PARTIAL phù hợp câu hỏi, trả lời định lượng thay đổi e1RM ước tính bằng các giá trị được cấp. Phân biệt chưa xác nhận sức mạnh thực với không biết thay đổi ước tính; không bỏ quan sát đủ dữ liệu để chỉ trả lời chưa đủ dữ liệu. Chỉ nêu thời gian được câu hỏi và window của facts hỗ trợ.");
   return { ...v2, system: lines.join("\n") };
 }
 function buildClaimPromptV1(context: ClaimContext): Prompt {
@@ -134,11 +135,19 @@ export function gateInput(context: ClaimContext): AdvisoryInput {
   return { question: context.personal.request.question, facts: context.personal.facts, sources: [...sources.values()] };
 }
 
-export function verifyClaimAnalysis(context: ClaimContext, raw: unknown) {
+export function verifyClaimAnalysis(context: ClaimContext, raw: unknown, failure?: { parseError: unknown; providerError: unknown }) {
   const parsed = ClaimAnalysisSchema.safeParse(raw), input = gateInput(context);
-  const grounding = evaluateContentV3(input, parsed.success ? parsed.data.analysis : raw);
+  const unknownParseFailure = !!failure?.parseError && !["INVALID_JSON", "SCHEMA_INVALID", "REDACTION_SCHEMA_CHANGED"].includes(failure.parseError as string);
+  const upstreamFailure = !!failure?.providerError || failure?.parseError === "INVALID_JSON" || unknownParseFailure;
+  const analysis = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as { analysis?: unknown }).analysis : undefined;
+  const canGround = !upstreamFailure && !!analysis && typeof analysis === "object" && !Array.isArray(analysis);
+  // Envelope/schema failure must not feed analysis/sourceLinks/claimLinks into
+  // the schema for analysis alone. Missing/non-JSON output has no content verdict.
+  const grounding: ContentReport | (Omit<ContentReport, "contentGate"> & { contentGate: "NOT_EVALUATED" }) = canGround
+    ? evaluateContentV3(input, analysis)
+    : { contentGate: "NOT_EVALUATED", schemaIssues: [], contentIssues: [], limitation: "No analysis object evaluated; generation/JSON/envelope failures are reported separately. Not scientific approval." };
   const identityIssues = [...context.issues.map(i => i.reason)];
-  if (parsed.success) {
+  if (parsed.success && !upstreamFailure) {
     const envelope = parsed.data;
     identityIssues.push(...checkNamespaces(envelope, input));
     const byIndex = new Map<number, typeof envelope.claimLinks[number]>();
@@ -171,14 +180,21 @@ export function verifyClaimAnalysis(context: ClaimContext, raw: unknown) {
       for (const ref of refs) if (!sourceLinks.get(`${i}:${ref.sourceId}`)?.excerptIds.includes(excerptId(ref.sourceId, ref.capturedQuote!))) identityIssues.push("MISSING_BOUND_EXCERPT");
     });
   }
-  const blocked = !parsed.success || identityIssues.length > 0 || grounding.contentGate === "BLOCKED";
-  const textVerification = assessTextUnits(context, raw, parsed.success ? parsed.data : null, identityIssues);
+  const blocked = upstreamFailure || !parsed.success || identityIssues.length > 0 || grounding.contentGate === "BLOCKED";
+  const textVerification = assessTextUnits(context, raw, parsed.success && !upstreamFailure ? parsed.data : null, identityIssues);
   return { raw, grounding, identityIssues: [...new Set(identityIssues)], ...textVerification,
-    contractValidity: parsed.success ? "VALID" as const : "INVALID" as const,
-    evidenceIdentity: identityIssues.length ? "INVALID" as const : "NO_IDENTITY_ERROR_NOT_SUPPORT" as const,
+    validationStages: {
+      json: failure?.providerError || unknownParseFailure ? "NOT_EVALUATED" as const : failure?.parseError === "INVALID_JSON" ? "INVALID" as const : failure ? "VALID" as const : "NOT_EVALUATED" as const,
+      schema: upstreamFailure ? "NOT_EVALUATED" as const : parsed.success ? "VALID" as const : "INVALID" as const,
+      references: upstreamFailure || !parsed.success ? "NOT_EVALUATED" as const : identityIssues.length ? "INVALID" as const : "NO_IDENTITY_ERROR_NOT_SUPPORT" as const,
+      grounding: canGround ? "EVALUATED" as const : "NOT_EVALUATED" as const,
+      semantic: "NOT_EVALUATED_REQUIRES_REVIEW" as const,
+    },
+    contractValidity: upstreamFailure ? "NOT_EVALUATED" as const : parsed.success ? "VALID" as const : "INVALID" as const,
+    evidenceIdentity: upstreamFailure || !parsed.success ? "NOT_EVALUATED" as const : identityIssues.length ? "INVALID" as const : "NO_IDENTITY_ERROR_NOT_SUPPORT" as const,
     verificationDisposition: textVerification.unverifiedClaims.length ? "REQUIRES_SEMANTIC_REVIEW" as const : "CANONICAL_IDENTITY_ONLY_NOT_SCIENTIFIC_VALIDATION" as const,
     answerSafetyVerified: false,
-    schemaIssues: parsed.success ? [] : parsed.error.issues.map(i => ({ path: i.path.join("."), code: i.code })),
+    schemaIssues: upstreamFailure || parsed.success ? [] : parsed.error.issues.map(i => ({ path: i.path.join("."), code: i.code })),
     release: blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const,
     candidate: blocked || !parsed.success ? null : parsed.data,
     independentScientificValidation: false, scientificPass: null, realModelQuality: "NOT_MEASURED" as const };
