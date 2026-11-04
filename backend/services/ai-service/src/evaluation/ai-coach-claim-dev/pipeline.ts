@@ -13,7 +13,7 @@ export const ClaimAnalysisSchema = AnalysisEnvelopeSchema.extend({ claimLinks: z
 }).strict()).max(12) }).strict();
 export type ClaimAnalysis = z.infer<typeof ClaimAnalysisSchema>;
 
-export type ClaimPromptVersion = "CLAIM_PROMPT_V1" | "CLAIM_PROMPT_V2";
+export type ClaimPromptVersion = "CLAIM_PROMPT_V1" | "CLAIM_PROMPT_V2" | "CLAIM_PROMPT_V3";
 /** Example of the exact ClaimAnalysisSchema top level (analysis, sourceLinks, claimLinks); no field beyond the schema. */
 export const CLAIM_OUTPUT_CONTRACT = { ...OUTPUT_CONTRACT,
   claimLinks: [{ claimIndex: 0, knowledgeClaimId: "existing-knowledge-claim-id", knowledgeClaimHash: "existing-knowledge-claim-hash" }] };
@@ -52,6 +52,8 @@ export function modelFacingClaimPayload(context: ClaimContext) {
   return payload;
 }
 export function buildClaimPrompt(context: ClaimContext, version: ClaimPromptVersion = "CLAIM_PROMPT_V1"): Prompt {
+  if (!["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2", "CLAIM_PROMPT_V3"].includes(version)) throw new Error("CLAIM_PROMPT_VERSION_UNSUPPORTED");
+  if (version === "CLAIM_PROMPT_V3") return buildClaimPromptV3(context);
   const v1 = buildClaimPromptV1(context);
   if (version === "CLAIM_PROMPT_V1") return v1;
   const lines = v1.system.split("\n"), at = lines.findIndex(l => l.startsWith(CONTRACT_LINE));
@@ -66,6 +68,32 @@ export function buildClaimPrompt(context: ClaimContext, version: ClaimPromptVers
     knowledgeClaims: p.approvedScientificKnowledge.map(c => ({ id: c.id, hash: c.claimHash })),
     scientificSources: p.evidenceProvenance.filter(e => e.kind === "PRIMARY_SCIENTIFIC").map(e => ({ sourceId: e.sourceId, excerptId: e.excerptId, knowledgeClaimId: e.knowledgeClaimId })),
   } }) };
+}
+/** Nova-only selection is enforced by SessionConfig; V1/V2 output bytes remain historical. */
+function buildClaimPromptV3(context: ClaimContext): Prompt {
+  const v2 = buildClaimPrompt(context, "CLAIM_PROMPT_V2");
+  // A concrete schema-valid example with no made-up IDs/hashes or enum alternatives.
+  // Empty factIds are valid for a measurement limitation; observations must use actual allowed factIds.
+  const example = ClaimAnalysisSchema.parse({ analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA",
+    assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] },
+    claims: [{ claimType: "MEASUREMENT_LIMITATION", text: "Số liệu ước tính cần được diễn giải theo đúng phương pháp và chất lượng đo.", factIds: [], evidenceIds: [] }],
+    missingInformation: [{ key: "other", question: "Có phép đo trực tiếp theo cùng protocol để đối chiếu không?" }],
+    rationaleSummary: "Phân biệt thước đo ước tính và phép đo trực tiếp khi diễn giải dữ liệu.", proposedAction: null }, sourceLinks: [], claimLinks: [] });
+  const lines = v2.system.split("\n");
+  const at = lines.findIndex(l => l.startsWith(CONTRACT_LINE));
+  if (at < 0 || lines.filter(l => l.startsWith(CONTRACT_LINE)).length !== 1) throw new Error("CLAIM_CONTRACT_LINE_NOT_UNIQUE");
+  lines[at] = "Output contract (ví dụ JSON hợp lệ, không thêm field): " + JSON.stringify(example);
+  lines.push(
+    "CLAIM_PROMPT_V3 — ví dụ chỉ minh họa schema, không phải đáp án của case. Hãy mô tả các quan sát hữu ích từ facts thực có; không sao chép assessment/claims rỗng hay câu hỏi mẫu thay cho phân tích.",
+    "REFERENCE CONTRACT: claimLinks chỉ được dùng exact ID/hash pairs từ allowedReferences.knowledgeClaims: knowledgeClaimId=id và knowledgeClaimHash=hash, copy nguyên vẹn, không tự tính hay tạo hash. Nếu allowedReferences.knowledgeClaims=[] thì bắt buộc claimLinks: []. Không có nguồn không cấm mô tả personal facts.",
+    "sourceLinks chỉ được dùng sourceId/excerptId có trong allowedReferences.scientificSources và đúng binding knowledgeClaimId của claim đang dẫn; evidenceIds cũng chỉ dùng scientific sourceId được cho phép. Không có scientific excerpts thì bắt buộc sourceLinks: [] và evidenceIds: [].",
+    "productPolicies C20/C23/C24 chỉ hướng dẫn diễn giải sản phẩm, không phải approved scientific knowledge; tuyệt đối không đưa chúng vào scientific claimLinks hoặc dùng làm nguồn khoa học. Không chuyển product policy thành GENERAL_PRINCIPLE có citation giả.",
+    "Không bao giờ bịa claim ID, knowledgeClaimHash, excerpt ID, source ID hoặc fact ID. OBSERVATION chỉ dùng factIds từ allowedReferences.factIds. GENERAL_PRINCIPLE có nguồn phải có đủ exact claimLinks/sourceLinks bound trong input. Nếu không thể dẫn hợp lệ, nêu giới hạn thay vì tạo reference.",
+    "MEASUREMENT CONTRACT: phân biệt ESTIMATED_1RM và DIRECT_1RM theo measurement method/kind của fact, không theo độ lớn thay đổi. EXERCISE_E1RM_CHANGE/e1RM từ training logs là ước tính; mọi mô tả mức tăng/giảm phải nói rõ e1RM ước tính, kể cả rationaleSummary và assessmentBasis outcome=ESTIMATED_STRENGTH. Không âm thầm đổi sang sức mạnh thực hoặc 1RM đo trực tiếp.",
+    "Chỉ dùng DIRECT_1RM khi fact thực sự cung cấp phép đo trực tiếp; không đổi nhãn ESTIMATED_1RM thành DIRECT_1RM. Khi mô tả e1RM và projection có baselineKg/currentKg/changePct, copy đúng metricAssertion với measurement=ESTIMATED_1RM, factId và các giá trị đó; không tính lại e1RM hoặc delta của owning service.",
+    "Giữ đúng quality, measurement method, exercise, unit, time window và provenance. Measurement protocol không có thì nói chưa biết; không tự thêm điều kiện đo tương đương hay kiểm chứng độc lập. Cùng quy tắc này áp dụng cho mọi estimated proxy và direct measurement khác.",
+    "Có thể nêu rõ các giá trị log/ước tính đã tăng hay giảm trong khoảng thời gian được cung cấp; không che thông tin hữu ích bằng bất định quá mức. Tăng giá trị ước tính không chứng minh true 1RM/real strength tăng cùng tỷ lệ, không chứng minh quan hệ nhân quả, hiệu quả chương trình tập hoặc tiến bộ đã được xác minh độc lập.");
+  return { ...v2, system: lines.join("\n") };
 }
 function buildClaimPromptV1(context: ClaimContext): Prompt {
   return { layers: ["SYSTEM_POLICY", "USER_FACTS", "TRAINING_OBSERVATIONS", "APPROVED_KNOWLEDGE", "PROVENANCE_APPLICABILITY", "UNCERTAINTY_UNTRUSTED_DATA"],
