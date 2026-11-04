@@ -24,10 +24,17 @@ export const EXECUTION_DISABLED = "EXECUTION_DISABLED";
 export const CASE_EXISTS = "CASE_EXISTS";
 
 /**
- * The D77 x outcome combinations Ngai has approved (S2.0 table). EMPTY on purpose: until the table is approved EVERY combination with a trace of
- * PT_LATE_ARRIVAL:<sessionId> stays EXEC_BLOCKED, including the ones the S2.0 matrix observed as KHOP.
+ * The D77 combinations Ngai has approved (A2, 04/11/2026, APPROVED WITH CONDITIONS): exactly FOUR keys, all with L fully paid in CASH by the ledger (no obligation, nothing unpaid), each proved by
+ * cross-service-money-b1-key.e2e.test.ts through this production list (no test seam) against hand-computed ledger and quota. Key = outcome | L:<state> | C:<phase> (d77-key.ts).
+ * EVERYTHING else stays EXEC_BLOCKED: L OPEN / PENDING / SETTLED_PARTIAL_OPEN / CLOSED_OTHER / UNKNOWN, every CANCELLED (assertCancelNotOverD77 is independent of this list), and any state that
+ * changed between the executor's read and the ruling (re-verified under the contract lock in assertNoD77Combination).
  */
-export const OPENED_D77_COMBINATIONS: ReadonlyArray<string> = [];
+export const OPENED_D77_COMBINATIONS: ReadonlyArray<string> = [
+  "COMPLETED|L:SETTLED_CASH|C:ACTIVE",
+  "COMPLETED|L:SETTLED_CASH|C:ENDED",
+  "PT_NO_SHOW_CONFIRMED|L:SETTLED_CASH|C:ACTIVE",
+  "PT_NO_SHOW_CONFIRMED|L:SETTLED_CASH|C:ENDED",
+];
 
 /** What the executor hands to the ruling core. `caseDecisionId` = dispute_case_approvals.id of the APPROVED decision. */
 export interface CaseDecisionCtx {
