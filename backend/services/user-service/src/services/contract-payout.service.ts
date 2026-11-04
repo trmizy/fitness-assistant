@@ -851,7 +851,7 @@ export async function assessSettlementRow(row: SettlementRowLike, db: Tx | typeo
     case SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION: {
       // D65-B: the resolution of a held NO_SHOW session that went through the four-eyes admin path is run ONLY by that path (the approver resumes it); the settlement sweep / the
       // ending's drain never pay it on their own - not after a failed or timed-out attempt, not after a crash.
-      if (row.sessionId && (await db.d65bResolution.findUnique({ where: { sessionId: row.sessionId }, select: { id: true } }))) {
+      if (row.sessionId && (await db.d65bResolution.findFirst({ where: { sessionId: row.sessionId, rejectedAt: null }, select: { id: true } }))) {
         return { ok: false, wait: "D65-B admin resolution: only its approver resumes this step" };
       }
       if (!isContractEnded(contract)) return { ok: false, wait: "the contract has not ended - nothing is held" };

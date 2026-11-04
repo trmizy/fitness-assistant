@@ -6237,6 +6237,7 @@ export namespace Prisma {
     lateOpenReconciliations: number
     lateOpenReconciliationEvents: number
     lateOpenRecoveries: number
+    d65bResolutions: number
     d65bResolutionEvents: number
   }
 
@@ -6244,6 +6245,7 @@ export namespace Prisma {
     lateOpenReconciliations?: boolean | SessionSettlementCountOutputTypeCountLateOpenReconciliationsArgs
     lateOpenReconciliationEvents?: boolean | SessionSettlementCountOutputTypeCountLateOpenReconciliationEventsArgs
     lateOpenRecoveries?: boolean | SessionSettlementCountOutputTypeCountLateOpenRecoveriesArgs
+    d65bResolutions?: boolean | SessionSettlementCountOutputTypeCountD65bResolutionsArgs
     d65bResolutionEvents?: boolean | SessionSettlementCountOutputTypeCountD65bResolutionEventsArgs
   }
 
@@ -6277,6 +6279,13 @@ export namespace Prisma {
    */
   export type SessionSettlementCountOutputTypeCountLateOpenRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LateOpenRecoveryWhereInput
+  }
+
+  /**
+   * SessionSettlementCountOutputType without action
+   */
+  export type SessionSettlementCountOutputTypeCountD65bResolutionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: D65bResolutionWhereInput
   }
 
   /**
@@ -29482,7 +29491,7 @@ export namespace Prisma {
     lateOpenReconciliations?: boolean | SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>
     lateOpenReconciliationEvents?: boolean | SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>
     lateOpenRecoveries?: boolean | SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>
-    d65bResolution?: boolean | SessionSettlement$d65bResolutionArgs<ExtArgs>
+    d65bResolutions?: boolean | SessionSettlement$d65bResolutionsArgs<ExtArgs>
     d65bResolutionEvents?: boolean | SessionSettlement$d65bResolutionEventsArgs<ExtArgs>
     _count?: boolean | SessionSettlementCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["sessionSettlement"]>
@@ -29531,7 +29540,7 @@ export namespace Prisma {
     lateOpenReconciliations?: boolean | SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>
     lateOpenReconciliationEvents?: boolean | SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>
     lateOpenRecoveries?: boolean | SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>
-    d65bResolution?: boolean | SessionSettlement$d65bResolutionArgs<ExtArgs>
+    d65bResolutions?: boolean | SessionSettlement$d65bResolutionsArgs<ExtArgs>
     d65bResolutionEvents?: boolean | SessionSettlement$d65bResolutionEventsArgs<ExtArgs>
     _count?: boolean | SessionSettlementCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -29543,7 +29552,7 @@ export namespace Prisma {
       lateOpenReconciliations: Prisma.$LateOpenReconciliationPayload<ExtArgs>[]
       lateOpenReconciliationEvents: Prisma.$LateOpenReconciliationEventPayload<ExtArgs>[]
       lateOpenRecoveries: Prisma.$LateOpenRecoveryPayload<ExtArgs>[]
-      d65bResolution: Prisma.$D65bResolutionPayload<ExtArgs> | null
+      d65bResolutions: Prisma.$D65bResolutionPayload<ExtArgs>[]
       d65bResolutionEvents: Prisma.$D65bResolutionEventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -29958,7 +29967,7 @@ export namespace Prisma {
     lateOpenReconciliations<T extends SessionSettlement$lateOpenReconciliationsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenReconciliationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenReconciliationPayload<ExtArgs>, T, "findMany"> | Null>
     lateOpenReconciliationEvents<T extends SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenReconciliationEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenReconciliationEventPayload<ExtArgs>, T, "findMany"> | Null>
     lateOpenRecoveries<T extends SessionSettlement$lateOpenRecoveriesArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$lateOpenRecoveriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LateOpenRecoveryPayload<ExtArgs>, T, "findMany"> | Null>
-    d65bResolution<T extends SessionSettlement$d65bResolutionArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$d65bResolutionArgs<ExtArgs>>): Prisma__D65bResolutionClient<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    d65bResolutions<T extends SessionSettlement$d65bResolutionsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$d65bResolutionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionPayload<ExtArgs>, T, "findMany"> | Null>
     d65bResolutionEvents<T extends SessionSettlement$d65bResolutionEventsArgs<ExtArgs> = {}>(args?: Subset<T, SessionSettlement$d65bResolutionEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$D65bResolutionEventPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -30380,9 +30389,9 @@ export namespace Prisma {
   }
 
   /**
-   * SessionSettlement.d65bResolution
+   * SessionSettlement.d65bResolutions
    */
-  export type SessionSettlement$d65bResolutionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SessionSettlement$d65bResolutionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the D65bResolution
      */
@@ -30392,6 +30401,11 @@ export namespace Prisma {
      */
     include?: D65bResolutionInclude<ExtArgs> | null
     where?: D65bResolutionWhereInput
+    orderBy?: D65bResolutionOrderByWithRelationInput | D65bResolutionOrderByWithRelationInput[]
+    cursor?: D65bResolutionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: D65bResolutionScalarFieldEnum | D65bResolutionScalarFieldEnum[]
   }
 
   /**
@@ -59638,6 +59652,9 @@ export namespace Prisma {
     approvalReason: string | null
     outcome: string | null
     outcomeAt: Date | null
+    rejectedBy: string | null
+    rejectedAt: Date | null
+    rejectionReason: string | null
   }
 
   export type D65bResolutionMaxAggregateOutputType = {
@@ -59655,6 +59672,9 @@ export namespace Prisma {
     approvalReason: string | null
     outcome: string | null
     outcomeAt: Date | null
+    rejectedBy: string | null
+    rejectedAt: Date | null
+    rejectionReason: string | null
   }
 
   export type D65bResolutionCountAggregateOutputType = {
@@ -59675,6 +59695,9 @@ export namespace Prisma {
     outcome: number
     outcomeAt: number
     ledgerAfter: number
+    rejectedBy: number
+    rejectedAt: number
+    rejectionReason: number
     _all: number
   }
 
@@ -59694,6 +59717,9 @@ export namespace Prisma {
     approvalReason?: true
     outcome?: true
     outcomeAt?: true
+    rejectedBy?: true
+    rejectedAt?: true
+    rejectionReason?: true
   }
 
   export type D65bResolutionMaxAggregateInputType = {
@@ -59711,6 +59737,9 @@ export namespace Prisma {
     approvalReason?: true
     outcome?: true
     outcomeAt?: true
+    rejectedBy?: true
+    rejectedAt?: true
+    rejectionReason?: true
   }
 
   export type D65bResolutionCountAggregateInputType = {
@@ -59731,6 +59760,9 @@ export namespace Prisma {
     outcome?: true
     outcomeAt?: true
     ledgerAfter?: true
+    rejectedBy?: true
+    rejectedAt?: true
+    rejectionReason?: true
     _all?: true
   }
 
@@ -59824,6 +59856,9 @@ export namespace Prisma {
     outcome: string | null
     outcomeAt: Date | null
     ledgerAfter: JsonValue | null
+    rejectedBy: string | null
+    rejectedAt: Date | null
+    rejectionReason: string | null
     _count: D65bResolutionCountAggregateOutputType | null
     _min: D65bResolutionMinAggregateOutputType | null
     _max: D65bResolutionMaxAggregateOutputType | null
@@ -59861,6 +59896,9 @@ export namespace Prisma {
     outcome?: boolean
     outcomeAt?: boolean
     ledgerAfter?: boolean
+    rejectedBy?: boolean
+    rejectedAt?: boolean
+    rejectionReason?: boolean
     row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
     events?: boolean | D65bResolution$eventsArgs<ExtArgs>
     _count?: boolean | D65bResolutionCountOutputTypeDefaultArgs<ExtArgs>
@@ -59884,6 +59922,9 @@ export namespace Prisma {
     outcome?: boolean
     outcomeAt?: boolean
     ledgerAfter?: boolean
+    rejectedBy?: boolean
+    rejectedAt?: boolean
+    rejectionReason?: boolean
     row?: boolean | SessionSettlementDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["d65bResolution"]>
 
@@ -59905,6 +59946,9 @@ export namespace Prisma {
     outcome?: boolean
     outcomeAt?: boolean
     ledgerAfter?: boolean
+    rejectedBy?: boolean
+    rejectedAt?: boolean
+    rejectionReason?: boolean
   }
 
   export type D65bResolutionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -59940,6 +59984,12 @@ export namespace Prisma {
       outcome: string | null
       outcomeAt: Date | null
       ledgerAfter: Prisma.JsonValue | null
+      /**
+       * Reject stamp (one-time): a four-eyes reject of a proposal that was never approved. Frees the session for a new proposal (partial unique indexes in SQL).
+       */
+      rejectedBy: string | null
+      rejectedAt: Date | null
+      rejectionReason: string | null
     }, ExtArgs["result"]["d65bResolution"]>
     composites: {}
   }
@@ -60352,6 +60402,9 @@ export namespace Prisma {
     readonly outcome: FieldRef<"D65bResolution", 'String'>
     readonly outcomeAt: FieldRef<"D65bResolution", 'DateTime'>
     readonly ledgerAfter: FieldRef<"D65bResolution", 'Json'>
+    readonly rejectedBy: FieldRef<"D65bResolution", 'String'>
+    readonly rejectedAt: FieldRef<"D65bResolution", 'DateTime'>
+    readonly rejectionReason: FieldRef<"D65bResolution", 'String'>
   }
     
 
@@ -62760,7 +62813,10 @@ export namespace Prisma {
     approvalReason: 'approvalReason',
     outcome: 'outcome',
     outcomeAt: 'outcomeAt',
-    ledgerAfter: 'ledgerAfter'
+    ledgerAfter: 'ledgerAfter',
+    rejectedBy: 'rejectedBy',
+    rejectedAt: 'rejectedAt',
+    rejectionReason: 'rejectionReason'
   };
 
   export type D65bResolutionScalarFieldEnum = (typeof D65bResolutionScalarFieldEnum)[keyof typeof D65bResolutionScalarFieldEnum]
@@ -66169,7 +66225,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationListRelationFilter
     lateOpenReconciliationEvents?: LateOpenReconciliationEventListRelationFilter
     lateOpenRecoveries?: LateOpenRecoveryListRelationFilter
-    d65bResolution?: XOR<D65bResolutionNullableRelationFilter, D65bResolutionWhereInput> | null
+    d65bResolutions?: D65bResolutionListRelationFilter
     d65bResolutionEvents?: D65bResolutionEventListRelationFilter
   }
 
@@ -66194,7 +66250,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationOrderByRelationAggregateInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventOrderByRelationAggregateInput
     lateOpenRecoveries?: LateOpenRecoveryOrderByRelationAggregateInput
-    d65bResolution?: D65bResolutionOrderByWithRelationInput
+    d65bResolutions?: D65bResolutionOrderByRelationAggregateInput
     d65bResolutionEvents?: D65bResolutionEventOrderByRelationAggregateInput
   }
 
@@ -66222,7 +66278,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationListRelationFilter
     lateOpenReconciliationEvents?: LateOpenReconciliationEventListRelationFilter
     lateOpenRecoveries?: LateOpenRecoveryListRelationFilter
-    d65bResolution?: XOR<D65bResolutionNullableRelationFilter, D65bResolutionWhereInput> | null
+    d65bResolutions?: D65bResolutionListRelationFilter
     d65bResolutionEvents?: D65bResolutionEventListRelationFilter
   }, "id" | "idempotencyKey">
 
@@ -68865,6 +68921,9 @@ export namespace Prisma {
     outcome?: StringNullableFilter<"D65bResolution"> | string | null
     outcomeAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
     ledgerAfter?: JsonNullableFilter<"D65bResolution">
+    rejectedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    rejectedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    rejectionReason?: StringNullableFilter<"D65bResolution"> | string | null
     row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
     events?: D65bResolutionEventListRelationFilter
   }
@@ -68887,18 +68946,21 @@ export namespace Prisma {
     outcome?: SortOrderInput | SortOrder
     outcomeAt?: SortOrderInput | SortOrder
     ledgerAfter?: SortOrderInput | SortOrder
+    rejectedBy?: SortOrderInput | SortOrder
+    rejectedAt?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
     row?: SessionSettlementOrderByWithRelationInput
     events?: D65bResolutionEventOrderByRelationAggregateInput
   }
 
   export type D65bResolutionWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    sessionId?: string
-    settlementRowId?: string
     AND?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
     OR?: D65bResolutionWhereInput[]
     NOT?: D65bResolutionWhereInput | D65bResolutionWhereInput[]
+    sessionId?: StringFilter<"D65bResolution"> | string
     contractId?: StringFilter<"D65bResolution"> | string
+    settlementRowId?: StringFilter<"D65bResolution"> | string
     clientUserId?: StringFilter<"D65bResolution"> | string
     ptUserId?: StringFilter<"D65bResolution"> | string
     reason?: StringFilter<"D65bResolution"> | string
@@ -68912,9 +68974,12 @@ export namespace Prisma {
     outcome?: StringNullableFilter<"D65bResolution"> | string | null
     outcomeAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
     ledgerAfter?: JsonNullableFilter<"D65bResolution">
+    rejectedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    rejectedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    rejectionReason?: StringNullableFilter<"D65bResolution"> | string | null
     row?: XOR<SessionSettlementRelationFilter, SessionSettlementWhereInput>
     events?: D65bResolutionEventListRelationFilter
-  }, "id" | "sessionId" | "settlementRowId">
+  }, "id">
 
   export type D65bResolutionOrderByWithAggregationInput = {
     id?: SortOrder
@@ -68934,6 +68999,9 @@ export namespace Prisma {
     outcome?: SortOrderInput | SortOrder
     outcomeAt?: SortOrderInput | SortOrder
     ledgerAfter?: SortOrderInput | SortOrder
+    rejectedBy?: SortOrderInput | SortOrder
+    rejectedAt?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
     _count?: D65bResolutionCountOrderByAggregateInput
     _max?: D65bResolutionMaxOrderByAggregateInput
     _min?: D65bResolutionMinOrderByAggregateInput
@@ -68960,6 +69028,9 @@ export namespace Prisma {
     outcome?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
     outcomeAt?: DateTimeNullableWithAggregatesFilter<"D65bResolution"> | Date | string | null
     ledgerAfter?: JsonNullableWithAggregatesFilter<"D65bResolution">
+    rejectedBy?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
+    rejectedAt?: DateTimeNullableWithAggregatesFilter<"D65bResolution"> | Date | string | null
+    rejectionReason?: StringNullableWithAggregatesFilter<"D65bResolution"> | string | null
   }
 
   export type D65bResolutionEventWhereInput = {
@@ -72124,7 +72195,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
@@ -72149,7 +72220,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionUncheckedCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
@@ -72174,7 +72245,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
@@ -72199,7 +72270,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
@@ -75222,7 +75293,10 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    row: SessionSettlementCreateNestedOneWithoutD65bResolutionInput
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionsInput
     events?: D65bResolutionEventCreateNestedManyWithoutResolutionInput
   }
 
@@ -75244,6 +75318,9 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
     events?: D65bResolutionEventUncheckedCreateNestedManyWithoutResolutionInput
   }
 
@@ -75264,7 +75341,10 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionsNestedInput
     events?: D65bResolutionEventUpdateManyWithoutResolutionNestedInput
   }
 
@@ -75286,6 +75366,9 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput
   }
 
@@ -75307,6 +75390,9 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
   }
 
   export type D65bResolutionUpdateManyMutationInput = {
@@ -75326,6 +75412,9 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type D65bResolutionUncheckedUpdateManyInput = {
@@ -75346,6 +75435,9 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type D65bResolutionEventCreateInput = {
@@ -77877,9 +77969,10 @@ export namespace Prisma {
     none?: LateOpenRecoveryWhereInput
   }
 
-  export type D65bResolutionNullableRelationFilter = {
-    is?: D65bResolutionWhereInput | null
-    isNot?: D65bResolutionWhereInput | null
+  export type D65bResolutionListRelationFilter = {
+    every?: D65bResolutionWhereInput
+    some?: D65bResolutionWhereInput
+    none?: D65bResolutionWhereInput
   }
 
   export type D65bResolutionEventListRelationFilter = {
@@ -77897,6 +77990,10 @@ export namespace Prisma {
   }
 
   export type LateOpenRecoveryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type D65bResolutionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -80152,6 +80249,9 @@ export namespace Prisma {
     outcome?: SortOrder
     outcomeAt?: SortOrder
     ledgerAfter?: SortOrder
+    rejectedBy?: SortOrder
+    rejectedAt?: SortOrder
+    rejectionReason?: SortOrder
   }
 
   export type D65bResolutionMaxOrderByAggregateInput = {
@@ -80169,6 +80269,9 @@ export namespace Prisma {
     approvalReason?: SortOrder
     outcome?: SortOrder
     outcomeAt?: SortOrder
+    rejectedBy?: SortOrder
+    rejectedAt?: SortOrder
+    rejectionReason?: SortOrder
   }
 
   export type D65bResolutionMinOrderByAggregateInput = {
@@ -80186,6 +80289,9 @@ export namespace Prisma {
     approvalReason?: SortOrder
     outcome?: SortOrder
     outcomeAt?: SortOrder
+    rejectedBy?: SortOrder
+    rejectedAt?: SortOrder
+    rejectionReason?: SortOrder
   }
 
   export type D65bResolutionRelationFilter = {
@@ -81528,10 +81634,11 @@ export namespace Prisma {
     connect?: LateOpenRecoveryWhereUniqueInput | LateOpenRecoveryWhereUniqueInput[]
   }
 
-  export type D65bResolutionCreateNestedOneWithoutRowInput = {
-    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
-    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
-    connect?: D65bResolutionWhereUniqueInput
+  export type D65bResolutionCreateNestedManyWithoutRowInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput> | D65bResolutionCreateWithoutRowInput[] | D65bResolutionUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput | D65bResolutionCreateOrConnectWithoutRowInput[]
+    createMany?: D65bResolutionCreateManyRowInputEnvelope
+    connect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
   }
 
   export type D65bResolutionEventCreateNestedManyWithoutRowInput = {
@@ -81562,10 +81669,11 @@ export namespace Prisma {
     connect?: LateOpenRecoveryWhereUniqueInput | LateOpenRecoveryWhereUniqueInput[]
   }
 
-  export type D65bResolutionUncheckedCreateNestedOneWithoutRowInput = {
-    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
-    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
-    connect?: D65bResolutionWhereUniqueInput
+  export type D65bResolutionUncheckedCreateNestedManyWithoutRowInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput> | D65bResolutionCreateWithoutRowInput[] | D65bResolutionUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput | D65bResolutionCreateOrConnectWithoutRowInput[]
+    createMany?: D65bResolutionCreateManyRowInputEnvelope
+    connect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
   }
 
   export type D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput = {
@@ -81625,14 +81733,18 @@ export namespace Prisma {
     deleteMany?: LateOpenRecoveryScalarWhereInput | LateOpenRecoveryScalarWhereInput[]
   }
 
-  export type D65bResolutionUpdateOneWithoutRowNestedInput = {
-    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
-    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
-    upsert?: D65bResolutionUpsertWithoutRowInput
-    disconnect?: D65bResolutionWhereInput | boolean
-    delete?: D65bResolutionWhereInput | boolean
-    connect?: D65bResolutionWhereUniqueInput
-    update?: XOR<XOR<D65bResolutionUpdateToOneWithWhereWithoutRowInput, D65bResolutionUpdateWithoutRowInput>, D65bResolutionUncheckedUpdateWithoutRowInput>
+  export type D65bResolutionUpdateManyWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput> | D65bResolutionCreateWithoutRowInput[] | D65bResolutionUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput | D65bResolutionCreateOrConnectWithoutRowInput[]
+    upsert?: D65bResolutionUpsertWithWhereUniqueWithoutRowInput | D65bResolutionUpsertWithWhereUniqueWithoutRowInput[]
+    createMany?: D65bResolutionCreateManyRowInputEnvelope
+    set?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    disconnect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    delete?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    connect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    update?: D65bResolutionUpdateWithWhereUniqueWithoutRowInput | D65bResolutionUpdateWithWhereUniqueWithoutRowInput[]
+    updateMany?: D65bResolutionUpdateManyWithWhereWithoutRowInput | D65bResolutionUpdateManyWithWhereWithoutRowInput[]
+    deleteMany?: D65bResolutionScalarWhereInput | D65bResolutionScalarWhereInput[]
   }
 
   export type D65bResolutionEventUpdateManyWithoutRowNestedInput = {
@@ -81691,14 +81803,18 @@ export namespace Prisma {
     deleteMany?: LateOpenRecoveryScalarWhereInput | LateOpenRecoveryScalarWhereInput[]
   }
 
-  export type D65bResolutionUncheckedUpdateOneWithoutRowNestedInput = {
-    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
-    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput
-    upsert?: D65bResolutionUpsertWithoutRowInput
-    disconnect?: D65bResolutionWhereInput | boolean
-    delete?: D65bResolutionWhereInput | boolean
-    connect?: D65bResolutionWhereUniqueInput
-    update?: XOR<XOR<D65bResolutionUpdateToOneWithWhereWithoutRowInput, D65bResolutionUpdateWithoutRowInput>, D65bResolutionUncheckedUpdateWithoutRowInput>
+  export type D65bResolutionUncheckedUpdateManyWithoutRowNestedInput = {
+    create?: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput> | D65bResolutionCreateWithoutRowInput[] | D65bResolutionUncheckedCreateWithoutRowInput[]
+    connectOrCreate?: D65bResolutionCreateOrConnectWithoutRowInput | D65bResolutionCreateOrConnectWithoutRowInput[]
+    upsert?: D65bResolutionUpsertWithWhereUniqueWithoutRowInput | D65bResolutionUpsertWithWhereUniqueWithoutRowInput[]
+    createMany?: D65bResolutionCreateManyRowInputEnvelope
+    set?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    disconnect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    delete?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    connect?: D65bResolutionWhereUniqueInput | D65bResolutionWhereUniqueInput[]
+    update?: D65bResolutionUpdateWithWhereUniqueWithoutRowInput | D65bResolutionUpdateWithWhereUniqueWithoutRowInput[]
+    updateMany?: D65bResolutionUpdateManyWithWhereWithoutRowInput | D65bResolutionUpdateManyWithWhereWithoutRowInput[]
+    deleteMany?: D65bResolutionScalarWhereInput | D65bResolutionScalarWhereInput[]
   }
 
   export type D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput = {
@@ -83162,9 +83278,9 @@ export namespace Prisma {
     set: string[]
   }
 
-  export type SessionSettlementCreateNestedOneWithoutD65bResolutionInput = {
-    create?: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
-    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionInput
+  export type SessionSettlementCreateNestedOneWithoutD65bResolutionsInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionsInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionsInput
     connect?: SessionSettlementWhereUniqueInput
   }
 
@@ -83187,12 +83303,12 @@ export namespace Prisma {
     push?: string | string[]
   }
 
-  export type SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput = {
-    create?: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
-    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionInput
-    upsert?: SessionSettlementUpsertWithoutD65bResolutionInput
+  export type SessionSettlementUpdateOneRequiredWithoutD65bResolutionsNestedInput = {
+    create?: XOR<SessionSettlementCreateWithoutD65bResolutionsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionsInput>
+    connectOrCreate?: SessionSettlementCreateOrConnectWithoutD65bResolutionsInput
+    upsert?: SessionSettlementUpsertWithoutD65bResolutionsInput
     connect?: SessionSettlementWhereUniqueInput
-    update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionInput, SessionSettlementUpdateWithoutD65bResolutionInput>, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
+    update?: XOR<XOR<SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionsInput, SessionSettlementUpdateWithoutD65bResolutionsInput>, SessionSettlementUncheckedUpdateWithoutD65bResolutionsInput>
   }
 
   export type D65bResolutionEventUpdateManyWithoutResolutionNestedInput = {
@@ -89277,6 +89393,9 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
     events?: D65bResolutionEventCreateNestedManyWithoutResolutionInput
   }
 
@@ -89297,12 +89416,20 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
     events?: D65bResolutionEventUncheckedCreateNestedManyWithoutResolutionInput
   }
 
   export type D65bResolutionCreateOrConnectWithoutRowInput = {
     where: D65bResolutionWhereUniqueInput
     create: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
+  }
+
+  export type D65bResolutionCreateManyRowInputEnvelope = {
+    data: D65bResolutionCreateManyRowInput | D65bResolutionCreateManyRowInput[]
+    skipDuplicates?: boolean
   }
 
   export type D65bResolutionEventCreateWithoutRowInput = {
@@ -89451,55 +89578,46 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"LateOpenRecovery"> | Date | string
   }
 
-  export type D65bResolutionUpsertWithoutRowInput = {
+  export type D65bResolutionUpsertWithWhereUniqueWithoutRowInput = {
+    where: D65bResolutionWhereUniqueInput
     update: XOR<D65bResolutionUpdateWithoutRowInput, D65bResolutionUncheckedUpdateWithoutRowInput>
     create: XOR<D65bResolutionCreateWithoutRowInput, D65bResolutionUncheckedCreateWithoutRowInput>
-    where?: D65bResolutionWhereInput
   }
 
-  export type D65bResolutionUpdateToOneWithWhereWithoutRowInput = {
-    where?: D65bResolutionWhereInput
+  export type D65bResolutionUpdateWithWhereUniqueWithoutRowInput = {
+    where: D65bResolutionWhereUniqueInput
     data: XOR<D65bResolutionUpdateWithoutRowInput, D65bResolutionUncheckedUpdateWithoutRowInput>
   }
 
-  export type D65bResolutionUpdateWithoutRowInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    sessionId?: StringFieldUpdateOperationsInput | string
-    contractId?: StringFieldUpdateOperationsInput | string
-    clientUserId?: StringFieldUpdateOperationsInput | string
-    ptUserId?: StringFieldUpdateOperationsInput | string
-    reason?: StringFieldUpdateOperationsInput | string
-    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
-    proposedBy?: StringFieldUpdateOperationsInput | string
-    ledgerBefore?: JsonNullValueInput | InputJsonValue
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    events?: D65bResolutionEventUpdateManyWithoutResolutionNestedInput
+  export type D65bResolutionUpdateManyWithWhereWithoutRowInput = {
+    where: D65bResolutionScalarWhereInput
+    data: XOR<D65bResolutionUpdateManyMutationInput, D65bResolutionUncheckedUpdateManyWithoutRowInput>
   }
 
-  export type D65bResolutionUncheckedUpdateWithoutRowInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    sessionId?: StringFieldUpdateOperationsInput | string
-    contractId?: StringFieldUpdateOperationsInput | string
-    clientUserId?: StringFieldUpdateOperationsInput | string
-    ptUserId?: StringFieldUpdateOperationsInput | string
-    reason?: StringFieldUpdateOperationsInput | string
-    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
-    proposedBy?: StringFieldUpdateOperationsInput | string
-    ledgerBefore?: JsonNullValueInput | InputJsonValue
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    events?: D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput
+  export type D65bResolutionScalarWhereInput = {
+    AND?: D65bResolutionScalarWhereInput | D65bResolutionScalarWhereInput[]
+    OR?: D65bResolutionScalarWhereInput[]
+    NOT?: D65bResolutionScalarWhereInput | D65bResolutionScalarWhereInput[]
+    id?: UuidFilter<"D65bResolution"> | string
+    sessionId?: StringFilter<"D65bResolution"> | string
+    contractId?: StringFilter<"D65bResolution"> | string
+    settlementRowId?: StringFilter<"D65bResolution"> | string
+    clientUserId?: StringFilter<"D65bResolution"> | string
+    ptUserId?: StringFilter<"D65bResolution"> | string
+    reason?: StringFilter<"D65bResolution"> | string
+    evidenceRefs?: StringNullableListFilter<"D65bResolution">
+    proposedBy?: StringFilter<"D65bResolution"> | string
+    ledgerBefore?: JsonFilter<"D65bResolution">
+    createdAt?: DateTimeFilter<"D65bResolution"> | Date | string
+    approvedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    approvedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    approvalReason?: StringNullableFilter<"D65bResolution"> | string | null
+    outcome?: StringNullableFilter<"D65bResolution"> | string | null
+    outcomeAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    ledgerAfter?: JsonNullableFilter<"D65bResolution">
+    rejectedBy?: StringNullableFilter<"D65bResolution"> | string | null
+    rejectedAt?: DateTimeNullableFilter<"D65bResolution"> | Date | string | null
+    rejectionReason?: StringNullableFilter<"D65bResolution"> | string | null
   }
 
   export type D65bResolutionEventUpsertWithWhereUniqueWithoutRowInput = {
@@ -94457,7 +94575,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
@@ -94481,7 +94599,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionUncheckedCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
@@ -94599,7 +94717,7 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
@@ -94623,7 +94741,7 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
@@ -94679,7 +94797,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
@@ -94703,7 +94821,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionUncheckedCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
@@ -94790,7 +94908,7 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
@@ -94814,7 +94932,7 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
@@ -94938,7 +95056,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
@@ -94962,7 +95080,7 @@ export namespace Prisma {
     nextAttemptAt?: Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionUncheckedCreateNestedManyWithoutRowInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
@@ -95055,7 +95173,7 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
@@ -95079,11 +95197,11 @@ export namespace Prisma {
     nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
     d65bResolutionEvents?: D65bResolutionEventUncheckedUpdateManyWithoutRowNestedInput
   }
 
-  export type SessionSettlementCreateWithoutD65bResolutionInput = {
+  export type SessionSettlementCreateWithoutD65bResolutionsInput = {
     id?: string
     kind: $Enums.SessionSettlementKind
     idempotencyKey: string
@@ -95107,7 +95225,7 @@ export namespace Prisma {
     d65bResolutionEvents?: D65bResolutionEventCreateNestedManyWithoutRowInput
   }
 
-  export type SessionSettlementUncheckedCreateWithoutD65bResolutionInput = {
+  export type SessionSettlementUncheckedCreateWithoutD65bResolutionsInput = {
     id?: string
     kind: $Enums.SessionSettlementKind
     idempotencyKey: string
@@ -95131,9 +95249,9 @@ export namespace Prisma {
     d65bResolutionEvents?: D65bResolutionEventUncheckedCreateNestedManyWithoutRowInput
   }
 
-  export type SessionSettlementCreateOrConnectWithoutD65bResolutionInput = {
+  export type SessionSettlementCreateOrConnectWithoutD65bResolutionsInput = {
     where: SessionSettlementWhereUniqueInput
-    create: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionsInput>
   }
 
   export type D65bResolutionEventCreateWithoutResolutionInput = {
@@ -95174,18 +95292,18 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type SessionSettlementUpsertWithoutD65bResolutionInput = {
-    update: XOR<SessionSettlementUpdateWithoutD65bResolutionInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
-    create: XOR<SessionSettlementCreateWithoutD65bResolutionInput, SessionSettlementUncheckedCreateWithoutD65bResolutionInput>
+  export type SessionSettlementUpsertWithoutD65bResolutionsInput = {
+    update: XOR<SessionSettlementUpdateWithoutD65bResolutionsInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionsInput>
+    create: XOR<SessionSettlementCreateWithoutD65bResolutionsInput, SessionSettlementUncheckedCreateWithoutD65bResolutionsInput>
     where?: SessionSettlementWhereInput
   }
 
-  export type SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionInput = {
+  export type SessionSettlementUpdateToOneWithWhereWithoutD65bResolutionsInput = {
     where?: SessionSettlementWhereInput
-    data: XOR<SessionSettlementUpdateWithoutD65bResolutionInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionInput>
+    data: XOR<SessionSettlementUpdateWithoutD65bResolutionsInput, SessionSettlementUncheckedUpdateWithoutD65bResolutionsInput>
   }
 
-  export type SessionSettlementUpdateWithoutD65bResolutionInput = {
+  export type SessionSettlementUpdateWithoutD65bResolutionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
     idempotencyKey?: StringFieldUpdateOperationsInput | string
@@ -95209,7 +95327,7 @@ export namespace Prisma {
     d65bResolutionEvents?: D65bResolutionEventUpdateManyWithoutRowNestedInput
   }
 
-  export type SessionSettlementUncheckedUpdateWithoutD65bResolutionInput = {
+  export type SessionSettlementUncheckedUpdateWithoutD65bResolutionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: EnumSessionSettlementKindFieldUpdateOperationsInput | $Enums.SessionSettlementKind
     idempotencyKey?: StringFieldUpdateOperationsInput | string
@@ -95266,7 +95384,10 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    row: SessionSettlementCreateNestedOneWithoutD65bResolutionInput
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+    row: SessionSettlementCreateNestedOneWithoutD65bResolutionsInput
   }
 
   export type D65bResolutionUncheckedCreateWithoutEventsInput = {
@@ -95287,6 +95408,9 @@ export namespace Prisma {
     outcome?: string | null
     outcomeAt?: Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
   }
 
   export type D65bResolutionCreateOrConnectWithoutEventsInput = {
@@ -95315,7 +95439,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementUncheckedCreateWithoutD65bResolutionEventsInput = {
@@ -95339,7 +95463,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedCreateNestedManyWithoutRowInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedCreateNestedManyWithoutRowInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedCreateNestedManyWithoutRowInput
-    d65bResolution?: D65bResolutionUncheckedCreateNestedOneWithoutRowInput
+    d65bResolutions?: D65bResolutionUncheckedCreateNestedManyWithoutRowInput
   }
 
   export type SessionSettlementCreateOrConnectWithoutD65bResolutionEventsInput = {
@@ -95375,7 +95499,10 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
-    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionNestedInput
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    row?: SessionSettlementUpdateOneRequiredWithoutD65bResolutionsNestedInput
   }
 
   export type D65bResolutionUncheckedUpdateWithoutEventsInput = {
@@ -95396,6 +95523,9 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type SessionSettlementUpsertWithoutD65bResolutionEventsInput = {
@@ -95430,7 +95560,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUpdateManyWithoutRowNestedInput
   }
 
   export type SessionSettlementUncheckedUpdateWithoutD65bResolutionEventsInput = {
@@ -95454,7 +95584,7 @@ export namespace Prisma {
     lateOpenReconciliations?: LateOpenReconciliationUncheckedUpdateManyWithoutRowNestedInput
     lateOpenReconciliationEvents?: LateOpenReconciliationEventUncheckedUpdateManyWithoutRowNestedInput
     lateOpenRecoveries?: LateOpenRecoveryUncheckedUpdateManyWithoutRowNestedInput
-    d65bResolution?: D65bResolutionUncheckedUpdateOneWithoutRowNestedInput
+    d65bResolutions?: D65bResolutionUncheckedUpdateManyWithoutRowNestedInput
   }
 
   export type ClientJourneyCreateManyUserInput = {
@@ -96651,6 +96781,28 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type D65bResolutionCreateManyRowInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    reason: string
+    evidenceRefs?: D65bResolutionCreateevidenceRefsInput | string[]
+    proposedBy: string
+    ledgerBefore: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    approvedBy?: string | null
+    approvedAt?: Date | string | null
+    approvalReason?: string | null
+    outcome?: string | null
+    outcomeAt?: Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: string | null
+    rejectedAt?: Date | string | null
+    rejectionReason?: string | null
+  }
+
   export type D65bResolutionEventCreateManyRowInput = {
     id?: string
     resolutionId: string
@@ -96811,6 +96963,74 @@ export namespace Prisma {
     outcome?: NullableStringFieldUpdateOperationsInput | string | null
     outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type D65bResolutionUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: D65bResolutionEventUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionUncheckedUpdateWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: D65bResolutionEventUncheckedUpdateManyWithoutResolutionNestedInput
+  }
+
+  export type D65bResolutionUncheckedUpdateManyWithoutRowInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    evidenceRefs?: D65bResolutionUpdateevidenceRefsInput | string[]
+    proposedBy?: StringFieldUpdateOperationsInput | string
+    ledgerBefore?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvalReason?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ledgerAfter?: NullableJsonNullValueInput | InputJsonValue
+    rejectedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type D65bResolutionEventUpdateWithoutRowInput = {

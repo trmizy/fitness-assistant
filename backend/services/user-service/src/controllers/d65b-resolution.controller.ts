@@ -26,7 +26,14 @@ function idempotencyKeyOf(req: any): string | undefined {
 }
 
 const text = (max: number) => z.string().trim().min(1).max(max);
-export const proposeBody = z.object({ reason: text(2000), evidenceRefs: z.array(text(500)).min(1).max(20) }).strict();
+/** Verifiable references only: an existing case-evidence row (id + its content hash) or a ledger operation key of this contract's payment. Free text is refused. */
+const evidenceRef = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("EVIDENCE"), id: text(64), contentHash: text(200) }).strict(),
+  z.object({ type: z.literal("LEDGER_OP"), key: text(200) }).strict(),
+]);
+export const proposeBody = z.object({ reason: text(2000), evidenceRefs: z.array(evidenceRef).min(1).max(20) }).strict();
+export const rejectBody = z.object({ reason: text(2000), conflictOfInterestDeclaredNone: z.boolean() }).strict();
+export const handoverBody = rejectBody;
 export const approveBody = z.object({ reason: text(2000), conflictOfInterestDeclaredNone: z.boolean() }).strict();
 
 function parse<S extends ZodTypeAny>(schema: S, data: unknown): z.infer<S> {
@@ -61,6 +68,14 @@ export const d65bResolutionController = {
   getBySession: (req: any, res: Response) => run(res, req, "getBySession", async (actor) => ({ body: await d65bResolutionService.getBySession(actor, String(req.params.sessionId)) })),
   propose: (req: any, res: Response) =>
     run(res, req, "propose", async (actor) => ({ status: 201, body: await d65bResolutionService.propose(actor, String(req.params.sessionId), parse(proposeBody, req.body), idempotencyKeyOf(req)) })),
+  reject: (req: any, res: Response) =>
+    run(res, req, "reject", async (actor) => ({ body: await d65bResolutionService.reject(actor, String(req.params.id), parse(rejectBody, req.body), idempotencyKeyOf(req)) })),
+  handover: (req: any, res: Response) =>
+    run(res, req, "handover", async (actor) => {
+      const body = await d65bResolutionService.handover(actor, String(req.params.id), parse(handoverBody, req.body));
+      const exec = (body as { execution?: { status?: string } }).execution;
+      return { status: exec && exec.status !== "EXECUTED" ? 202 : 200, body };
+    }),
   approve: (req: any, res: Response) =>
     run(res, req, "approve", async (actor) => {
       const body = await d65bResolutionService.approve(actor, String(req.params.id), parse(approveBody, req.body), idempotencyKeyOf(req));

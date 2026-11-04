@@ -19,5 +19,7 @@ router.get("/sessions/:sessionId", c.getBySession);
 router.post("/sessions/:sessionId/proposals", requireD65bEnabled, c.propose);
 router.get("/:id", c.get);
 router.post("/:id/approve", requireD65bEnabled, c.approve);
+router.post("/:id/reject", requireD65bEnabled, c.reject);
+router.post("/:id/handover", requireD65bEnabled, c.handover);
 
 export default router;

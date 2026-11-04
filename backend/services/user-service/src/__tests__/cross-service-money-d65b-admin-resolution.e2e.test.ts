@@ -68,7 +68,16 @@ async function api(method: string, path: string, token: string | null, body?: un
   }
   return { status: res.status, body: json, headers: res.headers };
 }
-const proposeBody = (over: Record<string, unknown> = {}) => ({ reason: "PT vắng, hoàn tiền chưa trả được, hợp đồng đã kết thúc", evidenceRefs: ["ticket-8841", "bản ghi phòng #12"], ...over });
+/** the verifiable references of the CURRENT scenario (set by heldNoShow): a stored case-evidence row of this session + the ledger operation of this contract's ending */
+let evid: { id: string; hash: string; ledgerKey: string } = { id: "", hash: "", ledgerKey: "" };
+const proposeBody = (over: Record<string, unknown> = {}) => ({
+  reason: "PT vắng, hoàn tiền chưa trả được, hợp đồng đã kết thúc",
+  evidenceRefs: [
+    { type: "EVIDENCE", id: evid.id, contentHash: evid.hash },
+    { type: "LEDGER_OP", key: evid.ledgerKey },
+  ],
+  ...over,
+});
 const approveBody = (over: Record<string, unknown> = {}) => ({ reason: "Đã đối chiếu bằng chứng, đồng ý hoàn", conflictOfInterestDeclaredNone: true, ...over });
 const propose = (token: string, sessionId: string, body: unknown = proposeBody(), headers: Record<string, string> = {}) => api("POST", `/sessions/${sessionId}/proposals`, token, body, headers);
 const approve = (token: string, id: string, body: unknown = approveBody(), headers: Record<string, string> = {}) => api("POST", `/${id}/approve`, token, body, headers);
@@ -124,6 +133,15 @@ async function heldNoShow(reason: "PT_CANCELLED" | "CLIENT_CANCELLED" = "PT_CANC
   assert.equal(end.status, 200, JSON.stringify(end.body));
   const held = await rowOf(`PT_NO_SHOW:${S.id}`);
   assert.equal(held?.status, "UNCONFIRMED", "the ending HELD the session's value");
+  // TEST FIXTURE: a stored evidence row of THIS session (in a case that was closed at intake - no live Case) + the ledger operation of the ending, as verifiable references
+  const kase = await H.m.prisma.disputeCase.create({
+    data: { id: crypto.randomUUID(), sessionId: S.id, contractId: c.id, clientUserId: c.clientUserId, ptUserId: c.ptUserId, type: "PT_NO_SHOW_CLAIM", status: "REJECTED_INTAKE", createdBy: "fixture" },
+  });
+  const hash = `sha256-${crypto.randomUUID()}`;
+  const ev = await H.m.prisma.disputeCaseEvidence.create({
+    data: { caseId: kase.id, provenanceType: "NOT_APPLICABLE", source: "FIXTURE", subject: "room-log", scopeSessionId: S.id, scopeContractId: c.id, captureStatus: "NOT_APPLICABLE", contentHash: hash, payload: {} },
+  });
+  evid = { id: ev.id, hash, ledgerKey: `CONTRACT_TERMINATE:${c.id}` };
   return { pt, c, S, held: held! };
 }
 
@@ -163,7 +181,7 @@ for (const [reason, before, after] of [
       assert.equal(d.status, 200);
       assert.deepEqual(d.body.history.map((e: any) => e.action), ["PROPOSED", "APPROVED", "EXECUTION_STARTED", "EXECUTED"]);
       assert.deepEqual([d.body.proposedBy, d.body.approvedBy, d.body.outcome, d.body.heldRowStatus, d.body.resolutionRowStatus], ["adm-d65b-A", "adm-d65b-B", "EXECUTED", "SETTLED", "SETTLED"]);
-      assert.deepEqual(d.body.evidenceRefs, ["ticket-8841", "bản ghi phòng #12"]);
+      assert.deepEqual(d.body.evidenceRefs, [`EVIDENCE:${evid.id}:${evid.hash}`, `LEDGER_OP:${evid.ledgerKey}`], "stored as the VERIFIED canonical references");
       assert.equal(d.body.ledgerBefore.ledger.pendingTotal, "250000.00");
       assert.equal(d.body.ledgerAfter.ledger.pendingTotal, "0.00");
       assert.equal(d.body.ledgerAfter.creditedToClient, "250000.00");
@@ -556,6 +574,8 @@ test("T7 flag OFF: EVERY POST is 409 D65B_RESOLUTION_DISABLED - propose, approve
         approve(adminB(), p.body.id),
         approve(adminB(), p.body.id, { nonsense: true }),
         approve(adminB(), p.body.id, approveBody(), { "idempotency-key": "retry-2" }),
+        api("POST", `/${p.body.id}/reject`, adminC(), { reason: "x", conflictOfInterestDeclaredNone: true }),
+        api("POST", `/${p.body.id}/handover`, adminC(), { reason: "x", conflictOfInterestDeclaredNone: true }),
       ];
       for (const r of await Promise.all(calls)) assert.deepEqual([r.status, r.body.code], [409, "D65B_RESOLUTION_DISABLED"], why);
       assert.deepEqual(await footprint(c), snap, `${why}: nothing written`);
@@ -627,5 +647,193 @@ test("T9 GET list / detail / by-session: admin only, no write, readable with the
     const d = await api("GET", `/${p.body.id}`, adminA());
     assert.deepEqual(d.body.history.map((e: any) => e.action), ["PROPOSED"]);
     void c;
+  });
+});
+
+// ═════════ 10. evidence must be VERIFIABLE (Q26) ═════════
+test("T10 evidenceRefs are verifiable references only: free text, a wrong hash, another session's evidence, an unknown or foreign ledger operation are refused (nothing written); a good set is stored as canonical references", { skip }, async () => {
+  await scenario(async () => {
+    const { c, S } = await heldNoShow();
+    const snap = await footprint(c);
+    const good = proposeBody().evidenceRefs;
+    // free text (the old shape): refused by the strict schema
+    const text = await propose(adminA(), S.id, { reason: "r", evidenceRefs: ["ticket-8841"] });
+    assert.deepEqual([text.status, text.body.code], [400, "INVALID_INPUT"]);
+    const bad: Array<[string, unknown]> = [
+      ["wrong hash", [{ type: "EVIDENCE", id: evid.id, contentHash: "sha256-not-the-hash" }]],
+      ["unknown evidence id", [{ type: "EVIDENCE", id: "33333333-3333-4333-8333-333333333333", contentHash: evid.hash }]],
+      ["not a uuid", [{ type: "EVIDENCE", id: "abc", contentHash: evid.hash }]],
+      ["unknown ledger operation", [{ type: "LEDGER_OP", key: "NO_SUCH_KEY:1" }]],
+      ["duplicate reference", [good[0], good[0]]],
+    ];
+    for (const [why, refs] of bad) {
+      const r = await propose(adminA(), S.id, { reason: "r", evidenceRefs: refs });
+      assert.deepEqual([r.status, r.body.code], [422, "EVIDENCE_NOT_VERIFIABLE"], why);
+    }
+    // evidence of ANOTHER session of the same shape, and a ledger operation of ANOTHER contract
+    const other = await heldNoShow();
+    const foreign = { type: "EVIDENCE", id: evid.id, contentHash: evid.hash }; // belongs to the second scenario's session
+    const foreignOp = { type: "LEDGER_OP", key: evid.ledgerKey };
+    const r1 = await propose(adminA(), S.id, { reason: "r", evidenceRefs: [foreign] });
+    assert.deepEqual([r1.status, r1.body.code], [422, "EVIDENCE_NOT_VERIFIABLE"], "evidence of another session");
+    const r2 = await propose(adminA(), S.id, { reason: "r", evidenceRefs: [foreignOp] });
+    assert.deepEqual([r2.status, r2.body.code], [422, "EVIDENCE_NOT_VERIFIABLE"], "a ledger operation of another contract");
+    assert.equal(await H.m.prisma.d65bResolution.count(), 0, "nothing was written by any refusal");
+    void snap;
+    void other;
+    void c;
+  });
+});
+
+// ═════════ 11. reject (four eyes, no money) ═════════
+test("T11 REJECT: a second non-party admin rejects a proposal; no money moves, the history is appended, an approval is never altered; the rejected proposal can never be approved; the session can be proposed again", { skip }, async () => {
+  await scenario(async () => {
+    const { c, S } = await heldNoShow();
+    const p = await propose(adminA(), S.id);
+    assert.equal(p.status, 201);
+    const reject = (t: string, body: unknown = { reason: "Bằng chứng chưa đủ", conflictOfInterestDeclaredNone: true }, h: Record<string, string> = {}) => api("POST", `/${p.body.id}/reject`, t, body, h);
+    const snap = await footprint(c);
+    // refusals write nothing
+    const self = await reject(adminA());
+    assert.deepEqual([self.status, self.body.code], [403, "SELF_REJECT_FORBIDDEN"]);
+    for (const t of [H.tokenFor(c.clientUserId, "ADMIN"), H.tokenFor(c.ptUserId, "ADMIN")]) {
+      const r = await reject(t);
+      assert.deepEqual([r.status, r.body.code], [403, "CONFLICT_OF_INTEREST"]);
+    }
+    assert.equal((await reject(adminB(), { reason: "x", conflictOfInterestDeclaredNone: false })).status, 403);
+    assert.deepEqual([(await reject(adminB(), { reason: "x", conflictOfInterestDeclaredNone: true, amount: 1 })).status], [400]);
+    assert.equal((await reject(H.tokenFor("not-admin-r", "PT"))).status, 403);
+    assert.deepEqual(await footprint(c), snap);
+    // the reject
+    const before = await totals(c);
+    const ok = await reject(adminB(), undefined, { "idempotency-key": "rej-1" });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.deepEqual([ok.body.status, ok.body.rejectedBy, ok.body.approvedAt], ["REJECTED", "adm-d65b-B", null]);
+    assert.deepEqual(await totals(c), before, "a reject moves no money");
+    assert.deepEqual((await footprint(c)).ledger, snap.ledger, "the ledger did not move");
+    assert.equal((await rowOf(`PT_NO_SHOW:${S.id}`))?.status, "UNCONFIRMED", "the held row is untouched");
+    assert.equal(await rowOf(`UNRESOLVED_SESSION:${S.id}`), null);
+    // idempotent: same admin again -> replay; same key -> replay; another admin -> 409
+    const again = await reject(adminB());
+    assert.deepEqual([again.status, again.body.replayed], [200, true]);
+    const keyed = await reject(adminB(), undefined, { "idempotency-key": "rej-1" });
+    assert.deepEqual([keyed.status, keyed.headers.get("idempotent-replay")], [200, "true"]);
+    const other = await reject(adminC());
+    assert.deepEqual([other.status, other.body.code], [409, "PROPOSAL_ALREADY_REJECTED"]);
+    // a rejected proposal can never be approved or handed over
+    const ap = await approve(adminC(), p.body.id);
+    assert.deepEqual([ap.status, ap.body.code], [409, "PROPOSAL_REJECTED"]);
+    const ho = await api("POST", `/${p.body.id}/handover`, adminC(), { reason: "x", conflictOfInterestDeclaredNone: true });
+    assert.deepEqual([ho.status, ho.body.code], [409, "PROPOSAL_REJECTED"]);
+    assert.deepEqual(await totals(c), before);
+    // audit: appended, never altered; the database refuses to rewrite or delete it
+    const d = await api("GET", `/${p.body.id}`, adminC());
+    assert.deepEqual(d.body.history.map((e: any) => [e.action, e.actor]), [["PROPOSED", "adm-d65b-A"], ["REJECTED", "adm-d65b-B"]]);
+    const sql = (q: string) => H.m.prisma.$executeRawUnsafe(q);
+    await assert.rejects(() => sql(`UPDATE d65b_resolutions SET rejection_reason = 'changed' WHERE id = '${p.body.id}'::uuid`), /append-only/);
+    await assert.rejects(() => sql(`UPDATE d65b_resolutions SET approved_by = 'x', approved_at = now(), approval_reason = 'x' WHERE id = '${p.body.id}'::uuid`), /d65b_rejected_never_approved|violates check|append-only/);
+    await assert.rejects(() => sql(`DELETE FROM d65b_resolutions WHERE id = '${p.body.id}'::uuid`), /append-only/);
+    // the session is free again: a NEW proposal by another admin, approved, executed ONCE
+    const p2 = await propose(adminC(), S.id);
+    assert.equal(p2.status, 201, JSON.stringify(p2.body));
+    assert.notEqual(p2.body.id, p.body.id);
+    const dup = await propose(adminA(), S.id);
+    assert.deepEqual([dup.status, dup.body.code], [409, "PROPOSAL_ALREADY_EXISTS"], "one LIVE proposal per session");
+    const a = await approve(adminB(), p2.body.id);
+    assert.equal(a.status, 200, JSON.stringify(a.body));
+    assert.deepEqual(await totals(c), { client: 1_000_000, pt: 0, platform: 0, pending: 0, sum: PRICE });
+    assert.equal(await opCount(`UNRESOLVED_SESSION:${S.id}`), 1);
+    // an EXECUTED / approved proposal cannot be rejected
+    const late = await api("POST", `/${p2.body.id}/reject`, adminA(), { reason: "x", conflictOfInterestDeclaredNone: true });
+    assert.deepEqual([late.status, late.body.code], [409, "PROPOSAL_NOT_REJECTABLE"]);
+    const list = await api("GET", "", adminC());
+    assert.deepEqual(list.body.items.map((i: any) => i.status).sort(), ["EXECUTED", "REJECTED"]);
+    await H.invariant("T11");
+  });
+});
+
+// ═════════ 12. handover when the approver is gone ═════════
+test("T12 HANDOVER: a third non-party admin finishes an approved proposal ONLY when the approver is provably gone; one credit, the approval stamp is unchanged, the history names both", { skip }, async () => {
+  await scenario(async () => {
+    const { c, S } = await heldNoShow();
+    const p = await propose(adminA(), S.id);
+    // the approval stands but the ledger credit is not confirmed (a lost answer): 202
+    const original = H.m.paymentClient.resolveUnresolvedSession.bind(H.m.paymentClient);
+    const saved = H.m.paymentClient.resolveUnresolvedSession;
+    (H.m.paymentClient as any).resolveUnresolvedSession = async () => {
+      throw new Error("timeout of 15000ms exceeded"); // refused before the ledger acts
+    };
+    let a;
+    try {
+      a = await approve(adminB(), p.body.id);
+    } finally {
+      (H.m.paymentClient as any).resolveUnresolvedSession = saved;
+      void original;
+    }
+    assert.equal(a.status, 202, JSON.stringify(a.body));
+    const approvedRow = await H.m.prisma.d65bResolution.findUniqueOrThrow({ where: { id: p.body.id } });
+    const ho = (t: string, body: unknown = { reason: "Người duyệt đã nghỉ việc", conflictOfInterestDeclaredNone: true }) => api("POST", `/${p.body.id}/handover`, t, body);
+    const user = (over: Record<string, unknown>) => async () => ({ data: { user: { id: "adm-d65b-B", ...over } } });
+    const patchAuth = (impl: unknown) => H.m.base.patch(H.m.authServiceClient as any, "internalGet", impl);
+    const snap = await footprint(c);
+
+    // refusals (nothing written): approver still an active ADMIN; the proposer; a party; no COI; auth-service unreachable; extra body fields
+    let restore = patchAuth(user({ role: "ADMIN", isActive: true }));
+    try {
+      const r = await ho(adminC());
+      assert.deepEqual([r.status, r.body.code], [409, "APPROVER_STILL_ACTIVE"]);
+    } finally {
+      restore();
+    }
+    restore = patchAuth(user({ role: "CUSTOMER", isActive: true }));
+    try {
+      const prop = await ho(adminA());
+      assert.deepEqual([prop.status, prop.body.code], [403, "SELF_APPROVAL_FORBIDDEN"]);
+      for (const t of [H.tokenFor(c.clientUserId, "ADMIN"), H.tokenFor(c.ptUserId, "ADMIN")]) assert.deepEqual([(await ho(t)).status], [403]);
+      assert.equal((await ho(adminC(), { reason: "x", conflictOfInterestDeclaredNone: false })).status, 403);
+      assert.equal((await ho(adminC(), { reason: "x", conflictOfInterestDeclaredNone: true, amount: 1 })).status, 400);
+      assert.equal((await ho(H.tokenFor("not-admin-h", "PT"))).status, 403);
+    } finally {
+      restore();
+    }
+    restore = patchAuth(async () => {
+      throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    });
+    try {
+      const r = await ho(adminC());
+      assert.deepEqual([r.status, r.body.code], [503, "ACCOUNT_LOOKUP_UNAVAILABLE"]);
+    } finally {
+      restore();
+    }
+    assert.deepEqual(await footprint(c), snap, "every refusal wrote nothing");
+
+    // the approver's account is gone (404): C takes over and finishes - ONE credit
+    restore = patchAuth(async () => {
+      throw Object.assign(new Error("not found"), { response: { status: 404 } });
+    });
+    try {
+      const r = await ho(adminC());
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.deepEqual([r.body.status, r.body.handedOver, r.body.execution.status, r.body.execution.creditedToClient], ["EXECUTED", true, "EXECUTED", "250000.00"]);
+      // idempotent: C again -> the finished state, nothing more is paid, the HANDED_OVER event exists once
+      const again = await ho(adminC());
+      assert.equal(again.status, 200);
+      assert.deepEqual(again.body.execution.replayed, true);
+    } finally {
+      restore();
+    }
+    assert.deepEqual(await totals(c), { client: 1_000_000, pt: 0, platform: 0, pending: 0, sum: PRICE });
+    assert.equal(await opCount(`UNRESOLVED_SESSION:${S.id}`), 1);
+    const after = await H.m.prisma.d65bResolution.findUniqueOrThrow({ where: { id: p.body.id } });
+    assert.deepEqual([after.approvedBy, after.approvedAt?.toISOString(), after.approvalReason], [approvedRow.approvedBy, approvedRow.approvedAt?.toISOString(), approvedRow.approvalReason], "the approval stamp is unchanged");
+    const d = await api("GET", `/${p.body.id}`, adminA());
+    const hist = d.body.history.map((e: any) => e.action);
+    assert.equal(hist.filter((x: string) => x === "HANDED_OVER").length, 1);
+    assert.deepEqual(hist.filter((x: string) => x === "APPROVED").length, 1);
+    const handed = (await H.m.prisma.d65bResolutionEvent.findFirstOrThrow({ where: { resolutionId: p.body.id, action: "HANDED_OVER" } }));
+    assert.equal(handed.actorUserId, "adm-d65b-C");
+    assert.equal((handed.payload as any).detail.previousApprover, "adm-d65b-B");
+    assert.equal(await notices(c.clientUserId, S.id), 1);
+    await H.invariant("T12");
   });
 });

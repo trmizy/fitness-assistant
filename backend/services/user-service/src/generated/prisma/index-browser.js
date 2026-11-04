@@ -998,7 +998,10 @@ exports.Prisma.D65bResolutionScalarFieldEnum = {
   approvalReason: 'approvalReason',
   outcome: 'outcome',
   outcomeAt: 'outcomeAt',
-  ledgerAfter: 'ledgerAfter'
+  ledgerAfter: 'ledgerAfter',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
 };
 
 exports.Prisma.D65bResolutionEventScalarFieldEnum = {

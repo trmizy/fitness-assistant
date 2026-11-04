@@ -1276,7 +1276,7 @@ model SessionSettlement {
   lateOpenReconciliations      LateOpenReconciliation[]
   lateOpenReconciliationEvents LateOpenReconciliationEvent[]
   lateOpenRecoveries           LateOpenRecovery[]
-  d65bResolution               D65bResolution?
+  d65bResolutions              D65bResolution[]
   d65bResolutionEvents         D65bResolutionEvent[]
 
   // The sweep's own query: "everything not yet SETTLED".
@@ -2245,9 +2245,9 @@ model LateOpenRecovery {
 /// stamp (outcome, outcome_at, ledger_after) are one-time NULL -> value changes, everything else is immutable (trigger).
 model D65bResolution {
   id              String    @id @default(uuid()) @db.Uuid
-  sessionId       String    @unique @map("session_id")
+  sessionId       String    @map("session_id")
   contractId      String    @map("contract_id")
-  settlementRowId String    @unique @map("settlement_row_id")
+  settlementRowId String    @map("settlement_row_id")
   clientUserId    String    @map("client_user_id")
   ptUserId        String    @map("pt_user_id")
   reason          String
@@ -2261,11 +2261,17 @@ model D65bResolution {
   outcome         String?
   outcomeAt       DateTime? @map("outcome_at") @db.Timestamptz(3)
   ledgerAfter     Json?     @map("ledger_after")
+  /// Reject stamp (one-time): a four-eyes reject of a proposal that was never approved. Frees the session for a new proposal (partial unique indexes in SQL).
+  rejectedBy      String?   @map("rejected_by")
+  rejectedAt      DateTime? @map("rejected_at") @db.Timestamptz(3)
+  rejectionReason String?   @map("rejection_reason")
 
   row    SessionSettlement     @relation(fields: [settlementRowId], references: [id], onDelete: Restrict)
   events D65bResolutionEvent[]
 
   @@index([contractId])
+  @@index([sessionId])
+  @@index([settlementRowId])
   @@map("d65b_resolutions")
 }
 

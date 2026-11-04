@@ -27,6 +27,7 @@ import { hasD77Trace } from "./dispute-case/execution-guard";
 import { d65bResolutionEnabled } from "./dispute-case/flags";
 import { isContractEnded, readLateOpenLedgerState, resolveUnconfirmedSessionMoney } from "./contract-payout.service";
 import { paymentClient } from "../clients/payment.client";
+import { authServiceClient } from "../clients/auth-service.client";
 import { notificationService } from "./notification.service";
 import { formatVnd } from "./pt-fault-session-wording";
 
@@ -211,7 +212,7 @@ async function findReplay<T>(key: string | null, requestHash: string): Promise<(
 // ── views ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 type Resolution = NonNullable<Awaited<ReturnType<typeof prisma.d65bResolution.findUnique>>>;
-const statusOf = (r: Pick<Resolution, "approvedAt" | "outcome">) => (r.outcome === "EXECUTED" ? "EXECUTED" : r.approvedAt ? "APPROVED_NOT_EXECUTED" : "PROPOSED");
+const statusOf = (r: Pick<Resolution, "approvedAt" | "outcome" | "rejectedAt">) => (r.rejectedAt ? "REJECTED" : r.outcome === "EXECUTED" ? "EXECUTED" : r.approvedAt ? "APPROVED_NOT_EXECUTED" : "PROPOSED");
 
 const summaryOf = (r: Resolution) => ({
   id: r.id,
@@ -227,7 +228,54 @@ const summaryOf = (r: Resolution) => ({
   approvalReason: r.approvalReason,
   outcome: r.outcome,
   outcomeAt: r.outcomeAt,
+  rejectedBy: r.rejectedBy,
+  rejectedAt: r.rejectedAt,
+  rejectionReason: r.rejectionReason,
 });
+
+/** The live (not rejected) proposal of a session, else the newest rejected one. */
+const proposalOfSession = async (db: Db, sessionId: string) =>
+  (await db.d65bResolution.findFirst({ where: { sessionId, rejectedAt: null } })) ?? (await db.d65bResolution.findFirst({ where: { sessionId }, orderBy: { createdAt: "desc" } }));
+
+// ── evidence: verifiable references only (Q26) ──────────────────────────────────────────────────────────────────────────
+
+export type EvidenceRef = { type: "EVIDENCE"; id: string; contentHash: string } | { type: "LEDGER_OP"; key: string };
+interface VerifiedEvidence {
+  canonical: string;
+  type: EvidenceRef["type"];
+  detail: Record<string, unknown>;
+}
+/**
+ * Every reference must point at something that EXISTS and belongs to THIS session / contract: a stored case evidence row (same session and contract, content hash equal to the one given) or a
+ * ledger operation of THIS contract's payment transaction. Free text is not accepted. Nothing is written here; an unverifiable reference refuses the whole request (422, nothing written).
+ */
+async function verifyEvidence(refs: EvidenceRef[], sessionId: string, contractId: string, paymentTransactionId: string | null): Promise<VerifiedEvidence[]> {
+  const out: VerifiedEvidence[] = [];
+  const bad = (index: number, why: string): never => {
+    throw err(422, "EVIDENCE_NOT_VERIFIABLE", `Tham chiếu bằng chứng thứ ${index + 1} không kiểm chứng được: ${why}`, { index, why });
+  };
+  for (const [i, ref] of refs.entries()) {
+    if (ref.type === "EVIDENCE") {
+      if (!UUID_RE.test(ref.id)) bad(i, "mã bằng chứng không hợp lệ");
+      const ev = await prisma.disputeCaseEvidence.findUnique({ where: { id: ref.id }, select: { id: true, scopeSessionId: true, scopeContractId: true, contentHash: true, source: true, subject: true, capturedAt: true } });
+      if (!ev || ev.scopeSessionId !== sessionId || ev.scopeContractId !== contractId) bad(i, "không có bằng chứng này cho buổi tập / hợp đồng này");
+      if (ev!.contentHash !== ref.contentHash) bad(i, "mã băm nội dung không khớp với bằng chứng đã lưu");
+      out.push({ canonical: `EVIDENCE:${ev!.id}:${ev!.contentHash}`, type: "EVIDENCE", detail: { id: ev!.id, contentHash: ev!.contentHash, source: ev!.source, subject: ev!.subject, capturedAt: ev!.capturedAt } });
+    } else {
+      let rec: Awaited<ReturnType<typeof paymentClient.lookupLedgerOperation>>;
+      try {
+        rec = await paymentClient.lookupLedgerOperation(ref.key);
+      } catch {
+        throw err(503, "LEDGER_UNAVAILABLE", "Không đọc được sổ cái để kiểm chứng tham chiếu. Chưa ghi gì.");
+      }
+      if (!rec) bad(i, "sổ cái không có thao tác với khoá này");
+      if (!paymentTransactionId || rec!.transactionId !== paymentTransactionId) bad(i, "thao tác sổ cái không thuộc giao dịch thanh toán của hợp đồng này");
+      out.push({ canonical: `LEDGER_OP:${ref.key}`, type: "LEDGER_OP", detail: { key: ref.key, kind: rec!.kind, createdAt: rec!.createdAt } });
+    }
+  }
+  if (new Set(out.map((o) => o.canonical)).size !== out.length) throw err(422, "EVIDENCE_NOT_VERIFIABLE", "Tham chiếu bằng chứng bị lặp", { why: "duplicate" });
+  return out;
+}
 
 export interface ExecutionResult {
   status: "EXECUTED" | "NOT_EXECUTED";
@@ -241,9 +289,9 @@ export interface ExecutionResult {
 async function previewSession(sessionId: string) {
   let assessment: { eligible: boolean; code?: string; message?: string } = { eligible: true };
   let ledger: LedgerReading | null = null;
-  const resolution = await prisma.d65bResolution.findUnique({ where: { sessionId } });
+  const resolution = await proposalOfSession(prisma, sessionId);
   try {
-    await assessDb(prisma, sessionId, resolution ? "EXECUTE" : "PROPOSE");
+    await assessDb(prisma, sessionId, resolution && !resolution.rejectedAt ? "EXECUTE" : "PROPOSE");
   } catch (e: any) {
     assessment = { eligible: false, code: e?.code ?? "ASSESSMENT_FAILED", message: String(e?.message ?? e).slice(0, 300) };
   }
@@ -297,7 +345,7 @@ export const d65bResolutionService = {
   },
 
   // ── propose ──
-  async propose(actor: Actor, sessionId: string, b: { reason: string; evidenceRefs: string[] }, idempotencyKey?: string) {
+  async propose(actor: Actor, sessionId: string, b: { reason: string; evidenceRefs: EvidenceRef[] }, idempotencyKey?: string) {
     assertEnabled();
     assertAdmin(actor);
     const fk = keyOf(actor, "PROPOSED", sessionId, idempotencyKey);
@@ -314,12 +362,13 @@ export const d65bResolutionService = {
     await assessDb(prisma, sessionId, "PROPOSE"); // the system's own facts first (specific codes), then the ledger
     const ledgerBefore = await readLedger(head.contractId, sessionId);
     assertLedgerAllows(ledgerBefore);
+    const verified = await verifyEvidence(b.evidenceRefs, sessionId, head.contractId, c0.paymentTransactionId ?? null);
 
     try {
       return await withContractLock(head.contractId, async (tx) => {
         const a = await assessDb(tx, sessionId, "PROPOSE");
         assertNotParty(actor.id, a.contract, "Người đề xuất");
-        const existing = await tx.d65bResolution.findUnique({ where: { sessionId } });
+        const existing = await tx.d65bResolution.findFirst({ where: { sessionId, rejectedAt: null } });
         if (existing) throw err(409, "PROPOSAL_ALREADY_EXISTS", "Buổi tập này đã có đề xuất (mỗi buổi chỉ một lần)", { resolutionId: existing.id, status: statusOf(existing) });
         const created = await tx.d65bResolution.create({
           data: {
@@ -329,7 +378,7 @@ export const d65bResolutionService = {
             clientUserId: a.clientUserId,
             ptUserId: a.ptUserId,
             reason: b.reason,
-            evidenceRefs: b.evidenceRefs,
+            evidenceRefs: verified.map((v) => v.canonical),
             proposedBy: actor.id,
             ledgerBefore: toJson({ ledger: ledgerBefore, quota: a.quota, heldRowStatus: a.heldRow.status }),
           },
@@ -344,7 +393,7 @@ export const d65bResolutionService = {
           actor,
           note: b.reason,
           idempotencyKey: fk,
-          payload: { requestHash, result, detail: { evidenceRefs: b.evidenceRefs, ledgerBefore, quota: a.quota } },
+          payload: { requestHash, result, detail: { evidenceRefs: verified.map((v) => v.canonical), evidenceVerified: verified.map((v) => v.detail), ledgerBefore, quota: a.quota } },
         });
         return result;
       });
@@ -353,9 +402,89 @@ export const d65bResolutionService = {
         const again = await findReplay<ReturnType<typeof summaryOf>>(fk, requestHash);
         if (again) return again;
       }
-      if (isUnique(e, "session_id") || isUnique(e, "settlement_row_id")) throw err(409, "PROPOSAL_ALREADY_EXISTS", "Buổi tập này đã có đề xuất (mỗi buổi chỉ một lần)");
+      if (isUnique(e, "session_id") || isUnique(e, "settlement_row_id") || isUnique(e, "d65b_one_live")) throw err(409, "PROPOSAL_ALREADY_EXISTS", "Buổi tập này đã có đề xuất (mỗi buổi chỉ một lần)");
       throw e;
     }
+  },
+
+  // ── reject (four eyes; never moves money; never touches an approval) ──
+  async reject(actor: Actor, id: string, b: { reason: string; conflictOfInterestDeclaredNone: boolean }, idempotencyKey?: string) {
+    assertEnabled();
+    assertAdmin(actor);
+    if (!UUID_RE.test(id)) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
+    const r0 = await prisma.d65bResolution.findUnique({ where: { id } });
+    if (!r0) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
+    const contract = await contractRepository.findById(r0.contractId);
+    if (!contract) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng");
+    assertNotParty(actor.id, contract, "Người từ chối");
+    if (actor.id === r0.proposedBy) throw err(403, "SELF_REJECT_FORBIDDEN", "Người đề xuất không được tự từ chối đề xuất của mình (cần người thứ hai)");
+    if (b.conflictOfInterestDeclaredNone !== true) throw err(403, "CONFLICT_OF_INTEREST", "Người từ chối phải khai báo không có xung đột lợi ích");
+    const fk = keyOf(actor, "REJECTED", id, idempotencyKey);
+    const requestHash = hashOf(b);
+    const prior = await findReplay<ReturnType<typeof summaryOf>>(fk, requestHash);
+    if (prior) return prior;
+    if (r0.rejectedAt) {
+      if (r0.rejectedBy === actor.id) return { ...summaryOf(r0), replayed: true };
+      throw err(409, "PROPOSAL_ALREADY_REJECTED", "Đề xuất này đã bị người khác từ chối");
+    }
+    try {
+      return await withContractLock(r0.contractId, async (tx) => {
+        const won = await tx.d65bResolution.updateMany({ where: { id, approvedAt: null, rejectedAt: null }, data: { rejectedBy: actor.id, rejectedAt: new Date(), rejectionReason: b.reason } });
+        if (won.count !== 1) throw err(409, "PROPOSAL_NOT_REJECTABLE", "Đề xuất đã được duyệt hoặc đã đóng, không từ chối được");
+        const result = summaryOf(await tx.d65bResolution.findUniqueOrThrow({ where: { id } }));
+        await writeEvent(tx, {
+          resolutionId: id,
+          rowId: r0.settlementRowId,
+          sessionId: r0.sessionId,
+          contractId: r0.contractId,
+          action: "REJECTED",
+          actor,
+          note: b.reason,
+          idempotencyKey: fk,
+          payload: { requestHash, result, detail: { proposedBy: r0.proposedBy, conflictOfInterestDeclaredNone: true, moneyMoved: false } },
+        });
+        return result;
+      });
+    } catch (e) {
+      if (fk && isUnique(e, "idempotency_key")) {
+        const again = await findReplay<ReturnType<typeof summaryOf>>(fk, requestHash);
+        if (again) return again;
+      }
+      throw e;
+    }
+  },
+
+  // ── handover: another non-party ADMIN finishes an APPROVED proposal when its approver is gone ──
+  async handover(actor: Actor, id: string, b: { reason: string; conflictOfInterestDeclaredNone: boolean }) {
+    assertEnabled();
+    assertAdmin(actor);
+    if (!UUID_RE.test(id)) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
+    const r0 = await prisma.d65bResolution.findUnique({ where: { id } });
+    if (!r0) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
+    if (r0.rejectedAt) throw err(409, "PROPOSAL_REJECTED", "Đề xuất này đã bị từ chối");
+    if (!r0.approvedAt || !r0.approvedBy) throw err(409, "NOT_APPROVED", "Đề xuất chưa được duyệt: không có gì để chạy tiếp");
+    const contract = await contractRepository.findById(r0.contractId);
+    if (!contract) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng");
+    assertNotParty(actor.id, contract, "Người tiếp quản");
+    if (actor.id === r0.proposedBy) throw err(403, "SELF_APPROVAL_FORBIDDEN", "Người đề xuất không được tiếp quản việc chạy tiếp (cần quản trị viên thứ ba)");
+    if (b.conflictOfInterestDeclaredNone !== true) throw err(403, "CONFLICT_OF_INTEREST", "Người tiếp quản phải khai báo không có xung đột lợi ích");
+    if (r0.outcome !== "EXECUTED" && actor.id !== r0.approvedBy) await assertApproverGone(r0.approvedBy);
+    // the audit (append-only): who took over from whom and why - once per (proposal, new executor); the approval stamp itself is never altered
+    await writeEvent(prisma, {
+      resolutionId: id,
+      rowId: r0.settlementRowId,
+      sessionId: r0.sessionId,
+      contractId: r0.contractId,
+      action: "HANDED_OVER",
+      actor,
+      note: b.reason,
+      idempotencyKey: `D65B:HANDOVER:${id}:${actor.id}`,
+      payload: { detail: { previousApprover: r0.approvedBy, conflictOfInterestDeclaredNone: true } },
+    }).catch((e) => {
+      if (!isUnique(e, "idempotency_key")) throw e;
+    });
+    const execution = await execute(actor, id);
+    return { ...summaryOf(await prisma.d65bResolution.findUniqueOrThrow({ where: { id } })), execution, handedOver: true };
   },
 
   // ── approve (+ resume) ──
@@ -368,6 +497,7 @@ export const d65bResolutionService = {
     const contract = await contractRepository.findById(r0.contractId);
     if (!contract) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng");
 
+    if (r0.rejectedAt) throw err(409, "PROPOSAL_REJECTED", "Đề xuất này đã bị từ chối");
     // a repeated approve by the RECORDED approver is a RESUME of the execution (idempotent); anybody else is refused
     if (r0.approvedAt) {
       if (r0.approvedBy !== actor.id) throw err(409, "PROPOSAL_ALREADY_APPROVED", "Đề xuất này đã được người khác duyệt");
@@ -436,6 +566,20 @@ export const d65bResolutionService = {
     return { ...summaryOf(await prisma.d65bResolution.findUniqueOrThrow({ where: { id } })), execution };
   },
 };
+
+/** The approver must be PROVABLY gone: auth-service says the account does not exist, is not an ADMIN, or is inactive. Unreachable auth-service = refuse (fail closed). */
+async function assertApproverGone(approverId: string): Promise<void> {
+  let user: { role?: string; isActive?: boolean } | undefined;
+  try {
+    const { data } = await authServiceClient.internalGet(`/auth/internal/users/${encodeURIComponent(approverId)}`, { timeoutMs: 3000 });
+    user = data?.user;
+  } catch (e: any) {
+    if (e?.response?.status === 404) return;
+    throw err(503, "ACCOUNT_LOOKUP_UNAVAILABLE", "Không kiểm tra được tài khoản người duyệt lúc này, hãy thử lại. Chưa ghi gì.");
+  }
+  if (!user || user.role !== "ADMIN" || user.isActive === false) return;
+  throw err(409, "APPROVER_STILL_ACTIVE", "Người duyệt vẫn là quản trị viên đang hoạt động: chính họ chạy tiếp");
+}
 
 // ── execution: after the approval stamp; outside every lock and transaction around the HTTP call ────────────────────────────
 
