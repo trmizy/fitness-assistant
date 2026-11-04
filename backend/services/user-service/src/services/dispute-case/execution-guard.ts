@@ -1,5 +1,6 @@
 import { Prisma } from "../../generated/prisma";
 import { executionEnabled, t0Enabled } from "./flags";
+import { d77Key, phaseOf, type D77Read } from "./d77-key";
 
 /**
  * DISPUTE CASE slice 2 - what the ruling core (booking.service resolveDisputeCore) asks of a CaseDecision, UNDER THE CONTRACT LOCK, BEFORE its
@@ -41,6 +42,11 @@ export interface CaseDecisionCtx {
    * production code never sets it, and OPENED_D77_COMBINATIONS (the constant above) stays empty. It cannot open CANCELLED (assertCancelNotOverD77 is independent of it).
    */
   openedD77Combinations?: ReadonlyArray<string>;
+  /**
+   * B-1 (direction A): the state of L and of the contract the EXECUTOR read before the lock (settlement row + ledger). The core re-checks the parts it can see under the lock (the row's
+   * SETTLED-ness and the contract phase) and treats any disagreement as "state changed" = blocked. Absent = the key cannot be built = blocked unless a test opened the outcome-only legacy entry.
+   */
+  d77Read?: D77Read;
 }
 
 export type ExecError = Error & { status: number; code: string; execBlocked?: boolean; details?: unknown };
@@ -106,15 +112,32 @@ export async function assertPolicyEligibility(tx: Tx, contractId: string): Promi
   }
 }
 
-/** B-1: EXEC_BLOCKED when the session has a D77 step in any state and its combination is not opened. Called under the contract lock, before the CAS. */
-export async function assertNoD77Combination(tx: Tx, sessionId: string, outcome: string, testOpened: ReadonlyArray<string> = []): Promise<void> {
+/**
+ * B-1: EXEC_BLOCKED when the session has a D77 step in any state and its COMBINATION is not opened. The combination is the key outcome + state of L + contract phase (d77-key.ts), not the
+ * outcome alone. A combination is open only if its full key is in OPENED_D77_COMBINATIONS (EMPTY in production) or in the executor's TEST-ONLY seam. For the seam only, an outcome-only entry
+ * (the pre-key form, used by older suites) still opens that outcome whatever the state. Called under the contract lock, before the CAS.
+ */
+export async function assertNoD77Combination(tx: Tx, sessionId: string, outcome: string, testOpened: ReadonlyArray<string> = [], read?: D77Read): Promise<void> {
   if (!(await hasD77Trace(tx, sessionId))) return;
-  if (OPENED_D77_COMBINATIONS.includes(outcome) || testOpened.includes(outcome)) return;
+  let key: string | null = null;
+  let stateNote: Record<string, unknown> = {};
+  if (read) {
+    // what this transaction can verify itself: the row's SETTLED-ness and the contract's phase must agree with what the executor read
+    const row = await tx.sessionSettlement.findUnique({ where: { idempotencyKey: `PT_LATE_ARRIVAL:${sessionId}` }, select: { status: true } });
+    const sess = await tx.session.findUnique({ where: { id: sessionId }, select: { contractId: true } });
+    const phase = sess ? await phaseOf(tx, sess.contractId) : null;
+    const rowSettled = row?.status === "SETTLED";
+    const consistent = phase === read.phase && (read.lState === "PENDING" ? !rowSettled : rowSettled);
+    stateNote = { lState: read.lState, phase: read.phase, ...(consistent ? {} : { stateChanged: true, rowSettled, phaseNow: phase }) };
+    if (consistent) key = d77Key(outcome, read.lState, read.phase);
+  }
+  if (key !== null && (OPENED_D77_COMBINATIONS.includes(key) || testOpened.includes(key))) return;
+  if (testOpened.includes(outcome)) return; // legacy outcome-only entry of the TEST seam
   throw execError(
     409,
     D77_COMBINATION_UNRESOLVED,
     "Buổi này đã có khoản đền đến muộn (D77). Tổ hợp với phán quyết này chưa được duyệt đối soát nên chưa thực thi được. Chưa ghi gì vào buổi, quyền buổi hay tiền",
-    { execBlocked: true, details: { outcome } },
+    { execBlocked: true, details: { outcome, ...stateNote } },
   );
 }
 
@@ -145,7 +168,7 @@ export async function assertCaseDecisionContext(tx: Tx, ctx: CaseDecisionCtx, se
 export async function assertBeforeRulingClaim(tx: Tx, ctx: CaseDecisionCtx | undefined, sessionId: string, resolution: string): Promise<void> {
   if (!ctx) return;
   await assertCaseDecisionContext(tx, ctx, sessionId, resolution);
-  await assertNoD77Combination(tx, sessionId, resolution, ctx.openedD77Combinations);
+  await assertNoD77Combination(tx, sessionId, resolution, ctx.openedD77Combinations, ctx.d77Read);
 }
 
 /** T0: with the flag on, a call without a CaseDecision is refused (409 CASE_REQUIRED). With the flag off the old behaviour is untouched. */

@@ -6,6 +6,7 @@ import { caseError } from "./errors";
 import { ackTimesOf, evidenceGuard, type Actor } from "./dispute-case.service";
 import { buildFinancialView, hasLateArrivalStep } from "./financial";
 import { executionEnabled } from "./flags";
+import { d77Key, readLateState, type D77Read } from "./d77-key";
 import { assertPolicyEligibility, D77_COMBINATION_UNRESOLVED, EXECUTION_DISABLED, OPENED_D77_COMBINATIONS, type CaseDecisionCtx } from "./execution-guard";
 import { changeAcknowledged, checkApprover, outcomeForFinding, type SnapshotEntry } from "./rules";
 import { noticesFor, sendNotices, type CaseParties } from "./notices";
@@ -43,6 +44,8 @@ export interface ExecDeps {
   resolveCore: typeof resolveDisputeCore;
   /** Early (pre-lock) D77 check, which may ask the ledger. Default: financial.hasLateArrivalStep. */
   ledgerHasLateArrival: (sessionId: string) => Promise<{ exists: boolean } | { unknown: true }>;
+  /** B-1 key: the REAL state of L (settlement row + ledger obligation) and the contract phase. Default: d77-key readLateState. */
+  readLateState: (sessionId: string, contractId: string) => Promise<D77Read | { none: true } | { unknown: true }>;
   /** TEST SEAM - boundary 1: awaited after the case was set to EXECUTING and before the core is called. */
   afterExecutingCas?: () => Promise<void>;
   /** TEST SEAM - boundary 2: handed to the core as ctx.afterDecisionCommitted (between the committed decision and its money step). */
@@ -59,6 +62,7 @@ export interface ExecDeps {
 export const defaultExecDeps = (): ExecDeps => ({
   resolveCore: resolveDisputeCore,
   ledgerHasLateArrival: (sessionId) => hasLateArrivalStep(prisma, sessionId),
+  readLateState: (sessionId, contractId) => readLateState(prisma, sessionId, contractId),
 });
 
 const toJson = (v: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(v ?? null));
@@ -231,7 +235,13 @@ async function finish(c: ExecCase, approval: { id: string; proposal: { outcome: 
 /** Calls the core ONCE for the case that is in EXECUTING, then records the end. Used by the first run and by the recovery. */
 async function runCoreAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string) {
   const { c, approval } = l;
-  const ctx: CaseDecisionCtx = { caseDecisionId: approval.id, afterDecisionCommitted: deps.afterDecisionCommitted, openedD77Combinations: deps.openedD77Combinations };
+  // B-1 key: the real state of L + the contract phase, read here (outside every lock) only when something could be opened (production opens nothing: no ledger call is added to the live path)
+  let d77Read: D77Read | undefined;
+  if (OPENED_D77_COMBINATIONS.length + (deps.openedD77Combinations?.length ?? 0) > 0) {
+    const st = await deps.readLateState(c.sessionId, c.contractId).catch(() => ({ unknown: true as const }));
+    if ("lState" in st) d77Read = st;
+  }
+  const ctx: CaseDecisionCtx = { caseDecisionId: approval.id, afterDecisionCommitted: deps.afterDecisionCommitted, openedD77Combinations: deps.openedD77Combinations, d77Read };
   const note = `Hồ sơ khiếu nại ${c.id}: ${approval.reason}`.slice(0, 1000);
   try {
     await deps.resolveCore(c.sessionId, actor.id, approval.proposal.outcome as any, note, ctx);
@@ -287,8 +297,18 @@ export const executionService = {
     }
     const late = await deps.ledgerHasLateArrival(session.id);
     if ("unknown" in late) await recordBlocked(c, approval, actor, "LEDGER_UNREADABLE", "Chưa đọc được sổ cái để kiểm tra khoản đền đến muộn; thử lại sau");
-    if ("exists" in late && late.exists && !(OPENED_D77_COMBINATIONS.includes(approval.proposal.outcome) || (deps.openedD77Combinations ?? []).includes(approval.proposal.outcome))) {
-      await recordBlocked(c, approval, actor, D77_COMBINATION_UNRESOLVED, "Buổi này có khoản đền đến muộn (D77); tổ hợp chưa được duyệt đối soát nên chưa thực thi");
+    if ("exists" in late && late.exists) {
+      // B-1 (direction A): the combination is outcome + REAL state of L + contract phase. Nothing is opened in production; the seam is test-only.
+      const outcome = approval.proposal.outcome as string;
+      const opened = [...OPENED_D77_COMBINATIONS, ...(deps.openedD77Combinations ?? [])];
+      let st: Awaited<ReturnType<typeof deps.readLateState>> = { unknown: true };
+      try {
+        st = await deps.readLateState(session.id, session.contractId);
+      } catch {
+        st = { unknown: true };
+      }
+      const isOpen = "lState" in st ? opened.includes(d77Key(outcome, st.lState, st.phase)) || opened.includes(outcome) : opened.includes(outcome);
+      if (!isOpen) await recordBlocked(c, approval, actor, D77_COMBINATION_UNRESOLVED, "Buổi này có khoản đền đến muộn (D77); tổ hợp chưa được duyệt đối soát nên chưa thực thi");
     }
 
     // START: CAS on the case + the STARTED row, one transaction.
