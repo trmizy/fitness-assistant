@@ -66,4 +66,30 @@ Before patch: addendum tests **3 pass / 4 fail**, reproducing the duration and e
 
 Final clean committed regression covers all advisory suites, E2/V2/V3 prompts, Nova transports/gates, claim pilot, D1/D2/D3 and runner resume/failure behavior. Actual final counts and command log are recorded separately in the private verification handoff, not predicted here. This is scoped regression, not full repository regression.
 
+## Takeover verification (Claude, after Codex ran out of tokens)
+
+The work was taken over from `1a36d7d1` with a clean tree. No source was rewritten, and Codex's commits were backed up privately as patches and a bundle. Evidence: **CODE AUDIT / TEST FIXTURE**; no AWS.
+
+- **Scoped regression on clean `1a36d7d1`.** Suites: all `ai-coach-*`, all `advisory-*` and `scientific-claim-map-v3`. The Frozen V2 suite ran against its real artifacts via `ADVISORY_V2_ARTIFACT_DIR`, so it was not skipped. Result: **397 tests, 395 pass, 0 fail, 2 skipped**. The two skips are the "trust root absent" checks, which skip by design because an owner trust root now exists on this machine. This is not full repository regression. `tsc --noEmit` exited 0.
+- **Independent offline re-derivation of the four V3 payloads from `1a36d7d1`:**
+  - They are byte-identical to the private r3 package.
+  - Measure and inference requests differ only in `maxTokens`.
+  - The user payload, `requestHash`, scientific knowledge, excerpt bindings and allowed references are byte-identical to V2.
+  - The system message is identical across all four prompts: 1 line replaced and 10 added.
+  - The JSON example extracted from the system text parses with `ClaimAnalysisSchema` and carries no IDs or hashes.
+  - Scans found 0 label keys, 0 label-hash values and 0 local paths.
+  - V2 prompt hashes are unchanged.
+- **Gate replay on the real CAL01/CAL06 contexts.** The probes were written by the verifier and are not gold.
+  - Blocked:
+    - both run-1 originals (one envelope hash error each);
+    - C20 links with a well-formed fake hash;
+    - a CAL06/RAG fabricated claim hash;
+    - a CAL06/RAG missing bound excerpt (`MISSING_BOUND_EXCERPT`);
+    - an over-abstaining CAL01 answer (`FACTS_NOT_ADDRESSED`).
+  - Not blocked: bounded CAL01 answers using either "8 tuần" or "56 ngày", and valid CAL01/RAG, CAL06/RAG and CAL06/Context answers with exact bindings.
+  - **Known limitation:** the run-1 C1 overclaim text, with its invalid links removed, is not blocked. The deterministic gate does not detect semantic e1RM→strength overclaims, so C1 remains a reviewer judgement.
+- **`ai-coach-v3-usefulness-boundary.test.ts`** (2 tests) pins two behaviours on synthetic data:
+  - a bounded estimated-1RM answer using the asked 8-week window is `DEV_REVIEW_ONLY` with no HARD issue;
+  - an answer that abstains despite a SUFFICIENT e1RM fact is BLOCKED with `FACTS_NOT_ADDRESSED`.
+
 All 133 protected pre-existing files are hash-checked. Prior r2/r1 previews, owner decisions, run-1 and its CLAIMED ledger remain historical. No approval/signature/trust root/issued ledger is created, no CLAIMED ledger reused, no LIVE execution requested. New payloads require new review; no old approval extends to r3. Stop after independent-review handoff.
