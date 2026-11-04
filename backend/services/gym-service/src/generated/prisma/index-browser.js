@@ -748,6 +748,8 @@ exports.Prisma.GymComplaintCaseScalarFieldEnum = {
   version: 'version',
   execStatus: 'execStatus',
   execDecisionId: 'execDecisionId',
+  slaWarnedAt: 'slaWarnedAt',
+  slaOverdueAt: 'slaOverdueAt',
   createdBy: 'createdBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -891,6 +893,43 @@ exports.Prisma.GymCaseAccessLogScalarFieldEnum = {
   evidenceId: 'evidenceId',
   action: 'action',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseNoticeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  kind: 'kind',
+  recipientUserId: 'recipientUserId',
+  recipientRole: 'recipientRole',
+  delivered: 'delivered',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseDeadlineScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  kind: 'kind',
+  partyRole: 'partyRole',
+  recipientUserId: 'recipientUserId',
+  noticeId: 'noticeId',
+  startsAt: 'startsAt',
+  dueAt: 'dueAt',
+  status: 'status',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseAppealScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  filedBy: 'filedBy',
+  reason: 'reason',
+  noticeAt: 'noticeAt',
+  filedAt: 'filedAt',
+  status: 'status',
+  reviewerId: 'reviewerId',
+  assignedAt: 'assignedAt',
+  reviewedFindingId: 'reviewedFindingId'
 };
 
 exports.Prisma.SortOrder = {
@@ -1334,7 +1373,8 @@ exports.GymCaseStatus = exports.$Enums.GymCaseStatus = {
   FINDING_RECORDED: 'FINDING_RECORDED',
   AWAITING_APPROVAL: 'AWAITING_APPROVAL',
   DECISION_APPROVED: 'DECISION_APPROVED',
-  REJECTED_INTAKE: 'REJECTED_INTAKE'
+  REJECTED_INTAKE: 'REJECTED_INTAKE',
+  APPEAL_REVIEW: 'APPEAL_REVIEW'
 };
 
 exports.GymCaseExecStatus = exports.$Enums.GymCaseExecStatus = {
@@ -1451,7 +1491,10 @@ exports.Prisma.ModelName = {
   GymCaseApproval: 'GymCaseApproval',
   GymCaseEvent: 'GymCaseEvent',
   GymCaseExecution: 'GymCaseExecution',
-  GymCaseAccessLog: 'GymCaseAccessLog'
+  GymCaseAccessLog: 'GymCaseAccessLog',
+  GymCaseNotice: 'GymCaseNotice',
+  GymCaseDeadline: 'GymCaseDeadline',
+  GymCaseAppeal: 'GymCaseAppeal'
 };
 
 /**

@@ -1776,6 +1776,8 @@ enum GymCaseStatus {
   AWAITING_APPROVAL
   DECISION_APPROVED
   REJECTED_INTAKE
+  /// A1: the member's ONE appeal re-opens a concluded case for an independent reviewer (never automatic, never twice).
+  APPEAL_REVIEW
 }
 
 enum GymCaseExecStatus {
@@ -1856,6 +1858,9 @@ model GymComplaintCase {
   version        Int               @default(1)
   execStatus     GymCaseExecStatus @default(NOT_STARTED) @map("exec_status")
   execDecisionId String?           @map("exec_decision_id") @db.Uuid
+  /// A1 SLA (calendar days from the complaint's first report): warning at day 10, overdue at day 14. Only flags + notices, never a ruling.
+  slaWarnedAt    DateTime?         @map("sla_warned_at") @db.Timestamptz(3)
+  slaOverdueAt   DateTime?         @map("sla_overdue_at") @db.Timestamptz(3)
   createdBy      String            @map("created_by")
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -1871,6 +1876,9 @@ model GymComplaintCase {
   events      GymCaseEvent[]
   executions  GymCaseExecution[]
   accessLogs  GymCaseAccessLog[]
+  notices     GymCaseNotice[]
+  deadlines   GymCaseDeadline[]
+  appeal      GymCaseAppeal?
 
   @@index([status])
   @@index([gymId])
@@ -2081,4 +2089,62 @@ model GymCaseAccessLog {
 
   @@index([caseId, createdAt])
   @@map("gym_case_access_logs")
+}
+
+/// A1: every in-app notice the case layer tried to deliver. `delivered` is true ONLY when user-service answered success (the notification row exists): a response
+/// deadline or the appeal window starts from a delivered notice, never from an attempt. Append-only.
+model GymCaseNotice {
+  id              String   @id @default(uuid()) @db.Uuid
+  caseId          String   @map("case_id") @db.Uuid
+  kind            String
+  recipientUserId String   @map("recipient_user_id")
+  recipientRole   String   @map("recipient_role")
+  delivered       Boolean
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, kind])
+  @@map("gym_case_notices")
+}
+
+/// A1: party response deadlines - 72h for the first response, 48h per supplement round, counted from a DELIVERED notice. Expiry only moves the step (NO_RESPONSE_RECORDED).
+model GymCaseDeadline {
+  id              String           @id @default(uuid()) @db.Uuid
+  caseId          String           @map("case_id") @db.Uuid
+  kind            String
+  partyRole       GymCasePartyRole @map("party_role")
+  recipientUserId String           @map("recipient_user_id")
+  noticeId        String           @map("notice_id") @db.Uuid
+  startsAt        DateTime         @map("starts_at") @db.Timestamptz(3)
+  dueAt           DateTime         @map("due_at") @db.Timestamptz(3)
+  status          String           @default("OPEN")
+  resolvedAt      DateTime?        @map("resolved_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, status])
+  @@index([status, dueAt])
+  @@map("gym_case_deadlines")
+}
+
+/// A1: the member's ONE appeal per case (UNIQUE case_id). The Gym never appeals: it only supplies evidence / explanation.
+model GymCaseAppeal {
+  id                String    @id @default(uuid()) @db.Uuid
+  caseId            String    @unique @map("case_id") @db.Uuid
+  filedBy           String    @map("filed_by")
+  reason            String
+  /// the DELIVERED conclusion notice the 14 days were counted from (null = no valid notice was ever recorded: the window never started)
+  noticeAt          DateTime? @map("notice_at") @db.Timestamptz(3)
+  filedAt           DateTime  @default(now()) @map("filed_at") @db.Timestamptz(3)
+  status            String    @default("FILED")
+  reviewerId        String?   @map("reviewer_id")
+  assignedAt        DateTime? @map("assigned_at") @db.Timestamptz(3)
+  /// the finding the appeal reviewed; the reviewer's new finding references it through its own supersedes_id
+  reviewedFindingId String    @map("reviewed_finding_id") @db.Uuid
+
+  case GymComplaintCase @relation(fields: [caseId], references: [id])
+
+  @@map("gym_case_appeals")
 }
