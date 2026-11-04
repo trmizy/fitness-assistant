@@ -71,13 +71,37 @@ export const stateNotAllowed = (c: { status: string }, allowed: readonly string[
   caseError(409, 'CASE_STATE_NOT_ALLOWED', 'Trạng thái hiện tại của hồ sơ không cho phép thao tác này', { status: c.status, allowed });
 
 /** Party check that needs the gym's owner: an admin who IS the reporter or the owner of the gym cannot work on / decide the case. */
+/**
+ * Q31: every user with a REAL staff / owner relation to the gym, read from the actual schema: Gym.ownerId, the gym's brand owner (GymBrand.ownerId),
+ * and every GymPartnerAccount (OWNER / MANAGER / RECEPTIONIST / ACCOUNTANT, any status except REVOKED) of the partner that owns the brand or whose
+ * owner account is the gym's owner. Brand-level on purpose: a MANAGER scoped to another branch of the same brand is still "linked to the brand".
+ */
+export async function gymLinkedUserIds(db: Db, gymId: string): Promise<string[]> {
+  const gym = await db.gym.findUnique({ where: { id: gymId }, select: { ownerId: true, brandId: true } });
+  if (!gym) return [];
+  const ids = new Set<string>();
+  if (gym.ownerId) ids.add(gym.ownerId);
+  if (gym.brandId) {
+    const brand = await db.gymBrand.findUnique({ where: { id: gym.brandId }, select: { ownerId: true } });
+    if (brand?.ownerId) ids.add(brand.ownerId);
+  }
+  const partnerIds = new Set<string>();
+  if (gym.brandId) for (const p of await db.gymPartner.findMany({ where: { brandId: gym.brandId }, select: { id: true } })) partnerIds.add(p.id);
+  for (const a of await db.gymPartnerAccount.findMany({ where: { userId: gym.ownerId }, select: { partnerId: true } })) partnerIds.add(a.partnerId);
+  if (partnerIds.size) {
+    const accounts = await db.gymPartnerAccount.findMany({ where: { partnerId: { in: [...partnerIds] }, status: { not: 'REVOKED' } }, select: { userId: true } });
+    for (const a of accounts) ids.add(a.userId);
+  }
+  return [...ids];
+}
+
 async function partyIds(db: Db, c: { gymId: string; reporterUserId: string }) {
   const gym = await db.gym.findUnique({ where: { id: c.gymId }, select: { ownerId: true } });
-  return { reporterUserId: c.reporterUserId, gymOwnerId: gym?.ownerId ?? null };
+  return { reporterUserId: c.reporterUserId, gymOwnerId: gym?.ownerId ?? null, linkedUserIds: await gymLinkedUserIds(db, c.gymId) };
 }
 async function assertNotParty(db: Db, c: { gymId: string; reporterUserId: string }, userId: string) {
   const p = await partyIds(db, c);
-  if (userId === p.reporterUserId || (p.gymOwnerId && userId === p.gymOwnerId)) {
+  if (userId === p.reporterUserId || (p.gymOwnerId && userId === p.gymOwnerId) || p.linkedUserIds.includes(userId)) {
     throw caseError(403, 'CONFLICT_OF_INTEREST', 'Quản trị viên là một bên của vụ việc nên không được tham gia xử lý');
   }
 }
@@ -656,6 +680,7 @@ export const complaintCaseService = {
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         assertInvestigator(actor, c);
+        await assertNotParty(ctx.tx, c, actor.id); // Q31: a link created after the assignment still bars the proposer
         if (c.status !== 'FINDING_RECORDED') throw stateNotAllowed(c, ['FINDING_RECORDED']);
         const finding = await ctx.tx.gymCaseFinding.findFirst({ where: { caseId: c.id }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
         if (!finding) throw caseError(409, 'FINDING_REQUIRED', 'Chưa có kết luận để đề xuất');
@@ -740,6 +765,7 @@ export const complaintCaseService = {
           investigatorId: c.investigatorId,
           reporterUserId: p.reporterUserId,
           gymOwnerId: p.gymOwnerId,
+          linkedUserIds: p.linkedUserIds,
           conflictOfInterestDeclaredNone: b.conflictOfInterestDeclaredNone,
         });
         if (!verdict.ok) throw caseError(verdict.status, verdict.code, verdict.message);
@@ -918,6 +944,7 @@ export const complaintCaseService = {
       approvedOutcomeIsKnown: !!approved,
       lastExecState: executions[executions.length - 1]?.state ?? null,
       gymOwnerId: gym?.ownerId ?? null,
+      linkedUserIds: await gymLinkedUserIds(prisma, c.gymId),
     });
     return {
       case: summary(c),
@@ -1048,14 +1075,14 @@ export interface AllowedAction {
 function computeAllowedActions(
   actor: Actor,
   c: CaseRow,
-  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
+  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; linkedUserIds: string[]; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
 ): AllowedAction[] {
   const isInv = c.investigatorId === actor.id;
   const open = !TERMINAL_STATUSES.includes(c.status as CaseStatus);
   const st = c.status as CaseStatus;
   const flag = gymCaseEnabled();
   const A = (action: string, ok: boolean, reason?: string): AllowedAction => ({ action, allowed: flag && ok, ...(!(flag && ok) ? { reason: !flag ? 'GYM_CASE_DISABLED' : reason } : {}) });
-  const party = actor.id === c.reporterUserId || actor.id === x.gymOwnerId;
+  const party = actor.id === c.reporterUserId || actor.id === x.gymOwnerId || x.linkedUserIds.includes(actor.id);
   const needInv = (ok: boolean, why: string) => (isInv ? (ok ? undefined : why) : 'NOT_INVESTIGATOR');
   const list: AllowedAction[] = [];
   const push = (action: string, reason: string | undefined) => list.push(A(action, reason === undefined, reason));

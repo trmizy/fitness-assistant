@@ -6,6 +6,7 @@ import { gymCaseEnabled } from './flags';
 import {
   ackTimesOf,
   assertRefundable,
+  gymLinkedUserIds,
   evidenceGuard,
   financialOf,
   notifyMember,
@@ -62,7 +63,7 @@ export interface RefundResult {
 }
 export interface ExecDeps {
   /** The money exit. Default: membershipService.refundByAdmin. */
-  refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED') => Promise<RefundResult>;
+  refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED', caseDecisionId: string) => Promise<RefundResult>;
   /** Replays the payment-service release of a membership by its key (idempotent read of the first answer). Default: paymentClient.releaseMembershipPending with refund 0. */
   replayRelease: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string; ptUserId: string | null }) => Promise<{ refundedToClient?: string; shortfall?: string }>;
   /** TEST SEAM - awaited after the case was set to EXECUTING and before money is asked to move. */
@@ -71,7 +72,7 @@ export interface ExecDeps {
   afterRefund?: () => Promise<void>;
 }
 export const defaultExecDeps = (): ExecDeps => ({
-  refund: (membershipId, actorId, reason) => membershipService.refundByAdmin(membershipId, actorId, reason) as unknown as Promise<RefundResult>,
+  refund: (membershipId, actorId, reason, caseDecisionId) => membershipService.refundByAdmin(membershipId, actorId, reason, { caseDecisionId }) as unknown as Promise<RefundResult>,
   replayRelease: (m) =>
     paymentClient.releaseMembershipPending({
       transactionId: m.paymentTxnId,
@@ -127,6 +128,7 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
   }
 
   const gym = await prisma.gym.findUnique({ where: { id: c.gymId }, select: { ownerId: true } });
+  const linkedUserIds = await gymLinkedUserIds(prisma, c.gymId);
   const verdict = checkApprover({
     approverId: approval.approverId,
     approverRole: 'ADMIN',
@@ -134,10 +136,11 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
     investigatorId: c.investigatorId,
     reporterUserId: c.reporterUserId,
     gymOwnerId: gym?.ownerId ?? null,
+    linkedUserIds,
     conflictOfInterestDeclaredNone: approval.conflictOfInterestDeclaredNone,
   });
   if (!verdict.ok) throw caseError(verdict.status, verdict.code, verdict.message);
-  if (actor.id === c.reporterUserId || (gym?.ownerId && actor.id === gym.ownerId)) {
+  if (actor.id === c.reporterUserId || (gym?.ownerId && actor.id === gym.ownerId) || linkedUserIds.includes(actor.id)) {
     throw caseError(403, 'CONFLICT_OF_INTEREST', 'Quản trị viên là một bên của vụ việc nên không được thực thi');
   }
   return { c, approval, outcome: approval.proposal.outcome as Outcome };
@@ -240,7 +243,7 @@ async function runAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string
     const pre = await prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId! }, include: { referral: true } });
     let r: RefundResult;
     try {
-      r = await deps.refund(c.membershipId!, actor.id, reason);
+      r = await deps.refund(c.membershipId!, actor.id, reason, approval.id);
     } catch (e: any) {
       // refundByAdmin refuses (409/404/400) BEFORE any money step when the membership is no longer refundable: nothing moved, the case waits.
       if (typeof e?.status === 'number' && e.status >= 400 && e.status < 500) {

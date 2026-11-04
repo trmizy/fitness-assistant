@@ -571,7 +571,7 @@ export const partnerService = {
     });
 
     let refunded = 0;
-    const refundErrors: { membershipId: string; message: string }[] = [];
+    const refundErrors: { membershipId: string; message: string; code?: string }[] = [];
     if (memberPolicy === 'PRORATED_REFUND') {
       const { gymRepository } = await import('../repositories/gym.repository');
       const { membershipRepository } = await import('../repositories/membership.repository');
@@ -584,7 +584,7 @@ export const partnerService = {
           await membershipService.refundByAdmin(m.id, adminId, 'GYM_CLOSED');
           refunded += 1;
         } catch (e: any) {
-          refundErrors.push({ membershipId: m.id, message: e.message });
+          refundErrors.push({ membershipId: m.id, message: e.message, ...(typeof e.code === 'string' ? { code: e.code } : {}) });
           logger.error({ err: e.message, membershipId: m.id }, '[Partner] hoàn tiền hội viên lúc chấm dứt đối tác thất bại');
         }
       }

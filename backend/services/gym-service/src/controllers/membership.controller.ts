@@ -142,6 +142,10 @@ export const membershipController = {
       const result = await membershipService.refundByAdmin(req.params.id, adminId, reason);
       return res.json({ success: true, data: result });
     } catch (e: any) {
+      if (typeof e.code === 'string' && e.status === 409 && e.code.startsWith('GYM_CASE_')) {
+        // Q21: a deliberate refusal (the refund would bypass / contradict a Gym Case): stable code, Vietnamese message, no error log
+        return res.status(409).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
+      }
       logger.error(e, 'membership admin refund error');
       return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
     }
