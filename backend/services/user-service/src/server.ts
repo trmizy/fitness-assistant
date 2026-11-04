@@ -12,6 +12,7 @@ import { startRoomCloseResolutionJob } from "./services/room-close-resolution.se
 import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
 import { startIpUaRetentionSweepJob } from "./services/ip-ua-retention.service";
 import { startDisputeExecutionSweepJob } from "./services/dispute-case/execution-sweep.service";
+import { startDisputeTimersSweepJob } from "./services/dispute-case/dispute-timers.service";
 import { auditDisputeRuntimeGate } from "./services/dispute-case/flags";
 import { startPeerVerdictMonitor } from "./services/dispute-case/payment-peer";
 import { installGracefulShutdown } from "./lifecycle";
@@ -48,6 +49,8 @@ const server = app.listen(PORT, () => {
   stopJobs.push(startIpUaRetentionSweepJob());
   // Dispute Case: a decision left EXECUTING by a dead process is reconciled (real state first, never a blind retry). A no-op unless the fail-closed execution flag is effective.
   stopJobs.push(startDisputeExecutionSweepJob());
+  // Dispute V2.1 timers (response clocks, S2.4, SLA day 10/14, held-money review): moves no money; a no-op unless DISPUTE_CASE_TIMERS_ENABLED is effective.
+  stopJobs.push(startDisputeTimersSweepJob());
 });
 
 // SIGTERM / SIGINT: stop the ticks, stop accepting, let the requests and sweeps that are running FINISH (bounded by

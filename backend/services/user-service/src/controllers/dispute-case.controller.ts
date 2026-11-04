@@ -3,6 +3,7 @@ import { ZodError, z, type ZodTypeAny } from "zod";
 import { logger } from "@gym-coach/shared";
 import { disputeCaseService, type Actor } from "../services/dispute-case/dispute-case.service";
 import { executionService } from "../services/dispute-case/execution.service";
+import { processService } from "../services/dispute-case/process.service";
 import { contractPolicyReviewService } from "../services/dispute-case/contract-policy-review.service";
 import { evidenceStorageEnabled } from "../services/dispute-case/flags";
 import { MAX_EVIDENCE_BYTES } from "../services/dispute-case/evidence-storage";
@@ -10,6 +11,15 @@ import multer from "multer";
 import {
   accessLogQuery,
   ackBody,
+  agreementBody,
+  agreementConfirmBody,
+  appealBody,
+  appealDecisionBody,
+  appealReviewerBody,
+  heldDecisionBody,
+  heldQuery,
+  quotaCorrectionBody,
+  stuckQuery,
   acknowledgeNeedsHumanBody,
   approvalBody,
   assessmentBody,
@@ -242,6 +252,41 @@ export const disputeCaseController = {
       req,
       "closeOrphan",
     ),
+
+  // ── V2.1 process: deadlines, stuck queue, held money, agreement, appeal, quota correction ──
+  deadlines: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.listDeadlines(actor, idOf(req)) }), req, "deadlines"),
+  stuck: (req: any, res: Response) => run(res, async (actor) => ({ body: await processService.stuckQueue(actor, parse(stuckQuery, req.query)) }), req, "stuck"),
+  heldMoneyList: (req: any, res: Response) => run(res, async (actor) => ({ body: await processService.listHeldMoney(actor, parse(heldQuery, req.query)) }), req, "heldMoneyList"),
+  heldMoneyDecide: (req: any, res: Response) =>
+    run(res, async (actor) => ({ body: await processService.decideHeldMoney(actor, String(req.params.reviewId).slice(0, 64), parse(heldDecisionBody, req.body)) }), req, "heldMoneyDecide"),
+  agreementsList: (req: any, res: Response) => run(res, async (actor) => ({ body: await processService.listAgreements(actor, idOf(req)) }), req, "agreementsList"),
+  proposeAgreement: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await processService.proposeAgreement(actor, idOf(req), parse(agreementBody, req.body), requiredIdempotencyKeyOf(req));
+        return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
+      },
+      req,
+      "proposeAgreement",
+    ),
+  withdrawAgreement: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.withdrawAgreement(actor, idOf(req), String(req.params.agreementId), idempotencyKeyOf(req)); return { body: r.result, replayed: r.replayed }; }, req, "withdrawAgreement"),
+  recordAgreementFinding: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.recordAgreementFinding(actor, idOf(req), String(req.params.agreementId), idempotencyKeyOf(req)); return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed }; }, req, "recordAgreementFinding"),
+  confirmAgreement: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.confirmAgreement(actor, idOf(req), String(req.params.agreementId), parse(agreementConfirmBody, req.body), idempotencyKeyOf(req)); return { body: r.result, replayed: r.replayed }; }, req, "confirmAgreement"),
+  requestAppeal: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.requestAppeal(actor, idOf(req), parse(appealBody, req.body), requiredIdempotencyKeyOf(req)); return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed }; }, req, "requestAppeal"),
+  appealsList: (req: any, res: Response) => run(res, async (actor) => ({ body: await processService.listAppeals(actor, idOf(req)) }), req, "appealsList"),
+  assignAppealReviewer: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.assignAppealReviewer(actor, idOf(req), String(req.params.appealId), parse(appealReviewerBody, req.body), idempotencyKeyOf(req)); return { body: r.result, replayed: r.replayed }; }, req, "assignAppealReviewer"),
+  decideAppeal: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.decideAppeal(actor, idOf(req), String(req.params.appealId), parse(appealDecisionBody, req.body), idempotencyKeyOf(req)); return { body: r.result, replayed: r.replayed }; }, req, "decideAppeal"),
+  proposeQuotaCorrection: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.proposeQuotaCorrection(actor, idOf(req), String(req.params.consequenceId), parse(quotaCorrectionBody, req.body), requiredIdempotencyKeyOf(req)); return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed }; }, req, "proposeQuotaCorrection"),
+  approveQuotaCorrection: (req: any, res: Response) =>
+    run(res, async (actor) => { const r = await processService.approveQuotaCorrection(actor, idOf(req), String(req.params.correctionId), parse(policyEligibilityApproveBody, req.body), idempotencyKeyOf(req)); return { body: r.result, replayed: r.replayed }; }, req, "approveQuotaCorrection"),
 
   closeExecuted: (req: any, res: Response) =>
     run(

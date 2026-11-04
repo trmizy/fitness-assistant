@@ -193,6 +193,25 @@ export const accessLogQuery = z
     offset: z.coerce.number().int().min(0).max(100000).default(0),
   })
   .strict();
+/** V2.1 process bodies (all strict). */
+export const agreementBody = z.object({ outcome: z.enum(["COMPLETED", "CANCELLED", "PT_NO_SHOW_CONFIRMED"]), note: text(2000) }).strict();
+export const agreementConfirmBody = z.object({ contentHash: z.string().regex(/^[0-9a-f]{64}$/i, "contentHash phải gồm 64 ký tự thập lục phân") }).strict();
+export const appealBody = z.object({ reason: text(4000) }).strict();
+export const appealReviewerBody = z.object({ reviewerId: z.string().trim().min(1).max(64) }).strict();
+export const appealDecisionBody = z
+  .object({
+    result: z.enum(["UPHELD", "NEW_FINDING"]),
+    reasoning: text(8000),
+    finding: z.enum(["VERIFIED_DELIVERED", "VERIFIED_CLIENT_ABSENT", "VERIFIED_PT_ABSENT", "VERIFIED_NOT_DELIVERED_NO_FAULT", "INSUFFICIENT_EVIDENCE", "NOT_A_DISPUTE"]).optional(),
+    consequences: z.array(z.object({ kind: z.enum(["MONEY", "QUOTA", "PT_AT_FAULT"]), note: text(2000) }).strict()).max(3).optional(),
+  })
+  .strict();
+export const quotaCorrectionBody = z.object({ delta: z.number().int().min(-100).max(100).refine((n) => n !== 0, "delta khác 0"), reason: text(2000) }).strict();
+export const heldDecisionBody = z
+  .object({ decision: z.enum(["KEEP_HOLDING", "EXIT_STARTED"]), reason: text(2000), exitRef: z.object({ kind: z.enum(["D65B_RESOLUTION", "LATE_OPEN_PROPOSAL"]), id: uuid }).strict().optional() })
+  .strict();
+export const heldQuery = z.object({ overdue: queryBool.optional(), limit: z.coerce.number().int().min(1).max(100).default(50), offset: z.coerce.number().int().min(0).max(100000).default(0) }).strict();
+export const stuckQuery = z.object({ kind: z.enum(["POLICY_PENDING", "NEEDS_HUMAN", "EXEC_BLOCKED"]).optional(), limit: z.coerce.number().int().min(1).max(100).default(50), offset: z.coerce.number().int().min(0).max(100000).default(0) }).strict();
 export const emptyBody = z.object({}).strict();
 
 /** Only the three real types: LEGACY_UNCLASSIFIED is never a target. */

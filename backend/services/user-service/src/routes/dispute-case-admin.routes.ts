@@ -13,6 +13,9 @@ router.get("/", c.list);
 // Fixed paths BEFORE "/:id".
 router.get("/queue", c.queue);
 router.get("/capabilities", c.capabilities);
+router.get("/stuck", c.stuck);
+router.get("/held-money", c.heldMoneyList);
+router.post("/held-money/:reviewId/decision", c.heldMoneyDecide);
 router.get("/contracts/:contractId/policy-eligibility", c.policyReviewsOfContract);
 // D-NEW-12 contract-level review (NO Case needed), four-eyes, references resolved by the server; and the read-only classifier (never unlocks a ruling).
 router.post("/contracts/:contractId/policy-eligibility", c.proposeContractPolicy);
@@ -20,6 +23,16 @@ router.post("/contracts/:contractId/policy-eligibility/:reviewId/approve", c.app
 router.get("/contracts/:contractId/policy-classification", c.classifyContractPolicy);
 router.get("/:id", c.get);
 router.get("/:id/access-log", c.accessLog);
+router.get("/:id/deadlines", c.deadlines);
+router.get("/:id/agreements", c.agreementsList);
+router.post("/:id/agreements", c.proposeAgreement);
+router.post("/:id/agreements/:agreementId/withdraw", c.withdrawAgreement);
+router.post("/:id/agreements/:agreementId/record-finding", c.recordAgreementFinding);
+router.get("/:id/appeals", c.appealsList);
+router.post("/:id/appeals/:appealId/assign-reviewer", c.assignAppealReviewer);
+router.post("/:id/appeals/:appealId/decision", c.decideAppeal);
+router.post("/:id/consequences/:consequenceId/quota-corrections", c.proposeQuotaCorrection);
+router.post("/:id/quota-corrections/:correctionId/approve", c.approveQuotaCorrection);
 router.post("/:id/assign", c.assign);
 router.post("/:id/recollect", c.recollect);
 router.post("/:id/transition", c.transition);

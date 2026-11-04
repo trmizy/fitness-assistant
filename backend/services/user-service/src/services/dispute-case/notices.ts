@@ -29,7 +29,9 @@ export type NoticeKind =
   | "NO_SHOW_UNANSWERED"
   | "SLA_WARNING"
   | "SLA_OVERDUE"
-  | "EVIDENCE_SOURCE_ESCALATED";
+  | "EVIDENCE_SOURCE_ESCALATED"
+  | "AGREEMENT_PROPOSED"
+  | "APPEAL_DECIDED";
 
 export interface CaseParties {
   id: string;
@@ -134,6 +136,10 @@ export function noticesFor(kind: NoticeKind, c: CaseParties, o: { actorId?: stri
       return set(investigator(c, "Hồ sơ khiếu nại sắp quá hạn xử lý (ngày thứ 10)."), { text: "Có hồ sơ khiếu nại sắp quá hạn xử lý." });
     case "SLA_OVERDUE":
       return set([...investigator(c, "Hồ sơ khiếu nại đã quá hạn xử lý (ngày thứ 14) và được đánh dấu chuyển cấp."), ...parties(c, "Hồ sơ khiếu nại của bạn đang được xử lý lâu hơn dự kiến và đã được chuyển cấp. Chưa có quyết định nào.")], { text: "Có hồ sơ khiếu nại đã quá hạn xử lý (ngày 14)." });
+    case "AGREEMENT_PROPOSED":
+      return set(parties(c, "Quản trị viên đề xuất một phương án chung cho hồ sơ khiếu nại. Bạn xem nội dung và xác nhận nếu đồng ý; không xác nhận thì hồ sơ vẫn được xử lý bình thường. Phương án chỉ có hiệu lực khi cả hai bên cùng xác nhận đúng nội dung đó."));
+    case "APPEAL_DECIDED":
+      return set(parties(c, "Yêu cầu xem xét lại hồ sơ khiếu nại đã có kết quả. Các việc về tiền hoặc số buổi (nếu có) được xử lý riêng và sẽ được báo khi có thay đổi."));
     case "EVIDENCE_SOURCE_ESCALATED":
       return set(investigator(c, "Nguồn bằng chứng (chat hoặc phòng tập) liên tục không đọc được nên chưa duyệt được hồ sơ. Việc đã được chuyển cấp."), { text: "Có hồ sơ chưa duyệt được vì nguồn bằng chứng liên tục không đọc được." });
   }

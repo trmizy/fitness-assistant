@@ -10,7 +10,8 @@ export type UserServiceJobName =
   | "session-settlement"
   | "pt-listing-sweep"
   | "ip-ua-retention"
-  | "dispute-execution-sweep";
+  | "dispute-execution-sweep"
+  | "dispute-timers-sweep";
 
 export interface UserServiceJobEvent {
   job?: UserServiceJobName | string;
@@ -54,6 +55,10 @@ export async function runUserServiceJob(event: UserServiceJobEvent, opts: JobRun
     case "dispute-execution-sweep": {
       const { runDisputeExecutionSweep } = await import("./services/dispute-case/execution-sweep.service");
       return runDisputeExecutionSweep();
+    }
+    case "dispute-timers-sweep": {
+      const { runDisputeTimersSweep } = await import("./services/dispute-case/dispute-timers.service");
+      return runDisputeTimersSweep();
     }
     default:
       throw Object.assign(new Error(`Unknown user-service job: ${event.job ?? ""}`), {

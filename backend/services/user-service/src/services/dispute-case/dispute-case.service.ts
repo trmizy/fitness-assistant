@@ -10,7 +10,7 @@ import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdi
 import { assertRealAdmin } from "./admin-account";
 import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
-import { satisfyDeadlines } from "./party-notices";
+import { deadlineDueAt, satisfyDeadlines } from "./party-notices";
 import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
 import {
   D77_BLOCK_REASON,
@@ -1168,6 +1168,15 @@ export const disputeCaseService = {
    * with whether a case exists. `hasCase` = a case that is open or whose decision was approved (a closed-without-decision case does not count: the session
    * is back in the queue). No age or deadline is computed: there is no approved timing rule.
    */
+  async listDeadlines(actor: Actor, caseId: string) {
+    assertAdmin(actor);
+    requireUuid(caseId);
+    const c = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { id: true } });
+    if (!c) throw notFoundCase();
+    const rows = await prisma.disputeCaseDeadline.findMany({ where: { caseId }, orderBy: [{ startedAt: "asc" }, { id: "asc" }] });
+    return { items: rows.map(deadlineView) };
+  },
+
   async queue(actor: Actor, q: QueueQuery) {
     assertAdmin(actor);
     const cases = await prisma.disputeCase.findMany({
@@ -1339,7 +1348,7 @@ export const disputeCaseService = {
     requireUuid(caseId);
     const c = await prisma.disputeCase.findUnique({ where: { id: caseId } });
     if (!c) throw notFoundCase();
-    const [claims, issues, evidence, statements, shares, assessments, findings, proposals, events, executions, session, reviews] = await Promise.all([
+    const [claims, issues, evidence, statements, shares, assessments, findings, proposals, events, executions, session, reviews, deadlineRows, agreementRows, appealRows] = await Promise.all([
       prisma.disputeCaseClaim.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseIssue.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseEvidence.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
@@ -1352,6 +1361,9 @@ export const disputeCaseService = {
       prisma.disputeCaseExecution.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.session.findUnique({ where: { id: c.sessionId }, select: { status: true } }),
       policyReviewsOf(prisma, c.contractId),
+      prisma.disputeCaseDeadline.findMany({ where: { caseId }, orderBy: [{ startedAt: "asc" }, { id: "asc" }] }),
+      prisma.disputeCaseAgreement.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { confirmations: true } }),
+      prisma.disputeCaseAppeal.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { consequences: { include: { quotaCorrections: true } } } }),
     ]);
     const financial = await buildFinancialView(prisma, c.sessionId);
     await logAccess(prisma, [
@@ -1390,6 +1402,10 @@ export const disputeCaseService = {
       decision: approvedProposal && approval ? { proposalId: approvedProposal.id, approvalId: approval.id, outcome: approvedProposal.outcome, approvedBy: approval.approverId, approvedAt: approval.createdAt, executionBlockedReason: approvedProposal.executionBlockedReason } : null,
       execution,
       policyReviews: reviews,
+      deadlines: deadlineRows.map(deadlineView),
+      agreements: agreementRows.map(agreementViewOf),
+      appeals: appealRows,
+      closure: closureOf(c, appealRows),
       allowedActions: allowedList(actions),
       actions,
       events: eventSummaries(events.slice(0, EVENTS_LIMIT)),
@@ -1460,6 +1476,17 @@ export const disputeCaseService = {
         mine: s.authorUserId === actor.id,
       })),
       financial,
+      // V2.1: what this party may confirm (the SAME content hash both sides confirm) and its own response clocks
+      agreements: (await prisma.disputeCaseAgreement.findMany({ where: { caseId, status: { in: ["PROPOSED", "AGREED", "USED"] } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { confirmations: true } })).map((a) => ({
+        id: a.id,
+        outcome: a.outcome,
+        outcomeLabel: a.outcome === "COMPLETED" ? "Buổi tập được tính là đã hoàn thành" : a.outcome === "CANCELLED" ? "Buổi tập huỷ, không trừ buổi" : "Xác nhận huấn luyện viên vắng mặt",
+        contentHash: a.contentHash,
+        status: a.status,
+        myConfirmed: a.confirmations.some((x) => x.userId === actor.id),
+        otherConfirmed: a.confirmations.some((x) => x.userId !== actor.id),
+      })),
+      deadlines: (await prisma.disputeCaseDeadline.findMany({ where: { caseId, userId: actor.id }, orderBy: [{ startedAt: "asc" }, { id: "asc" }] })).map((d) => ({ kind: d.kind, hours: d.hours, startedAt: d.startedAt, dueAt: deadlineDueAt(d), paused: !!d.pausedAt, status: d.status })),
     };
   },
 
@@ -1707,6 +1734,51 @@ export async function policyReviewsOf(db: Db, contractId: string) {
 }
 
 export const EVENTS_LIMIT = 200;
+
+export const deadlineView = (d: { id: string; kind: string; partyRole: string; userId: string; hours: number; startedAt: Date; pausedAt: Date | null; pausedSeconds: number; status: string; satisfiedAt: Date | null; expiredAt: Date | null }) => ({
+  id: d.id,
+  kind: d.kind,
+  partyRole: d.partyRole,
+  userId: d.userId,
+  hours: d.hours,
+  startedAt: d.startedAt,
+  dueAt: deadlineDueAt(d),
+  paused: !!d.pausedAt,
+  pausedSeconds: d.pausedSeconds,
+  status: d.status,
+  satisfiedAt: d.satisfiedAt,
+  expiredAt: d.expiredAt,
+});
+const agreementViewOf = (a: { id: string; outcome: string; contentHash: string; note: string; status: string; agreedAt: Date | null; findingId: string | null; createdAt: Date; confirmations: Array<{ partyRole: string; confirmedAt: Date }> }) => ({
+  id: a.id,
+  outcome: a.outcome,
+  contentHash: a.contentHash,
+  note: a.note,
+  status: a.status,
+  agreedAt: a.agreedAt,
+  findingId: a.findingId,
+  createdAt: a.createdAt,
+  confirmations: a.confirmations.map((x) => ({ partyRole: x.partyRole, confirmedAt: x.confirmedAt })),
+});
+
+/**
+ * B5: how "done" a case really is. `fullyResolved` is false while an appeal is undecided or a consequence of an appeal is OPEN or NEEDS_RECONCILIATION - also AFTER the case is CLOSED.
+ * `moneyAxisSettled` is never true while a money consequence is unsettled; the derived `financial` view is never rewritten to look finished.
+ */
+export function closureOf(c: { status: string; closeReason: string | null }, appeals: Array<{ id: string; status: string; consequences: Array<{ id: string; kind: string; status: string }> }>) {
+  const unresolved = appeals.flatMap((a) => a.consequences.filter((x) => x.status !== "RESOLVED").map((x) => ({ appealId: a.id, consequenceId: x.id, kind: x.kind, status: x.status })));
+  const pendingAppeals = appeals.filter((a) => a.status !== "DECIDED").length;
+  const moneyOpen = unresolved.some((u) => u.kind === "MONEY");
+  return {
+    state: c.status === "CLOSED" ? ("CLOSED" as const) : ("OPEN" as const),
+    closeReason: c.closeReason,
+    fullyResolved: unresolved.length === 0 && pendingAppeals === 0,
+    pendingAppeals,
+    unresolved,
+    moneyAxisSettled: !moneyOpen,
+    note: "Đóng hồ sơ không bao giờ có nghĩa tiền đã chuyển; đọc trạng thái tiền ở mục tài chính.",
+  };
+}
 
 /**
  * R-14: the event line an admin reads. The raw payload (request hash, the stored answer of an idempotent call) and the idempotency key never leave the server; `summary` keeps only

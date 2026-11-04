@@ -13,6 +13,9 @@ router.use(authMiddleware);
 router.get("/", c.partyList);
 router.get("/:id", c.partyGet);
 router.post("/:id/statements", c.partyStatement);
+// V2.1 (flag DISPUTE_CASE_APPEALS_ENABLED): confirm the SAME agreement content / ask for a review within 14 days of the conclusion notice.
+router.post("/:id/agreements/:agreementId/confirm", c.confirmAgreement);
+router.post("/:id/appeals", c.requestAppeal);
 router.post("/:id/evidence", c.partyEvidence);
 // Slice 2 / S2.8 (flag DISPUTE_CASE_EVIDENCE_STORAGE_ENABLED, 404 when off): upload a file / read one's OWN file back.
 router.post("/:id/evidence-files", c.evidenceFileGate, c.partyEvidenceFile);
