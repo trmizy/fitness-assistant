@@ -7,6 +7,7 @@ import { ackTimesOf, evidenceGuard, type Actor } from "./dispute-case.service";
 import { buildFinancialView, hasLateArrivalStep } from "./financial";
 import { executionEnabled } from "./flags";
 import { d77Key, readLateState, type D77Read } from "./d77-key";
+import { currentApprovalWhere, hasPendingReplacement } from "./decision-replacement.service";
 import { assertPolicyEligibility, D77_COMBINATION_UNRESOLVED, EXECUTION_DISABLED, OPENED_D77_COMBINATIONS, type CaseDecisionCtx } from "./execution-guard";
 import { changeAcknowledged, checkApprover, outcomeForFinding, type SnapshotEntry } from "./rules";
 import { noticesFor, sendNotices, type CaseParties } from "./notices";
@@ -95,10 +96,11 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
     if (!approval) throw caseError(404, "DECISION_NOT_FOUND", "Không tìm thấy quyết định");
     if (approval.proposal.caseId !== c.id) throw caseError(409, "DECISION_WRONG_CASE", "Quyết định này không thuộc hồ sơ");
   } else {
-    approval = await prisma.disputeCaseApproval.findFirst({ where: { result: "APPROVED", proposal: { caseId: c.id } }, include });
+    approval = await prisma.disputeCaseApproval.findFirst({ where: await currentApprovalWhere(prisma, c.id), include, orderBy: { createdAt: "desc" } });
     if (!approval) throw caseError(409, "DECISION_NOT_APPROVED", "Hồ sơ chưa có quyết định được duyệt");
   }
   if (approval.result !== "APPROVED") throw caseError(409, "DECISION_NOT_APPROVED", "Quyết định chưa được duyệt");
+  if (await hasPendingReplacement(prisma, c.id)) throw caseError(409, "REPLACEMENT_PENDING", "Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được");
   if (c.status !== "DECISION_APPROVED") throw caseError(409, "CASE_STATE_NOT_ALLOWED", "Hồ sơ chưa ở trạng thái đã duyệt quyết định", { status: c.status, allowed: ["DECISION_APPROVED"], allowedKind: "STATUSES" });
   if (c.type === "LEGACY_UNCLASSIFIED") throw caseError(409, "CLASSIFICATION_REQUIRED", "Hồ sơ còn ở phân loại tạm (LEGACY_UNCLASSIFIED)");
 
@@ -314,8 +316,12 @@ export const executionService = {
     // START: CAS on the case + the STARTED row, one transaction.
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM dispute_cases WHERE id = ${c.id}::uuid FOR UPDATE`;
+      // A4: ordered against a replacement by the case row lock - a replacement proposed or approved before this point stops the start
+      if (await hasPendingReplacement(tx, c.id)) throw caseError(409, "REPLACEMENT_PENDING", "Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được");
+      const stillApproved = await tx.disputeCaseApproval.findFirst({ where: await currentApprovalWhere(tx, c.id), select: { id: true }, orderBy: { createdAt: "desc" } });
+      if (stillApproved?.id !== approval.id) throw caseError(409, "DECISION_REPLACED", "Quyết định này đã được thay thế: chưa thực thi được", { decisionId: approval.id });
       const r = await tx.disputeCase.updateMany({
-        where: { id: c.id, execStatus: { in: ["NOT_STARTED", "EXEC_BLOCKED"] }, OR: [{ execDecisionId: null }, { execDecisionId: approval.id }] },
+        where: { id: c.id, status: "DECISION_APPROVED", execStatus: { in: ["NOT_STARTED", "EXEC_BLOCKED"] }, OR: [{ execDecisionId: null }, { execDecisionId: approval.id }] },
         data: { execStatus: "EXECUTING", execDecisionId: approval.id, version: { increment: 1 } },
       });
       if (r.count !== 1) throw caseError(409, EXECUTION_IN_PROGRESS, "Quyết định đang được thực thi bởi một lệnh khác", { decisionId: approval.id });

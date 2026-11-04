@@ -1852,6 +1852,7 @@ model DisputeCase {
   accessLogs  DisputeCaseAccessLog[]
   executions  DisputeCaseExecution[]
   policyReviews DisputeCasePolicyEligibilityReview[]
+  replacements DisputeCaseDecisionReplacement[]
 
   @@index([sessionId])
   @@index([status])
@@ -2088,7 +2089,8 @@ model DisputeCaseApproval {
   evidenceChangeAcknowledged     Boolean                   @default(false) @map("evidence_change_acknowledged")
   createdAt                      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  proposal DisputeCaseProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  proposal     DisputeCaseProposal               @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  replacements DisputeCaseDecisionReplacement[]
 
   @@index([proposalId])
   @@map("dispute_case_approvals")
@@ -2295,4 +2297,33 @@ model D65bResolutionEvent {
 
   @@index([resolutionId, createdAt])
   @@map("d65b_resolution_events")
+}
+
+/// A4 (05/11/2026). Replacement of an APPROVED Case decision that has had NO business, money or quota effect (design Q3 section 2). Append-only with two one-time stamps (approval quad, rejection triple):
+/// the old approval row is never touched; approving this only sends the Case back to FINDING_RECORDED so a new proposal -> approval can be made. Pending = the executor answers 409 REPLACEMENT_PENDING.
+model DisputeCaseDecisionReplacement {
+  id               String    @id @default(uuid()) @db.Uuid
+  caseId           String    @map("case_id") @db.Uuid
+  oldApprovalId    String    @map("old_approval_id") @db.Uuid
+  sessionId        String    @map("session_id")
+  contractId       String    @map("contract_id")
+  clientUserId     String    @map("client_user_id")
+  ptUserId         String    @map("pt_user_id")
+  proposedBy       String    @map("proposed_by")
+  reason           String
+  checksAtProposal Json      @map("checks_at_proposal")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  approvedBy       String?   @map("approved_by")
+  approvedAt       DateTime? @map("approved_at") @db.Timestamptz(3)
+  approvalReason   String?   @map("approval_reason")
+  checksAtApproval Json?     @map("checks_at_approval")
+  rejectedBy       String?   @map("rejected_by")
+  rejectedAt       DateTime? @map("rejected_at") @db.Timestamptz(3)
+  rejectionReason  String?   @map("rejection_reason")
+
+  case        DisputeCase         @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  oldApproval DisputeCaseApproval @relation(fields: [oldApprovalId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@map("dispute_case_decision_replacements")
 }

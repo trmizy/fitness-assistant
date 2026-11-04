@@ -1019,6 +1019,27 @@ exports.Prisma.D65bResolutionEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.DisputeCaseDecisionReplacementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  oldApprovalId: 'oldApprovalId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  proposedBy: 'proposedBy',
+  reason: 'reason',
+  checksAtProposal: 'checksAtProposal',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  checksAtApproval: 'checksAtApproval',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1517,7 +1538,8 @@ exports.Prisma.ModelName = {
   LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
   LateOpenRecovery: 'LateOpenRecovery',
   D65bResolution: 'D65bResolution',
-  D65bResolutionEvent: 'D65bResolutionEvent'
+  D65bResolutionEvent: 'D65bResolutionEvent',
+  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
 };
 
 /**
