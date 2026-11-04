@@ -100,3 +100,13 @@ test("the member endpoints reach gym-service for CUSTOMER / PT and are refused f
   assert.equal((await call("GET", "/me/complaint-cases")).status, 401);
   assert.equal(seen.length, 3);
 });
+
+test("C10: /owner/complaint-cases (the Gym's evidence + explanation surface) reaches gym-service only for GYM_OWNER; every other role and anonymous is refused", async () => {
+  seen = [];
+  assert.equal((await call("GET", "/owner/complaint-cases", "owner-token")).status, 200);
+  assert.equal((await call("POST", "/owner/complaint-cases/x/explanations", "owner-token", { text: "t" })).status, 200);
+  assert.equal(seen.length, 2);
+  for (const t of ["customer-token", "pt-token", "admin-token"]) assert.equal((await call("GET", "/owner/complaint-cases", t)).status, 403, t);
+  assert.equal((await call("GET", "/owner/complaint-cases")).status, 401);
+  assert.equal(seen.length, 2, "nothing else reached gym-service");
+});
