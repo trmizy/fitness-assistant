@@ -24,7 +24,7 @@ export const SessionConfigSchema = z.object({
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.enum(["amazon.nova-pro-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-haiku-4-5"]), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
   transportProtocol: z.enum(["MANTLE_MESSAGES", "NOVA_CONVERSE_MEASURED"]).optional(),
   // Model-facing claim prompt projection; absent = CLAIM_PROMPT_V1 (historical E2/E3 prompts stay byte-identical).
-  promptVersion: z.enum(["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2", "CLAIM_PROMPT_V3"]).optional(),
+  promptVersion: z.enum(["CLAIM_PROMPT_V1", "CLAIM_PROMPT_V2", "CLAIM_PROMPT_V3", "CLAIM_PROMPT_V4"]).optional(),
   outputContract: z.enum(["LEGACY_V3", "CLAIM_MAP_V3"]).optional(),
   reviewerMode: z.enum(["TWO_RATER", "OWNER_ONLY_EXPLORATORY"]).optional(),
   design: EvaluationDesignSchema.optional(),
@@ -52,6 +52,7 @@ export function assertCurrentAuthorization(c: SessionConfig) {
   const now = Date.now();
   if (c.novaScope && c.transportProtocol !== "NOVA_CONVERSE_MEASURED") throw new PilotError("NOVA_SCOPE_PROTOCOL_MISMATCH");
   if (c.promptVersion === "CLAIM_PROMPT_V3" && c.transportProtocol !== "NOVA_CONVERSE_MEASURED") throw new PilotError("NOVA_V3_PROMPT_ONLY");
+  if (c.promptVersion === "CLAIM_PROMPT_V4" && c.transportProtocol !== "NOVA_CONVERSE_MEASURED") throw new PilotError("NOVA_V4_PROMPT_ONLY");
   if (c.transportProtocol === "MANTLE_MESSAGES" || c.modelId === "anthropic.claude-haiku-4-5") {
     if (c.mode !== "FAKE" || c.liveOptIn) throw new PilotError("MANTLE_LIVE_LOCKED");
     if (c.transportProtocol !== "MANTLE_MESSAGES" || c.modelId !== "anthropic.claude-haiku-4-5" || c.region !== "us-east-2" || c.inferenceProfile !== null) throw new PilotError("MANTLE_TARGET_MISMATCH");
@@ -64,8 +65,8 @@ export function assertCurrentAuthorization(c: SessionConfig) {
     // still stops it with NOVA_LIVE_LOCKED after the trust/ledger gates.
     if (c.mode === "FAKE" && c.liveOptIn) throw new PilotError("NOVA_LIVE_LOCKED");
     if (c.modelId !== "amazon.nova-pro-v1:0" || c.region !== "us-east-1" || c.inferenceProfile !== null) throw new PilotError("NOVA_TARGET_MISMATCH");
-    // Explicit V2 remains available for historical replay; V3 requires its own pins and approval, never fallback.
-    if (c.promptVersion !== "CLAIM_PROMPT_V2" && c.promptVersion !== "CLAIM_PROMPT_V3") throw new PilotError("NOVA_PROMPT_VERSION_REQUIRED");
+    // Explicit V2/V3 remain available for historical replay; each version requires its own pins and approval, never fallback.
+    if (c.promptVersion !== "CLAIM_PROMPT_V2" && c.promptVersion !== "CLAIM_PROMPT_V3" && c.promptVersion !== "CLAIM_PROMPT_V4") throw new PilotError("NOVA_PROMPT_VERSION_REQUIRED");
     if (c.outputContract !== "CLAIM_MAP_V3" || c.reviewerMode !== "OWNER_ONLY_EXPLORATORY") throw new PilotError("NOVA_CLAIM_SCOPE_REQUIRED");
     if (c.mode === "FAKE" && (c.pricing.authority !== "FAKE_TEST_ONLY" || c.approval !== null)) throw new PilotError("NOVA_FAKE_CLAIM_SCOPE_REQUIRED");
     if (c.mode === "LIVE" && (!c.sources?.claimRegistryConfigFile || c.parameters.retries !== 0)) throw new PilotError("NOVA_LIVE_SCOPE_REQUIRED");

@@ -4,7 +4,7 @@ import path from "node:path";
 import { ConverseCommand, CountTokensCommand, type ConverseCommandInput, type ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
 import { BEDROCK_REGION, bedrockRuntimeDeps, buildConverseTextInput, parseConverseText } from "../../services/bedrock.client";
 import { AnalysisEnvelopeSchema, type Prompt } from "../ai-coach-dev/pipeline";
-import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
+import { ClaimAnalysisSchema, completeClaimEnvelopeV4, type ClaimEnvelopeDerivation } from "../ai-coach-claim-dev/pipeline";
 import { digest } from "../evaluation-kit/identity";
 import { protect, redact } from "../evaluation-kit/representation";
 export { redact } from "../evaluation-kit/representation";
@@ -182,7 +182,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     append({ event: "INFERENCE_RESERVED", attemptKey: key, promptHash: hash, inputTokens: inputCount, outputTokenCap: cap });
     let rawText: string | null = null, parsedCandidate: unknown = null, parseError: string | null = null, providerError: string | null = null, stopReason: string | null = null;
     let inputTokens: number | null = null, outputTokens: number | null = null, reconciled = false;
-    let providerResponse: ReturnType<typeof protect> | undefined, wire: unknown;
+    let providerResponse: ReturnType<typeof protect> | undefined, wire: unknown, structuralDerivation: ClaimEnvelopeDerivation | null = null;
     const inferenceStarted = Date.now();
     try {
       const response = await deadline(config.parameters.timeoutMs, (signal) => transport.invoke(input, signal));
@@ -198,6 +198,9 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         const latest = ledger.state(); save({ outputTokens: latest.outputTokens - cap + outputTokens!, estimatedUsd: estimatedCost(config, latest.inputTokens, latest.outputTokens - cap + outputTokens!) }, "USAGE_RECONCILED"); reconciled = true;
         try { parseConverseText(response); } catch { providerError = "MODEL_REFUSAL"; }
         if (!providerError) { try { parsedCandidate = JSON.parse(rawText); } catch { parseError = "INVALID_JSON"; }
+          // V4 only: with empty model-facing allowlists the model writes `analysis` alone; the empty link arrays are
+          // server-derived and recorded below. rawText stays exactly as returned; every other shape is judged as produced.
+          if (!parseError && config.promptVersion === "CLAIM_PROMPT_V4") { const completed = completeClaimEnvelopeV4(prompt.user, parsedCandidate); parsedCandidate = completed.candidate; structuralDerivation = completed.derivation; }
           if (!parseError && !outputSchema.safeParse(parsedCandidate).success) parseError = "SCHEMA_INVALID";
         }
       }
@@ -216,6 +219,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     const result = { event: "ATTEMPT_FINISHED", executionMode: config.mode, attemptKey: key, promptHash: hash, rawText: safeText.value as string | null, rawTextHash: rawText === null ? null : safeText.receipt.storedHash, parsedCandidate: safeCandidate.value, representation, parseError, providerError, inputTokens, outputTokens,
       latencyMs: Date.now() - started, countLatencyMs, inferenceLatencyMs: Date.now() - inferenceStarted, stopReason, target,
       ...(providerResponse ? { providerResponse, wire } : {}),
+      ...(structuralDerivation ? { structuralDerivation } : {}),
       estimatedUsd: reconciled ? estimatedCost(config, inputTokens!, outputTokens!) : null, conservativeReservationRetained: !reconciled };
     append(result); return result;
   }
