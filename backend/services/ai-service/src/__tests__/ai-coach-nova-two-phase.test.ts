@@ -232,7 +232,8 @@ test("fail closed in the inference phase: token parity mismatch stops; two failu
 test("approval expiry ends both phases: after the approval expires the inference phase is refused", needsClean, async () => {
   const f = await fixture();
   try {
-    const c = signed(f.base, new Date(Date.now() + 12000).toISOString()); f.issue(c);
+    // Long enough for the measure-only run (LIVE pins are re-verified before every send), short enough to wait out.
+    const c = signed(f.base, new Date(Date.now() + 240000).toISOString()); f.issue(c);
     const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
     await new Promise(r => setTimeout(r, Math.max(0, Date.parse(c.approval!.expiresAt) - Date.now() + 200)));
     await assert.rejects(f.run(c, dir, { resume: true }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
