@@ -206,12 +206,12 @@ const ok = (r: { status: number; body: any }, expected: number | number[], what:
 };
 
 /** Opens a case and walks it to AWAITING_APPROVAL (proposal made). Returns what a test needs to decide / execute. */
-export async function driveToProposal(o: { caseClass: string; finding: 'ESTABLISHED' | 'NOT_ESTABLISHED'; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; ownerId?: string }): Promise<Drive & { proposal: any }> {
+export async function driveToProposal(o: { photoTokens?: string[]; caseClass: string; finding: 'ESTABLISHED' | 'NOT_ESTABLISHED'; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; ownerId?: string }): Promise<Drive & { proposal: any }> {
   const { gym, ownerId } = await makeGym(o.ownerId);
   const reporterId = `member-${randomUUID().slice(0, 8)}`;
   const reporter = { id: reporterId, tok: token(reporterId, 'CUSTOMER') };
   const m = o.membership === false ? null : await makeMembership(gym.id, reporterId, o.membership ?? {});
-  const complaint = await makeComplaint(gym.id, reporterId);
+  const complaint = await makeComplaint(gym.id, reporterId, { photoTokens: o.photoTokens });
   const inv = newAdmin();
   const appr = newAdmin();
   const opened = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass: o.caseClass, ...(m && o.caseClass !== 'GYM_GENERAL' ? { membershipId: m.id } : {}) }), 201, 'open');
@@ -243,3 +243,20 @@ export async function approve(d: Drive, extra: Record<string, unknown> = {}) {
   return call('POST', `/admin/complaint-cases/${d.caseId}/decision`, d.appr.tok, { result: 'APPROVED', reason: 'Đồng ý với đề xuất', conflictOfInterestDeclaredNone: true, ...extra });
 }
 export { ok };
+
+/** Opens a case and walks it to ASSESSING with one claim (no assessment yet). */
+export async function openToAssessing(o: { caseClass?: string; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; photoTokens?: string[]; ownerId?: string } = {}): Promise<Drive> {
+  const caseClass = o.caseClass ?? 'GYM_GENERAL';
+  const { gym, ownerId } = await makeGym(o.ownerId);
+  const reporterId = `member-${randomUUID().slice(0, 8)}`;
+  const reporter = { id: reporterId, tok: token(reporterId, 'CUSTOMER') };
+  const m = o.membership === false || caseClass === 'GYM_GENERAL' ? null : await makeMembership(gym.id, reporterId, o.membership ?? {});
+  const complaint = await makeComplaint(gym.id, reporterId, { photoTokens: o.photoTokens });
+  const inv = newAdmin();
+  const appr = newAdmin();
+  const caseId = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass, ...(m ? { membershipId: m.id } : {}) }), 201, 'open').id as string;
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/assign`, inv.tok, {}), 200, 'assign');
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/transition`, inv.tok, { to: 'ASSESSING' }), 200, 'assessing');
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/claims`, inv.tok, { claimantRole: 'MEMBER', text: 'Hội viên khẳng định có vấn đề' }), 201, 'claim');
+  return { complaintId: complaint.id, caseId, inv, appr, reporter, ownerId, gymId: gym.id, membershipId: m?.id ?? null };
+}

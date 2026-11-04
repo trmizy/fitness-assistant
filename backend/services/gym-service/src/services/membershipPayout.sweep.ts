@@ -81,6 +81,7 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
     // Step 2: release the payout for every EXPIRED membership that still has one pending.
     // B1: a membership with an unfinished Gym Case (or an approved, unexecuted refund) keeps ITS OWN unsettled money; every other membership releases as before.
     const heldNow = await heldMembershipIds();
+    held += heldNow.size;
     const due = await membershipRepository.findExpiredNotReleased(BATCH_SIZE, [...heldNow]);
     for (const m of due) {
       try {

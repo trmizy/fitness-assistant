@@ -542,6 +542,8 @@ export const complaintCaseService = {
         const c = await lockCase(ctx.tx, caseId);
         if (to === 'REJECTED_INTAKE' && c.status === 'INTAKE') {
           assertAdmin(actor);
+          // C7: the hand-back to the legacy flow must not be a way round the conflict-of-interest rule: a person linked to the gym / brand (or the member) cannot dismiss the case.
+          await assertNotParty(ctx.tx, c, actor.id);
           if (!o.reason) throw caseError(400, 'REASON_REQUIRED', 'Cần ghi lý do không tiếp nhận');
         } else {
           assertInvestigator(actor, c);
