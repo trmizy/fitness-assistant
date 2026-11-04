@@ -67,9 +67,36 @@
 
 Scoped regression and the offline run-1/run-2 replay are recorded in the private review package; this is not full repository regression.
 
-## Not changed / open
+## V4 inference interleave (owner engineering decision `E3_NOVA_V4_SCHEDULE_INTERLEAVE_APPROVED_FOR_IMPLEMENTATION_ONLY`)
 
-- No scheduling change. Interleaving the schedule is an owner decision proposal only.
+Run-1 and run-2 both stopped after the two CAL01/Context repeats, which ran first, so RAG and CAL06 were never exercised.
+
+For Nova + `CLAIM_PROMPT_V4` only, `interleaveNovaWarmupRows` (`design.ts`) reorders the 8 prepared rows. With A and B being the two released cases in prepared order:
+
+| Position | Repeat 0 | Repeat 1 |
+| --- | --- | --- |
+| 1 | A/Context | B/Context |
+| 2 | B/RAG | A/RAG |
+| 3 | A/RAG | B/RAG |
+| 4 | B/Context | A/Context |
+
+Repeat 1 is repeat 0 in reverse. For the warmup this is CAL01/Ctx r0, CAL06/RAG r0, CAL01/RAG r0, CAL06/Ctx r0, CAL06/Ctx r1, CAL01/RAG r1, CAL06/RAG r1, CAL01/Ctx r1.
+
+What the reordering changes and keeps:
+- It changes only the inference loop and `schedule.json`.
+- Preparation order, `pins.promptHashes` and measurement order are unchanged; the 4 measurements still run first.
+- Unchanged: attempt identities, payloads, budget, ledger, resume, 0 retries and stop-after-2-failures.
+- Any other design shape throws `NOVA_INTERLEAVE_SHAPE`.
+- V1–V3 keep the prepared order.
+
+`ai-coach-nova-v4-interleave.test.ts` (5 tests) covers:
+- the exact order, with each pair appearing once per repeat;
+- refusal of other shapes;
+- a FAKE-IO runner whose schedule and actual inference request order both follow the interleave, with all measurements first;
+- two failures in different case/arm pairs stopping the run after 2 inferences, with resume adding nothing;
+- V3 keeping the historical order.
+
+## Not changed / open
 - F1 (quality-unaware `FACTS_NOT_ADDRESSED`) remains Codex's separate task.
 - V4 needs owner payload approval, a new pinned checkout, config, signature and ledger.
 - Whether Nova follows the V4 analysis-only shape, the enums and the e1RM wording can only be measured with real inference.

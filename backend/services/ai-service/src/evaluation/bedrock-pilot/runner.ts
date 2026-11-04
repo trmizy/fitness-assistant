@@ -13,7 +13,7 @@ import { approvedConfigurationHash, estimatedCost, parseConfiguration, PilotErro
 import { calculatePilotPins, verifySessionPins } from "./pins";
 import { converseInput, openEvaluationSession, redact, type EvaluationTransport, type LiveRehearsal } from "./session";
 import { assertSeparate, atomicCreate, openJournal, realDirectory } from "./storage";
-import { attemptIdentity } from "./design";
+import { attemptIdentity, interleaveNovaWarmupRows } from "./design";
 import { verifyClaimPilot } from "./claim-adapter";
 import { ClaimAnalysisSchema } from "../ai-coach-claim-dev/pipeline";
 import { projectClaimAnalysis } from "../ai-coach-claim-dev/projection";
@@ -60,6 +60,9 @@ export async function runControlledPilot(options: RunnerOptions) {
     const prepared = new Set(preparation.rows.map(r => serializeNova(converseInput(config, r.prompt)).identity.tokenPayloadHash)), approved = new Set(config.novaScope.tokenPayloadHashes);
     if (prepared.size !== approved.size || [...prepared].some(h => !approved.has(h))) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
   }
+  // Inference order only: V4 Nova warmup interleaves case/arm by repeat (owner engineering decision); V1–V3 keep prepared order.
+  // Preparation order, pins.promptHashes, measurements and attempt identities are unchanged.
+  const scheduledRows = config.transportProtocol === "NOVA_CONVERSE_MEASURED" && config.promptVersion === "CLAIM_PROMPT_V4" ? interleaveNovaWarmupRows(preparation.rows) : preparation.rows;
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
   const transport = live ? undefined : options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol);
@@ -67,7 +70,7 @@ export async function runControlledPilot(options: RunnerOptions) {
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
-    const schedule = preparation.rows.map((r) => ({ attemptKey: attemptIdentity({ caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }), caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }));
+    const schedule = scheduledRows.map((r) => ({ attemptKey: attemptIdentity({ caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }), caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }));
     const scheduleFile = path.join(options.directory, "schedule.json");
     if (fs.existsSync(scheduleFile)) { if (digest(JSON.parse(fs.readFileSync(scheduleFile, "utf8"))) !== digest(schedule)) throw new PilotError("SCHEDULE_INTEGRITY_FAILED"); }
     else atomicCreate(scheduleFile, schedule);
@@ -125,7 +128,7 @@ export async function runControlledPilot(options: RunnerOptions) {
       reviewerEvidence.set(row.caseKey, entry);
     }
     for (const e of reviewerEvidence.values()) { e.passages.sort((a,b) => a.source.id.localeCompare(b.source.id)); e.passages.forEach(p => p.excerpts.sort((a,b) => a.id.localeCompare(b.id))); }
-    for (const row of preparation.rows) {
+    for (const row of scheduledRows) {
       const attemptKey = attemptIdentity({ caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, configHash, promptHash: row.promptHash });
       const result = finished.get(attemptKey) ?? await session.evaluate(row.prompt, attemptKey);
       options.onStage?.("EVALUATED");
