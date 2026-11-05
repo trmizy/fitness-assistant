@@ -1202,9 +1202,9 @@ function computeAllowedActions(
   const repOn = replacementEnabled();
   const pendingRep = x.pendingReplacementProposer;
   const canProposeRep = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && pendingRep === null && !party && actor.role === 'ADMIN';
-  list.push({ action: 'PROPOSE_DECISION_REPLACEMENT', allowed: flag && repOn && canProposeRep, ...(flag && repOn && canProposeRep ? {} : { reason: !repOn ? 'DECISION_REPLACEMENT_DISABLED' : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : !['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) ? 'DECISION_HAS_EFFECT' : pendingRep !== null ? 'REPLACEMENT_PENDING' : party ? 'CONFLICT_OF_INTEREST' : 'NOT_ALLOWED' }) });
+  list.push({ action: 'PROPOSE_DECISION_REPLACEMENT', allowed: flag && repOn && canProposeRep, ...(flag && repOn && canProposeRep ? {} : { reason: !flag ? 'GYM_CASE_DISABLED' : !repOn ? 'DECISION_REPLACEMENT_DISABLED' : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : !['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) ? 'DECISION_HAS_EFFECT' : pendingRep !== null ? 'REPLACEMENT_PENDING' : party ? 'CONFLICT_OF_INTEREST' : 'NOT_ALLOWED' }) });
   const canDecideRep = pendingRep !== null && pendingRep !== actor.id && !party && actor.role === 'ADMIN';
-  for (const a of ['APPROVE_DECISION_REPLACEMENT', 'REJECT_DECISION_REPLACEMENT']) list.push({ action: a, allowed: flag && repOn && canDecideRep, ...(flag && repOn && canDecideRep ? {} : { reason: !repOn ? 'DECISION_REPLACEMENT_DISABLED' : pendingRep === null ? 'NO_PENDING_REPLACEMENT' : pendingRep === actor.id ? 'SELF_APPROVAL_FORBIDDEN' : 'CONFLICT_OF_INTEREST' }) });
+  for (const a of ['APPROVE_DECISION_REPLACEMENT', 'REJECT_DECISION_REPLACEMENT']) list.push({ action: a, allowed: flag && repOn && canDecideRep, ...(flag && repOn && canDecideRep ? {} : { reason: !flag ? 'GYM_CASE_DISABLED' : !repOn ? 'DECISION_REPLACEMENT_DISABLED' : pendingRep === null ? 'NO_PENDING_REPLACEMENT' : pendingRep === actor.id ? 'SELF_APPROVAL_FORBIDDEN' : 'CONFLICT_OF_INTEREST' }) });
   push('ASSIGN_APPEAL_REVIEWER', st !== 'APPEAL_REVIEW' ? 'NO_APPEAL_WAITING' : party ? 'CONFLICT_OF_INTEREST' : undefined);
   return list;
 }
