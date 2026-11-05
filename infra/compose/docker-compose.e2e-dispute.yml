@@ -121,6 +121,10 @@ services:
       DISPUTE_CASE_EXECUTION_ENABLED: "true"
       DISPUTE_CASE_EVIDENCE_STORAGE_ENABLED: "true"
       DISPUTE_CASE_D65B_RESOLUTION_ENABLED: "true"
+      # Owner decisions A1 (timers, appeal) and A4 (replacement), 04/11: allowed in this isolated env only
+      DISPUTE_CASE_TIMERS_ENABLED: "true"
+      DISPUTE_CASE_APPEALS_ENABLED: "true"
+      DISPUTE_CASE_DECISION_REPLACEMENT_ENABLED: "true"
       DISPUTE_CASE_EVIDENCE_DIR: /var/lib/gymini-e2e/dispute-evidence
       # --- OFF here, and never permitted by the e2e gate even if set: T0 and late-open OPEN-L ---
       DISPUTE_CASE_T0: "false"
@@ -151,6 +155,7 @@ services:
       PAYMENT_SERVICE_URL: http://payment-service:3007
       USER_SERVICE_URL: http://user-service:3004
       GYM_COMPLAINT_CASE_ENABLED: "true"
+      GYM_COMPLAINT_DECISION_REPLACEMENT_ENABLED: "true"
       PARTNER_APPLICATION_DEV_ECHO: "false"
     depends_on:
       e2e-dispute-postgres: { condition: service_healthy }
