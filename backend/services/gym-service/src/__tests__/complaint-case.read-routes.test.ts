@@ -100,7 +100,7 @@ test('G2 / G3 / G4: admin reads over real HTTP - exact response shape, status fi
 
   // ── G3 detail
   const detail = ok(await call('GET', `/admin/complaint-cases/${d.caseId}`, d.inv.tok), 200, 'G3');
-  assert.deepEqual(keys(detail), ['allowedActions', 'appeal', 'case', 'claims', 'closure', 'complaint', 'deadlines', 'decision', 'events', 'evidence', 'execution', 'financial', 'findings', 'gym', 'membership', 'proposals', 'shares', 'sla', 'statements', 'assessments'].sort());
+  assert.deepEqual(keys(detail), ['allowedActions', 'appeal', 'case', 'claims', 'closure', 'complaint', 'deadlines', 'decision', 'events', 'evidence', 'execution', 'financial', 'findings', 'gym', 'membership', 'proposals', 'refundQuote', 'replacement', 'shares', 'sla', 'statements', 'assessments'].sort());
   assert.deepEqual(keys(detail.execution), ['decisionId', 'history', 'status']);
   assert.deepEqual(keys(detail.financial), ['derived', 'group', 'label', 'memberShortfall', 'observedAt', 'postedToMemberWallet', 'referralClawbackShortfall', 'state']);
   assert.equal(detail.financial.state, 'LEDGER_POSTED_FULL');

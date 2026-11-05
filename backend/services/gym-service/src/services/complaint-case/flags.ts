@@ -52,6 +52,11 @@ function warn(why: GateRefusal): FlagVerdict {
   return { effective: false, refusedBecause: why };
 }
 
+/** E3: replacing an approved decision has its OWN flag on top of the case flag; both go through the same runtime gate and fail closed. */
+export const GYM_DECISION_REPLACEMENT_FLAG = 'GYM_COMPLAINT_DECISION_REPLACEMENT_ENABLED';
+export const replacementEnabled = (env: NodeJS.ProcessEnv = process.env): boolean =>
+  gymCaseEnabled(env) && env[GYM_DECISION_REPLACEMENT_FLAG] === 'true' && gateVerdict(env).open;
+
 export const gymCaseEnabled = (env: NodeJS.ProcessEnv = process.env): boolean => flagVerdict(env).effective;
 
 /** For tests only: forget which warnings were already printed. */

@@ -1,6 +1,7 @@
 import { logger } from '@gym-coach/shared';
 import { prisma } from '../../repositories/prisma';
 import { userClient } from '../../clients/user.client';
+import { authClient } from '../../clients/auth.client';
 import { gymCaseEnabled } from './flags';
 import { notifyParty, lockCase, toJson, type Actor } from './case.service';
 import { deadlineDueAt, slaOf, TERMINAL_STATUSES, type CaseStatus, type DeadlineKind } from './rules';
@@ -49,20 +50,79 @@ export async function startResponseDeadlines(actor: Actor, caseId: string, parti
   }
 }
 
-/** Expires every OPEN deadline whose time has passed. Neutral: it records the fact and moves the step, nothing else. */
-export async function runCaseDeadlineSweep(now: Date = new Date()): Promise<{ expired: number; stepMoved: number }> {
-  if (!gymCaseEnabled()) return { expired: 0, stepMoved: 0 };
-  let expired = 0;
-  let stepMoved = 0;
-  const due = await prisma.gymCaseDeadline.findMany({ where: { status: 'OPEN', dueAt: { lte: now } }, select: { id: true, caseId: true }, take: 100 });
-  for (const d of due) {
+/** true = the account is locked, false = usable, null = UNKNOWN (auth-service unreachable / user not found): an unknown state changes nothing (never pauses, never expires). */
+export type AccountLockLookup = (userId: string) => Promise<boolean | null>;
+const httpLockLookup: AccountLockLookup = async (userId) => {
+  try {
+    const u: any = await authClient.getUser(userId); // the same signal user-service uses: auth-service's isActive=false
+    if (!u) return null;
+    return u.isActive === false || u.isLocked === true || u.locked === true;
+  } catch {
+    return null;
+  }
+};
+let lockLookup: AccountLockLookup = httpLockLookup;
+/** TEST SEAM (pass nothing to restore the real lookup). */
+export function setAccountLockLookupForTests(fn?: AccountLockLookup): void {
+  lockLookup = fn ?? httpLockLookup;
+}
+
+/** The moment a deadline really expires: its due time plus every second it was paused (a pause that is still running is not counted: it never expires meanwhile). */
+export const effectiveDueAt = (d: { dueAt: Date; pausedSeconds: number }): Date => new Date(d.dueAt.getTime() + d.pausedSeconds * 1000);
+
+/**
+ * Walks every OPEN deadline. E4 (Ngài approved): the clock is PAUSED while the party's auth-service account is locked (isActive=false) and RESUMES on unlock, each change audited
+ * (DEADLINE_PAUSED / DEADLINE_RESUMED); an auth-service that cannot answer changes NOTHING (fail-safe: no pause, no expiry). Only then is a due deadline expired: the neutral
+ * NO_RESPONSE_RECORDED fact + the step moves, never a ruling.
+ */
+export async function runCaseDeadlineSweep(now: Date = new Date()): Promise<{ expired: number; stepMoved: number; paused: number; resumed: number; unknown: number }> {
+  const out = { expired: 0, stepMoved: 0, paused: 0, resumed: 0, unknown: 0 };
+  if (!gymCaseEnabled()) return out;
+  const open = await prisma.gymCaseDeadline.findMany({ where: { status: 'OPEN' }, orderBy: { dueAt: 'asc' }, take: 500 });
+  for (const d of open) {
     try {
+      const locked = await lockLookup(d.recipientUserId);
+      if (locked === null) {
+        out.unknown++;
+        continue; // unknown lock state: neither pause nor expire
+      }
+      let cur = d;
+      if (locked) {
+        if (!d.pausedAt) {
+          const flipped = await prisma.$transaction(async (tx) => {
+            await lockCase(tx, d.caseId);
+            const r = await tx.gymCaseDeadline.updateMany({ where: { id: d.id, status: 'OPEN', pausedAt: null }, data: { pausedAt: now } });
+            if (r.count === 1) {
+              await tx.gymCaseEvent.create({ data: { caseId: d.caseId, actorUserId: SYSTEM.id, actorRole: SYSTEM.role, action: 'DEADLINE_PAUSED', note: `${d.partyRole} ${d.kind}: tài khoản đang bị khóa nên tạm dừng đồng hồ`, payload: toJson({ deadlineId: d.id, party: d.partyRole, pausedAt: now }) } });
+            }
+            return r.count === 1;
+          });
+          if (flipped) out.paused++;
+        }
+        continue; // a paused clock never expires
+      }
+      if (d.pausedAt) {
+        const added = Math.max(0, Math.floor((now.getTime() - d.pausedAt.getTime()) / 1000));
+        const resumed = await prisma.$transaction(async (tx) => {
+          await lockCase(tx, d.caseId);
+          const r = await tx.gymCaseDeadline.updateMany({ where: { id: d.id, status: 'OPEN', pausedAt: d.pausedAt }, data: { pausedAt: null, pausedSeconds: { increment: added } } });
+          if (r.count === 1) {
+            await tx.gymCaseEvent.create({ data: { caseId: d.caseId, actorUserId: SYSTEM.id, actorRole: SYSTEM.role, action: 'DEADLINE_RESUMED', note: `${d.partyRole} ${d.kind}: tài khoản đã mở khóa, đồng hồ chạy tiếp (đã tạm dừng ${added} giây)`, payload: toJson({ deadlineId: d.id, party: d.partyRole, pausedSeconds: added }) } });
+          }
+          return r.count === 1;
+        });
+        if (resumed) {
+          out.resumed++;
+          cur = await prisma.gymCaseDeadline.findUniqueOrThrow({ where: { id: d.id } });
+        } else continue;
+      }
+      if (now.getTime() < effectiveDueAt(cur).getTime()) continue;
       await prisma.$transaction(
         async (tx) => {
           const c = await lockCase(tx, d.caseId);
-          const r = await tx.gymCaseDeadline.updateMany({ where: { id: d.id, status: 'OPEN' }, data: { status: 'EXPIRED', resolvedAt: now } });
-          if (r.count !== 1) return; // met or expired by someone else in the meantime
-          expired++;
+          const r = await tx.gymCaseDeadline.updateMany({ where: { id: d.id, status: 'OPEN', pausedAt: null }, data: { status: 'EXPIRED', resolvedAt: now } });
+          if (r.count !== 1) return; // met, paused or expired by someone else in the meantime
+          out.expired++;
           const dl = await tx.gymCaseDeadline.findUniqueOrThrow({ where: { id: d.id } });
           await tx.gymCaseEvent.create({
             data: {
@@ -71,14 +131,14 @@ export async function runCaseDeadlineSweep(now: Date = new Date()): Promise<{ ex
               actorRole: SYSTEM.role,
               action: 'NO_RESPONSE_RECORDED',
               note: `${dl.partyRole} ${dl.kind}: hết hạn, ghi nhận trung tính (không suy ra lỗi của bên nào)`,
-              payload: toJson({ party: dl.partyRole, kind: dl.kind, dueAt: dl.dueAt }),
+              payload: toJson({ party: dl.partyRole, kind: dl.kind, dueAt: dl.dueAt, pausedSeconds: dl.pausedSeconds }),
             },
           });
           const stillOpen = await tx.gymCaseDeadline.count({ where: { caseId: c.id, status: 'OPEN' } });
           if (c.status === 'AWAITING_PARTIES' && stillOpen === 0) {
             const m = await tx.gymComplaintCase.updateMany({ where: { id: c.id, version: c.version, status: 'AWAITING_PARTIES' }, data: { status: 'ASSESSING', version: { increment: 1 } } });
             if (m.count === 1) {
-              stepMoved++;
+              out.stepMoved++;
               await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: SYSTEM.id, actorRole: SYSTEM.role, action: 'TRANSITION', fromStatus: 'AWAITING_PARTIES', toStatus: 'ASSESSING', note: 'hết hạn phản hồi: chỉ chuyển bước, không kết luận' } });
             }
           }
@@ -89,7 +149,7 @@ export async function runCaseDeadlineSweep(now: Date = new Date()): Promise<{ ex
       logger.error({ err: (e as Error).message, deadlineId: d.id }, '[GymCase] deadline sweep failed for one deadline');
     }
   }
-  return { expired, stepMoved };
+  return out;
 }
 
 /** SLA: flags and tells the admins, once per threshold. It never rules, refunds or releases anything. */

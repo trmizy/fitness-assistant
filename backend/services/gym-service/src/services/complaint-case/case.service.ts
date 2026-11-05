@@ -4,7 +4,8 @@ import { authClient } from '../../clients/auth.client';
 import { userClient } from '../../clients/user.client';
 import { contentHashOf } from './canonical';
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from './errors';
-import { gymCaseEnabled } from './flags';
+import { gymCaseEnabled, replacementEnabled } from './flags';
+import { replacedApprovalIds } from './decision-replacement.service';
 import {
   INVESTIGATION_STATUSES,
   PARTY_SUBMIT_STATUSES,
@@ -26,6 +27,7 @@ import {
   statementVisibleTo,
   viewerKind,
   appealWindow,
+  unusedValueAt,
   slaOf,
   verificationLabelVi,
   verificationOf,
@@ -471,6 +473,28 @@ export const complaintCaseService = {
           throw e;
         }
         for (const d of await collectSources(ctx.tx, created)) await insertEvidence(ctx.tx, created, d, { snapshotVersion: 1 });
+        // E1: for a class with a money exit, the refund amount is FIXED NOW as of the day the member filed the complaint, from the real membership row and its payment
+        // (never from the request). Nothing is written when the membership was never paid / is not ACTIVE or EXPIRED: a refund outcome is then refused later.
+        if (b.membershipId && hasMoneyExit(b.caseClass)) {
+          const mem = await ctx.tx.gymMembershipContract.findUnique({ where: { id: b.membershipId } });
+          if (mem && mem.paymentTxnId && (mem.status === 'ACTIVE' || mem.status === 'EXPIRED')) {
+            const price = Number(mem.priceAtPurchase);
+            await ctx.tx.gymCaseRefundQuote.create({
+              data: {
+                caseId: created.id,
+                membershipId: mem.id,
+                paymentTxnId: mem.paymentTxnId,
+                quotedAt: complaint.createdAt,
+                pricePaid: price,
+                durationDays: mem.durationDaysSnapshot,
+                startDate: mem.startDate,
+                endDate: mem.endDate,
+                amount: unusedValueAt(price, mem.durationDaysSnapshot, mem.endDate, complaint.createdAt),
+                createdBy: actor.id,
+              },
+            });
+          }
+        }
         if (complaint.status === 'OPEN') await ctx.tx.gymComplaint.update({ where: { id: complaintId }, data: { status: 'IN_PROGRESS' } });
         return { caseId: created.id, result: { ...summary(created), existing: false }, note: `class ${b.caseClass}` };
       },
@@ -964,7 +988,8 @@ export const complaintCaseService = {
       prisma.gym.findUnique({ where: { id: c.gymId }, select: { id: true, name: true, ownerId: true, status: true, operationalStatus: true } }),
       c.membershipId ? prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId } }) : Promise.resolve(null),
     ]);
-    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const replacedIds = await replacedApprovalIds(prisma, caseId);
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
     const outcome = (approved?.outcome ?? null) as Outcome | null;
     const financial = financialOf(c, outcome, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
@@ -976,6 +1001,7 @@ export const complaintCaseService = {
       hasFinding: findings.length > 0,
       hasProposal: !!latestProposal,
       latestProposerId: latestProposal?.proposerId ?? null,
+      pendingReplacementProposer: (await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId, approvedAt: null, rejectedAt: null }, select: { proposedBy: true } }))?.proposedBy ?? null,
       approvedOutcomeIsKnown: !!approved,
       lastExecState: executions[executions.length - 1]?.state ?? null,
       gymOwnerId: gym?.ownerId ?? null,
@@ -990,8 +1016,10 @@ export const complaintCaseService = {
         : null,
       claims,
       evidence: evidence.map((e) => ({ ...e, partySubmitted: e.submittedBy !== null, provenanceLabel: provenanceLabelVi(e.provenanceType), verificationStatus: verificationOf(e.source), verificationLabel: verificationLabelVi(verificationOf(e.source)) })),
+      refundQuote: await fixedRefundOf(prisma, caseId).then((q) => (q ? { amount: q.amount.toString(), pricePaid: q.pricePaid.toString(), quotedAt: q.quotedAt, durationDays: q.durationDays, startDate: q.startDate, endDate: q.endDate, paymentTxnId: q.paymentTxnId } : null)),
+      replacement: await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId }, orderBy: { createdAt: 'desc' }, select: { id: true, oldApprovalId: true, proposedBy: true, reason: true, createdAt: true, approvedBy: true, approvedAt: true, rejectedBy: true, rejectedAt: true } }),
       sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
-      deadlines: await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } }),
+      deadlines: (await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } })).map((d) => ({ ...d, effectiveDueAt: new Date(d.dueAt.getTime() + d.pausedSeconds * 1000), paused: d.pausedAt !== null })),
       appeal: await adminAppealView(c),
       statements,
       shares,
@@ -1030,7 +1058,8 @@ export const complaintCaseService = {
     ]);
     const evidence = evidenceAll.filter((e) => evidenceVisibleTo(e, kind, actor.id, c.gymId, shares));
     const statements = statementsAll.filter((s) => statementVisibleTo(s, kind, actor.id, shares));
-    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const replacedIds = await replacedApprovalIds(prisma, caseId);
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
     const financial = financialOf(c, (approved?.outcome ?? null) as Outcome | null, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     const resolved = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
@@ -1081,13 +1110,21 @@ function provenanceLabelVi(p: string): string {
 }
 
 /** Refund outcomes need a membership that can still be refunded NOW (the executor asks refundByAdmin again at execution time). */
-export async function assertRefundable(db: Db, c: { gymId: string; membershipId: string | null; reporterUserId: string }) {
+export async function assertRefundable(db: Db, c: { id: string; gymId: string; membershipId: string | null; reporterUserId: string }) {
   if (!c.membershipId) throw caseError(409, 'MEMBERSHIP_REQUIRED', 'Hồ sơ chưa gắn gói hội viên nên không đề xuất hoàn tiền được');
   const m = await db.gymMembershipContract.findUnique({ where: { id: c.membershipId } });
   if (!m) throw caseError(404, 'MEMBERSHIP_NOT_FOUND', 'Không tìm thấy gói hội viên');
   if (m.gymId !== c.gymId || m.clientId !== c.reporterUserId) throw caseError(409, 'MEMBERSHIP_MISMATCH', 'Gói hội viên không thuộc người phản ánh hoặc chi nhánh của hồ sơ');
-  if (m.status !== 'ACTIVE') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái đang hoạt động nên không hoàn được', { status: m.status });
+  // E1: ACTIVE or EXPIRED (the term may end while the case runs); CANCELLED / anything else cannot be refunded again.
+  if (m.status !== 'ACTIVE' && m.status !== 'EXPIRED') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái hoàn được', { status: m.status });
   if (!m.paymentTxnId) throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên chưa có giao dịch thanh toán để hoàn');
+  const quote = await db.gymCaseRefundQuote.findUnique({ where: { caseId: c.id } });
+  if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại nên không hoàn tiền được');
+}
+
+/** E1: the amount fixed for the case (written when it was opened). */
+export async function fixedRefundOf(db: Db, caseId: string) {
+  return db.gymCaseRefundQuote.findUnique({ where: { caseId } });
 }
 
 async function writeStatement(tx: Tx, c: CaseRow, partyRole: 'MEMBER' | 'ADMIN_ON_BEHALF', authorId: string, source: string, b: { text: string; supplementReason?: string }) {
@@ -1132,7 +1169,7 @@ export interface AllowedAction {
 function computeAllowedActions(
   actor: Actor,
   c: CaseRow,
-  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; linkedUserIds: string[]; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
+  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; pendingReplacementProposer: string | null; linkedUserIds: string[]; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
 ): AllowedAction[] {
   const isInv = c.investigatorId === actor.id;
   const open = !TERMINAL_STATUSES.includes(c.status as CaseStatus);
@@ -1161,6 +1198,13 @@ function computeAllowedActions(
   const execOk = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && !party;
   push('EXECUTE', execOk ? undefined : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : party ? 'CONFLICT_OF_INTEREST' : c.execStatus === 'BUSINESS_DONE' ? 'ALREADY_EXECUTED' : 'EXECUTION_' + c.execStatus);
   push('RECONCILE_EXECUTION', c.execStatus === 'EXECUTING' ? undefined : 'NOTHING_TO_RECONCILE');
+  // E3: replacing an approved decision that has had no effect (the service re-proves "no effect" with the ledger when it is called)
+  const repOn = replacementEnabled();
+  const pendingRep = x.pendingReplacementProposer;
+  const canProposeRep = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && pendingRep === null && !party && actor.role === 'ADMIN';
+  list.push({ action: 'PROPOSE_DECISION_REPLACEMENT', allowed: flag && repOn && canProposeRep, ...(flag && repOn && canProposeRep ? {} : { reason: !flag ? 'GYM_CASE_DISABLED' : !repOn ? 'DECISION_REPLACEMENT_DISABLED' : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : !['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) ? 'DECISION_HAS_EFFECT' : pendingRep !== null ? 'REPLACEMENT_PENDING' : party ? 'CONFLICT_OF_INTEREST' : 'NOT_ALLOWED' }) });
+  const canDecideRep = pendingRep !== null && pendingRep !== actor.id && !party && actor.role === 'ADMIN';
+  for (const a of ['APPROVE_DECISION_REPLACEMENT', 'REJECT_DECISION_REPLACEMENT']) list.push({ action: a, allowed: flag && repOn && canDecideRep, ...(flag && repOn && canDecideRep ? {} : { reason: !flag ? 'GYM_CASE_DISABLED' : !repOn ? 'DECISION_REPLACEMENT_DISABLED' : pendingRep === null ? 'NO_PENDING_REPLACEMENT' : pendingRep === actor.id ? 'SELF_APPROVAL_FORBIDDEN' : 'CONFLICT_OF_INTEREST' }) });
   push('ASSIGN_APPEAL_REVIEWER', st !== 'APPEAL_REVIEW' ? 'NO_APPEAL_WAITING' : party ? 'CONFLICT_OF_INTEREST' : undefined);
   return list;
 }

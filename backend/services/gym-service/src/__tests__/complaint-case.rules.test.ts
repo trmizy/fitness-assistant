@@ -64,7 +64,7 @@ test('MEM_ACCESS and GYM_GENERAL have NO money exit even when established; not e
 });
 
 test('status machine: terminal states have no exit; the manual endpoint cannot reach DECISION_APPROVED, AWAITING_APPROVAL or FINDING_RECORDED', () => {
-  assert.deepEqual(TRANSITIONS.DECISION_APPROVED, ['APPEAL_REVIEW'], 'the only way out is the single appeal');
+  assert.deepEqual(TRANSITIONS.DECISION_APPROVED, ['APPEAL_REVIEW', 'FINDING_RECORDED'], 'the only ways out: the single appeal, and E3 replacement of a decision with no effect');
   assert.deepEqual(TRANSITIONS.APPEAL_REVIEW, ['ASSESSING']);
   assert.deepEqual(TRANSITIONS.REJECTED_INTAKE, []);
   assert.equal(canTransition('ASSESSING', 'FINDING_RECORDED'), true);
@@ -120,7 +120,7 @@ test('A1 pure rules: SLA day 10 / 14, deadlines 72h / 48h from a delivered notic
   assert.equal(appealWindow(t0, at(14)).open, true);
   assert.equal(appealWindow(t0, at(14, 1)).open, false);
   assert.deepEqual(appealWindow(null, at(400)), { open: true, closesAt: null }, 'no valid notice: the window never started');
-  assert.equal(TRANSITIONS.DECISION_APPROVED.join(), 'APPEAL_REVIEW');
+  assert.equal(TRANSITIONS.DECISION_APPROVED.join(), 'APPEAL_REVIEW,FINDING_RECORDED');
   assert.equal(canTransitionManually('DECISION_APPROVED', 'APPEAL_REVIEW'), false, 'only the appeal service can re-open');
   assert.equal(canTransitionManually('REJECTED_INTAKE', 'ASSESSING'), false);
 });
@@ -235,4 +235,16 @@ test('Q31 four eyes: a user linked to the gym / brand (linkedUserIds) is refused
   assert.deepEqual(checkApprover({ ...base, linkedUserIds: ['staff-1', 'brand-owner'] }), { ok: true });
   assert.equal((checkApprover({ ...base, approverId: 'staff-1', linkedUserIds: ['staff-1'] }) as any).code, 'CONFLICT_OF_INTEREST');
   assert.equal((checkApprover({ ...base, approverId: 'brand-owner', linkedUserIds: ['staff-1', 'brand-owner'] }) as any).code, 'CONFLICT_OF_INTEREST');
+});
+
+test('E1 pure: unused value on the complaint date - hand-computed 300,000 x 20/30 = 200,000.00; 0 after the term; never above the price; the executor date does not matter', async () => {
+  const { unusedValueAt } = await import('../services/complaint-case/rules');
+  const C = new Date('2026-11-01T00:00:00Z');
+  const day = 86_400_000;
+  const end = new Date(C.getTime() + 20 * day);
+  assert.equal(unusedValueAt(300_000, 30, end, C), 200_000);
+  assert.equal(unusedValueAt(300_000, 30, end, new Date(C.getTime() + 20 * day)), 0, 'on the last day nothing is left');
+  assert.equal(unusedValueAt(300_000, 30, end, new Date(C.getTime() + 25 * day)), 0, 'after the term');
+  assert.equal(unusedValueAt(300_000, 30, new Date(C.getTime() + 45 * day), C), 300_000, 'never above the price paid');
+  assert.equal(unusedValueAt(100_000, 30, new Date(C.getTime() + 10 * day), C), 33_333.33, 'rounded to 2 decimals');
 });

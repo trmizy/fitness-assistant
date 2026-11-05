@@ -14,7 +14,12 @@ import { userClient } from '../clients/user.client';
 import { complaintCaseService } from '../services/complaint-case/case.service';
 import { complaintCaseExecutionService } from '../services/complaint-case/execution.service';
 import { appealService } from '../services/complaint-case/appeal.service';
-import { runCaseDeadlineSweep, runCaseSlaSweep } from '../services/complaint-case/deadlines.service';
+import { runCaseDeadlineSweep as sweepDeadlines, runCaseSlaSweep, setAccountLockLookupForTests } from '../services/complaint-case/deadlines.service';
+/** the two counters these A1 tests care about (E4's pause/resume are covered in the E4 test) */
+const runCaseDeadlineSweep = async (now?: Date) => {
+  const r = await sweepDeadlines(now);
+  return { expired: r.expired, stepMoved: r.stepMoved };
+};
 import {
   approve, call, cleanup, driveToProposal, installStubs, makeComplaint, makeGym, makeMembership, newAdmin, notices, notify, ok, openToAssessing, patch,
   removeStubs, setFlag, skip, startApp, stopApp, token,
@@ -50,11 +55,13 @@ test.after(async () => {
 test.beforeEach(() => {
   if (skip) return;
   setFlag(true);
+  setAccountLockLookupForTests(async () => false); // nobody is locked in these A1 tests
   pay.releases.length = 0;
   pay.adminNotices.length = 0;
 });
 test.afterEach(async () => {
   if (skip) return;
+  setAccountLockLookupForTests();
   await prisma.gymPartner.deleteMany({ where: { legalName: 'Other Partner' } });
   await cleanup();
 });

@@ -2,10 +2,12 @@ import { prisma } from '../../repositories/prisma';
 import { paymentClient } from '../../clients/payment.client';
 import { membershipService } from '../membership.service';
 import { caseError, forbiddenRole } from './errors';
+import { currentApprovalWhere, hasPendingReplacement, replacedApprovalIds } from './decision-replacement.service';
 import { gymCaseEnabled } from './flags';
 import {
   ackTimesOf,
   assertRefundable,
+  fixedRefundOf,
   gymLinkedUserIds,
   evidenceGuard,
   financialOf,
@@ -63,7 +65,7 @@ export interface RefundResult {
 }
 export interface ExecDeps {
   /** The money exit. Default: membershipService.refundByAdmin. */
-  refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED', caseDecisionId: string) => Promise<RefundResult>;
+  refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED', caseDecisionId: string, fixedAmount: number) => Promise<RefundResult>;
   /** Replays the payment-service release of a membership by its key (idempotent read of the first answer). Default: paymentClient.releaseMembershipPending with refund 0. */
   replayRelease: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string; ptUserId: string | null }) => Promise<{ refundedToClient?: string; shortfall?: string }>;
   /** TEST SEAM - awaited after the case was set to EXECUTING and before money is asked to move. */
@@ -72,7 +74,7 @@ export interface ExecDeps {
   afterRefund?: () => Promise<void>;
 }
 export const defaultExecDeps = (): ExecDeps => ({
-  refund: (membershipId, actorId, reason, caseDecisionId) => membershipService.refundByAdmin(membershipId, actorId, reason, { caseDecisionId }) as unknown as Promise<RefundResult>,
+  refund: (membershipId, actorId, reason, caseDecisionId, fixedAmount) => membershipService.refundByAdmin(membershipId, actorId, reason, { caseDecisionId, fixedAmount }) as unknown as Promise<RefundResult>,
   replayRelease: (m) =>
     paymentClient.releaseMembershipPending({
       transactionId: m.paymentTxnId,
@@ -114,10 +116,13 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
     if (!approval) throw caseError(404, 'DECISION_NOT_FOUND', 'Không tìm thấy quyết định');
     if (approval.proposal.caseId !== c.id) throw caseError(409, 'DECISION_WRONG_CASE', 'Quyết định này không thuộc hồ sơ');
   } else {
-    approval = await findApproval({ result: 'APPROVED', proposal: { caseId: c.id } });
+    // E3: the current decision = the newest APPROVED approval that was NOT replaced by an approved replacement
+    approval = await prisma.gymCaseApproval.findFirst({ where: await currentApprovalWhere(prisma, c.id), include: approvalInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     if (!approval) throw caseError(409, 'DECISION_NOT_APPROVED', 'Hồ sơ chưa có quyết định được duyệt');
   }
   if (approval.result !== 'APPROVED') throw caseError(409, 'DECISION_NOT_APPROVED', 'Quyết định chưa được duyệt');
+  if ((await replacedApprovalIds(prisma, c.id)).includes(approval.id)) throw caseError(409, 'DECISION_REPLACED', 'Quyết định này đã được thay thế: chưa thực thi được', { decisionId: approval.id });
+  if (await hasPendingReplacement(prisma, c.id)) throw caseError(409, 'REPLACEMENT_PENDING', 'Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được');
   if (c.status !== 'DECISION_APPROVED') throw caseError(409, 'CASE_STATE_NOT_ALLOWED', 'Hồ sơ chưa ở trạng thái đã duyệt quyết định', { status: c.status });
 
   // The outcome is computed again from (class, the finding the proposal was built on) - and that finding must still be the case's latest.
@@ -153,7 +158,11 @@ function requireUuidDecision(id: string) {
 async function assertEvidenceUnchanged(l: Loaded): Promise<void> {
   const { c, approval } = l;
   if (!(c.execStatus === 'NOT_STARTED' || c.execStatus === 'EXEC_BLOCKED')) return; // a replay must still answer
-  const guard = await evidenceGuard(prisma, c, approval.proposal.evidenceSnapshot as unknown as SnapshotEntry[]);
+  const raw = await evidenceGuard(prisma, c, approval.proposal.evidenceSnapshot as unknown as SnapshotEntry[]);
+  // E1: for a refund with a fixed quote the membership's own status / dates / check-ins may legitimately move on (the term ends while the case runs); the executor checks
+  // the facts that matter (status ACTIVE|EXPIRED, money still held) itself, so that drift alone must not strand an approved decision.
+  const staleLive = isRefundOutcome(l.outcome) ? raw.staleLive.filter((s) => !s.startsWith('MEMBERSHIP_RECORD#') && !s.startsWith('CHECKIN_SUMMARY#')) : raw.staleLive;
+  const guard = { ...raw, staleLive, changed: raw.newIds.length > 0 || raw.mutatedIds.length > 0 || staleLive.length > 0 };
   if (!guard.changed) return;
   const acked = changeAcknowledged(guard, approval.evidenceChangeAcknowledged, await ackTimesOf(prisma, c));
   const afterApproval = guard.staleLive.length > 0 || (guard.lastChangeAt !== null && guard.lastChangeAt.getTime() > approval.createdAt.getTime());
@@ -241,9 +250,18 @@ async function runAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string
   if (isRefundOutcome(outcome)) {
     const reason = refundReasonFor(outcome)!;
     const pre = await prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId! }, include: { referral: true } });
+    const quote = await fixedRefundOf(prisma, c.id);
+    if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại');
+    const fixed = Math.min(Number(quote.amount), Number(quote.pricePaid)); // never above what was paid
+    if (pre?.payoutReleasedAt && pre.status !== 'CANCELLED' && fixed > 0) {
+      // E1: the money held for THIS membership was already released (before the case existed / outside it). Nothing is paid, nothing is taken from another membership or the
+      // gym's money: the shortfall is recorded and the case closes as NEEDS_RECONCILIATION - never shown as paid.
+      observation = { refundAmount: String(fixed), refundedToClient: '0.00', releaseShortfall: fixed.toFixed(2), clawbackObserved: true, observedAt: new Date().toISOString() };
+      return finish(c, approval, actor, via + ':HELD_MONEY_GONE', observation);
+    }
     let r: RefundResult;
     try {
-      r = await deps.refund(c.membershipId!, actor.id, reason, approval.id);
+      r = await deps.refund(c.membershipId!, actor.id, reason, approval.id, fixed);
     } catch (e: any) {
       // refundByAdmin refuses (409/404/400) BEFORE any money step when the membership is no longer refundable: nothing moved, the case waits.
       if (typeof e?.status === 'number' && e.status >= 400 && e.status < 500) {
@@ -294,6 +312,9 @@ export const complaintCaseExecutionService = {
         data: { execStatus: 'EXECUTING', execDecisionId: approval.id, version: { increment: 1 } },
       });
       if (r.count !== 1) throw caseError(409, EXECUTION_IN_PROGRESS, 'Quyết định đang được thực thi bởi một lệnh khác', { decisionId: approval.id });
+      // E3: ordered against a replacement by the case row lock taken above - one proposed or approved before this point stops the start
+      if (await hasPendingReplacement(tx, c.id)) throw caseError(409, 'REPLACEMENT_PENDING', 'Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được');
+      if ((await replacedApprovalIds(tx, c.id)).includes(approval.id)) throw caseError(409, 'DECISION_REPLACED', 'Quyết định này đã được thay thế: chưa thực thi được');
       const attempt = (await tx.gymCaseExecution.count({ where: { idempotencyKey: key, state: 'STARTED' } })) + 1;
       await tx.gymCaseExecution.create({ data: { caseId: c.id, decisionId: approval.id, outcome, actorUserId: actor.id, idempotencyKey: key, attempt, state: 'STARTED' } });
       await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: 'EXECUTION_STARTED', note: `attempt ${attempt}`, payload: toJson({ decisionId: approval.id, outcome, attempt }) } });
@@ -337,7 +358,7 @@ export const complaintCaseExecutionService = {
       return handOver('STATE_UNREADABLE', { message: String(e?.message ?? '').slice(0, 200) });
     }
     if (!m) return handOver('MEMBERSHIP_MISSING');
-    if (m.status === 'ACTIVE') {
+    if (m.status === 'ACTIVE' || (m.status === 'EXPIRED' && !m.payoutReleasedAt)) {
       const r = await runAndFinish(l, actor, deps, 'RECONCILE_RERUN');
       return { action: 'RERAN_REFUND' as const, ...answer(l, false, r.view) };
     }

@@ -4,9 +4,13 @@ import { logger } from '@gym-coach/shared';
 import { complaintCaseService, type Actor } from '../services/complaint-case/case.service';
 import { complaintCaseExecutionService } from '../services/complaint-case/execution.service';
 import { appealService } from '../services/complaint-case/appeal.service';
+import { decisionReplacementService } from '../services/complaint-case/decision-replacement.service';
 import { explainerService, type GymScope } from '../services/complaint-case/explainer.service';
 import {
   ackBody,
+  replaceApproveBody,
+  replaceProposeBody,
+  replaceRejectBody,
   appealBody,
   assignReviewerBody,
   assessmentBody,
@@ -167,6 +171,21 @@ export const complaintCaseController = {
       return { data: await complaintCaseExecutionService.reconcileExecution(a, idParam(req)) };
     }),
 
+  replacementPropose: (req: Request, res: Response) =>
+    run(req, res, 'replacement-propose', async (a, k) => {
+      const r = await decisionReplacementService.propose(a, idParam(req), parse(replaceProposeBody, req.body).reason, k);
+      return { status: 201, data: r.result, replayed: r.replayed };
+    }),
+  replacementApprove: (req: Request, res: Response) =>
+    run(req, res, 'replacement-approve', async (a, k) => {
+      const r = await decisionReplacementService.approve(a, idParam(req), parse(replaceApproveBody, req.body), k);
+      return { data: r.result, replayed: r.replayed };
+    }),
+  replacementReject: (req: Request, res: Response) =>
+    run(req, res, 'replacement-reject', async (a, k) => {
+      const r = await decisionReplacementService.reject(a, idParam(req), parse(replaceRejectBody, req.body).reason, k);
+      return { data: r.result, replayed: r.replayed };
+    }),
   assignAppealReviewer: (req: Request, res: Response) =>
     run(req, res, 'appeal-assign', async (a, k) => {
       const r = await appealService.assignReviewer(a, idParam(req), parse(assignReviewerBody, req.body).reviewerId, k);

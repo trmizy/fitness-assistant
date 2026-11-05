@@ -99,7 +99,8 @@ export const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = 
   FINDING_RECORDED: ['AWAITING_APPROVAL', 'ASSESSING'],
   AWAITING_APPROVAL: ['DECISION_APPROVED', 'ASSESSING'],
   // A1: the ONLY way out of DECISION_APPROVED is the member's single appeal (appeal.service.fileAppeal); the manual endpoint can never target APPEAL_REVIEW.
-  DECISION_APPROVED: ['APPEAL_REVIEW'],
+  // the ONLY ways out: the member's single appeal (APPEAL_REVIEW) and E3 (an approved replacement of a decision with NO effect puts the case back to FINDING_RECORDED)
+  DECISION_APPROVED: ['APPEAL_REVIEW', 'FINDING_RECORDED'],
   REJECTED_INTAKE: [],
   APPEAL_REVIEW: ['ASSESSING'],
 };
@@ -279,6 +280,22 @@ export function changeAcknowledged(g: ChangeCheckResult, approverTicked: boolean
   return ackTimes.some((t) => t.getTime() >= g.lastChangeAt!.getTime());
 }
 
+// ── E1: the refund amount is fixed as of the complaint date ──────────────────────────────────────────────────────
+
+/**
+ * The prorated UNUSED value of a membership on a given day: price x (days left on that day / total days), rounded to 2 decimals, never above the price. Pure. This is the
+ * SAME formula membershipService.quoteRefund has always used (which passes "now"); a case passes the day the member filed the complaint instead (E1).
+ * Hand example: price 300,000, 30-day plan, complaint filed with 20 days left -> 300,000 x 20/30 = 200,000.00 (and still 200,000.00 when the case is executed after the term ended).
+ */
+export function unusedValueAt(price: number, durationDays: number, endDate: Date | null, at: Date): number {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const totalMs = durationDays * dayMs;
+  const end = endDate ? endDate.getTime() : at.getTime();
+  const remainingMs = Math.max(0, end - at.getTime());
+  const fraction = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0;
+  return Math.min(price, Math.round(price * fraction * 100) / 100);
+}
+
 // ── Money axis (§1.2.3), DERIVED from what payment-service returned ───────────────────────────────────────────────
 
 export type FinancialState =
@@ -354,6 +371,10 @@ export function deriveFinancialView(i: {
     memberShortfall: releaseShort > 0 ? releaseShort.toFixed(2) : null,
     referralClawbackShortfall: clawShort > 0 ? clawShort.toFixed(2) : null,
   };
+  if (refunded <= 0 && releaseShort > 0) {
+    // E1: the amount was fixed but the money held for this membership is gone (released earlier): nothing was paid and nothing is paid from elsewhere
+    return { ...withMoney, state: 'NEEDS_RECONCILIATION', group: 'F3', label: `Chưa trả được khoản hoàn ${releaseShort.toFixed(2)}: tiền giữ của gói này không còn, cần đối soát (không lấy từ nơi khác)` };
+  }
   if (releaseShort > 0) {
     return { ...withMoney, state: 'LEDGER_POSTED_PARTIAL', group: 'F3', label: `Đã ghi vào ví Gymini ${refunded.toFixed(2)}, còn thiếu ${releaseShort.toFixed(2)} (chưa trả)` };
   }

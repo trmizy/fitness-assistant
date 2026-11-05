@@ -83,6 +83,10 @@ export const evidenceBody = z
   })
   .strict();
 
+export const replaceProposeBody = z.object({ reason: text(4000) }).strict();
+export const replaceApproveBody = z.object({ reason: text(4000), conflictOfInterestDeclaredNone: z.boolean() }).strict();
+export const replaceRejectBody = z.object({ reason: text(4000) }).strict();
+
 export const executeBody = z.object({ decisionId: uuid.optional() }).strict();
 export const emptyBody = z.object({}).strict();
 

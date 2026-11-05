@@ -258,8 +258,8 @@ export const membershipService = {
   },
 
   /** Compute the prorated refund (by remaining days) for an ACTIVE membership, without mutating. */
-  quoteRefund(contract: { priceAtPurchase: any; durationDaysSnapshot: number; startDate: Date | null; endDate: Date | null }) {
-    const now = Date.now();
+  quoteRefund(contract: { priceAtPurchase: any; durationDaysSnapshot: number; startDate: Date | null; endDate: Date | null }, at: Date = new Date()) {
+    const now = at.getTime();
     const totalMs = contract.durationDaysSnapshot * 24 * 60 * 60 * 1000;
     const end = contract.endDate ? contract.endDate.getTime() : now;
     const remainingMs = Math.max(0, end - now);
@@ -336,21 +336,32 @@ export const membershipService = {
    * GET /admin/payments/reconciliation before retrying by hand; the guarantee this closes is
    * only that the retry itself is now safe, not that failures become invisible.
    */
-  async refundByAdmin(membershipId: string, adminId: string, reason: AdminRefundReason, opts: { caseDecisionId?: string } = {}) {
+  async refundByAdmin(membershipId: string, adminId: string, reason: AdminRefundReason, opts: { caseDecisionId?: string; fixedAmount?: number } = {}) {
     if (!ADMIN_REFUND_REASONS.includes(reason)) throw err('INVALID_REFUND_REASON', 400);
     // Q21: an independent refund stays allowed; one that would bypass an open Gym Case / contradict an approved decision is refused (409, stable code).
     await assertRefundNotBypassingCase(membershipId, opts);
 
     const contract = await membershipRepository.findByIdWithReferral(membershipId);
     if (!contract) throw err('Membership not found', 404);
-    if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {
-      await membershipRepository.expireIfPastEndDate(contract);
-      throw err('Membership has already expired', 409);
+    const fixed = opts.fixedAmount;
+    if (fixed === undefined) {
+      if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {
+        await membershipRepository.expireIfPastEndDate(contract);
+        throw err('Membership has already expired', 409);
+      }
+      if (contract.status !== 'ACTIVE') throw err(`Cannot refund a membership in ${contract.status} status`, 409);
+      if (!contract.paymentTxnId) throw err('No payment on record to refund', 409);
+    } else {
+      // E1: a refund FROM A CASE with an amount fixed at the complaint date. Only the case executor may use it (the decision id is verified by the guard above); it works
+      // from the money still held for THIS membership, so an ACTIVE or EXPIRED (not yet released) membership is fine. Never above what was paid; nothing is taken from elsewhere.
+      if (!opts.caseDecisionId) throw err('FIXED_AMOUNT_NEEDS_CASE_DECISION', 400);
+      if (contract.status !== 'ACTIVE' && contract.status !== 'EXPIRED') throw err(`Cannot refund a membership in ${contract.status} status`, 409);
+      if (!contract.paymentTxnId) throw err('No payment on record to refund', 409);
+      if (contract.payoutReleasedAt) throw err('MEMBERSHIP_PAYOUT_ALREADY_RELEASED', 409);
+      if (!(fixed >= 0) || fixed > Number(contract.priceAtPurchase)) throw err('FIXED_AMOUNT_ABOVE_PAID', 409);
     }
-    if (contract.status !== 'ACTIVE') throw err(`Cannot refund a membership in ${contract.status} status`, 409);
-    if (!contract.paymentTxnId) throw err('No payment on record to refund', 409);
 
-    const { refundAmount, remainingDays } = this.quoteRefund(contract);
+    const { refundAmount, remainingDays } = fixed === undefined ? this.quoteRefund(contract) : { refundAmount: fixed, remainingDays: 0 };
     const price = Number(contract.priceAtPurchase);
 
     let clawback: { recovered: string; shortfall: string } | null = null;
