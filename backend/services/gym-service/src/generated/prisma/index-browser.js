@@ -916,6 +916,8 @@ exports.Prisma.GymCaseDeadlineScalarFieldEnum = {
   dueAt: 'dueAt',
   status: 'status',
   resolvedAt: 'resolvedAt',
+  pausedAt: 'pausedAt',
+  pausedSeconds: 'pausedSeconds',
   createdAt: 'createdAt'
 };
 
@@ -930,6 +932,38 @@ exports.Prisma.GymCaseAppealScalarFieldEnum = {
   reviewerId: 'reviewerId',
   assignedAt: 'assignedAt',
   reviewedFindingId: 'reviewedFindingId'
+};
+
+exports.Prisma.GymCaseRefundQuoteScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  membershipId: 'membershipId',
+  paymentTxnId: 'paymentTxnId',
+  quotedAt: 'quotedAt',
+  pricePaid: 'pricePaid',
+  durationDays: 'durationDays',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  amount: 'amount',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseDecisionReplacementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  oldApprovalId: 'oldApprovalId',
+  proposedBy: 'proposedBy',
+  reason: 'reason',
+  checksAtProposal: 'checksAtProposal',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  checksAtApproval: 'checksAtApproval',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
 };
 
 exports.Prisma.SortOrder = {
@@ -1494,7 +1528,9 @@ exports.Prisma.ModelName = {
   GymCaseAccessLog: 'GymCaseAccessLog',
   GymCaseNotice: 'GymCaseNotice',
   GymCaseDeadline: 'GymCaseDeadline',
-  GymCaseAppeal: 'GymCaseAppeal'
+  GymCaseAppeal: 'GymCaseAppeal',
+  GymCaseRefundQuote: 'GymCaseRefundQuote',
+  GymCaseDecisionReplacement: 'GymCaseDecisionReplacement'
 };
 
 /**
