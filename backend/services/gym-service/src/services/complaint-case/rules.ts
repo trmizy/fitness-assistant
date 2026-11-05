@@ -371,12 +371,12 @@ export function deriveFinancialView(i: {
     memberShortfall: releaseShort > 0 ? releaseShort.toFixed(2) : null,
     referralClawbackShortfall: clawShort > 0 ? clawShort.toFixed(2) : null,
   };
-  if (releaseShort > 0) {
-    return { ...withMoney, state: 'LEDGER_POSTED_PARTIAL', group: 'F3', label: `Đã ghi vào ví Gymini ${refunded.toFixed(2)}, còn thiếu ${releaseShort.toFixed(2)} (chưa trả)` };
-  }
   if (refunded <= 0 && releaseShort > 0) {
     // E1: the amount was fixed but the money held for this membership is gone (released earlier): nothing was paid and nothing is paid from elsewhere
     return { ...withMoney, state: 'NEEDS_RECONCILIATION', group: 'F3', label: `Chưa trả được khoản hoàn ${releaseShort.toFixed(2)}: tiền giữ của gói này không còn, cần đối soát (không lấy từ nơi khác)` };
+  }
+  if (releaseShort > 0) {
+    return { ...withMoney, state: 'LEDGER_POSTED_PARTIAL', group: 'F3', label: `Đã ghi vào ví Gymini ${refunded.toFixed(2)}, còn thiếu ${releaseShort.toFixed(2)} (chưa trả)` };
   }
   if (refunded <= 0) {
     return { ...withMoney, state: 'NO_REFUNDABLE_AMOUNT', group: 'F2', label: 'Không có khoản nào để hoàn (phần chưa dùng bằng 0)' };
