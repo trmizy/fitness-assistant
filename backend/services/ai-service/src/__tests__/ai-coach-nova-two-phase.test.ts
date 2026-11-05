@@ -11,7 +11,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { generateKeyPairSync, randomUUID, sign, type KeyObject } from "node:crypto";
 import type { ConverseCommandInput, ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
-import { approvedConfigurationHash, NOVA_ACCEPTED, NOVA_TWO_PHASE, parseConfiguration, type SessionConfig } from "../evaluation/bedrock-pilot/config";
+import { approvedConfigurationHash, NOVA_ACCEPTED, NOVA_TWO_PHASE, parseConfiguration, PilotError, type SessionConfig } from "../evaluation/bedrock-pilot/config";
 import { inferenceReleaseFile, measurementPhaseRecord, novaLedgerScope, verifyInferenceRelease } from "../evaluation/bedrock-pilot/ledger";
 import { converseInput } from "../evaluation/bedrock-pilot/session";
 import { runControlledPilot } from "../evaluation/bedrock-pilot/runner";
@@ -59,7 +59,8 @@ async function fixture(options: { phases?: boolean; budget?: Partial<SessionConf
     outputContract: "CLAIM_MAP_V3", reviewerMode: "OWNER_ONLY_EXPLORATORY", promptVersion: "CLAIM_PROMPT_V4_1", design: { arms: [CTX, RAG], policies: ["MINIMAL"], repeats: 2 },
     budget: { maxCalls: 8, maxInputTokensPerCall: 12000, maxInputTokens: 144000, maxOutputTokens: 16388, maxEstimatedUsd: 1, maxFailures: 2, ...options.budget },
     sources: { workspaceRoot: implementationRoot, casesFile: a.casesFile, claimRegistryConfigFile: file("registry.json") } });
-  Object.assign(c.pricing, { authority: "OWNER_CONFIRMED_AWS", modelId: NOVA_MODEL, region: NOVA_REGION, inferenceProfile: null, confirmedBy: "TEST FIXTURE owner" });
+  // This suite expires authorization independently of pricing; do not change the shared pilot fixture.
+  Object.assign(c.pricing, { authority: "OWNER_CONFIRMED_AWS", modelId: NOVA_MODEL, region: NOVA_REGION, inferenceProfile: null, confirmedBy: "TEST FIXTURE owner", expiresAt: new Date(Date.now() + 24 * hour).toISOString() });
   const p = await calculatePilotPins(implementationRoot, a.casesFile, c.design, c.sources, c.promptVersion); c.pins = p.pins;
   c.novaScope = { tokenPayloadHashes: [...new Set(p.preparation.rows.map(r => serializeNova(converseInput(c, r.prompt)).identity.tokenPayloadHash))], measureCalls: 4, inferenceCalls: 8,
     awsProfile: "gymini-fixture-profile", ownerAcknowledgements: { ...NOVA_ACCEPTED }, ...(options.phases === false ? {} : { phases: NOVA_TWO_PHASE }) };
@@ -246,7 +247,8 @@ test("approval expiry ends both phases: after the approval expires the inference
     const c = signed(f.base); f.issue(c);
     const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
     now = Date.parse(c.approval!.expiresAt) + 1;
-    await assert.rejects(f.run(c, dir, { resume: true }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
+    assert.ok(Date.parse(c.pricing.expiresAt) > now);
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && ["LiveNotApproved", "INFERENCE_RELEASE_EXPIRED"].includes(e.code));
     assert.equal(f.inferences().length, 0);
   } finally { Date.now = original; f.close(); }
 });
@@ -255,17 +257,23 @@ test("dispatch boundary: approval expiring after a measurement reservation sends
   const originalNow = Date.now, originalWrite = fs.writeFileSync; let now = originalNow(); Date.now = () => now;
   const f = await fixture();
   try {
-    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); let advanced = false;
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); let reservations = 0;
     fs.writeFileSync = ((...args: Parameters<typeof fs.writeFileSync>) => {
       originalWrite(...args);
-      if (typeof args[1] === "string" && args[1].includes('"event":"MEASURE_RESERVED"')) { now = Date.parse(c.approval!.expiresAt) + 1; advanced = true; }
+      if (typeof args[1] === "string" && args[1].includes('"event":"MEASURE_RESERVED"')) {
+        const { record } = JSON.parse(args[1]);
+        if (record?.event === "MEASURE_RESERVED" && record.state) { reservations++; now = Date.parse(c.approval!.expiresAt) + 1; }
+      }
     }) as typeof fs.writeFileSync;
-    await assert.rejects(f.run(c, dir, { measureOnly: true }), /TokenPreflightFailed/);
-    assert.equal(advanced, true); assert.equal(f.sent.length, 0, "approval checked after durable reservation, before measurement send");
+    await assert.rejects(f.run(c, dir, { measureOnly: true }), e => e instanceof PilotError && e.code === "TokenPreflightFailed");
+    assert.equal(reservations, 1); assert.ok(Date.parse(c.pricing.expiresAt) > now);
+    assert.equal(f.sent.length, 0, "approval checked after durable reservation, before measurement send");
+    const results = openJournal(path.join(dir, "results.jsonl")).records as { event: string; category?: string }[];
+    assert.ok(results.some(r => r.event === "TOKEN_PREFLIGHT_FAILED" && r.category === "LiveNotApproved"), "measurement fails for authorization, not pricing");
     const records = openJournal(path.join(f.ledger, c.approval!.approvalId + ".jsonl")).records as { event: string; state?: { countCalls: number; stopped: boolean } }[];
     assert.ok(records.some(r => r.event === "COUNT_FAILED" && r.state?.stopped));
     assert.equal(measurementPhaseRecord(f.ledger, c.approval!.approvalId), null);
-    await assert.rejects(f.run(c, dir, { measureOnly: true, resume: true }), /LiveNotApproved|APPROVAL_EXPIRED/);
+    await assert.rejects(f.run(c, dir, { measureOnly: true, resume: true }), e => e instanceof PilotError && e.code === "LiveNotApproved");
     assert.equal(f.sent.length, 0);
   } finally { fs.writeFileSync = originalWrite; Date.now = originalNow; f.close(); }
 });
@@ -275,14 +283,17 @@ test("dispatch boundary: separate release expiry after inference reservation blo
   const f = await fixture();
   try {
     const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true });
-    const expiresAt = new Date(now + 60000).toISOString(); f.release(c, { expiresAt }); let advanced = false;
+    const expiresAt = new Date(now + 60000).toISOString(); f.release(c, { expiresAt }); let reservations = 0;
     fs.writeFileSync = ((...args: Parameters<typeof fs.writeFileSync>) => {
       originalWrite(...args);
-      if (typeof args[1] === "string" && args[1].includes('"event":"INFERENCE_RESERVED"')) { now = Date.parse(expiresAt) + 1; advanced = true; }
+      if (typeof args[1] === "string" && args[1].includes('"event":"INFERENCE_RESERVED"')) {
+        const { record } = JSON.parse(args[1]);
+        if (record?.event === "INFERENCE_RESERVED" && record.state) { reservations++; now = Date.parse(expiresAt) + 1; }
+      }
     }) as typeof fs.writeFileSync;
     await assert.rejects(f.run(c, dir, { resume: true }), /INFERENCE_RELEASE_EXPIRED/);
     fs.writeFileSync = originalWrite;
-    assert.equal(advanced, true); assert.equal(f.measures().length, 4); assert.equal(f.inferences().length, 0);
+    assert.equal(reservations, 1); assert.equal(f.measures().length, 4); assert.equal(f.inferences().length, 0);
     const records = openJournal(path.join(dir, "results.jsonl")).records as { event: string; providerError?: string; conservativeReservationRetained?: boolean }[];
     assert.ok(records.some(r => r.event === "ATTEMPT_FINISHED" && r.providerError === "INFERENCE_RELEASE_EXPIRED" && r.conservativeReservationRetained));
     const before = f.records(c).length;
@@ -297,9 +308,10 @@ test("approval expiring between inferences blocks every subsequent dispatch with
   try {
     const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true }); f.release(c);
     let persisted = false;
-    await assert.rejects(f.run(c, dir, { resume: true, onStage: s => { if (s === "PERSISTED") { persisted = true; now = Date.parse(c.approval!.expiresAt) + 1; } } }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
+    await assert.rejects(f.run(c, dir, { resume: true, onStage: s => { if (s === "PERSISTED") { persisted = true; now = Date.parse(c.approval!.expiresAt) + 1; } } }), e => e instanceof PilotError && ["LiveNotApproved", "INFERENCE_RELEASE_EXPIRED"].includes(e.code));
     assert.equal(persisted, true); assert.equal(f.inferences().length, 1); assert.equal(f.measures().length, 4);
-    await assert.rejects(f.run(c, dir, { resume: true }), /LiveNotApproved|APPROVAL_EXPIRED|INFERENCE_RELEASE_EXPIRED/);
+    assert.ok(Date.parse(c.pricing.expiresAt) > now);
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && ["LiveNotApproved", "INFERENCE_RELEASE_EXPIRED"].includes(e.code));
     assert.equal(f.inferences().length, 1);
   } finally { Date.now = original; f.close(); }
 });
