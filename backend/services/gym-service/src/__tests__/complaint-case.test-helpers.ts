@@ -25,6 +25,8 @@ export function patch<T extends object, K extends keyof T>(obj: T, key: K, impl:
 export const identities = new Map<string, { id: string; email: string; role: string }>();
 /** auth-service's view of "who is a real active admin" (assertRealAdmin). `unreachable` makes the lookup fail like a dead auth-service. */
 export const authDirectory = { users: new Map<string, { role: string; isActive: boolean }>(), unreachable: false };
+/** A1: whether the (fake) user-service ACCEPTS a notification. false = the notice is recorded delivered=false and no response clock starts. */
+export const notify = { delivers: true };
 export const notices: Array<{ userId: string; text: string; eventType: string; entityId: string }> = [];
 
 export function token(id: string, role = 'ADMIN') {
@@ -54,6 +56,11 @@ export function installStubs() {
     }),
     patch(userClient, 'notifyUser', async (p: any) => {
       notices.push({ userId: p.userId, text: p.text, eventType: p.eventType, entityId: p.entityId });
+    }),
+    patch(userClient, 'notifyUserChecked', async (p: any) => {
+      if (!notify.delivers) return false;
+      notices.push({ userId: p.userId, text: p.text, eventType: p.eventType, entityId: p.entityId });
+      return true;
     }),
   );
 }
@@ -160,7 +167,7 @@ export async function makeComplaint(gymId: string, reporterUserId: string | null
 export async function cleanup() {
   // append-only triggers fire on row-level UPDATE/DELETE only; TRUNCATE is the (test-only) way to clear them
   await prisma.$executeRawUnsafe(
-    'TRUNCATE gym_case_access_logs, gym_case_executions, gym_case_events, gym_case_approvals, gym_case_proposals, gym_case_findings, gym_case_assessments, gym_case_claims, gym_case_shares, gym_case_evidence, gym_case_statements, gym_complaint_cases CASCADE',
+    'TRUNCATE gym_case_notices, gym_case_deadlines, gym_case_appeals, gym_case_access_logs, gym_case_executions, gym_case_events, gym_case_approvals, gym_case_proposals, gym_case_findings, gym_case_assessments, gym_case_claims, gym_case_shares, gym_case_evidence, gym_case_statements, gym_complaint_cases CASCADE',
   );
   if (created.complaints.length) await prisma.gymComplaint.deleteMany({ where: { id: { in: created.complaints } } });
   if (created.gyms.length) await prisma.gymComplaint.deleteMany({ where: { gymId: { in: created.gyms } } });
@@ -178,6 +185,7 @@ export async function cleanup() {
   if (created.partners.length) await prisma.gymPartner.deleteMany({ where: { id: { in: created.partners } } });
   for (const k of Object.keys(created) as Array<keyof typeof created>) created[k].length = 0;
   notices.length = 0;
+  notify.delivers = true;
 }
 
 // ── Driving a case through the REAL HTTP endpoints ──
@@ -198,12 +206,12 @@ const ok = (r: { status: number; body: any }, expected: number | number[], what:
 };
 
 /** Opens a case and walks it to AWAITING_APPROVAL (proposal made). Returns what a test needs to decide / execute. */
-export async function driveToProposal(o: { caseClass: string; finding: 'ESTABLISHED' | 'NOT_ESTABLISHED'; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; ownerId?: string }): Promise<Drive & { proposal: any }> {
+export async function driveToProposal(o: { photoTokens?: string[]; caseClass: string; finding: 'ESTABLISHED' | 'NOT_ESTABLISHED'; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; ownerId?: string }): Promise<Drive & { proposal: any }> {
   const { gym, ownerId } = await makeGym(o.ownerId);
   const reporterId = `member-${randomUUID().slice(0, 8)}`;
   const reporter = { id: reporterId, tok: token(reporterId, 'CUSTOMER') };
   const m = o.membership === false ? null : await makeMembership(gym.id, reporterId, o.membership ?? {});
-  const complaint = await makeComplaint(gym.id, reporterId);
+  const complaint = await makeComplaint(gym.id, reporterId, { photoTokens: o.photoTokens });
   const inv = newAdmin();
   const appr = newAdmin();
   const opened = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass: o.caseClass, ...(m && o.caseClass !== 'GYM_GENERAL' ? { membershipId: m.id } : {}) }), 201, 'open');
@@ -235,3 +243,20 @@ export async function approve(d: Drive, extra: Record<string, unknown> = {}) {
   return call('POST', `/admin/complaint-cases/${d.caseId}/decision`, d.appr.tok, { result: 'APPROVED', reason: 'Đồng ý với đề xuất', conflictOfInterestDeclaredNone: true, ...extra });
 }
 export { ok };
+
+/** Opens a case and walks it to ASSESSING with one claim (no assessment yet). */
+export async function openToAssessing(o: { caseClass?: string; membership?: { status?: string; price?: number; days?: number; startOffsetDays?: number } | false; photoTokens?: string[]; ownerId?: string } = {}): Promise<Drive> {
+  const caseClass = o.caseClass ?? 'GYM_GENERAL';
+  const { gym, ownerId } = await makeGym(o.ownerId);
+  const reporterId = `member-${randomUUID().slice(0, 8)}`;
+  const reporter = { id: reporterId, tok: token(reporterId, 'CUSTOMER') };
+  const m = o.membership === false || caseClass === 'GYM_GENERAL' ? null : await makeMembership(gym.id, reporterId, o.membership ?? {});
+  const complaint = await makeComplaint(gym.id, reporterId, { photoTokens: o.photoTokens });
+  const inv = newAdmin();
+  const appr = newAdmin();
+  const caseId = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass, ...(m ? { membershipId: m.id } : {}) }), 201, 'open').id as string;
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/assign`, inv.tok, {}), 200, 'assign');
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/transition`, inv.tok, { to: 'ASSESSING' }), 200, 'assessing');
+  ok(await call('POST', `/admin/complaint-cases/${caseId}/claims`, inv.tok, { claimantRole: 'MEMBER', text: 'Hội viên khẳng định có vấn đề' }), 201, 'claim');
+  return { complaintId: complaint.id, caseId, inv, appr, reporter, ownerId, gymId: gym.id, membershipId: m?.id ?? null };
+}

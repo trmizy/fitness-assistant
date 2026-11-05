@@ -97,7 +97,7 @@ interface Loaded {
 }
 const approvalInclude = { proposal: { include: { finding: true } } } as const;
 async function findApproval(where: { id: string } | { result: 'APPROVED'; proposal: { caseId: string } }) {
-  return 'id' in where ? prisma.gymCaseApproval.findUnique({ where, include: approvalInclude }) : prisma.gymCaseApproval.findFirst({ where, include: approvalInclude });
+  return 'id' in where ? prisma.gymCaseApproval.findUnique({ where, include: approvalInclude }) : prisma.gymCaseApproval.findFirst({ where, include: approvalInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
 }
 
 /** Everything read again from the database. */
@@ -219,7 +219,7 @@ async function finish(c: { id: string; complaintId: string; reporterUserId: stri
     await tx.gymComplaint.update({ where: { id: c.complaintId }, data: { status: 'RESOLVED', adminResponse: text, resolvedAt: new Date(), resolvedBy: actor.id } });
     await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: 'EXECUTION_BUSINESS_DONE', note: via, payload: toJson(response) } });
   });
-  await notifyMember({ id: c.id, reporterUserId: c.reporterUserId }, text, 'GYM_COMPLAINT_CASE_RESOLVED');
+  await notifyMember({ id: c.id, reporterUserId: c.reporterUserId }, text, 'GYM_COMPLAINT_CASE_RESOLVED', 'CONCLUSION'); // A1: a DELIVERED CONCLUSION notice starts the 14-day appeal window
   return { view, text };
 }
 

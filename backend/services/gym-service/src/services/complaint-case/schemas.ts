@@ -22,7 +22,17 @@ export const transitionBody = z
   .object({ to: z.enum(['COLLECTING', 'AWAITING_PARTIES', 'ASSESSING', 'REJECTED_INTAKE']), reason: text(2000).optional() })
   .strict();
 
-export const requestMoreBody = z.object({ to: z.enum(['COLLECTING', 'AWAITING_PARTIES']).default('AWAITING_PARTIES'), note: text(2000) }).strict();
+export const requestMoreBody = z
+  .object({
+    to: z.enum(['COLLECTING', 'AWAITING_PARTIES']).default('AWAITING_PARTIES'),
+    note: text(2000),
+    /** A1: who is asked (and gets a response clock from a delivered notice). The Gym is asked for evidence / an explanation only (C10). */
+    parties: z.array(z.enum(['MEMBER', 'GYM'])).min(1).max(2).default(['MEMBER']),
+  })
+  .strict();
+
+export const appealBody = z.object({ reason: text(4000) }).strict();
+export const assignReviewerBody = z.object({ reviewerId: z.string().trim().min(1).max(64).optional() }).strict();
 
 export const claimBody = z.object({ claimantRole: z.enum(['MEMBER', 'ADMIN_ON_BEHALF']), text: text(4000) }).strict();
 
@@ -57,7 +67,7 @@ export const decisionBody = z
 export const ackBody = z.object({ note: text(2000) }).strict();
 
 export const shareBody = z
-  .object({ evidenceId: uuid.optional(), statementId: uuid.optional(), reason: text(2000) })
+  .object({ evidenceId: uuid.optional(), statementId: uuid.optional(), reason: text(2000), sharedWith: z.enum(['MEMBER', 'GYM']).default('MEMBER') })
   .strict()
   .refine((b) => (b.evidenceId ? 1 : 0) + (b.statementId ? 1 : 0) === 1, { message: 'Chỉ chọn đúng một mục để chia sẻ (bằng chứng hoặc lời khai)' });
 

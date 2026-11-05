@@ -187,6 +187,8 @@ router.post('/complaint-cases/:id/statements', asyncHandler(complaintCaseControl
 router.post('/complaint-cases/:id/evidence', asyncHandler(complaintCaseController.evidenceOnBehalf));
 router.post('/complaint-cases/:id/execute', asyncHandler(complaintCaseController.execute));
 router.post('/complaint-cases/:id/reconcile-execution', asyncHandler(complaintCaseController.reconcile));
+// A1: the member's one appeal re-opens a concluded case; an INDEPENDENT reviewer is assigned here (never automatic).
+router.post('/complaint-cases/:id/appeal/reviewer', asyncHandler(complaintCaseController.assignAppealReviewer));
 
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification". Defense-in-depth mirror of the
 // owner-side serve route (see branch-document-photo.controller.ts's own doc comment) — full

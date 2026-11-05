@@ -25,6 +25,10 @@ import {
   outcomeLabelVi,
   statementVisibleTo,
   viewerKind,
+  appealWindow,
+  slaOf,
+  verificationLabelVi,
+  verificationOf,
   type CaseClass,
   type CaseStatus,
   type FindingKind,
@@ -99,7 +103,7 @@ async function partyIds(db: Db, c: { gymId: string; reporterUserId: string }) {
   const gym = await db.gym.findUnique({ where: { id: c.gymId }, select: { ownerId: true } });
   return { reporterUserId: c.reporterUserId, gymOwnerId: gym?.ownerId ?? null, linkedUserIds: await gymLinkedUserIds(db, c.gymId) };
 }
-async function assertNotParty(db: Db, c: { gymId: string; reporterUserId: string }, userId: string) {
+export async function assertNotParty(db: Db, c: { gymId: string; reporterUserId: string }, userId: string) {
   const p = await partyIds(db, c);
   if (userId === p.reporterUserId || (p.gymOwnerId && userId === p.gymOwnerId) || p.linkedUserIds.includes(userId)) {
     throw caseError(403, 'CONFLICT_OF_INTEREST', 'Quản trị viên là một bên của vụ việc nên không được tham gia xử lý');
@@ -392,12 +396,22 @@ async function logAccess(db: Db, rows: Array<{ caseId: string; viewer: Actor; ac
 }
 
 /** Best-effort notice to the member (never fails the action). Plain Vietnamese, no internal enum, never claims money unless the caller built the text from a confirmed view. */
-export async function notifyMember(c: { id: string; reporterUserId: string }, text: string, eventType: string) {
+export async function notifyParty(c: { id: string }, recipientUserId: string, role: 'MEMBER' | 'GYM', text: string, eventType: string, kind: string) {
+  let delivered = false;
   try {
-    await userClient.notifyUser({ userId: c.reporterUserId, text, eventType, entityType: 'GYM_COMPLAINT_CASE', entityId: c.id });
+    delivered = await userClient.notifyUserChecked({ userId: recipientUserId, text, eventType, entityType: 'GYM_COMPLAINT_CASE', entityId: c.id });
   } catch {
-    /* userClient already swallows; belt and braces */
+    delivered = false;
   }
+  try {
+    // A1: the notice row is the proof a deadline / the appeal window is counted from: delivered=false never starts a clock.
+    return await prisma.gymCaseNotice.create({ data: { caseId: c.id, kind, recipientUserId, recipientRole: role, delivered } });
+  } catch {
+    return null;
+  }
+}
+export async function notifyMember(c: { id: string; reporterUserId: string }, text: string, eventType: string, kind = 'INFO') {
+  return notifyParty(c, c.reporterUserId, 'MEMBER', text, eventType, kind);
 }
 
 // ── The service ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -438,6 +452,8 @@ export const complaintCaseService = {
       idempotencyKey,
       body: { complaintId, ...b },
       run: async (ctx) => {
+        // B1: the payout sweep decides "hold or release" under the same row lock, so a case cannot appear between its check and its release.
+        if (b.membershipId) await ctx.tx.$queryRaw`SELECT id FROM gym_membership_contracts WHERE id = ${b.membershipId} FOR UPDATE`;
         let created;
         try {
           created = await ctx.tx.gymComplaintCase.create({
@@ -459,7 +475,7 @@ export const complaintCaseService = {
         return { caseId: created.id, result: { ...summary(created), existing: false }, note: `class ${b.caseClass}` };
       },
     }).then(async (r) => {
-      if (!r.replayed) await notifyMember({ id: (r.result as any).id, reporterUserId: complaint.reporterUserId! }, 'Báo cáo vấn đề của bạn đã được tiếp nhận và đang được Gymini xem xét.', 'GYM_COMPLAINT_CASE_OPENED');
+      if (!r.replayed) await notifyMember({ id: (r.result as any).id, reporterUserId: complaint.reporterUserId! }, 'Báo cáo vấn đề của bạn đã được tiếp nhận và đang được Gymini xem xét.', 'GYM_COMPLAINT_CASE_OPENED', 'OPENED');
       return r;
     });
   },
@@ -526,6 +542,8 @@ export const complaintCaseService = {
         const c = await lockCase(ctx.tx, caseId);
         if (to === 'REJECTED_INTAKE' && c.status === 'INTAKE') {
           assertAdmin(actor);
+          // C7: the hand-back to the legacy flow must not be a way round the conflict-of-interest rule: a person linked to the gym / brand (or the member) cannot dismiss the case.
+          await assertNotParty(ctx.tx, c, actor.id);
           if (!o.reason) throw caseError(400, 'REASON_REQUIRED', 'Cần ghi lý do không tiếp nhận');
         } else {
           assertInvestigator(actor, c);
@@ -540,14 +558,14 @@ export const complaintCaseService = {
     });
   },
 
-  async requestMore(actor: Actor, caseId: string, to: 'COLLECTING' | 'AWAITING_PARTIES', note: string, idempotencyKey?: string) {
+  async requestMore(actor: Actor, caseId: string, to: 'COLLECTING' | 'AWAITING_PARTIES', note: string, idempotencyKey?: string, parties: Array<'MEMBER' | 'GYM'> = ['MEMBER']) {
     assertAdmin(actor);
     const r = await mutate({
       actor,
       action: 'MORE_INFO_REQUESTED',
       scope: caseId,
       idempotencyKey,
-      body: { to, note },
+      body: { to, note, parties },
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         assertInvestigator(actor, c);
@@ -557,7 +575,9 @@ export const complaintCaseService = {
       },
     });
     if (!r.replayed && to === 'AWAITING_PARTIES') {
-      await notifyMember({ id: caseId, reporterUserId: (r.result as any).reporterUserId }, 'Gymini cần bạn bổ sung thêm thông tin cho báo cáo vấn đề của bạn. Vui lòng mở báo cáo để xem chi tiết.', 'GYM_COMPLAINT_CASE_MORE_INFO');
+      // A1: each asked party gets a notice; the 72h / 48h clock starts only from a DELIVERED one (deadlines.service.ts)
+      const { startResponseDeadlines } = await import('./deadlines.service');
+      await startResponseDeadlines(actor, caseId, parties);
     }
     return r;
   },
@@ -654,6 +674,11 @@ export const complaintCaseService = {
         if (c.status !== 'ASSESSING') throw stateNotAllowed(c, ['ASSESSING']);
         const claims = await ctx.tx.gymCaseClaim.findMany({ where: { caseId: c.id }, select: { id: true } });
         const assessed = new Set((await ctx.tx.gymCaseAssessment.findMany({ where: { caseId: c.id }, select: { claimId: true } })).map((a) => a.claimId));
+        const appeal = await ctx.tx.gymCaseAppeal.findUnique({ where: { caseId: c.id } });
+        if (appeal && appeal.status === 'REVIEWING') {
+          const fresh = await ctx.tx.gymCaseAssessment.count({ where: { caseId: c.id, createdAt: { gte: appeal.assignedAt ?? appeal.filedAt } } });
+          if (fresh === 0) throw caseError(409, 'APPEAL_ASSESSMENT_REQUIRED', 'Kháng nghị cần ít nhất một đánh giá mới của người xem xét lại trước khi ghi kết luận');
+        }
         if (claims.length === 0 || claims.some((cl) => !assessed.has(cl.id))) {
           throw caseError(409, 'ASSESSMENT_REQUIRED', 'Cần có ít nhất một khẳng định và mỗi khẳng định phải được đánh giá trước khi ghi kết luận');
         }
@@ -712,7 +737,7 @@ export const complaintCaseService = {
     });
   },
 
-  async share(actor: Actor, caseId: string, b: { evidenceId?: string; statementId?: string; reason: string }, idempotencyKey?: string) {
+  async share(actor: Actor, caseId: string, b: { evidenceId?: string; statementId?: string; reason: string; sharedWith?: 'MEMBER' | 'GYM' }, idempotencyKey?: string) {
     assertAdmin(actor);
     return mutate({
       actor,
@@ -732,7 +757,7 @@ export const complaintCaseService = {
           if (!s) throw caseError(404, 'STATEMENT_NOT_FOUND', 'Không tìm thấy lời khai trong hồ sơ này');
         }
         // Only the member can receive a share; the Gym party is locked (D-NEW-9 open) and the database refuses it too.
-        const row = await ctx.tx.gymCaseShare.create({ data: { caseId: c.id, evidenceId: b.evidenceId ?? null, statementId: b.statementId ?? null, sharedWithRole: 'MEMBER', sharedBy: actor.id, reason: b.reason } });
+        const row = await ctx.tx.gymCaseShare.create({ data: { caseId: c.id, evidenceId: b.evidenceId ?? null, statementId: b.statementId ?? null, sharedWithRole: b.sharedWith ?? 'MEMBER', sharedBy: actor.id, reason: b.reason } });
         return { caseId: c.id, result: { id: row.id } };
       },
     });
@@ -784,6 +809,12 @@ export const complaintCaseService = {
             }
           }
           await casStatus(ctx, c, 'DECISION_APPROVED', b.reason);
+          // A1: the appeal's decision is a NEW decision: the execution axis restarts for it (the old BUSINESS_DONE row stays in the append-only history). Still never automatic: execute is explicit.
+          const ap = await ctx.tx.gymCaseAppeal.findUnique({ where: { caseId: c.id } });
+          if (ap && ap.status === 'REVIEWING') {
+            await ctx.tx.gymComplaintCase.updateMany({ where: { id: c.id }, data: { execStatus: 'NOT_STARTED', execDecisionId: null } });
+            await ctx.tx.gymCaseAppeal.update({ where: { caseId: c.id }, data: { status: 'DECIDED' } });
+          }
         } else {
           await casStatus(ctx, c, 'ASSESSING', b.reason);
         }
@@ -826,7 +857,9 @@ export const complaintCaseService = {
         const c = await lockCase(ctx.tx, caseId);
         if (c.reporterUserId !== actor.id) throw notFoundCase(); // a case the user is not the reporter of does not exist for them
         if (!PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus)) throw caseError(409, 'CASE_NOT_ACCEPTING', 'Hồ sơ hiện không nhận thêm thông tin', { status: c.status });
-        return { caseId: c.id, result: await writeStatement(ctx.tx, c, 'MEMBER', actor.id, 'SUBMITTED', b) };
+        const written = await writeStatement(ctx.tx, c, 'MEMBER', actor.id, 'SUBMITTED', b);
+        await ctx.tx.gymCaseDeadline.updateMany({ where: { caseId: c.id, partyRole: 'MEMBER', status: 'OPEN' }, data: { status: 'MET', resolvedAt: new Date() } });
+        return { caseId: c.id, result: written };
       },
     });
   },
@@ -842,7 +875,9 @@ export const complaintCaseService = {
         const c = await lockCase(ctx.tx, caseId);
         if (c.reporterUserId !== actor.id) throw notFoundCase();
         if (!PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus)) throw caseError(409, 'CASE_NOT_ACCEPTING', 'Hồ sơ hiện không nhận thêm thông tin', { status: c.status });
-        return { caseId: c.id, result: await writeEvidence(ctx.tx, c, actor, 'EXTERNAL_DOCUMENT', 'MEMBER', b) };
+        const written = await writeEvidence(ctx.tx, c, actor, 'EXTERNAL_DOCUMENT', 'MEMBER', b);
+        await ctx.tx.gymCaseDeadline.updateMany({ where: { caseId: c.id, partyRole: 'MEMBER', status: 'OPEN' }, data: { status: 'MET', resolvedAt: new Date() } });
+        return { caseId: c.id, result: written };
       },
     });
   },
@@ -929,7 +964,7 @@ export const complaintCaseService = {
       prisma.gym.findUnique({ where: { id: c.gymId }, select: { id: true, name: true, ownerId: true, status: true, operationalStatus: true } }),
       c.membershipId ? prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId } }) : Promise.resolve(null),
     ]);
-    const approved = proposals.find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
     const outcome = (approved?.outcome ?? null) as Outcome | null;
     const financial = financialOf(c, outcome, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
@@ -954,7 +989,10 @@ export const complaintCaseService = {
         ? { id: membership.id, status: membership.status, startDate: membership.startDate, endDate: membership.endDate, priceAtPurchase: membership.priceAtPurchase.toString(), paymentTxnId: membership.paymentTxnId }
         : null,
       claims,
-      evidence: evidence.map((e) => ({ ...e, partySubmitted: e.submittedBy !== null, provenanceLabel: provenanceLabelVi(e.provenanceType) })),
+      evidence: evidence.map((e) => ({ ...e, partySubmitted: e.submittedBy !== null, provenanceLabel: provenanceLabelVi(e.provenanceType), verificationStatus: verificationOf(e.source), verificationLabel: verificationLabelVi(verificationOf(e.source)) })),
+      sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
+      deadlines: await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } }),
+      appeal: await adminAppealView(c),
       statements,
       shares,
       assessments,
@@ -992,7 +1030,7 @@ export const complaintCaseService = {
     ]);
     const evidence = evidenceAll.filter((e) => evidenceVisibleTo(e, kind, actor.id, c.gymId, shares));
     const statements = statementsAll.filter((s) => statementVisibleTo(s, kind, actor.id, shares));
-    const approved = proposals.find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
     const financial = financialOf(c, (approved?.outcome ?? null) as Outcome | null, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     const resolved = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
@@ -1002,11 +1040,30 @@ export const complaintCaseService = {
       evidence: evidence.map((e) => ({ id: e.id, source: e.source, subject: e.subject, capturedAt: e.capturedAt, snapshotVersion: e.snapshotVersion, payload: e.payload, mine: e.submittedBy === actor.id })),
       statements: statements.map((s) => ({ id: s.id, partyRole: s.partyRole, version: s.version, text: s.text, supplementReason: s.supplementReason, createdAt: s.createdAt, mine: s.authorUserId === actor.id })),
       // Only the member-safe money text: no internal group, no platform-side shortfall, "đã ghi vào ví" only when payment confirmed it.
+      appeal: await memberAppealView(c),
       money: resolved ? memberFinancialView(financial) : null,
       resolution: resolved && approved ? { text: c.complaint.adminResponse } : null,
     };
   },
 };
+
+/** A1: the appeal as the admin screen needs it. */
+async function adminAppealView(c: { id: string; status: string; execStatus: string }) {
+  const appeal = await prisma.gymCaseAppeal.findUnique({ where: { caseId: c.id } });
+  if (!appeal) return null;
+  const win = appealWindow(appeal.noticeAt, appeal.filedAt);
+  return { id: appeal.id, status: appeal.status, filedBy: appeal.filedBy, reason: appeal.reason, filedAt: appeal.filedAt, noticeAt: appeal.noticeAt, windowClosedAt: win.closesAt, reviewerId: appeal.reviewerId, assignedAt: appeal.assignedAt, reviewedFindingId: appeal.reviewedFindingId };
+}
+
+/** A1: what the MEMBER may do about an appeal (no reviewer identity, no internal status). */
+async function memberAppealView(c: { id: string; status: string; execStatus: string }) {
+  const appeal = await prisma.gymCaseAppeal.findUnique({ where: { caseId: c.id } });
+  if (appeal) return { used: true, canFile: false, progress: appeal.status === 'DECIDED' ? 'Đã có kết quả kháng nghị' : 'Đang xem xét kháng nghị', filedAt: appeal.filedAt };
+  const concluded = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
+  const notice = await prisma.gymCaseNotice.findFirst({ where: { caseId: c.id, kind: 'CONCLUSION', recipientRole: 'MEMBER', delivered: true }, orderBy: { createdAt: 'desc' } });
+  const win = appealWindow(notice?.createdAt ?? null, new Date());
+  return { used: false, canFile: concluded && win.open, closesAt: win.closesAt, progress: null as string | null, filedAt: null as Date | null };
+}
 
 function provenanceLabelVi(p: string): string {
   switch (p) {
@@ -1104,6 +1161,7 @@ function computeAllowedActions(
   const execOk = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && !party;
   push('EXECUTE', execOk ? undefined : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : party ? 'CONFLICT_OF_INTEREST' : c.execStatus === 'BUSINESS_DONE' ? 'ALREADY_EXECUTED' : 'EXECUTION_' + c.execStatus);
   push('RECONCILE_EXECUTION', c.execStatus === 'EXECUTING' ? undefined : 'NOTHING_TO_RECONCILE');
+  push('ASSIGN_APPEAL_REVIEWER', st !== 'APPEAL_REVIEW' ? 'NO_APPEAL_WAITING' : party ? 'CONFLICT_OF_INTEREST' : undefined);
   return list;
 }
 
