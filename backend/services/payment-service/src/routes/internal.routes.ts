@@ -33,6 +33,7 @@ import { RequestDoesNotMatchTransactionError } from '../services/contract-reques
 import { ContractAlreadyTerminatedError, LateOpenReconciliationError, TerminateSnapshotStaleError, readLateOpenState } from '../services/contract-ledger.service';
 import { paymentGateVerdict } from '../services/late-open-settlement-flag';
 import ledgerOperationRoutes from './ledger-operations.routes';
+import { AppealObligationError, createAppealAwardObligation, readAppealAwardObligation } from '../services/appeal-obligation.service';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
@@ -767,6 +768,43 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'termination failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+// E5 (Ngài, 05/11/2026) - POST /internal/contracts/appeal-obligation: the FORMAL obligation after a WON APPEAL whose approved finding established an amount and a responsible party.
+// Called only by user-service (service secret), only when BOTH are established. Money does NOT move (see services/appeal-obligation.service.ts); idempotent per consequence; append-only event.
+const appealObligationSchema = z
+  .object({
+    transactionId: z.string().min(1),
+    contractId: z.string().min(1),
+    consequenceId: z.string().uuid(),
+    caseId: z.string().uuid(),
+    appealId: z.string().uuid(),
+    amount: z.string().regex(/^[1-9][0-9]{0,11}$/, 'amount must be a whole number of dong, greater than 0'),
+    responsibleParty: z.enum(['PT', 'GYM', 'PLATFORM']),
+    decidedBy: z.string().min(1),
+    reason: z.string().min(10).max(2000),
+  })
+  .strict();
+router.post('/contracts/appeal-obligation', async (req: Request, res: Response) => {
+  const parsed = appealObligationSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  try {
+    const out = await createAppealAwardObligation(parsed.data);
+    return res.status(out.created ? 201 : 200).json({ success: true, data: out });
+  } catch (err) {
+    if (err instanceof AppealObligationError) return res.status(err.status).json({ success: false, error: { code: err.code, message: err.message } });
+    logger.error({ error: 'appeal obligation failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_FAILED', message: (err as Error).message } });
+  }
+});
+// READ-ONLY: the live state of the obligation created for a consequence (user-service reads it to know whether the money axis may ever show "done").
+router.get('/contracts/appeal-obligation/:consequenceId', async (req: Request, res: Response) => {
+  try {
+    return res.json({ success: true, data: await readAppealAwardObligation(String(req.params.consequenceId)) });
+  } catch (err) {
+    logger.error({ error: 'appeal obligation read failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_READ_FAILED', message: (err as Error).message } });
   }
 });
 

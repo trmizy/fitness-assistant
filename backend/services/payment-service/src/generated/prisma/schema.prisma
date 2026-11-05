@@ -352,6 +352,8 @@ enum ContractUnpaidObligationKind {
   LATE_ARRIVAL
   REFUND_SHORT
   OVER_RELEASED
+  /// E5: created after a won appeal whose approved finding established an amount and a responsible party.
+  APPEAL_AWARD
 }
 
 /// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it.
@@ -383,30 +385,34 @@ enum ContractUnpaidObligationStatus {
 /// the PT's pooled balance is not touched. Written in the same DB transaction as the ledger rows,
 /// keyed by the idempotency key of the operation, so a retry can never create a second one.
 model ContractUnpaidObligation {
-  id             String                         @id @default(uuid())
+  id               String                         @id @default(uuid())
   /// Idempotency key of the operation (OVER_RELEASED rows add `#OVER_RELEASED:<party>`).
-  key            String                         @unique
-  transactionId  String                         @map("transaction_id")
+  key              String                         @unique
+  transactionId    String                         @map("transaction_id")
   /// Contract reference the caller labelled the operation with (the ledger label).
-  contractRef    String?                        @map("contract_ref")
-  kind           ContractUnpaidObligationKind
+  contractRef      String?                        @map("contract_ref")
+  kind             ContractUnpaidObligationKind
   /// Who the obligation is owed to: CLIENT, or the over-released party (PT | GYM | PLATFORM).
-  party          String
-  owed           Decimal                        @db.Decimal(14, 2)
-  paid           Decimal                        @db.Decimal(14, 2)
-  unpaid         Decimal                        @db.Decimal(14, 2)
+  party            String
+  owed             Decimal                        @db.Decimal(14, 2)
+  paid             Decimal                        @db.Decimal(14, 2)
+  unpaid           Decimal                        @db.Decimal(14, 2)
   /// FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
-  externallyPaid Decimal                        @default(0) @map("externally_paid") @db.Decimal(14, 2)
+  externallyPaid   Decimal                        @default(0) @map("externally_paid") @db.Decimal(14, 2)
   /// FH-8: total paid outside the ledger AND VERIFIED by a second person (sum of VERIFIED payments). Only this reduces `unpaid`
   /// in the current lifecycle; `externallyPaid` is the legacy, unverified figure and is never written any more.
-  verifiedPaid   Decimal                        @default(0) @map("verified_paid") @db.Decimal(14, 2)
-  status         ContractUnpaidObligationStatus @default(OPEN)
-  createdAt      DateTime                       @default(now()) @map("created_at")
-  resolvedAt     DateTime?                      @map("resolved_at")
-  resolvedBy     String?                        @map("resolved_by")
-  resolvedNote   String?                        @map("resolved_note")
+  verifiedPaid     Decimal                        @default(0) @map("verified_paid") @db.Decimal(14, 2)
+  status           ContractUnpaidObligationStatus @default(OPEN)
+  createdAt        DateTime                       @default(now()) @map("created_at")
+  resolvedAt       DateTime?                      @map("resolved_at")
+  resolvedBy       String?                        @map("resolved_by")
+  resolvedNote     String?                        @map("resolved_note")
   /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
-  reason         String?
+  reason           String?
+  /// E5: PT | GYM | PLATFORM - who is responsible (APPEAL_AWARD only); `party` stays "who it is owed to".
+  responsibleParty String?                        @map("responsible_party")
+  /// E5: the dispute-case consequence the obligation came from.
+  sourceRef        String?                        @map("source_ref")
 
   transaction PaymentTransaction                @relation(fields: [transactionId], references: [id])
   events      ContractUnpaidObligationEvent[]
@@ -534,6 +540,8 @@ enum ContractUnpaidObligationEventAction {
   RESOLVE_OTHER
   /// D77 phuong an A: the append-only record of a PAID_VIA_LEDGER payment (actor = the ledger operation key).
   SETTLE_VIA_LEDGER
+  /// E5: the append-only record of an obligation created from a won appeal.
+  CREATE_FROM_APPEAL
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;

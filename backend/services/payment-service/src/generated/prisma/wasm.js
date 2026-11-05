@@ -264,7 +264,9 @@ exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
   resolvedAt: 'resolvedAt',
   resolvedBy: 'resolvedBy',
   resolvedNote: 'resolvedNote',
-  reason: 'reason'
+  reason: 'reason',
+  responsibleParty: 'responsibleParty',
+  sourceRef: 'sourceRef'
 };
 
 exports.Prisma.PtHoldbackReviewScalarFieldEnum = {
@@ -506,7 +508,8 @@ exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKi
   NO_SHOW: 'NO_SHOW',
   LATE_ARRIVAL: 'LATE_ARRIVAL',
   REFUND_SHORT: 'REFUND_SHORT',
-  OVER_RELEASED: 'OVER_RELEASED'
+  OVER_RELEASED: 'OVER_RELEASED',
+  APPEAL_AWARD: 'APPEAL_AWARD'
 };
 
 exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {
@@ -553,7 +556,8 @@ exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidOblig
   VERIFY_PAYMENT: 'VERIFY_PAYMENT',
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
   RESOLVE_OTHER: 'RESOLVE_OTHER',
-  SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER'
+  SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER',
+  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL'
 };
 
 exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {

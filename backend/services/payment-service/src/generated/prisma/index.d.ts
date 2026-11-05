@@ -260,7 +260,8 @@ export const ContractUnpaidObligationKind: {
   NO_SHOW: 'NO_SHOW',
   LATE_ARRIVAL: 'LATE_ARRIVAL',
   REFUND_SHORT: 'REFUND_SHORT',
-  OVER_RELEASED: 'OVER_RELEASED'
+  OVER_RELEASED: 'OVER_RELEASED',
+  APPEAL_AWARD: 'APPEAL_AWARD'
 };
 
 export type ContractUnpaidObligationKind = (typeof ContractUnpaidObligationKind)[keyof typeof ContractUnpaidObligationKind]
@@ -322,7 +323,8 @@ export const ContractUnpaidObligationEventAction: {
   VERIFY_PAYMENT: 'VERIFY_PAYMENT',
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
   RESOLVE_OTHER: 'RESOLVE_OTHER',
-  SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER'
+  SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER',
+  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL'
 };
 
 export type ContractUnpaidObligationEventAction = (typeof ContractUnpaidObligationEventAction)[keyof typeof ContractUnpaidObligationEventAction]
@@ -10268,6 +10270,8 @@ export namespace Prisma {
     resolvedBy: string | null
     resolvedNote: string | null
     reason: string | null
+    responsibleParty: string | null
+    sourceRef: string | null
   }
 
   export type ContractUnpaidObligationMaxAggregateOutputType = {
@@ -10288,6 +10292,8 @@ export namespace Prisma {
     resolvedBy: string | null
     resolvedNote: string | null
     reason: string | null
+    responsibleParty: string | null
+    sourceRef: string | null
   }
 
   export type ContractUnpaidObligationCountAggregateOutputType = {
@@ -10308,6 +10314,8 @@ export namespace Prisma {
     resolvedBy: number
     resolvedNote: number
     reason: number
+    responsibleParty: number
+    sourceRef: number
     _all: number
   }
 
@@ -10346,6 +10354,8 @@ export namespace Prisma {
     resolvedBy?: true
     resolvedNote?: true
     reason?: true
+    responsibleParty?: true
+    sourceRef?: true
   }
 
   export type ContractUnpaidObligationMaxAggregateInputType = {
@@ -10366,6 +10376,8 @@ export namespace Prisma {
     resolvedBy?: true
     resolvedNote?: true
     reason?: true
+    responsibleParty?: true
+    sourceRef?: true
   }
 
   export type ContractUnpaidObligationCountAggregateInputType = {
@@ -10386,6 +10398,8 @@ export namespace Prisma {
     resolvedBy?: true
     resolvedNote?: true
     reason?: true
+    responsibleParty?: true
+    sourceRef?: true
     _all?: true
   }
 
@@ -10493,6 +10507,8 @@ export namespace Prisma {
     resolvedBy: string | null
     resolvedNote: string | null
     reason: string | null
+    responsibleParty: string | null
+    sourceRef: string | null
     _count: ContractUnpaidObligationCountAggregateOutputType | null
     _avg: ContractUnpaidObligationAvgAggregateOutputType | null
     _sum: ContractUnpaidObligationSumAggregateOutputType | null
@@ -10532,6 +10548,8 @@ export namespace Prisma {
     resolvedBy?: boolean
     resolvedNote?: boolean
     reason?: boolean
+    responsibleParty?: boolean
+    sourceRef?: boolean
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
     events?: boolean | ContractUnpaidObligation$eventsArgs<ExtArgs>
     payments?: boolean | ContractUnpaidObligation$paymentsArgs<ExtArgs>
@@ -10556,6 +10574,8 @@ export namespace Prisma {
     resolvedBy?: boolean
     resolvedNote?: boolean
     reason?: boolean
+    responsibleParty?: boolean
+    sourceRef?: boolean
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligation"]>
 
@@ -10577,6 +10597,8 @@ export namespace Prisma {
     resolvedBy?: boolean
     resolvedNote?: boolean
     reason?: boolean
+    responsibleParty?: boolean
+    sourceRef?: boolean
   }
 
   export type ContractUnpaidObligationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10633,6 +10655,14 @@ export namespace Prisma {
        * Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
        */
       reason: string | null
+      /**
+       * E5: PT | GYM | PLATFORM - who is responsible (APPEAL_AWARD only); `party` stays "who it is owed to".
+       */
+      responsibleParty: string | null
+      /**
+       * E5: the dispute-case consequence the obligation came from.
+       */
+      sourceRef: string | null
     }, ExtArgs["result"]["contractUnpaidObligation"]>
     composites: {}
   }
@@ -11046,6 +11076,8 @@ export namespace Prisma {
     readonly resolvedBy: FieldRef<"ContractUnpaidObligation", 'String'>
     readonly resolvedNote: FieldRef<"ContractUnpaidObligation", 'String'>
     readonly reason: FieldRef<"ContractUnpaidObligation", 'String'>
+    readonly responsibleParty: FieldRef<"ContractUnpaidObligation", 'String'>
+    readonly sourceRef: FieldRef<"ContractUnpaidObligation", 'String'>
   }
     
 
@@ -18242,7 +18274,9 @@ export namespace Prisma {
     resolvedAt: 'resolvedAt',
     resolvedBy: 'resolvedBy',
     resolvedNote: 'resolvedNote',
-    reason: 'reason'
+    reason: 'reason',
+    responsibleParty: 'responsibleParty',
+    sourceRef: 'sourceRef'
   };
 
   export type ContractUnpaidObligationScalarFieldEnum = (typeof ContractUnpaidObligationScalarFieldEnum)[keyof typeof ContractUnpaidObligationScalarFieldEnum]
@@ -19558,6 +19592,8 @@ export namespace Prisma {
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    responsibleParty?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    sourceRef?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
     payments?: ContractUnpaidObligationPaymentListRelationFilter
@@ -19581,6 +19617,8 @@ export namespace Prisma {
     resolvedBy?: SortOrderInput | SortOrder
     resolvedNote?: SortOrderInput | SortOrder
     reason?: SortOrderInput | SortOrder
+    responsibleParty?: SortOrderInput | SortOrder
+    sourceRef?: SortOrderInput | SortOrder
     transaction?: PaymentTransactionOrderByWithRelationInput
     events?: ContractUnpaidObligationEventOrderByRelationAggregateInput
     payments?: ContractUnpaidObligationPaymentOrderByRelationAggregateInput
@@ -19607,6 +19645,8 @@ export namespace Prisma {
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    responsibleParty?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    sourceRef?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
     payments?: ContractUnpaidObligationPaymentListRelationFilter
@@ -19630,6 +19670,8 @@ export namespace Prisma {
     resolvedBy?: SortOrderInput | SortOrder
     resolvedNote?: SortOrderInput | SortOrder
     reason?: SortOrderInput | SortOrder
+    responsibleParty?: SortOrderInput | SortOrder
+    sourceRef?: SortOrderInput | SortOrder
     _count?: ContractUnpaidObligationCountOrderByAggregateInput
     _avg?: ContractUnpaidObligationAvgOrderByAggregateInput
     _max?: ContractUnpaidObligationMaxOrderByAggregateInput
@@ -19658,6 +19700,8 @@ export namespace Prisma {
     resolvedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
     reason?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
+    responsibleParty?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
+    sourceRef?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
   }
 
   export type PtHoldbackReviewWhereInput = {
@@ -21265,6 +21309,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
     payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
@@ -21288,6 +21334,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
     payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
@@ -21309,6 +21357,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
     payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
@@ -21332,6 +21382,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
     payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
   }
@@ -21354,6 +21406,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
   }
 
   export type ContractUnpaidObligationUpdateManyMutationInput = {
@@ -21373,6 +21427,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ContractUnpaidObligationUncheckedUpdateManyInput = {
@@ -21393,6 +21449,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PtHoldbackReviewCreateInput = {
@@ -23254,6 +23312,8 @@ export namespace Prisma {
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
     reason?: SortOrder
+    responsibleParty?: SortOrder
+    sourceRef?: SortOrder
   }
 
   export type ContractUnpaidObligationAvgOrderByAggregateInput = {
@@ -23282,6 +23342,8 @@ export namespace Prisma {
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
     reason?: SortOrder
+    responsibleParty?: SortOrder
+    sourceRef?: SortOrder
   }
 
   export type ContractUnpaidObligationMinOrderByAggregateInput = {
@@ -23302,6 +23364,8 @@ export namespace Prisma {
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
     reason?: SortOrder
+    responsibleParty?: SortOrder
+    sourceRef?: SortOrder
   }
 
   export type ContractUnpaidObligationSumOrderByAggregateInput = {
@@ -25687,6 +25751,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
     payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
   }
@@ -25708,6 +25774,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
     payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
@@ -25862,6 +25930,8 @@ export namespace Prisma {
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    responsibleParty?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    sourceRef?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
   }
 
   export type PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput = {
@@ -26995,6 +27065,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
     payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
   }
@@ -27017,6 +27089,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
 
@@ -27053,6 +27127,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
     payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
   }
@@ -27075,6 +27151,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
   }
 
@@ -27095,6 +27173,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
   }
@@ -27117,6 +27197,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
   }
 
@@ -27153,6 +27235,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
   }
@@ -27175,6 +27259,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
   }
 
@@ -27332,6 +27418,8 @@ export namespace Prisma {
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    responsibleParty?: string | null
+    sourceRef?: string | null
   }
 
   export type PtHoldbackReviewCreateManyTransactionInput = {
@@ -27447,6 +27535,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
     payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
   }
@@ -27468,6 +27558,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
     payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
   }
@@ -27489,6 +27581,8 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    responsibleParty?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PtHoldbackReviewUpdateWithoutTransactionInput = {
