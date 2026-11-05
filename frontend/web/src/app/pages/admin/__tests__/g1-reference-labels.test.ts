@@ -150,3 +150,13 @@ describe("INT-01 admin list: GET /admin/dispute-cases/admins answers [{ id, disp
     assert.equal(parseAdminDirectory({ items: rows })[0].name, "Admin 1");
   });
 });
+
+describe("INT-08 ledger keys are one value, not id + hash", () => {
+  it("LEDGER_OP:CONTRACT_TERMINATE:<uuid> → kind 'Bút toán sổ cái: chấm dứt hợp đồng', no hash, short form is the uuid", () => {
+    const p = formatReferenceParts("LEDGER_OP:CONTRACT_TERMINATE:35276e06-53a9-4fd8-af1f-868c0f8b17b5");
+    assert.equal(p.kindLabel, "Bút toán sổ cái: chấm dứt hợp đồng");
+    assert.equal(p.hash, undefined);
+    assert.equal(p.id, "CONTRACT_TERMINATE:35276e06-53a9-4fd8-af1f-868c0f8b17b5");
+    assert.equal(p.shortId, "35276e06…");
+  });
+});

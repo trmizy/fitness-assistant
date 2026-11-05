@@ -17,6 +17,15 @@ export interface DisplayedReferenceParts {
   displayLabel: string;
 }
 
+/** Vietnamese names of the ledger operations a D65-B reference can point at (the key prefix). Unknown → only "Bút toán sổ cái". */
+const LEDGER_OPERATION_LABEL: Record<string, string> = {
+  CONTRACT_TERMINATE: "chấm dứt hợp đồng",
+  SESSION_RELEASE: "nhả tiền buổi tập",
+  PT_NO_SHOW: "hoàn tiền do PT vắng",
+  PT_LATE_ARRIVAL: "đền do PT đến muộn",
+  UNRESOLVED_SESSION: "giải quyết buổi bị giữ",
+};
+
 /** Pure function that parses any reference input (string or object) and builds displayable parts. */
 export function formatReferenceParts(
   input: string | { kind?: string; type?: string; id?: string; hash?: string; contentHash?: string; key?: string }
@@ -27,7 +36,11 @@ export function formatReferenceParts(
 
   if (typeof input === "string") {
     const parts = input.split(":");
-    if (parts.length >= 2 && (parts[0] in REFERENCE_KIND_LABEL || /^[A-Z0-9_]+$/.test(parts[0]))) {
+    if (parts[0] === "LEDGER_OP" && parts.length >= 2) {
+      // A ledger key is ONE value that itself contains colons ("CONTRACT_TERMINATE:<contractId>"): no hash part.
+      kind = "LEDGER_OP";
+      id = parts.slice(1).join(":");
+    } else if (parts.length >= 2 && (parts[0] in REFERENCE_KIND_LABEL || /^[A-Z0-9_]+$/.test(parts[0]))) {
       kind = parts[0];
       id = parts[1] || "";
       if (parts.length >= 3) {
@@ -42,7 +55,8 @@ export function formatReferenceParts(
     hash = input.hash || input.contentHash;
   }
 
-  const kindLabel = kind ? (REFERENCE_KIND_LABEL[kind] ?? "Tham chiếu") : undefined;
+  const operation = kind === "LEDGER_OP" ? LEDGER_OPERATION_LABEL[id.split(":")[0]] : undefined;
+  const kindLabel = kind ? `${REFERENCE_KIND_LABEL[kind] ?? "Tham chiếu"}${operation ? `: ${operation}` : ""}` : undefined;
   const shortId = shortenRef(id);
   const shortHash = hash ? shortenRef(hash) : undefined;
   const prefix = kindLabel ? `${kindLabel}: ` : "";

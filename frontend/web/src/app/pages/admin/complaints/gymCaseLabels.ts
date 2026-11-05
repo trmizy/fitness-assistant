@@ -34,7 +34,11 @@ export const GYM_WAITING_NOTE: Record<GymCaseStatus, string> = {
   DECISION_APPROVED: "Quyết định đã được duyệt. Duyệt chưa làm thay đổi tiền: việc thực thi là bước riêng.",
   REJECTED_INTAKE: "Hồ sơ không được tiếp nhận. Khiếu nại quay lại luồng xử lý cũ.",
 };
-export const gymWaitingNote = (s: string | null | undefined) => lookup(GYM_WAITING_NOTE, s, "Chưa rõ hồ sơ đang chờ ai.");
+export const gymWaitingNote = (s: string | null | undefined, execStatus?: string | null) =>
+  // An approved case that was already executed must not still say "việc thực thi là bước riêng"; money is read from the money axis.
+  s === "DECISION_APPROVED" && execStatus === "BUSINESS_DONE"
+    ? "Quyết định đã được duyệt và đã thực thi phần nghiệp vụ. Điều đó chưa có nghĩa là tiền đã về; trạng thái tiền xem ở mục Thực thi & tiền."
+    : lookup(GYM_WAITING_NOTE, s, "Chưa rõ hồ sơ đang chờ ai.");
 
 export function gymStatusTone(status: string): Tone {
   switch (status) {

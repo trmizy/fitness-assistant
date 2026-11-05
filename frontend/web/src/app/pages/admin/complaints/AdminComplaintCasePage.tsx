@@ -136,7 +136,7 @@ export function AdminComplaintCasePage() {
           </div>
         </div>
         <p className="text-sm text-adm-text" data-testid="d6-waiting-header">
-          {gymWaitingNote(c.status)}
+          {gymWaitingNote(c.status, c.execStatus)}
         </p>
         <div className="-mx-1 overflow-x-auto px-1">
           <div role="tablist" aria-label="Các mục của hồ sơ" onKeyDown={onTablistKeyDown} className="flex min-w-max gap-1 border-b border-adm-border" data-testid="d6-tablist">

@@ -68,7 +68,7 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
         />
         <Muted>{GYM_CLASS_HELP[c.caseClass as keyof typeof GYM_CLASS_HELP] ?? ""}</Muted>
         <p className="text-sm text-adm-text" data-testid="d6-waiting-note">
-          {gymWaitingNote(c.status)}
+          {gymWaitingNote(c.status, c.execStatus)}
         </p>
       </Section>
 
