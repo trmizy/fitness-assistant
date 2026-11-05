@@ -1837,6 +1837,8 @@ model DisputeCase {
   execDecisionId String?           @map("exec_decision_id") @db.Uuid
   /// Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
   closeReason    String?           @map("close_reason")
+  /// E2: the case this one FOLLOWS (a session whose case was closed NOT_A_DISPUTE may get ONE new case). FK + "at most one successor" are in the migration SQL.
+  previousCaseId String?           @map("previous_case_id") @db.Uuid
   /// C4: lease on the real execution state. A runner (sweep / admin) re-enters an EXECUTING case only after winning this compare-and-set; an expired lease can be taken over.
   execLeaseOwner String?           @map("exec_lease_owner")
   execLeaseUntil DateTime?         @map("exec_lease_until") @db.Timestamptz(3)

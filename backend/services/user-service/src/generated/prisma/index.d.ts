@@ -41962,6 +41962,7 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
     closeReason: string | null
+    previousCaseId: string | null
     execLeaseOwner: string | null
     execLeaseUntil: Date | null
     version: number | null
@@ -41983,6 +41984,7 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
     closeReason: string | null
+    previousCaseId: string | null
     execLeaseOwner: string | null
     execLeaseUntil: Date | null
     version: number | null
@@ -42004,6 +42006,7 @@ export namespace Prisma {
     execStatus: number
     execDecisionId: number
     closeReason: number
+    previousCaseId: number
     execLeaseOwner: number
     execLeaseUntil: number
     version: number
@@ -42035,6 +42038,7 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    previousCaseId?: true
     execLeaseOwner?: true
     execLeaseUntil?: true
     version?: true
@@ -42056,6 +42060,7 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    previousCaseId?: true
     execLeaseOwner?: true
     execLeaseUntil?: true
     version?: true
@@ -42077,6 +42082,7 @@ export namespace Prisma {
     execStatus?: true
     execDecisionId?: true
     closeReason?: true
+    previousCaseId?: true
     execLeaseOwner?: true
     execLeaseUntil?: true
     version?: true
@@ -42185,6 +42191,7 @@ export namespace Prisma {
     execStatus: $Enums.DisputeCaseExecStatus
     execDecisionId: string | null
     closeReason: string | null
+    previousCaseId: string | null
     execLeaseOwner: string | null
     execLeaseUntil: Date | null
     version: number
@@ -42225,6 +42232,7 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    previousCaseId?: boolean
     execLeaseOwner?: boolean
     execLeaseUntil?: boolean
     version?: boolean
@@ -42264,6 +42272,7 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    previousCaseId?: boolean
     execLeaseOwner?: boolean
     execLeaseUntil?: boolean
     version?: boolean
@@ -42285,6 +42294,7 @@ export namespace Prisma {
     execStatus?: boolean
     execDecisionId?: boolean
     closeReason?: boolean
+    previousCaseId?: boolean
     execLeaseOwner?: boolean
     execLeaseUntil?: boolean
     version?: boolean
@@ -42358,6 +42368,10 @@ export namespace Prisma {
        * Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
        */
       closeReason: string | null
+      /**
+       * E2: the case this one FOLLOWS (a session whose case was closed NOT_A_DISPUTE may get ONE new case). FK + "at most one successor" are in the migration SQL.
+       */
+      previousCaseId: string | null
       /**
        * C4: lease on the real execution state. A runner (sweep / admin) re-enters an EXECUTING case only after winning this compare-and-set; an expired lease can be taken over.
        */
@@ -42789,6 +42803,7 @@ export namespace Prisma {
     readonly execStatus: FieldRef<"DisputeCase", 'DisputeCaseExecStatus'>
     readonly execDecisionId: FieldRef<"DisputeCase", 'String'>
     readonly closeReason: FieldRef<"DisputeCase", 'String'>
+    readonly previousCaseId: FieldRef<"DisputeCase", 'String'>
     readonly execLeaseOwner: FieldRef<"DisputeCase", 'String'>
     readonly execLeaseUntil: FieldRef<"DisputeCase", 'DateTime'>
     readonly version: FieldRef<"DisputeCase", 'Int'>
@@ -74020,6 +74035,7 @@ export namespace Prisma {
     execStatus: 'execStatus',
     execDecisionId: 'execDecisionId',
     closeReason: 'closeReason',
+    previousCaseId: 'previousCaseId',
     execLeaseOwner: 'execLeaseOwner',
     execLeaseUntil: 'execLeaseUntil',
     version: 'version',
@@ -78993,6 +79009,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableFilter<"DisputeCase"> | string | null
+    previousCaseId?: UuidNullableFilter<"DisputeCase"> | string | null
     execLeaseOwner?: StringNullableFilter<"DisputeCase"> | string | null
     execLeaseUntil?: DateTimeNullableFilter<"DisputeCase"> | Date | string | null
     version?: IntFilter<"DisputeCase"> | number
@@ -79031,6 +79048,7 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
     closeReason?: SortOrderInput | SortOrder
+    previousCaseId?: SortOrderInput | SortOrder
     execLeaseOwner?: SortOrderInput | SortOrder
     execLeaseUntil?: SortOrderInput | SortOrder
     version?: SortOrder
@@ -79072,6 +79090,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableFilter<"DisputeCase"> | string | null
+    previousCaseId?: UuidNullableFilter<"DisputeCase"> | string | null
     execLeaseOwner?: StringNullableFilter<"DisputeCase"> | string | null
     execLeaseUntil?: DateTimeNullableFilter<"DisputeCase"> | Date | string | null
     version?: IntFilter<"DisputeCase"> | number
@@ -79110,6 +79129,7 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
     closeReason?: SortOrderInput | SortOrder
+    previousCaseId?: SortOrderInput | SortOrder
     execLeaseOwner?: SortOrderInput | SortOrder
     execLeaseUntil?: SortOrderInput | SortOrder
     version?: SortOrder
@@ -79139,6 +79159,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusWithAggregatesFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableWithAggregatesFilter<"DisputeCase"> | string | null
     closeReason?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
+    previousCaseId?: UuidNullableWithAggregatesFilter<"DisputeCase"> | string | null
     execLeaseOwner?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
     execLeaseUntil?: DateTimeNullableWithAggregatesFilter<"DisputeCase"> | Date | string | null
     version?: IntWithAggregatesFilter<"DisputeCase"> | number
@@ -86062,6 +86083,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -86100,6 +86122,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -86138,6 +86161,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -86176,6 +86200,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -86214,6 +86239,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -86235,6 +86261,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -86256,6 +86283,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -92744,6 +92772,7 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    previousCaseId?: SortOrder
     execLeaseOwner?: SortOrder
     execLeaseUntil?: SortOrder
     version?: SortOrder
@@ -92769,6 +92798,7 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    previousCaseId?: SortOrder
     execLeaseOwner?: SortOrder
     execLeaseUntil?: SortOrder
     version?: SortOrder
@@ -92790,6 +92820,7 @@ export namespace Prisma {
     execStatus?: SortOrder
     execDecisionId?: SortOrder
     closeReason?: SortOrder
+    previousCaseId?: SortOrder
     execLeaseOwner?: SortOrder
     execLeaseUntil?: SortOrder
     version?: SortOrder
@@ -107572,6 +107603,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -107609,6 +107641,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -107775,6 +107808,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -107812,6 +107846,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -107940,6 +107975,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -107977,6 +108013,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108030,6 +108067,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108067,6 +108105,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108104,6 +108143,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108141,6 +108181,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108236,6 +108277,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108273,6 +108315,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108326,6 +108369,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108363,6 +108407,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108416,6 +108461,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108453,6 +108499,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108490,6 +108537,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108527,6 +108575,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108580,6 +108629,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108617,6 +108667,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108654,6 +108705,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108691,6 +108743,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108744,6 +108797,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108781,6 +108835,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108818,6 +108873,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108855,6 +108911,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -108933,6 +108990,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -108970,6 +109028,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109038,6 +109097,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109075,6 +109135,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109160,6 +109221,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109197,6 +109259,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109250,6 +109313,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109287,6 +109351,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109397,6 +109462,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109434,6 +109500,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109658,6 +109725,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109695,6 +109763,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109748,6 +109817,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109785,6 +109855,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109822,6 +109893,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109859,6 +109931,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -109912,6 +109985,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109949,6 +110023,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -109986,6 +110061,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -110023,6 +110099,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -110076,6 +110153,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -110113,6 +110191,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111182,6 +111261,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111219,6 +111299,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111272,6 +111353,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111309,6 +111391,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111346,6 +111429,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111383,6 +111467,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111436,6 +111521,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111473,6 +111559,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111510,6 +111597,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111547,6 +111635,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111626,6 +111715,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111663,6 +111753,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111796,6 +111887,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111833,6 +111925,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -111922,6 +112015,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -111959,6 +112053,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -112380,6 +112475,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -112417,6 +112513,7 @@ export namespace Prisma {
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
     closeReason?: string | null
+    previousCaseId?: string | null
     execLeaseOwner?: string | null
     execLeaseUntil?: Date | string | null
     version?: number
@@ -112497,6 +112594,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number
@@ -112534,6 +112632,7 @@ export namespace Prisma {
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
     closeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    previousCaseId?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
     execLeaseUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     version?: IntFieldUpdateOperationsInput | number

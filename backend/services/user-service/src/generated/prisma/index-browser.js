@@ -740,6 +740,7 @@ exports.Prisma.DisputeCaseScalarFieldEnum = {
   execStatus: 'execStatus',
   execDecisionId: 'execDecisionId',
   closeReason: 'closeReason',
+  previousCaseId: 'previousCaseId',
   execLeaseOwner: 'execLeaseOwner',
   execLeaseUntil: 'execLeaseUntil',
   version: 'version',

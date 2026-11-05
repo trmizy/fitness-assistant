@@ -192,7 +192,11 @@ export function assertEntryAllowed(ctx: CaseDecisionCtx | undefined): void {
  */
 export async function assertNoCaseForOldDoor(tx: Tx, ctx: CaseDecisionCtx | undefined, sessionId: string): Promise<void> {
   if (ctx) return;
-  const open = await tx.disputeCase.findFirst({ where: { sessionId, status: { notIn: ["REJECTED_INTAKE", "CLOSED"] } }, select: { id: true, status: true } });
+  // E2 (Ngai, 05/11): a case CLOSED as NOT_A_DISPUTE leaves the session DISPUTED; that session may get ONE new case, but the legacy one-admin door stays refused for it (CASE_EXISTS).
+  const open = await tx.disputeCase.findFirst({
+    where: { sessionId, OR: [{ status: { notIn: ["REJECTED_INTAKE", "CLOSED"] } }, { status: "CLOSED", closeReason: "NOT_A_DISPUTE" }] },
+    select: { id: true, status: true },
+  });
   if (!open) return;
   throw execError(
     409,

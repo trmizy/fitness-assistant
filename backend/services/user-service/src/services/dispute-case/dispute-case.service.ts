@@ -94,6 +94,7 @@ function summary(c: CaseRow) {
     execStatus: c.execStatus,
     execDecisionId: c.execDecisionId,
     closeReason: c.closeReason,
+    previousCaseId: c.previousCaseId ?? null,
     version: c.version,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
@@ -342,8 +343,18 @@ export const disputeCaseService = {
     const open = await prisma.disputeCase.findFirst({ where: { sessionId, status: { notIn: [...TERMINAL_STATUSES] as any } } });
     if (open) return { result: { created: false, case: summary(open) }, replayed: false };
     // A5: a session whose case was CLOSED is never reopened by opening another case (no endless reopen); the close reason is on the closed case.
-    const closed = await prisma.disputeCase.findFirst({ where: { sessionId, status: "CLOSED" }, select: { id: true, closeReason: true } });
-    if (closed) throw caseError(409, "CASE_CLOSED_NO_REOPEN", "Hồ sơ của buổi tập này đã được đóng; không mở lại hồ sơ mới cho cùng một buổi", { caseId: closed.id, closeReason: closed.closeReason });
+    // E2 (Ngai, 05/11): the ONE exception - a case closed as NOT_A_DISPUTE leaves the session DISPUTED with its money standing still, so the session may get ONE new case through this normal path (four-eyes
+    // downstream, never the legacy one-admin door). Not after any other closure, and not a third case: if the new case is also closed NOT_A_DISPUTE the session is refused here. The link is audited.
+    const closedAll = await prisma.disputeCase.findMany({ where: { sessionId, status: "CLOSED" }, select: { id: true, closeReason: true }, orderBy: { createdAt: "desc" } });
+    let predecessorId: string | null = null;
+    if (closedAll.length > 0) {
+      const onlyNotADispute = closedAll.every((c) => c.closeReason === "NOT_A_DISPUTE");
+      if (!onlyNotADispute || closedAll.length >= 2) {
+        const closed = closedAll[0];
+        throw caseError(409, "CASE_CLOSED_NO_REOPEN", "Hồ sơ của buổi tập này đã được đóng; không mở lại hồ sơ mới cho cùng một buổi", { caseId: closed.id, closeReason: closed.closeReason });
+      }
+      predecessorId = closedAll[0].id;
+    }
     const decided = await prisma.disputeCase.findFirst({ where: { sessionId, status: "DECISION_APPROVED" }, select: { id: true } });
     if (decided) {
       throw caseError(409, "CASE_DECISION_PENDING_EXECUTION", "Buổi tập này đã có hồ sơ được duyệt nhưng chưa được thực thi (Slice 2). Chưa mở hồ sơ mới", { caseId: decided.id });
@@ -378,8 +389,15 @@ export const disputeCaseService = {
               type,
               status: "INTAKE",
               createdBy: actor.id,
+              ...(predecessorId ? { previousCaseId: predecessorId } : {}),
             },
           });
+          if (predecessorId) {
+            // E2: the audit link, appended to the CLOSED case's history (the closed case itself is not changed)
+            await ctx.tx.disputeCaseEvent.create({
+              data: { caseId: predecessorId, actorUserId: actor.id, actorRole: actor.role, action: "CASE_SUCCEEDED_BY", note: "Buổi tập vẫn đang khiếu nại; mở một hồ sơ mới (E2)", payload: toJson({ newCaseId: created.id, moneyMoved: false }) },
+            });
+          }
           for (const d of collected.evidence) await insertEvidence(ctx.tx, created, d);
           for (const s of collected.statements) {
             await ctx.tx.disputeCaseStatement.create({
@@ -400,7 +418,7 @@ export const disputeCaseService = {
             result: { created: true, case: summary(created) },
             // A session whose dispute_type is NULL is taken in as a PROVISIONAL classification; sessions.dispute_type is not written.
             ...(provisional ? { note: "Phân loại tạm: buổi tập chưa có loại khiếu nại (dispute_type rỗng). Điều tra viên cần phân loại trước khi ghi kết luận" } : {}),
-            detail: { evidenceRows: collected.evidence.length, legacyStatements: collected.statements.length, ...(provisional ? { provisionalClassification: "LEGACY_UNCLASSIFIED" } : {}) },
+            detail: { evidenceRows: collected.evidence.length, legacyStatements: collected.statements.length, ...(predecessorId ? { previousCaseId: predecessorId } : {}), ...(provisional ? { provisionalClassification: "LEGACY_UNCLASSIFIED" } : {}) },
           };
         },
       });
