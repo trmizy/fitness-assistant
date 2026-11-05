@@ -166,7 +166,7 @@ export function parseGymErrorBody(status: number | null, body: unknown, options:
     const staleLive = list(details?.staleLive);
     view.evidenceChange = { changedIds: list(details?.changedIds), staleLive, needsRecollect: details?.needsRecollect === true || staleLive.length > 0 };
     view.message = view.evidenceChange.needsRecollect
-      ? "Nguồn bằng chứng đã đổi nhưng chưa được thu lại. Điều tra viên cần thu lại bằng chứng trước, rồi mới xác nhận và duyệt."
+      ? "Nguồn bằng chứng đã đổi (ví dụ gói hội viên vừa hết hạn) nên không thể xác nhận cho qua. Người duyệt hãy bác đề xuất; điều tra viên thu lại bằng chứng, ghi kết luận mới và lập đề xuất mới để duyệt lại."
       : "Bằng chứng đã thay đổi sau khi lập đề xuất. Điều tra viên cần xác nhận thay đổi, sau đó người duyệt tích xác nhận và gửi lại.";
   }
   return view;
