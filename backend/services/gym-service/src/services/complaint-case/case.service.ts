@@ -1019,7 +1019,7 @@ export const complaintCaseService = {
       refundQuote: await fixedRefundOf(prisma, caseId).then((q) => (q ? { amount: q.amount.toString(), pricePaid: q.pricePaid.toString(), quotedAt: q.quotedAt, durationDays: q.durationDays, startDate: q.startDate, endDate: q.endDate, paymentTxnId: q.paymentTxnId } : null)),
       replacement: await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId }, orderBy: { createdAt: 'desc' }, select: { id: true, oldApprovalId: true, proposedBy: true, reason: true, createdAt: true, approvedBy: true, approvedAt: true, rejectedBy: true, rejectedAt: true } }),
       sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
-      deadlines: await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } }),
+      deadlines: (await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } })).map((d) => ({ ...d, effectiveDueAt: new Date(d.dueAt.getTime() + d.pausedSeconds * 1000), paused: d.pausedAt !== null })),
       appeal: await adminAppealView(c),
       statements,
       shares,
