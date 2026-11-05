@@ -20,6 +20,7 @@ import type { AddressInfo } from "node:net";
 import { validateTestDatabaseUrl, identityOf } from "./setup/db-isolation-validator";
 import { usable } from "./test-db-guard";
 import { paymentClient } from "../clients/payment.client";
+import { registerTestService } from "./setup/outbound-guard";
 // Slice 2 / S2.3: this suite must not open sockets to chat-service / gym-service; the collector keeps its Slice 1 placeholders here.
 process.env.DISPUTE_CASE_EXTERNAL_EVIDENCE_DISABLED ??= "true";
 
@@ -81,6 +82,8 @@ test.before(async () => {
     stdio: "ignore",
   });
   const base = `http://127.0.0.1:${port}`;
+  // the outbound guard (setup/outbound-guard.ts) refuses any loopback port a test did not register: this is the auth-service child started just above
+  registerTestService(base);
   for (let i = 0; i < 120; i++) {
     try {
       if ((await fetch(base + "/health")).ok) break;
@@ -180,14 +183,14 @@ test("REAL AUTH + DB: a real client / PT of case A cannot reach case B and vice 
 
   for (const k of ["clientB", "ptB", "stranger"]) {
     assert.equal((await call(gw, "GET", `/dispute-cases/${caseA}`, T(k))).status, 404, k);
-    assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/statements`, T(k), { text: "x" })).status, 404, k);
+    assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/statements`, T(k), { text: "x" }, { "Idempotency-Key": `ra-stmt-${k}` })).status, 404, k);
     assert.ok(!(await call(gw, "GET", "/dispute-cases", T(k))).text.includes(caseA), k);
   }
   assert.equal((await call(gw, "GET", `/dispute-cases/${caseB}`, T("clientA"))).status, 404);
   assert.equal((await call(gw, "GET", `/dispute-cases/${caseB}`, T("ptA"))).status, 404);
 
-  const c = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, T("clientA"), { description: "REAL-BI-MAT-KHACH", sha256: "ab".repeat(32) });
-  const p = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, T("ptA"), { description: "REAL-BI-MAT-PT", sha256: "cd".repeat(32) });
+  const c = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, T("clientA"), { description: "REAL-BI-MAT-KHACH", sha256: "ab".repeat(32) }, { "Idempotency-Key": "ra-ev-client" });
+  const p = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, T("ptA"), { description: "REAL-BI-MAT-PT", sha256: "cd".repeat(32) }, { "Idempotency-Key": "ra-ev-pt" });
   assert.equal(c.status, 201);
   assert.equal(p.status, 201);
   const cv = await call(gw, "GET", `/dispute-cases/${caseA}`, T("clientA"));
