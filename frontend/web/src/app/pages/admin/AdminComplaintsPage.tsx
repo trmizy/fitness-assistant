@@ -11,6 +11,7 @@ import { Button } from "../../components/ui/button";
 import { listAdminOptions } from "./disputes/actions/adminDirectory";
 import { useIdempotentAction } from "./disputes/useIdempotentAction";
 import { gymCaseApi } from "./complaints/gymCaseApi";
+import { gymCaseEffective } from "./complaints/gymCaseTypes";
 import { parseGymError, type GymErrorView } from "./complaints/gymCaseErrors";
 import { COMPLAINT_RESOLVE_NOT_REFUND, CASE_REQUIRED_TEXT, GYM_CASE_DISABLED_NOTE, GYM_CASE_STATUS_FILTER_NOTE, OPEN_CLASS_OPTIONS, gymStatusLabel, issueLabel } from "./complaints/gymCaseLabels";
 import { GYM_QUERY_OPTIONS, useGymQueryKeys } from "./complaints/gymCaseQueryKeys";
@@ -304,6 +305,9 @@ export function ComplaintDetailDialog({
 
   const meta = statusMeta(complaint.status);
   const resolved = complaint.status === "RESOLVED";
+  // G37: the gym case flag as gym-service evaluates it; missing / failed read = off (fail-closed).
+  const { keys: gymKeys } = useGymQueryKeys();
+  const capsQuery = useQuery({ queryKey: gymKeys?.capabilities() ?? ["gym-complaint", "disabled", "capabilities"], enabled: !!gymKeys, queryFn: () => gymCaseApi.capabilities(), ...GYM_QUERY_OPTIONS });
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onClose} data-testid="complaint-dialog-overlay">
@@ -347,7 +351,14 @@ export function ComplaintDetailDialog({
             </div>
           )}
 
-          {!resolved && <p className="text-xs text-adm-text-2" data-testid="gym-case-open-off">Chức năng mở hồ sơ khiếu nại phòng gym đang tắt. Khi hệ thống có tín hiệu bật tính năng đáng tin cậy, biểu mẫu mở hồ sơ sẽ xuất hiện.</p>}
+          {!resolved &&
+            (gymCaseEffective(capsQuery.data) ? (
+              <OpenCaseSection complaint={complaint} />
+            ) : (
+              <p className="text-xs text-adm-text-2" data-testid="gym-case-open-off">
+                {capsQuery.isLoading ? "Đang kiểm tra chức năng mở hồ sơ…" : "Chức năng mở hồ sơ khiếu nại phòng gym đang tắt ở môi trường hiện tại."}
+              </p>
+            ))}
           <AssignSection complaint={complaint} onChanged={onChanged} />
 
           {!resolved ? (

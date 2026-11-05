@@ -95,7 +95,11 @@ function DecideForm({ detail, onChanged, onDone }: ActionSlotProps & { onDone: (
   const [ack, setAck] = useState(false);
   const [shown, setShown] = useState(false);
   const [deciding, setDeciding] = useState<"APPROVED" | "REJECTED" | null>(null);
-  const [branch, setBranch] = useState<EvidenceChangeBranch | null>(null);
+  // A53: when the stored data already shows a change the investigator acknowledged, show the tick box up front instead of after a 409.
+  const preview = detail.latestProposal?.evidenceChange;
+  const [branch, setBranch] = useState<EvidenceChangeBranch | null>(
+    preview?.changedSinceProposal && preview.acknowledgedByInvestigator ? "acknowledge" : null,
+  );
   useCloseOnResult(deciding !== null, (v) => !v && setDeciding(null), w);
 
   useEffect(() => {

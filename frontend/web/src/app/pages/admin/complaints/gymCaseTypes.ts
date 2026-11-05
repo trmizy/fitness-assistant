@@ -5,6 +5,19 @@
  * Every field the screens do not need is typed loosely on purpose (`unknown`) so that nothing is rendered by accident.
  */
 
+/** G37: one flag verdict as gym-service evaluates it. `refusedBecause` is diagnostic only, never shown. */
+export interface GymFlagVerdict {
+  effective: boolean;
+  refusedBecause?: string;
+}
+export interface GymCapabilities {
+  gymCase: GymFlagVerdict;
+  decisionReplacement: GymFlagVerdict;
+  gymParty?: GymFlagVerdict;
+}
+/** True only when the server says the gym case flag is effective; anything missing or malformed counts as off. */
+export const gymCaseEffective = (c: GymCapabilities | null | undefined): boolean => c?.gymCase?.effective === true;
+
 export type GymCaseClass = "MEM_TXN" | "MEM_CLOSED" | "MEM_VIOLATION" | "MEM_ACCESS" | "GYM_GENERAL";
 export const GYM_CASE_CLASSES: readonly GymCaseClass[] = ["MEM_TXN", "MEM_CLOSED", "MEM_VIOLATION", "MEM_ACCESS", "GYM_GENERAL"];
 /** Classes that have a money exit and therefore REQUIRE a membership (`MEMBERSHIP_REQUIRED`). `GYM_GENERAL` must not carry one (`MEMBERSHIP_NOT_ALLOWED`). */

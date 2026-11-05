@@ -21,6 +21,7 @@ export function gymQueryKeys(userId: string) {
     complaintsAll: () => [...base, "complaints"] as const,
     gyms: () => [...base, "gyms"] as const,
     adminOptions: () => [...base, "admin-options"] as const,
+    capabilities: () => [...base, "capabilities"] as const,
     caseList: (f: { status?: GymCaseStatus; page?: number }) => [...base, "case-list", { status: f.status ?? null, page: f.page ?? 0 }] as const,
     caseListAll: () => [...base, "case-list"] as const,
     detail: (caseId: string) => [...base, "detail", caseId] as const,

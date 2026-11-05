@@ -443,6 +443,17 @@ export interface LatestProposal {
   proposerId: string;
   executionBlockedReason: ProposalBlockedReason | null;
   createdAt: string;
+  /**
+   * A53 (05/11): computed from STORED data only. `needsRecollect` / `liveSourcesChecked` are always false here: a live source that changed
+   * without a re-collect is only found by the approval guard, whose answer stays final.
+   */
+  evidenceChange?: {
+    changedSinceProposal: boolean;
+    acknowledgedByInvestigator: boolean;
+    needsRecollect: boolean;
+    liveSourcesChecked: boolean;
+    items: Array<{ id: string; kind: "EVIDENCE" | "STATEMENT"; change: "NEW" | "MUTATED" }>;
+  } | null;
 }
 export interface LatestApproval {
   id: string;

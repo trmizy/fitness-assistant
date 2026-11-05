@@ -37,6 +37,7 @@ import type {
   GymTransitionResult,
   MemberCaseDetail,
   MemberCaseList,
+  GymCapabilities,
 } from "./gymCaseTypes";
 
 export interface GymHttpClient {
@@ -140,6 +141,12 @@ export function createGymCaseApi(client: GymHttpClient) {
   const M = "/me/complaint-cases";
 
   return {
+    /**
+     * G37 `GET /admin/complaint-cases/capabilities`: the gym flags as gym-service itself evaluates them
+     * (`{gymCase:{effective, refusedBecause?}, decisionReplacement:{...}, gymParty:{effective:false}}`). The only trusted signal for G1.
+     */
+    capabilities: () => get<GymCapabilities>(`${A}/capabilities`),
+
     // ── old complaint list (H1) with the R-18 paging ──
     /**
      * `GET /admin/complaints?status&limit&offset`: with `limit`/`offset` the answer is `{ data:[...], meta:{ total, limit, offset } }`.
