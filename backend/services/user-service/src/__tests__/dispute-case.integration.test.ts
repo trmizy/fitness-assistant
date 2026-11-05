@@ -628,6 +628,49 @@ test("a change in a LIVE source that nobody re-collected cannot be acknowledged 
   assert.equal((await svc.decide(A2, w.caseId, approveBody({ evidenceChangeAcknowledged: true }))).result.caseStatus, "DECISION_APPROVED");
 });
 
+test("INT-06 over HTTP: the case detail previews the evidence-change guard from STORED rows (changed / acknowledged), and says it did not check live sources", async () => {
+  const original = authServiceClient.verifyToken;
+  (authServiceClient as any).verifyToken = async (header: string) => {
+    const [role, id] = header.replace(/^Bearer /, "").split(":");
+    return { status: 200, data: { user: { id, email: `${id}@t.test`, role } } };
+  };
+  const { default: app } = await import("../app");
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const get = async (tok: string, path: string) => {
+    const res = await fetch(base + path, { headers: { authorization: `Bearer ${tok}` } });
+    return { status: res.status, json: (await res.json().catch(() => null)) as any };
+  };
+  try {
+    const w = await toAwaitingApproval({});
+    const tok = `ADMIN:${A2.id}`;
+    let d = await get(tok, `/admin/dispute-cases/${w.caseId}`);
+    assert.equal(d.status, 200);
+    assert.deepEqual(d.json.latestProposal.evidenceChange, { changedSinceProposal: false, acknowledgedByInvestigator: false, needsRecollect: false, liveSourcesChecked: false, items: [] });
+
+    await prisma.auditLog.create({ data: { actorUserId: w.ptUserId, action: "SESSION_NOTE", entityType: "SESSION", entityId: w.session.id } });
+    await svc.recollect(A3, w.caseId);
+    d = await get(tok, `/admin/dispute-cases/${w.caseId}`);
+    const ec = d.json.latestProposal.evidenceChange;
+    assert.equal(ec.changedSinceProposal, true);
+    assert.equal(ec.acknowledgedByInvestigator, false);
+    assert.equal(ec.items.length, 1);
+    assert.deepEqual(Object.keys(ec.items[0]).sort(), ["change", "id", "kind"]);
+    assert.equal(ec.items[0].kind, "EVIDENCE");
+    assert.equal(ec.items[0].change, "NEW");
+
+    await svc.acknowledgeEvidenceChange(A1, w.caseId, "Đã xem bằng chứng mới");
+    d = await get(tok, `/admin/dispute-cases/${w.caseId}`);
+    assert.equal(d.json.latestProposal.evidenceChange.changedSinceProposal, true);
+    assert.equal(d.json.latestProposal.evidenceChange.acknowledgedByInvestigator, true);
+    // the preview agrees with the real guard: with the approver's flag the approval now goes through
+    assert.equal((await svc.decide(A2, w.caseId, approveBody({ evidenceChangeAcknowledged: true }))).result.caseStatus, "DECISION_APPROVED");
+  } finally {
+    (authServiceClient as any).verifyToken = original;
+    await new Promise<void>((r) => server.close(() => r()));
+  }
+});
+
 test("a statement or document written after the proposal is a change as well", async () => {
   const w = await toAwaitingApproval({});
   // a party cannot write in AWAITING_APPROVAL; fixture: insert as the table would receive it from an earlier window

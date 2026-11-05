@@ -2,6 +2,7 @@ import { prisma } from '../../repositories/prisma';
 import { caseError, notFoundCase } from './errors';
 import { logAccess, lockCase, mutate, requireUuid, toJson, type Actor, type CaseRow } from './case.service';
 import { canAccessGym } from '../partner-permissions';
+import { gymCaseEnabled } from './flags';
 import { PARTY_SUBMIT_STATUSES, evidenceVisibleTo, gymSafePayload, memberProgressLabel, statementVisibleTo, verificationLabelVi, verificationOf, viewerKind, type CaseStatus } from './rules';
 import { contentHashOf } from './canonical';
 
@@ -55,7 +56,7 @@ export const explainerService = {
         gymId: r.gymId,
         issueType: r.complaint.issueType,
         progress: memberProgressLabel(r.status as CaseStatus, r.execStatus),
-        canSubmit: PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus),
+        canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus),
         respondBy: r.deadlines[0]?.dueAt ?? null,
         createdAt: r.createdAt,
       })),
@@ -77,7 +78,7 @@ export const explainerService = {
     const statements = statementsAll.filter((s) => gymAuthored.has(s.id) || statementVisibleTo(s, kind, actor.id, shares));
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     return {
-      case: { id: c.id, gymId: c.gymId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus), respondBy: deadline?.dueAt ?? null },
+      case: { id: c.id, gymId: c.gymId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus), respondBy: deadline?.dueAt ?? null },
       complaint: { issueType: c.complaint.issueType, description: c.complaint.description },
       evidence: evidence.map((e) => {
         const v = verificationOf(e.source);

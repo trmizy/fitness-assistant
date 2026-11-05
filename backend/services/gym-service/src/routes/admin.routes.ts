@@ -169,6 +169,8 @@ router.get('/partners/:id/complaints', asyncHandler(complaintController.listForP
 // Dispute V2.1 Slice 3 - lop ho so (Case) tren khieu nai gym. Moi thao tac GHI bi tu choi (409 GYM_CASE_DISABLED) khi co GYM_COMPLAINT_CASE_ENABLED
 // khong hieu luc; doc luon dung duoc. Danh tinh chi lay tu token; body .strict(); Idempotency-Key tuy chon.
 router.post('/complaints/:id/case', asyncHandler(complaintCaseController.open));
+// INT-09: declared BEFORE /:id so 'capabilities' is never read as a case id.
+router.get('/complaint-cases/capabilities', asyncHandler(complaintCaseController.capabilities));
 router.get('/complaint-cases', asyncHandler(complaintCaseController.list));
 router.get('/complaint-cases/:id', asyncHandler(complaintCaseController.detail));
 router.get('/complaint-cases/:id/history', asyncHandler(complaintCaseController.history));

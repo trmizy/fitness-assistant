@@ -1420,7 +1420,7 @@ export const disputeCaseService = {
       assessments,
       findings,
       proposals,
-      latestProposal: latestProposal ? { id: latestProposal.id, outcome: latestProposal.outcome, proposerId: latestProposal.proposerId, executionBlockedReason: latestProposal.executionBlockedReason, createdAt: latestProposal.createdAt } : null,
+      latestProposal: latestProposal ? { id: latestProposal.id, outcome: latestProposal.outcome, proposerId: latestProposal.proposerId, executionBlockedReason: latestProposal.executionBlockedReason, createdAt: latestProposal.createdAt, evidenceChange: await evidenceChangeView(c, latestProposal.evidenceSnapshot as unknown as SnapshotEntry[], evidence, statements) } : null,
       latestApproval: latestApproval ? { id: latestApproval.id, proposalId: latestApproval.proposalId, approverId: latestApproval.approverId, result: latestApproval.result, reason: latestApproval.reason, createdAt: latestApproval.createdAt } : null,
       decision: approvedProposal && approval ? { proposalId: approvedProposal.id, approvalId: approval.id, outcome: approvedProposal.outcome, approvedBy: approval.approverId, approvedAt: approval.createdAt, executionBlockedReason: approvedProposal.executionBlockedReason } : null,
       execution,
@@ -1868,6 +1868,29 @@ function executionView(
  * What changed since the proposal's snapshot: rows written after it, plus any live source whose current hash differs from the latest stored
  * row (a change nobody has re-collected yet). Pure reads; callable inside the approve transaction.
  */
+/**
+ * INT-06: read-only preview of what the approve guard will say about evidence, computed from STORED rows only (same diffAgainstSnapshot / changeAcknowledged as the guard).
+ * It CANNOT know about a live source (chat / gym) that changed but was not re-collected yet, nor one that cannot be read now: those need the network read of evidenceGuard at approve time,
+ * so `liveSourcesChecked` is false and `needsRecollect` is only ever true for what is knowable (never here). The approve call stays the authority.
+ */
+async function evidenceChangeView(c: CaseRow, snapshot: SnapshotEntry[], evidence: Array<{ id: string; contentHash: string; createdAt: Date }>, statements: Array<{ id: string; contentHash: string; createdAt: Date }>) {
+  const r = diffAgainstSnapshot({
+    snapshot,
+    current: [...evidence.map((e) => ({ id: e.id, hash: e.contentHash, createdAt: e.createdAt })), ...statements.map((x) => ({ id: x.id, hash: x.contentHash, createdAt: x.createdAt }))],
+    staleLive: [],
+  });
+  const evIds = new Set(evidence.map((e) => e.id));
+  const ids = [...r.newIds.map((id) => ({ id, change: "NEW" as const })), ...r.mutatedIds.map((id) => ({ id, change: "MUTATED" as const }))];
+  const acknowledged = r.changed ? changeAcknowledged(r, true, await ackTimesOf(prisma, c)) : false;
+  return {
+    changedSinceProposal: r.changed,
+    acknowledgedByInvestigator: acknowledged,
+    needsRecollect: false,
+    liveSourcesChecked: false,
+    items: ids.map((i) => ({ id: i.id, kind: evIds.has(i.id) ? "EVIDENCE" : "STATEMENT", change: i.change })),
+  };
+}
+
 export async function evidenceGuard(tx: Tx, c: CaseRow, snapshot: SnapshotEntry[], prefetched?: EvidenceDraft[] | null) {
   const [ev, st] = await Promise.all([
     tx.disputeCaseEvidence.findMany({ where: { caseId: c.id }, select: { id: true, contentHash: true, createdAt: true } }),

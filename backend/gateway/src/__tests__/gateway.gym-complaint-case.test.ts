@@ -67,6 +67,7 @@ test("admin case endpoints reach gym-service for an ADMIN with the verified iden
   const id = "11111111-1111-4111-8111-111111111111";
   for (const [m, p] of [
     ["GET", "/admin/complaint-cases"],
+    ["GET", "/admin/complaint-cases/capabilities"],
     ["GET", `/admin/complaint-cases/${id}`],
     ["GET", `/admin/complaint-cases/${id}/history`],
     ["POST", `/admin/complaint-cases/${id}/decision`],
@@ -75,7 +76,7 @@ test("admin case endpoints reach gym-service for an ADMIN with the verified iden
     const res = await call(m, p, "admin-token", m === "POST" ? {} : undefined);
     assert.equal(res.status, 200, `${m} ${p}`);
   }
-  assert.equal(seen.length, 5);
+  assert.equal(seen.length, 6);
   assert.ok(seen.every((s) => s.role === "ADMIN" || s.role === ""), "gym-service verifies the token itself; the gateway never lets a client-set role through");
 });
 

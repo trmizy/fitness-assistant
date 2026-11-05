@@ -147,7 +147,7 @@ test('G20 / G21: member reads over real HTTP - only my own cases, exact shape, n
   const la = ok(await call('GET', '/me/complaint-cases', a.reporter.tok), 200, 'G20 a');
   assert.deepEqual(keys(la), ['items']);
   assert.equal(la.items.length, 1);
-  assert.deepEqual(keys(la.items[0]), ['complaintId', 'createdAt', 'id', 'progress']);
+  assert.deepEqual(keys(la.items[0]), ['canSubmit', 'complaintId', 'createdAt', 'id', 'progress']);
   assert.equal(la.items[0].id, a.caseId);
   assert.equal(la.items[0].progress, 'Đã xử lý');
   const lb = ok(await call('GET', '/me/complaint-cases', b.reporter.tok), 200, 'G20 b');

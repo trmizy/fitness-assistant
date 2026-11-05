@@ -5,6 +5,7 @@ import { complaintCaseService, type Actor } from '../services/complaint-case/cas
 import { complaintCaseExecutionService } from '../services/complaint-case/execution.service';
 import { appealService } from '../services/complaint-case/appeal.service';
 import { decisionReplacementService } from '../services/complaint-case/decision-replacement.service';
+import { flagVerdict, replacementEnabled, GYM_DECISION_REPLACEMENT_FLAG } from '../services/complaint-case/flags';
 import { explainerService, type GymScope } from '../services/complaint-case/explainer.service';
 import {
   ackBody,
@@ -91,6 +92,20 @@ export const complaintCaseController = {
     run(req, res, 'open', async (a, k) => {
       const r = await complaintCaseService.openCase(a, idParam(req), parse(openCaseBody, req.body) as any, k);
       return { status: r.replayed ? 200 : 201, data: r.result, replayed: r.replayed };
+    }),
+  /** INT-09: read-only, admin-only. Every verdict comes from the same functions the write paths use (flags.ts); nothing is re-implemented. */
+  capabilities: (req: Request, res: Response) =>
+    run(req, res, 'capabilities', async () => {
+      const gc = flagVerdict();
+      const rep = replacementEnabled();
+      const repRefused = rep ? undefined : gc.effective ? (process.env[GYM_DECISION_REPLACEMENT_FLAG] === 'true' ? undefined : 'FLAG_OFF') : (gc.refusedBecause ?? 'FLAG_OFF');
+      return {
+        data: {
+          gymCase: { effective: gc.effective, ...(gc.refusedBecause ? { refusedBecause: gc.refusedBecause } : {}) },
+          decisionReplacement: { effective: rep, ...(repRefused ? { refusedBecause: repRefused } : {}) },
+          gymParty: { effective: false },
+        },
+      };
     }),
   list: (req: Request, res: Response) => run(req, res, 'list', async (a) => ({ data: await complaintCaseService.list(a, parse(listQuery, req.query)) })),
   detail: (req: Request, res: Response) => run(req, res, 'detail', async (a) => ({ data: await complaintCaseService.getForAdmin(a, idParam(req)) })),

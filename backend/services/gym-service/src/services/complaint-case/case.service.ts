@@ -1040,7 +1040,7 @@ export const complaintCaseService = {
   async listForMember(actor: Actor) {
     const rows = await prisma.gymComplaintCase.findMany({ where: { reporterUserId: actor.id }, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], take: 100 });
     await logAccess(prisma, rows.map((r) => ({ caseId: r.id, viewer: actor, action: 'VIEW_CASE' as const })));
-    return { items: rows.map((r) => ({ id: r.id, complaintId: r.complaintId, progress: memberProgressLabel(r.status as CaseStatus, r.execStatus), createdAt: r.createdAt })) };
+    return { items: rows.map((r) => ({ id: r.id, complaintId: r.complaintId, progress: memberProgressLabel(r.status as CaseStatus, r.execStatus), createdAt: r.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus) })) };
   },
 
   /** A case the user did not file does not exist for them (404, not 403). The Gym's own people see nothing (party locked). */
@@ -1064,7 +1064,7 @@ export const complaintCaseService = {
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     const resolved = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
     return {
-      case: { id: c.id, complaintId: c.complaintId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus) },
+      case: { id: c.id, complaintId: c.complaintId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus) },
       complaint: { issueType: c.complaint.issueType, description: c.complaint.description },
       evidence: evidence.map((e) => ({ id: e.id, source: e.source, subject: e.subject, capturedAt: e.capturedAt, snapshotVersion: e.snapshotVersion, payload: e.payload, mine: e.submittedBy === actor.id })),
       statements: statements.map((s) => ({ id: s.id, partyRole: s.partyRole, version: s.version, text: s.text, supplementReason: s.supplementReason, createdAt: s.createdAt, mine: s.authorUserId === actor.id })),
