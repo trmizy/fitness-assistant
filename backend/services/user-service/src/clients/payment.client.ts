@@ -160,6 +160,20 @@ export const paymentClient = {
     return data.data;
   },
 
+  /**
+   * E5: the FORMAL obligation after a won appeal whose approved finding ESTABLISHED an amount and a responsible party. Idempotent per consequence (APPEAL_OBLIGATION:<consequenceId>); moves no money.
+   */
+  async createAppealObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /** E5, read-only: the live obligation created for a consequence ({found:false} when none). */
+  async readAppealObligation(consequenceId: string): Promise<any> {
+    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation/${encodeURIComponent(consequenceId)}`, { headers, timeout: 10_000 });
+    return data.data;
+  },
+
   async terminate(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, body, { headers, timeout: 20_000 });
     return data.data;

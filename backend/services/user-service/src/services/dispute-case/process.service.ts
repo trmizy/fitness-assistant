@@ -10,6 +10,8 @@ import { noticesFor } from "./notices";
 import { __internals, type Actor } from "./dispute-case.service";
 import { checkApprover, outcomeForFinding, partyRoleOf, type CaseStatus, type FindingKind } from "./rules";
 import { HELD_REVIEW_DAYS } from "./dispute-timers.service";
+import { paymentClient } from "../../clients/payment.client";
+import { logger } from "@gym-coach/shared";
 
 /**
  * DISPUTE V2.1 PROCESS (Ngai 05/11/2026): mutual agreement, appeal (review request), the consequences of an appeal (B2-B4), the quota correction (B3), the held-money decision and the
@@ -205,14 +207,21 @@ export const processService = {
     actor: Actor,
     caseId: string,
     appealId: string,
-    b: { result: "UPHELD" | "NEW_FINDING"; reasoning: string; finding?: FindingKind; consequences?: Array<{ kind: "MONEY" | "QUOTA" | "PT_AT_FAULT"; note: string }> },
+    b: { result: "UPHELD" | "NEW_FINDING"; reasoning: string; finding?: FindingKind; consequences?: Array<{ kind: "MONEY" | "QUOTA" | "PT_AT_FAULT"; note: string; amountVnd?: number; responsibleParty?: "PT" | "GYM" | "PLATFORM" }> },
     key?: string,
   ) {
     requireFlag();
     __internals.assertAdmin(actor);
+    // E5: an established amount + responsible party is valid ONLY for the finding that establishes who is responsible (the PT was absent -> the PT); anything else cannot be "established" here.
+    for (const k of b.consequences ?? []) {
+      if (k.amountVnd === undefined) continue;
+      if (b.result !== "NEW_FINDING" || b.finding !== "VERIFIED_PT_ABSENT" || k.responsibleParty !== "PT") {
+        throw caseError(400, "MONEY_NOT_ESTABLISHED_BY_FINDING", "Số tiền và bên chịu trách nhiệm chỉ được nêu khi kết luận mới là 'PT vắng mặt' và bên chịu trách nhiệm là PT; các trường hợp khác để đối soát");
+      }
+    }
     if (b.result === "NEW_FINDING" && !b.finding) throw caseError(400, "FINDING_REQUIRED", "Kết quả 'kết luận mới' cần nêu kết luận");
     if (b.result === "UPHELD" && ((b.consequences?.length ?? 0) > 0 || b.finding)) throw caseError(400, "UPHELD_HAS_NO_CHANGE", "Giữ nguyên kết luận thì không kèm kết luận mới hay hệ quả");
-    return __internals.mutate<Record<string, unknown>>({
+    const decided = await __internals.mutate<Record<string, any>>({
       actor,
       action: "APPEAL_DECIDED",
       scope: `${caseId}:${appealId}`,
@@ -237,7 +246,9 @@ export const processService = {
             const status = k.kind === "MONEY" ? "NEEDS_RECONCILIATION" : k.kind === "PT_AT_FAULT" ? "RESOLVED" : "OPEN";
             const detail =
               k.kind === "MONEY"
-                ? { obligationCreated: false, why: "Kết luận đã duyệt chưa xác lập số tiền và bên chịu trách nhiệm; cần đối soát, không tạo khoản nợ" }
+                ? k.amountVnd !== undefined
+                  ? { obligationCreated: false, requested: { amountVnd: k.amountVnd, responsibleParty: k.responsibleParty }, why: "Kết luận đã duyệt xác lập số tiền và bên chịu trách nhiệm; đang tạo khoản nợ chính thức tại payment-service. Chưa trả tiền" }
+                  : { obligationCreated: false, why: "Kết luận đã duyệt chưa xác lập số tiền và bên chịu trách nhiệm; cần đối soát, không tạo khoản nợ" }
                 : k.kind === "PT_AT_FAULT"
                   ? { recordedOnly: true, entitlementsChanged: false, contractReopened: false }
                   : { correction: "PENDING_PROPOSAL" };
@@ -259,6 +270,126 @@ export const processService = {
         };
       },
     });
+    // E5: AFTER the decision committed (never an HTTP call inside the case transaction): every MONEY consequence whose finding ESTABLISHED an amount and a responsible party asks payment-service for the formal
+    // obligation. Idempotent; a failure leaves the consequence NEEDS_RECONCILIATION (no fake debt) and the retry route finishes it.
+    const rows = await processService.createObligationsForAppeal(actor, caseId, appealId);
+    const res = decided.result as any;
+    if (res && typeof res === "object" && Array.isArray(res.consequences)) {
+      res.consequences = res.consequences.map((m: any) => ({ ...m, status: rows.get(m.id) ?? m.status }));
+      res.fullyResolved = res.consequences.every((m: any) => m.status === "RESOLVED");
+    }
+    return decided;
+  },
+
+  // ── E5: the formal obligation after a won appeal ────────────────────────────────────────────────
+
+  /** Tries to create the obligation of every MONEY consequence of an appeal that carries an established request. Returns id -> status after the attempt. Never throws for a payment-service failure. */
+  async createObligationsForAppeal(actor: Actor, caseId: string, appealId: string): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const rows = await prisma.disputeCaseAppealConsequence.findMany({ where: { caseId, appealId, kind: "MONEY" } });
+    for (const r of rows) {
+      const requested = ((r.detail as any)?.requested ?? null) as { amountVnd?: number; responsibleParty?: string } | null;
+      if (r.status === "NEEDS_RECONCILIATION" && requested?.amountVnd) {
+        try {
+          out.set(r.id, (await processService.tryCreateObligation(actor, r.id)).status);
+          continue;
+        } catch {
+          /* stays NEEDS_RECONCILIATION: the retry route finishes it */
+        }
+      }
+      out.set(r.id, r.status);
+    }
+    return out;
+  },
+
+  /** Admin retry: ask payment-service again for the obligation of ONE consequence (idempotent). */
+  async createAppealObligation(actor: Actor, caseId: string, consequenceId: string) {
+    requireFlag();
+    __internals.assertAdmin(actor);
+    __internals.requireUuid(caseId);
+    __internals.requireUuid(consequenceId);
+    const cons = await prisma.disputeCaseAppealConsequence.findUnique({ where: { id: consequenceId } });
+    if (!cons || cons.caseId !== caseId || cons.kind !== "MONEY") throw caseError(404, "CONSEQUENCE_NOT_FOUND", "Không tìm thấy hệ quả tiền của hồ sơ này");
+    const requested = ((cons.detail as any)?.requested ?? null) as { amountVnd?: number } | null;
+    if (!requested?.amountVnd) throw caseError(409, "MONEY_NOT_ESTABLISHED", "Kết luận chưa xác lập số tiền và bên chịu trách nhiệm: không tạo khoản nợ, giữ để đối soát");
+    if (cons.status === "OBLIGATION_OPEN" || cons.status === "RESOLVED") return { consequenceId: cons.id, status: cons.status, obligation: (cons.detail as any)?.obligation ?? null, replayed: true };
+    try {
+      return { ...(await processService.tryCreateObligation(actor, cons.id)), replayed: false };
+    } catch (e: any) {
+      if (e?.status && e?.code) throw e;
+      logger.warn({ message: e?.message, status: e?.response?.status, data: e?.response?.data }, "[E5] creating the appeal obligation failed");
+      throw caseError(503, "OBLIGATION_UNAVAILABLE", "Chưa tạo được khoản nợ tại payment-service lúc này; hệ quả vẫn giữ để đối soát. Thử lại sau");
+    }
+  },
+
+  async tryCreateObligation(actor: Actor, consequenceId: string) {
+    const cons = await prisma.disputeCaseAppealConsequence.findUniqueOrThrow({ where: { id: consequenceId } });
+    const requested = (cons.detail as any)?.requested as { amountVnd: number; responsibleParty: "PT" | "GYM" | "PLATFORM" };
+    const c = await prisma.disputeCase.findUniqueOrThrow({ where: { id: cons.caseId }, select: { id: true, contractId: true } });
+    const contract = await prisma.contract.findUnique({ where: { id: c.contractId }, select: { id: true, price: true, paymentTransactionId: true } });
+    if (!contract?.paymentTransactionId || contract.price == null) throw caseError(409, "CONTRACT_HAS_NO_PAYMENT", "Hợp đồng không có khoản thanh toán phía sau: không tạo khoản nợ");
+    if (requested.amountVnd > Number(contract.price)) throw caseError(422, "AMOUNT_EXCEEDS_CONTRACT", "Số tiền xác lập lớn hơn giá trị hợp đồng: không tạo khoản nợ");
+    let answer: any;
+    try {
+      answer = await paymentClient.createAppealObligation({
+        transactionId: contract.paymentTransactionId,
+        contractId: contract.id,
+        consequenceId: cons.id,
+        caseId: c.id,
+        appealId: cons.appealId,
+        amount: String(requested.amountVnd),
+        responsibleParty: requested.responsibleParty,
+        decidedBy: actor.id,
+        reason: `Kháng nghị ${cons.appealId} được chấp nhận: ${cons.note ?? ""}`.slice(0, 2000),
+      });
+    } catch (e: any) {
+      // payment-service refused with a definite 4xx (contract mismatch, amount above the payment ...): say so; anything else (down, 5xx) is the caller's "try again"
+      const st = e?.response?.status;
+      const code = e?.response?.data?.error?.code;
+      if (typeof st === "number" && st >= 400 && st < 500 && typeof code === "string") throw caseError(st === 400 ? 422 : st, code, String(e?.response?.data?.error?.message ?? "payment-service từ chối tạo khoản nợ"));
+      throw e;
+    }
+    const obligation = { id: answer.obligationId, owed: answer.owed, unpaid: answer.unpaid, status: answer.status, responsibleParty: answer.responsibleParty };
+    const moved = await prisma.disputeCaseAppealConsequence.updateMany({
+      where: { id: cons.id, status: "NEEDS_RECONCILIATION" },
+      data: { status: "OBLIGATION_OPEN", detail: { ...((cons.detail as object) ?? {}), obligationCreated: true, obligation, why: "Khoản nợ chính thức đã tạo; chưa trả tiền. Chỉ xong khi khoản nợ được thanh toán đã xác minh" } },
+    });
+    if (moved.count === 1) {
+      await prisma.disputeCaseEvent.create({
+        data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_CREATED", note: `obligation ${answer.obligationId}`, payload: { consequenceId: cons.id, obligation, moneyMoved: false } as any },
+      });
+    }
+    return { consequenceId: cons.id, status: "OBLIGATION_OPEN" as string, obligation };
+  },
+
+  /** Reads the obligation's live state; when it is SETTLED (paid and verified, resolved, paid via the ledger) the consequence becomes RESOLVED. Waived / still owed: it stays open. */
+  async syncAppealObligation(actor: Actor, caseId: string, consequenceId: string) {
+    requireFlag();
+    __internals.assertAdmin(actor);
+    __internals.requireUuid(caseId);
+    __internals.requireUuid(consequenceId);
+    const cons = await prisma.disputeCaseAppealConsequence.findUnique({ where: { id: consequenceId } });
+    if (!cons || cons.caseId !== caseId || cons.kind !== "MONEY") throw caseError(404, "CONSEQUENCE_NOT_FOUND", "Không tìm thấy hệ quả tiền của hồ sơ này");
+    if (cons.status !== "OBLIGATION_OPEN" && cons.status !== "RESOLVED") throw caseError(409, "NO_OBLIGATION", "Hệ quả này chưa có khoản nợ chính thức");
+    let live: any;
+    try {
+      live = await paymentClient.readAppealObligation(cons.id);
+    } catch {
+      throw caseError(503, "OBLIGATION_UNAVAILABLE", "Chưa đọc được khoản nợ tại payment-service lúc này");
+    }
+    if (!live?.found) throw caseError(409, "OBLIGATION_MISSING", "payment-service không có khoản nợ của hệ quả này: cần đối soát");
+    const SETTLED = ["RESOLVED", "PAID_VERIFIED", "RESOLVED_OTHER", "PAID_VIA_LEDGER"];
+    if (cons.status === "OBLIGATION_OPEN" && SETTLED.includes(live.status) && Number(live.unpaid) === 0) {
+      const moved = await prisma.disputeCaseAppealConsequence.updateMany({
+        where: { id: cons.id, status: "OBLIGATION_OPEN" },
+        data: { status: "RESOLVED", resolvedAt: clockNow(), resolvedBy: actor.id, detail: { ...((cons.detail as object) ?? {}), obligation: { ...((cons.detail as any)?.obligation ?? {}), status: live.status, unpaid: live.unpaid } } },
+      });
+      if (moved.count === 1) {
+        await prisma.disputeCaseEvent.create({ data: { caseId, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_SETTLED", note: `obligation ${live.obligationId} ${live.status}`, payload: { consequenceId: cons.id, obligation: live } as any } });
+      }
+    }
+    const after = await prisma.disputeCaseAppealConsequence.findUniqueOrThrow({ where: { id: cons.id } });
+    return { consequenceId: cons.id, status: after.status, obligation: live };
   },
 
   async listAppeals(actor: Actor, caseId: string) {

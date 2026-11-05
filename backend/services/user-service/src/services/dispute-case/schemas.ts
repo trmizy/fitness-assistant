@@ -203,7 +203,22 @@ export const appealDecisionBody = z
     result: z.enum(["UPHELD", "NEW_FINDING"]),
     reasoning: text(8000),
     finding: z.enum(["VERIFIED_DELIVERED", "VERIFIED_CLIENT_ABSENT", "VERIFIED_PT_ABSENT", "VERIFIED_NOT_DELIVERED_NO_FAULT", "INSUFFICIENT_EVIDENCE", "NOT_A_DISPUTE"]).optional(),
-    consequences: z.array(z.object({ kind: z.enum(["MONEY", "QUOTA", "PT_AT_FAULT"]), note: text(2000) }).strict()).max(3).optional(),
+    // E5: a MONEY consequence may carry the ESTABLISHED amount (whole dong) and the responsible party - both or neither; validated against the finding in the service, never free text.
+    consequences: z
+      .array(
+        z
+          .object({
+            kind: z.enum(["MONEY", "QUOTA", "PT_AT_FAULT"]),
+            note: text(2000),
+            amountVnd: z.number().int().min(1).max(10_000_000_000).optional(),
+            responsibleParty: z.enum(["PT", "GYM", "PLATFORM"]).optional(),
+          })
+          .strict()
+          .refine((k) => (k.amountVnd === undefined) === (k.responsibleParty === undefined), "amountVnd và responsibleParty phải đi cùng nhau")
+          .refine((k) => k.kind === "MONEY" || (k.amountVnd === undefined && k.responsibleParty === undefined), "Chỉ hệ quả tiền (MONEY) mới có số tiền và bên chịu trách nhiệm"),
+      )
+      .max(3)
+      .optional(),
   })
   .strict();
 export const quotaCorrectionBody = z.object({ delta: z.number().int().min(-100).max(100).refine((n) => n !== 0, "delta khác 0"), reason: text(2000) }).strict();
