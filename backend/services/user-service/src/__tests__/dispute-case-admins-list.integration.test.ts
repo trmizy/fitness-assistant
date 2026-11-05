@@ -61,7 +61,7 @@ test("auth-service unreachable -> 503 ACCOUNT_LOOKUP_UNAVAILABLE", async () => {
   try {
     const res = await get("ADMIN:a1");
     assert.equal(res.status, 503);
-    assert.equal((await res.json()).code, "ACCOUNT_LOOKUP_UNAVAILABLE");
+    assert.equal(((await res.json()) as { code?: string }).code, "ACCOUNT_LOOKUP_UNAVAILABLE");
   } finally {
     process.env.AUTH_SERVICE_URL = prev;
     if (prevLambda !== undefined) process.env.AUTH_LAMBDA_NAME = prevLambda;
