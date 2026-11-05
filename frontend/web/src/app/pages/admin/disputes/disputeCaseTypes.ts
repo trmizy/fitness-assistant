@@ -24,6 +24,8 @@ export const CASE_STATUSES = [
   "AWAITING_APPROVAL",
   "DECISION_APPROVED",
   "REJECTED_INTAKE",
+  // A5 (backend 05/11): a real end of a case; `closeReason` says why. Closing never moves money or changes the session.
+  "CLOSED",
 ] as const;
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
@@ -47,7 +49,7 @@ export const OUTCOMES = ["COMPLETED", "CANCELLED", "PT_NO_SHOW_CONFIRMED"] as co
 export type Outcome = (typeof OUTCOMES)[number];
 
 /** Why a case was closed WITHOUT a decision (`REJECTED_INTAKE` + `closeReason`; never call it "bị từ chối" without looking at this). */
-export const CLOSE_REASONS = ["INTAKE_REJECTED", "ORPHAN_SESSION_LEFT_DISPUTE", "NOT_A_DISPUTE"] as const;
+export const CLOSE_REASONS = ["INTAKE_REJECTED", "ORPHAN_SESSION_LEFT_DISPUTE", "NOT_A_DISPUTE", "EXECUTED", "APPEAL_CONCLUDED"] as const;
 export type CloseReason = (typeof CLOSE_REASONS)[number];
 
 export const CLAIMANT_ROLES = ["CLIENT", "PT", "SYSTEM"] as const;

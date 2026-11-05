@@ -19,8 +19,8 @@ const keys = (o: object) => Object.keys(o).sort();
 const sorted = (a: readonly string[]) => [...a].sort();
 
 describe("D1 labels - every enum value has a Vietnamese label (exhaustive against the unions)", () => {
-  it("case status: all 11 including PROPOSED, each with a label and a waiting note", () => {
-    assert.equal(T.CASE_STATUSES.length, 11);
+  it("case status: all 12 including PROPOSED and CLOSED, each with a label and a waiting note", () => {
+    assert.equal(T.CASE_STATUSES.length, 12);
     assert.deepEqual(keys(L.CASE_STATUS_LABEL), sorted(T.CASE_STATUSES));
     assert.deepEqual(keys(L.CASE_STATUS_NOTE), sorted(T.CASE_STATUSES));
     assert.ok(L.CASE_STATUS_LABEL.PROPOSED.length > 3);
@@ -49,9 +49,10 @@ describe("D1 labels - every enum value has a Vietnamese label (exhaustive agains
     assert.deepEqual(keys(L.SHARE_REFUSAL_LABEL), ["NOT_NORMAL_SENSITIVITY", "PARTY_SUBMITTED", "UNVERIFIED"]);
     assert.deepEqual(keys(L.PROPOSAL_BLOCKED_LABEL), ["D77_COMBINATION_UNRESOLVED"]);
   });
-  it("the unions match the real Prisma enums when the main tree is reachable (code is authoritative)", (t) => {
-    const prisma = "D:/FitnessAssistant/backend/services/user-service/prisma/schema.prisma";
-    if (!existsSync(prisma)) return t.skip("main-tree schema.prisma not reachable");
+  it("the unions match the real Prisma enums when the backend tree is reachable (code is authoritative)", (t) => {
+    // The frontend follows the backend branch under integration (dispute-backend-completion, worktree D:/fa-bc); the main tree lags behind it until merge.
+    const prisma = ["D:/fa-bc/backend/services/user-service/prisma/schema.prisma", "D:/FitnessAssistant/backend/services/user-service/prisma/schema.prisma"].find((p) => existsSync(p));
+    if (!prisma) return t.skip("backend schema.prisma not reachable");
     const text = readFileSync(prisma, "utf8");
     const enumValues = (name: string) => {
       const m = text.match(new RegExp(`enum ${name} \\{([\\s\\S]*?)\\n\\}`));
@@ -165,6 +166,7 @@ describe("D1 allowedTransitions (state-machine hint copied from rules.ts)", () =
       AWAITING_APPROVAL: ["DECISION_APPROVED", "ASSESSING"],
       DECISION_APPROVED: [],
       REJECTED_INTAKE: [],
+      CLOSED: [],
     };
     assert.deepEqual(keys(expected), sorted(T.CASE_STATUSES));
     for (const s of T.CASE_STATUSES) assert.deepEqual(L.allowedTransitions(s), expected[s], s);

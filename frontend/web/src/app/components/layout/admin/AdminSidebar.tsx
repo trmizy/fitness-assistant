@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   BarbellIcon,
@@ -111,6 +112,21 @@ export function AdminSidebar({ collapsed = false, onNavigate, onToggleCollapse, 
   const badges = useAdminNavBadges();
   const activeId = findActiveNavItem(pathname)?.item.id ?? null;
   const isDark = effectiveTheme === "dark";
+  const navRef = useRef<HTMLElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  const updateMoreBelow = useCallback(() => {
+    const el = navRef.current;
+    setMoreBelow(!!el && el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  }, []);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    el.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+    updateMoreBelow();
+    const ro = new ResizeObserver(updateMoreBelow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [pathname, collapsed, updateMoreBelow]);
 
   const handleLogout = () => {
     logout();
@@ -131,9 +147,10 @@ export function AdminSidebar({ collapsed = false, onNavigate, onToggleCollapse, 
       </div>
 
       {/* Navigation — scrolls on its own so the footer stays reachable on short screens */}
-      <nav aria-label="Điều hướng quản trị" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <nav ref={navRef} onScroll={updateMoreBelow} aria-label="Điều hướng quản trị" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
         {ADMIN_NAV.map((group, index) => (
-          <div key={group.id} className={index === 0 ? "" : "mt-3.5"}>
+          <div key={group.id} className={index === 0 ? "" : "mt-2.5"}>
             {group.title &&
               (collapsed ? (
                 <div className="mx-3 mb-2 mt-1.5 h-px bg-adm-border-soft" aria-hidden="true" />
@@ -158,6 +175,20 @@ export function AdminSidebar({ collapsed = false, onNavigate, onToggleCollapse, 
           </div>
         ))}
       </nav>
+      {/* On short screens the last groups sit below the fold; say so instead of letting pages look missing. */}
+      {moreBelow && (
+        <button
+          type="button"
+          onClick={() => navRef.current?.scrollBy({ top: navRef.current.clientHeight * 0.8, behavior: "smooth" })}
+          aria-label="Còn mục điều hướng bên dưới, cuộn xuống"
+          data-testid="admin-nav-more"
+          className={`absolute inset-x-0 bottom-0 flex h-9 items-end justify-center bg-gradient-to-t from-adm-surface via-adm-surface/90 to-transparent pb-1 text-adm-text-2 hover:text-adm-text ${FOCUS_RING}`}
+        >
+          <CaretDownIcon size={16} weight="bold" aria-hidden />
+          {!collapsed && <span className="ml-1 text-xs font-medium">Còn mục bên dưới</span>}
+        </button>
+      )}
+      </div>
 
       {/* Footer: theme switch, language (drawer only), user card, collapse */}
       <div className="flex shrink-0 flex-col gap-0.5 border-t border-adm-border px-2.5 py-2">

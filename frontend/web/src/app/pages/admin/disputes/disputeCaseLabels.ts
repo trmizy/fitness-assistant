@@ -40,6 +40,7 @@ export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
   DECISION_APPROVED: "Đã duyệt quyết định",
   // Not "bị từ chối": a case closed without a decision shares this status; `closeReason` (closeReasonLabel / caseStatusText) says why.
   REJECTED_INTAKE: "Đã đóng, không có quyết định",
+  CLOSED: "Đã đóng hồ sơ",
 };
 
 /** Why a case was closed without a decision (`closeReason`). */
@@ -47,11 +48,15 @@ export const CLOSE_REASON_LABEL: Record<CloseReason, string> = {
   INTAKE_REJECTED: "Đã từ chối tiếp nhận",
   ORPHAN_SESSION_LEFT_DISPUTE: "Đã đóng: buổi tập không còn trong khiếu nại",
   NOT_A_DISPUTE: "Đã đóng: không phải khiếu nại",
+  EXECUTED: "Đã đóng: quyết định đã được thực thi",
+  APPEAL_CONCLUDED: "Đã đóng: yêu cầu xem xét lại đã có kết quả",
 };
 export const CLOSE_REASON_NOTE: Record<CloseReason, string> = {
   INTAKE_REJECTED: "Hồ sơ bị từ chối ngay từ bước tiếp nhận. Không có quyết định nào về buổi tập hay tiền.",
   ORPHAN_SESSION_LEFT_DISPUTE: "Buổi tập đã rời khỏi diện khiếu nại nên hồ sơ được đóng. Không có quyết định nào về buổi tập hay tiền, và việc đóng không thay đổi buổi tập, quyền buổi hay tiền.",
   NOT_A_DISPUTE: "Kết luận là «Không phải khiếu nại» nên hồ sơ được đóng. Buổi tập không bị thay đổi (vẫn chờ xử lý trong hàng đợi) và việc đóng không đụng tới tiền.",
+  EXECUTED: "Quyết định đã được thực thi phần nghiệp vụ rồi hồ sơ được đóng. Việc đóng không chuyển tiền; trạng thái tiền xem ở tab Tiền.",
+  APPEAL_CONCLUDED: "Các yêu cầu xem xét lại đã có kết quả rồi hồ sơ được đóng. Việc đóng không chuyển tiền; trạng thái tiền xem ở tab Tiền.",
 };
 export const closeReasonLabel = (r: string | null | undefined): string | null =>
   r != null && Object.prototype.hasOwnProperty.call(CLOSE_REASON_LABEL, r) ? CLOSE_REASON_LABEL[r as CloseReason] : null;
@@ -69,6 +74,7 @@ export const CASE_STATUS_NOTE: Record<CaseStatus, string> = {
   AWAITING_APPROVAL: "Cần một quản trị viên khác duyệt (bốn mắt).",
   DECISION_APPROVED: "Đã duyệt. Việc thực thi nằm ở bước riêng và chưa chắc đã chạy.",
   REJECTED_INTAKE: "Hồ sơ đã đóng, không có quyết định nào về buổi tập hay tiền.",
+  CLOSED: "Hồ sơ đã đóng. Việc đóng không chuyển tiền và không đổi buổi tập; trạng thái tiền xem ở tab Tiền.",
 };
 
 export const CASE_TYPE_LABEL: Record<CaseType, string> = {
@@ -217,6 +223,7 @@ const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = {
   AWAITING_APPROVAL: ["DECISION_APPROVED", "ASSESSING"],
   DECISION_APPROVED: [],
   REJECTED_INTAKE: [],
+  CLOSED: [],
 };
 /** Targets of the generic transition endpoint (the other states are reached only by the action that earns them). */
 const MANUAL_TARGETS: readonly CaseStatus[] = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "REJECTED_INTAKE"];
@@ -272,7 +279,9 @@ const lookup = <K extends string>(table: Record<K, string>, key: string | null |
 export const caseStatusLabel = (s: string | null | undefined) => lookup(CASE_STATUS_LABEL, s, "Chưa rõ trạng thái");
 /** The status text of a case: a case closed without a decision is named by its `closeReason`, never just "từ chối". */
 export const caseStatusText = (c: { status?: string | null; closeReason?: string | null }): string =>
-  c.status === "REJECTED_INTAKE" ? (closeReasonLabel(c.closeReason) ?? CASE_STATUS_LABEL.REJECTED_INTAKE) : caseStatusLabel(c.status);
+  c.status === "REJECTED_INTAKE" || c.status === "CLOSED"
+    ? (closeReasonLabel(c.closeReason) ?? caseStatusLabel(c.status))
+    : caseStatusLabel(c.status);
 export const caseTypeLabel = (s: string | null | undefined) => lookup(CASE_TYPE_LABEL, s, "Loại khiếu nại khác");
 export const findingLabel = (s: string | null | undefined) => lookup(FINDING_LABEL, s, "Kết luận khác");
 export const outcomeLabel = (s: string | null | undefined) => lookup(OUTCOME_LABEL, s, "Kết quả khác");

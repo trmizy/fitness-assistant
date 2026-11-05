@@ -39,7 +39,7 @@ const st = (over: Partial<PartyCaseDetail["statements"][number]> = {}): PartyCas
 });
 
 describe("D4 wording - every enum has a party sentence, none is an admin process word", () => {
-  it("all 11 statuses, all 4 types have labels and notes", () => {
+  it("all 12 statuses, all 4 types have labels and notes", () => {
     for (const s of CASE_STATUSES) {
       assert.ok(L.PARTY_STATUS_LABEL[s], s);
       assert.ok(L.PARTY_STATUS_NOTE[s], s);

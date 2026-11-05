@@ -25,6 +25,7 @@ export const PARTY_STATUS_LABEL: Record<CaseStatus, string> = {
   AWAITING_APPROVAL: "Đề xuất xử lý đang chờ phê duyệt",
   DECISION_APPROVED: "Đã có quyết định",
   REJECTED_INTAKE: "Hồ sơ không được tiếp nhận",
+  CLOSED: "Hồ sơ đã đóng",
 };
 
 /** One line under the status: what the file is doing now. Never an outcome, never a date promise. */
@@ -41,6 +42,7 @@ export const PARTY_STATUS_NOTE: Record<CaseStatus, string> = {
   DECISION_APPROVED:
     "Hồ sơ đã có quyết định. Quyết định được duyệt chưa có nghĩa là mọi bước đã được thực hiện hoặc tiền đã về; xem mục «Tiền» bên dưới.",
   REJECTED_INTAKE: "Hồ sơ không được tiếp nhận.",
+  CLOSED: "Hồ sơ đã đóng. Việc đóng hồ sơ không có nghĩa là tiền đã về; xem mục «Tiền» bên dưới.",
 };
 
 export const PARTY_TYPE_LABEL: Record<CaseType, string> = {
