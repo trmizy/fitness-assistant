@@ -159,11 +159,16 @@ test("A5: orphan and NOT_A_DISPUTE close to CLOSED (never REJECTED_INTAKE), a CL
   await call("POST", `/admin/dispute-cases/${caseId}/findings`, A(P), { finding: "NOT_A_DISPUTE", reasoning: "Khách rút khiếu nại" });
   const closed = await call("POST", `/admin/dispute-cases/${caseId}/close-not-a-dispute`, A(P), { reason: "Khách rút khiếu nại" });
   assert.deepEqual([closed.json.to, closed.json.closeReason], ["CLOSED", "NOT_A_DISPUTE"]);
-  // the session is still DISPUTED, yet a new case is NOT opened for it (no endless reopen)
+  // E2 (Ngai, 05/11): the session is still DISPUTED, so it may get exactly ONE new case through the normal path (the link to the closed case is audited) - never a loop
   const again = await call("POST", "/admin/dispute-cases", A(admin()), { sessionId: s.session.id });
-  assert.deepEqual([again.status, again.json.code], [409, "CASE_CLOSED_NO_REOPEN"]);
-  assert.equal(again.json.details.closeReason, "NOT_A_DISPUTE");
-  assert.equal(await prisma.disputeCase.count({ where: { sessionId: s.session.id } }), 1);
+  assert.equal(again.status < 300, true, JSON.stringify(again.json));
+  assert.deepEqual([again.json.created, again.json.case.previousCaseId], [true, caseId]);
+  assert.equal(await prisma.disputeCase.count({ where: { sessionId: s.session.id } }), 2);
+  await prisma.disputeCase.update({ where: { id: again.json.case.id }, data: { status: "CLOSED", closeReason: "NOT_A_DISPUTE" } }); // TEST FIXTURE: the second case is also closed NOT_A_DISPUTE
+  const third = await call("POST", "/admin/dispute-cases", A(admin()), { sessionId: s.session.id });
+  assert.deepEqual([third.status, third.json.code], [409, "CASE_CLOSED_NO_REOPEN"]);
+  assert.equal(third.json.details.closeReason, "NOT_A_DISPUTE");
+  assert.equal(await prisma.disputeCase.count({ where: { sessionId: s.session.id } }), 2);
 
   // orphan
   const s2 = await mkSession();
