@@ -37,6 +37,8 @@ export const DISPUTE_CASE_FLAGS = {
   TIMERS: "DISPUTE_CASE_TIMERS_ENABLED",
   /** V2.1 (Ngai 05/11): mutating routes of mutual agreement, appeal (review request), its consequences and the quota correction. OFF = 409 DISPUTE_PROCESS_DISABLED. Reads stay open. */
   APPEALS: "DISPUTE_CASE_APPEALS_ENABLED",
+  /** A4: every MUTATING route that replaces an approved Case decision that has had no effect (propose / approve / reject). OFF = 409 DECISION_REPLACEMENT_DISABLED. Reads stay open. */
+  DECISION_REPLACEMENT: "DISPUTE_CASE_DECISION_REPLACEMENT_ENABLED",
 } as const;
 
 export type DisputeCaseFlag = (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_CASE_FLAGS];
@@ -65,6 +67,9 @@ export const E2E_PERMITTED_FLAGS: ReadonlySet<DisputeCaseFlag> = new Set<Dispute
   DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE,
   DISPUTE_CASE_FLAGS.D65B_RESOLUTION,
   DISPUTE_CASE_FLAGS.TIMERS,
+  // Owner decisions A1 (appeal) and A4 (replacement of a decision with no effect), 04/11: the Admin Redesign tests them in the isolated E2E env; never production.
+  DISPUTE_CASE_FLAGS.APPEALS,
+  DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT,
 ]);
 
 /** Flags that move money / settle sessions: in e2e mode they additionally need payment-service to agree on the gate verdict. */
@@ -127,6 +132,7 @@ export const lateOpenReconciliationEnabled = () => isDisputeCaseFlagOn(DISPUTE_C
 export const d65bResolutionEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.D65B_RESOLUTION);
 export const timersEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.TIMERS);
 export const appealsEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.APPEALS);
+export const decisionReplacementEnabled = () => isDisputeCaseFlagOn(DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT);
 
 /** For tests only: forget which warnings were already printed. */
 export const __resetFlagWarnings = () => warned.clear();

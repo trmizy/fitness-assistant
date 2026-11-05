@@ -277,9 +277,11 @@ test("I6 with a real settled D77: a CANCELLED finding creates NO proposal (POLIC
 });
 
 for (const outcome of OUTCOMES.filter((o) => o !== "CANCELLED")) {
-  test(`B-1 with a real settled D77: ${outcome} stays EXEC_BLOCKED (D77_COMBINATION_UNRESOLVED) - not one ledger row, wallet, quota or session field moves`, { skip }, async () => {
+  test(`B-1 with a real D77 whose L is NOT settled in cash (PENDING key; the SETTLED_CASH keys are open since A2): ${outcome} stays EXEC_BLOCKED (D77_COMBINATION_UNRESOLVED) - not one ledger row, wallet, quota or session field moves`, { skip }, async () => {
     await scenario(async () => {
       const fx = await setupD77();
+      // TEST FIXTURE: L's compensation row is not settled (a step that failed) -> the real state of L is PENDING, a key that is NOT open
+      await H.m.prisma.sessionSettlement.update({ where: { idempotencyKey: `PT_LATE_ARRIVAL:${fx.S.id}` }, data: { status: "FAILED", lastError: "TEST FIXTURE" } });
       const a = await approve(fx, outcome);
       assert.equal((await H.m.prisma.disputeCaseProposal.findFirstOrThrow({ where: { caseId: a.caseId } })).executionBlockedReason, "D77_COMBINATION_UNRESOLVED", "flagged already at proposal time (Slice 1)");
       const snapshot = await H.snapshot();

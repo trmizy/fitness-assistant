@@ -5,7 +5,7 @@
  * payment-service child on isolated *_test databases. The flags are switched on in the test process only (NODE_ENV=test + DISPUTE_CASE_EXECUTION_ENABLED).
  *
  * The path of every case: intake -> claim -> assessment -> finding -> proposal -> four-eyes approval -> POLICY ELIGIBILITY (propose by the investigator, approve by an independent admin,
- * D-NEW-12) -> execute. `OPENED_D77_COMBINATIONS` in the code stays EMPTY. To produce the evidence the owner asked for, a TEST passes `openedD77Combinations` in the executor's `deps`
+ * D-NEW-12) -> execute. `OPENED_D77_COMBINATIONS` in the code holds only the FOUR cash-L keys Ngai approved on 04/11 (A2); the cases below that this suite opens through `openedD77Combinations` use the older outcome-only seam. To produce the evidence the owner asked for, a TEST passes `openedD77Combinations` in the executor's `deps`
  * (a parameter only a test builds: no environment variable, no route, no runtime path - proved below by a code audit). CANCELLED is never opened by it.
  *
  * Opt-in; run ALONE:  RUN_CROSS_SERVICE_MONEY=1 TEST_DATABASE_URL=...user_<x>_test... E2E_PAYMENT_DATABASE_URL=...payment_<x>_test... SETTLEMENT_INFLIGHT_WAIT_MS=300 \
@@ -253,9 +253,9 @@ for (const outcome of ["COMPLETED", "CANCELLED", "PT_NO_SHOW_CONFIRMED"] as Outc
 
 // ═════ with D77 and NOTHING opened (production deps): EXEC_BLOCKED, nothing written ═════
 for (const outcome of OPEN_BOTH) {
-  test(`D77 + production deps (OPENED_D77_COMBINATIONS empty): ${outcome} -> EXEC_BLOCKED D77_COMBINATION_UNRESOLVED, the core is NOT called, nothing is written`, { skip }, async () => {
+  test(`D77 + production deps, L OPEN (not one of the four approved cash-L keys): ${outcome} -> EXEC_BLOCKED D77_COMBINATION_UNRESOLVED, the core is NOT called, nothing is written`, { skip }, async () => {
     await scenario(async () => {
-      const fx = await build("ACTIVE", "SETTLED");
+      const fx = await build("ACTIVE", "OPEN");
       const a = await caseToExecutable(fx, outcome);
       const snap = await H.snapshot();
       const { deps, counter } = depsWith([]);
@@ -368,7 +368,7 @@ test("TWO execute commands at once on the same decision: exactly one runs the co
 test("CODE AUDIT: production code has no way to open a D77 combination - OPENED_D77_COMBINATIONS is the empty constant, `openedD77Combinations` is read only from ExecDeps / the ctx the executor builds, defaultExecDeps() never sets it, and no env variable or route mentions it", { skip }, async () => {
   const root = path.resolve(__dirname, "..");
   const guard = fs.readFileSync(path.join(root, "services/dispute-case/execution-guard.ts"), "utf8");
-  assert.match(guard, /export const OPENED_D77_COMBINATIONS: ReadonlyArray<string> = \[\];/);
+  assert.match(guard, /export const OPENED_D77_COMBINATIONS: ReadonlyArray<string> = \[\s*"COMPLETED\|L:SETTLED_CASH\|C:ACTIVE",\s*"COMPLETED\|L:SETTLED_CASH\|C:ENDED",\s*"PT_NO_SHOW_CONFIRMED\|L:SETTLED_CASH\|C:ACTIVE",\s*"PT_NO_SHOW_CONFIRMED\|L:SETTLED_CASH\|C:ENDED",\s*\];/);
   const hits: string[] = [];
   const walk = (dir: string) => {
     for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -388,5 +388,5 @@ test("CODE AUDIT: production code has no way to open a D77 combination - OPENED_
   const def = exec.slice(exec.indexOf("export const defaultExecDeps"), exec.indexOf("const toJson"));
   assert.doesNotMatch(def, /openedD77Combinations/);
   const mod = await import("../services/dispute-case/execution-guard");
-  assert.equal(mod.OPENED_D77_COMBINATIONS.length, 0);
+  assert.equal(mod.OPENED_D77_COMBINATIONS.length, 4);
 });

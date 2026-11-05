@@ -1,8 +1,9 @@
 /**
- * B-1 release gate, direction A (Ngai, 03/11/2026): the guard key is   outcome | L:<state of L> | C:<ACTIVE|ENDED>   and the state is READ from the real facts. The opened set in code stays EMPTY.
+ * B-1 release gate (Ngai, 03/11 direction A; 04/11 A2 APPROVED WITH CONDITIONS): the guard key is   outcome | L:<state of L> | C:<ACTIVE|ENDED>   and the state is READ from the real facts.
+ * OPENED_D77_COMBINATIONS holds exactly the four SETTLED_CASH keys; this suite proves each through the REAL production path (defaultExecDeps, NO test seam) and that every other key still blocks.
  *
- * Evidence label: BACKEND INTEGRATION (real user-service Case API + executor + ruling core, real payment-service child, isolated *_test databases). The only way a combination is opened here is the
- * executor's TEST-ONLY seam (`deps.openedD77Combinations`), exactly as in cross-service-money-b1-executor.e2e.test.ts. TEST FIXTURES: the session / contract rows, the cut of the PT's pending (partial L),
+ * Evidence label: BACKEND INTEGRATION (real user-service Case API + executor + ruling core, real payment-service child, isolated *_test databases). NO test seam is used in this file: the executor runs
+ * with defaultExecDeps(). TEST FIXTURES: the session / contract rows, the cut of the PT's pending (partial L),
  * the UNCONFIRMED -> record-only door for an OPEN L, the stopped payment-service for a PENDING L.
  *
  * HAND-COMPUTED (1,000,000 / 4 sessions, 90/10, V = 250,000 = PT 225,000 + platform 25,000, L = 125,000 taken out of V = PT 112,500 + platform 12,500):
@@ -23,6 +24,7 @@ const MIN = 60_000;
 const GRACE_MS = Number(process.env.NO_SHOW_GRACE_MINUTES ?? "15") * MIN;
 const PRICE = 1_000_000;
 const L = 125_000;
+let OPENED: ReadonlyArray<string> = [];
 type Outcome = "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED";
 const FINDING = { COMPLETED: "VERIFIED_DELIVERED", CANCELLED: "VERIFIED_NOT_DELIVERED_NO_FAULT", PT_NO_SHOW_CONFIRMED: "VERIFIED_PT_ABSENT" } as const;
 type Kind = "SETTLED_CASH" | "SETTLED_PARTIAL_OPEN" | "OPEN" | "PENDING";
@@ -39,6 +41,7 @@ test.before(async () => {
   if (skip) return;
   process.env.DISPUTE_CASE_EXECUTION_ENABLED = "true";
   H = await startHarness({ paymentAuth: true });
+  OPENED = (await import("../services/dispute-case/execution-guard")).OPENED_D77_COMBINATIONS;
   X = {
     helpers: await import("./dispute-case-exec.test-helpers"),
     exec: await import("../services/dispute-case/execution.service"),
@@ -117,14 +120,15 @@ async function caseToExecutable(fx: Fx, outcome: Outcome) {
   await X.svc.approvePolicyEligibility(X.helpers.admin(), a.caseId, proposed.reviewId, { reason: "Đồng ý", conflictOfInterestDeclaredNone: true });
   return a;
 }
-function depsWith(opened: ReadonlyArray<string>) {
+/** The PRODUCTION deps. The wrapper only COUNTS calls of the ruling core; it opens nothing (openedD77Combinations is never set). */
+function depsWith(_unused: ReadonlyArray<string> = []) {
   const base = X.exec.defaultExecDeps();
+  assert.equal((base as any).openedD77Combinations, undefined, "no test seam");
   const counter = { calls: 0 };
   return {
     counter,
     deps: {
       ...base,
-      openedD77Combinations: opened,
       resolveCore: (async (...args: Parameters<typeof base.resolveCore>) => {
         counter.calls++;
         return base.resolveCore(...args);
@@ -151,16 +155,19 @@ for (const kind of ["SETTLED_CASH", "SETTLED_PARTIAL_OPEN", "OPEN", "PENDING"] a
       }
       if (kind === "OPEN") assert.deepEqual([ob[0].status, Number(ob[0].paid), Number(ob[0].unpaid)], ["OPEN", 0, L]);
       if (kind === "SETTLED_CASH") assert.equal(ob.length, 0);
-      // the test opens ONLY the plain-cash keys (both outcomes, both phases): every other real state is still blocked, the core is not called, nothing moves
+      // PRODUCTION list (four cash keys only): every other real state is blocked for BOTH outcomes, the core is not called, nothing moves
       if (kind !== "SETTLED_CASH") {
-        const a = await caseToExecutable(fx, "COMPLETED");
-        const snap = await H.snapshot();
-        const { deps, counter } = depsWith(["COMPLETED", "PT_NO_SHOW_CONFIRMED"].flatMap((o) => ["ACTIVE", "ENDED"].map((p) => K(o, "SETTLED_CASH", p))));
-        await assert.rejects(X.exec.executionService.executeDecision(X.helpers.admin(), a.caseId, {}, deps), (e: any) => e.code === "EXEC_BLOCKED" && e.details?.reason === "D77_COMBINATION_UNRESOLVED");
-        assert.equal(counter.calls, 0);
-        assert.deepEqual(await H.snapshot(), snap, "the ledger did not move");
-        const sess = await H.m.prisma.session.findUniqueOrThrow({ where: { id: fx.S.id } });
-        assert.deepEqual([sess.status, sess.resolvedByCaseDecisionId], ["DISPUTED", null]);
+        for (const outcome of ["COMPLETED", "PT_NO_SHOW_CONFIRMED"] as Outcome[]) {
+          const fx2: Fx = outcome === "COMPLETED" ? fx : await build(kind, "ACTIVE");
+          const a = await caseToExecutable(fx2, outcome);
+          const snap = await H.snapshot();
+          const { deps, counter } = depsWith();
+          await assert.rejects(X.exec.executionService.executeDecision(X.helpers.admin(), a.caseId, {}, deps), (e: any) => e.code === "EXEC_BLOCKED" && e.details?.reason === "D77_COMBINATION_UNRESOLVED", `${outcome} / ${kind}`);
+          assert.equal(counter.calls, 0);
+          assert.deepEqual(await H.snapshot(), snap, "the ledger did not move");
+          const sess = await H.m.prisma.session.findUniqueOrThrow({ where: { id: fx2.S.id } });
+          assert.deepEqual([sess.status, sess.resolvedByCaseDecisionId], ["DISPUTED", null]);
+        }
       }
       // the phase part of the key follows the contract
       assert.equal((await H.call("POST", `/contracts/${fx.c.id}/terminate`, fx.c.clientToken, { reason: "CLIENT_CANCELLED" })).status, 200);
@@ -198,18 +205,29 @@ for (const [outcome, phase] of CANDIDATES) {
       assert.deepEqual(await X.key.readLateState(H.m.prisma, fx.S.id, fx.c.id), { lState: "SETTLED_CASH", phase });
       const a = await caseToExecutable(fx, outcome);
 
-      // (1) every OTHER key opened (other outcome, other phase, other L states): still blocked, the core is not called, nothing moves
-      const others = (["COMPLETED", "PT_NO_SHOW_CONFIRMED"] as const)
-        .flatMap((o) => (["ACTIVE", "ENDED"] as const).flatMap((p) => (["SETTLED_CASH", "SETTLED_PARTIAL_OPEN", "OPEN", "PENDING"] as const).map((l) => K(o, l, p))))
-        .filter((k) => k !== K(outcome, "SETTLED_CASH", phase));
+      assert.ok(OPENED.includes(K(outcome, "SETTLED_CASH", phase)), "this key is in the production list");
+      // (1) the state changes between the executor's read and the ruling (STATE CHANGED under the lock): the core refuses; nothing is written
+      //     (TEST FIXTURE: the core is called the way the executor calls it, with a read that no longer matches the real state)
+      await H.m.prisma.disputeCase.update({ where: { id: a.caseId }, data: { execStatus: "EXECUTING", execDecisionId: a.approvalId } });
+      const { resolveDisputeCore } = await import("../services/booking.service");
       const snap = await H.snapshot();
-      const blocked = depsWith(others);
-      await assert.rejects(X.exec.executionService.executeDecision(X.helpers.admin(), a.caseId, {}, blocked.deps), (e: any) => e.code === "EXEC_BLOCKED" && e.details?.reason === "D77_COMBINATION_UNRESOLVED");
-      assert.equal(blocked.counter.calls, 0);
-      assert.deepEqual(await H.snapshot(), snap);
+      const wrongPhase = phase === "ACTIVE" ? "ENDED" : "ACTIVE";
+      await assert.rejects(
+        resolveDisputeCore(fx.S.id, "admin-x", outcome, "ruling", { caseDecisionId: a.approvalId, d77Read: { lState: "SETTLED_CASH", phase: wrongPhase } }),
+        (e: any) => e.status === 409 && e.code === "D77_COMBINATION_UNRESOLVED" && e.details?.stateChanged === true,
+        "phase changed",
+      );
+      await assert.rejects(
+        resolveDisputeCore(fx.S.id, "admin-x", outcome, "ruling", { caseDecisionId: a.approvalId, d77Read: { lState: "PENDING", phase } }),
+        (e: any) => e.status === 409 && e.code === "D77_COMBINATION_UNRESOLVED",
+        "row is SETTLED but the read said PENDING",
+      );
+      await assert.rejects(resolveDisputeCore(fx.S.id, "admin-x", outcome, "ruling", { caseDecisionId: a.approvalId }), (e: any) => e.status === 409 && e.code === "D77_COMBINATION_UNRESOLVED", "no read at all");
+      assert.deepEqual(await H.snapshot(), snap, "nothing moved");
+      await H.m.prisma.disputeCase.update({ where: { id: a.caseId }, data: { execStatus: "NOT_STARTED", execDecisionId: null } });
 
-      // (2) the exact key opened by the test: executes once
-      const { deps, counter } = depsWith([K(outcome, "SETTLED_CASH", phase)]);
+      // (2) the REAL production path, no seam: executes once
+      const { deps, counter } = depsWith();
       const r = await X.exec.executionService.executeDecision(X.helpers.admin(), a.caseId, {}, deps);
       assert.equal(r.executionState, "BUSINESS_DONE");
       assert.equal(counter.calls, 1);
@@ -263,7 +281,7 @@ test("CANCELLED x D77 stays blocked even when the test opens every key of every 
       (["ACTIVE", "ENDED"] as const).flatMap((p) => (["SETTLED_CASH", "SETTLED_PARTIAL_OPEN", "OPEN", "PENDING", "CLOSED_OTHER"] as const).map((l) => K(o, l, p))),
     );
     const snap = await H.snapshot();
-    const { deps } = depsWith(everything);
+    const { deps } = depsWith();
     // (1) the executor refuses (the D77 step changed the live evidence after approval, or EXEC_BLOCKED): a first, independent block
     await assert.rejects(X.exec.executionService.executeDecision(X.helpers.admin(), a.caseId, {}, deps), (e: any) => e.code === "EXEC_BLOCKED" || /thay đổi|EVIDENCE/i.test(String(e?.message) + String(e?.code)));
     assert.deepEqual(await H.snapshot(), snap);
@@ -280,7 +298,12 @@ test("CANCELLED x D77 stays blocked even when the test opens every key of every 
   });
 });
 
-test("CODE AUDIT: OPENED_D77_COMBINATIONS is empty in production code", async () => {
+test("CODE AUDIT: OPENED_D77_COMBINATIONS is exactly the four approved cash-L keys - no CANCELLED, no other L state, no outcome-only entry", async () => {
   const { OPENED_D77_COMBINATIONS } = await import("../services/dispute-case/execution-guard");
-  assert.deepEqual([...OPENED_D77_COMBINATIONS], []);
+  assert.deepEqual([...OPENED_D77_COMBINATIONS].sort(), [
+    "COMPLETED|L:SETTLED_CASH|C:ACTIVE",
+    "COMPLETED|L:SETTLED_CASH|C:ENDED",
+    "PT_NO_SHOW_CONFIRMED|L:SETTLED_CASH|C:ACTIVE",
+    "PT_NO_SHOW_CONFIRMED|L:SETTLED_CASH|C:ENDED",
+  ]);
 });

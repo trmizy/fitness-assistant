@@ -1143,6 +1143,27 @@ exports.Prisma.DisputeHeldMoneyDecisionScalarFieldEnum = {
   decidedAt: 'decidedAt'
 };
 
+exports.Prisma.DisputeCaseDecisionReplacementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  oldApprovalId: 'oldApprovalId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  proposedBy: 'proposedBy',
+  reason: 'reason',
+  checksAtProposal: 'checksAtProposal',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  checksAtApproval: 'checksAtApproval',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1651,7 +1672,8 @@ exports.Prisma.ModelName = {
   DisputeCaseAppealConsequence: 'DisputeCaseAppealConsequence',
   DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
   DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
-  DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision'
+  DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision',
+  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
 };
 
 /**

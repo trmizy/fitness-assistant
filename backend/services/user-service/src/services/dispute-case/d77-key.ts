@@ -10,7 +10,7 @@
  *   PENDING               the row exists and is not SETTLED (waiting / failed / parked)
  *   CLOSED_OTHER          the obligation was closed another way (paid via the ledger later, waived, resolved outside)
  *   UNKNOWN               the ledger cannot be read or answers something inconsistent
- * OPENED_D77_COMBINATIONS (execution-guard.ts) stays EMPTY in production code; only the executor's test seam can name a key.
+ * OPENED_D77_COMBINATIONS (execution-guard.ts) holds exactly the four SETTLED_CASH keys Ngai approved (A2, 04/11); every other key stays closed.
  */
 import { paymentClient, type LedgerOperationRecord } from "../../clients/payment.client";
 import type { Db } from "./collector";

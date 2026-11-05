@@ -67,6 +67,11 @@ test("flags in e2e mode: only the permitted subset, only with the right value, T
     }
     for (const name of [F.T0, F.LATE_OPEN_RECONCILIATION]) assert.equal(flagVerdict(name, e2eEnv({ [name]: "true" }), NOW).refusedBecause, "E2E_FLAG_NOT_PERMITTED", name);
     assert.ok(!E2E_PERMITTED_FLAGS.has(F.T0) && !E2E_PERMITTED_FLAGS.has(F.LATE_OPEN_RECONCILIATION));
+    // A1 appeal and A4 replacement (owner decision 04/11): allowed in the isolated E2E env, never with NODE_ENV=production.
+    for (const name of [F.APPEALS, F.DECISION_REPLACEMENT]) {
+      assert.equal(flagVerdict(name, e2eEnv({ [name]: "true" }), NOW).effective, true, `${name} in e2e`);
+      assert.equal(flagVerdict(name, e2eEnv({ [name]: "true", NODE_ENV: "production" }), NOW).effective, false, `${name} in production`);
+    }
     assert.equal(flagVerdict(F.EVIDENCE_STORAGE, e2eEnv({ [F.EVIDENCE_STORAGE]: "TRUE" }), NOW).effective, false);
     assert.equal(flagVerdict(F.EVIDENCE_STORAGE, e2eEnv({ [F.EVIDENCE_STORAGE]: "true", DISPUTE_E2E_COMPOSE_MARKER: undefined }), NOW).effective, false);
     assert.equal(flagVerdict(F.EVIDENCE_STORAGE, e2eEnv({ [F.EVIDENCE_STORAGE]: "true", NODE_ENV: "production" }), NOW).effective, false);

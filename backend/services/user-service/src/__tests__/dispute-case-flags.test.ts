@@ -36,7 +36,7 @@ test("flag: effective ONLY with value 'true' AND NODE_ENV=test AND DB_ISOLATION=
   assert.ok(warnings.length >= 2 && warnings.every((w) => /IGNORED/.test(w)), warnings.join("|"));
   assert.equal(warnings.filter((w) => /NODE_ENV is not/.test(w)).length, 1, "warned once per flag and reason, not on every call");
   // the other two flags use the very same rule
-  for (const name of [DISPUTE_CASE_FLAGS.T0, DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE, DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION, DISPUTE_CASE_FLAGS.D65B_RESOLUTION]) {
+  for (const name of [DISPUTE_CASE_FLAGS.T0, DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE, DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION, DISPUTE_CASE_FLAGS.D65B_RESOLUTION, DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT]) {
     assert.equal(flagVerdict(name, { [name]: "true", NODE_ENV: "test", DB_ISOLATION: "accepted" } as any).effective, true);
     assert.equal(flagVerdict(name, { [name]: "true", NODE_ENV: "production", DB_ISOLATION: "accepted" } as any).effective, false);
     assert.equal(flagVerdict(name, { [name]: "true", NODE_ENV: "test" } as any).effective, false);

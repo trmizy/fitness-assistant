@@ -9,6 +9,7 @@ import disputeCaseAdminRoutes from "./dispute-case-admin.routes";
 import { disputeCaseController } from "../controllers/dispute-case.controller";
 import lateOpenReconciliationRoutes from "./late-open-reconciliation.routes";
 import d65bResolutionRoutes from "./d65b-resolution.routes";
+import disputeCaseReplacementRoutes from "./dispute-case-replacement.routes";
 
 const router = Router();
 
@@ -25,6 +26,8 @@ router.get("/sessions/:id", disputeCaseController.adminSession as any);
 router.post("/sessions/:id/resolve", bookingController.resolveDispute as any);
 
 // ── Dispute Case (slice 1): investigation file of a disputed session. Records and decides; executes nothing (see dispute-case.service.ts). ──
+// A4: replacement of an approved decision that has had no effect (mounted BEFORE the dispute-cases router, its own flag).
+router.use("/dispute-cases/:caseId/replacements", disputeCaseReplacementRoutes);
 router.use("/dispute-cases", disputeCaseAdminRoutes);
 
 // ── Late-open reconciliation (final safety gate): the four-eyes way out for a D77-OPEN step of an ORDINARY session (no Case, no policy review). Never touches the dispute-case tables. ──
