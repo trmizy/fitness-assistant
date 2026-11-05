@@ -58,6 +58,9 @@ test("requestContract snapshots ptHoldbackRate from resolvePtHoldbackRate: '0' o
     patch(contractRepository, "findActiveByPair", async () => null),
     // BR-27 pair lock (advisory lock needs a real transaction; this unit test has none)
     patch(contractRepository, "lockPtClientPair", async () => {}),
+    // per-client PT cap (lock + count) - same reason: no real transaction here
+    patch(contractRepository, "lockClientPtSlots", async () => {}),
+    patch(contractRepository, "findOtherLivePtsForClient", async () => []),
     patch(contractRepository, "create", async (data: Record<string, unknown>) => {
       created.push(data);
       return { id: "c-new", ...data };
