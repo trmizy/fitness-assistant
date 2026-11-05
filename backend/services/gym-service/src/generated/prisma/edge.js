@@ -1475,7 +1475,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\fa-bc-gym\\backend\\services\\gym-service\\src\\generated\\prisma",
+      "value": "D:\\fa-bc\\backend\\services\\gym-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -1497,7 +1497,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\fa-bc-gym\\backend\\services\\gym-service\\prisma\\schema.prisma",
+    "sourceFilePath": "D:\\fa-bc\\backend\\services\\gym-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
