@@ -293,14 +293,13 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // ── Khiếu nại của tôi (M12): hồ sơ tranh chấp buổi tập mà khách / PT là một bên. Cùng vỏ AppShell và cùng cổng vai trò với /client. ──
+      // ── Khiếu nại của tôi (M12): hồ sơ tranh chấp buổi tập mà khách / PT là một bên. Cùng vỏ AppShell và cùng cổng vai trò với /client,
+      //    nhưng KHÔNG qua cổng thiết lập hồ sơ tập luyện (INT-11, Ngài duyệt 05/11): một bên của vụ việc phải xem được hồ sơ của mình ngay. ──
       {
         path: "disputes",
         element: (
           <RequireRole allow={["client", "pt"]}>
-            <RequireOnboarding>
-              <AppShell />
-            </RequireOnboarding>
+            <AppShell />
           </RequireRole>
         ),
         children: [
@@ -310,7 +309,8 @@ export const router = createBrowserRouter([
       },
       {
         path: "complaint-cases",
-        element: <RequireRole allow={["client", "pt"]}><RequireOnboarding><AppShell /></RequireOnboarding></RequireRole>,
+        // Same as /disputes: a member reads their complaint case without the training-profile setup gate (INT-11).
+        element: <RequireRole allow={["client", "pt"]}><AppShell /></RequireRole>,
         children: [
           { index: true, Component: MyGymComplaintCasesPage },
           { path: ":caseId", Component: MyGymComplaintCasePage },
