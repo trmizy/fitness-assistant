@@ -433,17 +433,18 @@ test('shortfall > 0 and a clawback that was not recovered are REFLECTED, never s
   assert.ok(!JSON.stringify(mv2).includes('4000'), 'the platform-side shortfall is not shown to the member');
 });
 
-test('refund refused / membership drifted -> nothing moves: live drift is caught by the evidence guard, a refusal by the exit is EXEC_BLOCKED, a retry after the cause is gone succeeds; a membership not refundable at proposal time blocks the proposal', { skip }, async () => {
+test('refund refused / membership drifted -> nothing moves: a CANCELLED membership is EXEC_BLOCKED (no money), a refusal by the exit is EXEC_BLOCKED, a retry after the cause is gone succeeds; a membership not refundable at proposal time blocks the proposal', { skip }, async () => {
   const d = await driveToProposal({ caseClass: 'MEM_CLOSED', finding: 'ESTABLISHED' });
   await approve(d);
   // the membership is cancelled by the client between approval and execution: the live record no longer matches what was approved
   await prisma.gymMembershipContract.update({ where: { id: d.membershipId! }, data: { status: 'CANCELLED' } });
   const { deps, calls } = stubDeps();
-  await assert.rejects(() => complaintCaseExecutionService.executeDecision({ id: d.appr.id, role: 'ADMIN' }, d.caseId, {}, deps), (e: any) => e.status === 409 && e.code === 'EVIDENCE_CHANGED');
+  await assert.rejects(() => complaintCaseExecutionService.executeDecision({ id: d.appr.id, role: 'ADMIN' }, d.caseId, {}, deps), (e: any) => e.status === 409 && e.code === 'EXEC_BLOCKED');
   assert.equal(calls.length, 0);
   let row = await prisma.gymComplaintCase.findUniqueOrThrow({ where: { id: d.caseId } });
-  assert.equal(row.execStatus, 'NOT_STARTED', 'a refusal before the start changes nothing');
-  assert.equal(await prisma.gymCaseExecution.count({ where: { caseId: d.caseId } }), 0);
+  // E1: a CANCELLED membership can no longer be refunded; the membership-record drift itself does not strand a fixed-quote decision, the real facts are checked: BLOCKED, nothing moved
+  assert.equal(row.execStatus, 'EXEC_BLOCKED');
+  assert.equal(await prisma.gymCaseExecution.count({ where: { caseId: d.caseId, state: 'BLOCKED' } }), 1);
   // the cause disappears -> the same decision can be executed
   await prisma.gymMembershipContract.update({ where: { id: d.membershipId! }, data: { status: 'ACTIVE' } });
   const exec = await complaintCaseExecutionService.executeDecision({ id: d.appr.id, role: 'ADMIN' }, d.caseId, {}, deps);
@@ -474,7 +475,7 @@ test('refund refused / membership drifted -> nothing moves: live drift is caught
 async function driveToProposalExpectingRefusal() {
   const { gym } = await makeGym();
   const reporterId = `member-${randomUUID().slice(0, 6)}`;
-  const m = await makeMembership(gym.id, reporterId, { status: 'EXPIRED' });
+  const m = await makeMembership(gym.id, reporterId, { status: 'CANCELLED' });
   const complaint = await makeComplaint(gym.id, reporterId);
   const inv = newAdmin();
   const opened = ok(await call('POST', `/admin/complaints/${complaint.id}/case`, inv.tok, { caseClass: 'MEM_CLOSED', membershipId: m.id }), 201, 'open');

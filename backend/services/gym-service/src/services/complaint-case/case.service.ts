@@ -26,6 +26,7 @@ import {
   statementVisibleTo,
   viewerKind,
   appealWindow,
+  unusedValueAt,
   slaOf,
   verificationLabelVi,
   verificationOf,
@@ -471,6 +472,28 @@ export const complaintCaseService = {
           throw e;
         }
         for (const d of await collectSources(ctx.tx, created)) await insertEvidence(ctx.tx, created, d, { snapshotVersion: 1 });
+        // E1: for a class with a money exit, the refund amount is FIXED NOW as of the day the member filed the complaint, from the real membership row and its payment
+        // (never from the request). Nothing is written when the membership was never paid / is not ACTIVE or EXPIRED: a refund outcome is then refused later.
+        if (b.membershipId && hasMoneyExit(b.caseClass)) {
+          const mem = await ctx.tx.gymMembershipContract.findUnique({ where: { id: b.membershipId } });
+          if (mem && mem.paymentTxnId && (mem.status === 'ACTIVE' || mem.status === 'EXPIRED')) {
+            const price = Number(mem.priceAtPurchase);
+            await ctx.tx.gymCaseRefundQuote.create({
+              data: {
+                caseId: created.id,
+                membershipId: mem.id,
+                paymentTxnId: mem.paymentTxnId,
+                quotedAt: complaint.createdAt,
+                pricePaid: price,
+                durationDays: mem.durationDaysSnapshot,
+                startDate: mem.startDate,
+                endDate: mem.endDate,
+                amount: unusedValueAt(price, mem.durationDaysSnapshot, mem.endDate, complaint.createdAt),
+                createdBy: actor.id,
+              },
+            });
+          }
+        }
         if (complaint.status === 'OPEN') await ctx.tx.gymComplaint.update({ where: { id: complaintId }, data: { status: 'IN_PROGRESS' } });
         return { caseId: created.id, result: { ...summary(created), existing: false }, note: `class ${b.caseClass}` };
       },
@@ -990,6 +1013,7 @@ export const complaintCaseService = {
         : null,
       claims,
       evidence: evidence.map((e) => ({ ...e, partySubmitted: e.submittedBy !== null, provenanceLabel: provenanceLabelVi(e.provenanceType), verificationStatus: verificationOf(e.source), verificationLabel: verificationLabelVi(verificationOf(e.source)) })),
+      refundQuote: await fixedRefundOf(prisma, caseId).then((q) => (q ? { amount: q.amount.toString(), pricePaid: q.pricePaid.toString(), quotedAt: q.quotedAt, durationDays: q.durationDays, startDate: q.startDate, endDate: q.endDate, paymentTxnId: q.paymentTxnId } : null)),
       sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
       deadlines: await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } }),
       appeal: await adminAppealView(c),
@@ -1081,13 +1105,21 @@ function provenanceLabelVi(p: string): string {
 }
 
 /** Refund outcomes need a membership that can still be refunded NOW (the executor asks refundByAdmin again at execution time). */
-export async function assertRefundable(db: Db, c: { gymId: string; membershipId: string | null; reporterUserId: string }) {
+export async function assertRefundable(db: Db, c: { id: string; gymId: string; membershipId: string | null; reporterUserId: string }) {
   if (!c.membershipId) throw caseError(409, 'MEMBERSHIP_REQUIRED', 'Hồ sơ chưa gắn gói hội viên nên không đề xuất hoàn tiền được');
   const m = await db.gymMembershipContract.findUnique({ where: { id: c.membershipId } });
   if (!m) throw caseError(404, 'MEMBERSHIP_NOT_FOUND', 'Không tìm thấy gói hội viên');
   if (m.gymId !== c.gymId || m.clientId !== c.reporterUserId) throw caseError(409, 'MEMBERSHIP_MISMATCH', 'Gói hội viên không thuộc người phản ánh hoặc chi nhánh của hồ sơ');
-  if (m.status !== 'ACTIVE') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái đang hoạt động nên không hoàn được', { status: m.status });
+  // E1: ACTIVE or EXPIRED (the term may end while the case runs); CANCELLED / anything else cannot be refunded again.
+  if (m.status !== 'ACTIVE' && m.status !== 'EXPIRED') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái hoàn được', { status: m.status });
   if (!m.paymentTxnId) throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên chưa có giao dịch thanh toán để hoàn');
+  const quote = await db.gymCaseRefundQuote.findUnique({ where: { caseId: c.id } });
+  if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại nên không hoàn tiền được');
+}
+
+/** E1: the amount fixed for the case (written when it was opened). */
+export async function fixedRefundOf(db: Db, caseId: string) {
+  return db.gymCaseRefundQuote.findUnique({ where: { caseId } });
 }
 
 async function writeStatement(tx: Tx, c: CaseRow, partyRole: 'MEMBER' | 'ADMIN_ON_BEHALF', authorId: string, source: string, b: { text: string; supplementReason?: string }) {
