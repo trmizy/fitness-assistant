@@ -3,6 +3,7 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { internalController } from '../controllers/internal.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { assertRefundNotBypassingCase } from '../services/complaint-case/refund-guard';
 import internalMembershipRoutes from './internal-memberships.routes';
 import internalStatusRoutes from './internal-status.routes';
 import { createInternalDisputeEvidenceRoutes } from './internal-dispute-evidence.routes';
@@ -14,6 +15,23 @@ router.use(serviceSecretMiddleware);
 // Idempotent — the internal.controller verifies the transaction (§1.8) before mutating.
 router.post('/gym-memberships/:id/activate', asyncHandler(internalController.activate));
 router.post('/gym-memberships/:id/cancel-after-refund', asyncHandler(internalController.cancelAfterRefund));
+// E6 / F2 (Ngài, 05/11): payment-service asks this BEFORE POST /admin/payments/:id/refund writes anything. READ-ONLY (a POST only so it can travel the same service-call helper): 200 {allowed:true}, or the
+// refund-guard.ts 409 (GYM_CASE_OPEN / GYM_CASE_DECISION_EXISTS). Any other failure is a 5xx that payment-service reads as "refuse" (fail-closed).
+router.post(
+  '/gym-memberships/:id/refund-guard',
+  asyncHandler(async (req, res) => {
+    try {
+      await assertRefundNotBypassingCase(String(req.params.id));
+      res.json({ success: true, data: { allowed: true } });
+    } catch (e: any) {
+      if (e?.status === 409 && typeof e?.code === 'string') {
+        res.status(409).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
+        return;
+      }
+      throw e;
+    }
+  }),
+);
 
 // user-service resolves a PT-via-gym contract's frozen rate table here at signing time
 // (plan §1.4). 404 (NO_ACTIVE_COLLABORATION) means the caller must fall back to its own
