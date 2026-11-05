@@ -239,6 +239,11 @@ export const paymentClient = {
     }
   },
 
+  /** E3: stored ledger operations by key (read-only). THROWS on any failure: "could not read" must never be taken as "no operation". */
+  async lookupLedgerOperations(keys: string[]): Promise<{ operations: Array<{ key: string }>; missing: string[] }> {
+    return paymentRequest<{ operations: Array<{ key: string }>; missing: string[] }>({ method: 'POST', path: '/internal/ledger-operations/lookup', body: { keys }, timeout: 10_000 });
+  },
+
   async getTransaction(transactionId: string): Promise<any> {
     return paymentRequest<any>({
       method: 'GET',

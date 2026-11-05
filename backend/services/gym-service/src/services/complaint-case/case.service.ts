@@ -4,7 +4,8 @@ import { authClient } from '../../clients/auth.client';
 import { userClient } from '../../clients/user.client';
 import { contentHashOf } from './canonical';
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from './errors';
-import { gymCaseEnabled } from './flags';
+import { gymCaseEnabled, replacementEnabled } from './flags';
+import { replacedApprovalIds } from './decision-replacement.service';
 import {
   INVESTIGATION_STATUSES,
   PARTY_SUBMIT_STATUSES,
@@ -987,7 +988,8 @@ export const complaintCaseService = {
       prisma.gym.findUnique({ where: { id: c.gymId }, select: { id: true, name: true, ownerId: true, status: true, operationalStatus: true } }),
       c.membershipId ? prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId } }) : Promise.resolve(null),
     ]);
-    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const replacedIds = await replacedApprovalIds(prisma, caseId);
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
     const outcome = (approved?.outcome ?? null) as Outcome | null;
     const financial = financialOf(c, outcome, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
@@ -999,6 +1001,7 @@ export const complaintCaseService = {
       hasFinding: findings.length > 0,
       hasProposal: !!latestProposal,
       latestProposerId: latestProposal?.proposerId ?? null,
+      pendingReplacementProposer: (await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId, approvedAt: null, rejectedAt: null }, select: { proposedBy: true } }))?.proposedBy ?? null,
       approvedOutcomeIsKnown: !!approved,
       lastExecState: executions[executions.length - 1]?.state ?? null,
       gymOwnerId: gym?.ownerId ?? null,
@@ -1014,6 +1017,7 @@ export const complaintCaseService = {
       claims,
       evidence: evidence.map((e) => ({ ...e, partySubmitted: e.submittedBy !== null, provenanceLabel: provenanceLabelVi(e.provenanceType), verificationStatus: verificationOf(e.source), verificationLabel: verificationLabelVi(verificationOf(e.source)) })),
       refundQuote: await fixedRefundOf(prisma, caseId).then((q) => (q ? { amount: q.amount.toString(), pricePaid: q.pricePaid.toString(), quotedAt: q.quotedAt, durationDays: q.durationDays, startDate: q.startDate, endDate: q.endDate, paymentTxnId: q.paymentTxnId } : null)),
+      replacement: await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId }, orderBy: { createdAt: 'desc' }, select: { id: true, oldApprovalId: true, proposedBy: true, reason: true, createdAt: true, approvedBy: true, approvedAt: true, rejectedBy: true, rejectedAt: true } }),
       sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
       deadlines: await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } }),
       appeal: await adminAppealView(c),
@@ -1054,7 +1058,8 @@ export const complaintCaseService = {
     ]);
     const evidence = evidenceAll.filter((e) => evidenceVisibleTo(e, kind, actor.id, c.gymId, shares));
     const statements = statementsAll.filter((s) => statementVisibleTo(s, kind, actor.id, shares));
-    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED')) ?? null;
+    const replacedIds = await replacedApprovalIds(prisma, caseId);
+    const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
     const financial = financialOf(c, (approved?.outcome ?? null) as Outcome | null, executions);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     const resolved = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
@@ -1164,7 +1169,7 @@ export interface AllowedAction {
 function computeAllowedActions(
   actor: Actor,
   c: CaseRow,
-  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; linkedUserIds: string[]; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
+  x: { claims: number; unassessed: number; hasFinding: boolean; hasProposal: boolean; latestProposerId: string | null; pendingReplacementProposer: string | null; linkedUserIds: string[]; approvedOutcomeIsKnown: boolean; lastExecState: string | null; gymOwnerId: string | null },
 ): AllowedAction[] {
   const isInv = c.investigatorId === actor.id;
   const open = !TERMINAL_STATUSES.includes(c.status as CaseStatus);
@@ -1193,6 +1198,13 @@ function computeAllowedActions(
   const execOk = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && !party;
   push('EXECUTE', execOk ? undefined : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : party ? 'CONFLICT_OF_INTEREST' : c.execStatus === 'BUSINESS_DONE' ? 'ALREADY_EXECUTED' : 'EXECUTION_' + c.execStatus);
   push('RECONCILE_EXECUTION', c.execStatus === 'EXECUTING' ? undefined : 'NOTHING_TO_RECONCILE');
+  // E3: replacing an approved decision that has had no effect (the service re-proves "no effect" with the ledger when it is called)
+  const repOn = replacementEnabled();
+  const pendingRep = x.pendingReplacementProposer;
+  const canProposeRep = st === 'DECISION_APPROVED' && ['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) && pendingRep === null && !party && actor.role === 'ADMIN';
+  list.push({ action: 'PROPOSE_DECISION_REPLACEMENT', allowed: flag && repOn && canProposeRep, ...(flag && repOn && canProposeRep ? {} : { reason: !repOn ? 'DECISION_REPLACEMENT_DISABLED' : st !== 'DECISION_APPROVED' ? 'DECISION_NOT_APPROVED' : !['NOT_STARTED', 'EXEC_BLOCKED'].includes(c.execStatus) ? 'DECISION_HAS_EFFECT' : pendingRep !== null ? 'REPLACEMENT_PENDING' : party ? 'CONFLICT_OF_INTEREST' : 'NOT_ALLOWED' }) });
+  const canDecideRep = pendingRep !== null && pendingRep !== actor.id && !party && actor.role === 'ADMIN';
+  for (const a of ['APPROVE_DECISION_REPLACEMENT', 'REJECT_DECISION_REPLACEMENT']) list.push({ action: a, allowed: flag && repOn && canDecideRep, ...(flag && repOn && canDecideRep ? {} : { reason: !repOn ? 'DECISION_REPLACEMENT_DISABLED' : pendingRep === null ? 'NO_PENDING_REPLACEMENT' : pendingRep === actor.id ? 'SELF_APPROVAL_FORBIDDEN' : 'CONFLICT_OF_INTEREST' }) });
   push('ASSIGN_APPEAL_REVIEWER', st !== 'APPEAL_REVIEW' ? 'NO_APPEAL_WAITING' : party ? 'CONFLICT_OF_INTEREST' : undefined);
   return list;
 }

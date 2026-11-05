@@ -2,6 +2,7 @@ import { prisma } from '../../repositories/prisma';
 import { paymentClient } from '../../clients/payment.client';
 import { membershipService } from '../membership.service';
 import { caseError, forbiddenRole } from './errors';
+import { currentApprovalWhere, hasPendingReplacement, replacedApprovalIds } from './decision-replacement.service';
 import { gymCaseEnabled } from './flags';
 import {
   ackTimesOf,
@@ -115,10 +116,13 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
     if (!approval) throw caseError(404, 'DECISION_NOT_FOUND', 'Không tìm thấy quyết định');
     if (approval.proposal.caseId !== c.id) throw caseError(409, 'DECISION_WRONG_CASE', 'Quyết định này không thuộc hồ sơ');
   } else {
-    approval = await findApproval({ result: 'APPROVED', proposal: { caseId: c.id } });
+    // E3: the current decision = the newest APPROVED approval that was NOT replaced by an approved replacement
+    approval = await prisma.gymCaseApproval.findFirst({ where: await currentApprovalWhere(prisma, c.id), include: approvalInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     if (!approval) throw caseError(409, 'DECISION_NOT_APPROVED', 'Hồ sơ chưa có quyết định được duyệt');
   }
   if (approval.result !== 'APPROVED') throw caseError(409, 'DECISION_NOT_APPROVED', 'Quyết định chưa được duyệt');
+  if ((await replacedApprovalIds(prisma, c.id)).includes(approval.id)) throw caseError(409, 'DECISION_REPLACED', 'Quyết định này đã được thay thế: chưa thực thi được', { decisionId: approval.id });
+  if (await hasPendingReplacement(prisma, c.id)) throw caseError(409, 'REPLACEMENT_PENDING', 'Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được');
   if (c.status !== 'DECISION_APPROVED') throw caseError(409, 'CASE_STATE_NOT_ALLOWED', 'Hồ sơ chưa ở trạng thái đã duyệt quyết định', { status: c.status });
 
   // The outcome is computed again from (class, the finding the proposal was built on) - and that finding must still be the case's latest.
@@ -308,6 +312,9 @@ export const complaintCaseExecutionService = {
         data: { execStatus: 'EXECUTING', execDecisionId: approval.id, version: { increment: 1 } },
       });
       if (r.count !== 1) throw caseError(409, EXECUTION_IN_PROGRESS, 'Quyết định đang được thực thi bởi một lệnh khác', { decisionId: approval.id });
+      // E3: ordered against a replacement by the case row lock taken above - one proposed or approved before this point stops the start
+      if (await hasPendingReplacement(tx, c.id)) throw caseError(409, 'REPLACEMENT_PENDING', 'Quyết định này đang có đề xuất thay thế chờ xử lý: chưa thực thi được');
+      if ((await replacedApprovalIds(tx, c.id)).includes(approval.id)) throw caseError(409, 'DECISION_REPLACED', 'Quyết định này đã được thay thế: chưa thực thi được');
       const attempt = (await tx.gymCaseExecution.count({ where: { idempotencyKey: key, state: 'STARTED' } })) + 1;
       await tx.gymCaseExecution.create({ data: { caseId: c.id, decisionId: approval.id, outcome, actorUserId: actor.id, idempotencyKey: key, attempt, state: 'STARTED' } });
       await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: 'EXECUTION_STARTED', note: `attempt ${attempt}`, payload: toJson({ decisionId: approval.id, outcome, attempt }) } });

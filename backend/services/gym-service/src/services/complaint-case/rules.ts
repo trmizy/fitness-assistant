@@ -99,7 +99,8 @@ export const TRANSITIONS: Readonly<Record<CaseStatus, readonly CaseStatus[]>> = 
   FINDING_RECORDED: ['AWAITING_APPROVAL', 'ASSESSING'],
   AWAITING_APPROVAL: ['DECISION_APPROVED', 'ASSESSING'],
   // A1: the ONLY way out of DECISION_APPROVED is the member's single appeal (appeal.service.fileAppeal); the manual endpoint can never target APPEAL_REVIEW.
-  DECISION_APPROVED: ['APPEAL_REVIEW'],
+  // the ONLY ways out: the member's single appeal (APPEAL_REVIEW) and E3 (an approved replacement of a decision with NO effect puts the case back to FINDING_RECORDED)
+  DECISION_APPROVED: ['APPEAL_REVIEW', 'FINDING_RECORDED'],
   REJECTED_INTAKE: [],
   APPEAL_REVIEW: ['ASSESSING'],
 };
