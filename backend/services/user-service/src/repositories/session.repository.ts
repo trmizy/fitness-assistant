@@ -298,6 +298,45 @@ export const sessionRepository = {
       },
     }),
 
+  /** The CLIENT-side twin of findConflict: a REQUESTED/CONFIRMED session of this client, with ANY PT, overlapping
+   *  [startAt, endAt). Touching ends (07:00–08:00 then 08:00–09:00) do not overlap. */
+  findClientConflict: (
+    clientUserId: string,
+    startAt: Date,
+    endAt: Date,
+    excludeId?: string,
+    db: Db = prisma,
+  ) =>
+    db.session.findFirst({
+      where: {
+        clientUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        ...(excludeId && { id: { not: excludeId } }),
+        scheduledStartAt: { lt: endAt },
+        scheduledEndAt: { gt: startAt },
+      },
+      select: { id: true },
+    }),
+
+  /** Slot display for a CLIENT: their REQUESTED/CONFIRMED sessions (any PT) overlapping the day — mirrors findClientConflict. */
+  findClientBookingConflictsByDate: (clientUserId: string, dayStart: Date, dayEnd: Date) =>
+    prisma.session.findMany({
+      where: {
+        clientUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        scheduledStartAt: { lt: dayEnd },
+        scheduledEndAt: { gt: dayStart },
+      },
+      select: { scheduledStartAt: true, scheduledEndAt: true },
+    }),
+
+  /** Serialises schedule writes of ONE client across all of their PTs (the per-PT lock alone lets two bookings with
+   *  two different PTs at the same hour both pass). Taken LAST, inside withPtScheduleLock, so the order is always
+   *  PT lock -> (contract lock) -> client lock. */
+  lockClientSchedule: async (tx: Prisma.TransactionClient, clientUserId: string) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"client-schedule:" + clientUserId}, 0))`;
+  },
+
   /** Full proposal history for one session, newest first — for dispute resolution. */
   findRescheduleRequestsBySession: (sessionId: string) =>
     prisma.sessionRescheduleRequest.findMany({
