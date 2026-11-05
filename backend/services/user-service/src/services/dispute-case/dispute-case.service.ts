@@ -7,7 +7,7 @@ import { buildFinancialView, hasLateArrivalStep, partyFinancialView } from "./fi
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from "./errors";
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
 import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdict, gateVerdict } from "./flags";
-import { assertRealAdmin } from "./admin-account";
+import { assertRealAdmin, listActiveAdmins } from "./admin-account";
 import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
 import { deadlineDueAt, satisfyDeadlines } from "./party-notices";
@@ -1256,6 +1256,11 @@ export const disputeCaseService = {
    * R-02: the REAL verdict of every Dispute flag in THIS process (the same function the guards call: "true" AND NODE_ENV=test AND an accepted isolated DB), read-only.
    * `refusedBecause` says why a flag is off although the variable asks for on. The UI hides what is false and never guesses.
    */
+  async listAdmins(actor: Actor) {
+    assertAdmin(actor);
+    return listActiveAdmins();
+  },
+
   capabilities(actor: Actor) {
     assertAdmin(actor);
     const verdict = (name: (typeof DISPUTE_CASE_FLAGS)[keyof typeof DISPUTE_CASE_FLAGS]) => {

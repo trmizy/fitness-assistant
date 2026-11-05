@@ -46,6 +46,7 @@ router.post("/internal/partner-auth/email-status", internalEmailStatusController
 // Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
 router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
+router.get("/internal/admins", authController.listActiveAdminsInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
 router.post("/internal/send-email", authController.sendEmailInternal);
 router.patch(

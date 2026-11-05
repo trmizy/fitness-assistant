@@ -31,3 +31,29 @@ export async function assertRealAdmin(userId: string): Promise<void> {
   if (!user) throw caseError(422, "ASSIGNEE_NOT_FOUND", "Không tìm thấy tài khoản của người được giao");
   if (user.role !== "ADMIN" || user.isActive === false) throw caseError(422, "ASSIGNEE_NOT_ADMIN", "Người được giao phải là quản trị viên đang hoạt động");
 }
+
+/** INT-01: ACTIVE ADMIN accounts for the assignee / hand-over picker. Names only (no email); auth-service is the only source; an outage is a 503. */
+export type AdminDirectoryLookup = () => Promise<Array<{ id: string; firstName?: string | null; lastName?: string | null }>>;
+
+const httpDirectory: AdminDirectoryLookup = async () => {
+  try {
+    const { data } = await authServiceClient.internalGet("/auth/internal/admins", { timeoutMs: 3000 });
+    return Array.isArray(data?.admins) ? data.admins : [];
+  } catch {
+    throw caseError(503, "ACCOUNT_LOOKUP_UNAVAILABLE", "Không lấy được danh sách quản trị viên lúc này, hãy thử lại");
+  }
+};
+let directory: AdminDirectoryLookup = httpDirectory;
+
+/** TEST SEAM: replace the directory lookup (pass nothing to restore the real one). */
+export function setAdminDirectoryLookupForTests(fn?: AdminDirectoryLookup): void {
+  directory = fn ?? httpDirectory;
+}
+
+export async function listActiveAdmins(): Promise<Array<{ id: string; displayName: string | null }>> {
+  const rows = await directory();
+  return rows.map((r) => {
+    const name = [r.firstName, r.lastName].map((x) => (x ?? "").trim()).filter(Boolean).join(" ");
+    return { id: r.id, displayName: name || null };
+  });
+}

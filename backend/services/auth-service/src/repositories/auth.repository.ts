@@ -86,6 +86,15 @@ export const authRepository = {
       },
     }),
 
+  /** Dispute: ACTIVE admins for the assignee / hand-over picker. Names only - no email, no other personal field. */
+  listActiveAdminsMinimal: (take = 200) =>
+    prisma.user.findMany({
+      where: { role: "ADMIN", isActive: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take,
+      select: { id: true, firstName: true, lastName: true },
+    }),
+
   findUsersByIds: (ids: string[]) =>
     prisma.user.findMany({
       where: { id: { in: ids } },

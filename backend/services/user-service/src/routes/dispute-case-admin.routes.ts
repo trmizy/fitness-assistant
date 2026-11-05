@@ -13,6 +13,7 @@ router.get("/", c.list);
 // Fixed paths BEFORE "/:id".
 router.get("/queue", c.queue);
 router.get("/capabilities", c.capabilities);
+router.get("/admins", c.admins);
 router.get("/stuck", c.stuck);
 router.get("/held-money", c.heldMoneyList);
 router.post("/held-money/:reviewId/decision", c.heldMoneyDecide);

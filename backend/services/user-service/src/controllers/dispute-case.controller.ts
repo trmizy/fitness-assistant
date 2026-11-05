@@ -229,6 +229,8 @@ export const disputeCaseController = {
   classifyContractPolicy: (req: any, res: Response) =>
     run(res, async (actor) => ({ body: await contractPolicyReviewService.classify(actor, String(req.params.contractId).slice(0, 64)) }), req, "classifyContractPolicy"),
 
+  admins: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.listAdmins(actor) }), req, "admins"),
+
   capabilities: (req: any, res: Response) => run(res, async (actor) => ({ body: disputeCaseService.capabilities(actor) }), req, "capabilities"),
 
   accessLog: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.accessLog(actor, idOf(req), parse(accessLogQuery, req.query)) }), req, "accessLog"),
