@@ -29,6 +29,7 @@ import {
 import { FOCUS, FailurePanel, LoadingSkeleton, Muted, Notice } from "./disputes/workspace/WorkspaceParts";
 import { listAdminOptions } from "./disputes/actions/adminDirectory";
 import { formatDateTime } from "./disputes/workspace/format";
+import { ContractPolicyLookup } from "./disputes/actions/ContractPolicyPanel";
 
 /**
  * D2 / M1 - "Xử lý khiếu nại buổi tập": the dispute queue. One surface, two chips kept in the URL (`?view=cases|sessions&status=&page=`):
@@ -155,6 +156,7 @@ export function AdminDisputes() {
       </div>
 
       {/* chips (URL: ?view=) */}
+      <ContractPolicyLookup />
       <div role="group" aria-label="Chọn danh sách" className="flex flex-wrap gap-2" data-testid="d2-chips">
         {QUEUE_VIEWS.map((v) => {
           const selected = v === state.view;

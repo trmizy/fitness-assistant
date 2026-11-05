@@ -3,7 +3,7 @@ import { approvableReviewIds, availability } from "../../actions/actionModel";
 import { formatDateTime } from "../format";
 import { POLICY_PENDING_MINE, POLICY_SECTION_NOTE, POLICY_SECTION_TITLE, describePolicyReviews } from "../policyModel";
 import type { ActionSlotProps } from "../actionSlots";
-import { CARD, Muted, Notice, Pill } from "../WorkspaceParts";
+import { CARD, DisputeLink, Muted, Notice, Pill } from "../WorkspaceParts";
 
 /**
  * M7. The policy-eligibility reviews of the case's contract (read from the detail, A6 `policyReviews`): which one is in force, the list newest
@@ -20,6 +20,7 @@ export function PolicySection({ detail, currentUserId, onChanged, capabilities }
         {POLICY_SECTION_TITLE}
       </h3>
       <Muted>{POLICY_SECTION_NOTE}</Muted>
+      <DisputeLink to={`/admin/disputes?contractPolicy=${encodeURIComponent(detail.case.contractId)}`} className="inline-flex min-h-11 items-center text-sm font-medium text-adm-text underline">Rà soát chính sách cấp hợp đồng</DisputeLink>
 
       <Notice tone={view.contractReadable ? (view.inForce && view.inForce.tone === "success" ? "info" : "warning") : "danger"} testId="d5-policy-in-force" role="note">
         {view.inForce && (
@@ -41,6 +42,7 @@ export function PolicySection({ detail, currentUserId, onChanged, capabilities }
                 <Pill tone={r.tone}>{r.statusLabel}</Pill>
                 {r.replacesPrevious && <Pill tone="neutral">Thay cho kết luận cũ</Pill>}
                 {r.otherCase && <Pill tone="neutral">Lập ở hồ sơ khác của hợp đồng</Pill>}
+                {r.contractLevel && <Pill tone="neutral">Kết luận cấp hợp đồng</Pill>}
               </div>
               <p className="mt-1 whitespace-pre-wrap break-words text-adm-text">{r.reasoning}</p>
               {r.evidence.length > 0 && (
@@ -52,7 +54,7 @@ export function PolicySection({ detail, currentUserId, onChanged, capabilities }
                 Đề xuất bởi {r.proposedByText} · {formatDateTime(r.proposedAt)}
                 {r.approvedAt ? ` · Duyệt bởi ${r.approvedByText ?? "—"} · ${formatDateTime(r.approvedAt)}` : ""}
               </p>
-              {r.pending && !r.approvable && a.serverList && !a.approvePolicy && (
+              {r.pending && !r.contractLevel && !r.approvable && a.serverList && !a.approvePolicy && (
                 <p className="mt-1 text-xs text-adm-text-2" data-testid="d5-policy-cannot-approve">
                   {POLICY_PENDING_MINE}
                 </p>

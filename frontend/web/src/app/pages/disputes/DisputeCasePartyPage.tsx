@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { CompactReference, isReferenceValue } from "../admin/disputes/shared/CompactReference";
 import { useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { disputeCaseApi } from "../admin/disputes/disputeCaseApi";
@@ -177,7 +178,7 @@ function DetailBody({
                     {e.facts.map((f) => (
                       <div key={f.label}>
                         <dt className={`text-xs ${MUTED}`}>{f.label}</dt>
-                        <dd className={`break-words ${f.label.startsWith("Mã") ? "font-mono text-xs [overflow-wrap:anywhere]" : "whitespace-pre-wrap"}`}>{f.value}</dd>
+                        <dd className={`break-words ${f.label.startsWith("Mã") ? "font-mono text-xs [overflow-wrap:anywhere]" : "whitespace-pre-wrap"}`}>{isReferenceValue(f.value) ? <CompactReference value={f.value} label={f.label} /> : f.value}</dd>
                       </div>
                     ))}
                   </dl>

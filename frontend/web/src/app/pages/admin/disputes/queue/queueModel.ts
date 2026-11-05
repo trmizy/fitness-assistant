@@ -134,6 +134,7 @@ export interface SessionRowModel {
   hasCase?: boolean;
   needsCase?: boolean;
   caseId?: string | null;
+  contractId?: string | null;
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
@@ -157,6 +158,7 @@ export function normalizeDisputedSessions(data: unknown): { rows: SessionRowMode
       clientRef: shortRef(str(o.clientUserId)),
       ptRef: shortRef(str(o.ptUserId)),
       sla: null,
+      contractId: str(o.contractId) ?? str(contract?.id),
     });
   }
   // oldest dispute first (the server already sorts so; keep it if a fixture does not)
@@ -190,6 +192,7 @@ export function normalizeQueueItems(data: unknown): { rows: SessionRowModel[]; t
       hasCase: r.hasCase === true,
       needsCase: r.needsCase === true,
       caseId: str(r.caseId),
+      contractId: str(r.contractId),
     });
   }
   return {

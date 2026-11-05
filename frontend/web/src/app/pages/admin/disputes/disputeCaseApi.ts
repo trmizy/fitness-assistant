@@ -27,6 +27,7 @@ import type {
   CloseResult,
   ExecuteResult,
   PolicyReviewList,
+  ContractPolicyClassification,
   QueueQuery,
   QueueResult,
   ReconcileResult,
@@ -130,6 +131,12 @@ export interface PolicyApproveInput {
   reason: string;
   conflictOfInterestDeclaredNone: boolean;
 }
+export interface ContractPolicyInput {
+  result: PolicyResult;
+  evidenceRefs: Array<{ kind: "PT_TERMS_ACCEPTANCE" | "CONTRACT_AUDIT_LOG"; id: string }>;
+  reasoning: string;
+  supersedesId?: string;
+}
 export type ShareInput = { sharedWithRole: ShareRole; reason: string } & ({ evidenceId: string; statementId?: never } | { statementId: string; evidenceId?: never });
 export interface StatementInput {
   text: string;
@@ -201,6 +208,9 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     getPolicyReviews: (caseId: string) => get<PolicyReviewList>(`${A}/${enc(caseId)}/policy-eligibility`),
     /** A7. Same, by contract (empty `items` when the contract has no review). */
     getContractPolicyReviews: (contractId: string) => get<PolicyReviewList>(`${A}/contracts/${enc(contractId)}/policy-eligibility`),
+    getContractPolicyClassification: (contractId: string) => get<ContractPolicyClassification>(`${A}/contracts/${enc(contractId)}/policy-classification`),
+    proposeContractPolicy: (contractId: string, input: ContractPolicyInput, key: string) => postData<PolicyReviewResult>(`${A}/contracts/${enc(contractId)}/policy-eligibility`, compact({ result: input.result, evidenceRefs: input.evidenceRefs.map((ref) => ({ kind: ref.kind, id: ref.id })), reasoning: input.reasoning, supersedesId: input.supersedesId }), key),
+    approveContractPolicy: (contractId: string, reviewId: string, input: PolicyApproveInput, key: string) => postData<PolicyReviewResult>(`${A}/contracts/${enc(contractId)}/policy-eligibility/${enc(reviewId)}/approve`, { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone }, key),
     /** S3 (R-16). One session for an admin (GET /sessions/:id is refused to admins). */
     getAdminSession: (sessionId: string) => get<AdminSessionDetail>(`/admin/sessions/${enc(sessionId)}`),
     /** A4. Calls the ledger for every money step (slow). */

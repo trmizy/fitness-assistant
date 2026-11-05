@@ -51,6 +51,7 @@ export const REASON_TEXT: Record<string, ReasonEntry> = {
   APPROVER_STILL_ACTIVE: E("blocked", "Người đã duyệt vẫn là quản trị viên đang hoạt động; chính họ cần chạy tiếp việc ghi có."),
   EVIDENCE_NOT_VERIFIABLE: E("validation", "Tham chiếu bằng chứng không kiểm chứng được với đúng buổi hoặc hợp đồng này. Chưa tạo đề xuất; hãy kiểm tra mã và hash."),
   NOT_APPROVED: E("blocked", "Đề xuất này chưa được duyệt."),
+  LEDGER_CREDIT_NOT_CONFIRMED: E("blocked", "Đã duyệt nhưng sổ cái chưa xác nhận ghi có cho khách. Tiền chưa chuyển vào ví; hãy chạy lại sau."),
   // ── D65-B: why the held amount cannot be resolved right now
   CONTRACT_NOT_ENDED: E("blocked", "Hợp đồng còn đang chạy nên khoản tiền của buổi này chưa bị giữ."),
   CONTRACT_ENDING: E("blocked", "Việc kết thúc hợp đồng chưa được xác nhận xong. Thử lại sau."),

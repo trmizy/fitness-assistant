@@ -4,6 +4,7 @@
  * resume, all behind the `d65bResolution` flag. With the flag off or unknown the views stay and NO write control is rendered.
  */
 import { useState } from "react";
+import { CompactReference } from "../../disputes/shared/CompactReference";
 import { useSearchParams } from "react-router";
 import { ArrowClockwiseIcon, ArrowLeftIcon } from "@phosphor-icons/react";
 import { useApp } from "../../../../context/AppContext";
@@ -204,7 +205,7 @@ function ResolutionDetail({
           rows={[
             { label: "Lập bởi", value: `${adminName(d.proposedBy, admins, me)} · ${formatVnDateTime(d.createdAt)}` },
             { label: "Lý do", value: d.reason || "—" },
-            { label: "Tham chiếu bằng chứng", value: d.evidenceRefs.length ? <ul className="list-disc pl-4 text-left">{d.evidenceRefs.map((r, i) => <li key={i} className="break-words">{r}</li>)}</ul> : "—" },
+            { label: "Tham chiếu bằng chứng", value: d.evidenceRefs.length ? <ul className="space-y-2 text-left">{d.evidenceRefs.map((r, i) => <li key={i}><CompactReference value={r} /></li>)}</ul> : "—" },
             ...(d.approvedBy ? [{ label: "Duyệt bởi", value: `${adminName(d.approvedBy, admins, me)} · ${formatVnDateTime(d.approvedAt)}` }, { label: "Lý do duyệt", value: d.approvalReason ?? "—" }] : []),
             ...(d.rejectedBy ? [{ label: "Từ chối bởi", value: `${adminName(d.rejectedBy, admins, me)} · ${formatVnDateTime(d.rejectedAt)}` }, { label: "Lý do từ chối", value: d.rejectionReason ?? "—" }] : []),
           ]}
@@ -254,14 +255,14 @@ function StatusBanner({ d, credited }: { d: D65bDetail; credited: string | null 
   }
   if (d.status === "APPROVED_NOT_EXECUTED") {
     return (
-      <Notice tone="warning" title="Đã duyệt, nhưng sổ cái chưa xác nhận ghi có — chưa được nói là đã hoàn" testId="held-banner-not-executed">
+      <Notice tone="warning" title="Đã duyệt, nhưng sổ cái chưa xác nhận ghi có — tiền chưa chuyển vào ví" testId="held-banner-not-executed">
         Khoản vẫn đang được giữ. Người đã duyệt chạy lại bằng nút «Chạy lại việc ghi có». Nếu người đó không còn là quản trị viên đang hoạt động, một quản trị viên thứ ba có thể tiếp quản sau khi máy chủ xác minh. Sổ cái chỉ ghi tiền một lần.
       </Notice>
     );
   }
   return (
     <Notice tone="info" title="Chờ người thứ hai duyệt" testId="held-banner-proposed">
-      Chưa có khoản tiền nào được chuyển. Khách chưa được hoàn khoản này.
+      Chưa có khoản tiền nào được chuyển. Khách chưa nhận khoản này vào ví.
     </Notice>
   );
 }

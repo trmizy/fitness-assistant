@@ -77,6 +77,7 @@ export function ProposeD65bDialog({ sessionId, unit, onClose, onDone }: { sessio
         <div className="space-y-3">
           {refs.map((ref, index) => (
             <div key={index} className="space-y-2 rounded-lg border border-adm-border p-3">
+              <label htmlFor={`${uid}-ref-${index}-type`} className="block text-xs font-medium text-adm-text">Loại tham chiếu {index + 1}</label>
               <SelectField id={`${uid}-ref-${index}-type`} value={ref.type} onChange={(type) => { setRefs((current) => current.map((item, i) => i === index ? (type === "LEDGER_OP" ? { type: "LEDGER_OP", key: "" } : { type: "EVIDENCE", id: "", contentHash: "" }) : item)); clear("evidenceRefs"); }} options={[{ value: "EVIDENCE", label: "Bản ghi bằng chứng" }, { value: "LEDGER_OP", label: "Thao tác sổ cái" }]} placeholder="Chọn loại tham chiếu" />
               {ref.type === "EVIDENCE" ? <>
                 <label htmlFor={`${uid}-ref-${index}-id`} className="block text-xs font-medium text-adm-text">Mã bản ghi bằng chứng</label>

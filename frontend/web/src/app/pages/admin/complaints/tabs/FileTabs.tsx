@@ -9,6 +9,7 @@ import { AssessmentCard } from "../forms/JudgementForms";
 import type { FormProps } from "../forms/formTypes";
 import { EmptyBox, FieldList, Muted, Pill, Section } from "../GymParts";
 import { GateLine, Group } from "../gymCaseKit";
+import { CompactReference } from "../../disputes/shared/CompactReference";
 
 const BOX = "rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3";
 
@@ -29,7 +30,7 @@ function EvidenceRow({ e, detail, older }: { e: GymEvidence; detail: GymCaseDeta
       {v.declaredSha && (
         <div className="min-w-0 text-sm" data-testid="d6-declared-sha">
           <p className="text-xs text-adm-text-2">Mã sha256 do người nộp tự khai</p>
-          <p className="break-all font-mono text-xs text-adm-text">{v.declaredSha}</p>
+          <CompactReference value={v.declaredSha} label="Mã băm tự khai" />
         </div>
       )}
       {v.notes.map((n) => (

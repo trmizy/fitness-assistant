@@ -50,6 +50,9 @@ export const GYM_ERROR_CODES: Record<string, Entry> = {
   CASE_VERSION_CONFLICT: { kind: "conflictReload", message: "Hồ sơ vừa được người khác cập nhật. Hãy tải lại hồ sơ rồi làm lại thao tác nếu vẫn cần." },
   // flag
   GYM_CASE_DISABLED: { kind: "blocked", message: "Chức năng xử lý hồ sơ khiếu nại phòng gym chưa được bật trên hệ thống này nên chưa ghi được gì." },
+  GYM_CASE_OPEN: { kind: "blocked", message: "Gói hội viên này đang có hồ sơ khiếu nại chưa kết thúc. Việc hoàn tiền phải đi qua hồ sơ đó." },
+  GYM_CASE_DECISION_EXISTS: { kind: "blocked", message: "Gói hội viên này đã có quyết định được duyệt trong hồ sơ khiếu nại. Không hoàn tiền ngoài hồ sơ để tránh mâu thuẫn với quyết định đó." },
+  GYM_CASE_DECISION_MISMATCH: { kind: "blocked", message: "Quyết định của hồ sơ không khớp với gói hội viên cần hoàn tiền nên không thực hiện hoàn tiền." },
   // state / rule refusals
   CASE_STATE_NOT_ALLOWED: { kind: "blocked", message: stateText },
   CASE_NOT_ACCEPTING: { kind: "blocked", message: "Hồ sơ hiện không nhận thêm thông tin. Hãy tải lại để xem bước hiện tại." },

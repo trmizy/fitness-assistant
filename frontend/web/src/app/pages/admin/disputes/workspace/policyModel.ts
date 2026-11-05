@@ -7,7 +7,7 @@
  * and the four-eyes rule comes from the server (`allowedActions.approvePolicyEligibility.options` = the reviews this viewer may approve).
  */
 import { POLICY_RESULT_LABEL } from "../disputeCaseLabels";
-import type { DisputeCaseDetail, DisputeEvidence, PolicyReviewItem } from "../disputeCaseTypes";
+import type { DisputeEvidence, PolicyReviewItem, PolicyReviewList } from "../disputeCaseTypes";
 import { evidenceRefText } from "./evidenceModel";
 import { shortRef } from "./format";
 
@@ -41,6 +41,7 @@ export interface PolicyReviewRow {
   replacesPrevious: boolean;
   /** the review belongs to another case of the same contract */
   otherCase: boolean;
+  contractLevel: boolean;
 }
 export interface PolicyView {
   contractReadable: boolean;
@@ -55,7 +56,7 @@ function who(id: string | null | undefined, currentUserId: string | null | undef
   return currentUserId && id === currentUserId ? "Bạn" : `Quản trị viên (mã ${shortRef(id)})`;
 }
 
-export function describePolicyReviews(detail: Pick<DisputeCaseDetail, "policyReviews" | "case" | "evidence">, approvable: readonly string[], currentUserId: string | null | undefined): PolicyView {
+export function describePolicyReviews(detail: { policyReviews?: PolicyReviewList; case?: { id: string }; evidence?: DisputeEvidence[] }, approvable: readonly string[], currentUserId: string | null | undefined): PolicyView {
   const list = detail.policyReviews;
   if (!list || !Array.isArray(list.items)) return { contractReadable: false, inForce: null, forceLine: "Chưa đọc được các kết luận áp dụng chính sách. Hãy tải lại hồ sơ.", rows: [], pendingCount: 0 };
   const rows: PolicyReviewRow[] = [...list.items]
@@ -72,13 +73,14 @@ export function describePolicyReviews(detail: Pick<DisputeCaseDetail, "policyRev
         pending,
         approvable: pending && approvable.includes(r.reviewId),
         reasoning: r.reasoning,
-        evidence: (r.evidenceIds ?? []).map((id) => evidenceRefText(id, detail.evidence as DisputeEvidence[])),
+        evidence: r.level === "CONTRACT" ? (r.evidenceRefs ?? []).map((ref) => `${ref.kind === "PT_TERMS_ACCEPTANCE" ? "Chấp nhận điều khoản của PT" : "Nhật ký hợp đồng"} · ${shortRef(ref.id)}`) : (r.evidenceIds ?? []).map((id) => evidenceRefText(id, detail.evidence as DisputeEvidence[])),
         proposedAt: r.proposedAt,
         proposedByText: who(r.proposedBy, currentUserId),
         approvedAt: r.approvedAt ?? null,
         approvedByText: r.approvedBy ? who(r.approvedBy, currentUserId) : null,
         replacesPrevious: !!r.supersedesId,
         otherCase: !!r.caseId && r.caseId !== detail.case?.id,
+        contractLevel: r.level === "CONTRACT" || r.caseId === null,
       };
     });
   const inForce = rows.find((r) => r.inForce) ?? null;

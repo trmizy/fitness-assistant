@@ -285,3 +285,20 @@ export const captureStatusLabel = (s: string | null | undefined) => lookup(CAPTU
 export const verificationStatusLabel = (s: string | null | undefined) => lookup(VERIFICATION_STATUS_LABEL, s, "Chưa rõ");
 export const sensitivityLabel = (s: string | null | undefined) => lookup(SENSITIVITY_LABEL, s, "Chưa rõ");
 export const partyRoleLabel = (s: string | null | undefined) => lookup(PARTY_ROLE_LABEL, s, "Bên khác");
+
+/** Reference kind labels (FIX-1): Vietnamese wording for evidence references, audit logs and D65-B types. */
+export const CONTRACT_POLICY_REF_KIND_LABEL: Record<string, string> = {
+  PT_TERMS_ACCEPTANCE: "Bản ghi PT chấp nhận điều khoản",
+  CONTRACT_AUDIT_LOG: "Nhật ký gắn điều khoản với hợp đồng",
+};
+
+export const D65B_REF_TYPE_LABEL: Record<string, string> = {
+  EVIDENCE: "Bằng chứng",
+  LEDGER_OP: "Bút toán sổ cái",
+};
+
+export const REFERENCE_KIND_LABEL: Record<string, string> = {
+  ...CONTRACT_POLICY_REF_KIND_LABEL,
+  ...D65B_REF_TYPE_LABEL,
+};
+

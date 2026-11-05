@@ -6,6 +6,7 @@
  * `execution.status` says so); the ledger figures are an OBSERVATION and are never an input.
  */
 import { useState } from "react";
+import { CompactReference } from "../../disputes/shared/CompactReference";
 import { useSearchParams } from "react-router";
 import { ArrowClockwiseIcon, ArrowLeftIcon } from "@phosphor-icons/react";
 import { useApp } from "../../../../context/AppContext";
@@ -334,7 +335,7 @@ function ProposalCard({ p, nameOf }: { p: LateProposal; nameOf: (id: string | nu
           { label: "Lý do", value: p.reason },
           { label: "Cách đã xác minh", value: p.verificationNote },
           { label: "Căn cứ chính sách", value: p.policyBasis },
-          { label: "Tham chiếu bằng chứng", value: p.evidenceRefs.length ? <ul className="list-disc pl-4 text-left">{p.evidenceRefs.map((r, i) => <li key={i} className="break-words">{r}</li>)}</ul> : "—" },
+          { label: "Tham chiếu bằng chứng", value: p.evidenceRefs.length ? <ul className="space-y-2 text-left">{p.evidenceRefs.map((r, i) => <li key={i}><CompactReference value={r} /></li>)}</ul> : "—" },
           ...(p.approvedBy ? [{ label: "Duyệt bởi", value: `${nameOf(p.approvedBy)} · ${formatVnDateTime(p.approvedAt)}` }] : []),
         ]}
       />

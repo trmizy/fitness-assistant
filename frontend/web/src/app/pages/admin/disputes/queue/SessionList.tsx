@@ -47,6 +47,17 @@ export function SessionList({ rows, now, onRefresh }: { rows: SessionRowModel[];
             </div>
           </div>}
 
+          {s.contractId && (
+            <div>
+              <DisputeLink
+                to={`/admin/disputes?contractPolicy=${encodeURIComponent(s.contractId)}`}
+                className={`inline-flex min-h-11 items-center rounded-md border border-adm-border bg-adm-surface px-4 text-sm font-medium text-adm-text ${FOCUS}`}
+              >
+                Rà soát chính sách hợp đồng
+              </DisputeLink>
+            </div>
+          )}
+
           {s.hasCase && s.caseId ? (
             <DisputeLink to={`${QUEUE_PATH}/${encodeURIComponent(s.caseId)}`} className={`inline-flex min-h-11 items-center rounded-md border border-adm-border bg-adm-surface px-4 text-sm font-medium text-adm-text ${FOCUS}`}>
               Xem hồ sơ đang xử lý

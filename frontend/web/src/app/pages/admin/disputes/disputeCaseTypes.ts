@@ -224,7 +224,7 @@ export interface QueueItem {
 export type QueueResult = Paged<QueueItem>;
 
 /** A1 (capabilities): read-only verdicts of the five server flags in THIS process. */
-export const CAPABILITY_FLAGS = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution"] as const;
+export const CAPABILITY_FLAGS = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution", "timers", "appeals"] as const;
 export type CapabilityFlag = (typeof CAPABILITY_FLAGS)[number];
 export interface Capabilities {
   execution: boolean;
@@ -232,7 +232,10 @@ export interface Capabilities {
   evidenceStorage: boolean;
   lateOpenReconciliation: boolean;
   d65bResolution: boolean;
+  timers: boolean;
+  appeals: boolean;
   details: Partial<Record<CapabilityFlag, { effective: boolean; refusedBecause?: string }>>;
+  runtime?: { mode: string; open: boolean; refusedBecause?: string };
 }
 
 /** A5 access log. */
@@ -482,7 +485,9 @@ export interface ExecutionView {
 // ── policy eligibility reviews (A6 / A7, D-NEW-12) ──
 export interface PolicyReviewItem {
   reviewId: string;
-  caseId: string;
+  caseId: string | null;
+  level?: "CASE" | "CONTRACT";
+  evidenceRefs?: Array<{ kind: "PT_TERMS_ACCEPTANCE" | "CONTRACT_AUDIT_LOG"; id: string; hash: string }> | null;
   contractId: string;
   result: PolicyResult;
   status: "PENDING" | "APPROVED";
@@ -501,6 +506,19 @@ export interface PolicyReviewList {
   currentReviewId: string | null;
   currentResult: PolicyResult | null;
   items: PolicyReviewItem[];
+}
+
+export interface ContractPolicyClassification {
+  contractId: string;
+  group: "NEW_CURRENT_POLICY" | "HISTORICAL_NOTICE" | "INSUFFICIENT_DATA" | "EXCEPTION_VERIFIED";
+  autoEligible: false;
+  reviewRequired: true;
+  facts: {
+    ptAcceptances: Array<{ id: string; version: string; acceptedAt: string; isDraft: boolean }>;
+    ptTermsAtAcceptance: { auditLogId: string; version: string; at: string } | null;
+  };
+  missing: Array<{ code: string; message: string }>;
+  note: string;
 }
 
 // ── allowedActions (contract 3.3): the server says what the viewer may do RIGHT NOW ──

@@ -49,7 +49,7 @@ export function OpenCaseButton({ sessionId, onRefreshList }: { sessionId: string
 
   return (
     <div className="space-y-2" data-testid="d2-open-case">
-      <Button type="button" onClick={open} disabled={action.pending} aria-busy={action.pending} className="min-h-11 w-full bg-st-success text-adm-bg hover:bg-st-success hover:opacity-90 sm:w-auto xl:min-h-9" data-testid="d2-open-case-btn">
+      <Button type="button" onClick={open} disabled={action.pending} aria-busy={action.pending} className="min-h-11 w-full bg-st-success text-adm-bg hover:bg-st-success hover:brightness-95 sm:w-auto xl:min-h-9" data-testid="d2-open-case-btn">
         {action.pending && <CircleNotchIcon className="size-4 animate-spin" aria-hidden />}
         {action.pending ? "Đang mở hồ sơ…" : error?.outcomeUnknown ? "Mở hồ sơ (thử lại)" : "Mở hồ sơ"}
       </Button>

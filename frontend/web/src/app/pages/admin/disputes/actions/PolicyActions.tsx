@@ -128,7 +128,7 @@ export function ProposePolicyCard({ detail, currentUserId, onChanged }: ActionSl
 }
 
 // ───────────────────────────────────────────────────────────── approve ──
-export function ApprovePolicyCard({ review, detail, onChanged }: Pick<ActionSlotProps, "detail" | "onChanged"> & { review: PolicyReviewRow }) {
+export function ApprovePolicyCard({ review, detail, contractId, onChanged }: Pick<ActionSlotProps, "onChanged"> & { detail?: ActionSlotProps["detail"]; contractId?: string; review: PolicyReviewRow }) {
   const id = useId();
   const w = useWrite<ReturnType<typeof policyApproveBody>, PolicyReviewResult>(onChanged);
   const [reason, setReason] = useState("");
@@ -145,7 +145,11 @@ export function ApprovePolicyCard({ review, detail, onChanged }: Pick<ActionSlot
     setOpen(true);
   }
   async function confirm() {
-    const r = await w.submit(policyApproveBody(form), (key, b) => disputeCaseApi.approvePolicyEligibility(detail.case.id, review.id, b, key));
+    const r = contractId
+      ? await w.submit(policyApproveBody(form), (key, b) =>
+          disputeCaseApi.approveContractPolicy(contractId, review.id, b, key))
+      : await w.submit(policyApproveBody(form), (key, b) =>
+          disputeCaseApi.approvePolicyEligibility(detail!.case.id, review.id, b, key));
     if (r.ok) setOpen(false);
     else if (r.error && r.error.kind !== "unavailable") setOpen(false);
   }

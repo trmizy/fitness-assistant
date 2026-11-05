@@ -2,6 +2,7 @@ import { forwardRef, type AnchorHTMLAttributes, type MouseEvent, type ReactNode 
 import { useHref, useLinkClickHandler } from "react-router";
 import { ArrowClockwiseIcon, ArrowLeftIcon, InfoIcon, LockKeyIcon, WarningCircleIcon, WarningIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import { Button } from "../../../../components/ui/button";
+import { CompactReference, isReferenceValue } from "../shared/CompactReference";
 import { Pill, type PillTone } from "../../shared/b9bPill";
 import type { PayloadField } from "./evidenceModel";
 import type { LoadFailure } from "./workspaceModel";
@@ -103,7 +104,7 @@ export function FieldList({ fields, testId }: { fields: PayloadField[]; testId?:
       {fields.map((f, i) => (
         <div key={`${f.label}-${i}`} className="min-w-0">
           <dt className="text-xs text-adm-text-2">{f.label}</dt>
-          <dd className="break-words font-medium text-adm-text">{f.value}</dd>
+          <dd className="break-words font-medium text-adm-text">{isReferenceValue(f.value) ? <CompactReference value={f.value} label={f.label} /> : f.value}</dd>
         </div>
       ))}
     </dl>
