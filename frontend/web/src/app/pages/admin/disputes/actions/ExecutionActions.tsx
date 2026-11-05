@@ -42,6 +42,8 @@ function ExecuteCard({ detail, onChanged, push }: ActionSlotProps & { push: Push
     } else if (r.error && r.error.kind !== "unavailable") {
       // keep the dialog open for a retry only when nothing was written (unavailable); otherwise close it so the error sits next to the button
       setOpen(false);
+      // EXEC_BLOCKED / NEEDS_HUMAN are written onto the case by the server: re-read so the screen shows the new state, not "chưa thực thi".
+      if (r.error.code === "EXEC_BLOCKED" || r.error.code === "NEEDS_HUMAN") void Promise.resolve(onChanged()).catch(() => undefined);
     }
   }
   const dialogError = <ErrorBox error={w.error} mustReload={w.mustReload} reloading={w.reloading} onReload={() => void w.reload().then(() => setOpen(false))} onRetry={w.retry} pending={w.pending} testId="d5-execute-dialog-error" />;

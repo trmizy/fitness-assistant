@@ -127,9 +127,10 @@ function DecideForm({ detail, onChanged, onDone }: ActionSlotProps & { onDone: (
     }
   }
 
+  // Reloading after "recollect first" starts over; after "acknowledge" the tick box must stay, since the note asks the approver to reload and then tick it.
   const reload = async () => {
     await w.reload();
-    setBranch(null);
+    setBranch((current) => (current === "acknowledge" ? current : null));
   };
   const dialogError = <ErrorBox error={w.error} mustReload={w.mustReload} reloading={w.reloading} onReload={() => void w.reload().then(() => setDeciding(null))} onRetry={w.retry} pending={w.pending} testId="d3-decide-dialog-error" />;
 

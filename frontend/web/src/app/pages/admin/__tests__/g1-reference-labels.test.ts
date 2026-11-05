@@ -131,3 +131,22 @@ describe("G1 reference labels & display formatting (FIX-1)", () => {
   });
 });
 
+
+import { parseAdminOptions } from "../disputes/actions/actionModel";
+import { parseAdminDirectory } from "../reconciliation/moneyExceptions/adminDirectory";
+
+describe("INT-01 admin list: GET /admin/dispute-cases/admins answers [{ id, displayName }]", () => {
+  const rows = [
+    { id: "e2e00000-0000-4000-8000-000000000001", displayName: "Admin 1" },
+    { id: "e2e00000-0000-4000-8000-000000000002", displayName: "Admin 2" },
+    { id: "e2e00000-0000-4000-8000-000000000003", displayName: "  " },
+  ];
+  it("assign options take the display name, drop the caller, never show an id as the name", () => {
+    const opts = parseAdminOptions(rows, "e2e00000-0000-4000-8000-000000000001");
+    assert.deepEqual(opts.map((o) => o.label), ["Admin 2", "Quản trị viên"]);
+  });
+  it("the money-exception directory reads the same shape, bare or under items", () => {
+    assert.equal(parseAdminDirectory(rows).length, 3);
+    assert.equal(parseAdminDirectory({ items: rows })[0].name, "Admin 1");
+  });
+});

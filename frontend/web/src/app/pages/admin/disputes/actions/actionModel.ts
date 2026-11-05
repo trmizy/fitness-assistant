@@ -642,20 +642,30 @@ export interface AdminOption {
  * `GET /admin/users?role=ADMIN` -> `{ success, data: { users: [{ id, name, email, role, status }] } }` (gateway shape).
  * Only real, active ADMIN rows; the signed-in admin is left out (they use "Nhận cho mình"). Anything malformed -> [].
  */
+/** Rows of `GET /admin/dispute-cases/admins` (`[{ id, displayName }]`, bare or under `items`/`data`), or of the older `{ data: { users } }` shape. */
+export function adminRows(raw: unknown): unknown[] | null {
+  if (Array.isArray(raw)) return raw;
+  const root = raw as { items?: unknown; data?: unknown; users?: unknown } | null;
+  const inner = root?.data as { users?: unknown; items?: unknown } | unknown[] | undefined;
+  for (const c of [root?.items, Array.isArray(inner) ? inner : inner?.items, Array.isArray(inner) ? undefined : inner?.users, root?.users]) if (Array.isArray(c)) return c;
+  return null;
+}
+
 export function parseAdminOptions(raw: unknown, selfId: string | null | undefined): AdminOption[] {
-  const root = raw as { data?: { users?: unknown }; users?: unknown } | null;
-  const users = root?.data?.users ?? root?.users;
-  if (!Array.isArray(users)) return [];
+  const users = adminRows(raw);
+  if (!users) return [];
   const out: AdminOption[] = [];
   const seen = new Set<string>();
   for (const u of users) {
-    const r = u as { id?: unknown; name?: unknown; email?: unknown; role?: unknown; status?: unknown } | null;
+    const r = u as { id?: unknown; name?: unknown; displayName?: unknown; email?: unknown; role?: unknown; status?: unknown } | null;
     if (!r || typeof r.id !== "string" || !r.id || r.id.length > LIMITS.investigatorId || seen.has(r.id)) continue;
     if (r.id === selfId) continue;
-    if (r.role !== "Admin" && r.role !== "ADMIN") continue;
+    // The dedicated admin route lists only active ADMINs and carries no role; the old user list must still be filtered.
+    if (r.role !== undefined && r.role !== "Admin" && r.role !== "ADMIN") continue;
     if (r.status === "Inactive") continue;
     seen.add(r.id);
-    const name = typeof r.name === "string" && r.name.trim() ? r.name.trim() : "Quản trị viên";
+    const shown = typeof r.displayName === "string" ? r.displayName : r.name;
+    const name = typeof shown === "string" && shown.trim() ? shown.trim() : "Quản trị viên";
     const email = typeof r.email === "string" && r.email.trim() ? ` (${r.email.trim()})` : "";
     out.push({ id: r.id, label: `${name}${email}` });
   }

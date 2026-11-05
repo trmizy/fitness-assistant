@@ -1,8 +1,10 @@
 /**
  * D7 - the ADMIN list a handover chooses from (never a typed id), and the names behind the admin ids the two APIs return.
- * `GET /admin/users?role=ADMIN` answers `{ success, data: { total, users: [{ id, name, email, role, status }] } }` (gateway -> auth-service).
+ * `GET /admin/dispute-cases/admins` (INT-01) answers `[{ id, displayName }]` of the active ADMINs.
  * The server re-checks that the chosen person is a real, active ADMIN (`ASSIGNEE_NOT_FOUND` / `ASSIGNEE_NOT_ADMIN`), so this list is only a convenience.
  */
+import { adminRows } from "../../disputes/actions/actionModel";
+
 export interface AdminDirectoryEntry {
   id: string;
   /** "Tên (email)" - what the select shows */
@@ -14,18 +16,18 @@ export interface AdminDirectoryEntry {
 const MAX_ID = 128;
 
 export function parseAdminDirectory(raw: unknown): AdminDirectoryEntry[] {
-  const root = raw as { data?: { users?: unknown }; users?: unknown } | null;
-  const users = root?.data?.users ?? root?.users;
-  if (!Array.isArray(users)) return [];
+  const users = adminRows(raw);
+  if (!users) return [];
   const out: AdminDirectoryEntry[] = [];
   const seen = new Set<string>();
   for (const u of users) {
-    const r = u as { id?: unknown; name?: unknown; email?: unknown; role?: unknown; status?: unknown } | null;
+    const r = u as { id?: unknown; name?: unknown; displayName?: unknown; email?: unknown; role?: unknown; status?: unknown } | null;
     if (!r || typeof r.id !== "string" || !r.id || r.id.length > MAX_ID || seen.has(r.id)) continue;
-    if (r.role !== "Admin" && r.role !== "ADMIN") continue;
+    if (r.role !== undefined && r.role !== "Admin" && r.role !== "ADMIN") continue;
     if (r.status === "Inactive") continue;
     seen.add(r.id);
-    const name = typeof r.name === "string" && r.name.trim() ? r.name.trim() : "Quản trị viên";
+    const shown = typeof r.displayName === "string" ? r.displayName : r.name;
+    const name = typeof shown === "string" && shown.trim() ? shown.trim() : "Quản trị viên";
     const email = typeof r.email === "string" && r.email.trim() ? ` (${r.email.trim()})` : "";
     out.push({ id: r.id, name, label: `${name}${email}` });
   }

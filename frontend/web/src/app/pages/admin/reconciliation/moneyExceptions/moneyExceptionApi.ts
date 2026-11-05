@@ -109,7 +109,7 @@ export function createMoneyExceptionApi(http: MoneyHttpClient) {
     lateRejectRecovery: (recoveryId: string, b: { reason: string }, key: string) => post(`${LATE}/recoveries/${seg(recoveryId)}/reject`, { reason: b.reason }, key),
 
     // ── the ADMIN list a handover chooses from (never a typed id)
-    adminUsers: () => get("/admin/users", { role: "ADMIN" }),
+    adminUsers: () => get("/admin/dispute-cases/admins"),
   };
 }
 
