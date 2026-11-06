@@ -3,7 +3,7 @@ import type { BedrockRuntimeClient, ConverseCommandInput } from "@aws-sdk/client
 import { PilotError } from "./config";
 import { digest } from "../evaluation-kit/identity";
 import { NOVA_MODEL, serializeNova } from "./nova-converse-transport";
-import { assertNovaHttpDestination } from "./nova-endpoint";
+import { assertNovaHttpDestination, assertNovaSigningScope } from "./nova-endpoint";
 import { novaAuthorityClock } from "./nova-clock";
 
 /** These values come from the session AFTER its signature, pins and issued-ledger checks. Not an authorization issuer. */
@@ -73,6 +73,7 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
     const signature = Object.entries(headers).find(([name]) => name.toLowerCase() === "authorization")?.[1];
     if (typeof signature !== "string" || !signature.startsWith("AWS4-HMAC-SHA256 ")) throw new PilotError("NOVA_HTTP_UNSIGNED_REQUEST");
     assertNovaHttpDestination(destination);
+    assertNovaSigningScope(headers, "bedrock");
     let body: unknown, requestPath: string;
     try {
       const raw = typeof destination.body === "string" ? destination.body : destination.body instanceof Uint8Array ?

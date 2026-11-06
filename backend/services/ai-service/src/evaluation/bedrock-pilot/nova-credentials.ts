@@ -3,6 +3,7 @@ import { loadSharedConfigFiles } from "@smithy/core/config";
 import { NovaScopeSchema, PilotError } from "./config";
 import { assertNovaEndpointEnvironment, assertNovaProfileEndpoint } from "./nova-endpoint";
 import { novaAuthorityClock } from "./nova-clock";
+import { installNovaStsBoundary } from "./nova-sts-boundary";
 
 export interface NovaStaticCredentials { accessKeyId: string; secretAccessKey: string; sessionToken: string; expiration: Date }
 type Files = Awaited<ReturnType<typeof loadSharedConfigFiles>>;
@@ -16,17 +17,13 @@ const assumeRole: Assume = async (source, input, assertCurrent) => {
   // No default provider, source-profile recursion, environment credentials, IMDS, SSO or background refresh.
   const client = new STSClient({ region: "us-east-1", endpoint: "https://sts.us-east-1.amazonaws.com", credentials: source,
     maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true });
-  const delegate = client.config.requestHandler, dispatch = delegate.handle.bind(delegate);
-  client.config.requestHandler = new Proxy(delegate, { get(target, key) {
-    if (key === "handle") return (request: Parameters<typeof delegate.handle>[0], options: Parameters<typeof delegate.handle>[1]) => {
-      if (request.protocol !== "https:" || request.hostname !== "sts.us-east-1.amazonaws.com" || (request.port !== undefined && request.port !== 443)) throw new PilotError("NOVA_STS_ENDPOINT_MISMATCH");
-      assertCurrent(); return dispatch(request, options);
-    };
-    const value = Reflect.get(target, key, target); return typeof value === "function" ? value.bind(target) : value;
-  } });
+  installNovaStsBoundary(client, source.accessKeyId, input, assertCurrent);
   try {
     assertCurrent(); const response = await client.send(new AssumeRoleCommand(input)), c = response.Credentials;
     if (!c?.AccessKeyId || !c.SecretAccessKey || !c.SessionToken || !c.Expiration) throw new PilotError("NOVA_CREDENTIAL_RESPONSE_INVALID");
+    const role = /^arn:aws:iam::(\d{12}):role\/(.+)$/.exec(input.RoleArn ?? "");
+    const expectedArn = role && `arn:aws:sts::${role[1]}:assumed-role/${role[2].split("/").at(-1)}/${input.RoleSessionName}`;
+    if (!expectedArn || response.AssumedRoleUser?.Arn !== expectedArn) throw new PilotError("NOVA_CREDENTIAL_IDENTITY_MISMATCH");
     return { accessKeyId: c.AccessKeyId, secretAccessKey: c.SecretAccessKey, sessionToken: c.SessionToken, expiration: c.Expiration };
   } finally { client.destroy(); }
 };
@@ -46,7 +43,7 @@ export async function resolveNovaCredentials(args: { profile: string; binding: s
   const p = profiles[args.profile], source = p?.source_profile ? profiles[p.source_profile] : undefined;
   if (p) assertNovaProfileEndpoint(p); if (source) assertNovaProfileEndpoint(source);
   const roleKeys = ["role_arn", "source_profile", "region", "role_session_name", "external_id", "duration_seconds", "output", "use_fips_endpoint", "use_dualstack_endpoint"];
-  const sourceKeys = ["aws_access_key_id", "aws_secret_access_key", "aws_session_token", "region", "output", "use_fips_endpoint", "use_dualstack_endpoint"];
+  const sourceKeys = ["aws_access_key_id", "aws_secret_access_key", "region", "output", "use_fips_endpoint", "use_dualstack_endpoint"];
   if (!p || !source || !/^arn:aws:iam::\d{12}:role\/[A-Za-z0-9+=,.@_/-]+$/.test(p.role_arn ?? "") || p.source_profile === args.profile ||
       Object.keys(p).some(k => !roleKeys.includes(k)) || Object.keys(source).some(k => !sourceKeys.includes(k)) ||
       !source.aws_access_key_id || !source.aws_secret_access_key || [p.region, source.region].some(r => r && r !== "us-east-1")) throw new PilotError("NOVA_CREDENTIAL_PROFILE_UNSUPPORTED");
@@ -63,7 +60,7 @@ export async function resolveNovaCredentials(args: { profile: string; binding: s
   const expires = credentials?.expiration instanceof Date ? credentials.expiration.getTime() : NaN;
   if (!credentials?.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken || !Number.isFinite(expires)) throw new PilotError("NOVA_CREDENTIAL_RESPONSE_INVALID");
   if (expires <= clock()) throw new PilotError("NOVA_CREDENTIALS_EXPIRED");
-  if (expires < until) throw new PilotError("NOVA_CREDENTIAL_VALIDITY_INSUFFICIENT");
+  if (expires < until + 60000) throw new PilotError("NOVA_CREDENTIAL_VALIDITY_INSUFFICIENT");
   const frozen = Object.freeze({ ...credentials, expiration: new Date(expires) });
   const leaseCurrent = () => { assertCurrent(); assertNovaEndpointEnvironment(); if (clock() >= expires) throw new PilotError("NOVA_CREDENTIALS_EXPIRED"); };
   const receipt = Object.freeze({ status: "PRE_RESOLVED_NOVA_CREDENTIALS" as const });
