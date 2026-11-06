@@ -17,7 +17,8 @@ import { converseInput } from "../evaluation/bedrock-pilot/session";
 import { runControlledPilot } from "../evaluation/bedrock-pilot/runner";
 import { calculatePilotPins, implementationRoot } from "../evaluation/bedrock-pilot/pins";
 import { NOVA_MODEL, NOVA_REGION, serializeNova } from "../evaluation/bedrock-pilot/nova-converse-transport";
-import { novaRuntimeSend, type NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
+import { createNovaRuntimeClient, novaRuntimeSend, type NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
+import type { NovaCredentialFixture } from "../evaluation/bedrock-pilot/nova-credentials";
 import { openJournal } from "../evaluation/bedrock-pilot/storage";
 import { canonical, digest } from "../evaluation/evaluation-kit/identity";
 import { verifyReviewerExport } from "../evaluation/evaluation-kit/reviewer-export";
@@ -48,7 +49,7 @@ function output(text: string, inputTokens: number, outputTokens: number, stopRea
 const tokensOf = (i: ConverseCommandInput) => Math.ceil(Buffer.byteLength(JSON.stringify(serializeNova(i).canonical), "utf8") / 4);
 
 async function fixture(options: { phases?: boolean; budget?: Partial<SessionConfig["budget"]>;
-  sdk?: { credentials?: () => Promise<void>; signing?: () => Promise<void> } } = {}) {
+  sdk?: { credentials?: () => Promise<void>; signing?: () => Promise<void> }; credentialAdmission?: boolean } = {}) {
   const a = fixturePilotInput(claimDevScenarios[0].request, A), b = fixturePilotInput(claimDevScenarios[1].request, B);
   const merged = JSON.parse(fs.readFileSync(a.casesFile, "utf8")), second = JSON.parse(fs.readFileSync(b.casesFile, "utf8"));
   for (const key of ["released", "expectedManifests", "ownerReceiptHashes"]) merged[key].push(...second[key]); fs.writeFileSync(a.casesFile, JSON.stringify(merged));
@@ -99,6 +100,23 @@ async function fixture(options: { phases?: boolean; budget?: Partial<SessionConf
   const issue = (x: SessionConfig) => openJournal(path.join(ledger, x.approval!.approvalId + ".jsonl"), true)
     .append({ event: "ISSUED", authority: "FAKE_TEST_ONLY", approvalId: x.approval!.approvalId, approvalHash: digest(x.approval), configHash: approvedConfigurationHash(x), scope: novaLedgerScope(x) });
   const records = (x: SessionConfig) => openJournal(path.join(ledger, x.approval!.approvalId + ".jsonl")).records as { event: string }[];
+  const credentialCalls: { ledgerEvents: string[]; at: number }[] = [];
+  let activeConfig: SessionConfig, credentialHook = () => {};
+  const credentialFixture: NovaCredentialFixture = { metadataDisabled: "true", loadFiles: async () => ({
+    configFile: { "gymini-fixture-profile": { role_arn: "arn:aws:iam::123456789012:role/TEST_FIXTURE", source_profile: "fixture-source" } },
+    credentialsFile: { "fixture-source": { aws_access_key_id: "TESTFIXTUREACCESSKEY", aws_secret_access_key: "TEST_FIXTURE_NOT_REAL" } },
+  }), assumeRole: async () => { credentialCalls.push({ ledgerEvents: records(activeConfig).map(r => r.event), at: Date.now() }); await Promise.resolve(); credentialHook();
+    return { accessKeyId: "TESTFIXTUREACCESSKEY", secretAccessKey: "TEST_FIXTURE_NOT_REAL", sessionToken: "TEST_FIXTURE_TOKEN", expiration: new Date(Date.now() + 2 * hour) }; } };
+  const resolvedSend: NonNullable<import("../evaluation/bedrock-pilot/session").LiveRehearsal["resolvedSend"]> = (credentials, binding) => {
+    const client = createNovaRuntimeClient("gymini-fixture-profile", credentials); clients.push(client);
+    client.config.requestHandler = { async handle(request: any) {
+      const body = typeof request.body === "string" ? request.body : Buffer.from(request.body.buffer, request.body.byteOffset, request.body.byteLength).toString("utf8");
+      const i = { modelId: NOVA_MODEL, ...JSON.parse(body) } as ConverseCommandInput; httpRequests.push(i);
+      const { $metadata: _, ...result } = reply(i);
+      return { response: { statusCode: 200, headers: { "content-type": "application/json" }, body: Buffer.from(JSON.stringify(result)) } };
+    }, updateHttpClientConfig() {}, httpHandlerConfigs() { return {}; } };
+    const sender = novaRuntimeSend(client, binding); return async (i, signal, authority) => { sent.push(i); return sender(i, signal, authority); };
+  };
   /** The owner's inference release (fixture key), bound to the recorded measurement phase; `patch` builds invalid ones. */
   const release = (x: SessionConfig, patch: Record<string, unknown> = {}, key: KeyObject = keys.privateKey) => {
     const m = measurementPhaseRecord(ledger, x.approval!.approvalId)!;
@@ -107,10 +125,12 @@ async function fixture(options: { phases?: boolean; budget?: Partial<SessionConf
     const f = inferenceReleaseFile(ledger, x.approval!.approvalId); if (fs.existsSync(f)) fs.unlinkSync(f);
     fs.writeFileSync(f, JSON.stringify({ ...body, signature: sign(null, Buffer.from(canonical(body)), key).toString("base64") }));
   };
-  const run = (x: SessionConfig, dir: string, o: { measureOnly?: boolean; resume?: boolean; onStage?: (s: string) => void } = {}) =>
-    runControlledPilot({ config: x, directory: dir, liveRehearsal: { trust, send }, measureOnly: o.measureOnly, resume: o.resume, onStage: o.onStage as never });
+  const run = (x: SessionConfig, dir: string, o: { measureOnly?: boolean; resume?: boolean; onStage?: (s: string) => void } = {}) => {
+    activeConfig = x;
+    return runControlledPilot({ config: x, directory: dir, liveRehearsal: { trust, send, ...(options.credentialAdmission ? { credentialFixture, resolvedSend } : {}) }, measureOnly: o.measureOnly, resume: o.resume, onStage: o.onStage as never });
+  };
   const inferences = () => sent.filter(i => i.inferenceConfig!.maxTokens !== 1), measures = () => sent.filter(i => i.inferenceConfig!.maxTokens === 1);
-  return { root: a.root, base: c, ledger, sent, httpRequests, issue, records, release, run, inferences, measures, label, setReply: (r: typeof reply) => { reply = r; },
+  return { root: a.root, base: c, ledger, sent, httpRequests, issue, records, release, run, inferences, measures, label, credentialCalls, credentialFixture, setCredentialHook: (hook: () => void) => { credentialHook = hook; }, setReply: (r: typeof reply) => { reply = r; },
     close: () => { for (const client of clients) client.destroy(); fs.rmSync(a.root, { recursive: true, force: true }); } };
 }
 
@@ -423,5 +443,51 @@ test("HTTP boundary inference: release expiring in actual signing preserves the 
     const before = f.records(c).length;
     await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && e.code === "INFERENCE_RELEASE_EXPIRED");
     assert.equal(f.records(c).length, before); assert.equal(f.httpRequests.length, 4);
+  } finally { Date.now = original; f.close(); }
+});
+
+test("credential admission: signed phases resolve STS once before claim/resume and static SDK credentials never refresh after reservations", needsClean, async t => {
+  const f = await fixture({ credentialAdmission: true });
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run");
+    await f.run(c, dir, { measureOnly: true });
+    assert.equal(f.credentialCalls.length, 1); assert.deepEqual(f.credentialCalls[0].ledgerEvents, ["ISSUED"]);
+    assert.equal(f.httpRequests.length, 4); assert.ok(f.httpRequests.every(i => i.inferenceConfig!.maxTokens === 1));
+    f.release(c); const beforeResume = f.records(c).length;
+    f.setCredentialHook(() => { throw Error("TEST FIXTURE denied credential resume"); });
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && e.code === "NOVA_STS_ASSUME_ROLE_FAILED");
+    assert.equal(f.records(c).length, beforeResume); assert.equal(f.httpRequests.length, 4);
+    f.setCredentialHook(() => {});
+    await f.run(c, dir, { resume: true });
+    assert.equal(f.credentialCalls.length, 3); assert.equal(f.credentialCalls[1].ledgerEvents.length, beforeResume); assert.equal(f.credentialCalls[2].ledgerEvents.length, beforeResume);
+    assert.equal(f.httpRequests.length, 12); assert.deepEqual(f.httpRequests.slice(4).map(i => f.label.get(serializeNova(i).identity.tokenPayloadHash)), OWNER_ORDER);
+    const rows = openJournal(path.join(dir, "results.jsonl")).records as { event: string }[];
+    assert.equal(rows.filter(r => r.event === "CREDENTIALS_PRE_RESOLVED").length, 2);
+    assert.equal(f.records(c).filter(r => r.event === "MEASURE_RESERVED").length, 4);
+    assert.equal(f.records(c).filter(r => r.event === "INFERENCE_RESERVED").length, 8);
+    t.diagnostic(JSON.stringify({ authority: "FAKE_SIGNED_PHASES", providerCalls: 3, successfulCredentialAdmissions: 2, rejectedCredentialResume: 1, bedrockHttp: 12, measureReservations: 4, inferenceReservations: 8, journal: "CREDENTIALS_PRE_RESOLVED_BEFORE_ATTEMPTS_DENIED_CREDENTIAL_RESUME_ADDS_NO_RESUMED", destination: "https://bedrock-runtime.us-east-1.amazonaws.com", scientificPass: null }));
+  } finally { f.close(); }
+});
+
+test("credential admission: STS failure, approval expiry and expiring credentials do not claim/reserve or create Bedrock outcomes", needsClean, async t => {
+  const original = Date.now; let now = original(); Date.now = () => now; const f = await fixture({ credentialAdmission: true });
+  try {
+    const start = now, assume = f.credentialFixture.assumeRole;
+    for (const category of ["NOVA_STS_ASSUME_ROLE_FAILED", "LiveNotApproved", "NOVA_CREDENTIALS_EXPIRED"] as const) {
+      now = start; const c = signed(f.base); f.issue(c); const dir = path.join(f.root, category);
+      f.credentialFixture.assumeRole = async (...args) => {
+        const result = await assume(...args);
+        if (category === "NOVA_STS_ASSUME_ROLE_FAILED") throw Error("TEST FIXTURE STS error");
+        if (category === "LiveNotApproved") now = Date.parse(c.approval!.expiresAt) + 1;
+        else result.expiration = new Date(now - 1);
+        return result;
+      };
+      const before = f.credentialCalls.length;
+      await assert.rejects(f.run(c, dir, { measureOnly: true }), e => e instanceof PilotError && e.code === category);
+      assert.deepEqual(f.records(c).map(r => r.event), ["ISSUED"]); assert.equal(f.credentialCalls.length, before + 1);
+      assert.equal(f.httpRequests.length, 0); assert.equal(f.sent.length, 0); assert.equal(fs.existsSync(path.join(dir, "results.jsonl")), false);
+      assert.equal(fs.existsSync(path.join(f.ledger, c.approval!.approvalId + ".lock")), false);
+      t.diagnostic(JSON.stringify({ authority: "FAKE_SIGNED_MEASURE", category, providerCalls: 1, bedrockHttp: 0, reservations: 0, ledger: "ISSUED_UNCHANGED", journal: "NO_BEDROCK_JOURNAL_OR_MODEL_FAILURE", destination: "FAKE_STS_ONLY" }));
+    }
   } finally { Date.now = original; f.close(); }
 });

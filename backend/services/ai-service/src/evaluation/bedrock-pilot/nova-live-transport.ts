@@ -5,20 +5,23 @@
  * the session stops before any ledger claim, credential resolution or request. No env flag or CLI flag unlocks it.
  */
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput, type ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { NovaScopeSchema, PilotError } from "./config";
 import { createNovaTransport, NOVA_MODEL, NOVA_REGION } from "./nova-converse-transport";
 import { installNovaHttpBoundary, type NovaHttpAuthorization, type NovaHttpSessionBinding } from "./nova-http-boundary";
+import { NOVA_ENDPOINT, assertNovaEndpointEnvironment } from "./nova-endpoint";
+import type { NovaStaticCredentials } from "./nova-credentials";
 
 export type NovaSend = (input: ConverseCommandInput, signal: AbortSignal, authorization?: NovaHttpAuthorization) => Promise<ConverseCommandOutput>;
 
 /**
- * Dedicated client: fixed Region, the signed config's named profile (an explicit profile skips environment keys;
- * a role profile resolves STS session credentials), SDK retries disabled. Credentials resolve lazily on first send.
+ * Dedicated client: fixed regional endpoint and PRE-resolved credentials. Never resolves or refreshes a provider.
  */
-export function createNovaRuntimeClient(profile: string) {
+export function createNovaRuntimeClient(profile: string, credentials?: NovaStaticCredentials) {
   if (!NovaScopeSchema.shape.awsProfile.safeParse(profile).success) throw new PilotError("NOVA_PROFILE_INVALID");
-  return new BedrockRuntimeClient({ region: NOVA_REGION, credentials: defaultProvider({ profile }), maxAttempts: 1 });
+  assertNovaEndpointEnvironment();
+  if (!credentials?.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken || !Number.isFinite(credentials.expiration?.getTime())) throw new PilotError("NOVA_PRE_RESOLVED_CREDENTIALS_REQUIRED");
+  return new BedrockRuntimeClient({ region: NOVA_REGION, endpoint: NOVA_ENDPOINT, credentials: { ...credentials, expiration: new Date(credentials.expiration) },
+    maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true });
 }
 export function novaRuntimeSend(client: BedrockRuntimeClient, binding: NovaHttpSessionBinding): NovaSend {
   const boundary = installNovaHttpBoundary(client, binding);

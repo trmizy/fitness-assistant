@@ -17,6 +17,7 @@ import type { MantleWireIdentity } from "./mantle-transport";
 import { serializeNova, type NovaWireIdentity } from "./nova-converse-transport";
 import { assertCurrentInferenceRelease, dispatchWithInferenceRelease } from "./inference-release-deadline";
 import type { NovaHttpAuthorization, NovaHttpSessionBinding } from "./nova-http-boundary";
+import { resolveNovaCredentials, consumeNovaCredentials, type NovaCredentialFixture, type NovaCredentialReceipt, type NovaStaticCredentials } from "./nova-credentials";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 type WireIdentity = MantleWireIdentity | NovaWireIdentity;
@@ -64,21 +65,20 @@ async function deadline<T>(ms: number, work: (signal: AbortSignal) => Promise<T>
 }
 /**
  * TEST FIXTURE ONLY. Drives the complete Nova LIVE gate sequence with a fixture trust root, a FAKE_TEST_ONLY ledger
- * issue and a fixture send. A rehearsal never constructs the AWS client and never accepts an OWNER_SIGNED ledger,
- * so neither a fixture trust root nor a real owner issue can be combined with the other path.
+ * issue and a fixture send (optionally an actual SDK with an in-memory handler). A rehearsal never resolves real
+ * credentials or accepts an OWNER_SIGNED ledger; fixture and real owner authorities cannot be combined.
  */
-export interface LiveRehearsal { trust: unknown; send: NovaSend }
+export interface LiveRehearsal { trust: unknown; send: NovaSend; credentialFixture?: NovaCredentialFixture; resolvedSend?: (credentials: NovaStaticCredentials, binding: NovaHttpSessionBinding) => NovaSend }
 /** measureOnly: two-phase Nova LIVE measurement phase (4 billed measurements, then a durable stop; never inference). */
-export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins; liveRehearsal?: LiveRehearsal; measureOnly?: boolean }
+export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins; liveRehearsal?: LiveRehearsal; measureOnly?: boolean; preparedCredentials?: NovaCredentialReceipt }
 /** The exact Converse input the session sends for a prompt (shared with the runner's payload-approval check). */
 export function converseInput(config: SessionConfig, prompt: Prompt) {
   const input = buildConverseTextInput({ system: prompt.system, userText: prompt.user, modelId: inferenceTarget(config).identifier, maxTokens: config.parameters.maxTokens, temperature: config.parameters.temperature });
   if (config.parameters.topP !== undefined) input.inferenceConfig!.topP = config.parameters.topP;
   return input;
 }
-export function openEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
+function admission(value: unknown, fake: EvaluationTransport | undefined, options: SessionOptions) {
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
-  const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
   const nova = config.transportProtocol === "NOVA_CONVERSE_MEASURED", rehearsal = options.liveRehearsal;
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
@@ -116,6 +116,34 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   };
   const release: InferenceRelease | null = inferencePhase && approval ? releaseFor(approval) : null;
   if (inferencePhase && !release) throw new PilotError("INFERENCE_RELEASE_REQUIRED");
+  return { config, configHash, target, nova, rehearsal, currentApproval, liveAuthority, approval, twoPhase, inferencePhase, release };
+}
+const credentialBinding = (a: ReturnType<typeof admission>) => digest({ configHash: a.configHash, approvalHash: digest(a.approval?.approval),
+  directory: a.approval?.directory, profile: a.config.novaScope?.awsProfile, inferencePhase: a.inferencePhase, releaseHash: a.release ? digest(a.release) : null });
+/** Async credential phase BEFORE any claim/reservation. All authority/issued-ledger checks are read-only here. */
+export async function openPreparedEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
+  const parsed = parseConfiguration(value);
+  if (parsed.mode !== "LIVE" || parsed.transportProtocol !== "NOVA_CONVERSE_MEASURED" || (options.liveRehearsal && !options.liveRehearsal.credentialFixture)) return openEvaluationSession(value, directory, fake, options);
+  const a = admission(value, fake, options);
+  if (!a.approval || !a.nova || (a.rehearsal && !a.rehearsal.credentialFixture)) return openEvaluationSession(value, directory, fake, options);
+  const assertAuthority = () => {
+    assertCurrentAuthorization(a.config);
+    const current = a.currentApproval();
+    if (!current || current.directory !== a.approval!.directory || digest(current.approval) !== digest(a.approval!.approval)) throw new PilotError("APPROVAL_AUTHORITY_CHANGED");
+    if (a.inferencePhase) assertCurrentInferenceRelease(a.release);
+  };
+  const preparedCredentials = await resolveNovaCredentials({ profile: a.config.novaScope!.awsProfile, binding: credentialBinding(a),
+    validUntil: a.release?.expiresAt ?? a.approval.approval.expiresAt, assertAuthority,
+    expiryCategory: a.inferencePhase ? "INFERENCE_RELEASE_EXPIRED" : "LiveNotApproved" }, a.rehearsal?.credentialFixture);
+  // Pins, signature, release and issued ledger are rechecked after provider IO and again before claim.
+  assertVerifiedPins(a.config, options.verifiedPins); assertAuthority();
+  return openEvaluationSession(value, directory, fake, { ...options, preparedCredentials });
+}
+export function openEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
+  const a = admission(value, fake, options);
+  const { config, configHash, target, nova, rehearsal, currentApproval, liveAuthority, approval, twoPhase, inferencePhase, release } = a;
+  const outputSchema = config.outputContract === "CLAIM_MAP_V3" ? ClaimAnalysisSchema : AnalysisEnvelopeSchema;
+  const credentials = approval && nova && (!rehearsal || rehearsal.credentialFixture) ? consumeNovaCredentials(options.preparedCredentials, credentialBinding(a), !!rehearsal) : null;
   const ledgerDirectory = approval?.directory ?? options.fixtureLedgerDirectory ?? path.join(path.dirname(path.resolve(directory)), "fixture-ledger");
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
   const approvalHash = approval ? digest(approval.approval) : digest({ authority: "FAKE_TEST_ONLY", approvalId, configHash });
@@ -136,7 +164,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     scope: options.measureOnly ? "MEASURE_ONLY" : inferencePhase ? "INFERENCE_ONLY" : "ONE_SHOT",
   }) : null;
   let transport: EvaluationTransport;
-  try { transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? rehearsal.send : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile), httpBinding!)) : liveTransport()); }
+  try { transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? (credentials && rehearsal.resolvedSend ? rehearsal.resolvedSend(credentials.credentials, httpBinding!) : rehearsal.send) : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile, credentials!.credentials), httpBinding!)) : liveTransport()); }
   catch (error) { ledger.close(); throw error; }
   let journal: ReturnType<typeof openJournal>;
   try {
@@ -152,8 +180,11 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   let chain: Promise<unknown> = Promise.resolve(), closed = false, fatal = false;
   const append = (record: unknown) => { try { journal.append(redact({ target, approvalId, configHash, ...record as object })); } catch (e) { fatal = true; throw e; } };
   const save = (patch: Partial<ReturnType<typeof ledger.state>>, event: string) => ledger.save({ ...ledger.state(), ...patch }, event);
+  try { if (credentials) append({ event: "CREDENTIALS_PRE_RESOLVED", provider: "EXPLICIT_PROFILE_STS_ONCE", expiresAt: credentials.credentials.expiration.toISOString() }); }
+  catch (error) { ledger.close(); throw error; }
   const authorize = () => {
     if (closed || fatal || ledger.state().stopped) throw new PilotError("BudgetStopped");
+    credentials?.assertCurrent();
     assertCurrentAuthorization(config);
     if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
     if (config.mode === "LIVE") { const current = currentApproval(); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
@@ -185,6 +216,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
           reservationId: request.reservationId, promptHash: request.promptHash, tokenPayloadHash: request.tokenPayloadHash, requestHash: request.requestHash })) throw new PilotError("NOVA_HTTP_AUTHORIZATION_MISMATCH");
         const s = ledger.state();
         if (closed || fatal || s.stopped) throw new PilotError("BudgetStopped");
+        credentials?.assertCurrent();
         if ((phase === "MEASURE" && (s.countCalls !== ordinal || s.counts[hash] !== undefined)) ||
             (phase === "INFERENCE" && (s.inferenceCalls !== ordinal || s.attemptKeys[ordinal - 1] !== key))) throw new PilotError("NOVA_HTTP_RESERVATION_MISMATCH");
         assertCurrentAuthorization(config);

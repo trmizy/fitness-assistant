@@ -3,6 +3,8 @@ import type { BedrockRuntimeClient, ConverseCommandInput } from "@aws-sdk/client
 import { PilotError } from "./config";
 import { digest } from "../evaluation-kit/identity";
 import { NOVA_MODEL, serializeNova } from "./nova-converse-transport";
+import { assertNovaHttpDestination } from "./nova-endpoint";
+import { novaAuthorityClock } from "./nova-clock";
 
 /** These values come from the session AFTER its signature, pins and issued-ledger checks. Not an authorization issuer. */
 export interface NovaHttpSessionBinding {
@@ -26,8 +28,8 @@ export interface NovaHttpAuthorization {
   readonly assertCurrent: (request: NovaHttpAuthorization) => void;
 }
 
-function current(binding: NovaHttpSessionBinding, phase: NovaHttpAuthorization["phase"]): void {
-  const now = Date.now(), approval = Date.parse(binding.approvalExpiresAt);
+function current(binding: NovaHttpSessionBinding, phase: NovaHttpAuthorization["phase"], now: number): void {
+  const approval = Date.parse(binding.approvalExpiresAt);
   if (!Number.isFinite(now) || !Number.isFinite(approval)) throw new PilotError("NOVA_HTTP_CLOCK_OR_AUTHORITY_INVALID");
   if (approval <= now) throw new PilotError("LiveNotApproved");
   if (phase === "INFERENCE" && binding.scope === "INFERENCE_ONLY") {
@@ -55,6 +57,7 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
   const delegate = client.config.requestHandler;
   if (!delegate || typeof delegate.handle !== "function") throw new PilotError("NOVA_HTTP_HANDLER_REQUIRED");
   const dispatchHttp = delegate.handle.bind(delegate);
+  const clock = novaAuthorityClock();
   const context = new AsyncLocalStorage<{
     authorization: NovaHttpAuthorization; bodyHash: string; signal: AbortSignal; dispatched: boolean;
   }>();
@@ -64,26 +67,33 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
     if (!active) throw new PilotError("NOVA_HTTP_AUTHORIZATION_REQUIRED");
     const { authorization: authority } = active;
     if (!matchesBinding(authority.binding)) throw new PilotError("NOVA_HTTP_AUTHORITY_MISMATCH");
-    const headers = request.headers ?? {};
+    // Snapshot destination, signed headers, query and bytes once. A retained/mutable SDK request cannot redirect it.
+    const headers = Object.freeze({ ...request.headers });
+    const destination = Object.freeze({ ...request, headers, query: Object.freeze({ ...request.query }) });
     const signature = Object.entries(headers).find(([name]) => name.toLowerCase() === "authorization")?.[1];
     if (typeof signature !== "string" || !signature.startsWith("AWS4-HMAC-SHA256 ")) throw new PilotError("NOVA_HTTP_UNSIGNED_REQUEST");
+    assertNovaHttpDestination(destination);
     let body: unknown, requestPath: string;
     try {
-      const raw = typeof request.body === "string" ? request.body : request.body instanceof Uint8Array ?
-        Buffer.from(request.body.buffer, request.body.byteOffset, request.body.byteLength).toString("utf8") : null;
+      const raw = typeof destination.body === "string" ? destination.body : destination.body instanceof Uint8Array ?
+        Buffer.from(destination.body.buffer, destination.body.byteOffset, destination.body.byteLength).toString("utf8") : null;
       if (raw === null) throw new Error("unsupported body");
-      body = JSON.parse(raw); requestPath = decodeURIComponent(request.path);
+      body = JSON.parse(raw); requestPath = decodeURIComponent(destination.path);
       // The installed SDK emits compact JSON. Reject duplicate-key/ambiguous encodings rather than normalizing them.
       if (JSON.stringify(body) !== raw) throw new Error("noncanonical JSON body");
     } catch { throw new PilotError("NOVA_HTTP_REQUEST_MISMATCH"); }
-    if (request.method !== "POST" || requestPath !== `/model/${NOVA_MODEL}/converse` || digest(body) !== active.bodyHash) throw new PilotError("NOVA_HTTP_REQUEST_MISMATCH");
+    if (destination.method !== "POST" || requestPath !== `/model/${NOVA_MODEL}/converse` || digest(body) !== active.bodyHash) throw new PilotError("NOVA_HTTP_REQUEST_MISMATCH");
+    const immutableRequest = Object.freeze({ ...destination, body: JSON.stringify(body) });
     if (active.signal.aborted || (options && "abortSignal" in options && options.abortSignal?.aborted)) { const error = new Error("Aborted"); error.name = "AbortError"; throw error; }
     assertSynchronousAuthority(authority);
     // Every HTTP attempt, including SDK-internal retries, rechecks expiry. No await or middleware after this check.
-    current(binding, authority.phase);
+    current(binding, authority.phase, clock());
     if (active.dispatched) throw new PilotError("NOVA_HTTP_DISPATCH_REPLAY");
     active.dispatched = true;
-    return dispatchHttp(request, options);
+    return dispatchHttp(immutableRequest, options).then(result => {
+      if (result.response.statusCode >= 300 && result.response.statusCode < 400) throw new PilotError("NOVA_HTTP_REDIRECT_FORBIDDEN");
+      return result;
+    });
   };
   // Forward handler configuration/lifecycle methods with the original receiver (including lazily resolved handlers).
   const guarded = new Proxy(delegate, { get(target, key) {
@@ -106,10 +116,10 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
       if (wire.identity.tokenPayloadHash !== supplied.tokenPayloadHash || wire.identity.inferenceRequestHash !== supplied.requestHash ||
           (supplied.phase === "MEASURE" && inputCopy.inferenceConfig?.maxTokens !== 1)) throw new PilotError("NOVA_HTTP_REQUEST_MISMATCH");
       const authority = Object.freeze({ ...supplied, binding });
-      assertSynchronousAuthority(authority); current(binding, authority.phase);
-      if (client.config.requestHandler !== guarded) throw new PilotError("NOVA_HTTP_HANDLER_REPLACED");
       const slot = `${authority.phase}:${authority.reservationOrdinal}`;
       if (reservations.has(slot)) throw new PilotError("NOVA_HTTP_RESERVATION_REPLAY");
+      assertSynchronousAuthority(authority); current(binding, authority.phase, clock());
+      if (client.config.requestHandler !== guarded) throw new PilotError("NOVA_HTTP_HANDLER_REPLACED");
       reservations.add(slot);
       const { modelId: _model, ...body } = inputCopy;
       return context.run({ authorization: authority, bodyHash: digest(body), signal, dispatched: false }, () => send(inputCopy));

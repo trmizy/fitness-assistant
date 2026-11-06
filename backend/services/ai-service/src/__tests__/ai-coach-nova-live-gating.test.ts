@@ -112,8 +112,9 @@ test("a rehearsal is LIVE-Nova only; LIVE without verified pins stops before any
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test("the runtime client takes only a valid named profile; constructing it sends nothing", async () => {
-  const client = createNovaRuntimeClient("gymini-fixture-profile");
+test("the runtime client requires a valid named profile and pre-resolved credentials; constructing it sends nothing", async () => {
+  assert.throws(() => createNovaRuntimeClient("gymini-fixture-profile"), /NOVA_PRE_RESOLVED_CREDENTIALS_REQUIRED/);
+  const client = createNovaRuntimeClient("gymini-fixture-profile", { accessKeyId: "TESTFIXTUREACCESSKEY", secretAccessKey: "TEST_FIXTURE_NOT_REAL", sessionToken: "TEST_FIXTURE_TOKEN", expiration: new Date(Date.now() + 3600000) });
   assert.equal(await client.config.region(), "us-east-1"); assert.equal(await client.config.maxAttempts(), 1); client.destroy();
   for (const p of ["default", "", "a b", "../x", "x".repeat(65)]) assert.throws(() => createNovaRuntimeClient(p), /NOVA_PROFILE_INVALID/);
   for (const f of ["session.ts", "runner.ts", "config.ts", "ledger.ts", "nova-live-transport.ts", "nova-live-cli.ts", "run.ts"])
@@ -140,9 +141,9 @@ test("CLIs: no flag or environment variable unlocks LIVE; the old CLI refuses LI
 test("session source orders every owner gate before the ledger claim and the AWS client", () => {
   const s = fs.readFileSync(path.resolve(__dirname, "../evaluation/bedrock-pilot/session.ts"), "utf8");
   const order = ["const config = parseConfiguration(value)", "assertVerifiedPins(config, options.verifiedPins);", "const approval = config.mode === \"LIVE\" ? currentApproval() : null", "assertIssuedLedger({",
-    "assertNovaLedgerScope(issued, config)", "const ledger = openBudgetLedger(", "createNovaRuntimeClient(config.novaScope!.awsProfile)"].map(k => s.indexOf(k));
+    "assertNovaLedgerScope(issued, config)", "await resolveNovaCredentials(", "consumeNovaCredentials(options.preparedCredentials", "const ledger = openBudgetLedger(", "createNovaRuntimeClient(config.novaScope!.awsProfile, credentials!.credentials)"].map(k => s.indexOf(k));
   assert.ok(order.every(i => i >= 0), JSON.stringify(order)); assert.deepEqual([...order].sort((a, b) => a - b), order);
-  assert.equal(s.split("createNovaRuntimeClient(").length - 1, 1); assert.match(s, /rehearsal \? rehearsal\.send : novaRuntimeSend\(createNovaRuntimeClient/);
+  assert.equal(s.split("createNovaRuntimeClient(").length - 1, 1); assert.match(s, /rehearsal \? \(credentials.*rehearsal\.send\) : novaRuntimeSend\(createNovaRuntimeClient/);
 });
 
 // ---- Full gate sequence. LIVE pins require the executing checkout to be clean, so these run in a clean pinned checkout. ----

@@ -30,7 +30,7 @@ function mock(handler: (i: ConverseCommandInput) => ConverseCommandOutput | Prom
 const sdkError = (name: string, status?: number, message = "TEST FIXTURE error") => Object.assign(new Error(message), { name, $fault: status && status >= 500 ? "server" : "client", ...(status ? { $metadata: { httpStatusCode: status, requestId: "req-err" } } : {}) });
 
 test("runtime client is pinned to us-east-1 with SDK retries disabled; constructing it sends nothing", async () => {
-  const client = createNovaRuntimeClient("gymini-fixture-profile");
+  const client = createNovaRuntimeClient("gymini-fixture-profile", { accessKeyId: "TESTFIXTUREACCESSKEY", secretAccessKey: "TEST_FIXTURE_NOT_REAL", sessionToken: "TEST_FIXTURE_TOKEN", expiration: new Date(Date.now() + 3600000) });
   assert.equal(await client.config.region(), "us-east-1"); assert.equal(NOVA_REGION, "us-east-1");
   assert.equal(await client.config.maxAttempts(), 1);
   client.destroy();

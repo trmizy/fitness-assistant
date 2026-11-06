@@ -11,7 +11,7 @@ import { outputLifecycle } from "../evaluation-kit/lifecycle";
 import { verifyRawEvaluation } from "../ai-coach-dev/pipeline";
 import { approvedConfigurationHash, estimatedCost, parseConfiguration, PilotError } from "./config";
 import { calculatePilotPins, verifySessionPins } from "./pins";
-import { converseInput, openEvaluationSession, redact, type EvaluationTransport, type LiveRehearsal } from "./session";
+import { converseInput, openPreparedEvaluationSession, redact, type EvaluationTransport, type LiveRehearsal } from "./session";
 import { assertSeparate, atomicCreate, openJournal, realDirectory } from "./storage";
 import { attemptIdentity, interleaveNovaWarmupRows } from "./design";
 import { verifyClaimPilot } from "./claim-adapter";
@@ -69,7 +69,7 @@ export async function runControlledPilot(options: RunnerOptions) {
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
   const transport = live ? undefined : options.transport ?? fakeTransport(config.outputContract === "CLAIM_MAP_V3", config.transportProtocol);
-  const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, transport, { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins, liveRehearsal: options.liveRehearsal, measureOnly: options.measureOnly });
+  const configHash = approvedConfigurationHash(config), session = await openPreparedEvaluationSession(config, options.directory, transport, { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins, liveRehearsal: options.liveRehearsal, measureOnly: options.measureOnly });
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
