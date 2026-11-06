@@ -1275,6 +1275,7 @@ export const disputeCaseService = {
       d65bResolution: verdict(DISPUTE_CASE_FLAGS.D65B_RESOLUTION),
       timers: verdict(DISPUTE_CASE_FLAGS.TIMERS),
       appeals: verdict(DISPUTE_CASE_FLAGS.APPEALS),
+      decisionReplacement: verdict(DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT),
     };
     return {
       execution: d.execution.effective,
@@ -1284,6 +1285,7 @@ export const disputeCaseService = {
       d65bResolution: d.d65bResolution.effective,
       timers: d.timers.effective,
       appeals: d.appeals.effective,
+      decisionReplacement: d.decisionReplacement.effective,
       details: d,
       runtime: { mode: gateVerdict().mode, open: gateVerdict().open, ...(gateVerdict().refusedBecause ? { refusedBecause: gateVerdict().refusedBecause } : {}) },
     };
