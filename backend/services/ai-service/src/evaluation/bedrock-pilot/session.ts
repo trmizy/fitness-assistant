@@ -148,7 +148,7 @@ export async function openPreparedEvaluationSession(value: unknown, directory: s
   // Real owner authority only: TEST FIXTURE rehearsals drive synthetic clocks against real file times by design.
   if (!a.rehearsal) assertNoObservedClockRollback(rollbackEvidence(a, directory));
   const preparedCredentials = await resolveNovaCredentials({ profile: a.config.novaScope!.awsProfile, binding: credentialBinding(a),
-    validUntil: a.release?.expiresAt ?? a.approval.approval.expiresAt, assertAuthority, phaseWindowMs: phaseWindowMs(a, options),
+    validUntil: a.release?.expiresAt ?? a.approval.approval.expiresAt, approvalExpiresAt: a.approval.approval.expiresAt, assertAuthority, phaseWindowMs: phaseWindowMs(a, options),
     expiryCategory: a.inferencePhase ? "INFERENCE_RELEASE_EXPIRED" : "LiveNotApproved" }, a.rehearsal?.credentialFixture);
   // Pins, signature, release and issued ledger are rechecked after provider IO and again before claim.
   assertVerifiedPins(a.config, options.verifiedPins); assertAuthority();

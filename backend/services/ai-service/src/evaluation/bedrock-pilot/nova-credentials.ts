@@ -2,7 +2,7 @@ import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 import { loadSharedConfigFiles } from "@smithy/core/config";
 import { NovaScopeSchema, PilotError } from "./config";
 import { assertNovaEndpointEnvironment, assertNovaProfileEndpoint } from "./nova-endpoint";
-import { novaAuthorityClock } from "./nova-clock";
+import { novaAuthorityClock, novaAuthorityLatch } from "./nova-clock";
 import { installNovaStsBoundary } from "./nova-sts-boundary";
 
 export interface NovaStaticCredentials { accessKeyId: string; secretAccessKey: string; sessionToken: string; expiration: Date }
@@ -38,11 +38,19 @@ export const NOVA_CREDENTIAL_MARGIN_MS = 5 * 60 * 1000;
  * phaseWindowMs bounds the credential lease to the phase being executed (calls x timeout + slack), so one-hour STS
  * credentials do not have to outlive a multi-hour signed approval; the lease ends at min(validUntil, admission + window).
  */
-export async function resolveNovaCredentials(args: { profile: string; binding: string; validUntil: string; assertAuthority: () => void; expiryCategory?: "LiveNotApproved" | "INFERENCE_RELEASE_EXPIRED"; phaseWindowMs?: number }, fixture?: NovaCredentialFixture): Promise<NovaCredentialReceipt> {
-  const clock = novaAuthorityClock(true), until = Date.parse(args.validUntil);
+export async function resolveNovaCredentials(args: { profile: string; binding: string; validUntil: string; assertAuthority: () => void; expiryCategory?: "LiveNotApproved" | "INFERENCE_RELEASE_EXPIRED"; phaseWindowMs?: number; approvalExpiresAt?: string }, fixture?: NovaCredentialFixture): Promise<NovaCredentialReceipt> {
+  const clock = novaAuthorityClock(true), until = Date.parse(args.validUntil), latch = novaAuthorityLatch();
+  // Optional separate approval deadline (precedence over the release category); absent = only validUntil is judged.
+  const approvalUntil = args.approvalExpiresAt === undefined ? Infinity : Date.parse(args.approvalExpiresAt);
   if (args.phaseWindowMs !== undefined && (!Number.isSafeInteger(args.phaseWindowMs) || args.phaseWindowMs <= 0)) throw new PilotError("NOVA_CREDENTIAL_LEASE_INVALID");
   const leaseEnd = args.phaseWindowMs === undefined ? until : Math.min(until, clock() + args.phaseWindowMs);
-  const assertCurrent = () => { args.assertAuthority(); if (!Number.isFinite(until) || clock() >= until) throw new PilotError(args.expiryCategory ?? "LiveNotApproved"); };
+  // P1 fix: the (monotonic-projected) clock is observed BEFORE the throwable authority callback, deadlines are judged
+  // on that observation first, and any observed expiry/rollback latches this lease permanently (no wall-clock revival).
+  const deadlines = (now: number) => {
+    if (Number.isNaN(approvalUntil) || now >= approvalUntil) throw new PilotError("LiveNotApproved");
+    if (!Number.isFinite(until) || now >= until) throw new PilotError(args.expiryCategory ?? "LiveNotApproved");
+  };
+  const assertCurrent = () => latch.check(clock, (now) => { deadlines(now); args.assertAuthority(); deadlines(clock()); });
   assertCurrent(); assertNovaEndpointEnvironment();
   if (!NovaScopeSchema.shape.awsProfile.safeParse(args.profile).success) throw new PilotError("NOVA_PROFILE_INVALID");
   if ((fixture?.metadataDisabled ?? process.env.AWS_EC2_METADATA_DISABLED) !== "true") throw new PilotError("NOVA_IMDS_MUST_BE_DISABLED");
@@ -73,11 +81,13 @@ export async function resolveNovaCredentials(args: { profile: string; binding: s
   if (expires <= clock()) throw new PilotError("NOVA_CREDENTIALS_EXPIRED");
   if (!Number.isFinite(leaseEnd) || expires < leaseEnd + NOVA_CREDENTIAL_MARGIN_MS) throw new PilotError("NOVA_CREDENTIAL_VALIDITY_INSUFFICIENT");
   const frozen = Object.freeze({ ...credentials, expiration: new Date(expires) });
-  const leaseCurrent = () => {
-    assertCurrent(); assertNovaEndpointEnvironment(); const now = clock();
+  // Category precedence is unchanged: approval > release > credential margin > lease, then the authority callback.
+  const leaseCurrent = () => latch.check(clock, (now) => {
+    deadlines(now);
     if (now >= expires - NOVA_CREDENTIAL_MARGIN_MS) throw new PilotError("NOVA_CREDENTIALS_EXPIRED");
     if (now >= leaseEnd) throw new PilotError("NOVA_CREDENTIAL_LEASE_EXPIRED");
-  };
+    assertCurrent(); assertNovaEndpointEnvironment();
+  });
   const receipt = Object.freeze({ status: "PRE_RESOLVED_NOVA_CREDENTIALS" as const });
   resolved.set(receipt, { binding: args.binding, credentials: frozen, assertCurrent: leaseCurrent, consumed: false, fixture: !!fixture }); return receipt;
 }

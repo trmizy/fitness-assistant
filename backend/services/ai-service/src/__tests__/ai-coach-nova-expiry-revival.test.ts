@@ -65,7 +65,7 @@ async function component(o: { approvalAt: number; releaseAt?: number | null; sco
   const validUntil = new Date(releaseAt ?? o.approvalAt).toISOString();
   // Session-equivalent authority: Date.now-based approval/release checks that THROW (like assertCurrentAuthorization).
   const authority = () => { o.extraCheck?.(); if (o.approvalAt <= Date.now()) throw new PilotError("LiveNotApproved"); if (releaseAt !== null && releaseAt <= Date.now()) throw new PilotError("INFERENCE_RELEASE_EXPIRED"); };
-  const receipt = await resolveNovaCredentials({ profile: "fixture", binding: "component", validUntil, assertAuthority: authority, expiryCategory: releaseAt !== null ? "INFERENCE_RELEASE_EXPIRED" : "LiveNotApproved", phaseWindowMs: o.phaseWindowMs ?? 30 * MIN }, fixtureCreds(o.assumeHook));
+  const receipt = await resolveNovaCredentials({ profile: "fixture", binding: "component", validUntil, approvalExpiresAt: new Date(o.approvalAt).toISOString(), assertAuthority: authority, expiryCategory: releaseAt !== null ? "INFERENCE_RELEASE_EXPIRED" : "LiveNotApproved", phaseWindowMs: o.phaseWindowMs ?? 30 * MIN }, fixtureCreds(o.assumeHook));
   const lease = consumeNovaCredentials(receipt, "component", true);
   const binding: NovaHttpSessionBinding = Object.freeze({ approvalId: "A", approvalHash: "a".repeat(64), configHash: "c".repeat(64), ledgerDirectory: "L", approvalExpiresAt: new Date(o.approvalAt).toISOString(), inferenceReleaseExpiresAt: releaseAt === null ? null : new Date(releaseAt).toISOString(), scope });
   const client = createNovaRuntimeClient("fixture", lease.credentials);
