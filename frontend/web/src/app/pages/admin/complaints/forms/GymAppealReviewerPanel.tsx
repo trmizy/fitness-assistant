@@ -14,6 +14,14 @@ import { listAdminOptions } from "../../disputes/actions/adminDirectory";
 import type { AdminOption } from "../../disputes/actions/actionModel";
 import { shortRefOf } from "../gymCaseModel";
 
+/** Never show the raw appeal status. */
+const GYM_APPEAL_STATUS_LABEL: Record<string, string> = {
+  FILED: "Đã gửi, chờ giao người xem xét",
+  REVIEWING: "Đang xem xét",
+  DECIDED: "Đã có kết quả",
+  CONCLUDED: "Đã có kết quả",
+};
+
 export function GymAppealReviewerPanel({
   detail,
   currentUserId,
@@ -45,6 +53,10 @@ export function GymAppealReviewerPanel({
     detail.complaint.reporterUserId,
     detail.gym?.ownerId,
     currentUserId,
+    // G26: the reviewer must never have taken ANY role in the case; the server re-checks (REVIEWER_NOT_INDEPENDENT).
+    ...(detail.proposals ?? []).flatMap((pr) => [pr.proposerId, ...(pr.approvals ?? []).map((ap) => ap.approverId)]),
+    ...(detail.findings ?? []).map((f) => f.recordedBy),
+    ...(detail.claims ?? []).map((c) => c.createdBy),
   ].filter(Boolean));
 
   const eligibleAdmins = admins.filter((adm) => !excludedIds.has(adm.id));
@@ -79,7 +91,7 @@ export function GymAppealReviewerPanel({
       {appeal && (
         <div className="space-y-1 rounded border border-adm-border-soft bg-adm-surface-2 p-3 text-xs text-adm-text">
           <p className="font-medium text-adm-text">
-            Trạng thái kháng nghị: {appeal.status ?? "Đang xem xét"}
+            Trạng thái kháng nghị: {GYM_APPEAL_STATUS_LABEL[appeal.status ?? ""] ?? "Đang xem xét"}
           </p>
           {appeal.reviewerId && (
             <p className="text-adm-text-2">

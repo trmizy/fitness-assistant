@@ -270,6 +270,8 @@ export interface GymCaseDetail {
     reason?: string;
     proposedBy?: string;
     proposedAt?: string;
+    /** what the server actually sends for the proposal time (05/11) */
+    createdAt?: string;
     approvedBy?: string;
     approvedAt?: string;
     rejectedBy?: string;

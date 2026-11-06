@@ -450,6 +450,7 @@ export function GymMemberAppealForm({
             <Field
               id="gym-member-appeal-reason"
               label="Lý do yêu cầu xem xét lại"
+              required
               error={error ?? undefined}
             >
               <textarea

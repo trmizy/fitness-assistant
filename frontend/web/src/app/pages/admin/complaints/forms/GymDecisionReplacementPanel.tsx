@@ -20,11 +20,15 @@ import {
 } from "../../disputes/actions/replacementModel";
 import { actionOf } from "../gymCaseModel";
 
+/** "bạn" for the caller, otherwise a short id (the list carries ids only; never the full uuid). */
+const shortId = (id: string | null | undefined) => (id ? `mã ${id.slice(0, 8)}` : "—");
+
 export function GymDecisionReplacementPanel({
   detail,
-  currentUserId: _currentUserId,
+  currentUserId,
   onChanged,
 }: FormProps) {
+  const who = (id: string | null | undefined) => (id && id === currentUserId ? "bạn" : shortId(id));
   const caseId = detail.case.id;
 
   const proposeAction = actionOf(detail, "PROPOSE_DECISION_REPLACEMENT");
@@ -177,23 +181,23 @@ export function GymDecisionReplacementPanel({
 
           {existingReplacement.proposedBy && (
             <p className="text-xs text-adm-text-2">
-              Đề xuất bởi mã {existingReplacement.proposedBy} lúc{" "}
-              {existingReplacement.proposedAt
-                ? new Date(existingReplacement.proposedAt).toLocaleString("vi-VN")
+              Đề xuất bởi {who(existingReplacement.proposedBy)} lúc{" "}
+              {(existingReplacement.proposedAt ?? existingReplacement.createdAt)
+                ? new Date((existingReplacement.proposedAt ?? existingReplacement.createdAt) as string).toLocaleString("vi-VN")
                 : "chưa rõ"}
             </p>
           )}
 
           {existingReplacement.approvedAt && (
             <p className="text-xs text-st-success">
-              Đã duyệt thay bởi mã {existingReplacement.approvedBy} lúc{" "}
+              Đã duyệt thay bởi {who(existingReplacement.approvedBy)} lúc{" "}
               {new Date(existingReplacement.approvedAt).toLocaleString("vi-VN")}
             </p>
           )}
 
           {existingReplacement.rejectedAt && (
             <p className="text-xs text-st-danger">
-              Đã bác bởi mã {existingReplacement.rejectedBy} lúc{" "}
+              Đã bác bởi {who(existingReplacement.rejectedBy)} lúc{" "}
               {new Date(existingReplacement.rejectedAt).toLocaleString("vi-VN")}
             </p>
           )}
