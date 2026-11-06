@@ -16,6 +16,7 @@ import { StickyActionBar } from "../../components/ui/StickyActionBar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { PtPreviewCard, PreviewNotice } from "../../components/listing/ListingPreviewCards";
 import { formatVND } from "../../utils/currency";
+import { PtWorkingHoursManager } from "../../components/listing/PtWorkingHoursManager";
 import { LISTING_ERROR_VI, isDraftStale, isListingStale, listingErrorMessage, needsReload, staleRevisionOf } from "../../utils/listingErrors";
 import {
   DEFAULT_LIMITS,
@@ -67,6 +68,7 @@ export function PTListingPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
   const uid = user?.id ?? "guest";
+  const [scheduleDirty, setScheduleDirty] = useState(false);
 
   const listingQuery = useQuery({
     queryKey: ptListingKey(uid),
@@ -145,7 +147,8 @@ export function PTListingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id, draft?.draftVersion]);
 
-  const dirty = !!form && formSignature(form) !== baseline;
+  const draftDirty = !!form && formSignature(form) !== baseline;
+  const dirty = draftDirty || scheduleDirty;
 
   // Unsaved edits: block leaving the tab and in-app navigation.
   useEffect(() => {
@@ -475,6 +478,8 @@ export function PTListingPage() {
         <Button variant="outline" size="sm" onClick={() => navigate("/pt/profile")}>Hồ sơ PT</Button>
       } />
 
+      <PtWorkingHoursManager ptUserId={uid} onDirtyChange={setScheduleDirty} />
+
       {/* ── status ─────────────────────────────────────────────────────────────────────────── */}
       <section className="space-y-3 rounded-2xl border border-zinc-800/70 bg-zinc-900 p-4">
         <div className="flex items-center gap-2">
@@ -595,8 +600,8 @@ export function PTListingPage() {
           </div>
 
           <StickyActionBar>
-            <Button className="flex-1" variant="outline" disabled={!dirty || !!busy} onClick={() => void onSave()}>
-              {busy === "save" ? "Đang lưu…" : dirty ? "Lưu nháp" : "Đã lưu"}
+            <Button className="flex-1" variant="outline" disabled={!draftDirty || !!busy} onClick={() => void onSave()}>
+              {busy === "save" ? "Đang lưu…" : draftDirty ? "Lưu nháp" : "Đã lưu"}
             </Button>
             <Button className="flex-1" disabled={!!busy} onClick={askSubmit}>
               {busy === "submit" ? "Đang gửi…" : "Gửi duyệt"}
@@ -760,7 +765,7 @@ export function PTListingPage() {
         open={blocker.state === "blocked"}
         onOpenChange={(o) => !o && blocker.state === "blocked" && blocker.reset()}
         title="Rời khỏi mà chưa lưu?"
-        description="Các chỉnh sửa chưa lưu trong bản nháp sẽ mất."
+        description="Các chỉnh sửa tin đăng hoặc lịch làm việc chưa lưu sẽ mất."
         confirmLabel="Rời đi"
         onConfirm={() => {
           if (blocker.state === "blocked") blocker.proceed();

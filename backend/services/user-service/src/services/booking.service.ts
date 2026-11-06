@@ -46,6 +46,7 @@ import { endOpenRoomCall } from "./open-room-call.service";
 import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, assertNoCaseForOldDoor, assertPolicyEligibility, type CaseDecisionCtx } from "./dispute-case/execution-guard";
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
+import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -69,10 +70,7 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
-const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/** BR-30: a session must START at least this long from now - the same number for booking and for rescheduling (B27). */
-const BOOKING_LEAD_TIME_MS = CANCEL_WINDOW_MS;
+/** BR-30: booking and rescheduling share BOOKING_LEAD_TIME_MS. */
 /** A reschedule may not be requested this close to the ORIGINAL start (unchanged rule). */
 const RESCHEDULE_ORIGINAL_CUTOFF_MS = 12 * 60 * 60 * 1000;
 
@@ -270,6 +268,35 @@ export async function deductQuotaOnce(
   // After the lock: completing the contract takes it.
   await deps.checkAndCompleteContract(contractId);
   return true;
+}
+
+/** 409 - the client already has a REQUESTED/CONFIRMED session (with any PT) overlapping the slot. */
+export const CLIENT_SCHEDULE_CONFLICT = "CLIENT_SCHEDULE_CONFLICT";
+
+/**
+ * The client-side half of the slot rule: a client cannot be in two sessions at once, even with two different PTs.
+ * When `tx` is passed (always inside withPtScheduleLock) the client's own schedule lock is taken first, so two
+ * concurrent bookings with two different PTs - which hold two different PT locks - still serialise here.
+ */
+async function assertClientSlotFree(
+  clientUserId: string,
+  startAt: Date,
+  endAt: Date,
+  actor: "CLIENT" | "PT",
+  excludeSessionId?: string,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  if (tx) await sessionRepository.lockClientSchedule(tx, clientUserId);
+  const conflict = await sessionRepository.findClientConflict(clientUserId, startAt, endAt, excludeSessionId, tx);
+  if (conflict) {
+    throw codedError(
+      actor === "CLIENT"
+        ? "Bạn đã có một buổi tập khác (đang chờ duyệt hoặc đã xác nhận) trùng khung giờ này"
+        : "Học viên đã có một buổi tập khác trùng khung giờ này",
+      409,
+      CLIENT_SCHEDULE_CONFLICT,
+    );
+  }
 }
 
 /**
@@ -659,6 +686,7 @@ export const bookingService = {
       if (conflict) {
         throw err("Khung giờ này trùng với một buổi tập khác", 409);
       }
+      await assertClientSlotFree(clientUserId, startAt, endAt, "CLIENT", undefined, tx);
 
       return sessionRepository.create(
         {
@@ -1621,6 +1649,8 @@ export const bookingService = {
       proposedEnd,
       sessionId,
     );
+    // ...and the client must be free then too (re-checked under lock on accept).
+    await assertClientSlotFree(session.clientUserId, proposedStart, proposedEnd, isClient ? "CLIENT" : "PT", sessionId);
 
     const request = await sessionRepository.createRescheduleRequest({
       sessionId,
@@ -1782,6 +1812,14 @@ export const bookingService = {
           session.ptUserId,
           request.proposedStartAt,
           request.proposedEndAt,
+          session.id,
+          tx,
+        );
+        await assertClientSlotFree(
+          session.clientUserId,
+          request.proposedStartAt,
+          request.proposedEndAt,
+          isClient ? "CLIENT" : "PT",
           session.id,
           tx,
         );

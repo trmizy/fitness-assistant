@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
@@ -245,7 +246,7 @@ export default function PtScheduleScreen() {
       >
         <View className="px-5">
           <Text className="mb-4 font-display text-2xl text-foreground">Lịch dạy</Text>
-          <Segmented options={TABS} value={tab} onChange={setTab} />
+          <Segmented options={TABS} value={tab} onChange={(value) => value === TABS[1] ? router.push("/pt/listing") : setTab(value)} />
         </View>
 
         {tab === TABS[0] ? (

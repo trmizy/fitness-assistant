@@ -32,6 +32,13 @@ router.post(
   roleMiddleware(["PT", "ADMIN"]),
   availabilityController.addException as any,
 );
+// Listing schedule: stop new bookings only; existing client sessions are never cancelled here.
+router.post(
+  "/me/planning-exceptions",
+  authMiddleware,
+  roleMiddleware(["PT", "ADMIN"]),
+  availabilityController.addPlanningException as any,
+);
 router.delete(
   "/me/exceptions/:id",
   authMiddleware,

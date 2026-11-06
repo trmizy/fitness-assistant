@@ -66,6 +66,18 @@ export const availabilityController = {
   },
 
   // Add a blocked date
+  async addPlanningException(req: any, res: Response) {
+    try {
+      const ptUserId = req.headers["x-user-id"] as string;
+      const { date, reason } = req.body ?? {};
+      const result = await availabilityService.addPlanningException(ptUserId, date, reason);
+      res.status(201).json(result);
+    } catch (error: any) {
+      logger.error(error, "Add planning exception error");
+      res.status(error.status || 500).json({ error: error.message || "Failed to block new bookings", ...errorCodeBody(error) });
+    }
+  },
+
   async addException(req: any, res: Response) {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
@@ -102,7 +114,7 @@ export const availabilityController = {
   async getAvailableSlots(req: any, res: Response) {
     try {
       const ptUserId = req.params.ptUserId;
-      const { date } = req.query;
+      const { date, bookableOnly } = req.query;
       if (!date) {
         res.status(400).json({ error: "date query param is required" });
         return;
@@ -110,6 +122,10 @@ export const availabilityController = {
       const slots = await availabilityService.getAvailableSlots(
         ptUserId,
         date as string,
+        bookableOnly === "true",
+        // The authenticated caller (set by the gateway, never by the client): a client's own sessions with OTHER PTs
+        // also make a slot unbookable for them.
+        typeof req.headers["x-user-id"] === "string" ? req.headers["x-user-id"] : undefined,
       );
       res.json(slots);
     } catch (error: any) {

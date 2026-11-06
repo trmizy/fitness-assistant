@@ -12,6 +12,7 @@ import type {
 } from "../../types";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { useNavigate } from "react-router";
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -121,6 +122,7 @@ function formatSessionTime(iso: string) {
 type Tab = "schedule" | "availability";
 
 export function PTSchedulePage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -496,7 +498,7 @@ export function PTSchedulePage() {
           Buổi tập
         </button>
         <button
-          onClick={() => setTab("availability")}
+          onClick={() => navigate("/pt/listing")}
           className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${tab === "availability" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
         >
           <Settings className="w-3.5 h-3.5" /> Lịch làm việc

@@ -203,6 +203,12 @@ describe("normalizeGymOptions", () => {
     assert.match(none.gymsReasonCopy ?? "", /chưa có phòng gym/);
   });
 
+  it("explains the 2-PT limit in plain words", () => {
+    const view = normalizeGymOptions(options([], { requestBlockedReason: "CLIENT_PT_LIMIT_REACHED", gymsReason: "REQUEST_BLOCKED" }));
+    assert.equal(view.requestBlockedCode, "CLIENT_PT_LIMIT_REACHED");
+    assert.match(view.requestBlockedCopy ?? "", /2 huấn luyện viên/);
+  });
+
   it("tolerates junk: no gyms array, no referral code, rows without an id", () => {
     const view = normalizeGymOptions({ gyms: [{ name: "no id" }], pt: {} });
     assert.deepEqual(view.gyms, []);

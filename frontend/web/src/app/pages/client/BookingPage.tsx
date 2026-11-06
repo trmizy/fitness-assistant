@@ -321,7 +321,7 @@ export function BookingPage() {
   const { data: availableSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ["available-slots", selectedContract?.ptUserId, selectedDateStr],
     queryFn: () =>
-      availabilityService.getAvailableSlots(
+      availabilityService.getBookableSlots(
         selectedContract!.ptUserId,
         selectedDateStr!,
       ),
@@ -357,6 +357,8 @@ export function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+      // The new session also blocks this client's slots with their OTHER PT(s).
+      queryClient.invalidateQueries({ queryKey: ["available-slots"] });
       setSelectedDate(null);
       setSelectedSlot(null);
       setBookingNotes("");

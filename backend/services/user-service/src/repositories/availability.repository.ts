@@ -9,20 +9,22 @@ export const availabilityRepository = {
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     }),
 
-  // Replace all slots for a PT (delete + create in transaction)
+  // An explicit empty schedule needs an inactive marker. Without it, the legacy
+  // lazy-seed path would mistake "PT chose no hours" for "never configured".
   replaceAll: (
     ptUserId: string,
     slots: { dayOfWeek: DayOfWeek; startTime: string; endTime: string }[],
   ) =>
     prisma.$transaction([
       prisma.pTAvailability.deleteMany({ where: { ptUserId } }),
-      ...slots.map((s) =>
+      ...(slots.length ? slots : [{ dayOfWeek: DayOfWeek.MONDAY, startTime: "00:00", endTime: "00:01", isActive: false }]).map((s) =>
         prisma.pTAvailability.create({
           data: {
             ptUserId,
             dayOfWeek: s.dayOfWeek,
             startTime: s.startTime,
             endTime: s.endTime,
+            isActive: "isActive" in s ? s.isActive : true,
           },
         }),
       ),

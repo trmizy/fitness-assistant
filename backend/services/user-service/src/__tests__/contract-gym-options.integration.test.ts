@@ -147,7 +147,9 @@ async function cleanup(w: World) {
 const A1: FakeGym = { id: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a" };
 const A2: FakeGym = { id: "gym-a2", name: "Alpha Quan 7", city: "HCM", brandId: "brand-a" };
 const B1: FakeGym = { id: "gym-b1", name: "Beta Thu Duc", city: "HCM", brandId: "brand-b" };
-const ownMembership = { id: "mem-1", planName: "Thang", purchaseGymId: "gym-a1", endDate: "2026-12-01T00:00:00.000Z" };
+/** Always well past any test package (validityDays 30): a fixed date here silently expired on 2026-11-01. */
+const MEMBERSHIP_END = new Date(Date.now() + 365 * 24 * 3600_000).toISOString();
+const ownMembership = { id: "mem-1", planName: "Thang", purchaseGymId: "gym-a1", endDate: MEMBERSHIP_END };
 
 // ── gym lists ────────────────────────────────────────────────────────────────────────────────────
 
@@ -176,7 +178,7 @@ dbTest("PT with 1 gym, client WITH an active membership: facts annotated, no rev
     assert.deepEqual(r.gyms, [
       {
         gymId: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a", isPtTrainingLocation: false,
-        membership: { hasActiveMembership: true, membershipId: "mem-1", planName: "Thang", endDate: "2026-12-01T00:00:00.000Z", purchasedHere: true },
+        membership: { hasActiveMembership: true, membershipId: "mem-1", planName: "Thang", endDate: MEMBERSHIP_END, purchasedHere: true },
         eligibility: { canRequest: true, reason: null }, // P3.3
       },
     ]);
@@ -276,7 +278,7 @@ dbTest("CONSISTENCY: everything offered, requestContract accepts; everything exc
     gyms: [
       { ...A1, membership: ownMembership },
       { ...A2, collab: null },
-      { ...B1, membership: { id: "mem-b", planName: "Thang B", purchaseGymId: "gym-b1", endDate: "2026-12-01T00:00:00.000Z" } },
+      { ...B1, membership: { id: "mem-b", planName: "Thang B", purchaseGymId: "gym-b1", endDate: MEMBERSHIP_END } },
     ],
   });
   const restore = install(w);

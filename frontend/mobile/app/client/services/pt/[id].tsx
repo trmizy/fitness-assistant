@@ -66,6 +66,8 @@ import {
 } from "../../../../src/features/services/contractGymOptions";
 import { Notice } from "../../../../src/components/payment/PaymentMethodSheet";
 import { GOAL_OPTIONS, TARGET_OPTIONS } from "../../../../src/features/ptApplication/ptApplication";
+import { PtBookableSchedule } from "../../../../src/features/services/PtBookableSchedule";
+import { PtWeeklySchedule } from "../../../../src/features/services/PtWeeklySchedule";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
 
@@ -323,6 +325,9 @@ export default function TrainerDetailScreen() {
             <Segmented options={SEGMENTS} value={segment} onChange={setSegment} />
 
             {segment === "Giới thiệu" ? (
+              <View className="gap-3">
+              <PtWeeklySchedule ptUserId={ptUserId} />
+              <PtBookableSchedule ptUserId={ptUserId} />
               <Card className="gap-3 p-4">
                 {pt.physiquePhotos.length > 0 ? (
                   <GymPhotoGallery
@@ -387,6 +392,7 @@ export default function TrainerDetailScreen() {
                   </View>
                 ) : null}
               </Card>
+              </View>
             ) : null}
 
             {segment === "Gói dịch vụ" ? (
