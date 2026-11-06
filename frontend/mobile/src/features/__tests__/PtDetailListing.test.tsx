@@ -2,7 +2,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import TrainerDetailScreen from "../../../app/client/services/pt/[id]";
-import { contractService, profileService, ptServicePackageService } from "../../services/api";
+import { availabilityService, contractService, profileService, ptServicePackageService } from "../../services/api";
 
 /**
  * Phase M1 — the CLIENT side of Listing Management on the trainer detail screen: the physique gallery,
@@ -33,6 +33,7 @@ jest.mock("../../services/api", () => {
     profileService: { ...actual.profileService, getPTDetail: jest.fn(), listPTs: jest.fn() },
     ptServicePackageService: { ...actual.ptServicePackageService, getPackagesForPT: jest.fn() },
     contractService: { ...actual.contractService, requestContract: jest.fn(), getGymOptions: jest.fn() },
+    availabilityService: { ...actual.availabilityService, getAvailability: jest.fn(), getBookableSlots: jest.fn() },
   };
 });
 
@@ -80,6 +81,8 @@ const mocked = {
   packages: ptServicePackageService.getPackagesForPT as jest.Mock,
   request: contractService.requestContract as jest.Mock,
   gymOptions: contractService.getGymOptions as jest.Mock,
+  availability: availabilityService.getAvailability as jest.Mock,
+  bookableSlots: availabilityService.getBookableSlots as jest.Mock,
 };
 
 async function renderScreen() {
@@ -101,6 +104,26 @@ beforeEach(() => {
   jest.clearAllMocks();
   mocked.list.mockResolvedValue({ pts: [] });
   mocked.gymOptions.mockResolvedValue({ gyms: [] });
+  mocked.availability.mockResolvedValue([
+    { dayOfWeek: "MONDAY", startTime: "13:00", endTime: "17:00", isActive: true },
+    { dayOfWeek: "MONDAY", startTime: "08:00", endTime: "11:00", isActive: true },
+  ]);
+  mocked.bookableSlots.mockResolvedValue(["08:00", "09:00"]);
+});
+
+it("shows published weekly coaching hours separately from dated bookable slots", async () => {
+  mocked.detail.mockResolvedValue(detail());
+  mocked.packages.mockResolvedValue([pkg()]);
+  const view = await renderScreen();
+
+  expect(await view.findByText("Lịch dạy thường lệ")).toBeTruthy();
+  expect(view.getByText("08:00–11:00")).toBeTruthy();
+  expect(view.getByText("13:00–17:00")).toBeTruthy();
+  expect(view.getByText("1 ngày/tuần")).toBeTruthy();
+  expect(view.getAllByText("Nghỉ")).toHaveLength(6);
+  expect(view.getByText("Giờ trống có thể đặt")).toBeTruthy();
+  expect(view.getByText("09:00")).toBeTruthy();
+  expect(mocked.availability).toHaveBeenCalledWith("pt-1");
 });
 
 describe("trainer detail — Listing Management (client side)", () => {
@@ -109,6 +132,8 @@ describe("trainer detail — Listing Management (client side)", () => {
     mocked.packages.mockResolvedValue([pkg()]);
     const view = await renderScreen();
     expect(await view.findByText("1/2")).toBeTruthy(); // GymPhotoGallery counter: first of two public photos
+    expect(await view.findByText("Giờ trống có thể đặt")).toBeTruthy();
+    expect(view.getByText("08:00")).toBeTruthy();
   });
 
   it("a trainer with no public photos has no gallery", async () => {

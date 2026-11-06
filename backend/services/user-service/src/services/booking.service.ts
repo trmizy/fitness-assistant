@@ -46,6 +46,7 @@ import { endOpenRoomCall } from "./open-room-call.service";
 import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, assertPolicyEligibility, type CaseDecisionCtx } from "./dispute-case/execution-guard";
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
+import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -69,10 +70,7 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
-const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/** BR-30: a session must START at least this long from now - the same number for booking and for rescheduling (B27). */
-const BOOKING_LEAD_TIME_MS = CANCEL_WINDOW_MS;
+/** BR-30: booking and rescheduling share BOOKING_LEAD_TIME_MS. */
 /** A reschedule may not be requested this close to the ORIGINAL start (unchanged rule). */
 const RESCHEDULE_ORIGINAL_CUTOFF_MS = 12 * 60 * 60 * 1000;
 

@@ -321,7 +321,7 @@ export function BookingPage() {
   const { data: availableSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ["available-slots", selectedContract?.ptUserId, selectedDateStr],
     queryFn: () =>
-      availabilityService.getAvailableSlots(
+      availabilityService.getBookableSlots(
         selectedContract!.ptUserId,
         selectedDateStr!,
       ),

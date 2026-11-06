@@ -12,11 +12,9 @@ import { availabilityService } from "../../services/api";
  * Month calendar + available-slot grid, shared by fresh booking (BookingPage.tsx) and
  * rescheduling (both BookingPage.tsx's own reschedule modal and PTSchedulePage.tsx's).
  *
- * Reuses GET /availability/:ptUserId/slots?date=... as-is — that endpoint already excludes
- * any time the PT has another CONFIRMED/REQUESTED session (session.repository.ts's
- * findConflictsByDate), so picking a slot here is already conflict-free by construction; the
- * server-side assertSlotBookable check on submit is defense against a stale/racing pick, not
- * the primary guard. A day the PT hasn't published any weekly hours for simply returns an
+ * Reads the bookable-only slot projection: no elapsed/under-24-hour starts or overlaps.
+ * The server checks again on submit because another client can take a slot meanwhile.
+ * A day the PT hasn't published any weekly hours for simply returns an
  * empty slot list — shown here as "PT chưa mở lịch rảnh ngày này" rather than a bare "no
  * slots", so a PT proposing their own reschedule understands WHY before re-picking.
  */
@@ -82,7 +80,7 @@ export function DateSlotPicker({
 
   const { data: availableSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ["available-slots", ptUserId, value?.dateStr],
-    queryFn: () => availabilityService.getAvailableSlots(ptUserId, value!.dateStr),
+    queryFn: () => availabilityService.getBookableSlots(ptUserId, value!.dateStr),
     enabled: !!ptUserId && !!value?.dateStr,
   });
   const slots: string[] = (availableSlots as string[]) ?? [];

@@ -94,7 +94,7 @@ export function SlotCalendarPicker({
   const dayQueries = useQueries({
     queries: days.map((day) => ({
       queryKey: ["pt-slots", ptUserId, day],
-      queryFn: () => availabilityService.getAvailableSlots(ptUserId!, day),
+      queryFn: () => availabilityService.getBookableSlots(ptUserId!, day),
       staleTime: 30_000,
     })),
   });
@@ -114,7 +114,7 @@ export function SlotCalendarPicker({
 
   const selectedQuery = useQuery({
     queryKey: ["pt-slots", ptUserId, date],
-    queryFn: () => availabilityService.getAvailableSlots(ptUserId!, date!),
+    queryFn: () => availabilityService.getBookableSlots(ptUserId!, date!),
     enabled: !!ptUserId && !!date,
     staleTime: 30_000,
   });

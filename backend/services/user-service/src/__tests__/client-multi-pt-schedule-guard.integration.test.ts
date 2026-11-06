@@ -272,7 +272,27 @@ dbTest("Client schedule: a reschedule cannot move a PT2 session onto the client'
   }
 });
 
-// ── Màn chọn phòng gym ──────────────────────────────────────────
+// ── Khung giờ hiển thị + màn chọn phòng gym ──────────────────────
+
+dbTest("Slots: for the signed-in client, a slot overlapping their session with ANOTHER PT is hidden (others still see it)", async () => {
+  const clientUserId = randomUUID();
+  const day = saturday7am();
+  const c1 = await seedContract(randomUUID(), clientUserId, ContractStatus.ACTIVE);
+  const pt2 = randomUUID();
+  await openAllDay(c1.ptUserId, day);
+  await openAllDay(pt2, day);
+  const restore = patch(notificationService, "create", async () => ({}));
+  try {
+    await book(clientUserId, c1.id, day, "07:00");
+    const mine: string[] = await availabilityService.getAvailableSlots(pt2, dateStr(day), true, clientUserId);
+    const anyone: string[] = await availabilityService.getAvailableSlots(pt2, dateStr(day), true, randomUUID());
+    assert.ok(!mine.includes("07:00"), "07:00 is taken by the client's own PT1 session");
+    assert.ok(mine.includes("08:00") && mine.includes("06:00"), "neighbouring slots stay bookable");
+    assert.ok(anyone.includes("07:00"), "another client still sees PT2 free at 07:00");
+  } finally {
+    restore();
+  }
+});
 
 dbTest("Gym options: a client already at the PT limit gets requestBlockedReason CLIENT_PT_LIMIT_REACHED before sending", async () => {
   const clientUserId = randomUUID();
