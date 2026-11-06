@@ -1,6 +1,6 @@
 import type { STSClient, AssumeRoleCommandInput } from "@aws-sdk/client-sts";
 import { PilotError } from "./config";
-import { NOVA_STS_HOST, assertNovaEndpointEnvironment, assertNovaSigningScope } from "./nova-endpoint";
+import { NOVA_STS_HOST, assertNovaEndpointEnvironment, assertNovaSigningScope, assertSingleAuthority } from "./nova-endpoint";
 
 /** One AssumeRole only. Source key, signed request bytes and regional destination are checked at final transport. */
 export function installNovaStsBoundary(client: STSClient, sourceKey: string, input: AssumeRoleCommandInput, assertCurrent: () => void) {
@@ -11,9 +11,9 @@ export function installNovaStsBoundary(client: STSClient, sourceKey: string, inp
     const headers = Object.freeze({ ...request.headers }), query = Object.freeze({ ...request.query });
     const hosts = Object.entries(headers).filter(([k]) => k.toLowerCase() === "host");
     if (client.config !== config || config.requestHandler !== guarded) throw new PilotError("NOVA_STS_HANDLER_REPLACED");
-    if (request.protocol !== "https:" || request.hostname !== NOVA_STS_HOST || (request.port !== undefined && request.port !== 443) ||
-        hosts.length !== 1 || ![NOVA_STS_HOST, NOVA_STS_HOST + ":443"].includes(hosts[0][1]) ||
+    if (request.protocol !== "https:" || request.hostname !== NOVA_STS_HOST || (request.port !== undefined && request.port !== 443) || hosts.length > 1 ||
         request.username || request.password || Object.keys(query).length || request.path !== "/" || request.method !== "POST") throw new PilotError("NOVA_STS_ENDPOINT_MISMATCH");
+    assertSingleAuthority(headers, NOVA_STS_HOST);
     assertNovaSigningScope(headers, "sts", sourceKey);
     const raw = typeof request.body === "string" ? request.body : request.body instanceof Uint8Array ? Buffer.from(request.body).toString("utf8") : null;
     const fields = new URLSearchParams(raw ?? "");
