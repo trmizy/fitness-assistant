@@ -17,6 +17,7 @@ import type { MantleWireIdentity } from "./mantle-transport";
 import { serializeNova, type NovaWireIdentity } from "./nova-converse-transport";
 import { assertCurrentInferenceRelease, dispatchWithInferenceRelease } from "./inference-release-deadline";
 import type { NovaHttpAuthorization, NovaHttpSessionBinding } from "./nova-http-boundary";
+import { assertNoObservedClockRollback } from "./nova-clock";
 import { resolveNovaCredentials, consumeNovaCredentials, type NovaCredentialFixture, type NovaCredentialReceipt, type NovaStaticCredentials } from "./nova-credentials";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
@@ -120,6 +121,17 @@ function admission(value: unknown, fake: EvaluationTransport | undefined, option
 }
 const credentialBinding = (a: ReturnType<typeof admission>) => digest({ configHash: a.configHash, approvalHash: digest(a.approval?.approval),
   directory: a.approval?.directory, profile: a.config.novaScope?.awsProfile, inferencePhase: a.inferencePhase, releaseHash: a.release ? digest(a.release) : null });
+/** Upper bound of one phase's execution: every call in the phase at its full timeout, plus fixed slack. */
+export const NOVA_PHASE_SLACK_MS = 5 * 60 * 1000;
+const phaseWindowMs = (a: ReturnType<typeof admission>, options: SessionOptions) => {
+  const s = a.config.novaScope!, calls = options.measureOnly ? s.measureCalls : a.inferencePhase ? s.inferenceCalls : s.measureCalls + s.inferenceCalls;
+  return calls * a.config.parameters.timeoutMs + NOVA_PHASE_SLACK_MS;
+};
+const rollbackEvidence = (a: ReturnType<typeof admission>, directory: string) => a.approval ? [
+  path.join(a.approval.directory, a.approval.approval.approvalId + ".jsonl"),
+  ...(a.inferencePhase ? [inferenceReleaseFile(a.approval.directory, a.approval.approval.approvalId)] : []),
+  ...["manifest.json", "results.jsonl", "pilot.jsonl"].map((f) => path.join(directory, f)),
+] : [];
 /** Async credential phase BEFORE any claim/reservation. All authority/issued-ledger checks are read-only here. */
 export async function openPreparedEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
   const parsed = parseConfiguration(value);
@@ -132,8 +144,11 @@ export async function openPreparedEvaluationSession(value: unknown, directory: s
     if (!current || current.directory !== a.approval!.directory || digest(current.approval) !== digest(a.approval!.approval)) throw new PilotError("APPROVAL_AUTHORITY_CHANGED");
     if (a.inferencePhase) assertCurrentInferenceRelease(a.release);
   };
+  // A clock earlier than files this approval already produced must not judge expiry (cross-process rollback tripwire).
+  // Real owner authority only: TEST FIXTURE rehearsals drive synthetic clocks against real file times by design.
+  if (!a.rehearsal) assertNoObservedClockRollback(rollbackEvidence(a, directory));
   const preparedCredentials = await resolveNovaCredentials({ profile: a.config.novaScope!.awsProfile, binding: credentialBinding(a),
-    validUntil: a.release?.expiresAt ?? a.approval.approval.expiresAt, assertAuthority,
+    validUntil: a.release?.expiresAt ?? a.approval.approval.expiresAt, assertAuthority, phaseWindowMs: phaseWindowMs(a, options),
     expiryCategory: a.inferencePhase ? "INFERENCE_RELEASE_EXPIRED" : "LiveNotApproved" }, a.rehearsal?.credentialFixture);
   // Pins, signature, release and issued ledger are rechecked after provider IO and again before claim.
   assertVerifiedPins(a.config, options.verifiedPins); assertAuthority();
@@ -148,6 +163,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
   const approvalHash = approval ? digest(approval.approval) : digest({ authority: "FAKE_TEST_ONLY", approvalId, configHash });
   if (config.mode === "FAKE" && !options.resume && !fs.existsSync(path.join(ledgerDirectory, approvalId + ".jsonl"))) issueFixtureLedger(ledgerDirectory, approvalId, configHash, approvalHash);
+  if (approval && nova && !rehearsal) assertNoObservedClockRollback(rollbackEvidence(a, directory));
   const ledger = openBudgetLedger({ directory: ledgerDirectory, approvalId, approvalHash, configHash, runDirectory: directory, mode: config.mode, resume: !!options.resume, liveAuthority });
   if (twoPhase) {
     const s = ledger.state();

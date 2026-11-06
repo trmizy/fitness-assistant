@@ -21,7 +21,9 @@ export function createNovaRuntimeClient(profile: string, credentials?: NovaStati
   assertNovaEndpointEnvironment();
   if (!credentials?.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken || !Number.isFinite(credentials.expiration?.getTime())) throw new PilotError("NOVA_PRE_RESOLVED_CREDENTIALS_REQUIRED");
   return new BedrockRuntimeClient({ region: NOVA_REGION, endpoint: NOVA_ENDPOINT, credentials: { ...credentials, expiration: new Date(credentials.expiration) },
-    maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true });
+    maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true,
+    // SigV4 only: a shared-config auth_scheme_preference or bearer token must not select httpBearerAuth.
+    authSchemePreference: ["sigv4"] });
 }
 export function novaRuntimeSend(client: BedrockRuntimeClient, binding: NovaHttpSessionBinding): NovaSend {
   const boundary = installNovaHttpBoundary(client, binding);
