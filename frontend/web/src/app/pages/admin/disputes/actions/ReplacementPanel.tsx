@@ -35,6 +35,8 @@ interface ReplacementPanelProps {
   caseStatus: string;
   execStatus?: string | null;
   currentUserId?: string | null;
+  /** R-22: the server flag; when false every write is refused (409 DECISION_REPLACEMENT_DISABLED), so no write control is shown. */
+  replacementEnabled?: boolean;
   onChanged: () => void | Promise<unknown>;
 }
 
@@ -43,6 +45,7 @@ export function ReplacementPanel({
   caseStatus,
   execStatus,
   currentUserId,
+  replacementEnabled = false,
   onChanged,
 }: ReplacementPanelProps) {
   const queryClient = useQueryClient();
@@ -84,7 +87,7 @@ export function ReplacementPanel({
 
   const items = data?.items ?? [];
   const hasPending = items.some((it) => it.status === "PENDING");
-  const canPropose = canProposeReplacement(caseStatus, execStatus, hasPending);
+  const canPropose = replacementEnabled && canProposeReplacement(caseStatus, execStatus, hasPending);
   const alreadyExecuted = isDecisionAlreadyExecuted(caseStatus, execStatus);
 
   const handleOpenProposeConfirm = () => {
@@ -189,7 +192,7 @@ export function ReplacementPanel({
         <ul className="space-y-3">
           {items.map((item) => {
             const proposedByYou = isProposer(item, currentUserId);
-            const canDecide = canDecideReplacement(
+            const canDecide = replacementEnabled && canDecideReplacement(
               item,
               currentUserId,
             );
@@ -333,6 +336,9 @@ export function ReplacementPanel({
         </p>
       )}
 
+      {!replacementEnabled && (
+        <p className="text-xs text-adm-text-2" data-testid="replacement-off">Chức năng này đang tắt ở môi trường hiện tại.</p>
+      )}
       {canPropose && (
         <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
           <h4 className="text-sm font-semibold text-adm-text">

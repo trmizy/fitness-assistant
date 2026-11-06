@@ -65,6 +65,7 @@ export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }:
           caseStatus={detail.case.status}
           execStatus={detail.case.execStatus}
           currentUserId={currentUserId}
+          replacementEnabled={capabilities?.decisionReplacement === true}
           onChanged={onChanged}
         />
       )}

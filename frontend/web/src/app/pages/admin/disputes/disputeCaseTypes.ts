@@ -226,7 +226,7 @@ export interface QueueItem {
 export type QueueResult = Paged<QueueItem>;
 
 /** A1 (capabilities): read-only verdicts of the five server flags in THIS process. */
-export const CAPABILITY_FLAGS = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution", "timers", "appeals"] as const;
+export const CAPABILITY_FLAGS = ["execution", "t0", "evidenceStorage", "lateOpenReconciliation", "d65bResolution", "timers", "appeals", "decisionReplacement"] as const;
 export type CapabilityFlag = (typeof CAPABILITY_FLAGS)[number];
 export interface Capabilities {
   execution: boolean;
@@ -236,6 +236,8 @@ export interface Capabilities {
   d65bResolution: boolean;
   timers: boolean;
   appeals: boolean;
+  /** R-22 (06/11): replacing an approved decision (A34–A36). Optional: older servers do not send it. */
+  decisionReplacement?: boolean;
   details: Partial<Record<CapabilityFlag, { effective: boolean; refusedBecause?: string }>>;
   runtime?: { mode: string; open: boolean; refusedBecause?: string };
 }

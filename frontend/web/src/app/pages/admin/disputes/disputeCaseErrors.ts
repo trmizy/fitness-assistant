@@ -56,6 +56,14 @@ const stateText = (d: Record<string, unknown> | null) =>
     : "Trạng thái hiện tại của hồ sơ chưa cho phép thao tác này.";
 
 /** Every code of handoff section 6 + contract section A/B/C that a screen can meet. */
+/** Why a replacement is refused when the SESSION has moved on (`session status is <X>` from the server). */
+const SESSION_EFFECT_LABEL: Record<string, string> = {
+  PT_NO_SHOW_REPORTED: "Buổi tập đang chờ PT phản hồi báo vắng, không còn ở trạng thái khiếu nại",
+  NO_SHOW: "Buổi tập đã được xử lý là vắng mặt",
+  COMPLETED: "Buổi tập đã được xử lý là hoàn thành",
+  CANCELLED: "Buổi tập đã bị huỷ",
+};
+
 export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   // identity / permission
   UNAUTHENTICATED: { kind: "auth", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." },
@@ -162,8 +170,19 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
       if (raw.length === 0) return "Quyết định đã có tác động (tiền hoặc nghiệp vụ) nên không thể thay thế.";
       const items = raw.map((item) => {
         const s = String(item);
+        // The user-service strings come from decision-replacement.service.ts dbChecks(); match them exactly before the loose fallbacks.
+        const sessionStatus = /^session status is (\w+)/.exec(s)?.[1];
+        if (sessionStatus) return SESSION_EFFECT_LABEL[sessionStatus] ?? "Buổi tập không còn ở trạng thái khiếu nại";
+        if (s.startsWith("case execution status is")) return "Quyết định đã được thực thi hoặc đang thực thi";
+        if (s.startsWith("case status is")) return "Hồ sơ không còn ở bước đã duyệt quyết định";
+        if (s === "case is bound to another decision") return "Hồ sơ đang gắn với một quyết định khác";
+        if (s === "session not found") return "Không tìm thấy buổi tập của hồ sơ";
+        if (s === "session already ruled") return "Buổi tập đã có phán quyết";
+        if (s === "session already deducted") return "Buổi tập đã bị trừ quyền buổi";
+        if (s === "no-show quota already booked") return "Đã ghi nhận quyền buổi cho trường hợp PT vắng";
+        if (s.includes("execution row")) return "Đã có lượt thực thi quyết định";
+        if (s.includes("money settlement row")) return "Buổi tập đã có bước quyết toán tiền";
         if (s.includes("BUSINESS_DONE")) return "Hồ sơ đã thực thi xong phần nghiệp vụ";
-        if (s.includes("NO_SHOW")) return "Trạng thái buổi tập đã chuyển sang vắng mặt";
         if (s.includes("quota")) return "Đã ghi nhận trừ hoặc bù quyền buổi tập";
         if (s.includes("settlement") || s.includes("money") || s.includes("PAYOUT") || s.includes("LEDGER")) return "Đã phát sinh bút toán tiền hoặc nhả tiền";
         if (s.includes("EXECUTION_RECORDED")) return "Đã ghi nhận lượt thực thi quyết định";

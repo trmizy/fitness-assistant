@@ -121,8 +121,11 @@ export const WAITING_NOTE: Record<CaseStatus, string> = {
 };
 export const waitingNote = (status: string) => (status in WAITING_NOTE ? WAITING_NOTE[status as CaseStatus] : "Chưa rõ hồ sơ đang chờ ai.");
 /** Same, but a case closed without a decision says WHY (`closeReason`), never just "bị từ chối". */
-export function waitingNoteFor(c: { status?: string | null; closeReason?: string | null }): string {
+export function waitingNoteFor(c: { status?: string | null; closeReason?: string | null; execStatus?: string | null }): string {
   if ((c.status === "REJECTED_INTAKE" || c.status === "CLOSED") && c.closeReason && c.closeReason in CLOSE_REASON_NOTE) return CLOSE_REASON_NOTE[c.closeReason as CloseReason];
+  // An approved case that was already executed must not still say "việc thực thi nằm ở bước riêng".
+  if (c.status === "DECISION_APPROVED" && c.execStatus === "BUSINESS_DONE")
+    return "Đã duyệt và đã thực thi phần nghiệp vụ. Điều đó chưa có nghĩa là tiền đã về; xem tab Tiền.";
   return waitingNote(c.status ?? "");
 }
 

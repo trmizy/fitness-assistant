@@ -107,3 +107,17 @@ describe("PT decision replacement model & body shapes (A40)", () => {
     assert.ok(REJECT_REPLACEMENT_CONFIRM.includes("Quyết định cũ giữ nguyên"));
   });
 });
+
+import { parseDisputeErrorBody } from "../disputes/disputeCaseErrors";
+describe("DECISION_HAS_EFFECT reasons are translated by meaning, not by a loose substring", () => {
+  it("'session status is PT_NO_SHOW_REPORTED' is not called 'đã chuyển sang vắng mặt'", () => {
+    const v = parseDisputeErrorBody(409, { error: "x", code: "DECISION_HAS_EFFECT", details: { effects: ["session status is PT_NO_SHOW_REPORTED"] } });
+    assert.match(v.message, /đang chờ PT phản hồi báo vắng/);
+    assert.doesNotMatch(v.message, /đã chuyển sang vắng mặt/);
+  });
+  it("execution and settlement effects get their own sentence", () => {
+    const v = parseDisputeErrorBody(409, { error: "x", code: "DECISION_HAS_EFFECT", details: { effects: ["case execution status is BUSINESS_DONE", "2 money settlement row(s) of the session"] } });
+    assert.match(v.message, /đã được thực thi hoặc đang thực thi/);
+    assert.match(v.message, /quyết toán tiền/);
+  });
+});

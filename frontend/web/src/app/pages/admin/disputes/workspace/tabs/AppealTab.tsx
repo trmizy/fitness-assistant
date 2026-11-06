@@ -278,7 +278,7 @@ export function AppealTab({
     <div className="space-y-4" data-testid="d2-tab-appeals">
       <div>
         <h3 className="text-base font-semibold text-adm-text">
-          Xem xét lại sau phán quyết (Appeal)
+          Xem xét lại sau phán quyết
         </h3>
         <Muted>
           Khi một bên yêu cầu xem xét lại, quản trị viên phân công một người

@@ -106,6 +106,7 @@ export function PartyAppealForm({
             <Field
               id="party-appeal-reason"
               label="Lý do yêu cầu xem xét lại"
+              required
               error={error ?? undefined}
             >
               <textarea

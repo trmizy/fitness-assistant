@@ -22,7 +22,7 @@ import {
   tabCounts,
   tabParamOf,
   tabLabel,
-  waitingNote,
+  waitingNoteFor,
   type WorkspaceTab,
 } from "./workspaceModel";
 import { DisputeLink, FOCUS, FailurePanel, LoadingSkeleton, Notice, Pill, QUEUE_PATH } from "./WorkspaceParts";
@@ -190,10 +190,16 @@ export function AdminDisputeCasePage() {
             <span data-testid="d2-money-chip">
               <Pill tone={money.tone}>{`Tiền: ${money.label}`}</Pill>
             </span>
+            {/* B5: the money axis reads the ledger only; an appeal consequence still open is shown next to it, never folded into "xong". */}
+            {detail.closure && detail.closure.fullyResolved === false && (detail.closure.pendingAppeals > 0 || detail.closure.moneyAxisSettled === false || (detail.closure.unresolved?.length ?? 0) > 0) && (
+              <span data-testid="d2-closure-chip">
+                <Pill tone="warning">Còn việc sau xem xét lại chưa xong</Pill>
+              </span>
+            )}
           </div>
         </div>
         <p className="text-sm text-adm-text" data-testid="d2-waiting-note">
-          {waitingNote(c.status)}
+          {waitingNoteFor(c)}
         </p>
 
         {/* tab strip: scrolls sideways on phones, arrow keys move between tabs */}
