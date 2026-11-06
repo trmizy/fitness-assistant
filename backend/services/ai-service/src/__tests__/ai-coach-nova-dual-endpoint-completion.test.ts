@@ -141,6 +141,19 @@ test("production HTTP/2 handler (:authority, no host header) dispatches once; a 
     assert.match(s.calls.bedrock[0].auth, /SignedHeaders=:authority;/);
   } finally { s.restore(); }
 });
+for (const key of ["AWS_ENDPOINT_URL_STS", "AWS_ENDPOINT_URL"]) test(`${key} is refused before any STS request (STS destination cannot be overridden by environment)`, async () => {
+  const s = stubTransports();
+  try { await withEnv({ [key]: "https://unapproved-sts.invalid" }, async () => { await assert.rejects(resolveNovaCredentials(args(), realStsFixture()), is("NOVA_ENDPOINT_OVERRIDE_FORBIDDEN")); }); assert.equal(s.calls.sts.length, 0); }
+  finally { s.restore(); }
+});
+test("an endpoint override set AFTER credential admission stops the lease (checked again before each dispatch)", async () => {
+  const s = stubTransports();
+  try {
+    const lease = consumeNovaCredentials(await resolveNovaCredentials(args(), realStsFixture()), "b", true);
+    await withEnv({ AWS_ENDPOINT_URL_BEDROCK_RUNTIME: "https://unapproved-late.invalid" }, async () => { assert.throws(() => lease.assertCurrent(), is("NOVA_ENDPOINT_OVERRIDE_FORBIDDEN")); });
+    assert.doesNotThrow(() => lease.assertCurrent());
+  } finally { s.restore(); }
+});
 test("cross-process rollback tripwire: a durable file newer than the clock fails closed; tolerance and missing files are allowed", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gymini-rollback-")), f = path.join(dir, "ledger.jsonl"); fs.writeFileSync(f, "x");
   try {
