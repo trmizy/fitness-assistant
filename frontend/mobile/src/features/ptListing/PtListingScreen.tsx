@@ -14,6 +14,7 @@ import { useWorkspaceAccent } from "../../theme/workspace";
 import { formatVND } from "../../utils/currency";
 import { GOAL_OPTIONS, TARGET_OPTIONS } from "../ptApplication/ptApplication";
 import { ListingPreviewPanel } from "./ListingPreview";
+import { PtWorkingHoursManager } from "./PtWorkingHoursManager";
 import { PackagesSection, PhotosSection, ProfileSection, SectionTitle, type UploadEntry } from "./ListingSections";
 import {
   DEFAULT_LIMITS,
@@ -77,6 +78,7 @@ export function PtListingScreen() {
   const queryClient = useQueryClient();
   const { user } = useApp();
   const uid = user?.id ?? "guest";
+  const [scheduleDirty, setScheduleDirty] = useState(false);
 
   const listingQuery = useQuery({
     queryKey: ptListingKey(uid),
@@ -150,7 +152,8 @@ export function PtListingScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id, draft?.draftVersion]);
 
-  const dirty = !!form && formSignature(form) !== baseline;
+  const draftDirty = !!form && formSignature(form) !== baseline;
+  const dirty = draftDirty || scheduleDirty;
 
   // ── small plumbing ──────────────────────────────────────────────────────────────────────────
   const [busy, setBusy] = useState<string | null>(null);
@@ -540,7 +543,7 @@ export function PtListingScreen() {
   const leave = () => (router.canGoBack() ? router.back() : router.replace("/pt/profile"));
   const back = () => {
     if (!dirty) return leave();
-    Alert.alert("Rời khỏi mà chưa lưu?", "Các chỉnh sửa chưa lưu trong bản nháp sẽ mất.", [
+    Alert.alert("Rời khỏi mà chưa lưu?", "Các chỉnh sửa tin đăng hoặc lịch làm việc chưa lưu sẽ mất.", [
       { text: "Ở lại", style: "cancel" },
       { text: "Rời đi", style: "destructive", onPress: leave },
     ]);
@@ -587,6 +590,7 @@ export function PtListingScreen() {
             }
           >
             <View className="gap-4">
+              <PtWorkingHoursManager ptUserId={uid} onDirtyChange={setScheduleDirty} />
               {/* ── status ─────────────────────────────────────────────────────────────── */}
               <Card className="gap-3 p-4">
                 <View className="flex-row items-center gap-2">
@@ -703,8 +707,8 @@ export function PtListingScreen() {
 
           {editing ? (
             <View className="flex-row gap-3 border-t border-border bg-card px-5 pb-3 pt-3">
-              <Button className="flex-1" variant="secondary" disabled={!dirty || !!busy} onPress={() => void onSave()}>
-                {busy === "save" ? "Đang lưu…" : dirty ? "Lưu nháp" : "Đã lưu"}
+              <Button className="flex-1" variant="secondary" disabled={!draftDirty || !!busy} onPress={() => void onSave()}>
+                {busy === "save" ? "Đang lưu…" : draftDirty ? "Lưu nháp" : "Đã lưu"}
               </Button>
               <Button className="flex-1" disabled={!!busy} onPress={askSubmit}>
                 {busy === "submit" ? "Đang gửi…" : "Gửi duyệt"}

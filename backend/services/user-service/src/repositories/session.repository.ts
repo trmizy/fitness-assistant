@@ -370,6 +370,18 @@ export const sessionRepository = {
       },
     }),
 
+  /** Slot display must mirror booking's overlap rule, including legacy sessions on ended contracts. */
+  findBookingConflictsByDate: (ptUserId: string, dayStart: Date, dayEnd: Date) =>
+    prisma.session.findMany({
+      where: {
+        ptUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        scheduledStartAt: { lt: dayEnd },
+        scheduledEndAt: { gt: dayStart },
+      },
+      select: { scheduledStartAt: true, scheduledEndAt: true },
+    }),
+
   /** Create a session review (client rating the PT) */
   createReview: (data: {
     sessionId: string;

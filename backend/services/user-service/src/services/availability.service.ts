@@ -8,6 +8,7 @@ import { resolveSessionOutcome } from "./session-outcome";
 import { ptFaultClientMessage, readPtFaultMoney } from "./pt-fault-session-wording";
 import { assertPtMayAct } from "./pt-restriction.service";
 import { withRunningContract, CONTRACT_ENDED, CONTRACT_ENDING } from "./contract-lock";
+import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -406,6 +407,24 @@ export const availabilityService = {
     return availabilityRepository.findExceptions(ptUserId);
   },
 
+  /** Block new bookings on a date, without changing any existing session or money flow. */
+  async addPlanningException(ptUserId: string, dateStr: string, reason?: string) {
+    await assertPtMayAct(ptUserId);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) throw err("Invalid date", 400);
+    const date = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(date.getTime()) || localDateKey(date) !== dateStr) throw err("Invalid date", 400);
+    if (dateStr < localDateKey(new Date())) throw err("Cannot block a past date", 400);
+    if (reason != null && (typeof reason !== "string" || reason.length > 200)) throw err("Invalid reason", 400);
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    const existing = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
+    if (existing.length) return { exception: existing[0], affectedSessions: 0 };
+    const exception = await availabilityRepository.addException(ptUserId, date, reason);
+    return { exception, affectedSessions: 0 };
+  },
+
   /**
    * Add a blocked date. Any session already sitting on that date must not just silently keep
    * pointing at a PT who has now marked themselves unavailable that day:
@@ -528,7 +547,7 @@ export const availabilityService = {
 
   // Get available time slots for a PT on a specific date
   // Generates slots based on sessionDurationMinutes
-  async getAvailableSlots(ptUserId: string, dateStr: string) {
+  async getAvailableSlots(ptUserId: string, dateStr: string, bookableOnly = false, viewerUserId?: string) {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) throw err("Invalid date", 400);
 
@@ -578,7 +597,7 @@ export const availabilityService = {
     }
 
     // 5. Get existing sessions for this PT on this date to filter out booked slots
-    const existingSessions = await sessionRepository.findConflictsByDate(
+    const existingSessions = await sessionRepository.findBookingConflictsByDate(
       ptUserId,
       dayStart,
       dayEnd,
@@ -592,7 +611,22 @@ export const availabilityService = {
       bookedStarts.add(`${h}:${m}`);
     }
 
-    return allSlots.filter((s) => !bookedStarts.has(s));
+    // Client rule (same as bookSession): the viewer's own REQUESTED/CONFIRMED sessions with any PT block a slot too.
+    const viewerSessions =
+      bookableOnly && viewerUserId
+        ? await sessionRepository.findClientBookingConflictsByDate(viewerUserId, dayStart, dayEnd)
+        : [];
+
+    return allSlots.filter((slot) => {
+      if (bookedStarts.has(slot)) return false;
+      if (!bookableOnly) return true;
+      const start = new Date(`${dateStr}T${slot}:00`);
+      if (start.getTime() - Date.now() < BOOKING_LEAD_TIME_MS) return false;
+      const end = new Date(start.getTime() + duration * 60 * 1000);
+      const overlaps = (session: { scheduledStartAt: Date; scheduledEndAt: Date }) =>
+        start < session.scheduledEndAt && end > session.scheduledStartAt;
+      return !existingSessions.some(overlaps) && !viewerSessions.some(overlaps);
+    });
   },
 
   // ─── Slot counting for purchase warnings and PT list display ─────────────

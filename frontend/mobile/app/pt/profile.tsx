@@ -242,10 +242,10 @@ export default function PtProfileScreen() {
           ) : null}
 
           <StaggerItem>
-            <Card className="gap-3 p-4" onPress={() => router.push("/pt/schedule")}>
+            <Card className="gap-3 p-4" onPress={() => router.push("/pt/listing")}>
               <View className="flex-row items-center gap-2">
                 <CalendarClock size={16} color={accent.primary} />
-                <Text className="flex-1 font-body-semibold text-sm text-foreground">Khung giờ rảnh</Text>
+                <Text className="flex-1 font-body-semibold text-sm text-foreground">Lịch làm việc</Text>
                 <ChevronRight size={16} color={designTokens.mutedForeground} />
               </View>
               {availQuery.isLoading ? (
