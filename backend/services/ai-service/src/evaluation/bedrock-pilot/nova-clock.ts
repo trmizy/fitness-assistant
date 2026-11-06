@@ -36,22 +36,57 @@ export function novaAuthorityClock(projectMonotonicDeadline = false) {
  */
 export const NOVA_TERMINAL_AUTHORITY_CODES: ReadonlySet<string> = new Set(["LiveNotApproved", "APPROVAL_EXPIRED", "PricingNotValid", "INFERENCE_RELEASE_EXPIRED",
   "INFERENCE_RELEASE_INVALID", "INFERENCE_RELEASE_REQUIRED", "NOVA_CREDENTIALS_EXPIRED", "NOVA_CREDENTIAL_LEASE_EXPIRED", "NOVA_CLOCK_ROLLBACK"]);
+const isTerminal = (e: unknown): e is PilotError => e instanceof PilotError && NOVA_TERMINAL_AUTHORITY_CODES.has(e.code);
 /**
- * Non-revivable authority state for ONE authorization context (one credential lease or one guarded client; never global).
+ * Non-revivable authority state for ONE authorization context (never global).
  * check(): 1) observe the clock FIRST (so the observation is recorded even if a later callback throws; a rollback is
  * itself terminal), 2) refuse if the context is already terminal, 3) run the checks/callbacks and latch any terminal
- * failure. The latched category is re-raised unchanged; only a new signed admission creates a new context.
+ * failure. The FIRST terminal category is re-raised unchanged on every later call, including when a later clock
+ * rollback is observed (that observation is reported in details only). Only a new signed admission creates a new context.
  */
 export function novaAuthorityLatch() {
   let terminal: { code: string; details: Record<string, unknown> } | null = null;
-  const latch = (e: unknown) => { if (!terminal && e instanceof PilotError && NOVA_TERMINAL_AUTHORITY_CODES.has(e.code)) terminal = { code: e.code, details: { ...e.details } }; };
+  const record = (e: unknown) => { if (!terminal && isTerminal(e)) terminal = { code: e.code, details: { ...e.details } }; };
+  const latched = (extra: Record<string, unknown> = {}) => new PilotError(terminal!.code, { ...terminal!.details, latchedTerminalAuthority: true, ...extra });
   return {
+    record,
     check<T>(observe: () => number, body: (now: number) => T): T {
       let now: number;
-      try { now = observe(); } catch (e) { latch(e); throw e; }
-      if (terminal) throw new PilotError(terminal.code, { ...terminal.details, latchedTerminalAuthority: true });
-      try { return body(now); } catch (e) { latch(e); throw e; }
+      try { now = observe(); } catch (e) { const prior = !!terminal; record(e); if (prior) throw latched({ alsoObserved: e instanceof PilotError ? e.code : "CLOCK_ERROR" }); throw e; }
+      if (terminal) throw latched();
+      try { return body(now); } catch (e) { record(e); throw e; }
     },
     get terminalCode() { return terminal?.code ?? null; },
   };
 }
+
+/**
+ * The single authority context of one signed admission: one clock + one latch shared by the credential lease, every
+ * session-level authority check and the HTTP boundary of the client built from that lease. A failure observed by ANY
+ * of them is terminal for ALL of them.
+ */
+export interface NovaAuthorityContext {
+  check<T>(body: (now: number) => T): T;
+  /** Clock reading inside check() bodies (rollback-detecting; may throw). */
+  now(): number;
+  /** Latches a terminal failure observed outside check() (e.g. a deadline judged while reporting another error). */
+  record(e: unknown): void;
+  readonly terminalCode: string | null;
+}
+export function novaAuthorityContext(projectMonotonicDeadline = true): NovaAuthorityContext {
+  const clock = novaAuthorityClock(projectMonotonicDeadline), latch = novaAuthorityLatch();
+  return Object.freeze({ check: <T>(body: (now: number) => T) => latch.check(clock, body), now: clock, record: latch.record, get terminalCode() { return latch.terminalCode; } });
+}
+/**
+ * Runs a throwable authority callback FIRST (historical category precedence), but if it fails with a NON-terminal
+ * category the deadline judgement is still made and latched, so an observed expiry can never be lost behind another error.
+ */
+export function novaGuardedCallback(context: NovaAuthorityContext, callback: () => void, deadlines: () => void): void {
+  try { callback(); }
+  catch (e) { if (!isTerminal(e)) { try { deadlines(); } catch (d) { context.record(d); } } throw e; }
+}
+// Objects (lease credentials, runtime clients) carry their admission's context, so a client/boundary rebuilt from an
+// old lease can never start with a fresh latch.
+const contexts = new WeakMap<object, NovaAuthorityContext>();
+export function bindNovaAuthority<T extends object>(target: T, context: NovaAuthorityContext): T { contexts.set(target, context); return target; }
+export function novaAuthorityOf(target: unknown): NovaAuthorityContext | undefined { return target && typeof target === "object" ? contexts.get(target) : undefined; }

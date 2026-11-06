@@ -198,14 +198,21 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const save = (patch: Partial<ReturnType<typeof ledger.state>>, event: string) => ledger.save({ ...ledger.state(), ...patch }, event);
   try { if (credentials) append({ event: "CREDENTIALS_PRE_RESOLVED", provider: "EXPLICIT_PROFILE_STS_ONCE", expiresAt: credentials.credentials.expiration.toISOString() }); }
   catch (error) { ledger.close(); throw error; }
+  // Every session-level authority/expiry judgement runs inside the admission's single authority context (shared with
+  // the lease and the HTTP boundary): the clock is observed first and ANY terminal failure observed here (approval,
+  // pricing, release, rollback) is permanent for the lease and the boundary too. FAKE/legacy paths have no context.
+  const authorityContext = credentials?.authority ?? null;
+  const inAuthority = <T>(fn: () => T): T => authorityContext ? authorityContext.check(() => fn()) : fn();
   const authorize = () => {
     if (closed || fatal || ledger.state().stopped) throw new PilotError("BudgetStopped");
-    credentials?.assertCurrent();
-    assertCurrentAuthorization(config);
-    if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
-    if (config.mode === "LIVE") { const current = currentApproval(); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
-    // Pins/approval checks can cross the separately signed release's earlier expiry.
-    if (inferencePhase) assertCurrentInferenceRelease(release);
+    inAuthority(() => {
+      credentials?.assertCurrent();
+      assertCurrentAuthorization(config);
+      if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
+      if (config.mode === "LIVE") { const current = currentApproval(); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
+      // Pins/approval checks can cross the separately signed release's earlier expiry.
+      if (inferencePhase) assertCurrentInferenceRelease(release);
+    });
   };
   const inputFor = (prompt: Prompt) => {
     const hash = digest({ system: prompt.system, user: prompt.user });
@@ -215,11 +222,11 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     if (config.novaScope && !config.novaScope.tokenPayloadHashes.includes(serializeNova(input).identity.tokenPayloadHash)) throw new PilotError("NOVA_PAYLOAD_NOT_APPROVED");
     return { hash, input };
   };
-  const dispatchAuthorized = <T>(dispatch: () => T): T => {
+  const dispatchAuthorized = <T>(dispatch: () => T): T => inAuthority(() => {
     // Reservations/persistence can outlive the approval after the earlier, expensive pins check.
     assertCurrentAuthorization(config);
     return inferencePhase ? dispatchWithInferenceRelease(release, dispatch) : dispatch();
-  };
+  });
   const httpAuthorization = (phase: NovaHttpAuthorization["phase"], hash: string, input: ConverseCommandInput, ordinal: number, key: string): NovaHttpAuthorization | undefined => {
     if (!httpBinding) return undefined; // Historical FAKE/other transports keep their existing seam.
     const wire = serializeNova(input);
@@ -281,7 +288,7 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   async function attempt(prompt: Prompt, attemptKey?: string) {
     authorize();
     if (twoPhase && options.measureOnly) throw new PilotError("MEASURE_ONLY_SESSION");
-    if (twoPhase && (!release || Date.parse(release.expiresAt) <= Date.now())) throw new PilotError(release ? "INFERENCE_RELEASE_EXPIRED" : "INFERENCE_RELEASE_REQUIRED");
+    inAuthority(() => { if (twoPhase && (!release || Date.parse(release.expiresAt) <= Date.now())) throw new PilotError(release ? "INFERENCE_RELEASE_EXPIRED" : "INFERENCE_RELEASE_REQUIRED"); });
     const { hash, input } = inputFor(prompt), before = ledger.state();
     const key = attemptKey ?? "attempt-" + (before.attempts + 1);
     if (before.attemptKeys.includes(key)) throw new PilotError("ATTEMPT_ALREADY_RESERVED");

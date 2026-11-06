@@ -4,7 +4,7 @@ import { PilotError } from "./config";
 import { digest } from "../evaluation-kit/identity";
 import { NOVA_MODEL, serializeNova } from "./nova-converse-transport";
 import { assertNovaHttpDestination, assertNovaSigningScope } from "./nova-endpoint";
-import { novaAuthorityClock, novaAuthorityLatch } from "./nova-clock";
+import { novaAuthorityContext, novaAuthorityOf, novaGuardedCallback, type NovaAuthorityContext } from "./nova-clock";
 
 /** These values come from the session AFTER its signature, pins and issued-ledger checks. Not an authorization issuer. */
 export interface NovaHttpSessionBinding {
@@ -48,7 +48,7 @@ function assertSynchronousAuthority(authority: NovaHttpAuthorization): void {
  * Per-client/per-send context, never a global "current approval". The wrapper is the final SDK handler boundary,
  * independent of middleware names/order. It does not guard STS/IMDS/SSO credential-provider IO or network-byte timing.
  */
-export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: NovaHttpSessionBinding) {
+export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: NovaHttpSessionBinding, shared?: NovaAuthorityContext) {
   if (!expected || !expected.approvalId || !/^[a-f0-9]{64}$/.test(expected.approvalHash) ||
       !/^[a-f0-9]{64}$/.test(expected.configHash) || !expected.ledgerDirectory ||
       !["MEASURE_ONLY", "INFERENCE_ONLY", "ONE_SHOT"].includes(expected.scope)) throw new PilotError("NOVA_HTTP_SESSION_REQUIRED");
@@ -57,7 +57,15 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
   const delegate = client.config.requestHandler;
   if (!delegate || typeof delegate.handle !== "function") throw new PilotError("NOVA_HTTP_HANDLER_REQUIRED");
   const dispatchHttp = delegate.handle.bind(delegate);
-  const clock = novaAuthorityClock(), authorityLatch = novaAuthorityLatch(); // one context per guarded client/session
+  // The admission's authority context when the client was built from a lease (shared with the lease and the session);
+  // otherwise (direct/unit use) a context private to this guarded client. Never a fresh latch for an old lease.
+  const authorityContext = shared ?? novaAuthorityOf(client) ?? novaAuthorityContext(false);
+  // Clock observed FIRST; session callback keeps its historical precedence over the binding deadlines, and an observed
+  // deadline is latched even when the callback fails with a non-terminal category. Shared terminal state, no await.
+  const checkAuthority = (authority: NovaHttpAuthorization) => authorityContext.check((now) => {
+    novaGuardedCallback(authorityContext, () => assertSynchronousAuthority(authority), () => current(binding, authority.phase, now));
+    current(binding, authority.phase, now); current(binding, authority.phase, authorityContext.now());
+  });
   const context = new AsyncLocalStorage<{
     authorization: NovaHttpAuthorization; bodyHash: string; signal: AbortSignal; dispatched: boolean;
   }>();
@@ -87,9 +95,7 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
     const immutableRequest = Object.freeze({ ...destination, body: JSON.stringify(body) });
     if (active.signal.aborted || (options && "abortSignal" in options && options.abortSignal?.aborted)) { const error = new Error("Aborted"); error.name = "AbortError"; throw error; }
     // Every HTTP attempt, including SDK-internal retries, rechecks expiry. No await or middleware after this check.
-    // P1 fix: observe the clock and judge the signed deadlines BEFORE the throwable session callback; any observed
-    // expiry or rollback latches this guarded client permanently (a later wall-clock rollback cannot revive it).
-    authorityLatch.check(clock, (now) => { current(binding, authority.phase, now); assertSynchronousAuthority(authority); current(binding, authority.phase, clock()); });
+    checkAuthority(authority);
     if (active.dispatched) throw new PilotError("NOVA_HTTP_DISPATCH_REPLAY");
     active.dispatched = true;
     return dispatchHttp(immutableRequest, options).then(result => {
@@ -120,7 +126,7 @@ export function installNovaHttpBoundary(client: BedrockRuntimeClient, expected: 
       const authority = Object.freeze({ ...supplied, binding });
       const slot = `${authority.phase}:${authority.reservationOrdinal}`;
       if (reservations.has(slot)) throw new PilotError("NOVA_HTTP_RESERVATION_REPLAY");
-      authorityLatch.check(clock, (now) => { current(binding, authority.phase, now); assertSynchronousAuthority(authority); current(binding, authority.phase, clock()); });
+      checkAuthority(authority);
       if (client.config.requestHandler !== guarded) throw new PilotError("NOVA_HTTP_HANDLER_REPLACED");
       reservations.add(slot);
       const { modelId: _model, ...body } = inputCopy;

@@ -10,6 +10,7 @@ import { createNovaTransport, NOVA_MODEL, NOVA_REGION } from "./nova-converse-tr
 import { installNovaHttpBoundary, type NovaHttpAuthorization, type NovaHttpSessionBinding } from "./nova-http-boundary";
 import { NOVA_ENDPOINT, assertNovaEndpointEnvironment } from "./nova-endpoint";
 import type { NovaStaticCredentials } from "./nova-credentials";
+import { bindNovaAuthority, novaAuthorityOf } from "./nova-clock";
 
 export type NovaSend = (input: ConverseCommandInput, signal: AbortSignal, authorization?: NovaHttpAuthorization) => Promise<ConverseCommandOutput>;
 
@@ -20,10 +21,13 @@ export function createNovaRuntimeClient(profile: string, credentials?: NovaStati
   if (!NovaScopeSchema.shape.awsProfile.safeParse(profile).success) throw new PilotError("NOVA_PROFILE_INVALID");
   assertNovaEndpointEnvironment();
   if (!credentials?.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken || !Number.isFinite(credentials.expiration?.getTime())) throw new PilotError("NOVA_PRE_RESOLVED_CREDENTIALS_REQUIRED");
-  return new BedrockRuntimeClient({ region: NOVA_REGION, endpoint: NOVA_ENDPOINT, credentials: { ...credentials, expiration: new Date(credentials.expiration) },
+  const client = new BedrockRuntimeClient({ region: NOVA_REGION, endpoint: NOVA_ENDPOINT, credentials: { ...credentials, expiration: new Date(credentials.expiration) },
     maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true,
     // SigV4 only: a shared-config auth_scheme_preference or bearer token must not select httpBearerAuth.
     authSchemePreference: ["sigv4"] });
+  // A client built from a lease inherits that admission's authority context (its HTTP boundary shares the latch).
+  const authority = novaAuthorityOf(credentials);
+  return authority ? bindNovaAuthority(client, authority) : client;
 }
 export function novaRuntimeSend(client: BedrockRuntimeClient, binding: NovaHttpSessionBinding): NovaSend {
   const boundary = installNovaHttpBoundary(client, binding);
