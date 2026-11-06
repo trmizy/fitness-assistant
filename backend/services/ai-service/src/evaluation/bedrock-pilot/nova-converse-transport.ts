@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import type { EvaluationTransport } from "./session";
 import { PilotError } from "./config";
+import type { NovaHttpAuthorization } from "./nova-http-boundary";
 
 export const NOVA_MODEL = "amazon.nova-pro-v1:0";
 // In-Region bare model ID on bedrock-runtime (model card: us-east-1 In-Region supported); no inference profile.
@@ -39,7 +40,7 @@ export function serializeNova(value: ConverseCommandInput) {
 export interface NovaFakeRequest { operation: "Converse"; region: typeof NOVA_REGION; purpose: "MEASURE" | "INFERENCE"; body: string; identity: NovaWireIdentity }
 export interface NovaFakeReply { status: number; body: unknown }
 /** Wire seam shared by the FAKE and LIVE adapters; status 0 means the outcome (and any billing) is unknown. */
-export interface NovaIo { converse(request: NovaFakeRequest, signal: AbortSignal): Promise<NovaFakeReply> }
+export interface NovaIo { converse(request: NovaFakeRequest, signal: AbortSignal, authorization?: NovaHttpAuthorization): Promise<NovaFakeReply> }
 export interface NovaFakeIo extends NovaIo { kind: "FAKE" }
 const Tokens = z.number().int().nonnegative().safe();
 // Converse: inputTokens excludes explicit cache reads/writes. This adapter never sends cachePoint, and AWS documents
@@ -56,10 +57,10 @@ export function createFakeNovaTransport(io: NovaFakeIo): EvaluationTransport {
 /** Shared validation for both IO kinds. The LIVE IO is only constructed by the session after every owner gate. */
 export function createNovaTransport(io: NovaIo, kind: "FAKE" | "LIVE"): EvaluationTransport {
   if (!io || typeof io.converse !== "function") throw new PilotError("NOVA_IO_REQUIRED");
-  async function exchange(input: ConverseCommandInput, purpose: "MEASURE" | "INFERENCE", signal: AbortSignal) {
+  async function exchange(input: ConverseCommandInput, purpose: "MEASURE" | "INFERENCE", signal: AbortSignal, authorization?: NovaHttpAuthorization) {
     const wire = serializeNova(input);
     if (signal.aborted) { const e = new Error("Aborted"); e.name = "AbortError"; throw e; }
-    const reply = await io.converse(Object.freeze({ operation: "Converse" as const, region: NOVA_REGION, purpose, body: purpose === "MEASURE" ? wire.measureBody : wire.inferenceBody, identity: wire.identity }), signal);
+    const reply = await io.converse(Object.freeze({ operation: "Converse" as const, region: NOVA_REGION, purpose, body: purpose === "MEASURE" ? wire.measureBody : wire.inferenceBody, identity: wire.identity }), signal, authorization);
     const fail = (code: string, unknownUsage = false): never => { throw new PilotError(code, { providerResponse: reply, wire: wire.identity, unknownUsage }); };
     if (!reply || !Number.isInteger(reply.status)) fail("NOVA_INVALID_RESPONSE", true);
     // No HTTP status (network failure after dispatch): the request may have been billed.
@@ -73,13 +74,13 @@ export function createNovaTransport(io: NovaIo, kind: "FAKE" | "LIVE"): Evaluati
     return { wire, reply, body: parsed.data, usage: u, fail };
   }
   return { kind, protocol: "NOVA_CONVERSE_MEASURED", billedCount: true,
-    async count(input, signal) {
-      const r = await exchange(input, "MEASURE", signal);
+    async count(input, signal, authorization) {
+      const r = await exchange(input, "MEASURE", signal, authorization);
       if (r.usage.outputTokens > NOVA_MEASURE_MAX_TOKENS || !["max_tokens", "end_turn"].includes(r.body.stopReason)) return r.fail("NOVA_MEASURE_INVALID", true);
       return { inputTokens: r.usage.inputTokens, billedUsage: { inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens }, providerResponse: r.reply, wire: r.wire.identity };
     },
-    async invoke(input, signal) {
-      const r = await exchange(input, "INFERENCE", signal);
+    async invoke(input, signal, authorization) {
+      const r = await exchange(input, "INFERENCE", signal, authorization);
       if (r.usage.outputTokens > input.inferenceConfig!.maxTokens!) return r.fail("NOVA_USAGE_OUT_OF_BOUNDS", true);
       // Truncation/refusal/guardrail stops are failures, not answers; usage is known so the reservation reconciles.
       if (r.body.stopReason !== "end_turn") return r.fail("NOVA_STOP_REASON_" + r.body.stopReason.toUpperCase().replace(/[^A-Z_]/g, "_"));

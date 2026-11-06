@@ -16,6 +16,7 @@ import { assertVerifiedPins, type VerifiedPins } from "./pins";
 import type { MantleWireIdentity } from "./mantle-transport";
 import { serializeNova, type NovaWireIdentity } from "./nova-converse-transport";
 import { assertCurrentInferenceRelease, dispatchWithInferenceRelease } from "./inference-release-deadline";
+import type { NovaHttpAuthorization, NovaHttpSessionBinding } from "./nova-http-boundary";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 type WireIdentity = MantleWireIdentity | NovaWireIdentity;
@@ -24,8 +25,8 @@ export interface EvaluationTransport {
   protocol?: "MANTLE_MESSAGES" | "NOVA_CONVERSE_MEASURED";
   /** The count is itself a billed model call (Nova measured preflight); its spend is reserved and reconciled. */
   billedCount?: boolean;
-  count(input: ConverseCommandInput, signal: AbortSignal): Promise<number | { inputTokens: number; providerResponse: unknown; wire: WireIdentity; billedUsage?: { inputTokens: number; outputTokens: number } }>;
-  invoke(input: ConverseCommandInput, signal: AbortSignal): Promise<ConverseCommandOutput & { providerResponse?: unknown; wire?: WireIdentity }>;
+  count(input: ConverseCommandInput, signal: AbortSignal, authorization?: NovaHttpAuthorization): Promise<number | { inputTokens: number; providerResponse: unknown; wire: WireIdentity; billedUsage?: { inputTokens: number; outputTokens: number } }>;
+  invoke(input: ConverseCommandInput, signal: AbortSignal, authorization?: NovaHttpAuthorization): Promise<ConverseCommandOutput & { providerResponse?: unknown; wire?: WireIdentity }>;
 }
 export function inferenceTarget(c: SessionConfig) {
   if (c.transportProtocol === "MANTLE_MESSAGES" || c.transportProtocol === "NOVA_CONVERSE_MEASURED") {
@@ -129,7 +130,14 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     if (unresolved || drifted) { ledger.close(); throw new PilotError(unresolved ? "UNRESOLVED_MEASUREMENT_REQUIRES_OWNER_AUDIT" : "INFERENCE_RELEASE_MEASUREMENT_MISMATCH"); }
   }
   // Every gate has passed and the ledger is claimed: only now is a LIVE IO built. The real client exists only without a rehearsal.
-  const transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? rehearsal.send : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile))) : liveTransport());
+  const httpBinding: NovaHttpSessionBinding | null = approval && nova ? Object.freeze({
+    approvalId, approvalHash, configHash, ledgerDirectory, approvalExpiresAt: approval.approval.expiresAt,
+    inferenceReleaseExpiresAt: release?.expiresAt ?? null,
+    scope: options.measureOnly ? "MEASURE_ONLY" : inferencePhase ? "INFERENCE_ONLY" : "ONE_SHOT",
+  }) : null;
+  let transport: EvaluationTransport;
+  try { transport = fake ?? (nova ? createLiveNovaTransport(rehearsal ? rehearsal.send : novaRuntimeSend(createNovaRuntimeClient(config.novaScope!.awsProfile), httpBinding!)) : liveTransport()); }
+  catch (error) { ledger.close(); throw error; }
   let journal: ReturnType<typeof openJournal>;
   try {
     if (!options.resume) {
@@ -165,6 +173,27 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     assertCurrentAuthorization(config);
     return inferencePhase ? dispatchWithInferenceRelease(release, dispatch) : dispatch();
   };
+  const httpAuthorization = (phase: NovaHttpAuthorization["phase"], hash: string, input: ConverseCommandInput, ordinal: number, key: string): NovaHttpAuthorization | undefined => {
+    if (!httpBinding) return undefined; // Historical FAKE/other transports keep their existing seam.
+    const wire = serializeNova(input);
+    const issued = { binding: httpBinding, phase, reservationOrdinal: ordinal, reservationId: `${phase}:${ordinal}:${key}`,
+      promptHash: hash, tokenPayloadHash: wire.identity.tokenPayloadHash,
+      requestHash: phase === "MEASURE" ? wire.identity.measureRequestHash : wire.identity.inferenceRequestHash };
+    return Object.freeze({ ...issued,
+      assertCurrent: (request: NovaHttpAuthorization) => {
+        if (digest(issued) !== digest({ binding: request.binding, phase: request.phase, reservationOrdinal: request.reservationOrdinal,
+          reservationId: request.reservationId, promptHash: request.promptHash, tokenPayloadHash: request.tokenPayloadHash, requestHash: request.requestHash })) throw new PilotError("NOVA_HTTP_AUTHORIZATION_MISMATCH");
+        const s = ledger.state();
+        if (closed || fatal || s.stopped) throw new PilotError("BudgetStopped");
+        if ((phase === "MEASURE" && (s.countCalls !== ordinal || s.counts[hash] !== undefined)) ||
+            (phase === "INFERENCE" && (s.inferenceCalls !== ordinal || s.attemptKeys[ordinal - 1] !== key))) throw new PilotError("NOVA_HTTP_RESERVATION_MISMATCH");
+        assertCurrentAuthorization(config);
+        const current = currentApproval();
+        if (!current || current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED");
+        if (inferencePhase) assertCurrentInferenceRelease(release);
+      },
+    });
+  };
   async function count(prompt: Prompt) {
     authorize(); const { hash, input } = inputFor(prompt); const state = ledger.state();
     if (state.counts[hash] !== undefined) return state.counts[hash];
@@ -180,7 +209,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     save({ countCalls: state.countCalls + 1, ...(billed ? { inputTokens: state.inputTokens + reserveIn, outputTokens: state.outputTokens + reserveOut, estimatedUsd: estimatedCost(config, state.inputTokens + reserveIn, state.outputTokens + reserveOut) } : {}) }, billed ? "MEASURE_RESERVED" : "COUNT_RESERVED");
     let countResponse: ReturnType<typeof protect> | undefined, countWire: unknown;
     try {
-      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.count(input, signal)));
+      const authority = httpAuthorization("MEASURE", hash, input, state.countCalls + 1, hash);
+      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.count(input, signal, authority)));
       const tokens = typeof response === "number" ? response : response.inputTokens;
       if (typeof response !== "number") {
         countResponse = protect(response.providerResponse); countWire = response.wire;
@@ -226,7 +256,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     let providerResponse: ReturnType<typeof protect> | undefined, wire: unknown, structuralDerivation: ClaimEnvelopeDerivation | null = null;
     const inferenceStarted = Date.now();
     try {
-      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.invoke(input, signal)));
+      const authority = httpAuthorization("INFERENCE", hash, input, s.inferenceCalls + 1, key);
+      const response = await deadline(config.parameters.timeoutMs, (signal) => dispatchAuthorized(() => transport.invoke(input, signal, authority)));
       if (transport.protocol) { providerResponse = protect(response.providerResponse ?? null); wire = response.wire; }
       rawText = (response.output?.message?.content ?? []).map((b) => "text" in b ? b.text ?? "" : "").join("");
       stopReason = response.stopReason ?? null; inputTokens = response.usage?.inputTokens ?? null; outputTokens = response.usage?.outputTokens ?? null;

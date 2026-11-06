@@ -10,14 +10,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { generateKeyPairSync, randomUUID, sign, type KeyObject } from "node:crypto";
-import type { ConverseCommandInput, ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, type ConverseCommandInput, type ConverseCommandOutput } from "@aws-sdk/client-bedrock-runtime";
 import { approvedConfigurationHash, NOVA_ACCEPTED, NOVA_TWO_PHASE, parseConfiguration, PilotError, type SessionConfig } from "../evaluation/bedrock-pilot/config";
 import { inferenceReleaseFile, measurementPhaseRecord, novaLedgerScope, verifyInferenceRelease } from "../evaluation/bedrock-pilot/ledger";
 import { converseInput } from "../evaluation/bedrock-pilot/session";
 import { runControlledPilot } from "../evaluation/bedrock-pilot/runner";
 import { calculatePilotPins, implementationRoot } from "../evaluation/bedrock-pilot/pins";
 import { NOVA_MODEL, NOVA_REGION, serializeNova } from "../evaluation/bedrock-pilot/nova-converse-transport";
-import type { NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
+import { novaRuntimeSend, type NovaSend } from "../evaluation/bedrock-pilot/nova-live-transport";
 import { openJournal } from "../evaluation/bedrock-pilot/storage";
 import { canonical, digest } from "../evaluation/evaluation-kit/identity";
 import { verifyReviewerExport } from "../evaluation/evaluation-kit/reviewer-export";
@@ -47,7 +47,8 @@ function output(text: string, inputTokens: number, outputTokens: number, stopRea
 }
 const tokensOf = (i: ConverseCommandInput) => Math.ceil(Buffer.byteLength(JSON.stringify(serializeNova(i).canonical), "utf8") / 4);
 
-async function fixture(options: { phases?: boolean; budget?: Partial<SessionConfig["budget"]> } = {}) {
+async function fixture(options: { phases?: boolean; budget?: Partial<SessionConfig["budget"]>;
+  sdk?: { credentials?: () => Promise<void>; signing?: () => Promise<void> } } = {}) {
   const a = fixturePilotInput(claimDevScenarios[0].request, A), b = fixturePilotInput(claimDevScenarios[1].request, B);
   const merged = JSON.parse(fs.readFileSync(a.casesFile, "utf8")), second = JSON.parse(fs.readFileSync(b.casesFile, "utf8"));
   for (const key of ["released", "expectedManifests", "ownerReceiptHashes"]) merged[key].push(...second[key]); fs.writeFileSync(a.casesFile, JSON.stringify(merged));
@@ -68,8 +69,33 @@ async function fixture(options: { phases?: boolean; budget?: Partial<SessionConf
   const ledger = path.join(a.root, "ledger"); fs.mkdirSync(ledger);
   const trust = { version: "owner-trust-v1", issuer: ISSUER, publicKeyPem: pem(keys.publicKey), ledgerDirectory: ledger };
   const sent: ConverseCommandInput[] = [];
+  const httpRequests: ConverseCommandInput[] = [], clients: BedrockRuntimeClient[] = [], sdkSends = new Map<string, NovaSend>();
   let reply = (i: ConverseCommandInput): ConverseCommandOutput => i.inferenceConfig!.maxTokens === 1 ? output("{", tokensOf(i), 1, "max_tokens") : output(answer, tokensOf(i), 40, "end_turn");
-  const send: NovaSend = async (i) => { sent.push(structuredClone(i)); return reply(i); };
+  const send: NovaSend = async (i, signal, authority) => {
+    sent.push(structuredClone(i));
+    if (!options.sdk) return reply(i);
+    assert.ok(authority, "actual session must provide its reservation-bound HTTP authorization");
+    const binding = digest(authority.binding);
+    if (!sdkSends.has(binding)) {
+      const client = new BedrockRuntimeClient({ region: NOVA_REGION, maxAttempts: 1,
+        credentials: async () => { await options.sdk!.credentials?.(); return { accessKeyId: "TESTFIXTUREACCESSKEY", secretAccessKey: "TEST_FIXTURE_NOT_REAL" }; },
+        requestHandler: { async handle(request: any) {
+          const raw = typeof request.body === "string" ? request.body : Buffer.from(request.body.buffer, request.body.byteOffset, request.body.byteLength).toString("utf8");
+          const input = { modelId: NOVA_MODEL, ...JSON.parse(raw) } as ConverseCommandInput;
+          httpRequests.push(structuredClone(input));
+          const { $metadata: _metadata, ...body } = reply(input);
+          return { response: { statusCode: 200, headers: { "content-type": "application/json" }, body: Buffer.from(JSON.stringify(body)) } };
+        }, destroy() {} } });
+      if (options.sdk.signing) {
+        const config = client.config as any;
+        config.httpAuthSchemes = config.httpAuthSchemes.map((scheme: any) => ({ ...scheme, signer: { ...scheme.signer,
+          async sign(...args: any[]) { const signed = await scheme.signer.sign(...args); await options.sdk!.signing!(); return signed; },
+        } }));
+      }
+      clients.push(client); sdkSends.set(binding, novaRuntimeSend(client, authority.binding));
+    }
+    return sdkSends.get(binding)!(i, signal, authority);
+  };
   const issue = (x: SessionConfig) => openJournal(path.join(ledger, x.approval!.approvalId + ".jsonl"), true)
     .append({ event: "ISSUED", authority: "FAKE_TEST_ONLY", approvalId: x.approval!.approvalId, approvalHash: digest(x.approval), configHash: approvedConfigurationHash(x), scope: novaLedgerScope(x) });
   const records = (x: SessionConfig) => openJournal(path.join(ledger, x.approval!.approvalId + ".jsonl")).records as { event: string }[];
@@ -84,7 +110,8 @@ async function fixture(options: { phases?: boolean; budget?: Partial<SessionConf
   const run = (x: SessionConfig, dir: string, o: { measureOnly?: boolean; resume?: boolean; onStage?: (s: string) => void } = {}) =>
     runControlledPilot({ config: x, directory: dir, liveRehearsal: { trust, send }, measureOnly: o.measureOnly, resume: o.resume, onStage: o.onStage as never });
   const inferences = () => sent.filter(i => i.inferenceConfig!.maxTokens !== 1), measures = () => sent.filter(i => i.inferenceConfig!.maxTokens === 1);
-  return { root: a.root, base: c, ledger, sent, issue, records, release, run, inferences, measures, label, setReply: (r: typeof reply) => { reply = r; }, close: () => fs.rmSync(a.root, { recursive: true, force: true }) };
+  return { root: a.root, base: c, ledger, sent, httpRequests, issue, records, release, run, inferences, measures, label, setReply: (r: typeof reply) => { reply = r; },
+    close: () => { for (const client of clients) client.destroy(); fs.rmSync(a.root, { recursive: true, force: true }); } };
 }
 
 test("config: two-phase is a LIVE-only signed scope field; historical scopes and ledger scopes have no phases key", async () => {
@@ -336,4 +363,65 @@ test("one-shot LIVE is unchanged: no phases key, no release needed, and a used a
     await assert.rejects(f.run(c, dir, { resume: true }), /APPROVAL_ALREADY_USED/);
     assert.equal(f.sent.length, 12);
   } finally { f.close(); }
+});
+
+test("HTTP boundary signed rehearsal: actual session reservations admit 4 measurements, durable stop, separate release and 8 inferences without duplicates", needsClean, async () => {
+  const f = await fixture({ sdk: {} });
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run");
+    await f.run(c, dir, { measureOnly: true }); assert.equal(f.httpRequests.length, 4);
+    const before = f.records(c).length;
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && e.code === "INFERENCE_RELEASE_REQUIRED");
+    assert.equal(f.httpRequests.length, 4); assert.equal(f.records(c).length, before);
+    f.release(c); const summary = await f.run(c, dir, { resume: true });
+    assert.equal(f.httpRequests.length, 12); assert.equal(summary.budget.countCalls, 4); assert.equal(summary.budget.inferenceCalls, 8);
+    assert.equal(summary.scientificPass, null);
+    assert.deepEqual(f.httpRequests.filter(i => i.inferenceConfig!.maxTokens !== 1).map(i => f.label.get(serializeNova(i).identity.tokenPayloadHash)), OWNER_ORDER);
+    const reviewerDir = path.join(dir + "-reviewers", "R1"), receiptPins = new Map<string, string>();
+    for (const file of fs.readdirSync(dir).filter(n => n.startsWith("answer-") && n.endsWith(".json"))) {
+      const stored = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
+      for (const packet of stored.packets.reviewers) if (packet.reviewerSlot === "R1") receiptPins.set(packet.body.instanceId, packet.reviewerExportHashes.R1);
+    }
+    const receipts = fs.readdirSync(reviewerDir).filter(n => n.endsWith(".json")); assert.equal(receipts.length, 8);
+    for (const file of receipts) { const exported = JSON.parse(fs.readFileSync(path.join(reviewerDir, file), "utf8")); verifyReviewerExport(exported, receiptPins.get(exported.opaqueId)!); }
+    assert.deepEqual(await f.run(c, dir, { resume: true }), summary); assert.equal(f.httpRequests.length, 12);
+  } finally { f.close(); }
+});
+
+test("HTTP boundary measurement: approval expiring in actual SDK credentials consumes one reservation, records authorization failure and sends zero HTTP", needsClean, async () => {
+  const original = Date.now; let now = original(), expires = Infinity; Date.now = () => now;
+  const f = await fixture({ sdk: { credentials: async () => { await Promise.resolve(); now = expires + 1; } } });
+  try {
+    const c = signed(f.base); expires = Date.parse(c.approval!.expiresAt); f.issue(c); const dir = path.join(f.root, "run");
+    await assert.rejects(f.run(c, dir, { measureOnly: true }), e => e instanceof PilotError && e.code === "TokenPreflightFailed");
+    assert.equal(f.httpRequests.length, 0); assert.equal(f.sent.length, 1);
+    const results = openJournal(path.join(dir, "results.jsonl")).records as { event: string; category?: string }[];
+    assert.ok(results.some(r => r.event === "TOKEN_PREFLIGHT_FAILED" && r.category === "LiveNotApproved"));
+    assert.ok(!results.some(r => r.event === "COUNT_RESPONSE" || r.event === "RAW_RESPONSE"));
+    const ledger = openJournal(path.join(f.ledger, c.approval!.approvalId + ".jsonl")).records as { event: string; state?: { countCalls: number; inputTokens: number; stopped: boolean } }[];
+    assert.equal(ledger.filter(r => r.event === "MEASURE_RESERVED" && r.state).length, 1);
+    const failed = ledger.find(r => r.event === "COUNT_FAILED")!; assert.equal(failed.state!.countCalls, 1); assert.equal(failed.state!.inputTokens, 12000); assert.equal(failed.state!.stopped, true);
+    await assert.rejects(f.run(c, dir, { measureOnly: true, resume: true }), e => e instanceof PilotError && e.code === "LiveNotApproved"); assert.equal(f.httpRequests.length, 0);
+  } finally { Date.now = original; f.close(); }
+});
+
+test("HTTP boundary inference: release expiring in actual signing preserves the attempt reservation, records no success and expired resume cannot dispatch", needsClean, async () => {
+  const original = Date.now; let now = original(), enabled = false, expires = Infinity; Date.now = () => now;
+  const f = await fixture({ sdk: { signing: async () => { await Promise.resolve(); if (enabled) now = expires + 1; } } });
+  try {
+    const c = signed(f.base); f.issue(c); const dir = path.join(f.root, "run"); await f.run(c, dir, { measureOnly: true });
+    expires = now + 60000; f.release(c, { expiresAt: new Date(expires).toISOString() }); enabled = true;
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && e.code === "INFERENCE_RELEASE_EXPIRED");
+    assert.equal(f.httpRequests.length, 4); assert.ok(f.httpRequests.every(i => i.inferenceConfig!.maxTokens === 1));
+    const results = openJournal(path.join(dir, "results.jsonl")).records as { event: string; providerError?: string; conservativeReservationRetained?: boolean; rawText?: unknown; attemptKey?: string }[];
+    const failed = results.find(r => r.event === "ATTEMPT_FINISHED")!;
+    assert.equal(failed.providerError, "INFERENCE_RELEASE_EXPIRED"); assert.equal(failed.conservativeReservationRetained, true); assert.equal(failed.rawText, null);
+    assert.ok(!results.some(r => r.event === "RAW_RESPONSE"));
+    const ledger = openJournal(path.join(f.ledger, c.approval!.approvalId + ".jsonl")).records as { event: string; state?: { inferenceCalls: number; attemptKeys: string[] } }[];
+    assert.equal(ledger.filter(r => r.event === "INFERENCE_RESERVED" && r.state).length, 1);
+    assert.equal(ledger.at(-1)!.state!.inferenceCalls, 1); assert.ok(ledger.at(-1)!.state!.attemptKeys.includes(failed.attemptKey!));
+    const before = f.records(c).length;
+    await assert.rejects(f.run(c, dir, { resume: true }), e => e instanceof PilotError && e.code === "INFERENCE_RELEASE_EXPIRED");
+    assert.equal(f.records(c).length, before); assert.equal(f.httpRequests.length, 4);
+  } finally { Date.now = original; f.close(); }
 });
