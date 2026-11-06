@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { disputeCaseApi } from "../../disputeCaseApi";
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../../disputeQueryKeys";
 import { caseStatusLabel, caseStatusText, caseTypeLabel, claimMoveLabel, claimantRoleLabel, ptLateFindingLabel, PT_LATE_ISSUE_NOTE } from "../../disputeCaseLabels";
+import type { ClosureInfo } from "../../disputeCaseTypes";
 import { investigatorText } from "../../queue/queueModel";
 import { describePayload } from "../evidenceModel";
 import { formatDateTime, proseOrNull } from "../format";
@@ -63,6 +64,32 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
           ]}
         />
       </Section>
+
+      {detail.closure && (
+        <Section title="Tình trạng giải quyết hồ sơ" testId="d2-closure-panel">
+          <div className="space-y-2 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-adm-text-2">Trạng thái:</span>
+              <Pill tone={detail.closure.state === "OPEN" ? "info" : "success"}>
+                {detail.closure.state === "OPEN" ? "Đang mở" : "Đã đóng"}
+              </Pill>
+              {detail.closure.fullyResolved ? (
+                <Pill tone="success">Đã giải quyết hoàn tất</Pill>
+              ) : (
+                <Pill tone="warning">Chưa giải quyết hoàn tất</Pill>
+              )}
+            </div>
+            {detail.closure.pendingAppeals > 0 && (
+              <p className="text-xs text-adm-text-2">
+                Đang có {detail.closure.pendingAppeals} yêu cầu xem xét lại chờ xử lý.
+              </p>
+            )}
+            {(detail.closure.moneyAxisSettled === false || detail.closure.fullyResolved === false) && (
+              <Notice tone="warning">Hồ sơ đã đóng nhưng phần tiền chưa xong</Notice>
+            )}
+          </div>
+        </Section>
+      )}
 
       <Section title="Buổi tập bị khiếu nại" testId="d2-session-summary">
         {sessionQuery.data && <FieldList fields={[

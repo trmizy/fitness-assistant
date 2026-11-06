@@ -38,6 +38,8 @@ import type {
   MemberCaseDetail,
   MemberCaseList,
   GymCapabilities,
+  GymReplacementResult,
+  GymAppealReviewerResult,
 } from "./gymCaseTypes";
 
 export interface GymHttpClient {
@@ -217,6 +219,18 @@ export function createGymCaseApi(client: GymHttpClient) {
     execute: (caseId: string, input: { decisionId?: string } = {}) => postData<GymExecuteResult>(`${A}/${enc(caseId)}/execute`, compact({ decisionId: input.decisionId }), null, MONEY_MS),
     reconcileExecution: (caseId: string) => postData<GymReconcileResult>(`${A}/${enc(caseId)}/reconcile-execution`, {}, null, MONEY_MS),
 
+    // ── G26: Appeal reviewer ──
+    assignAppealReviewer: (caseId: string, input: { reviewerId?: string }, key: string) =>
+      postData<GymAppealReviewerResult>(`${A}/${enc(caseId)}/appeal/reviewer`, compact({ reviewerId: input.reviewerId }), key),
+
+    // ── G33-G35: Decision replacement ──
+    proposeReplacement: (caseId: string, input: { reason: string }, key: string) =>
+      postData<GymReplacementResult>(`${A}/${enc(caseId)}/decision-replacement`, { reason: input.reason }, key),
+    approveReplacement: (caseId: string, input: { reason: string; conflictOfInterestDeclaredNone: boolean }, key: string) =>
+      postData<GymReplacementResult>(`${A}/${enc(caseId)}/decision-replacement/approve`, { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone }, key),
+    rejectReplacement: (caseId: string, input: { reason: string }, key: string) =>
+      postData<GymReplacementResult>(`${A}/${enc(caseId)}/decision-replacement/reject`, { reason: input.reason }, key),
+
     // ── member side (G20-G23) ──
     listMine: () => get<MemberCaseList>(M),
     getMine: (caseId: string) => get<MemberCaseDetail>(`${M}/${enc(caseId)}`),
@@ -224,6 +238,8 @@ export function createGymCaseApi(client: GymHttpClient) {
       postData<GymStatementResult>(`${M}/${enc(caseId)}/statements`, compact({ text: input.text, supplementReason: input.supplementReason }), key),
     submitEvidence: (caseId: string, input: DocumentInput, key: string) =>
       postData<GymCreatedId>(`${M}/${enc(caseId)}/evidence`, compact({ description: input.description, sha256: input.sha256, title: input.title, fileName: input.fileName }), key),
+    submitMemberAppeal: (caseId: string, input: { reason: string }, key: string) =>
+      postData<{ appealId?: string; status?: string }>(`${M}/${enc(caseId)}/appeal`, { reason: input.reason }, key),
   };
 }
 

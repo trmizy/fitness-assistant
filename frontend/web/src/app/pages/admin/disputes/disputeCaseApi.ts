@@ -55,6 +55,14 @@ import type {
   RecordFindingResult,
   ShareRole,
   StatementCreated,
+  ReplacementList,
+  ReplacementProposeResult,
+  ReplacementDecideResult,
+  AppealList,
+  AppealRequestResult,
+  AssignReviewerResult,
+  AppealDecisionInput,
+  AppealDecisionResult,
 } from "./disputeCaseTypes";
 
 // ───────────────────────────────────────────────────────────── transport ──
@@ -342,6 +350,46 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     /** A26. Investigator only, `FINDING_RECORDED` with a `NOT_A_DISPUTE` finding. The session stays DISPUTED and goes back to the queue. */
     closeNotADispute: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
       postData<CloseResult>(`${A}/${enc(caseId)}/close-not-a-dispute`, { reason: input.reason }, idempotencyKey),
+    /** A50. Admin only, not a party; `DECISION_APPROVED` + `BUSINESS_DONE`; `allowedActions` must list `closeExecuted`. Never moves money. */
+    closeExecuted: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
+      postData<CloseResult>(`${A}/${enc(caseId)}/close-executed`, { reason: input.reason }, idempotencyKey),
+
+    // ── A33-A36: Decision replacement ──
+    /** A33. List replacements. Always open even when flag off. */
+    listReplacements: (caseId: string) =>
+      get<ReplacementList>(`${A}/${enc(caseId)}/replacements`),
+    /** A34. Propose replacement. Body {reason} (1..2000). */
+    proposeReplacement: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
+      postData<ReplacementProposeResult>(`${A}/${enc(caseId)}/replacements`, { reason: input.reason }, idempotencyKey),
+    /** A35. Approve replacement. Body {reason, conflictOfInterestDeclaredNone: true}. */
+    approveReplacement: (caseId: string, replacementId: string, input: { reason: string; conflictOfInterestDeclaredNone: boolean }, idempotencyKey: string) =>
+      postData<ReplacementDecideResult>(`${A}/${enc(caseId)}/replacements/${enc(replacementId)}/approve`, { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone }, idempotencyKey),
+    /** A36. Reject replacement. Body {reason, conflictOfInterestDeclaredNone: true}. */
+    rejectReplacement: (caseId: string, replacementId: string, input: { reason: string; conflictOfInterestDeclaredNone: boolean }, idempotencyKey: string) =>
+      postData<ReplacementDecideResult>(`${A}/${enc(caseId)}/replacements/${enc(replacementId)}/reject`, { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone }, idempotencyKey),
+
+    // ── A45-A47, A52: Appeals ──
+    /** A45. List appeals. */
+    listAppeals: (caseId: string) =>
+      get<AppealList>(`${A}/${enc(caseId)}/appeals`),
+    /** A46. Assign appeal reviewer. */
+    assignAppealReviewer: (caseId: string, appealId: string, input: { reviewerId: string }, idempotencyKey: string) =>
+      postData<AssignReviewerResult>(`${A}/${enc(caseId)}/appeals/${enc(appealId)}/assign-reviewer`, { reviewerId: input.reviewerId }, idempotencyKey),
+    /** A47. Decide appeal. Assigned reviewer only. */
+    decideAppeal: (caseId: string, appealId: string, input: AppealDecisionInput, idempotencyKey: string) =>
+      postData<AppealDecisionResult>(
+        `${A}/${enc(caseId)}/appeals/${enc(appealId)}/decision`,
+        compact({
+          result: input.result,
+          reasoning: input.reasoning,
+          finding: input.finding,
+          consequences: input.consequences,
+        }),
+        idempotencyKey,
+      ),
+    /** A52. Sync obligation status. */
+    syncAppealObligation: (caseId: string, consequenceId: string, idempotencyKey: string) =>
+      postData<{ consequenceId: string; status: string; obligation: unknown }>(`${A}/${enc(caseId)}/appeal-consequences/${enc(consequenceId)}/sync-obligation`, {}, idempotencyKey),
 
     // ── execution (server flag `execution`; `409 EXECUTION_DISABLED` when off) ──
     /** A27. `decisionId` only CHOOSES among the case's approvals; the executor re-reads and re-checks everything. Changes the session, the quota and money. */
@@ -369,6 +417,9 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
         compact({ description: input.description, sha256: input.sha256, title: input.title, fileName: input.fileName }),
         idempotencyKey,
       ),
+    /** B8. Request appeal. Idempotency-Key mandatory. */
+    requestPartyAppeal: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
+      postData<AppealRequestResult>(`/dispute-cases/${enc(caseId)}/appeals`, { reason: input.reason }, idempotencyKey),
   };
 }
 

@@ -8,6 +8,7 @@ import { GYM_QUERY_OPTIONS, useGymQueryKeys } from "../admin/complaints/gymCaseQ
 import { parseGymCaseId } from "../admin/complaints/gymCaseModel";
 import { formatMoneyString } from "../admin/adminFinanceOverview.utils";
 import { CARD, FOCUS, FailureBlock, LoadingBlock, MUTED, PartyLink, ReloadButton } from "../disputes/PartyParts";
+import { GymStatementForm, GymDocumentForm, GymMemberAppealForm } from "./GymMemberForms";
 
 const ROOT = "/complaint-cases";
 const date = (value: string | null | undefined) => value ? new Date(value).toLocaleString("vi-VN") : "Chưa rõ";
@@ -67,7 +68,31 @@ export function MyGymComplaintCasePage() {
       <section className={`${CARD} space-y-2 p-4`}><h2 className="font-semibold text-[var(--text-color)]">Lời khai</h2>{d.statements.length === 0 ? <p className={`text-sm ${MUTED}`}>Chưa có lời khai.</p> : <ul className="space-y-2">{d.statements.map((s) => <li key={s.id} className="rounded-lg border border-[var(--border-color)] p-3 text-sm"><p className={`text-xs ${MUTED}`}>{s.mine ? "Bạn đã gửi" : "Lời khai được chia sẻ"} · {date(s.createdAt)}</p><p className="mt-1 whitespace-pre-wrap break-words text-[var(--text-color)]">{s.text}</p></li>)}</ul>}</section>
       {d.money && <section className={`${CARD} space-y-2 p-4`}><h2 className="font-semibold text-[var(--text-color)]">Tiền</h2><p className="text-sm text-[var(--text-color)]">{d.money.label}</p>{d.money.postedToWallet && <p className="text-sm text-[var(--text-color)]">Đã ghi vào ví Gymini: {formatMoneyString(d.money.postedToWallet)}</p>}{d.money.stillOwed && <p className="text-sm text-[var(--text-color)]">Còn thiếu (chưa trả): {formatMoneyString(d.money.stillOwed)}</p>}</section>}
       {d.resolution?.text && <section className={`${CARD} space-y-2 p-4`}><h2 className="font-semibold text-[var(--text-color)]">Kết quả xử lý</h2><p className="whitespace-pre-wrap break-words text-sm text-[var(--text-color)]">{d.resolution.text}</p></section>}
-      {d.case.canSubmit && <p className={`text-sm ${MUTED}`} data-testid="d6-member-write-off">Hệ thống chưa cung cấp tín hiệu bật thao tác nộp lời khai và tài liệu. Hiện bạn chỉ có thể xem hồ sơ; không có thông tin nào được gửi.</p>}
+      {d.case.canSubmit ? (
+        <>
+          <GymStatementForm
+            caseId={d.case.id}
+            statementCount={d.statements.length}
+            onSaved={() => void query.refetch()}
+          />
+          <GymDocumentForm
+            caseId={d.case.id}
+            onSaved={() => void query.refetch()}
+          />
+        </>
+      ) : (
+        <p className={`text-sm ${MUTED}`}>
+          Hồ sơ hiện không nhận thêm lời khai hay tài liệu.
+        </p>
+      )}
+
+      {d.appeal?.canFile && (
+        <GymMemberAppealForm
+          caseId={d.case.id}
+          onSaved={() => void query.refetch()}
+          closesAt={d.appeal?.closesAt}
+        />
+      )}
     </>}
   </div>;
 }

@@ -32,6 +32,7 @@ import { StatementsTab } from "./tabs/StatementsTab";
 import { AssessmentsTab } from "./tabs/AssessmentsTab";
 import { FindingsTab } from "./tabs/FindingsTab";
 import { ApprovalsTab } from "./tabs/ApprovalsTab";
+import { AppealTab } from "./tabs/AppealTab";
 import { MoneyTab } from "./tabs/MoneyTab";
 import { ExecutionTab } from "./tabs/ExecutionTab";
 import { HistoryTab } from "./tabs/HistoryTab";
@@ -245,6 +246,7 @@ export function AdminDisputeCasePage() {
         {tab === "assessments" && <AssessmentsTab {...slotProps} />}
         {tab === "findings" && <FindingsTab {...slotProps} />}
         {tab === "approvals" && <ApprovalsTab {...slotProps} />}
+        {tab === "appeals" && <AppealTab {...slotProps} />}
         {tab === "money" && <MoneyTab detail={detail} onReload={reload} reloading={query.isFetching} />}
         {tab === "execution" && <ExecutionTab {...slotProps} />}
         {tab === "history" && <HistoryTab detail={detail} currentUserId={userId} />}

@@ -557,6 +557,7 @@ export const ACTION_NAMES = [
   "closeNotADispute",
   "closeOrphan",
   "readEvidenceFile",
+  "closeExecuted",
 ] as const;
 export type ActionName = (typeof ACTION_NAMES)[number];
 export interface ActionVerdict {
@@ -639,6 +640,7 @@ export interface DisputeCaseDetail {
   decision: DisputeDecision | null;
   execution?: ExecutionView;
   policyReviews?: PolicyReviewList;
+  closure?: ClosureInfo | null;
   /** Names of the actions allowed right now (server computed; four-eyes and conflict of interest aware). */
   allowedActions?: ActionName[] | string[];
   actions?: Partial<Record<ActionName, ActionVerdict>>;
@@ -779,6 +781,12 @@ export interface PartyCaseDetail {
     createdAt: string;
     canSubmit: boolean;
   };
+  appeal?: {
+    canFile?: boolean;
+    closesAt?: string | null;
+    used?: boolean;
+    progress?: string;
+  };
   accusations: Array<{ id: string; claimantRole: ClaimantRole; text: string; moves: ClaimMove[] }>;
   evidence: Array<{
     id: string;
@@ -840,6 +848,128 @@ export interface SessionsReconciliationDisputeItem {
 }
 
 // ───────────────────────────────────────────────────── error body shapes ──
+// ─────────────────────────────────────────────────────── A33-A36: Replacement ──
+export type ReplacementStatus = "PENDING" | "APPROVED" | "REJECTED";
+export interface ReplacementItem {
+  id: string;
+  caseId: string;
+  oldApprovalId: string;
+  status: ReplacementStatus;
+  proposedBy: string;
+  reason: string;
+  createdAt: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  approvalReason: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  checksAtProposal?: Record<string, any> | null;
+  checksAtApproval?: Record<string, any> | null;
+}
+export interface ReplacementList {
+  caseStatus: string;
+  execStatus: string;
+  items: ReplacementItem[];
+}
+export interface ReplacementProposeResult {
+  id: string;
+  status: "PENDING";
+  oldApprovalId: string;
+}
+export interface ReplacementDecideResult {
+  id: string;
+  status: "APPROVED" | "REJECTED";
+}
+
+// ─────────────────────────────────────────────────────────── A45-A52: Appeals ──
+export type AppealStatus = "REQUESTED" | "UNDER_REVIEW" | "DECIDED";
+export type AppealResult = "UPHELD" | "NEW_FINDING";
+export type ConsequenceKind = "MONEY" | "QUOTA" | "PT_AT_FAULT";
+export type ConsequenceStatus = "OPEN" | "OBLIGATION_OPEN" | "NEEDS_RECONCILIATION" | "RESOLVED";
+export interface QuotaCorrection {
+  id: string;
+  delta: number;
+  reason: string;
+  createdAt: string;
+}
+export interface AppealConsequence {
+  id: string;
+  kind: ConsequenceKind;
+  status: ConsequenceStatus;
+  detail: unknown;
+  quotaCorrections?: QuotaCorrection[];
+}
+export interface AppealItem {
+  id: string;
+  caseId?: string;
+  partyRole: "CLIENT" | "PT";
+  requestedBy?: string;
+  reason?: string;
+  status: AppealStatus;
+  result?: AppealResult | null;
+  reviewerId?: string | null;
+  reviewerAssignedBy?: string | null;
+  noticeRecorded?: unknown;
+  noticeRecordedAt?: string | null;
+  previousFindingId?: string | null;
+  newFindingId?: string | null;
+  finding?: string | null;
+  reasoning?: string | null;
+  decidedAt?: string | null;
+  decidedBy?: string | null;
+  createdAt?: string;
+  windowClosesAt?: string | null;
+  consequences?: AppealConsequence[];
+}
+export interface AppealList {
+  items: AppealItem[];
+}
+export interface AppealRequestResult {
+  appealId: string;
+  partyRole: string;
+  status: string;
+  windowClosesAt?: string | null;
+}
+export interface AssignReviewerResult {
+  appealId: string;
+  reviewerId: string;
+  status: string;
+}
+export interface AppealDecisionInput {
+  result: "UPHELD" | "NEW_FINDING";
+  reasoning: string;
+  finding?: string;
+  responsibleParty?: "PT" | "GYM" | "PLATFORM";
+  amountVnd?: number;
+  consequences?: Array<{
+    kind: "MONEY" | "QUOTA" | "PT_AT_FAULT";
+    note: string;
+    amountVnd?: number;
+    responsibleParty?: "PT" | "GYM" | "PLATFORM";
+  }>;
+}
+export interface AppealDecisionResult {
+  appealId: string;
+  result: AppealResult;
+  newFindingId?: string | null;
+  previousFindingId?: string | null;
+  consequences?: AppealConsequence[];
+}
+export interface ClosureInfo {
+  state: "OPEN" | "CLOSED" | "APPEAL_CONCLUDED";
+  fullyResolved: boolean;
+  pendingAppeals: number;
+  moneyAxisSettled?: boolean | null;
+  unresolved?: Array<{
+    appealId: string;
+    consequenceId: string;
+    kind: ConsequenceKind;
+    status: ConsequenceStatus;
+  }>;
+  closeReason?: string | null;
+}
+
 /** user-service Dispute Case + late-open. */
 export interface CaseErrorBody {
   error: string;

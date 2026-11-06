@@ -64,6 +64,9 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   ADMIN_ONLY: { kind: "forbidden", message: "Chỉ quản trị viên được thực hiện thao tác này." },
   NOT_ASSIGNED_INVESTIGATOR: { kind: "forbidden", message: "Chỉ điều tra viên được giao hồ sơ này mới làm được thao tác này." },
   SELF_APPROVAL_FORBIDDEN: { kind: "forbidden", message: "Bạn không được duyệt đề xuất do mình lập hoặc hồ sơ do mình phụ trách." },
+  SELF_REJECT_FORBIDDEN: { kind: "forbidden", message: "Người đề xuất không được tự quyết định đề xuất thay thế của mình." },
+  REVIEWER_NOT_INDEPENDENT: { kind: "forbidden", message: "Người xem xét lại phải độc lập: chưa từng làm bất kỳ bước nào trong hồ sơ và không phải bên liên quan." },
+  NOT_APPEAL_REVIEWER: { kind: "forbidden", message: "Chỉ người xem xét lại được giao mới ghi kết quả." },
   CONFLICT_OF_INTEREST: { kind: "forbidden", message: "Bạn là một bên của vụ việc, hoặc chưa khai báo không có xung đột lợi ích, nên không thực hiện được thao tác này." },
   // not found
   CASE_NOT_FOUND: { kind: "notFound", message: "Không tìm thấy hồ sơ khiếu nại. Quay lại danh sách để chọn lại." },
@@ -75,6 +78,7 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   DECISION_NOT_FOUND: { kind: "notFound", message: "Không tìm thấy quyết định đã duyệt." },
   // concurrency: reload, never resend blindly
   CASE_VERSION_CONFLICT: { kind: "conflictReload", message: "Hồ sơ vừa được người khác cập nhật. Hãy tải lại hồ sơ rồi làm lại thao tác nếu vẫn cần." },
+  CASE_CHANGED: { kind: "conflictReload", message: "Hồ sơ hoặc quyết định đã thay đổi. Hãy tải lại hồ sơ để kiểm tra trước khi thực hiện." },
   STATEMENT_VERSION_CONFLICT: { kind: "conflictReload", message: "Lời khai vừa được cập nhật ở nơi khác. Hãy tải lại rồi gửi lại nếu vẫn cần." },
   SESSION_ALREADY_PROCESSED: { kind: "conflictReload", message: "Buổi này vừa được xử lý ở nơi khác. Hãy tải lại để xem kết quả." },
   // state / rule refusals
@@ -133,6 +137,43 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
     message: (d) => (typeof d?.reason === "string" && EXEC_BLOCK_REASON_LABEL[d.reason as keyof typeof EXEC_BLOCK_REASON_LABEL]) || "Chưa thực thi được quyết định này.",
   },
   DECISION_NOT_APPROVED: { kind: "blocked", message: "Quyết định này chưa được duyệt." },
+  DECISION_NOT_EXECUTED: { kind: "blocked", message: "Quyết định đã duyệt chưa được thực thi xong; đóng hồ sơ không thay cho thực thi." },
+  DECISION_REPLACEMENT_DISABLED: { kind: "blocked", message: "Chức năng thay thế quyết định đã duyệt đang tắt (chỉ bật được trong môi trường kiểm thử cô lập)." },
+  DISPUTE_PROCESS_DISABLED: { kind: "blocked", message: "Quy trình xem xét lại khiếu nại hiện đang tạm tắt." },
+  REPLACEMENT_PENDING: { kind: "blocked", message: "Hồ sơ đang có một đề xuất thay thế quyết định chờ xử lý." },
+  REPLACEMENT_ALREADY_DECIDED: { kind: "blocked", message: "Đề xuất thay thế quyết định này đã có kết quả xử lý." },
+  APPEAL_ALREADY_DECIDED: { kind: "blocked", message: "Yêu cầu xem xét lại này đã có kết quả." },
+  APPEAL_ALREADY_REQUESTED: { kind: "blocked", message: "Mỗi bên chỉ được yêu cầu xem xét lại một lần cho mỗi hồ sơ." },
+  APPEAL_WINDOW_CLOSED: {
+    kind: "blocked",
+    message: (d) =>
+      typeof d?.closesAt === "string"
+        ? `Đã quá 14 ngày kể từ khi thông báo kết luận được ghi nhận (hạn chót: ${d.closesAt}) nên không thể yêu cầu xem xét lại.`
+        : "Đã quá 14 ngày kể từ khi thông báo kết luận được ghi nhận cho bạn nên không thể yêu cầu xem xét lại.",
+  },
+  APPEAL_NOTICE_NOT_RECORDED: { kind: "blocked", message: "Chưa ghi nhận việc báo kết luận cho bạn nên chưa thể yêu cầu xem xét lại." },
+  APPEAL_PENDING: { kind: "blocked", message: "Hồ sơ đang có yêu cầu xem xét lại chưa giải quyết nên chưa đóng được." },
+  APPEAL_CONSEQUENCE_OPEN: { kind: "blocked", message: "Hồ sơ còn hệ quả sau xem xét lại chưa hoàn tất nên chưa đóng được." },
+  MONEY_NOT_ESTABLISHED_BY_FINDING: { kind: "blocked", message: "Số tiền và bên chịu trách nhiệm chỉ được nêu khi kết luận mới là 'PT vắng mặt' và bên chịu trách nhiệm là PT; các trường hợp khác để đối soát." },
+  DECISION_HAS_EFFECT: {
+    kind: "blocked",
+    message: (d) => {
+      const raw = Array.isArray(d?.effects) ? d!.effects : Array.isArray(d?.reasons) ? d!.reasons : [];
+      if (raw.length === 0) return "Quyết định đã có tác động (tiền hoặc nghiệp vụ) nên không thể thay thế.";
+      const items = raw.map((item) => {
+        const s = String(item);
+        if (s.includes("BUSINESS_DONE")) return "Hồ sơ đã thực thi xong phần nghiệp vụ";
+        if (s.includes("NO_SHOW")) return "Trạng thái buổi tập đã chuyển sang vắng mặt";
+        if (s.includes("quota")) return "Đã ghi nhận trừ hoặc bù quyền buổi tập";
+        if (s.includes("settlement") || s.includes("money") || s.includes("PAYOUT") || s.includes("LEDGER")) return "Đã phát sinh bút toán tiền hoặc nhả tiền";
+        if (s.includes("EXECUTION_RECORDED")) return "Đã ghi nhận lượt thực thi quyết định";
+        if (s.includes("COMPLAINT_ALREADY_RESOLVED")) return "Khiếu nại phòng gym đã xử lý xong";
+        if (s.includes("MEMBERSHIP_CANCELLED")) return "Gói hội viên đã bị huỷ";
+        return "Quyết định đã có tác động thực tế";
+      });
+      return `Quyết định đã có tác động nên không thay thế được:\n- ${Array.from(new Set(items)).join("\n- ")}`;
+    },
+  },
   FEATURE_DISABLED: { kind: "blocked", message: "Chức năng này hiện chưa được bật." },
   LATE_OPEN_RECONCILIATION_DISABLED: { kind: "blocked", message: "Chức năng đối soát khoản bồi thường còn mở đang tắt." },
   EVIDENCE_FILE_INTEGRITY: { kind: "blocked", message: "Tệp lưu không còn khớp với mã băm lúc nộp." },

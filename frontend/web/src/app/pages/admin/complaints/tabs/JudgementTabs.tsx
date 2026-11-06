@@ -4,6 +4,8 @@ import { approvalHint, gatesOf, newestProposal, shortRefOf } from "../gymCaseMod
 import { formatDateTimeSafe } from "../gymFormat";
 import { FindingCard, ProposeCard } from "../forms/JudgementForms";
 import { DecisionCard } from "../forms/DecisionForm";
+import { GymDecisionReplacementPanel } from "../forms/GymDecisionReplacementPanel";
+import { GymAppealReviewerPanel } from "../forms/GymAppealReviewerPanel";
 import type { FormProps } from "../forms/formTypes";
 import { EmptyBox, Muted, Notice, Pill, Section } from "../GymParts";
 import { GateLine, Group } from "../gymCaseKit";
@@ -119,6 +121,8 @@ export function DecisionTab(props: FormProps) {
           {g.decide.open ? <DecisionCard {...props} /> : <GateLine why={g.decide.why} testId="d6-gate-decision" />}
         </Group>
       )}
+      <GymAppealReviewerPanel {...props} />
+      <GymDecisionReplacementPanel {...props} />
     </div>
   );
 }

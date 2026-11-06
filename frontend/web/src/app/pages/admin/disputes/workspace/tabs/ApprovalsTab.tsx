@@ -4,6 +4,7 @@ import { ApprovalsActionsSlot, type ActionSlotProps } from "../actionSlots";
 import { blockedText } from "../workspaceModel";
 import { CARD, EmptyBox, Muted, Notice, Pill } from "../WorkspaceParts";
 import { PolicySection } from "./PolicySection";
+import { ReplacementPanel } from "../../actions/ReplacementPanel";
 
 export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }: ActionSlotProps) {
   const proposals = [...(detail.proposals ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
@@ -57,6 +58,15 @@ export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }:
             </section>
           );
         })
+      )}
+      {detail.case?.status === "DECISION_APPROVED" && (
+        <ReplacementPanel
+          caseId={detail.case.id}
+          caseStatus={detail.case.status}
+          execStatus={detail.case.execStatus}
+          currentUserId={currentUserId}
+          onChanged={onChanged}
+        />
       )}
       <PolicySection detail={detail} currentUserId={currentUserId} onChanged={onChanged} capabilities={capabilities} />
     </div>

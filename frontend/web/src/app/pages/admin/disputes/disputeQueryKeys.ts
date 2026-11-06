@@ -32,6 +32,9 @@ export function disputeQueryKeys(userId: string) {
     disputedSessions: () => [...base, "disputed-sessions"] as const,
     partyList: () => [...base, "party-list"] as const,
     partyDetail: (caseId: string) => [...base, "party-detail", caseId] as const,
+    replacements: (caseId: string) => [...base, "replacements", caseId] as const,
+    appeals: (caseId: string) => [...base, "appeals", caseId] as const,
+    adminOptions: () => [...base, "admin-options"] as const,
   };
 }
 export type DisputeQueryKeys = ReturnType<typeof disputeQueryKeys>;

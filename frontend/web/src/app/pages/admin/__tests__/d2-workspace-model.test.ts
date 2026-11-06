@@ -14,10 +14,10 @@ import { ALL_FINANCIAL_STATES, EXECUTION_LIE, IDS, decisionRaw, detailFixture, e
 const withCase = (over: Record<string, unknown>, d: DisputeCaseDetail = detailFixture()): DisputeCaseDetail => ({ ...d, case: { ...d.case, ...over } as never });
 
 describe("D2 workspace - tabs in the URL", () => {
-  it("nine tabs in the briefed order and wording", () => {
+  it("ten tabs in the briefed order and wording", () => {
     assert.deepEqual(
       W.WORKSPACE_TABS.map((t) => t.label),
-      ["Tổng quan", "Bằng chứng", "Lời khai", "Đánh giá", "Kết luận & đề xuất", "Phê duyệt", "Tiền", "Thực thi", "Lịch sử"],
+      ["Tổng quan", "Bằng chứng", "Lời khai", "Đánh giá", "Kết luận & đề xuất", "Phê duyệt", "Xem xét lại", "Tiền", "Thực thi", "Lịch sử"],
     );
   });
   it("parseTab is total; the default tab leaves the URL clean", () => {

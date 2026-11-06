@@ -25,6 +25,33 @@ import {
   statementSourceLabel,
 } from "./partyLabels";
 
+export const APPEAL_REASON_MAX = 4000;
+export const APPEAL_NOTICE_TEXT =
+  "Mỗi bên chỉ được yêu cầu xem xét lại một lần, trong 14 ngày kể từ khi được báo kết luận.";
+export const APPEAL_SUCCESS_TEXT =
+  "Đã gửi yêu cầu xem xét lại. Kết quả hiện tại chưa thay đổi.";
+
+export function canRequestPartyAppeal(
+  status: string,
+  appeal?: { canFile?: boolean; closesAt?: string | null } | null,
+): boolean {
+  if (appeal && typeof appeal.canFile === "boolean") {
+    return appeal.canFile;
+  }
+  return status === "DECISION_APPROVED" || status === "CLOSED";
+}
+
+export function validateAppealReason(reason: string): { ok: boolean; message?: string } {
+  const trimmed = reason.trim();
+  if (trimmed.length < 1) {
+    return { ok: false, message: "Vui lòng nhập lý do xem xét lại (tối thiểu 1 ký tự)." };
+  }
+  if (trimmed.length > APPEAL_REASON_MAX) {
+    return { ok: false, message: `Lý do không được vượt quá ${APPEAL_REASON_MAX} ký tự.` };
+  }
+  return { ok: true };
+}
+
 // ───────────────────────────────────────────────────────────── limits ──
 export const STATEMENT_MAX = 5000;
 export const REASON_MAX = 2000;

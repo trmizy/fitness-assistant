@@ -8,9 +8,10 @@ import type { PartyCaseDetail } from "../admin/disputes/disputeCaseTypes";
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../admin/disputes/disputeQueryKeys";
 import { DocumentForm } from "./DocumentForm";
 import { StatementForm } from "./StatementForm";
+import { PartyAppealForm } from "./PartyAppealForm";
 import { BackLink, CARD, FailureBlock, LoadingBlock, MUTED, Notice, Panel, Pill, ReloadButton } from "./PartyParts";
 import { CANNOT_SUBMIT_NOTE, CAN_SUBMIT_NOTE, NOT_FOUND_TEXT, NOT_FOUND_TITLE, NO_AUTO_REFRESH_NOTE, VISIBLE_ONLY_NOTE } from "./partyLabels";
-import { accusationViews, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
+import { accusationViews, canRequestPartyAppeal, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
 
 function NotFound() {
   return (
@@ -243,6 +244,19 @@ function DetailBody({
           <StatementForm caseId={caseId} nextVersion={nextVersion} onSaved={() => void onReload()} onReload={onReload} reloading={refreshing} />
           <DocumentForm caseId={caseId} onSaved={() => void onReload()} onReload={onReload} reloading={refreshing} />
         </>
+      )}
+
+      {canRequestPartyAppeal(
+        detail.case.status,
+        detail.appeal,
+      ) && (
+        <PartyAppealForm
+          caseId={caseId}
+          onSaved={() => void onReload()}
+          onReload={onReload}
+          reloading={refreshing}
+          closesAt={detail.appeal?.closesAt}
+        />
       )}
     </>
   );

@@ -116,6 +116,7 @@ export const MANUAL_TRANSITIONS: Record<GymCaseStatus, GymCaseStatus[]> = {
   AWAITING_APPROVAL: [],
   DECISION_APPROVED: [],
   REJECTED_INTAKE: [],
+  APPEAL_REVIEW: [],
 };
 export type TransitionTarget = "COLLECTING" | "AWAITING_PARTIES" | "ASSESSING";
 export function transitionTargets(status: string): TransitionTarget[] {

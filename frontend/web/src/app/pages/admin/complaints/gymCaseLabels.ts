@@ -20,6 +20,7 @@ export const GYM_STATUS_LABEL: Record<GymCaseStatus, string> = {
   AWAITING_APPROVAL: "Chờ duyệt",
   DECISION_APPROVED: "Đã duyệt quyết định",
   REJECTED_INTAKE: "Không tiếp nhận",
+  APPEAL_REVIEW: "Đang xem xét lại",
 };
 export const gymStatusLabel = (s: string | null | undefined) => lookup(GYM_STATUS_LABEL, s, "Chưa rõ trạng thái");
 
@@ -33,6 +34,7 @@ export const GYM_WAITING_NOTE: Record<GymCaseStatus, string> = {
   AWAITING_APPROVAL: "Chờ một quản trị viên khác (không phải người lập đề xuất hay điều tra viên) duyệt hoặc bác.",
   DECISION_APPROVED: "Quyết định đã được duyệt. Duyệt chưa làm thay đổi tiền: việc thực thi là bước riêng.",
   REJECTED_INTAKE: "Hồ sơ không được tiếp nhận. Khiếu nại quay lại luồng xử lý cũ.",
+  APPEAL_REVIEW: "Hồ sơ đang trong quá trình xem xét lại bởi người đánh giá độc lập.",
 };
 export const gymWaitingNote = (s: string | null | undefined, execStatus?: string | null) =>
   // An approved case that was already executed must not still say "việc thực thi là bước riêng"; money is read from the money axis.

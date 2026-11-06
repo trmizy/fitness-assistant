@@ -4,6 +4,7 @@ import { Facts, Muted, Notice, Pill, Section, DisputeLink, FOCUS } from "../GymP
 import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatusLabel, gymWaitingNote, issueLabel, complaintStatusLabel, gymStatusTone } from "../gymCaseLabels";
 import { COMPLAINTS_PATH, gatesOf, investigatorText, reporterText } from "../gymCaseModel";
 import { formatDateSafe, formatDateTimeSafe } from "../gymFormat";
+import { formatMoneyString } from "../../adminFinanceOverview.utils";
 import type { GymCaseDetail } from "../gymCaseTypes";
 import { AssignCard, RecollectCard, RejectIntakeCard, RequestMoreCard, TransitionCard } from "../forms/InvestigationForms";
 import type { FormProps } from "../forms/formTypes";
@@ -71,6 +72,21 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
           {gymWaitingNote(c.status, c.execStatus)}
         </p>
       </Section>
+
+      {detail.refundQuote && (
+        <Section title="Định giá hoàn tiền" testId="d6-refund-quote">
+          <Facts
+            items={[
+              { label: "Số tiền hoàn cố định", value: formatMoneyString(detail.refundQuote.amount) },
+              { label: "Giá gốc", value: formatMoneyString(detail.refundQuote.pricePaid) },
+              { label: "Chốt tại thời điểm", value: formatDateTimeSafe(detail.refundQuote.quotedAt) },
+            ]}
+          />
+          <Muted>
+            Số tiền hoàn được chốt theo ngày khiếu nại; máy chủ tính, không nhập tay.
+          </Muted>
+        </Section>
+      )}
 
       {detail.membership && (
         <Section title="Gói hội viên liên quan" testId="d6-membership">

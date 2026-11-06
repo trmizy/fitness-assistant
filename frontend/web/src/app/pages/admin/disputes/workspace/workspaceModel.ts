@@ -51,6 +51,7 @@ export const WORKSPACE_TABS = [
   { id: "assessments", label: "Đánh giá" },
   { id: "findings", label: "Kết luận & đề xuất" },
   { id: "approvals", label: "Phê duyệt" },
+  { id: "appeals", label: "Xem xét lại" },
   { id: "money", label: "Tiền" },
   { id: "execution", label: "Thực thi" },
   { id: "history", label: "Lịch sử" },

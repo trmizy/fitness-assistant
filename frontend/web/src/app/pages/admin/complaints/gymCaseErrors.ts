@@ -36,6 +36,7 @@ export const GYM_ERROR_CODES: Record<string, Entry> = {
   FORBIDDEN: { kind: "forbidden", message: "Bạn không có quyền thực hiện thao tác này." },
   ADMIN_ONLY: { kind: "forbidden", message: "Chỉ quản trị viên được thực hiện thao tác này." },
   NOT_ASSIGNED_INVESTIGATOR: { kind: "forbidden", message: "Chỉ điều tra viên được giao hồ sơ này mới làm được thao tác này." },
+  REVIEWER_NOT_INDEPENDENT: { kind: "forbidden", message: "Người xem xét phải độc lập: chưa từng làm bất kỳ bước nào trong hồ sơ và không liên quan tới phòng tập." },
   SELF_APPROVAL_FORBIDDEN: { kind: "forbidden", message: "Người lập đề xuất và điều tra viên của hồ sơ không được tự duyệt. Cần một quản trị viên khác." },
   CONFLICT_OF_INTEREST: { kind: "forbidden", message: "Bạn là một bên của vụ việc, hoặc chưa khai báo không có xung đột lợi ích, nên không thực hiện được thao tác này." },
   // not found
@@ -70,6 +71,26 @@ export const GYM_ERROR_CODES: Record<string, Entry> = {
   EVIDENCE_CHANGED: { kind: "blocked", message: "Bằng chứng đã thay đổi sau khi lập đề xuất. Điều tra viên cần thu lại và xác nhận thay đổi trước khi duyệt." },
   EVIDENCE_DUPLICATE: { kind: "blocked", message: "Tài liệu có cùng mã sha256 đã được nộp trong hồ sơ này." },
   DECISION_NOT_APPROVED: { kind: "blocked", message: "Quyết định này chưa được duyệt." },
+  DECISION_REPLACEMENT_DISABLED: { kind: "blocked", message: "Chức năng thay thế quyết định đã duyệt đang tắt (chỉ bật được trong môi trường kiểm thử cô lập)." },
+  REPLACEMENT_PENDING: { kind: "blocked", message: "Hồ sơ đang có một đề xuất thay thế quyết định chờ xử lý." },
+  APPEAL_ALREADY_USED: { kind: "blocked", message: "Yêu cầu xem xét lại đã được sử dụng cho hồ sơ này." },
+  APPEAL_NOT_AVAILABLE: { kind: "blocked", message: "Hồ sơ hiện không trong diện được yêu cầu xem xét lại." },
+  APPEAL_WINDOW_CLOSED: {
+    kind: "blocked",
+    message: (d) =>
+      typeof d?.closedAt === "string"
+        ? `Đã quá thời hạn yêu cầu xem xét lại (hạn chót: ${d.closedAt}).`
+        : "Đã quá thời hạn yêu cầu xem xét lại.",
+  },
+  APPEAL_ASSESSMENT_REQUIRED: { kind: "blocked", message: "Hồ sơ cần được đánh giá lại trong bước xem xét." },
+  DECISION_HAS_EFFECT: {
+    kind: "blocked",
+    message: (d) => {
+      const raw = Array.isArray(d?.reasons) ? d!.reasons : [];
+      if (raw.length === 0) return "Quyết định này đã có tác động (tiền hoặc nghiệp vụ) nên không thay thế được.";
+      return `Quyết định này đã có tác động nên không thay thế được:\n- ${raw.join("\n- ")}`;
+    },
+  },
   DECISION_MISMATCH: { kind: "blocked", message: "Hồ sơ đã gắn với một quyết định khác." },
   DECISION_WRONG_CASE: { kind: "blocked", message: "Quyết định này không thuộc hồ sơ." },
   OUTCOME_MISMATCH: { kind: "blocked", message: "Kết quả của quyết định không còn khớp với kết luận của hồ sơ nên chưa thực thi được." },
@@ -88,6 +109,8 @@ export const GYM_ERROR_CODES: Record<string, Entry> = {
   NOT_AN_ADMIN: { kind: "validation", message: "Người được chọn không phải là quản trị viên đang hoạt động." },
   // unavailable
   AUTH_UNAVAILABLE: { kind: "unavailable", message: "Chưa kiểm tra được tài khoản quản trị viên nên chưa gán được. Chưa có gì được ghi. Hãy thử lại." },
+  LEDGER_UNREADABLE: { kind: "unavailable", message: "Chưa đọc được sổ cái để kiểm tra quyết định có tác động tiền hay chưa. Vui lòng thử lại sau." },
+  LEDGER_UNAVAILABLE: { kind: "unavailable", message: "Chưa đọc được sổ cái tiền nên chưa xác minh được. Chưa có gì được ghi. Hãy thử lại." },
   INTERNAL_ERROR: { kind: "unknown", message: "Máy chủ gặp lỗi khi xử lý yêu cầu." },
 };
 

@@ -23,7 +23,7 @@ export const GYM_CASE_CLASSES: readonly GymCaseClass[] = ["MEM_TXN", "MEM_CLOSED
 /** Classes that have a money exit and therefore REQUIRE a membership (`MEMBERSHIP_REQUIRED`). `GYM_GENERAL` must not carry one (`MEMBERSHIP_NOT_ALLOWED`). */
 export const MONEY_CLASSES: readonly GymCaseClass[] = ["MEM_TXN", "MEM_CLOSED", "MEM_VIOLATION"];
 
-export type GymCaseStatus = "INTAKE" | "COLLECTING" | "AWAITING_PARTIES" | "ASSESSING" | "FINDING_RECORDED" | "AWAITING_APPROVAL" | "DECISION_APPROVED" | "REJECTED_INTAKE";
+export type GymCaseStatus = "INTAKE" | "COLLECTING" | "AWAITING_PARTIES" | "ASSESSING" | "FINDING_RECORDED" | "AWAITING_APPROVAL" | "DECISION_APPROVED" | "REJECTED_INTAKE" | "APPEAL_REVIEW";
 export const GYM_CASE_STATUSES: readonly GymCaseStatus[] = [
   "INTAKE",
   "COLLECTING",
@@ -33,6 +33,7 @@ export const GYM_CASE_STATUSES: readonly GymCaseStatus[] = [
   "AWAITING_APPROVAL",
   "DECISION_APPROVED",
   "REJECTED_INTAKE",
+  "APPEAL_REVIEW",
 ];
 export type GymExecStatus = "NOT_STARTED" | "EXECUTING" | "BUSINESS_DONE" | "EXEC_BLOCKED" | "NEEDS_HUMAN";
 export type GymOutcome = "REFUND_TRANSACTION_ERROR" | "REFUND_GYM_CLOSED" | "REFUND_GYM_VIOLATION" | "RESOLVE_UPHELD" | "RESOLVE_INSUFFICIENT_EVIDENCE";
@@ -148,6 +149,7 @@ export interface GymEvidence {
   sensitivity: string;
   payload: unknown;
   supersedesId: string | null;
+  verificationLabel?: string;
   createdAt: string;
 }
 export interface GymStatement {
@@ -189,6 +191,7 @@ export interface GymFindingRow {
   reasoning: string;
   recordedBy: string;
   supersedesId: string | null;
+  verificationLabel?: string;
   createdAt: string;
 }
 export interface GymApproval {
@@ -258,8 +261,31 @@ export interface GymCaseDetail {
   financial: GymFinancial;
   closure: GymClosure;
   allowedActions: GymAllowedAction[];
+  sla?: { state: string; daysOpen?: number } | null;
+  deadlines?: Array<{ kind: string; party?: string; startedAt?: string; dueAt?: string | null; status?: string }>;
+  appeal?: { canFile?: boolean; closesAt?: string | null; status?: string; reviewerId?: string | null; result?: string | null } | null;
+  refundQuote?: { amount: string | number; pricePaid?: string | number; quotedAt?: string } | null;
+  replacement?: {
+    status?: string;
+    reason?: string;
+    proposedBy?: string;
+    proposedAt?: string;
+    approvedBy?: string;
+    approvedAt?: string;
+    rejectedBy?: string;
+    rejectedAt?: string;
+  } | null;
   /** newest first, at most 200 */
   events: GymEvent[];
+}
+
+export interface GymReplacementResult {
+  id: string;
+  status: string;
+}
+export interface GymAppealReviewerResult {
+  reviewerId?: string;
+  status?: string;
 }
 
 /** G4. */
@@ -365,6 +391,7 @@ export interface MemberCaseDetail {
   /** only when the case was handled: a member-safe sentence + the amounts payment-service confirmed */
   money: { label: string; postedToWallet: string | null; stillOwed: string | null } | null;
   resolution: { text: string | null } | null;
+  appeal?: { canFile?: boolean; closesAt?: string | null; used?: boolean; progress?: string } | null;
 }
 
 /** The old complaint list (H1) with the R-18 paging meta. */
