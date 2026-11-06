@@ -1655,7 +1655,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\fa-bc\\backend\\services\\user-service\\src\\generated\\prisma",
+      "value": "D:\\fa-v21-merge\\backend\\services\\user-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -1681,7 +1681,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\fa-bc\\backend\\services\\user-service\\prisma\\schema.prisma",
+    "sourceFilePath": "D:\\fa-v21-merge\\backend\\services\\user-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

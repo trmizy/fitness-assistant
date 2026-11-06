@@ -237,7 +237,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\FitnessAssistant\\backend\\services\\auth-service\\src\\generated\\prisma",
+      "value": "D:\\fa-v21-merge\\backend\\services\\auth-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -259,12 +259,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\FitnessAssistant\\backend\\services\\auth-service\\prisma\\schema.prisma",
+    "sourceFilePath": "D:\\fa-v21-merge\\backend\\services\\auth-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "5.22.0",
