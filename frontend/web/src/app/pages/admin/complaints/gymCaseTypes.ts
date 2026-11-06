@@ -263,7 +263,7 @@ export interface GymCaseDetail {
   allowedActions: GymAllowedAction[];
   sla?: { state: string; daysOpen?: number } | null;
   deadlines?: Array<{ kind: string; party?: string; startedAt?: string; dueAt?: string | null; status?: string }>;
-  appeal?: { canFile?: boolean; closesAt?: string | null; status?: string; reviewerId?: string | null; result?: string | null } | null;
+  appeal?: { canFile?: boolean; closesAt?: string | null; status?: string; reviewerId?: string | null; result?: string | null; reason?: string | null; filedAt?: string | null } | null;
   refundQuote?: { amount: string | number; pricePaid?: string | number; quotedAt?: string } | null;
   replacement?: {
     status?: string;

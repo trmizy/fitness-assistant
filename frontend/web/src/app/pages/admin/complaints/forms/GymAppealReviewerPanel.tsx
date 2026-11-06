@@ -42,8 +42,9 @@ export function GymAppealReviewerPanel({
 
   const appeal = detail.appeal;
 
-  // Show if assign action is allowed, or case is in APPEAL_REVIEW
-  if (!assignAction.allowed && detail.case.status !== "APPEAL_REVIEW") {
+  // Show while assigning (APPEAL_REVIEW) AND for as long as an appeal exists: after assignment the case
+  // goes back to ASSESSING and the reviewer must still see that this is a re-review and why (INT-18).
+  if (!assignAction.allowed && detail.case.status !== "APPEAL_REVIEW" && !appeal?.status) {
     return null;
   }
 
@@ -93,9 +94,20 @@ export function GymAppealReviewerPanel({
           <p className="font-medium text-adm-text">
             Trạng thái kháng nghị: {GYM_APPEAL_STATUS_LABEL[appeal.status ?? ""] ?? "Đang xem xét"}
           </p>
+          {appeal.filedAt && (
+            <p className="text-adm-text-2">
+              Hội viên gửi lúc {new Date(appeal.filedAt).toLocaleString("vi-VN")}
+            </p>
+          )}
+          {appeal.reason && (
+            <p className="whitespace-pre-wrap text-adm-text" data-testid="gym-appeal-reason">
+              Lý do: {appeal.reason}
+            </p>
+          )}
           {appeal.reviewerId && (
             <p className="text-adm-text-2">
-              Người xem xét hiện tại: mã {shortRefOf(appeal.reviewerId)}
+              Người xem xét hiện tại:{" "}
+              {appeal.reviewerId === currentUserId ? "bạn" : `mã ${shortRefOf(appeal.reviewerId)}`}
             </p>
           )}
         </div>
