@@ -50,7 +50,9 @@ for (const key of ["AWS_ENDPOINT_URL", "AWS_ENDPOINT_URL_BEDROCK_RUNTIME", "AWS_
 });
 test("wall-clock rollback cannot revive observed expired authority in the same client", async () => {
   const real = Date.now; let now = real(); Date.now = () => now; const f = fixture();
-  try { now += 10001; await assert.rejects(f.send(input(), signal(), f.authority()), is("LiveNotApproved")); now -= 10001; await assert.rejects(f.send(input(), signal(), f.authority(2)), is("NOVA_CLOCK_ROLLBACK")); assert.equal(f.calls(), 0); }
+  // The rollback is observed (details.alsoObserved) but the FIRST terminal category stays the reported one (owner req. 8).
+  try { now += 10001; await assert.rejects(f.send(input(), signal(), f.authority()), is("LiveNotApproved")); now -= 10001;
+    await assert.rejects(f.send(input(), signal(), f.authority(2)), (e) => is("LiveNotApproved")(e) && (e as PilotError).details.latchedTerminalAuthority === true && (e as PilotError).details.alsoObserved === "NOVA_CLOCK_ROLLBACK"); assert.equal(f.calls(), 0); }
   finally { Date.now = real; f.close(); }
 });
 
