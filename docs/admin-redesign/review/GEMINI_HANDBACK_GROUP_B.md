@@ -652,3 +652,79 @@ All routes, schemas, and endpoints verified against `D:/fa-bc`:
 
 ### 7. Honesty Line
 No git writes (not even attempted). Nothing written in D:/FitnessAssistant or D:/fa-bc. No real backend or E2E call. Servers I started are stopped. Temp tsconfig deleted.
+
+---
+
+## PHASE 3: MOCK BROWSER MATRIX & ACCESSIBILITY AUDIT (REDUCED SCOPE)
+
+### 1. Scope & Execution Overview
+Per Part D of `GEMINI_BRIEF_GROUP_B_2026-11-05.md` with reduced scope instruction (`PHASE 3 OK — reduced scope`):
+- **Checks Executed:**
+  - Layout at 360px, 390px, 1440px (light theme) and 1440px (dark theme) with screenshot capture.
+  - Horizontal overflow assertion on each viewport (`document.documentElement.scrollWidth <= window.innerWidth`).
+  - Automated Axe accessibility scan (`serious` and `critical` rule violations assert count == 0).
+  - Dialog / Modal keyboard accessibility: Focus moves inside upon trigger click, Tab key cycles inside the modal, Escape key dismisses the dialog, and focus returns to the triggering element.
+  - Action permission gating: Every action disallowed by server / capabilities is asserted completely hidden.
+- **Environment:**
+  - Mock browser harness powered by Playwright Chromium headless.
+  - Same-origin mock routes serving deterministic fixtures (never calling real backend or port 58100/5991).
+  - Vite dev server hosted on temporary isolated port 5928, stopped cleanly upon test completion.
+- **PASS Rule:** `PASS = axe 0 AND no overflow AND every assertion true`.
+- **Constraint Compliance:** Absolutely NO modifications to `frontend/web/src` during Phase 3. Failures due to pre-existing source code defects are recorded as authentic FAIL with exact file and line number.
+
+---
+
+### 2. Summary of Results
+
+| Screen / Form | Component | Viewports & States | Total Checks | Pass | Fail | Failures & File:Line |
+|---|---|---|:---:|:---:|:---:|---|
+| **S1** | AppealTab ("Xem xét lại") | 360, 390, 1440, dark + decide modal + close executed modal + forbidden hidden | 7 | 7 | 0 | None (All PASS) |
+| **S2** | ReplacementPanel ("Phê duyệt") | 360, 390, 1440, dark + propose modal + approve modal + forbidden hidden | 7 | 7 | 0 | None (All PASS) |
+| **S3** | AgreementPanel (FindingsTab) | 360, 390, 1440, dark + propose modal + withdraw modal + forbidden hidden | 7 | 7 | 0 | None (All PASS) |
+| **S4** | QuotaCorrectionCard (AppealTab) | 360, 390, 1440, dark + propose modal + approve modal + proposer hidden | 7 | 7 | 0 | None (All PASS) |
+| **S5** | StuckList (`/admin/disputes?view=stuck`) | 360, 390, 1440, dark + audit & kind filter labels | 5 | 5 | 0 | None (All PASS) |
+| **S6** | DeadlinesTable (`/admin/disputes/:id?tab=overview`) | 360, 390, 1440, dark + timers & notice | 4 | 3 | 1 | 360px layout: Axe `scrollable-region-focusable` (`DeadlinesTable.tsx:44`) |
+| **S7** | HeldMoneyReviewSection (`/admin/finance/reconciliation`) | 360, 390, 1440, dark + 0 candidate radio disable + decide modal a11y | 6 | 5 | 1 | Decide modal a11y: Missing focus trap & Esc handler (`HeldMoneyReviewSection.tsx:231`) |
+| **S8** | Gym panels (Appeal reviewer & Replacement) | 360, 390, 1440, dark + propose modal + decide modal + forbidden hidden | 7 | 7 | 0 | None (All PASS) |
+| **S9** | Party forms (PartyAppealForm & PartyAgreementPanel) | 360, 390, 1440, dark + confirm modal a11y + forbidden hidden | 6 | 5 | 1 | Confirm modal a11y: Missing focus trap & Esc handler (`PartyAgreementPanel.tsx:153`) |
+| **S10** | Gym member appeal (`/complaint-cases/:id`) | 360, 390, 1440, dark + canFile false hidden | 5 | 5 | 0 | None (All PASS) |
+| **TOTAL** | **All 10 screens & forms** | **All required checks** | **61** | **58** | **3** | **3 Authentic Product Defects** |
+
+---
+
+### 3. Horizontal Overflow Audit
+Across all 61 checks covering 360px, 390px, and 1440px viewports (both light and dark theme):
+- **Horizontal Overflow Detected: 0 (ZERO).**
+- Every screen and responsive table properly constrains content to viewport width without unintended page-level horizontal scrollbars.
+
+---
+
+### 4. Product Defects Identified (Recorded Without Mutation)
+Per the prompt instruction (*"If an assertion fails because of a product defect, record it as FAIL in CHECKS.md with the file and line, and do not fix it"*), the 3 failing assertions represent pre-existing accessibility defects in the UI source:
+
+1. **`DeadlinesTable.tsx:44` — Missing focusable container on mobile table:**
+   - **Check:** `s6-deadlines_table_layout-360-light`
+   - **Violation:** Axe `scrollable-region-focusable` (Impact: serious).
+   - **Reason:** `<div className="overflow-x-auto">` becomes a scroll container on screens < 390px wide, but lacks `tabIndex={0}` and an accessible label for keyboard navigation.
+2. **`HeldMoneyReviewSection.tsx:231` — Missing modal focus trap and Escape handler:**
+   - **Check:** `s7-dialog_held_money_decide_a11y-1440-light`
+   - **Failed Assertions:** `dialog_focus_moves_inside` (false), `dialog_esc_closes` (false), `dialog_focus_returns_to_opener` (false).
+   - **Reason:** Modal uses inline markup without `useModalA11y` or document keydown listeners for Escape and tab trapping.
+3. **`PartyAgreementPanel.tsx:153` — Missing modal focus trap and Escape handler:**
+   - **Check:** `s9-dialog_party_agreement_confirm_a11y-1440-light`
+   - **Failed Assertions:** `dialog_focus_moves_inside` (false), `dialog_tab_stays_inside` (false), `dialog_esc_closes` (false), `dialog_focus_returns_to_opener` (false).
+   - **Reason:** Modal uses `<div role="dialog" aria-modal="true">` but has no Escape key listener or focus restoration to the opener button.
+
+---
+
+### 5. Evidence Artifacts
+- **Comprehensive Markdown Audit Report:** [`D:/admin-fr/docs/admin-redesign/review/gb/CHECKS.md`](file:///D:/admin-fr/docs/admin-redesign/review/gb/CHECKS.md)
+  - Detailed table with state, width, theme, result, axe violations, overflow status, specific assertion names, and screenshot links.
+  - Dialog accessibility matrix covering all 12 modal interactions.
+  - Permission gating audit notes for all 8 conditional screens.
+- **Screenshots Directory:** `D:/admin-fr/docs/admin-redesign/review/gb/` (61 PNG screenshots captured).
+
+---
+
+### 6. Honesty Line
+No git writes (not even attempted). Nothing written in D:/FitnessAssistant or D:/fa-bc. No real backend or E2E call (no port 58100, no port 5991). No product files under frontend/web/src modified. All servers started during Phase 3 are stopped.

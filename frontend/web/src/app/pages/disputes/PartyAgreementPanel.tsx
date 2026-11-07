@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useModalA11y } from "../admin/shared/useModalA11y";
 import { disputeCaseApi } from "../admin/disputes/disputeCaseApi";
 import type { PartyAgreementItem } from "../admin/disputes/disputeCaseTypes";
 import { parseDisputeError } from "../admin/disputes/disputeCaseErrors";
@@ -22,6 +23,13 @@ export function PartyAgreementPanel({
   const [confirmingItem, setConfirmingItem] = useState<PartyAgreementItem | null>(null);
 
   const action = useIdempotentAction<{ contentHash: string }, unknown>();
+  // Phase 3 FAIL #3: focus into the dialog, Tab trapped, Esc closes (not while sending), focus back to the opener
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalA11y(dialogRef, () => {
+    if (action.pending) return;
+    action.reset();
+    setConfirmingItem(null);
+  }, confirmingItem !== null);
 
   if (!agreements || agreements.length === 0) {
     return null;
@@ -151,12 +159,15 @@ export function PartyAgreementPanel({
       {/* Confirmation Modal */}
       {confirmingItem && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
+          aria-labelledby="party-agreement-confirm-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         >
           <div className={`w-full max-w-md space-y-4 ${CARD} p-6 shadow-xl`}>
-            <h4 className="text-base font-semibold">
+            <h4 id="party-agreement-confirm-title" className="text-base font-semibold">
               Xác nhận phương án thoả thuận
             </h4>
             <p className="text-sm">

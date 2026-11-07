@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useModalA11y } from "../../shared/useModalA11y";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowClockwiseIcon, CheckCircleIcon, XIcon } from "@phosphor-icons/react";
 import { disputeCaseApi } from "../../disputes/disputeCaseApi";
@@ -70,6 +71,12 @@ export function HeldMoneyReviewSection({ d65bProposals, proposalsComplete = fals
     setActiveReview(null);
     setFormError(null);
   };
+
+  // Phase 3 FAIL #2: focus into the dialog, Tab trapped, Esc closes (not while sending), focus back to the opener
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalA11y(dialogRef, () => {
+    if (!write.pending) closeDecide();
+  }, activeReview !== null);
 
   const candidates = activeReview
     ? exitRefCandidates(d65bProposals, activeReview.sessionId)
@@ -229,6 +236,8 @@ export function HeldMoneyReviewSection({ d65bProposals, proposalsComplete = fals
       {/* Decide Modal */}
       {activeReview && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby="held-decide-title"

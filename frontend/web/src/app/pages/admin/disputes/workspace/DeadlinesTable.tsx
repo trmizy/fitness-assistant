@@ -41,7 +41,8 @@ export function DeadlinesTable({ deadlines }: DeadlinesTableProps) {
           Hồ sơ này chưa có mốc thời hạn phản hồi nào được ghi nhận.
         </EmptyBox>
       ) : (
-        <div className="overflow-x-auto">
+        // Phase 3 FAIL #1 (axe scrollable-region-focusable): a scrollable region must be reachable by keyboard and named
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Bảng thời hạn phản hồi">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-adm-border-soft text-adm-text-2">
