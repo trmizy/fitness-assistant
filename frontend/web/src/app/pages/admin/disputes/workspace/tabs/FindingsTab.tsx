@@ -3,11 +3,13 @@ import { formatDateTime, shortRef } from "../format";
 import { FindingsActionsSlot, type ActionSlotProps } from "../actionSlots";
 import { FINDING_TABLE_CAPTION, blockedText, findingTable, latestFinding, outcomeConsequence } from "../workspaceModel";
 import { CARD, EmptyBox, Muted, Notice, Pill, Section } from "../WorkspaceParts";
+import { AgreementPanel } from "../../actions/AgreementPanel";
 
 const GRID = "md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,2fr)]";
 const CELL_LABEL = "text-[11px] font-medium text-adm-text-2 md:hidden";
 
-export function FindingsTab({ detail, currentUserId, onChanged }: ActionSlotProps) {
+export function FindingsTab(props: ActionSlotProps) {
+  const { detail, currentUserId, onChanged } = props;
   const findings = [...(detail.findings ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const newest = latestFinding(detail.findings);
   const proposals = [...(detail.proposals ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
@@ -105,6 +107,8 @@ export function FindingsTab({ detail, currentUserId, onChanged }: ActionSlotProp
           </div>
         </div>
       </section>
+
+      <AgreementPanel {...props} />
 
       <FindingsActionsSlot detail={detail} currentUserId={currentUserId} onChanged={onChanged} />
     </div>

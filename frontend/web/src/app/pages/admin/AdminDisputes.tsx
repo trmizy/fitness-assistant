@@ -10,11 +10,15 @@ import { CASE_STATUSES, CASE_TYPES, EXEC_STATUSES, type CaseStatus, type CaseTyp
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "./disputes/disputeQueryKeys";
 import { CaseList } from "./disputes/queue/CaseList";
 import { SessionList } from "./disputes/queue/SessionList";
+import { StuckList } from "./disputes/queue/StuckList";
 import {
   CASES_NOTE_NO_POLLING,
   PAGE_SIZE,
   QUEUE_VIEWS,
   SESSIONS_NOTE_OPEN_EXISTING,
+  STUCK_KINDS,
+  STUCK_KIND_LABEL,
+  STUCK_NOTE,
   describeListFailure,
   normalizeCaseItems,
   normalizeQueueItems,
@@ -25,6 +29,7 @@ import {
   parseStatus,
   rangeText,
   type QueueView,
+  type StuckKind,
 } from "./disputes/queue/queueModel";
 import { FOCUS, FailurePanel, LoadingSkeleton, Muted, Notice } from "./disputes/workspace/WorkspaceParts";
 import { listAdminOptions } from "./disputes/actions/adminDirectory";
@@ -40,7 +45,7 @@ import { ContractPolicyLookup } from "./disputes/actions/ContractPolicyPanel";
  * Every read of A2 writes an access-log row per case, so reload is always a click.
  */
 
-const CHIP_LABEL: Record<QueueView, string> = { cases: "Hồ sơ", sessions: "Buổi chưa xử lý" };
+const CHIP_LABEL: Record<QueueView, string> = { cases: "Hồ sơ", sessions: "Buổi chưa xử lý", stuck: "Cần người xử lý" };
 const dateBound = (value: string, end: boolean): string | undefined => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   const d = new Date(`${value}T${end ? "23:59:59.999" : "00:00:00"}`);
@@ -60,6 +65,7 @@ export function AdminDisputes() {
       else p.set("view", next.view);
       p.delete("page");
       p.delete("sPage");
+      p.delete("stuckPage");
     }
     if (next.status !== undefined) {
       if (next.status) p.set("status", next.status);
@@ -78,6 +84,7 @@ export function AdminDisputes() {
     else p.delete(key);
     p.delete("page");
     if (key !== "sPage") p.delete("sPage");
+    if (key !== "stuckPage") p.delete("stuckPage");
     return p;
   });
   const execStatus = EXEC_STATUSES.find((v) => v === searchParams.get("execStatus")) as ExecStatus | undefined;
@@ -86,7 +93,13 @@ export function AdminDisputes() {
   const createdFrom = searchParams.get("createdFrom") ?? "";
   const createdTo = searchParams.get("createdTo") ?? "";
   const sessionPage = parsePage(searchParams.get("sPage"));
-  const sessionStatus = searchParams.get("sessionStatus") === "DISPUTED" || searchParams.get("sessionStatus") === "PT_NO_SHOW_REPORTED" ? searchParams.get("sessionStatus") as "DISPUTED" | "PT_NO_SHOW_REPORTED" : undefined;
+  const rawSessionStatus = searchParams.get("sessionStatus");
+  const sessionStatus =
+    rawSessionStatus === "DISPUTED" || rawSessionStatus === "PT_NO_SHOW_REPORTED"
+      ? (rawSessionStatus as "DISPUTED" | "PT_NO_SHOW_REPORTED")
+      : undefined;
+  const stuckKind = STUCK_KINDS.find((k) => k === searchParams.get("stuckKind"));
+  const stuckPage = parsePage(searchParams.get("stuckPage"));
   const caseFilters = {
     status: state.status ?? undefined, execStatus, type,
     unassigned: investigator === "unassigned" ? true : undefined,
@@ -114,16 +127,23 @@ export function AdminDisputes() {
     enabled: !!keys && state.view === "sessions",
     ...DISPUTE_QUERY_OPTIONS,
   });
+  const stuckQuery = useQuery({
+    queryKey: keys ? keys.stuck({ kind: stuckKind, limit: PAGE_SIZE, offset: offsetOfPage(stuckPage) }) : ["dispute-case", "disabled", "stuck"],
+    queryFn: () => disputeCaseApi.listStuck({ kind: stuckKind, limit: PAGE_SIZE, offset: offsetOfPage(stuckPage) }),
+    enabled: !!keys && state.view === "stuck",
+    ...DISPUTE_QUERY_OPTIONS,
+  });
 
-  const active = state.view === "cases" ? casesQuery : sessionsQuery;
-  const now = useMemo(() => Date.now(), [casesQuery.dataUpdatedAt, sessionsQuery.dataUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const active = state.view === "cases" ? casesQuery : state.view === "sessions" ? sessionsQuery : stuckQuery;
+  const now = useMemo(() => Date.now(), [casesQuery.dataUpdatedAt, sessionsQuery.dataUpdatedAt, stuckQuery.dataUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cases = normalizeCaseItems(casesQuery.data);
   const sessions = useMemo(() => normalizeQueueItems(sessionsQuery.data), [sessionsQuery.data]);
 
   const refresh = () => {
     if (state.view === "cases") void casesQuery.refetch();
-    else void sessionsQuery.refetch();
+    else if (state.view === "sessions") void sessionsQuery.refetch();
+    else void stuckQuery.refetch();
   };
   const refreshSessionsAfterAction = () => {
     void sessionsQuery.refetch();
@@ -182,6 +202,11 @@ export function AdminDisputes() {
                   {sessions.total}
                 </span>
               )}
+              {v === "stuck" && selected && hasData && (
+                <span className="rounded-full bg-adm-bg/20 px-2 py-px text-xs font-semibold tabular-nums" data-testid="d2-chip-count-stuck">
+                  {stuckQuery.data?.total ?? 0}
+                </span>
+              )}
             </button>
           );
         })}
@@ -207,38 +232,117 @@ export function AdminDisputes() {
                 </option>
               ))}
             </select>
-            <label htmlFor="d5-exec-filter" className="text-sm font-medium text-adm-text">Thực thi</label>
-            <select id="d5-exec-filter" value={execStatus ?? ""} onChange={(e) => setFilter("execStatus", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+            <label htmlFor="d5-exec-filter" className="text-sm font-medium text-adm-text">
+              Thực thi
+            </label>
+            <select
+              id="d5-exec-filter"
+              value={execStatus ?? ""}
+              onChange={(e) => setFilter("execStatus", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+            >
               <option value="">Tất cả</option>
-              {EXEC_STATUSES.map((s) => <option key={s} value={s}>{EXEC_STATUS_LABEL[s]}</option>)}
+              {EXEC_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {EXEC_STATUS_LABEL[s]}
+                </option>
+              ))}
             </select>
-            <label htmlFor="d5-type-filter" className="text-sm font-medium text-adm-text">Loại</label>
-            <select id="d5-type-filter" value={type ?? ""} onChange={(e) => setFilter("type", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+            <label htmlFor="d5-type-filter" className="text-sm font-medium text-adm-text">
+              Loại
+            </label>
+            <select
+              id="d5-type-filter"
+              value={type ?? ""}
+              onChange={(e) => setFilter("type", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+            >
               <option value="">Tất cả</option>
-              {CASE_TYPES.map((s) => <option key={s} value={s}>{CASE_TYPE_LABEL[s]}</option>)}
+              {CASE_TYPES.map((s) => (
+                <option key={s} value={s}>
+                  {CASE_TYPE_LABEL[s]}
+                </option>
+              ))}
             </select>
-            <label htmlFor="d5-investigator-filter" className="text-sm font-medium text-adm-text">Người phụ trách</label>
-            <select id="d5-investigator-filter" value={investigator} onChange={(e) => setFilter("investigator", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+            <label htmlFor="d5-investigator-filter" className="text-sm font-medium text-adm-text">
+              Người phụ trách
+            </label>
+            <select
+              id="d5-investigator-filter"
+              value={investigator}
+              onChange={(e) => setFilter("investigator", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+            >
               <option value="">Tất cả</option>
               <option value="unassigned">Chưa giao</option>
-              {(adminsQuery.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              {(adminsQuery.data ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.label}
+                </option>
+              ))}
             </select>
-            <label htmlFor="d5-created-from" className="text-sm font-medium text-adm-text">Từ ngày</label>
-            <input id="d5-created-from" type="date" value={createdFrom} onChange={(e) => setFilter("createdFrom", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`} />
-            <label htmlFor="d5-created-to" className="text-sm font-medium text-adm-text">Đến ngày</label>
-            <input id="d5-created-to" type="date" value={createdTo} onChange={(e) => setFilter("createdTo", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`} />
+            <label htmlFor="d5-created-from" className="text-sm font-medium text-adm-text">
+              Từ ngày
+            </label>
+            <input
+              id="d5-created-from"
+              type="date"
+              value={createdFrom}
+              onChange={(e) => setFilter("createdFrom", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+            />
+            <label htmlFor="d5-created-to" className="text-sm font-medium text-adm-text">
+              Đến ngày
+            </label>
+            <input
+              id="d5-created-to"
+              type="date"
+              value={createdTo}
+              onChange={(e) => setFilter("createdTo", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+            />
           </div>
           <Muted testId="d2-note-no-polling">{CASES_NOTE_NO_POLLING}</Muted>
         </div>
-      ) : (
+      ) : state.view === "sessions" ? (
         <div className="space-y-2">
-          <label htmlFor="d5-session-status" className="text-sm font-medium text-adm-text">Tình trạng buổi</label>
-          <select id="d5-session-status" value={sessionStatus ?? ""} onChange={(e) => setFilter("sessionStatus", e.target.value)} className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}>
+          <label htmlFor="d5-session-status" className="text-sm font-medium text-adm-text">
+            Tình trạng buổi
+          </label>
+          <select
+            id="d5-session-status"
+            value={sessionStatus ?? ""}
+            onChange={(e) => setFilter("sessionStatus", e.target.value)}
+            className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text ${FOCUS}`}
+          >
             <option value="">Tất cả</option>
             <option value="DISPUTED">Đang khiếu nại</option>
             <option value="PT_NO_SHOW_REPORTED">Khách báo PT vắng</option>
           </select>
           <Muted>{SESSIONS_NOTE_OPEN_EXISTING}</Muted>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="d2-stuck-kind-filter" className="text-sm font-medium text-adm-text">
+              Loại tắc nghẽn
+            </label>
+            <select
+              id="d2-stuck-kind-filter"
+              data-testid="d2-stuck-kind-filter"
+              value={stuckKind ?? ""}
+              onChange={(e) => setFilter("stuckKind", e.target.value)}
+              className={`min-h-11 rounded-md border border-adm-border bg-adm-surface px-3 text-sm text-adm-text xl:min-h-9 ${FOCUS}`}
+            >
+              <option value="">Tất cả loại tắc</option>
+              {STUCK_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {STUCK_KIND_LABEL[k]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Muted testId="d2-note-stuck">{STUCK_NOTE}</Muted>
         </div>
       )}
 
@@ -256,7 +360,13 @@ export function AdminDisputes() {
         cases.items.length === 0 ? (
           <div data-testid="d2-cases-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
             <GavelIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
-            <p className="text-sm text-adm-text">{state.page > 1 ? "Không còn hồ sơ ở trang này." : state.status ? "Không có hồ sơ nào ở trạng thái này." : "Chưa có hồ sơ khiếu nại nào."}</p>
+            <p className="text-sm text-adm-text">
+              {state.page > 1
+                ? "Không còn hồ sơ ở trang này."
+                : state.status
+                  ? "Không có hồ sơ nào ở trạng thái này."
+                  : "Chưa có hồ sơ khiếu nại nào."}
+            </p>
             {state.page > 1 && (
               <Button type="button" variant="outline" size="sm" className="mt-3 min-h-11 xl:min-h-8" onClick={() => go({ page: 1 })}>
                 Về trang đầu
@@ -282,20 +392,39 @@ export function AdminDisputes() {
             </nav>
           </>
         )
-      ) : sessions.rows.length === 0 ? (
-        <div data-testid="d2-sessions-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
-          <GavelIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
-          <p className="text-sm text-adm-text">Không có khiếu nại nào đang chờ xử lý.</p>
-        </div>
+      ) : state.view === "sessions" ? (
+        sessions.rows.length === 0 ? (
+          <div data-testid="d2-sessions-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
+            <GavelIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
+            <p className="text-sm text-adm-text">Không có khiếu nại nào đang chờ xử lý.</p>
+          </div>
+        ) : (
+          <>
+            {sessions.ignored > 0 && <p className="text-xs text-adm-text-2">Có {sessions.ignored} buổi không đọc được trong phản hồi nên không hiển thị.</p>}
+            <SessionList rows={sessions.rows} now={now} onRefresh={refreshSessionsAfterAction} />
+            <nav aria-label="Phân trang buổi chưa xử lý" className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-adm-text-2">{rangeText(sessionPage, sessions.total, sessions.rows.length)} · Trang {sessionPage}/{pageCountOf(sessions.total)}</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" disabled={sessionPage <= 1} onClick={() => setFilter("sPage", String(sessionPage - 1))}>Trang trước</Button>
+                <Button type="button" variant="outline" disabled={!sessions.hasMore} onClick={() => setFilter("sPage", String(sessionPage + 1))}>Trang sau</Button>
+              </div>
+            </nav>
+          </>
+        )
       ) : (
         <>
-          {sessions.ignored > 0 && <p className="text-xs text-adm-text-2">Có {sessions.ignored} buổi không đọc được trong phản hồi nên không hiển thị.</p>}
-          <SessionList rows={sessions.rows} now={now} onRefresh={refreshSessionsAfterAction} />
-          <nav aria-label="Phân trang buổi chưa xử lý" className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-adm-text-2">{rangeText(sessionPage, sessions.total, sessions.rows.length)} · Trang {sessionPage}/{pageCountOf(sessions.total)}</p>
+          <StuckList items={stuckQuery.data?.items ?? []} />
+          <nav aria-label="Phân trang hồ sơ cần xử lý" className="flex flex-wrap items-center justify-between gap-3" data-testid="d2-stuck-pager">
+            <p className="text-sm tabular-nums text-adm-text-2">
+              {rangeText(stuckPage, stuckQuery.data?.total ?? 0, stuckQuery.data?.items?.length ?? 0)} · Trang {stuckPage}/{pageCountOf(stuckQuery.data?.total ?? 0)}
+            </p>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" disabled={sessionPage <= 1} onClick={() => setFilter("sPage", String(sessionPage - 1))}>Trang trước</Button>
-              <Button type="button" variant="outline" disabled={!sessions.hasMore} onClick={() => setFilter("sPage", String(sessionPage + 1))}>Trang sau</Button>
+              <Button type="button" variant="outline" size="sm" className="min-h-11 xl:min-h-8" disabled={stuckPage <= 1} onClick={() => setFilter("stuckPage", String(stuckPage - 1))}>
+                <CaretLeftIcon aria-hidden /> Trang trước
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="min-h-11 xl:min-h-8" disabled={!stuckQuery.data?.hasMore} onClick={() => setFilter("stuckPage", String(stuckPage + 1))}>
+                Trang sau <CaretRightIcon aria-hidden />
+              </Button>
             </div>
           </nav>
         </>

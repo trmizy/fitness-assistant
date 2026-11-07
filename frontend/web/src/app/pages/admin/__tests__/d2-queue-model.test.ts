@@ -36,7 +36,7 @@ describe("D2 queue - URL state", () => {
     assert.deepEqual(Q.buildQueueParams({ view: "cases", status: "INTAKE", page: 4 }), { status: "INTAKE", page: "4" });
   });
   it("no 'escalated' view exists", () => {
-    assert.deepEqual([...Q.QUEUE_VIEWS], ["cases", "sessions"]);
+    assert.deepEqual([...Q.QUEUE_VIEWS], ["cases", "sessions", "stuck"]);
   });
 });
 
@@ -81,7 +81,17 @@ describe("D2 queue - case row wording", () => {
 
 describe("D2 queue - sessions (C1) joined with SLA (C2)", () => {
   const c1 = [
-    { id: "s2", disputedAt: "2026-11-01T00:00:00.000Z", scheduledStartAt: "2026-10-30T01:00:00.000Z", disputeType: "DELIVERY_DISPUTE", clientUserId: "client-aaaa-1111", ptUserId: "pt-bbbb-2222", disputeReason: "PT không dạy", ptNotes: "Đã dạy", contract: { packageName: "Gói A" } },
+    {
+      id: "s2",
+      disputedAt: "2026-11-01T00:00:00.000Z",
+      scheduledStartAt: "2026-10-30T01:00:00.000Z",
+      disputeType: "DELIVERY_DISPUTE",
+      clientUserId: "client-aaaa-1111",
+      ptUserId: "pt-bbbb-2222",
+      disputeReason: "PT không dạy",
+      ptNotes: "Đã dạy",
+      contract: { packageName: "Gói A" },
+    },
     { id: "s1", disputedAt: "2026-10-20T00:00:00.000Z", disputeType: null, clientUserId: "c", ptUserId: "p" },
     { id: "s3", disputedAt: "2026-10-25T00:00:00.000Z", disputeType: "CLIENT_NO_SHOW_CLAIM", clientUserId: "c", ptUserId: "p" },
     { garbage: true },

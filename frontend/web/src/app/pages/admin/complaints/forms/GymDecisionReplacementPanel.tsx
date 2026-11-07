@@ -212,7 +212,7 @@ export function GymDecisionReplacementPanel({
       {isPending && (approveAction.allowed || rejectAction.allowed) && (
         <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
           <h4 className="text-sm font-semibold text-adm-text">
-            Xử lý đề xuất thay thế (Bốn mắt)
+            Xử lý đề xuất thay thế
           </h4>
 
           <Field id="gym-decide-reason" label="Lý do xử lý" required>

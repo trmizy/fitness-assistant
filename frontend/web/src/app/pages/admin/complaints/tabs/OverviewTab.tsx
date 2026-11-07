@@ -1,7 +1,8 @@
 import { adminService } from "../../../../services/api";
 import { AuthenticatedImage } from "../../../../components/ui/AuthenticatedImage";
 import { Facts, Muted, Notice, Pill, Section, DisputeLink, FOCUS } from "../GymParts";
-import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatusLabel, gymWaitingNote, issueLabel, complaintStatusLabel, gymStatusTone } from "../gymCaseLabels";
+import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatusLabel, gymWaitingNote, issueLabel, complaintStatusLabel, gymStatusTone, slaStatusLabel, slaStatusTone } from "../gymCaseLabels";
+import { DeadlinesTable } from "../../disputes/workspace/DeadlinesTable";
 import { COMPLAINTS_PATH, gatesOf, investigatorText, reporterText } from "../gymCaseModel";
 import { formatDateSafe, formatDateTimeSafe } from "../gymFormat";
 import { formatMoneyString } from "../../adminFinanceOverview.utils";
@@ -16,7 +17,13 @@ const SOURCE: Record<string, string> = {
   PT_REPORT: "PT phản ánh",
   PARTNER_DISCLOSED: "Đối tác tự khai báo",
 };
-const MEMBERSHIP_STATUS: Record<string, string> = { PENDING_PAYMENT: "Chờ thanh toán", ACTIVE: "Đang hoạt động", EXPIRED: "Đã hết hạn", CANCELLED: "Đã huỷ", PENDING_ISSUE: "Có vấn đề thanh toán" };
+const MEMBERSHIP_STATUS: Record<string, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  ACTIVE: "Đang hoạt động",
+  EXPIRED: "Đã hết hạn",
+  CANCELLED: "Đã huỷ",
+  PENDING_ISSUE: "Có vấn đề thanh toán",
+};
 
 export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
   const { detail, currentUserId } = props;
@@ -65,6 +72,21 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
             { label: "Người phụ trách", value: investigatorText(c.investigatorId, currentUserId) },
             { label: "Thực thi", value: gymExecLabel(c.execStatus) },
             { label: "Tình trạng hồ sơ", value: gymClosureLabel(detail.closure) },
+            ...(detail.sla
+              ? [
+                  {
+                    label: "Thời gian xử lý",
+                    value: (
+                      <span className="flex items-center gap-2" data-testid="d6-sla">
+                        <Pill tone={slaStatusTone(detail.sla.state)}>{slaStatusLabel(detail.sla.state)}</Pill>
+                        <span className="text-xs text-adm-text-2">
+                          {detail.sla.ageDays ?? detail.sla.daysOpen ?? 0} ngày lịch kể từ khi mở khiếu nại
+                        </span>
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
         <Muted>{GYM_CLASS_HELP[c.caseClass as keyof typeof GYM_CLASS_HELP] ?? ""}</Muted>
@@ -72,6 +94,8 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
           {gymWaitingNote(c.status, c.execStatus)}
         </p>
       </Section>
+
+      <DeadlinesTable deadlines={detail.deadlines} />
 
       {detail.refundQuote && (
         <Section title="Định giá hoàn tiền" testId="d6-refund-quote">

@@ -38,6 +38,11 @@ import type {
   CreatedId,
   DecideResult,
   DisputeCaseDetail,
+  AgreementItem,
+  AgreementOutcome,
+  StuckQueueResult,
+  HeldMoneyListResult,
+  HeldMoneyDecisionInput,
   ListCasesQuery,
   ListCasesResult,
   MoveResult,
@@ -217,8 +222,23 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     /** A7. Same, by contract (empty `items` when the contract has no review). */
     getContractPolicyReviews: (contractId: string) => get<PolicyReviewList>(`${A}/contracts/${enc(contractId)}/policy-eligibility`),
     getContractPolicyClassification: (contractId: string) => get<ContractPolicyClassification>(`${A}/contracts/${enc(contractId)}/policy-classification`),
-    proposeContractPolicy: (contractId: string, input: ContractPolicyInput, key: string) => postData<PolicyReviewResult>(`${A}/contracts/${enc(contractId)}/policy-eligibility`, compact({ result: input.result, evidenceRefs: input.evidenceRefs.map((ref) => ({ kind: ref.kind, id: ref.id })), reasoning: input.reasoning, supersedesId: input.supersedesId }), key),
-    approveContractPolicy: (contractId: string, reviewId: string, input: PolicyApproveInput, key: string) => postData<PolicyReviewResult>(`${A}/contracts/${enc(contractId)}/policy-eligibility/${enc(reviewId)}/approve`, { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone }, key),
+    proposeContractPolicy: (contractId: string, input: ContractPolicyInput, key: string) =>
+      postData<PolicyReviewResult>(
+        `${A}/contracts/${enc(contractId)}/policy-eligibility`,
+        compact({
+          result: input.result,
+          evidenceRefs: input.evidenceRefs.map((ref) => ({ kind: ref.kind, id: ref.id })),
+          reasoning: input.reasoning,
+          supersedesId: input.supersedesId,
+        }),
+        key,
+      ),
+    approveContractPolicy: (contractId: string, reviewId: string, input: PolicyApproveInput, key: string) =>
+      postData<PolicyReviewResult>(
+        `${A}/contracts/${enc(contractId)}/policy-eligibility/${enc(reviewId)}/approve`,
+        { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone },
+        key,
+      ),
     /** S3 (R-16). One session for an admin (GET /sessions/:id is refused to admins). */
     getAdminSession: (sessionId: string) => get<AdminSessionDetail>(`/admin/sessions/${enc(sessionId)}`),
     /** A4. Calls the ledger for every money step (slow). */
@@ -390,6 +410,85 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     /** A52. Sync obligation status. */
     syncAppealObligation: (caseId: string, consequenceId: string, idempotencyKey: string) =>
       postData<{ consequenceId: string; status: string; obligation: unknown }>(`${A}/${enc(caseId)}/appeal-consequences/${enc(consequenceId)}/sync-obligation`, {}, idempotencyKey),
+    /** A51. Create appeal obligation retry. */
+    createAppealObligation: (caseId: string, consequenceId: string, idempotencyKey: string) =>
+      postData<{ consequenceId: string; status: string; obligation: unknown }>(`${A}/${enc(caseId)}/appeal-consequences/${enc(consequenceId)}/create-obligation`, {}, idempotencyKey),
+
+    // ── Phase 2: Agreements (A41-A44) ──
+    /** A41. List agreements. */
+    listAgreements: (caseId: string) =>
+      get<{ items: AgreementItem[] }>(`${A}/${enc(caseId)}/agreements`),
+    /** A42. Propose agreement. */
+    proposeAgreement: (caseId: string, input: { outcome: AgreementOutcome; note: string }, idempotencyKey: string) =>
+      postData<{ id: string; status: string; outcome: string; contentHash: string }>(
+        `${A}/${enc(caseId)}/agreements`,
+        { outcome: input.outcome, note: input.note },
+        idempotencyKey,
+      ),
+    /** A43. Withdraw agreement. */
+    withdrawAgreement: (caseId: string, agreementId: string, idempotencyKey: string) =>
+      postData<{ agreementId: string; status: string }>(`${A}/${enc(caseId)}/agreements/${enc(agreementId)}/withdraw`, {}, idempotencyKey),
+    /** A44. Record agreement finding. */
+    recordAgreementFinding: (caseId: string, agreementId: string, idempotencyKey: string) =>
+      postData<{ findingId: string; caseStatus: string }>(`${A}/${enc(caseId)}/agreements/${enc(agreementId)}/record-finding`, {}, idempotencyKey),
+
+    // ── Phase 2: Quota corrections (A48-A49) ──
+    /** A48. Propose quota correction on a QUOTA consequence. */
+    proposeQuotaCorrection: (caseId: string, consequenceId: string, input: { delta: number; reason: string }, idempotencyKey: string) =>
+      postData<{ correctionId: string; delta: number; usedSessions: number; totalSessions: number }>(
+        `${A}/${enc(caseId)}/consequences/${enc(consequenceId)}/quota-corrections`,
+        { delta: input.delta, reason: input.reason },
+        idempotencyKey,
+      ),
+    /** A49. Approve quota correction (four-eyes). */
+    approveQuotaCorrection: (caseId: string, correctionId: string, input: { reason: string; conflictOfInterestDeclaredNone: boolean }, idempotencyKey: string) =>
+      postData<{ correctionId: string; delta: number; applied: boolean }>(
+        `${A}/${enc(caseId)}/quota-corrections/${enc(correctionId)}/approve`,
+        { reason: input.reason, conflictOfInterestDeclaredNone: input.conflictOfInterestDeclaredNone },
+        idempotencyKey,
+      ),
+
+    // ── Phase 2: Stuck queue (A38) & Held money (A39-A40) ──
+    /** A38. List stuck cases. */
+    listStuck: (filter?: { kind?: "POLICY_PENDING" | "NEEDS_HUMAN" | "EXEC_BLOCKED"; limit?: number; offset?: number }) =>
+      get<StuckQueueResult>(
+        `${A}/stuck`,
+        compact({
+          kind: filter?.kind,
+          limit: filter?.limit ?? 50,
+          offset: filter?.offset ?? 0,
+        }),
+      ),
+    /** A39. List held money reviews. */
+    listHeldMoney: (filter?: { overdue?: boolean; limit?: number; offset?: number }) =>
+      get<HeldMoneyListResult>(
+        `${A}/held-money`,
+        compact({
+          overdue: filter?.overdue ? true : undefined,
+          limit: filter?.limit ?? 50,
+          offset: filter?.offset ?? 0,
+        }),
+      ),
+    /** A40. Decide held money review. */
+    decideHeldMoney: async (
+      reviewId: string,
+      input: HeldMoneyDecisionInput,
+      idempotencyKey?: string,
+    ): Promise<{ reviewId: string; decisionId: string; decision: string }> => {
+      const headers: Record<string, string> = {};
+      if (idempotencyKey) headers["Idempotency-Key"] = assertKey(idempotencyKey);
+      const res = await client.request<{ reviewId: string; decisionId: string; decision: string }>({
+        method: "POST",
+        url: `${A}/held-money/${enc(reviewId)}/decision`,
+        data: compact({
+          decision: input.decision,
+          reason: input.reason,
+          exitRef: input.exitRef,
+        }),
+        headers,
+      });
+      return res.data;
+    },
 
     // ── execution (server flag `execution`; `409 EXECUTION_DISABLED` when off) ──
     /** A27. `decisionId` only CHOOSES among the case's approvals; the executor re-reads and re-checks everything. Changes the session, the quota and money. */
@@ -420,6 +519,13 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
     /** B8. Request appeal. Idempotency-Key mandatory. */
     requestPartyAppeal: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
       postData<AppealRequestResult>(`/dispute-cases/${enc(caseId)}/appeals`, { reason: input.reason }, idempotencyKey),
+    /** B7. Confirm agreement content. Idempotency-Key mandatory. */
+    confirmAgreement: (caseId: string, agreementId: string, input: { contentHash: string }, idempotencyKey: string) =>
+      postData<{ status: string; bothConfirmed: boolean }>(
+        `/dispute-cases/${enc(caseId)}/agreements/${enc(agreementId)}/confirm`,
+        { contentHash: input.contentHash },
+        idempotencyKey,
+      ),
   };
 }
 

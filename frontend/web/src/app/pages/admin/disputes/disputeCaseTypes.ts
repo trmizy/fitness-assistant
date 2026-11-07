@@ -643,6 +643,9 @@ export interface DisputeCaseDetail {
   execution?: ExecutionView;
   policyReviews?: PolicyReviewList;
   closure?: ClosureInfo | null;
+  deadlines?: DisputeCaseDeadline[];
+  agreements?: AgreementItem[];
+  appeals?: AppealItem[];
   /** Names of the actions allowed right now (server computed; four-eyes and conflict of interest aware). */
   allowedActions?: ActionName[] | string[];
   actions?: Partial<Record<ActionName, ActionVerdict>>;
@@ -815,6 +818,8 @@ export interface PartyCaseDetail {
   }>;
   /** Group + server label only: parties never see amounts. */
   financial: { group: CaseFinancialGroup; groupLabel: string };
+  agreements?: PartyAgreementItem[];
+  deadlines?: PartyDeadlineItem[];
 }
 export interface StatementCreated {
   id: string;
@@ -894,6 +899,12 @@ export interface QuotaCorrection {
   delta: number;
   reason: string;
   createdAt: string;
+  proposedBy?: string;
+  appliedAt?: string | null;
+  status?: string;
+  usedBefore?: number;
+  usedAfter?: number;
+  approvedBy?: string;
 }
 export interface AppealConsequence {
   id: string;
@@ -984,3 +995,117 @@ export interface GatewayErrorBody {
   success: false;
   error: { code?: string; message?: string };
 }
+
+// ───────────────────────────────────────────────────────────── Phase 2 Types ──
+export type AgreementOutcome = "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED";
+export type AgreementStatus = "PROPOSED" | "AGREED" | "WITHDRAWN" | "USED";
+
+export interface AgreementConfirmation {
+  partyRole: "CLIENT" | "PT" | string;
+  confirmedAt: string;
+}
+
+export interface AgreementItem {
+  id: string;
+  outcome: AgreementOutcome | string;
+  outcomeLabel?: string;
+  contentHash: string;
+  note: string;
+  status: AgreementStatus | string;
+  agreedAt?: string | null;
+  findingId?: string | null;
+  createdAt: string;
+  confirmations?: AgreementConfirmation[];
+}
+
+export interface PartyAgreementItem {
+  id: string;
+  outcome: string;
+  outcomeLabel: string;
+  contentHash: string;
+  status: string;
+  myConfirmed: boolean;
+  otherConfirmed: boolean;
+}
+
+export interface DisputeCaseDeadline {
+  id: string;
+  kind: string;
+  partyRole: string;
+  userId: string;
+  hours: number;
+  startedAt: string;
+  dueAt: string | null;
+  paused: boolean;
+  pausedSeconds?: number;
+  status: string;
+  satisfiedAt?: string | null;
+  expiredAt?: string | null;
+}
+
+export interface PartyDeadlineItem {
+  kind: string;
+  hours: number;
+  startedAt: string;
+  dueAt: string | null;
+  paused: boolean;
+  status: string;
+}
+
+export interface StuckItem {
+  caseId: string;
+  sessionId: string;
+  kind: "POLICY_PENDING" | "NEEDS_HUMAN" | "EXEC_BLOCKED";
+  status: CaseStatus;
+  execStatus: ExecStatus | null;
+  ownerId: string | null;
+  ownerName: string | null;
+  ownerRequired: boolean;
+  escalated: boolean;
+  since: string;
+  ageDays: number;
+  lastAudit: { action: string; at: string; by?: string | null; note?: string | null } | null;
+}
+
+export interface StuckQueueResult {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  items: StuckItem[];
+}
+
+export interface HeldMoneyDecisionInput {
+  decision: "KEEP_HOLDING" | "EXIT_STARTED";
+  reason: string;
+  exitRef?: { kind: "D65B_RESOLUTION" | "LATE_OPEN_PROPOSAL"; id: string };
+}
+
+export interface HeldMoneyReviewItem {
+  reviewId: string;
+  settlementRowId: string;
+  sessionId: string;
+  contractId: string;
+  firstSeenAt: string;
+  daysHeld: number;
+  nextReviewDueAt: string;
+  overdue: boolean;
+  ownerEscalatedAt?: string | null;
+  lastDecision?: {
+    decision: "KEEP_HOLDING" | "EXIT_STARTED";
+    reason: string;
+    exitRef?: string | null;
+    decidedBy: string;
+    decidedAt: string;
+  } | null;
+  note?: string;
+}
+
+export interface HeldMoneyListResult {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  items: HeldMoneyReviewItem[];
+}
+

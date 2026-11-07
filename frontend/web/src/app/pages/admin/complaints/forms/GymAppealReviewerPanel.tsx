@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { gymCaseApi } from "../gymCaseApi";
 import type { FormProps } from "./formTypes";
-import { actionOf } from "../gymCaseModel";
+import { actionOf, ACT_ASSIGN_REVIEWER, shortRefOf } from "../gymCaseModel";
+import { isAppealReview } from "../gymCaseLabels";
 import { CARD, Muted, Notice } from "../GymParts";
 import {
   ActionButton,
@@ -12,7 +13,6 @@ import {
 } from "../../disputes/actions/actionKit";
 import { listAdminOptions } from "../../disputes/actions/adminDirectory";
 import type { AdminOption } from "../../disputes/actions/actionModel";
-import { shortRefOf } from "../gymCaseModel";
 
 /** Never show the raw appeal status. */
 const GYM_APPEAL_STATUS_LABEL: Record<string, string> = {
@@ -28,7 +28,7 @@ export function GymAppealReviewerPanel({
   onChanged,
 }: FormProps) {
   const caseId = detail.case.id;
-  const assignAction = actionOf(detail, "ASSIGN_APPEAL_REVIEWER");
+  const assignAction = actionOf(detail, ACT_ASSIGN_REVIEWER);
 
   const [admins, setAdmins] = useState<AdminOption[]>([]);
   const [selectedReviewer, setSelectedReviewer] = useState("");
@@ -44,7 +44,7 @@ export function GymAppealReviewerPanel({
 
   // Show while assigning (APPEAL_REVIEW) AND for as long as an appeal exists: after assignment the case
   // goes back to ASSESSING and the reviewer must still see that this is a re-review and why (INT-18).
-  if (!assignAction.allowed && detail.case.status !== "APPEAL_REVIEW" && !appeal?.status) {
+  if (!assignAction.allowed && !isAppealReview(detail.case.status) && !appeal?.status) {
     return null;
   }
 

@@ -90,6 +90,11 @@ describe("D4 source guards (CODE AUDIT)", () => {
       assert.doesNotMatch(code(f), /#[0-9a-fA-F]{3,8}\b|rgba?\(|adm-|--adm/, f);
     }
   });
+  it("party files must not contain undefined variables --surface-color or --muted-color", () => {
+    for (const f of files.filter((x) => x.endsWith(".tsx"))) {
+      assert.doesNotMatch(code(f), /--surface-color|--muted-color/, f);
+    }
+  });
   it("visible text never says the other side was notified, an appeal, or 'buổi tập không bị trừ'", () => {
     for (const f of files.filter((x) => !x.endsWith(".test.ts"))) {
       const strings = (code(f).match(/"[^"\n]*"|`[^`\n]*`/g) ?? []).join("\n");

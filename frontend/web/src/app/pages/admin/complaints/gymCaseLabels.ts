@@ -23,6 +23,7 @@ export const GYM_STATUS_LABEL: Record<GymCaseStatus, string> = {
   APPEAL_REVIEW: "Đang xem xét lại",
 };
 export const gymStatusLabel = (s: string | null | undefined) => lookup(GYM_STATUS_LABEL, s, "Chưa rõ trạng thái");
+export const isAppealReview = (s: string | null | undefined): boolean => s === "APPEAL_REVIEW";
 
 /** "Who must act next" - one sentence per status, shown under the header. */
 export const GYM_WAITING_NOTE: Record<GymCaseStatus, string> = {
@@ -259,6 +260,30 @@ export const issueLabel = (t: string | null | undefined) => lookup(ISSUE_LABEL, 
 export const COMPLAINT_STATUS_LABEL: Record<string, string> = { OPEN: "Mới", IN_PROGRESS: "Đang xử lý", RESOLVED: "Đã xử lý" };
 export const complaintStatusLabel = (s: string | null | undefined) => lookup(COMPLAINT_STATUS_LABEL, s, "Chưa rõ");
 
+// ── SLA ──
+export const SLA_STATE_LABEL: Record<string, string> = {
+  OK: "Trong hạn xử lý",
+  WARNING: "Cảnh báo tiến độ",
+  OVERDUE: "Quá hạn SLA",
+  SLA_OVERDUE_ESCALATED: "Quá hạn SLA (đã chuyển tiếp)",
+};
+export const slaStatusLabel = (s: string | null | undefined): string =>
+  lookup(SLA_STATE_LABEL, s, "Đang theo dõi");
+
+export function slaStatusTone(state: string | null | undefined): Tone {
+  switch (state) {
+    case "OK":
+      return "info";
+    case "WARNING":
+      return "warning";
+    case "OVERDUE":
+    case "SLA_OVERDUE_ESCALATED":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
 // ── member-facing ──
 export const MEMBER_PROGRESS_TONE: Record<string, Tone> = {
   "Đã tiếp nhận": "info",
@@ -275,5 +300,6 @@ export const COMPLAINT_RESOLVE_NOT_REFUND = "Xử lý khiếu nại không tự 
 export const CASE_REQUIRED_TEXT = "Khiếu nại này đã có hồ sơ xử lý nên chỉ kết thúc được qua hồ sơ.";
 export const EXECUTE_CONFIRM_NOTICE = "Hệ thống sẽ hoàn gói hội viên đúng một lần. Số tiền do máy chủ tính, bạn không nhập. Thao tác không thể hoàn tác.";
 export const EXECUTE_WALLET_NOTE = "Khoản hoàn (nếu có) được ghi vào ví Gymini của hội viên, không chuyển về ngân hàng.";
-export const MEMBER_NO_FILE_NOTE = "Bạn chưa gửi được tệp trực tiếp. Hãy nhập mô tả và mã sha256 của tệp bạn có; hệ thống ghi nhận mã đó là lời khai của bạn, chưa kiểm chứng.";
+export const MEMBER_NO_FILE_NOTE =
+  "Bạn chưa gửi được tệp trực tiếp. Hãy nhập mô tả và mã sha256 của tệp bạn có; hệ thống ghi nhận mã đó là lời khai của bạn, chưa kiểm chứng.";
 export const GYM_CASE_STATUS_FILTER_NOTE = "Mỗi lần mở danh sách, hệ thống ghi nhật ký truy cập cho từng hồ sơ nên danh sách không tự làm mới. Bấm «Tải lại» khi cần.";

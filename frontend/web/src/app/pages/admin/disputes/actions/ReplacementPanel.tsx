@@ -260,7 +260,7 @@ export function ReplacementPanel({
                 {canDecide && (
                   <div className="mt-3 space-y-2 border-t border-adm-border-soft pt-3">
                     <p className="text-xs font-semibold text-adm-text">
-                      Xử lý đề xuất này (Bốn mắt):
+                      Xử lý đề xuất này:
                     </p>
                     <Field id={`decide-replacement-reason-${item.id}`} label="Lý do xử lý" required>
                       <TextArea

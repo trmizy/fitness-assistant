@@ -19,6 +19,7 @@ import { parseMoneyError } from "./moneyExceptionErrors";
 import { reasonOrGeneric } from "./moneyExceptionText";
 import { D65B_STATUSES, type D65bDetail, type D65bSessionPreview, type D65bStatus, type D65bSummary, type MoneyCapabilities } from "./moneyExceptionTypes";
 import { useAdminDirectory, useD65bDetail, useD65bList, useD65bPreview } from "./useMoneyExceptionData";
+import { HeldMoneyReviewSection } from "./HeldMoneyReviewSection";
 
 type Dialog = { kind: "propose" } | { kind: "approve" } | { kind: "resume" } | { kind: "reject" } | { kind: "handover" } | null;
 
@@ -70,7 +71,8 @@ export function HeldNoShowView({ caps, capsFailed }: { caps: MoneyCapabilities |
       <header className="space-y-2">
         <h2 className="text-base font-bold text-adm-text">Khoản giữ của buổi PT vắng</h2>
         <p className="max-w-3xl text-sm text-adm-text-2">
-          Khi PT vắng mặt mà hợp đồng kết thúc trước khi khách được hoàn, khoản của buổi đó bị giữ lại. Hai quản trị viên cùng xử lý: một người đề xuất, một người duyệt.
+          Khi PT vắng mặt mà hợp đồng kết thúc trước khi khách được hoàn, khoản của buổi đó bị giữ lại.
+          Hai quản trị viên cùng xử lý: một người đề xuất, một người duyệt.
           Tiền chỉ về ví của khách và do sổ cái tính; không ai nhập số tiền.
         </p>
         {line && (
@@ -113,7 +115,8 @@ export function HeldNoShowView({ caps, capsFailed }: { caps: MoneyCapabilities |
           ) : shown.length === 0 ? (
             <MutedLine testId="held-empty">
               {items.length === 0
-                ? "Chưa có đề xuất nào. Để lập đề xuất mới, mở một dòng «Chưa được xác nhận» của buổi PT vắng từ nhóm «Tất toán cần người xử lý» ở chip Ngoại lệ."
+                ? "Chưa có đề xuất nào. Để lập đề xuất mới, mở một dòng «Chưa được xác nhận»" +
+                  " của buổi PT vắng từ nhóm «Tất toán cần người xử lý» ở chip Ngoại lệ."
                 : "Không có đề xuất nào ở trạng thái này."}
             </MutedLine>
           ) : (
@@ -162,6 +165,8 @@ export function HeldNoShowView({ caps, capsFailed }: { caps: MoneyCapabilities |
           )}
         </div>
       </div>
+
+      <HeldMoneyReviewSection d65bProposals={items} proposalsComplete={list.isSuccess && items.length < 50} />
     </div>
   );
 }
@@ -205,9 +210,23 @@ function ResolutionDetail({
           rows={[
             { label: "Lập bởi", value: `${adminName(d.proposedBy, admins, me)} · ${formatVnDateTime(d.createdAt)}` },
             { label: "Lý do", value: d.reason || "—" },
-            { label: "Tham chiếu bằng chứng", value: d.evidenceRefs.length ? <ul className="space-y-2 text-left">{d.evidenceRefs.map((r, i) => <li key={i}><CompactReference value={r} /></li>)}</ul> : "—" },
+            {
+              label: "Tham chiếu bằng chứng",
+              value: d.evidenceRefs.length ? (
+                <ul className="space-y-2 text-left">
+                  {d.evidenceRefs.map((r, i) => (
+                    <li key={i}>
+                      <CompactReference value={r} />
+                    </li>
+                  ))}
+                </ul>
+              ) : "—",
+            },
             ...(d.approvedBy ? [{ label: "Duyệt bởi", value: `${adminName(d.approvedBy, admins, me)} · ${formatVnDateTime(d.approvedAt)}` }, { label: "Lý do duyệt", value: d.approvalReason ?? "—" }] : []),
-            ...(d.rejectedBy ? [{ label: "Từ chối bởi", value: `${adminName(d.rejectedBy, admins, me)} · ${formatVnDateTime(d.rejectedAt)}` }, { label: "Lý do từ chối", value: d.rejectionReason ?? "—" }] : []),
+            ...(d.rejectedBy ? [{
+              label: "Từ chối bởi",
+              value: `${adminName(d.rejectedBy, admins, me)} · ${formatVnDateTime(d.rejectedAt)}`,
+            }, { label: "Lý do từ chối", value: d.rejectionReason ?? "—" }] : []),
           ]}
         />
       </Section>
@@ -229,8 +248,21 @@ function ResolutionDetail({
           {gates.approve.show && <GatedButton label="Duyệt đề xuất" reason={gates.approve.disabledReason} onClick={() => setDialog({ kind: "approve" })} variant="primary" testId="held-approve" />}
           {gates.reject.show && <GatedButton label="Từ chối đề xuất" reason={gates.reject.disabledReason} onClick={() => setDialog({ kind: "reject" })} variant="outline" testId="held-reject" />}
           {gates.resume.show && <GatedButton label="Chạy lại việc ghi có" reason={gates.resume.disabledReason} onClick={() => setDialog({ kind: "resume" })} variant="primary" testId="held-resume" />}
-          {gates.handover.show && <GatedButton label="Tiếp quản nếu người duyệt đã rời vai quản trị" reason={gates.handover.disabledReason} onClick={() => setDialog({ kind: "handover" })} variant="outline" testId="held-handover" />}
-          {gates.handover.show && <MutedLine>Máy chủ sẽ xác minh người đã duyệt không còn là quản trị viên đang hoạt động trước khi tiếp quản. Nếu họ vẫn còn hoạt động, thao tác bị từ chối và không ghi có.</MutedLine>}
+          {gates.handover.show && (
+            <GatedButton
+              label="Tiếp quản nếu người duyệt đã rời vai quản trị"
+              reason={gates.handover.disabledReason}
+              onClick={() => setDialog({ kind: "handover" })}
+              variant="outline"
+              testId="held-handover"
+            />
+          )}
+          {gates.handover.show && (
+            <MutedLine>
+              Máy chủ sẽ xác minh người đã duyệt không còn là quản trị viên đang hoạt động trước khi tiếp quản.
+              Nếu họ vẫn còn hoạt động, thao tác bị từ chối và không ghi có.
+            </MutedLine>
+          )}
         </Section>
       )}
 
@@ -245,18 +277,31 @@ function ResolutionDetail({
 }
 
 function StatusBanner({ d, credited }: { d: D65bDetail; credited: string | null }) {
-  if (d.status === "REJECTED") return <Notice tone="neutral" title="Đề xuất đã bị từ chối" testId="held-banner-rejected">Không có khoản tiền nào được chuyển bởi đề xuất này. Có thể lập đề xuất mới sau khi xem lại bằng chứng.</Notice>;
+  if (d.status === "REJECTED") {
+    return (
+      <Notice tone="neutral" title="Đề xuất đã bị từ chối" testId="held-banner-rejected">
+        Không có khoản tiền nào được chuyển bởi đề xuất này. Có thể lập đề xuất mới sau khi xem lại bằng chứng.
+      </Notice>
+    );
+  }
   if (d.status === "EXECUTED") {
     return (
       <Notice tone="success" title="Sổ cái đã xác nhận ghi có cho khách" testId="held-banner-executed">
-        {credited ? `Sổ cái đã ghi ${formatMoneyString(credited)} vào ví Gymini của khách. ` : "Sổ cái đã ghi có cho khách. "}Đây là ghi vào ví Gymini, không phải chuyển khoản ngân hàng.
+        {credited ? `Sổ cái đã ghi ${formatMoneyString(credited)} vào ví Gymini của khách. ` : "Sổ cái đã ghi có cho khách. "}
+        Đây là ghi vào ví Gymini, không phải chuyển khoản ngân hàng.
       </Notice>
     );
   }
   if (d.status === "APPROVED_NOT_EXECUTED") {
     return (
-      <Notice tone="warning" title="Đã duyệt, nhưng sổ cái chưa xác nhận ghi có — tiền chưa chuyển vào ví" testId="held-banner-not-executed">
-        Khoản vẫn đang được giữ. Người đã duyệt chạy lại bằng nút «Chạy lại việc ghi có». Nếu người đó không còn là quản trị viên đang hoạt động, một quản trị viên thứ ba có thể tiếp quản sau khi máy chủ xác minh. Sổ cái chỉ ghi tiền một lần.
+      <Notice
+        tone="warning"
+        title="Đã duyệt, nhưng sổ cái chưa xác nhận ghi có — tiền chưa chuyển vào ví"
+        testId="held-banner-not-executed"
+      >
+        Khoản vẫn đang được giữ. Người đã duyệt chạy lại bằng nút «Chạy lại việc ghi có».
+        Nếu người đó không còn là quản trị viên đang hoạt động, một quản trị viên thứ ba có thể tiếp quản sau khi máy chủ xác minh.
+        Sổ cái chỉ ghi tiền một lần.
       </Notice>
     );
   }
@@ -333,7 +378,15 @@ function SessionPreview({
           rows={[
             { label: "Giá trị một buổi (sổ cái tính)", value: formatMoneyString(p.ledger?.unit) },
             { label: "Tiền đang giữ của hợp đồng", value: formatMoneyString(p.ledger?.pendingTotal) },
-            { label: "Hợp đồng đã kết thúc (theo sổ cái)", value: p.ledger?.contractEnded === null || p.ledger === null ? "Chưa đọc được" : p.ledger.contractEnded ? "Đã kết thúc" : "Chưa kết thúc" },
+            {
+              label: "Hợp đồng đã kết thúc (theo sổ cái)",
+              value:
+                p.ledger?.contractEnded === null || p.ledger === null
+                  ? "Chưa đọc được"
+                  : p.ledger.contractEnded
+                    ? "Đã kết thúc"
+                    : "Chưa kết thúc",
+            },
           ]}
         />
         {p.ledger === null && <MutedLine>Chưa đọc được số liệu sổ cái nên không hiện số tiền; đây không phải số bằng không.</MutedLine>}

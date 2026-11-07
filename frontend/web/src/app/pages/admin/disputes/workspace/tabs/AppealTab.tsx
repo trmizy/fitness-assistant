@@ -24,6 +24,7 @@ import {
   useWrite,
 } from "../../actions/actionKit";
 import { listAdminOptions } from "../../actions/adminDirectory";
+import { QuotaCorrectionCard } from "../../actions/QuotaCorrectionCard";
 import {
   CLOSE_EXECUTED_CONFIRM,
   DECIDE_APPEAL_CONFIRM,
@@ -37,6 +38,8 @@ import {
   consequenceKindLabel,
   consequenceStatusLabel,
   consequenceStatusTone,
+  canRetryObligation,
+  isNeedsRecon,
   filterIndependentReviewers,
   isKeepResult,
   isNewResult,
@@ -113,6 +116,7 @@ export function AppealTab({
   const assignWrite = useWrite<{ reviewerId: string }, unknown>(onChanged);
   const decideWrite = useWrite<AppealDecisionInput, unknown>(onChanged);
   const syncWrite = useWrite<unknown, unknown>(onChanged);
+  const createObligationWrite = useWrite<unknown, unknown>(onChanged);
   const closeWrite = useWrite<{ reason: string }, unknown>(onChanged);
 
   const canCloseExecuted = allowedActions.includes("closeExecuted");
@@ -245,6 +249,18 @@ export function AppealTab({
   const handleSyncObligation = async (consequenceId: string) => {
     const res = await syncWrite.submit({}, (key) =>
       disputeCaseApi.syncAppealObligation(caseId, consequenceId, key),
+    );
+    if (res.ok) {
+      if (keys) {
+        await queryClient.invalidateQueries({ queryKey: keys.appeals(caseId) });
+      }
+      await onChanged();
+    }
+  };
+
+  const handleCreateObligation = async (consequenceId: string) => {
+    const res = await createObligationWrite.submit({}, (key) =>
+      disputeCaseApi.createAppealObligation(caseId, consequenceId, key),
     );
     if (res.ok) {
       if (keys) {
@@ -424,6 +440,44 @@ export function AppealTab({
                                     </span>
                                   )}
                                 </div>
+                              )}
+                              {c.kind === "MONEY" && isNeedsRecon(c.status) && (
+                                <div className="mt-2">
+                                  {canRetryObligation(c) ? (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-adm-text-2">
+                                        Chờ đối soát tiền
+                                      </span>
+                                      {appealsCapability ? (
+                                        <ActionButton
+                                          variant="outline"
+                                          onClick={() => handleCreateObligation(c.id)}
+                                          disabled={createObligationWrite.pending}
+                                          pending={createObligationWrite.pending}
+                                        >
+                                          Thử tạo lại khoản phải trả
+                                        </ActionButton>
+                                      ) : (
+                                        <span className="text-xs text-adm-text-2">
+                                          {CAPABILITY_OFF_NOTE}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-adm-text-2">
+                                      Chưa xác lập số tiền và bên chịu trách nhiệm: không có khoản phải trả nào để tạo. Hệ quả chờ đối soát.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              {c.kind === "QUOTA" && (c.status === "OPEN" || (c.quotaCorrections ?? []).some((q) => q.appliedAt)) && (
+                                <QuotaCorrectionCard
+                                  caseId={caseId}
+                                  consequence={c}
+                                  currentUserId={currentUserId}
+                                  onChanged={onChanged}
+                                  appealsCapability={appealsCapability}
+                                />
                               )}
                             </li>
                           ))}
@@ -663,7 +717,8 @@ export function AppealTab({
                                       {row.kind === "MONEY" && (
                                         <div className="mt-2 space-y-2 rounded border border-adm-border-soft bg-adm-surface-2 p-2.5">
                                           <p className="text-xs text-adm-text-2">
-                                            Chỉ ghi số tiền khi kết luận đã xác lập rõ số tiền và bên chịu trách nhiệm. Bỏ trống thì hệ quả chuyển sang chờ đối soát, không tạo khoản nợ.
+                                            Chỉ ghi số tiền khi kết luận đã xác lập rõ số tiền và bên chịu trách nhiệm.
+                                            Bỏ trống thì hệ quả chuyển sang chờ đối soát, không tạo khoản nợ.
                                           </p>
 
                                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

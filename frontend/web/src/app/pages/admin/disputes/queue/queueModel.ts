@@ -14,7 +14,7 @@ import { CASE_TYPE_LABEL, FINDING_CONSEQUENCE, OUTCOME_CONSEQUENCE } from "../di
 import { asArray, asRecord, shortRef } from "../workspace/format";
 
 // ───────────────────────────────────────────────────────────── URL state ──
-export const QUEUE_VIEWS = ["cases", "sessions"] as const;
+export const QUEUE_VIEWS = ["cases", "sessions", "stuck"] as const;
 export type QueueView = (typeof QUEUE_VIEWS)[number];
 export const DEFAULT_QUEUE_VIEW: QueueView = "cases";
 export const PAGE_SIZE = 50;
@@ -250,7 +250,8 @@ export const LEGACY_RESOLUTIONS: readonly LegacyResolution[] = ["COMPLETED", "PT
 
 export const LEGACY_DISCLOSURE_LABEL = "Phán quyết theo đường cũ (một người duyệt, không qua hồ sơ)";
 export const LEGACY_WARNING =
-  "Đường này chỉ cần một quản trị viên xác nhận, không có bước duyệt thứ hai, và không đọc hồ sơ khiếu nại của buổi. Buổi đã có hồ sơ phải được xử lý trong hồ sơ; không thể dùng đường này.";
+  "Đường này chỉ cần một quản trị viên xác nhận, không có bước duyệt thứ hai, và không đọc hồ sơ khiếu nại của buổi." +
+  " Buổi đã có hồ sơ phải được xử lý trong hồ sơ; không thể dùng đường này.";
 export const LEGACY_BUTTON_LABEL: Record<LegacyResolution, string> = {
   COMPLETED: "Buổi tập đã diễn ra",
   PT_NO_SHOW_CONFIRMED: "Xác nhận PT vắng mặt",
@@ -281,6 +282,33 @@ export function legacyEffects(resolution: LegacyResolution): string[] {
 /** Notes shown on the queue (muted). */
 export const CASES_NOTE_NO_POLLING = "Danh sách không tự làm mới: mỗi lần mở danh sách, hệ thống ghi nhật ký truy cập của từng hồ sơ.";
 export const SESSIONS_NOTE_OPEN_EXISTING = "Nếu buổi đã có hồ sơ đang mở, hệ thống đưa bạn vào hồ sơ đó.";
+export const STUCK_NOTE = "Hồ sơ bị nghẽn quy trình hoặc cần quản trị viên can thiệp trực tiếp để tiếp tục.";
+
+export const STUCK_KINDS = ["POLICY_PENDING", "NEEDS_HUMAN", "EXEC_BLOCKED"] as const;
+export type StuckKind = (typeof STUCK_KINDS)[number];
+
+export const STUCK_KIND_LABEL: Record<string, string> = {
+  POLICY_PENDING: "Chờ chốt chính sách",
+  NEEDS_HUMAN: "Cần người xem xét",
+  EXEC_BLOCKED: "Thực thi bị nghẽn",
+};
+
+export function stuckKindLabel(kind: string | null | undefined): string {
+  if (kind && kind in STUCK_KIND_LABEL) return STUCK_KIND_LABEL[kind];
+  return kind ?? "Cần xử lý";
+}
+
+export function stuckKindTone(kind: string | null | undefined): "warning" | "danger" | "info" {
+  switch (kind) {
+    case "POLICY_PENDING":
+      return "warning";
+    case "NEEDS_HUMAN":
+    case "EXEC_BLOCKED":
+      return "danger";
+    default:
+      return "info";
+  }
+}
 
 /**
  * MoneyActionDialog maps errors with its own mapper (`describeAdminError`), which knows none of the dispute codes. So the legacy
@@ -296,9 +324,19 @@ export function toDialogError(error: unknown): unknown {
 }
 
 /** A failed LIST read is never "no cases". */
-export function describeListFailure(view: DisputeErrorView, what: "cases" | "sessions"): LoadFailure {
-  const subject = what === "cases" ? "danh sách hồ sơ" : "danh sách buổi chưa xử lý";
-  const empty = what === "cases" ? "không có hồ sơ nào" : "không có buổi nào";
+export function describeListFailure(view: DisputeErrorView, what: "cases" | "sessions" | "stuck"): LoadFailure {
+  const subject =
+    what === "cases"
+      ? "danh sách hồ sơ"
+      : what === "sessions"
+        ? "danh sách buổi chưa xử lý"
+        : "danh sách hồ sơ cần người xử lý";
+  const empty =
+    what === "cases"
+      ? "không có hồ sơ nào"
+      : what === "sessions"
+        ? "không có buổi nào"
+        : "không có hồ sơ bị nghẽn nào";
   if (view.kind === "forbidden") return { kind: "forbidden", title: "Không có quyền xem", body: `Tài khoản này không có quyền xem ${subject}.`, canReload: false, backToQueue: false };
   if (view.kind === "auth") return { kind: "auth", title: "Phiên đăng nhập đã hết hạn", body: view.message, canReload: false, backToQueue: false };
   return {

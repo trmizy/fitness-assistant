@@ -34,6 +34,11 @@ export function disputeQueryKeys(userId: string) {
     partyDetail: (caseId: string) => [...base, "party-detail", caseId] as const,
     replacements: (caseId: string) => [...base, "replacements", caseId] as const,
     appeals: (caseId: string) => [...base, "appeals", caseId] as const,
+    agreements: (caseId: string) => [...base, "agreements", caseId] as const,
+    stuck: (filter: { kind?: string; limit?: number; offset?: number } = {}) =>
+      [...base, "stuck", { kind: filter.kind ?? "all", limit: filter.limit ?? 50, offset: filter.offset ?? 0 }] as const,
+    heldMoney: (filter: { overdue?: boolean; limit?: number; offset?: number } = {}) =>
+      [...base, "held-money", { overdue: filter.overdue ?? false, limit: filter.limit ?? 50, offset: filter.offset ?? 0 }] as const,
     adminOptions: () => [...base, "admin-options"] as const,
   };
 }

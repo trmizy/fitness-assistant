@@ -85,6 +85,8 @@ export interface ActionVerdict {
   text: string | null;
 }
 
+export const ACT_ASSIGN_REVIEWER = "ASSIGN_APPEAL_REVIEWER";
+
 export function actionOf(detail: Pick<GymCaseDetail, "allowedActions"> | null | undefined, name: string): ActionVerdict {
   const list: GymAllowedAction[] = Array.isArray(detail?.allowedActions) ? detail!.allowedActions : [];
   const a = list.find((x) => x.action === name);
@@ -539,7 +541,15 @@ export interface MoneyView {
 }
 export function describeMoney(f: GymFinancial | null | undefined): MoneyView {
   if (!f) {
-    return { tone: "warning", chip: "Chưa đọc được thông tin tiền", sentence: "Chưa đọc được thông tin tiền của hồ sơ.", posted: null, shortfall: null, platformShortfall: null, refundHappened: false };
+    return {
+      tone: "warning",
+      chip: "Chưa đọc được thông tin tiền",
+      sentence: "Chưa đọc được thông tin tiền của hồ sơ.",
+      posted: null,
+      shortfall: null,
+      platformShortfall: null,
+      refundHappened: false,
+    };
   }
   const posted = f.state === "LEDGER_POSTED_FULL" || f.state === "LEDGER_POSTED_PARTIAL" || (f.state === "NEEDS_RECONCILIATION" && !!f.postedToMemberWallet);
   return {

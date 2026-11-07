@@ -5,6 +5,7 @@ import type { AppealRequestResult } from "../admin/disputes/disputeCaseTypes";
 import { useIdempotentAction } from "../admin/disputes/useIdempotentAction";
 import {
   Field,
+  MUTED,
   Notice,
   PRIMARY_BUTTON,
   Panel,
@@ -80,7 +81,7 @@ export function PartyAppealForm({
         <Notice tone="info">{APPEAL_NOTICE_TEXT}</Notice>
 
         {closesAt && (
-          <p className="text-xs text-[var(--muted-color)]">
+          <p className={`text-xs ${MUTED}`}>
             Thời hạn yêu cầu đến: {new Date(closesAt).toLocaleString("vi-VN")}
           </p>
         )}

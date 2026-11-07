@@ -9,6 +9,7 @@ import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../admin/disputes/di
 import { DocumentForm } from "./DocumentForm";
 import { StatementForm } from "./StatementForm";
 import { PartyAppealForm } from "./PartyAppealForm";
+import { PartyAgreementPanel } from "./PartyAgreementPanel";
 import { BackLink, CARD, FailureBlock, LoadingBlock, MUTED, Notice, Panel, Pill, ReloadButton } from "./PartyParts";
 import { CANNOT_SUBMIT_NOTE, CAN_SUBMIT_NOTE, NOT_FOUND_TEXT, NOT_FOUND_TITLE, NO_AUTO_REFRESH_NOTE, VISIBLE_ONLY_NOTE } from "./partyLabels";
 import { accusationViews, canRequestPartyAppeal, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
@@ -179,7 +180,9 @@ function DetailBody({
                     {e.facts.map((f) => (
                       <div key={f.label}>
                         <dt className={`text-xs ${MUTED}`}>{f.label}</dt>
-                        <dd className={`break-words ${f.label.startsWith("Mã") ? "font-mono text-xs [overflow-wrap:anywhere]" : "whitespace-pre-wrap"}`}>{isReferenceValue(f.value) ? <CompactReference value={f.value} label={f.label} /> : f.value}</dd>
+                        <dd className={`break-words ${f.label.startsWith("Mã") ? "font-mono text-xs [overflow-wrap:anywhere]" : "whitespace-pre-wrap"}`}>
+                          {isReferenceValue(f.value) ? <CompactReference value={f.value} label={f.label} /> : f.value}
+                        </dd>
                       </div>
                     ))}
                   </dl>
@@ -245,6 +248,12 @@ function DetailBody({
           <DocumentForm caseId={caseId} onSaved={() => void onReload()} onReload={onReload} reloading={refreshing} />
         </>
       )}
+
+      <PartyAgreementPanel
+        caseId={caseId}
+        agreements={detail.agreements}
+        onChanged={onReload}
+      />
 
       {canRequestPartyAppeal(
         detail.case.status,

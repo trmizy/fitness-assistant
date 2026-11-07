@@ -7,6 +7,7 @@ import { investigatorText } from "../../queue/queueModel";
 import { describePayload } from "../evidenceModel";
 import { formatDateTime, proseOrNull } from "../format";
 import { OverviewActionsSlot, type ActionSlotProps } from "../actionSlots";
+import { DeadlinesTable } from "../DeadlinesTable";
 import { AWAITING_PARTIES_NOTE, eventActor, eventLabel, eventNote, latestEvidenceOfSubject, sortedEvents, statusTone, stuckState, type WorkspaceTab } from "../workspaceModel";
 import { EmptyBox, FieldList, Muted, Notice, Pill, Section } from "../WorkspaceParts";
 
@@ -58,7 +59,15 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
             { label: "Trạng thái", value: caseStatusText(c) },
             { label: "Khách hàng", value: c.clientName ?? "Chưa có tên hiển thị" },
             { label: "Huấn luyện viên", value: c.ptName ?? "Chưa có tên hiển thị" },
-            { label: "Người phụ trách", value: c.investigatorId === currentUserId ? "Bạn phụ trách" : c.investigatorId ? (c.investigatorName ?? "Chưa có tên hiển thị") : investigatorText(null, currentUserId) },
+            {
+              label: "Người phụ trách",
+              value:
+                c.investigatorId === currentUserId
+                  ? "Bạn phụ trách"
+                  : c.investigatorId
+                    ? (c.investigatorName ?? "Chưa có tên hiển thị")
+                    : investigatorText(null, currentUserId),
+            },
             { label: "Mở lúc", value: formatDateTime(c.createdAt) },
             { label: "Cập nhật lần cuối", value: formatDateTime(c.updatedAt) },
           ]}
@@ -116,7 +125,13 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
       </Section>
 
       <Section title="Nhật ký truy cập" testId="d5-access-log">
-        {accessQuery.isLoading ? <Muted>Đang tải nhật ký truy cập…</Muted> : accessQuery.isError ? <Muted>Chưa đọc được nhật ký truy cập.</Muted> : !accessQuery.data?.items.length ? <Muted>Chưa có lượt truy cập được ghi nhận.</Muted> : (
+        {accessQuery.isLoading ? (
+          <Muted>Đang tải nhật ký truy cập…</Muted>
+        ) : accessQuery.isError ? (
+          <Muted>Chưa đọc được nhật ký truy cập.</Muted>
+        ) : !accessQuery.data?.items.length ? (
+          <Muted>Chưa có lượt truy cập được ghi nhận.</Muted>
+        ) : (
           <ul className="space-y-2 text-sm text-adm-text">
             {accessQuery.data.items.map((a) => <li key={a.id} className="border-b border-adm-border-soft pb-2">
               {a.viewerName ?? "Quản trị viên"} · {a.action === "VIEW_EVIDENCE" ? "Xem bằng chứng" : "Xem hồ sơ"} · {formatDateTime(a.createdAt)}
@@ -194,6 +209,8 @@ export function OverviewTab({ detail, currentUserId, onChanged, onGoTab }: Actio
           </ol>
         )}
       </Section>
+
+      <DeadlinesTable deadlines={detail.deadlines} />
 
       <OverviewActionsSlot detail={detail} currentUserId={currentUserId} onChanged={onChanged} />
     </div>
