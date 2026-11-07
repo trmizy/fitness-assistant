@@ -22,6 +22,7 @@ import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
 import { Client } from 'pg';
 import { isTestDatabaseUrl } from './test-db-guard';
 import { registerTestService } from './setup/outbound-guard';
+import { formatVnd } from '../services/complaint-case/rules';
 
 const PAYMENT_DB_URL = process.env.E2E_PAYMENT_DATABASE_URL ?? '';
 const usable =
@@ -277,7 +278,8 @@ test('REAL ledger: an approved MEM_CLOSED case refunds through the real refundBy
   assert.deepEqual(await ledgerOps(`MEMBERSHIP_RELEASE:${pm.membershipId}`), [`MEMBERSHIP_RELEASE:${pm.membershipId}`]);
   const complaint = await svc.prisma.gymComplaint.findUniqueOrThrow({ where: { id: c.complaintId } });
   assert.equal(complaint.status, 'RESOLVED');
-  assert.match(complaint.adminResponse ?? '', new RegExp(`${credited.toFixed(2).replace('.', '\\.')} đã được ghi vào ví Gymini`));
+  // 9be0443a: the sentence shows the amount as VND ("299.999,99 ₫"); the credited number itself is unchanged
+  assert.ok((complaint.adminResponse ?? '').includes(`${formatVnd(credited.toFixed(2))} đã được ghi vào ví Gymini`), complaint.adminResponse ?? '');
 
   // a second execute (HTTP) is a replay; the ledger and the wallet are untouched
   const again = await H.call('POST', `/admin/complaint-cases/${c.caseId}/execute`, c.appr.tok, {});
