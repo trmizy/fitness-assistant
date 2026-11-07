@@ -92,20 +92,6 @@ export const CONSEQUENCE_STATUS_LABEL: Record<ConsequenceStatus, string> = {
 
 export const isNeedsRecon = (s: string | null | undefined): boolean => s === "NEEDS_RECONCILIATION";
 
-/**
- * P2-FIX-4: Retry creating obligation is allowed only when:
- * 1. Consequence kind is MONEY
- * 2. Status is NEEDS_RECONCILIATION
- * 3. An amount was established (requested.amountVnd is a number).
- * If no amount was established, retry always answers 409 MONEY_NOT_ESTABLISHED.
- */
-export function canRetryObligation(c?: AppealConsequence | null): boolean {
-  if (!c || c.kind !== "MONEY") return false;
-  if (!isNeedsRecon(c.status)) return false;
-  const detail = c.detail as { requested?: { amountVnd?: unknown } } | null | undefined;
-  return typeof detail?.requested?.amountVnd === "number";
-}
-
 export function consequenceStatusLabel(status: string | null | undefined): string {
   if (status && status in CONSEQUENCE_STATUS_LABEL) {
     return CONSEQUENCE_STATUS_LABEL[status as ConsequenceStatus];

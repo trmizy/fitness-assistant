@@ -109,7 +109,18 @@ export function refusalMessage(detail: Pick<DisputeCaseDetail, "actions">, name:
   const m = verdictOf(detail, name)?.message;
   return typeof m === "string" && VIETNAMESE_LINE.test(m) ? m : null;
 }
-const VIETNAMESE_LINE = /[àáâãăạảấầẩẫậắằẳẵặèéêẹẻẽếềểễệìíĩỉịòóôõơọỏốồổỗộớờởỡợùúũưụủứừửữựỳỵỷỹđ]/i;
+export const VIETNAMESE_LINE = /[àáâãăạảấầẩẫậắằẳẵặèéêẹẻẽếềểễệìíĩỉịòóôõơọỏốồổỗộớờởỡợùúũưụủứừửữựỳỵỷỹđ]/i;
+
+/** Returns true only when `isAllowed(detail, name)` AND `verdictOf(detail, name)?.options` is an array that includes `id`. */
+export function allowedFor(
+  detail: Pick<DisputeCaseDetail, "allowedActions" | "actions">,
+  name: ActionName,
+  id: string,
+): boolean {
+  if (!isAllowed(detail, name)) return false;
+  const opts = verdictOf(detail, name)?.options;
+  return Array.isArray(opts) ? opts.includes(id) : false;
+}
 
 const MANUAL_TARGET_SET = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "REJECTED_INTAKE"] as const;
 /** The targets the server offers for the "chuyển bước" form (`actions.transition.options`); the local state-machine hint only when the server gave none. */

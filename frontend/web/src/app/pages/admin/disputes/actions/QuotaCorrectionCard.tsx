@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { disputeCaseApi } from "../disputeCaseApi";
-import type { AppealConsequence, QuotaCorrection } from "../disputeCaseTypes";
+import type { AppealConsequence, DisputeCaseDetail, QuotaCorrection } from "../disputeCaseTypes";
 import {
   ActionButton,
   ButtonRow,
@@ -10,6 +10,7 @@ import {
   TextArea,
   useWrite,
 } from "./actionKit";
+import { allowedFor, refusalMessage } from "./actionModel";
 import { Notice } from "../workspace/WorkspaceParts";
 import { shortRef } from "../workspace/format";
 import {
@@ -26,7 +27,7 @@ interface QuotaCorrectionCardProps {
   consequence: AppealConsequence;
   currentUserId?: string | null;
   onChanged: () => void | Promise<unknown>;
-  appealsCapability: boolean;
+  detail: Pick<DisputeCaseDetail, "allowedActions" | "actions">;
 }
 
 export function QuotaCorrectionCard({
@@ -34,7 +35,7 @@ export function QuotaCorrectionCard({
   consequence,
   currentUserId,
   onChanged,
-  appealsCapability,
+  detail,
 }: QuotaCorrectionCardProps) {
   const pendingCorr = (consequence.quotaCorrections ?? []).find(
     (q: QuotaCorrection) => !q.appliedAt,
@@ -68,14 +69,6 @@ export function QuotaCorrectionCard({
     { reason: string; conflictOfInterestDeclaredNone: boolean },
     unknown
   >(onChanged);
-
-  if (!appealsCapability) {
-    return (
-      <p className="text-xs text-adm-text-2">
-        Chức năng hiệu chỉnh buổi đang tắt ở môi trường hiện tại.
-      </p>
-    );
-  }
 
   const computedDelta = quotaDelta(direction, countStr);
 
@@ -159,7 +152,7 @@ export function QuotaCorrectionCard({
             </p>
           )}
 
-          {currentUserId && pendingCorr.proposedBy !== currentUserId ? (
+          {allowedFor(detail, "approveQuotaCorrection", pendingCorr.id) ? (
             <div className="space-y-2 pt-1">
               {!openApprove ? (
                 <ActionButton
@@ -240,11 +233,11 @@ export function QuotaCorrectionCard({
             </div>
           ) : (
             <p className="italic text-adm-text-2">
-              Đang chờ một quản trị viên khác duyệt (nguyên tắc bốn mắt).
+              {refusalMessage(detail, "approveQuotaCorrection") ?? "Đang chờ một quản trị viên khác duyệt."}
             </p>
           )}
         </div>
-      ) : (
+      ) : allowedFor(detail, "proposeQuotaCorrection", consequence.id) ? (
         <div>
           {!openPropose ? (
             <ActionButton
@@ -374,7 +367,7 @@ export function QuotaCorrectionCard({
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Propose confirm modal */}
       <ConfirmModal

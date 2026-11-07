@@ -11,8 +11,9 @@ import { StatementForm } from "./StatementForm";
 import { PartyAppealForm } from "./PartyAppealForm";
 import { PartyAgreementPanel } from "./PartyAgreementPanel";
 import { BackLink, CARD, FailureBlock, LoadingBlock, MUTED, Notice, Panel, Pill, ReloadButton } from "./PartyParts";
+import { partyAllowed, partyRefusal, partyVerdictOf } from "./partyActions";
 import { CANNOT_SUBMIT_NOTE, CAN_SUBMIT_NOTE, NOT_FOUND_TEXT, NOT_FOUND_TITLE, NO_AUTO_REFRESH_NOTE, VISIBLE_ONLY_NOTE } from "./partyLabels";
-import { accusationViews, canRequestPartyAppeal, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
+import { accusationViews, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
 
 function NotFound() {
   return (
@@ -242,23 +243,33 @@ function DetailBody({
         </p>
       </Panel>
 
-      {head.canSubmit && (
-        <>
-          <StatementForm caseId={caseId} nextVersion={nextVersion} onSaved={() => void onReload()} onReload={onReload} reloading={refreshing} />
-          <DocumentForm caseId={caseId} onSaved={() => void onReload()} onReload={onReload} reloading={refreshing} />
-        </>
+      {partyAllowed(detail, "addStatement") && (
+        <StatementForm
+          caseId={caseId}
+          nextVersion={nextVersion}
+          onSaved={() => void onReload()}
+          onReload={onReload}
+          reloading={refreshing}
+        />
+      )}
+
+      {partyAllowed(detail, "addEvidence") && (
+        <DocumentForm
+          caseId={caseId}
+          onSaved={() => void onReload()}
+          onReload={onReload}
+          reloading={refreshing}
+        />
       )}
 
       <PartyAgreementPanel
         caseId={caseId}
+        detail={detail}
         agreements={detail.agreements}
         onChanged={onReload}
       />
 
-      {canRequestPartyAppeal(
-        detail.case.status,
-        detail.appeal,
-      ) && (
+      {partyAllowed(detail, "requestAppeal") ? (
         <PartyAppealForm
           caseId={caseId}
           onSaved={() => void onReload()}
@@ -266,7 +277,16 @@ function DetailBody({
           reloading={refreshing}
           closesAt={detail.appeal?.closesAt}
         />
-      )}
+      ) : (() => {
+        const code = partyVerdictOf(detail, "requestAppeal")?.code;
+        if (code === "APPEAL_WINDOW_CLOSED" || code === "APPEAL_ALREADY_REQUESTED" || code === "APPEAL_NOTICE_NOT_RECORDED") {
+          const msg = partyRefusal(detail, "requestAppeal");
+          if (msg) {
+            return <p className={`text-sm ${MUTED}`}>{msg}</p>;
+          }
+        }
+        return null;
+      })()}
     </>
   );
 }

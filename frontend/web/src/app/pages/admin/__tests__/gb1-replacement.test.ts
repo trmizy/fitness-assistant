@@ -9,7 +9,6 @@ import {
   replacementStatusLabel,
   replacementStatusTone,
   validateReplacementReason,
-  canProposeReplacement,
   isProposer,
   PROPOSE_REPLACEMENT_CONFIRM,
   APPROVE_REPLACEMENT_CONFIRM,
@@ -75,24 +74,6 @@ describe("PT decision replacement model & body shapes (A40)", () => {
       validateReplacementReason("Lý do đề xuất thay thế hợp lệ và đầy đủ chi tiết.").ok,
       true
     );
-  });
-
-  it("canProposeReplacement requires DECISION_APPROVED, NOT_STARTED or EXEC_BLOCKED, and no pending replacement (FIX-3, A34)", () => {
-    // Valid cases
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "NOT_STARTED", false), true);
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "EXEC_BLOCKED", false), true);
-
-    // Blocked if already executed (BUSINESS_DONE, EXECUTING, NEEDS_HUMAN)
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "BUSINESS_DONE", false), false);
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "EXECUTING", false), false);
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "NEEDS_HUMAN", false), false);
-
-    // Blocked if pending replacement exists
-    assert.equal(canProposeReplacement("DECISION_APPROVED", "NOT_STARTED", true), false);
-
-    // Blocked if case is not DECISION_APPROVED
-    assert.equal(canProposeReplacement("IN_PROGRESS", "NOT_STARTED", false), false);
-    assert.equal(canProposeReplacement("CLOSED", "NOT_STARTED", false), false);
   });
 
   it("isProposer identifies current user against proposedBy", () => {

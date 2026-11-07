@@ -560,8 +560,32 @@ export const ACTION_NAMES = [
   "closeOrphan",
   "readEvidenceFile",
   "closeExecuted",
+  "proposeAgreement",
+  "withdrawAgreement",
+  "recordAgreementFinding",
+  "assignAppealReviewer",
+  "decideAppeal",
+  "createAppealObligation",
+  "syncAppealObligation",
+  "proposeQuotaCorrection",
+  "approveQuotaCorrection",
+  "proposeDecisionReplacement",
+  "approveDecisionReplacement",
+  "rejectDecisionReplacement",
+  "decideHeldMoney",
+  "proposeContractPolicy",
+  "approveContractPolicy",
 ] as const;
 export type ActionName = (typeof ACTION_NAMES)[number];
+
+export const PARTY_ACTION_NAMES = [
+  "addStatement",
+  "addEvidence",
+  "addEvidenceFile",
+  "confirmAgreement",
+  "requestAppeal",
+] as const;
+export type PartyActionName = (typeof PARTY_ACTION_NAMES)[number];
 export interface ActionVerdict {
   allowed: boolean;
   /** stable machine code of the reason it is not allowed */
@@ -820,6 +844,8 @@ export interface PartyCaseDetail {
   financial: { group: CaseFinancialGroup; groupLabel: string };
   agreements?: PartyAgreementItem[];
   deadlines?: PartyDeadlineItem[];
+  allowedActions?: string[];
+  actions?: Partial<Record<PartyActionName, ActionVerdict>>;
 }
 export interface StatementCreated {
   id: string;

@@ -17,44 +17,41 @@ import {
   useWrite,
 } from "./actionKit";
 import {
+  allowedFor,
+  isAllowed,
+  refusalMessage,
+} from "./actionModel";
+import {
   APPROVE_REPLACEMENT_CONFIRM,
   PROPOSE_REPLACEMENT_CONFIRM,
   REJECT_REPLACEMENT_CONFIRM,
-  REPLACEMENT_EXEC_EFFECT_NOTE,
-  canDecideReplacement,
-  canProposeReplacement,
-  isDecisionAlreadyExecuted,
   isProposer,
   replacementStatusLabel,
   replacementStatusTone,
   validateReplacementReason,
 } from "./replacementModel";
+import type { DisputeCaseDetail } from "../disputeCaseTypes";
 
 interface ReplacementPanelProps {
-  caseId: string;
-  caseStatus: string;
-  execStatus?: string | null;
+  detail: DisputeCaseDetail;
   currentUserId?: string | null;
-  /** R-22: the server flag; when false every write is refused (409 DECISION_REPLACEMENT_DISABLED), so no write control is shown. */
-  replacementEnabled?: boolean;
   onChanged: () => void | Promise<unknown>;
 }
 
 export function ReplacementPanel({
-  caseId,
-  caseStatus,
-  execStatus,
+  detail,
   currentUserId,
-  replacementEnabled = false,
   onChanged,
 }: ReplacementPanelProps) {
+  const caseId = detail.case?.id ?? "";
+  const caseStatus = detail.case?.status ?? "";
   const queryClient = useQueryClient();
   const { keys } = useDisputeQueryKeys();
 
   const replacementsQuery = useQuery({
     queryKey: keys ? keys.replacements(caseId) : ["dispute-case", "disabled", "replacements", caseId],
     queryFn: () => disputeCaseApi.listReplacements(caseId),
-    enabled: Boolean(keys && caseStatus === "DECISION_APPROVED"),
+    enabled: Boolean(keys && caseId),
     ...DISPUTE_QUERY_OPTIONS,
   });
 
@@ -81,14 +78,17 @@ export function ReplacementPanel({
     unknown
   >(onChanged);
 
-  if (caseStatus !== "DECISION_APPROVED") {
+  const items = data?.items ?? [];
+  const hasApprovedDecision = caseStatus === "DECISION_APPROVED";
+  const hasRows = items.length > 0;
+  const hasAnyActionAllowed =
+    isAllowed(detail, "proposeDecisionReplacement") ||
+    isAllowed(detail, "approveDecisionReplacement") ||
+    isAllowed(detail, "rejectDecisionReplacement");
+
+  if (!hasApprovedDecision && !hasRows && !hasAnyActionAllowed) {
     return null;
   }
-
-  const items = data?.items ?? [];
-  const hasPending = items.some((it) => it.status === "PENDING");
-  const canPropose = replacementEnabled && canProposeReplacement(caseStatus, execStatus, hasPending);
-  const alreadyExecuted = isDecisionAlreadyExecuted(caseStatus, execStatus);
 
   const handleOpenProposeConfirm = () => {
     const val = validateReplacementReason(proposeReason);
@@ -192,10 +192,9 @@ export function ReplacementPanel({
         <ul className="space-y-3">
           {items.map((item) => {
             const proposedByYou = isProposer(item, currentUserId);
-            const canDecide = replacementEnabled && canDecideReplacement(
-              item,
-              currentUserId,
-            );
+            const canApprove = allowedFor(detail, "approveDecisionReplacement", item.id);
+            const canReject = allowedFor(detail, "rejectDecisionReplacement", item.id);
+            const canDecide = canApprove || canReject;
 
             return (
               <li
@@ -298,22 +297,26 @@ export function ReplacementPanel({
                     )}
 
                     <ButtonRow>
-                      <ActionButton
-                        variant="primary"
-                        onClick={() => handleOpenDecideConfirm(item, "APPROVE")}
-                        disabled={!coiChecked || decideWrite.pending}
-                        pending={decideWrite.pending && decideAction === "APPROVE"}
-                      >
-                        Duyệt thay quyết định
-                      </ActionButton>
-                      <ActionButton
-                        variant="danger"
-                        onClick={() => handleOpenDecideConfirm(item, "REJECT")}
-                        disabled={!coiChecked || decideWrite.pending}
-                        pending={decideWrite.pending && decideAction === "REJECT"}
-                      >
-                        Bác đề xuất
-                      </ActionButton>
+                      {canApprove && (
+                        <ActionButton
+                          variant="primary"
+                          onClick={() => handleOpenDecideConfirm(item, "APPROVE")}
+                          disabled={!coiChecked || decideWrite.pending}
+                          pending={decideWrite.pending && decideAction === "APPROVE"}
+                        >
+                          Duyệt thay quyết định
+                        </ActionButton>
+                      )}
+                      {canReject && (
+                        <ActionButton
+                          variant="danger"
+                          onClick={() => handleOpenDecideConfirm(item, "REJECT")}
+                          disabled={!coiChecked || decideWrite.pending}
+                          pending={decideWrite.pending && decideAction === "REJECT"}
+                        >
+                          Bác đề xuất
+                        </ActionButton>
+                      )}
                     </ButtonRow>
                   </div>
                 )}
@@ -329,17 +332,8 @@ export function ReplacementPanel({
         </ul>
       )}
 
-      {/* Propose Form or Already Executed note */}
-      {alreadyExecuted && !hasPending && (
-        <p className="text-xs text-adm-text-2" data-testid="replacement-executed-note">
-          {REPLACEMENT_EXEC_EFFECT_NOTE}
-        </p>
-      )}
-
-      {!replacementEnabled && (
-        <p className="text-xs text-adm-text-2" data-testid="replacement-off">Chức năng này đang tắt ở môi trường hiện tại.</p>
-      )}
-      {canPropose && (
+      {/* Propose Form or refusal note */}
+      {isAllowed(detail, "proposeDecisionReplacement") ? (
         <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
           <h4 className="text-sm font-semibold text-adm-text">
             Lập đề xuất thay quyết định mới
@@ -380,7 +374,13 @@ export function ReplacementPanel({
             </ActionButton>
           </ButtonRow>
         </div>
-      )}
+      ) : hasApprovedDecision ? (
+        refusalMessage(detail, "proposeDecisionReplacement") ? (
+          <p className="text-xs text-adm-text-2" data-testid="replacement-executed-note">
+            {refusalMessage(detail, "proposeDecisionReplacement")}
+          </p>
+        ) : null
+      ) : null}
 
       {/* Propose confirm modal */}
       <ConfirmModal

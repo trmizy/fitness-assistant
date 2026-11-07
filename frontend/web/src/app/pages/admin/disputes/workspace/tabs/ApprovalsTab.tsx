@@ -59,16 +59,11 @@ export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }:
           );
         })
       )}
-      {detail.case?.status === "DECISION_APPROVED" && (
-        <ReplacementPanel
-          caseId={detail.case.id}
-          caseStatus={detail.case.status}
-          execStatus={detail.case.execStatus}
-          currentUserId={currentUserId}
-          replacementEnabled={capabilities?.decisionReplacement === true}
-          onChanged={onChanged}
-        />
-      )}
+      <ReplacementPanel
+        detail={detail}
+        currentUserId={currentUserId}
+        onChanged={onChanged}
+      />
       <PolicySection detail={detail} currentUserId={currentUserId} onChanged={onChanged} capabilities={capabilities} />
     </div>
   );

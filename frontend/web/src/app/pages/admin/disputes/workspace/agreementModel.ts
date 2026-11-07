@@ -64,37 +64,6 @@ export const WITHDRAW_AGREEMENT_CONFIRM =
 export const RECORD_FINDING_AGREEMENT_CONFIRM =
   "Ghi nhận kết luận hồ sơ theo phương án thoả thuận đã được hai bên đồng ý. Sau bước này, hồ sơ chuyển sang bước chờ lập đề xuất duyệt bốn mắt. Không có tiền nào chuyển.";
 
-export function canProposeAgreement(
-  caseStatus?: CaseStatus | string | null,
-  investigatorId?: string | null,
-  currentUserId?: string | null,
-): boolean {
-  if (!caseStatus || !investigatorId || !currentUserId) return false;
-  if (investigatorId !== currentUserId) return false;
-  return ["COLLECTING", "AWAITING_PARTIES", "ASSESSING"].includes(caseStatus);
-}
-
-export function canWithdrawAgreement(
-  agreementStatus?: AgreementStatus | string | null,
-  investigatorId?: string | null,
-  currentUserId?: string | null,
-): boolean {
-  if (!agreementStatus || !investigatorId || !currentUserId) return false;
-  if (investigatorId !== currentUserId) return false;
-  return agreementStatus === "PROPOSED" || agreementStatus === "AGREED";
-}
-
-export function canRecordAgreementFinding(
-  agreementStatus?: AgreementStatus | string | null,
-  caseStatus?: CaseStatus | string | null,
-  investigatorId?: string | null,
-  currentUserId?: string | null,
-): boolean {
-  if (!agreementStatus || !caseStatus || !investigatorId || !currentUserId) return false;
-  if (investigatorId !== currentUserId) return false;
-  return agreementStatus === "AGREED" && caseStatus === "ASSESSING";
-}
-
 export function validateAgreementProposal(
   outcome?: string | null,
   note?: string | null,

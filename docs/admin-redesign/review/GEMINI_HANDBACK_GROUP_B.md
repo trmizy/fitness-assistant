@@ -728,3 +728,149 @@ Per the prompt instruction (*"If an assertion fails because of a product defect,
 
 ### 6. Honesty Line
 No git writes (not even attempted). Nothing written in D:/FitnessAssistant or D:/fa-bc. No real backend or E2E call (no port 58100, no port 5991). No product files under frontend/web/src modified. All servers started during Phase 3 are stopped.
+
+
+## ALLOWED-ACTIONS: BACKEND-DRIVEN ACTION GATING (V2.1)
+
+### 1. Files Changed
+`git -C D:/admin-fr status --short`:
+- `M frontend/web/src/app/pages/admin/__tests__/gb1-gym-forms.test.ts`: Removed deleted `canRequestPartyAppeal` unit test.
+- `M frontend/web/src/app/pages/admin/__tests__/gb1-replacement.test.ts`: Removed deleted `canProposeReplacement` unit test.
+- `M frontend/web/src/app/pages/admin/__tests__/gb2-followups.test.ts`: Removed deleted agreement permission and `canRetryObligation` unit tests.
+- `M frontend/web/src/app/pages/admin/disputes/actions/AgreementPanel.tsx`: Gated propose, withdraw, and record finding buttons via `isAllowed` and `allowedFor`.
+- `M frontend/web/src/app/pages/admin/disputes/actions/QuotaCorrectionCard.tsx`: Gated propose and approve actions via `allowedFor` using `detail`.
+- `M frontend/web/src/app/pages/admin/disputes/actions/ReplacementPanel.tsx`: Gated propose, approve, and reject actions via `isAllowed` and `allowedFor`.
+- `M frontend/web/src/app/pages/admin/disputes/actions/actionModel.ts`: Added `allowedFor` helper and exported `VIETNAMESE_LINE`.
+- `M frontend/web/src/app/pages/admin/disputes/actions/replacementModel.ts`: Removed local rules `canProposeReplacement` and `canDecideReplacement`.
+- `M frontend/web/src/app/pages/admin/disputes/disputeCaseTypes.ts`: Added 15 V2.1 action names, party action types, and updated `PartyCaseDetail`.
+- `M frontend/web/src/app/pages/admin/disputes/workspace/agreementModel.ts`: Removed local rules `canProposeAgreement`, `canWithdrawAgreement`, `canRecordAgreementFinding`.
+- `M frontend/web/src/app/pages/admin/disputes/workspace/appealModel.ts`: Removed local rule `canRetryObligation`.
+- `M frontend/web/src/app/pages/admin/disputes/workspace/tabs/AppealTab.tsx`: Gated reviewer assignment, appeal decision, and obligation actions via `allowedFor`.
+- `M frontend/web/src/app/pages/admin/disputes/workspace/tabs/ApprovalsTab.tsx`: Removed obsolete `replacementEnabled` prop pass-through.
+- `M frontend/web/src/app/pages/disputes/DisputeCasePartyPage.tsx`: Gated statements, documents, file picker, and party appeal forms via `partyActions` helpers.
+- `M frontend/web/src/app/pages/disputes/DocumentForm.tsx`: Added `allowFile` prop gating file picker UI.
+- `M frontend/web/src/app/pages/disputes/PartyAgreementPanel.tsx`: Gated agreement confirmation button via `partyAllowedFor(detail, "confirmAgreement", a.id)`.
+- `M frontend/web/src/app/pages/disputes/partyModel.ts`: Removed obsolete `canRequestPartyAppeal`.
+- `A frontend/web/src/app/pages/admin/__tests__/gb3-allowed-actions.test.ts`: Added unit tests for `allowedFor`, party helpers, source guards, and action catalog.
+- `A frontend/web/src/app/pages/disputes/partyActions.ts`: Added party allowed actions helpers (`partyAllowed`, `partyVerdictOf`, `partyAllowedFor`, `partyRefusal`).
+
+---
+
+### 2. Commands and Results
+
+- **D1 (Full Unit Test Suite):**
+  `cd /d/admin-fr/frontend/web && npx tsx --test $(find src -path '*__tests__*' -name '*.test.ts') 2>&1 | tail -12`
+  ```
+    ✔ every label is plain Vietnamese: no uuid, no UPPER_SNAKE enum, no English ledger words (0.9951ms)
+    ✔ an unknown or missing category is labelled by direction only (0.3029ms)
+    ✔ a backend that predates `category`: the description is read product-first, never leaked (1.221ms)
+  ✔ walletEntryLabel (6.2819ms)
+  ℹ tests 1175
+  ℹ suites 273
+  ℹ pass 1175
+  ℹ fail 0
+  ℹ cancelled 0
+  ℹ skipped 0
+  ℹ todo 0
+  ℹ duration_ms 33732.5279
+  ```
+
+- **D2 (TypeScript Typecheck with Temporary tsconfig):**
+  `cd /d/admin-fr/frontend/web && npx tsc -p tsconfig.gbtmp.json 2>&1 | grep -c "error TS"`
+  ```
+  215
+  ```
+  `cd /d/admin-fr/frontend/web && npx tsc -p tsconfig.gbtmp.json 2>&1 | grep "error TS" | grep -E "pages/admin/disputes|pages/disputes|pages/admin/complaints|pages/complaints|moneyExceptions"`
+  ```
+  (0 lines - completely clean)
+  ```
+  Verification that `tsconfig.gbtmp.json` was deleted:
+  `ls -la /d/admin-fr/frontend/web/tsconfig*.json`
+  ```
+  ls: cannot access '/d/admin-fr/frontend/web/tsconfig*.json': No such file or directory
+  ```
+
+- **D3 (Vite Production Build):**
+  `cd /d/admin-fr/frontend/web && node node_modules/vite/bin/vite.js build --outDir C:/Users/Windows/AppData/Local/Temp/gemini-groupb/dist --emptyOutDir 2>&1 | tail -3`
+  ```
+  - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+  - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+  ✓ built in 23.48s
+  ```
+
+- **D4 (Forbidden Local Rule Tokens Grep):**
+  `cd /d/admin-fr/frontend/web/src/app && grep -rnE "canProposeAgreement|canWithdrawAgreement|canRecordAgreementFinding|canRetryObligation|canProposeReplacement|canDecideReplacement|canRequestPartyAppeal|appealsCapability|replacementEnabled" pages --include=*.ts --include=*.tsx | grep -v __tests__`
+  ```
+  (0 lines - completely clean)
+  ```
+
+---
+
+### 3. Action Decision Mapping (C1–C5)
+
+- **C1. Admin Agreements (`AgreementPanel.tsx`):**
+  - **Propose agreement form / button:** Decided by `isAllowed(detail, "proposeAgreement")`.
+  - **Outcome dropdown options:** Filtered dynamically by `verdictOf(detail, "proposeAgreement")?.options` against `ALLOWED_OUTCOMES`.
+  - **Withdraw agreement button:** Decided by `allowedFor(detail, "withdrawAgreement", item.id)`.
+  - **Record agreement finding button:** Decided by `allowedFor(detail, "recordAgreementFinding", item.id)`.
+  - **Refusal message on propose:** Decided by `refusalMessage(detail, "proposeAgreement")`.
+
+- **C2. Admin Appeal Tab (`AppealTab.tsx`):**
+  - **Assign reviewer form / button:** Decided by `allowedFor(detail, "assignAppealReviewer", item.id)`.
+  - **Decide appeal form / button:** Decided by `allowedFor(detail, "decideAppeal", item.id)`.
+  - **Create payment obligation button:** Decided by `allowedFor(detail, "createAppealObligation", c.id)`.
+  - **Sync payment obligation button:** Decided by `allowedFor(detail, "syncAppealObligation", c.id)`.
+  - **Consequence notice when create disallowed:** Preserved Vietnamese explanation for unestablished money consequence awaiting reconciliation.
+
+- **C3. Admin Quota Correction (`QuotaCorrectionCard.tsx`):**
+  - **Propose quota correction form:** Decided by `allowedFor(detail, "proposeQuotaCorrection", consequence.id)`.
+  - **Approve quota correction button:** Decided by `allowedFor(detail, "approveQuotaCorrection", pendingCorr.id)`.
+  - **Pending approval refusal notice:** Decided by `refusalMessage(detail, "approveQuotaCorrection") ?? "Đang chờ một quản trị viên khác duyệt."`.
+
+- **C4. Admin Decision Replacement (`ReplacementPanel.tsx`):**
+  - **Propose replacement form / button:** Decided by `isAllowed(detail, "proposeDecisionReplacement")`.
+  - **Approve replacement button:** Decided by `allowedFor(detail, "approveDecisionReplacement", item.id)`.
+  - **Reject replacement button:** Decided by `allowedFor(detail, "rejectDecisionReplacement", item.id)`.
+  - **Replacement executed notice:** Decided by `refusalMessage(detail, "proposeDecisionReplacement")` rendered with `data-testid="replacement-executed-note"`.
+  - **Panel visibility:** Rendered iff case has approved decision, or has replacement items, or any replacement action is allowed (`isAllowed(detail, "proposeDecisionReplacement") || isAllowed(detail, "approveDecisionReplacement") || isAllowed(detail, "rejectDecisionReplacement")`).
+
+- **C5. Party Screens (`DisputeCasePartyPage.tsx`, `PartyAgreementPanel.tsx`, `DocumentForm.tsx`):**
+  - **Confirm agreement button:** Decided by `partyAllowedFor(detail, "confirmAgreement", a.id)`.
+  - **Add statement form:** Decided by `partyAllowed(detail, "addStatement")`.
+  - **Add evidence form:** Decided by `partyAllowed(detail, "addEvidence")`.
+  - **File picker inside evidence form:** Decided by `partyAllowed(detail, "addEvidenceFile")` passed as `allowFile` to `DocumentForm`.
+  - **Request appeal form:** Decided by `partyAllowed(detail, "requestAppeal")`.
+  - **Request appeal refusal message:** Decided by `partyRefusal(detail, "requestAppeal")` rendered as a muted line ONLY for backend codes `APPEAL_WINDOW_CLOSED`, `APPEAL_ALREADY_REQUESTED`, `APPEAL_NOTICE_NOT_RECORDED`.
+
+---
+
+### 4. Deleted Functions and Tests
+
+#### Deleted Functions
+- `canProposeAgreement` (`workspace/agreementModel.ts`): Deleted because agreement proposal eligibility is now determined by backend `isAllowed(detail, "proposeAgreement")`.
+- `canWithdrawAgreement` (`workspace/agreementModel.ts`): Deleted because withdrawal eligibility is now determined per item by backend `allowedFor(detail, "withdrawAgreement", item.id)`.
+- `canRecordAgreementFinding` (`workspace/agreementModel.ts`): Deleted because record finding eligibility is now determined per item by backend `allowedFor(detail, "recordAgreementFinding", item.id)`.
+- `canRetryObligation` (`workspace/appealModel.ts`): Deleted because obligation creation and retry are now gated by backend `allowedFor(detail, "createAppealObligation", c.id)` and `allowedFor(detail, "syncAppealObligation", c.id)`.
+- `canProposeReplacement` (`actions/replacementModel.ts`): Deleted because replacement proposal eligibility is now determined by backend `isAllowed(detail, "proposeDecisionReplacement")`.
+- `canDecideReplacement` (`actions/replacementModel.ts`): Deleted because replacement decision eligibility is now determined by backend `allowedFor(detail, "approveDecisionReplacement", item.id)` and `allowedFor(detail, "rejectDecisionReplacement", item.id)`.
+- `canRequestPartyAppeal` (`pages/disputes/partyModel.ts`): Deleted because party appeal eligibility is now determined by backend `partyAllowed(detail, "requestAppeal")`.
+
+#### Deleted Tests
+- `src/app/pages/admin/__tests__/gb2-followups.test.ts`:
+  - `it("enforces agreement action permissions based on case and agreement status", ...)`: Removed unit test of deleted local rules `canProposeAgreement`, `canWithdrawAgreement`, `canRecordAgreementFinding`.
+  - `describe("Appeal obligation retry guard (P2-FIX-4)", ...)` (4 unit tests): Removed unit tests of deleted local rule `canRetryObligation`.
+- `src/app/pages/admin/__tests__/gb1-replacement.test.ts`:
+  - `it("canProposeReplacement requires DECISION_APPROVED, NOT_STARTED or EXEC_BLOCKED, and no pending replacement (FIX-3, A34)", ...)`: Removed unit test of deleted local rule `canProposeReplacement`.
+- `src/app/pages/admin/__tests__/gb1-gym-forms.test.ts`:
+  - `it("canRequestPartyAppeal respects appeal.canFile if provided by server", ...)`: Removed unit test of deleted local rule `canRequestPartyAppeal`.
+
+---
+
+### 5. Not Done, Blocked, or Questions
+- **None.** All tasks in scope (C0–C5, PART D, PART E) are completely implemented and verified.
+- C6 non-scope items were untouched: gym screens (`pages/admin/complaints/*`, `pages/complaints/*`), `HeldMoneyReviewSection.tsx`, and contract policy panels remain intact.
+
+---
+
+### 6. Honesty Line
+No git writes (not even attempted). Nothing written in D:/FitnessAssistant or D:/fa-bc. No real backend or E2E call. Servers I started are stopped. Temp tsconfig deleted.

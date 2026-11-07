@@ -51,31 +51,7 @@ export function validateReplacementReason(reason: string): { ok: boolean; messag
 
 export const REPLACEMENT_EXEC_EFFECT_NOTE = "Quyết định đã được thực thi nên không thể thay.";
 
-export function isDecisionAlreadyExecuted(
-  caseStatus: string | null | undefined,
-  execStatus: string | null | undefined,
-): boolean {
-  if (caseStatus !== "DECISION_APPROVED") return false;
-  return execStatus !== "NOT_STARTED" && execStatus !== "EXEC_BLOCKED";
-}
-
-export function canProposeReplacement(
-  caseStatus: string | null | undefined,
-  execStatus: string | null | undefined,
-  hasPending: boolean,
-): boolean {
-  if (caseStatus !== "DECISION_APPROVED") return false;
-  if (hasPending) return false;
-  return execStatus === "NOT_STARTED" || execStatus === "EXEC_BLOCKED";
-}
-
 export function isProposer(item: Pick<ReplacementItem, "proposedBy">, currentUserId?: string | null): boolean {
   if (!currentUserId) return false;
   return item.proposedBy === currentUserId;
-}
-
-export function canDecideReplacement(item: Pick<ReplacementItem, "status" | "proposedBy">, currentUserId?: string | null): boolean {
-  if (item.status !== "PENDING") return false;
-  if (currentUserId && item.proposedBy === currentUserId) return false;
-  return true;
 }

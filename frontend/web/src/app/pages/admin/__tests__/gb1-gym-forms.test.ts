@@ -6,7 +6,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  canRequestPartyAppeal,
   validateAppealReason,
   validateStatement,
   validateDocument,
@@ -73,15 +72,6 @@ describe("Gym member forms & party model validations (A48-A50, B3, B4)", () => {
     const normalized = normalizeSha256(raw);
     assert.equal(normalized, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     assert.equal(isSha256(normalized), true);
-  });
-
-  it("canRequestPartyAppeal respects appeal.canFile if provided by server", () => {
-    assert.equal(canRequestPartyAppeal("IN_PROGRESS", { canFile: true }), true);
-    assert.equal(canRequestPartyAppeal("DECISION_APPROVED", { canFile: false }), false);
-    // When no appeal metadata, falls back to approved/closed status
-    assert.equal(canRequestPartyAppeal("DECISION_APPROVED", null), true);
-    assert.equal(canRequestPartyAppeal("CLOSED", null), true);
-    assert.equal(canRequestPartyAppeal("IN_PROGRESS", null), false);
   });
 
   it("validateAppealReason checks min and max length", () => {

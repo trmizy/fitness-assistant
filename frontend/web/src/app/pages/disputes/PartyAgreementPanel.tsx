@@ -1,20 +1,23 @@
 import { useRef, useState } from "react";
 import { useModalA11y } from "../admin/shared/useModalA11y";
 import { disputeCaseApi } from "../admin/disputes/disputeCaseApi";
-import type { PartyAgreementItem } from "../admin/disputes/disputeCaseTypes";
+import type { PartyAgreementItem, PartyCaseDetail } from "../admin/disputes/disputeCaseTypes";
 import { parseDisputeError } from "../admin/disputes/disputeCaseErrors";
 import { useIdempotentAction } from "../admin/disputes/useIdempotentAction";
 import { CARD, FOCUS, MUTED, Notice, Pill, PRIMARY_BUTTON } from "./PartyParts";
 import { PARTY_CONFIRM_AGREEMENT_NOTE } from "../admin/disputes/workspace/agreementModel";
+import { partyAllowedFor } from "./partyActions";
 
 interface PartyAgreementPanelProps {
   caseId: string;
+  detail: PartyCaseDetail;
   agreements?: PartyAgreementItem[];
   onChanged: () => void | Promise<unknown>;
 }
 
 export function PartyAgreementPanel({
   caseId,
+  detail,
   agreements,
   onChanged,
 }: PartyAgreementPanelProps) {
@@ -122,7 +125,7 @@ export function PartyAgreementPanel({
                   <p className={`text-xs ${MUTED}`}>
                     Bạn đã xác nhận phương án này. Đang chờ bên còn lại xác nhận.
                   </p>
-                ) : (
+                ) : partyAllowedFor(detail, "confirmAgreement", a.id) ? (
                   <div className="space-y-2">
                     <p className={`text-xs ${MUTED}`}>
                       Phương án này đang chờ bạn xác nhận. {PARTY_CONFIRM_AGREEMENT_NOTE}
@@ -136,7 +139,7 @@ export function PartyAgreementPanel({
                       {action.pending ? "Đang gửi..." : "Xác nhận phương án thoả thuận"}
                     </button>
                   </div>
-                )}
+                ) : null}
               </div>
             )}
 

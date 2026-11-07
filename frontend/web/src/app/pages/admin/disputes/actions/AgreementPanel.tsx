@@ -20,31 +20,28 @@ import {
   useWrite,
 } from "./actionKit";
 import {
-  AGREEMENT_OUTCOMES,
+  allowedFor,
+  isAllowed,
+  refusalMessage,
+  verdictOf,
+} from "./actionModel";
+import {
   PROPOSE_AGREEMENT_CONFIRM,
   RECORD_FINDING_AGREEMENT_CONFIRM,
   WITHDRAW_AGREEMENT_CONFIRM,
   agreementOutcomeLabel,
   agreementStatusLabel,
   agreementStatusTone,
-  canProposeAgreement,
-  canRecordAgreementFinding,
-  canWithdrawAgreement,
   validateAgreementProposal,
 } from "../workspace/agreementModel";
 
-const CAPABILITY_OFF_NOTE = "Chức năng này đang tắt ở môi trường hiện tại.";
-
 export function AgreementPanel({
   detail,
-  currentUserId,
+  currentUserId: _currentUserId,
   onChanged,
-  capabilities,
+  capabilities: _capabilities,
 }: ActionSlotProps) {
   const caseId = detail.case?.id ?? "";
-  const investigatorId = detail.case?.investigatorId ?? null;
-  const caseStatus = detail.case?.status ?? null;
-  const appealsCapability = capabilities?.appeals === true;
 
   const { keys } = useDisputeQueryKeys();
   const queryClient = useQueryClient();
@@ -60,7 +57,7 @@ export function AgreementPanel({
   const loading = agreementsQuery.isLoading;
 
   // Propose form state
-  const [outcome, setOutcome] = useState<AgreementOutcome>("COMPLETED");
+  const [outcome, setOutcome] = useState("");
   const [note, setNote] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [proposeConfirmOpen, setProposeConfirmOpen] = useState(false);
@@ -75,7 +72,10 @@ export function AgreementPanel({
   const withdrawWrite = useWrite<unknown, unknown>(onChanged);
   const recordFindingWrite = useWrite<unknown, unknown>(onChanged);
 
-  const mayPropose = canProposeAgreement(caseStatus, investigatorId, currentUserId);
+  const proposeVerdict = verdictOf(detail, "proposeAgreement");
+  const allowedOutcomes = Array.isArray(proposeVerdict?.options)
+    ? proposeVerdict.options
+    : [];
 
   const handleProposeClick = () => {
     const val = validateAgreementProposal(outcome, note);
@@ -89,12 +89,13 @@ export function AgreementPanel({
 
   const handleProposeSubmit = async () => {
     const res = await proposeWrite.submit(
-      { outcome, note: note.trim() },
+      { outcome: outcome as AgreementOutcome, note: note.trim() },
       (key, body) => disputeCaseApi.proposeAgreement(caseId, body, key),
     );
     if (res.ok) {
       setProposeConfirmOpen(false);
       setNote("");
+      setOutcome("");
       if (keys) {
         await queryClient.invalidateQueries({ queryKey: keys.agreements(caseId) });
       }
@@ -156,17 +157,8 @@ export function AgreementPanel({
       ) : (
         <ul className="space-y-3">
           {agreements.map((item) => {
-            const mayWithdraw = canWithdrawAgreement(
-              item.status,
-              investigatorId,
-              currentUserId,
-            );
-            const mayRecord = canRecordAgreementFinding(
-              item.status,
-              caseStatus,
-              investigatorId,
-              currentUserId,
-            );
+            const mayWithdraw = allowedFor(detail, "withdrawAgreement", item.id);
+            const mayRecord = allowedFor(detail, "recordAgreementFinding", item.id);
 
             const clientConf = (item.confirmations ?? []).find(
               (c) => c.partyRole === "CLIENT",
@@ -264,70 +256,69 @@ export function AgreementPanel({
       )}
 
       {/* Propose Form */}
-      {mayPropose && (
-        appealsCapability ? (
-          <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
-            <h4 className="text-sm font-semibold text-adm-text">
-              Lập phương án thoả thuận mới
-            </h4>
+      {isAllowed(detail, "proposeAgreement") ? (
+        <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
+          <h4 className="text-sm font-semibold text-adm-text">
+            Lập phương án thoả thuận mới
+          </h4>
 
-            <Field id="agreement-outcome" label="Kết quả đề xuất thoả thuận" required>
-              <select
-                id="agreement-outcome"
-                className="block w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
-                value={outcome}
-                onChange={(e) => setOutcome(e.target.value as AgreementOutcome)}
-              >
-                {AGREEMENT_OUTCOMES.map((o) => (
-                  <option key={o} value={o}>
-                    {agreementOutcomeLabel(o)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+          <Field id="agreement-outcome" label="Kết quả đề xuất thoả thuận" required>
+            <select
+              id="agreement-outcome"
+              className="block w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
+              value={outcome}
+              onChange={(e) => setOutcome(e.target.value)}
+            >
+              <option value="">-- Chọn kết quả --</option>
+              {allowedOutcomes.map((o) => (
+                <option key={o} value={o}>
+                  {agreementOutcomeLabel(o)}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-            <Field id="agreement-note" label="Ghi chú thoả thuận" required>
-              <TextArea
-                id="agreement-note"
-                rows={3}
-                value={note}
-                onChange={(v) => {
-                  setNote(v);
-                  setFormError(null);
-                }}
-                placeholder="Nêu rõ phương án thoả thuận để hai bên cùng xem xét xác nhận..."
-              />
-            </Field>
+          <Field id="agreement-note" label="Ghi chú thoả thuận" required>
+            <TextArea
+              id="agreement-note"
+              rows={3}
+              value={note}
+              onChange={(v) => {
+                setNote(v);
+                setFormError(null);
+              }}
+              placeholder="Nêu rõ phương án thoả thuận để hai bên cùng xem xét xác nhận..."
+            />
+          </Field>
 
-            {formError && <Notice tone="danger">{formError}</Notice>}
-            {proposeWrite.error && (
-              <ErrorBox
-                error={proposeWrite.error}
-                mustReload={proposeWrite.mustReload}
-                reloading={proposeWrite.reloading}
-                onReload={proposeWrite.reload}
-                onRetry={proposeWrite.retry}
-                pending={proposeWrite.pending}
-              />
-            )}
+          {formError && <Notice tone="danger">{formError}</Notice>}
+          {proposeWrite.error && (
+            <ErrorBox
+              error={proposeWrite.error}
+              mustReload={proposeWrite.mustReload}
+              reloading={proposeWrite.reloading}
+              onReload={proposeWrite.reload}
+              onRetry={proposeWrite.retry}
+              pending={proposeWrite.pending}
+            />
+          )}
 
-            <ButtonRow>
-              <ActionButton
-                variant="primary"
-                onClick={handleProposeClick}
-                disabled={proposeWrite.pending || !note.trim()}
-                pending={proposeWrite.pending}
-              >
-                Đề xuất phương án thoả thuận
-              </ActionButton>
-            </ButtonRow>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3 text-sm text-adm-text-2">
-            {CAPABILITY_OFF_NOTE}
-          </div>
-        )
-      )}
+          <ButtonRow>
+            <ActionButton
+              variant="primary"
+              onClick={handleProposeClick}
+              disabled={proposeWrite.pending || !note.trim() || !outcome}
+              pending={proposeWrite.pending}
+            >
+              Đề xuất phương án thoả thuận
+            </ActionButton>
+          </ButtonRow>
+        </div>
+      ) : refusalMessage(detail, "proposeAgreement") ? (
+        <p className="text-xs text-adm-text-2">
+          {refusalMessage(detail, "proposeAgreement")}
+        </p>
+      ) : null}
 
       {/* Propose confirm modal */}
       <ConfirmModal

@@ -31,16 +31,6 @@ export const APPEAL_NOTICE_TEXT =
 export const APPEAL_SUCCESS_TEXT =
   "Đã gửi yêu cầu xem xét lại. Kết quả hiện tại chưa thay đổi.";
 
-export function canRequestPartyAppeal(
-  status: string,
-  appeal?: { canFile?: boolean; closesAt?: string | null } | null,
-): boolean {
-  if (appeal && typeof appeal.canFile === "boolean") {
-    return appeal.canFile;
-  }
-  return status === "DECISION_APPROVED" || status === "CLOSED";
-}
-
 export function validateAppealReason(reason: string): { ok: boolean; message?: string } {
   const trimmed = reason.trim();
   if (trimmed.length < 1) {

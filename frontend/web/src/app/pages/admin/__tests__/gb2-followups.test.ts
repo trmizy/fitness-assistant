@@ -15,9 +15,6 @@ import {
   agreementOutcomeLabel,
   agreementStatusLabel,
   agreementStatusTone,
-  canProposeAgreement,
-  canWithdrawAgreement,
-  canRecordAgreementFinding,
   validateAgreementProposal,
   PROPOSE_AGREEMENT_CONFIRM,
   WITHDRAW_AGREEMENT_CONFIRM,
@@ -51,10 +48,8 @@ import {
   quotaSentence,
   quotaHistoryLine,
 } from "../disputes/workspace/quotaCorrectionModel";
-import { canRetryObligation } from "../disputes/workspace/appealModel";
 import { eventLabel } from "../disputes/workspace/workspaceModel";
 import type { D65bSummary } from "../reconciliation/moneyExceptions/moneyExceptionTypes";
-import type { AppealConsequence } from "../disputes/disputeCaseTypes";
 
 describe("Agreements model (A41-A44, B7)", () => {
   it("maps outcome labels in Vietnamese without raw English enums", () => {
@@ -85,30 +80,6 @@ describe("Agreements model (A41-A44, B7)", () => {
     assert.equal(validateAgreementProposal("COMPLETED", "").ok, false);
     assert.equal(validateAgreementProposal("COMPLETED", "Thoả thuận hợp lệ").ok, true);
     assert.equal(validateAgreementProposal("CANCELLED", "Lý do huỷ hợp lệ").ok, true);
-  });
-
-  it("enforces agreement action permissions based on case and agreement status", () => {
-    // Only assigned investigator can propose in eligible statuses
-    assert.equal(canProposeAgreement("COLLECTING", "u1", "u1"), true);
-    assert.equal(canProposeAgreement("AWAITING_PARTIES", "u1", "u1"), true);
-    assert.equal(canProposeAgreement("ASSESSING", "u1", "u1"), true);
-    assert.equal(canProposeAgreement("COLLECTING", "u1", "u2"), false);
-
-    // Terminal statuses cannot propose
-    assert.equal(canProposeAgreement("DECISION_APPROVED", "u1", "u1"), false);
-    assert.equal(canProposeAgreement("CLOSED", "u1", "u1"), false);
-
-    // Can withdraw only by investigator when status === "PROPOSED" or "AGREED"
-    assert.equal(canWithdrawAgreement("PROPOSED", "u1", "u1"), true);
-    assert.equal(canWithdrawAgreement("AGREED", "u1", "u1"), true);
-    assert.equal(canWithdrawAgreement("USED", "u1", "u1"), false);
-    assert.equal(canWithdrawAgreement("PROPOSED", "u1", "u2"), false);
-
-    // Can record finding only when status === "AGREED" and caseStatus === "ASSESSING"
-    assert.equal(canRecordAgreementFinding("AGREED", "ASSESSING", "u1", "u1"), true);
-    assert.equal(canRecordAgreementFinding("PROPOSED", "ASSESSING", "u1", "u1"), false);
-    assert.equal(canRecordAgreementFinding("AGREED", "COLLECTING", "u1", "u1"), false);
-    assert.equal(canRecordAgreementFinding("AGREED", "ASSESSING", "u1", "u2"), false);
   });
 
   it("contains clear Vietnamese confirmation texts and disclaimers", () => {
@@ -356,40 +327,6 @@ describe("Quota correction direction & delta model (P2-FIX-2)", () => {
       usedAfter: 4,
     });
     assert.ok(line.includes("số buổi đã dùng 5 → 4"));
-  });
-});
-
-describe("Appeal obligation retry guard (P2-FIX-4)", () => {
-  it("returns false when consequence is not MONEY", () => {
-    const c = { kind: "QUOTA", status: "NEEDS_RECONCILIATION" } as unknown as AppealConsequence;
-    assert.equal(canRetryObligation(c), false);
-  });
-
-  it("returns false when status is not NEEDS_RECONCILIATION", () => {
-    const c = {
-      kind: "MONEY",
-      status: "RESOLVED",
-      detail: { requested: { amountVnd: 500000 } },
-    } as unknown as AppealConsequence;
-    assert.equal(canRetryObligation(c), false);
-  });
-
-  it("returns false when amount is not established (case a)", () => {
-    const c = {
-      kind: "MONEY",
-      status: "NEEDS_RECONCILIATION",
-      detail: {},
-    } as unknown as AppealConsequence;
-    assert.equal(canRetryObligation(c), false);
-  });
-
-  it("returns true only when amount is established (case b)", () => {
-    const c = {
-      kind: "MONEY",
-      status: "NEEDS_RECONCILIATION",
-      detail: { requested: { amountVnd: 500000 } },
-    } as unknown as AppealConsequence;
-    assert.equal(canRetryObligation(c), true);
   });
 });
 

@@ -34,11 +34,9 @@ import {
   appealResultLabel,
   appealStatusLabel,
   appealStatusTone,
-  canAdminDecideAppeal,
   consequenceKindLabel,
   consequenceStatusLabel,
   consequenceStatusTone,
-  canRetryObligation,
   isNeedsRecon,
   filterIndependentReviewers,
   isKeepResult,
@@ -49,6 +47,7 @@ import {
   type ConsequenceFormRow,
   type ResponsibleParty,
 } from "../appealModel";
+import { allowedFor, refusalMessage } from "../../actions/actionModel";
 
 const ALLOWED_FINDINGS: FindingKind[] = [
   "VERIFIED_DELIVERED",
@@ -59,17 +58,14 @@ const ALLOWED_FINDINGS: FindingKind[] = [
   "NOT_A_DISPUTE",
 ];
 
-const CAPABILITY_OFF_NOTE = "Chức năng này đang tắt ở môi trường hiện tại.";
-
 export function AppealTab({
   detail,
   currentUserId,
   onChanged,
-  capabilities,
+  capabilities: _capabilities,
 }: ActionSlotProps) {
   const caseId = detail.case?.id ?? "";
   const allowedActions = detail.allowedActions ?? [];
-  const appealsCapability = capabilities?.appeals === true;
 
   const { keys } = useDisputeQueryKeys();
   const queryClient = useQueryClient();
@@ -314,7 +310,6 @@ export function AppealTab({
       ) : (
         <div className="space-y-4">
           {appeals.map((item) => {
-            const isAssignedToYou = canAdminDecideAppeal(item, currentUserId);
             const currentResType = decideResult[item.id] ?? RES_KEEP;
             const itemErrors = fieldErrors[item.id] ?? {};
             const itemConsequences = decideConsequences[item.id] ?? [];
@@ -425,49 +420,42 @@ export function AppealTab({
                                   <span className="text-adm-text-2">
                                     Khoản phải trả chưa thanh toán
                                   </span>
-                                  {appealsCapability ? (
+                                  {allowedFor(detail, "syncAppealObligation", c.id) && (
                                     <ActionButton
                                       variant="outline"
                                       onClick={() => handleSyncObligation(c.id)}
                                       disabled={syncWrite.pending}
                                       pending={syncWrite.pending}
                                     >
-                                      Cập nhật trạng thái nghĩa vụ
+                                      Cập nhật trạng thái khoản phải trả
                                     </ActionButton>
-                                  ) : (
-                                    <span className="text-xs text-adm-text-2">
-                                      {CAPABILITY_OFF_NOTE}
-                                    </span>
                                   )}
                                 </div>
                               )}
                               {c.kind === "MONEY" && isNeedsRecon(c.status) && (
                                 <div className="mt-2">
-                                  {canRetryObligation(c) ? (
+                                  {allowedFor(detail, "createAppealObligation", c.id) ? (
                                     <div className="flex items-center justify-between">
                                       <span className="text-adm-text-2">
                                         Chờ đối soát tiền
                                       </span>
-                                      {appealsCapability ? (
-                                        <ActionButton
-                                          variant="outline"
-                                          onClick={() => handleCreateObligation(c.id)}
-                                          disabled={createObligationWrite.pending}
-                                          pending={createObligationWrite.pending}
-                                        >
-                                          Thử tạo lại khoản phải trả
-                                        </ActionButton>
-                                      ) : (
-                                        <span className="text-xs text-adm-text-2">
-                                          {CAPABILITY_OFF_NOTE}
-                                        </span>
-                                      )}
+                                      <ActionButton
+                                        variant="outline"
+                                        onClick={() => handleCreateObligation(c.id)}
+                                        disabled={createObligationWrite.pending}
+                                        pending={createObligationWrite.pending}
+                                      >
+                                        Thử tạo lại khoản phải trả
+                                      </ActionButton>
                                     </div>
-                                  ) : (
+                                  ) : typeof (c.detail as { requested?: { amountVnd?: unknown } } | null)?.requested?.amountVnd !== "number" ? (
+                                    // display fact only (not a permission): no amount was established, so there is nothing to create
                                     <p className="text-xs text-adm-text-2">
                                       Chưa xác lập số tiền và bên chịu trách nhiệm: không có khoản phải trả nào để tạo. Hệ quả chờ đối soát.
                                     </p>
-                                  )}
+                                  ) : refusalMessage(detail, "createAppealObligation") ? (
+                                    <p className="text-xs text-adm-text-2">{refusalMessage(detail, "createAppealObligation")}</p>
+                                  ) : null}
                                 </div>
                               )}
                               {c.kind === "QUOTA" && (c.status === "OPEN" || (c.quotaCorrections ?? []).some((q) => q.appliedAt)) && (
@@ -476,7 +464,7 @@ export function AppealTab({
                                   consequence={c}
                                   currentUserId={currentUserId}
                                   onChanged={onChanged}
-                                  appealsCapability={appealsCapability}
+                                  detail={detail}
                                 />
                               )}
                             </li>
@@ -488,79 +476,72 @@ export function AppealTab({
                 )}
 
                 {/* Assignment section */}
-                {item.status === "REQUESTED" && (
-                  appealsCapability ? (
-                    <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
-                      <h4 className="text-sm font-semibold text-adm-text">
-                        Phân công người xem xét độc lập
-                      </h4>
+                {allowedFor(detail, "assignAppealReviewer", item.id) && (
+                  <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
+                    <h4 className="text-sm font-semibold text-adm-text">
+                      Phân công người xem xét độc lập
+                    </h4>
+                    <p className="text-xs text-adm-text-2">
+                      Người xem xét phải độc lập: chưa từng lập đề xuất, chưa
+                      từng duyệt và không phải điều tra viên của vụ việc.
+                    </p>
+
+                    <Field id={`assign-reviewer-${item.id}`} label="Chọn quản trị viên độc lập" required>
+                      <select
+                        id={`assign-reviewer-${item.id}`}
+                        className="block w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
+                        value={selectedReviewer[item.id] ?? ""}
+                        onChange={(e) => {
+                          setSelectedReviewer({
+                            ...selectedReviewer,
+                            [item.id]: e.target.value,
+                          });
+                          setAssignError(null);
+                        }}
+                      >
+                        <option value="">-- Chọn quản trị viên --</option>
+                        {eligibleAdmins.map((adm) => (
+                          <option key={adm.id} value={adm.id}>
+                            {adm.label ?? adm.displayName} ({shortRef(adm.id)})
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    {excludedAdmins.length > 0 && (
                       <p className="text-xs text-adm-text-2">
-                        Người xem xét phải độc lập: chưa từng lập đề xuất, chưa
-                        từng duyệt và không phải điều tra viên của vụ việc.
+                        Đã loại trừ {excludedAdmins.length} người do có vai trò trong hồ sơ.
                       </p>
+                    )}
 
-                      <Field id={`assign-reviewer-${item.id}`} label="Chọn quản trị viên độc lập" required>
-                        <select
-                          id={`assign-reviewer-${item.id}`}
-                          className="block w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
-                          value={selectedReviewer[item.id] ?? ""}
-                          onChange={(e) => {
-                            setSelectedReviewer({
-                              ...selectedReviewer,
-                              [item.id]: e.target.value,
-                            });
-                            setAssignError(null);
-                          }}
-                        >
-                          <option value="">-- Chọn quản trị viên --</option>
-                          {eligibleAdmins.map((adm) => (
-                            <option key={adm.id} value={adm.id}>
-                              {adm.label ?? adm.displayName} ({shortRef(adm.id)})
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
+                    {assignError && <Notice tone="danger">{assignError}</Notice>}
+                    {assignWrite.error && (
+                      <ErrorBox
+                        error={assignWrite.error}
+                        mustReload={assignWrite.mustReload}
+                        reloading={assignWrite.reloading}
+                        onReload={assignWrite.reload}
+                        onRetry={assignWrite.retry}
+                        pending={assignWrite.pending}
+                      />
+                    )}
 
-                      {excludedAdmins.length > 0 && (
-                        <p className="text-xs text-adm-text-2">
-                          Đã loại trừ {excludedAdmins.length} người do có vai trò trong hồ sơ.
-                        </p>
-                      )}
-
-                      {assignError && <Notice tone="danger">{assignError}</Notice>}
-                      {assignWrite.error && (
-                        <ErrorBox
-                          error={assignWrite.error}
-                          mustReload={assignWrite.mustReload}
-                          reloading={assignWrite.reloading}
-                          onReload={assignWrite.reload}
-                          onRetry={assignWrite.retry}
-                          pending={assignWrite.pending}
-                        />
-                      )}
-
-                      <ButtonRow>
-                        <ActionButton
-                          variant="primary"
-                          onClick={() => handleAssignSubmit(item.id)}
-                          disabled={!selectedReviewer[item.id] || assignWrite.pending}
-                          pending={assignWrite.pending}
-                        >
-                          Giao người xem xét lại
-                        </ActionButton>
-                      </ButtonRow>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3 text-sm text-adm-text-2">
-                      {CAPABILITY_OFF_NOTE}
-                    </div>
-                  )
+                    <ButtonRow>
+                      <ActionButton
+                        variant="primary"
+                        onClick={() => handleAssignSubmit(item.id)}
+                        disabled={!selectedReviewer[item.id] || assignWrite.pending}
+                        pending={assignWrite.pending}
+                      >
+                        Giao người xem xét lại
+                      </ActionButton>
+                    </ButtonRow>
+                  </div>
                 )}
 
                 {/* Decide section: for assigned reviewer only */}
-                {item.status === "UNDER_REVIEW" && isAssignedToYou && (
-                  appealsCapability ? (
-                    <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
+                {allowedFor(detail, "decideAppeal", item.id) ? (
+                  <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
                       <h4 className="text-sm font-semibold text-adm-text">
                         Ghi nhận kết quả xem xét lại (Dành cho bạn)
                       </h4>
@@ -825,18 +806,11 @@ export function AppealTab({
                         </ActionButton>
                       </ButtonRow>
                     </div>
-                  ) : (
-                    <div className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3 text-sm text-adm-text-2">
-                      {CAPABILITY_OFF_NOTE}
-                    </div>
-                  )
-                )}
-
-                {item.status === "UNDER_REVIEW" && !isAssignedToYou && (
-                  <Muted>
-                    Hồ sơ đang chờ người xem xét lại được phân công ghi nhận kết quả.
-                  </Muted>
-                )}
+                  ) : item.status === "UNDER_REVIEW" ? (
+                    <Muted>
+                      Hồ sơ đang chờ người xem xét lại được phân công ghi nhận kết quả.
+                    </Muted>
+                  ) : null}
               </section>
             );
           })}
