@@ -3,6 +3,7 @@ import axios from "axios";
 import { z } from "zod";
 import { GoalImageSchema } from "./fitness-goal-vision.service";
 import { converseVisionTool } from "./bedrock.client";
+import { VisionUnusableError, geminiConfigured, withGeminiFallback } from "./gemini-vision.client";
 
 /**
  * General-purpose "send a photo + a question" vision chat — distinct from
@@ -160,7 +161,11 @@ export const fitnessVisionChatDeps = {
       if (input === undefined) throw new Error("Vision returned no result");
       return input;
     }
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (process.env.ANTHROPIC_API_KEY || (!process.env.GOAL_VISION_MODEL && geminiConfigured())) {
+      const geminiReq = { image, text: text, schema: toolSchema };
+      return withGeminiFallback("image-chat", async () => {
+      // A missing key is a status-less error: counts as "cannot serve" and falls back to Gemini.
+      if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45000, maxRetries: 0 });
       const response = await client.messages.create({
         model: process.env.GOAL_VISION_MODEL ?? process.env.INBODY_VISION_MODEL ?? "claude-sonnet-4-6",
@@ -176,8 +181,9 @@ export const fitnessVisionChatDeps = {
         messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.base64 } }, { type: "text", text }] }],
       });
       const output = response.content.find((b) => b.type === "tool_use");
-      if (!output || output.type !== "tool_use") throw new Error("Vision returned no result");
+      if (!output || output.type !== "tool_use") throw new VisionUnusableError("Vision returned no result");
       return output.input;
+      }, geminiReq);
     }
     if (!process.env.GOAL_VISION_MODEL) throw Object.assign(new Error("Vision unavailable. Please try again later."), { status: 503 });
     const { data } = await axios.post(
