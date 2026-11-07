@@ -1169,7 +1169,7 @@ export function BookingPage() {
             <h3 className="text-zinc-100 font-bold mb-2">Khiếu nại buổi tập</h3>
             <p className="text-xs text-zinc-500 mb-4">
               Cho biết vì sao bạn không đồng ý với báo cáo của PT. Quản trị viên sẽ xem xét và
-              phân xử — buổi tập không bị trừ cho tới khi có kết luận.
+              phân xử. Buổi đang chờ kết luận; quyền buổi tuỳ theo kết luận.
             </p>
             <textarea
               value={disputeReason}

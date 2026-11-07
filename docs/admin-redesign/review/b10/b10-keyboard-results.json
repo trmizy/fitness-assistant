@@ -1,0 +1,187 @@
+[
+ {
+  "name": "skip link is first Tab stop and becomes visible",
+  "pass": true,
+  "extra": "{\"txt\":\"Bỏ qua tới nội dung chính\",\"w\":203,\"h\":36,\"top\":12}"
+ },
+ {
+  "name": "skip link Enter focuses <main>",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "bell Enter opens the notification region",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "bell Esc closes and returns focus to bell",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "money dialog has accessible name",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "money dialog traps focus after 10 Tabs",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Huỷ\",\"inDlg\":true,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "money dialog Esc closes",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "money dialog returns focus to its opener",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Duyệt — giữ chỗ trước, không b\",\"inDlg\":false,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "tablist listings: roving tabindex (selected=0, others=-1)",
+  "pass": true,
+  "extra": "[0,-1,-1,-1]"
+ },
+ {
+  "name": "tablist listings: ArrowRight moves focus + selects next tab",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Tin Gym\",\"inDlg\":false,\"tab\":true,\"sel\":\"true\"}"
+ },
+ {
+  "name": "tablist listings: ArrowLeft returns to first",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist listings: Tab leaves the strip",
+  "pass": true,
+  "extra": "{\"tag\":\"INPUT\",\"txt\":\"\",\"inDlg\":false,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "tablist partners view tabs: roving tabindex (selected=0, others=-1)",
+  "pass": true,
+  "extra": "[0,-1]"
+ },
+ {
+  "name": "tablist partners view tabs: ArrowRight moves focus + selects next tab",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Đối tác\",\"inDlg\":false,\"tab\":true,\"sel\":\"true\"}"
+ },
+ {
+  "name": "tablist partners view tabs: End -> last tab selected",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist partners view tabs: ArrowRight wraps to first",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist partners view tabs: ArrowLeft wraps to last",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist partners view tabs: Tab leaves the strip",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Chờ duyệt (1)\",\"inDlg\":false,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "tablist gyms moderation: roving tabindex (selected=0, others=-1)",
+  "pass": true,
+  "extra": "[0,-1,-1,-1,-1]"
+ },
+ {
+  "name": "tablist gyms moderation: ArrowRight moves focus + selects next tab",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Đổi tên/địa chỉ gym1\",\"inDlg\":false,\"tab\":true,\"sel\":\"true\"}"
+ },
+ {
+  "name": "tablist gyms moderation: End -> last tab selected",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist gyms moderation: ArrowRight wraps to first",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist gyms moderation: ArrowLeft wraps to last",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "tablist gyms moderation: Tab leaves the strip",
+  "pass": true,
+  "extra": "{\"tag\":\"BUTTON\",\"txt\":\"Xem chi tiết\",\"inDlg\":false,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "drawer traps focus after 40 Tabs",
+  "pass": true,
+  "extra": "{\"tag\":\"A\",\"txt\":\"Bài tập trùng lặp\",\"inDlg\":true,\"tab\":false,\"sel\":null}"
+ },
+ {
+  "name": "drawer Esc closes",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "drawer returns focus to menu button",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "reduced motion: drawer opening runs no CSS animation/transition",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "reduced motion: money dialog opening runs no CSS animation/transition",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "normal motion: dialog open animation still runs (<=220ms)",
+  "pass": true,
+  "extra": "enter:150,enter:200"
+ },
+ {
+  "name": "gym-management attention card is a focusable link",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "gym-management attention card Enter navigates",
+  "pass": true,
+  "extra": "http://127.0.0.1:5940/admin/partners"
+ },
+ {
+  "name": "exercise-review modal has role=dialog, aria-modal, name",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "exercise-review modal moves focus inside",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "exercise-review modal traps focus after 12 Tabs",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "exercise-review modal Esc closes",
+  "pass": true,
+  "extra": ""
+ },
+ {
+  "name": "exercise-review modal returns focus to opener",
+  "pass": true,
+  "extra": ""
+ }
+]

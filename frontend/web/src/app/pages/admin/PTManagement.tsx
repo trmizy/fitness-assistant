@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { CheckIcon as Check, XIcon as X, MedalIcon as Award, LightningIcon as Zap, MagnifyingGlassIcon as Search, CaretRightIcon as ChevronRight, ShieldIcon as Shield, BriefcaseIcon as Briefcase, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, WarningCircleIcon as AlertCircle, ClockIcon as Clock, EyeIcon as Eye, FileTextIcon as FileText, ChatTextIcon as MessageSquare, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ArrowLeftIcon as ArrowLeft, PhoneIcon as Phone, MapPinIcon as MapPin, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowsClockwiseIcon as RefreshCw, ImageIcon, CircleNotchIcon as Loader2, CaretLeftIcon as ChevronLeft, UserIcon as User, ShieldCheckIcon as ShieldCheck, ClockCounterClockwiseIcon as HistoryIcon } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { formatVND } from "../../utils/currency";
@@ -7,7 +8,12 @@ import {
   PTApplication,
 } from "../../services/ptApplicationService";
 import { apiBaseUrl } from "../../config/serverUrl";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { parseIdParam, parsePtFilter, shortRef } from "./shared/b9aUrlState";
+import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
+import { toast } from "sonner";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { listingErrorMessage } from "../../utils/listingErrors";
 
 const API_URL = apiBaseUrl();
 
@@ -22,48 +28,12 @@ const statusConfig: Record<
   string,
   { label: string; bg: string; text: string; border: string; dot: string }
 > = {
-  SUBMITTED: {
-    label: "Mới nộp",
-    bg: "bg-blue-500/10",
-    text: "text-blue-400",
-    border: "border-blue-500/20",
-    dot: "bg-blue-500",
-  },
-  UNDER_REVIEW: {
-    label: "Đang xem xét",
-    bg: "bg-amber-500/10",
-    text: "text-amber-400",
-    border: "border-amber-500/20",
-    dot: "bg-amber-500",
-  },
-  NEEDS_MORE_INFO: {
-    label: "Cần bổ sung",
-    bg: "bg-orange-500/10",
-    text: "text-orange-400",
-    border: "border-orange-500/20",
-    dot: "bg-orange-500",
-  },
-  APPROVED: {
-    label: "Đã duyệt",
-    bg: "bg-green-500/10",
-    text: "text-green-400",
-    border: "border-green-500/20",
-    dot: "bg-green-500",
-  },
-  REJECTED: {
-    label: "Đã từ chối",
-    bg: "bg-red-500/10",
-    text: "text-red-400",
-    border: "border-red-500/20",
-    dot: "bg-red-500",
-  },
-  DRAFT: {
-    label: "Bản nháp",
-    bg: "bg-zinc-700/50",
-    text: "text-zinc-400",
-    border: "border-zinc-700",
-    dot: "bg-zinc-500",
-  },
+  SUBMITTED: { label: "Mới nộp", bg: "bg-st-info-bg", text: "text-st-info", border: "border-st-info-border", dot: "bg-st-info" },
+  UNDER_REVIEW: { label: "Đang xem xét", bg: "bg-st-pending-bg", text: "text-st-pending", border: "border-st-pending-border", dot: "bg-st-pending" },
+  NEEDS_MORE_INFO: { label: "Cần bổ sung", bg: "bg-st-warning-bg", text: "text-st-warning", border: "border-st-warning-border", dot: "bg-st-warning" },
+  APPROVED: { label: "Đã duyệt", bg: "bg-st-success-bg", text: "text-st-success", border: "border-st-success-border", dot: "bg-st-success" },
+  REJECTED: { label: "Đã từ chối", bg: "bg-st-danger-bg", text: "text-st-danger", border: "border-st-danger-border", dot: "bg-st-danger" },
+  DRAFT: { label: "Bản nháp", bg: "bg-st-neutral-bg", text: "text-st-neutral", border: "border-st-neutral-border", dot: "bg-st-neutral" },
 };
 
 type App = PTApplication;
@@ -90,7 +60,7 @@ function InfoRow({
         {label}
       </span>
       <span
-        className={`${highlight ? "text-green-400 font-semibold" : "text-zinc-300"} font-medium text-xs`}
+        className={`${highlight ? "text-st-success font-semibold" : "text-zinc-300"} font-medium text-xs`}
       >
         {value || "—"}
       </span>
@@ -114,7 +84,7 @@ function SocialLink({
       rel="noopener noreferrer"
       className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-800/30 border border-zinc-700/30 hover:border-green-500/30 hover:bg-zinc-800/50 transition-all group"
     >
-      <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-green-400 transition-colors">
+      <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-st-success transition-colors">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
@@ -125,7 +95,7 @@ function SocialLink({
           {url.replace(/^https?:\/\//, "")}
         </p>
       </div>
-      <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-green-400 transition-all" />
+      <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-st-success transition-all" />
     </a>
   );
 }
@@ -179,21 +149,21 @@ function DocThumb({
               className="absolute inset-0 w-full h-full object-cover opacity-50 hover:opacity-100 transition-opacity"
             />
             <div className="relative z-10 text-center pointer-events-none bg-black/40 px-2 py-1 rounded-md backdrop-blur-xs">
-              <ImageIcon className="w-5 h-5 text-green-400 mx-auto mb-1 opacity-70" />
+              <ImageIcon className="w-5 h-5 text-st-success mx-auto mb-1 opacity-70" />
               <p className="text-[10px] text-zinc-100 font-bold">
                 Bấm để phóng to
               </p>
             </div>
             {tag && (
-              <span className="absolute top-2 right-2 text-[10px] bg-zinc-900/90 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded-md font-bold z-30">
+              <span className="absolute top-2 right-2 text-[10px] bg-zinc-900/90 text-st-success border border-green-500/30 px-1.5 py-0.5 rounded-md font-bold z-30">
                 {tag}
               </span>
             )}
           </>
         ) : (
           <div className="text-center">
-            <XCircle className="w-7 h-7 text-red-400/60 mx-auto mb-1" />
-            <p className="text-xs text-red-400">Chưa tải lên</p>
+            <XCircle className="w-7 h-7 text-st-danger/60 mx-auto mb-1" />
+            <p className="text-xs text-st-danger">Chưa tải lên</p>
           </div>
         )}
       </div>
@@ -204,9 +174,9 @@ function DocThumb({
           {label}
         </span>
         {url ? (
-          <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+          <CheckCircle className="w-3.5 h-3.5 text-st-success flex-shrink-0" />
         ) : (
-          <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+          <XCircle className="w-3.5 h-3.5 text-st-danger flex-shrink-0" />
         )}
       </div>
     </div>
@@ -217,35 +187,29 @@ function DocThumb({
    DOCUMENT VIEWER MODAL
    ═══════════════════════════════════════════════════════════ */
 function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
-  // Mounted only while the viewer is open.
-  useBackDismissible(true, onClose);
+  // Mounted only while the viewer is open; ui/dialog gives focus trap, Esc, aria and Back-to-close.
   const [section, setSection] = useState<1 | 2 | 3>(1);
+  const returnFocus = useReturnFocus();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent {...returnFocus} data-testid="pt-document-viewer" className="bg-zinc-950 border-zinc-800 rounded-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0 shadow-2xl">
         {/* Modal header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80">
+        <DialogHeader className="flex-row items-center justify-between px-5 py-4 pr-12 border-b border-zinc-800/80 text-left">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-500/15 border border-green-500/20 rounded-lg flex items-center justify-center text-xs font-bold text-green-400">
+            <div className="w-8 h-8 bg-green-500/15 border border-green-500/20 rounded-lg flex items-center justify-center text-xs font-bold text-st-success">
               {app.user?.firstName?.[0] || "U"}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-100">
+              <DialogTitle className="text-sm font-bold text-zinc-100 leading-snug">
                 Xem hồ sơ giấy tờ — {app.user?.firstName} {app.user?.lastName}
-              </h3>
-              <p className="text-xs text-zinc-500">
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-500">
                 Nộp lúc {fmtDate(app.updatedAt)}
-              </p>
+              </DialogDescription>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        </DialogHeader>
 
         {/* Section tabs */}
         <div className="flex border-b border-zinc-800/60 bg-zinc-900/60">
@@ -259,7 +223,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
               onClick={() => setSection(t.key)}
               className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-[10px] font-bold border-b-2 transition-all min-w-0 ${
                 section === t.key
-                  ? "border-green-500 text-green-400 bg-green-500/8"
+                  ? "border-green-500 text-st-success bg-green-500/8"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
@@ -278,7 +242,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                   Số CCCD đã khai
                 </p>
                 <p
-                  className={`text-base font-mono tracking-widest font-bold ${app.nationalIdNumber ? "text-green-400" : "text-red-400 italic"}`}
+                  className={`text-base font-mono tracking-widest font-bold ${app.nationalIdNumber ? "text-st-success" : "text-st-danger italic"}`}
                 >
                   {app.nationalIdNumber || "Chưa cung cấp"}
                 </p>
@@ -311,15 +275,15 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                   className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3"
                 >
                   <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-bold text-zinc-200">
+                    <h3 className="text-sm font-bold text-zinc-200">
                       {c.certificateName}
-                    </h4>
+                    </h3>
                     {c.isCurrentlyValid ? (
-                      <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20 font-bold">
+                      <span className="text-[10px] bg-green-500/10 text-st-success px-2 py-0.5 rounded-full border border-green-500/20 font-bold">
                         Còn hiệu lực
                       </span>
                     ) : (
-                      <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20 font-bold">
+                      <span className="text-[10px] bg-red-500/10 text-st-danger px-2 py-0.5 rounded-full border border-red-500/20 font-bold">
                         Hết hạn
                       </span>
                     )}
@@ -397,15 +361,15 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
             Đóng
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════
    DETAIL VIEW
    ═══════════════════════════════════════════════════════════ */
-function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
+function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onDone?: () => void }) {
   const queryClient = useQueryClient();
   const [adminNote, setAdminNote] = useState(app.adminNote || "");
   const [feedback, setFeedback] = useState("");
@@ -434,22 +398,56 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pt-applications"] });
-      alert("Đã thực hiện xong.");
-      onBack();
+      queryClient.invalidateQueries({ queryKey: ["admin-pt-application-detail"] });
+      toast.success("Đã thực hiện xong.");
+      (onDone ?? onBack)();
     },
-    onError: (err: any) => alert(err.response?.data?.error || "Thao tác không thành công."),
+    onError: (err: unknown) => toast.error(listingErrorMessage(err, "Thao tác không thành công.")),
   });
+  // Duyệt / Từ chối hồ sơ huấn luyện viên là quyết định cuối: xác nhận trước khi gửi (cùng payload).
+  const [decision, setDecision] = useState<"APPROVE" | "REJECT" | null>(null);
+  const rejectNeedsReason = decision === "REJECT" && !feedback.trim();
+  useRestoreFocus(!!decision);
 
   return (
     <>
       {showDocs && (
         <DocumentViewer app={app} onClose={() => setShowDocs(false)} />
       )}
+      <ConfirmDialog
+        open={!!decision}
+        onOpenChange={(o) => !o && setDecision(null)}
+        title={decision === "APPROVE" ? "Duyệt hồ sơ huấn luyện viên?" : "Từ chối hồ sơ huấn luyện viên?"}
+        description={
+          decision === "APPROVE"
+            ? `${app.user?.firstName ?? ""} ${app.user?.lastName ?? ""} sẽ trở thành huấn luyện viên và được nhận khách.`
+            : `Hồ sơ của ${app.user?.firstName ?? ""} ${app.user?.lastName ?? ""} sẽ bị từ chối; nội dung "Phản hồi gửi người nộp" được gửi kèm làm lý do.`
+        }
+        confirmLabel={decision === "APPROVE" ? "Duyệt hồ sơ" : "Từ chối hồ sơ"}
+        danger={decision === "REJECT"}
+        confirmDisabled={rejectNeedsReason}
+        onConfirm={async () => {
+          if (!decision) return;
+          try {
+            await actionMutation.mutateAsync({ action: decision, note: adminNote, feedback });
+          } catch {
+            /* onError đã hiện thông báo */
+          }
+          setDecision(null);
+        }}
+      >
+        {rejectNeedsReason && (
+          <p role="alert" className="text-xs text-st-warning">
+            Hãy nhập lý do vào ô "Phản hồi gửi người nộp" trước khi từ chối.
+          </p>
+        )}
+      </ConfirmDialog>
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         {/* Top Header */}
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
+            aria-label="Quay lại danh sách hồ sơ"
             className="p-2.5 rounded-xl text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 border border-transparent hover:border-zinc-700 transition-all"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -464,7 +462,16 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               </span>
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Mã hồ sơ: {app.id}
+              Mã hồ sơ:{" "}
+              <button
+                type="button"
+                title="Bấm để sao chép mã hồ sơ"
+                data-testid="pt-copy-ref"
+                onClick={() => { try { void navigator.clipboard?.writeText(app.id); toast.success("Đã sao chép mã hồ sơ"); } catch { /* clipboard bị chặn */ } }}
+                className="font-mono text-zinc-400 hover:text-zinc-200 underline decoration-dotted"
+              >
+                {shortRef(app.id)}
+              </button>
             </p>
           </div>
         </div>
@@ -490,9 +497,9 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   </div>
                 )}
               </div>
-              <h3 className="text-lg font-bold text-zinc-100">
+              <h2 className="text-lg font-bold text-zinc-100">
                 {app.user?.firstName} {app.user?.lastName}
-              </h3>
+              </h2>
               <p className="text-sm text-zinc-500">
                 {app.user?.email || "Chưa có email"}
               </p>
@@ -500,7 +507,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               <div className="mt-6 pt-6 border-t border-zinc-800/60 space-y-3">
                 <button
                   onClick={() => setShowDocs(true)}
-                  className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5"
+                  className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-st-success text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5"
                 >
                   <Eye className="w-4 h-4" /> Xem giấy tờ
                 </button>
@@ -551,26 +558,14 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "APPROVE",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => setDecision("APPROVE")}
                     className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20"
                   >
                     Duyệt
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "REJECT",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
-                    className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all"
+                    onClick={() => setDecision("REJECT")}
+                    className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-st-danger py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Từ chối
                   </button>
@@ -582,7 +577,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         feedback,
                       })
                     }
-                    className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all"
+                    className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-st-warning py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Cần bổ sung
                   </button>
@@ -594,7 +589,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         feedback,
                       })
                     }
-                    className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all"
+                    className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-st-info py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Xem xét
                   </button>
@@ -637,7 +632,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                       app.mainSpecialties.map((s) => (
                         <span
                           key={s}
-                          className="px-2.5 py-1 rounded-lg bg-green-500/10 text-green-400 text-[10px] font-bold border border-green-500/20 uppercase tracking-tight"
+                          className="px-2.5 py-1 rounded-lg bg-green-500/10 text-st-success text-[10px] font-bold border border-green-500/20 uppercase tracking-tight"
                         >
                           {s}
                         </span>
@@ -656,7 +651,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-400" /> Dịch vụ & lịch rảnh
+                  <Calendar className="w-4 h-4 text-st-info" /> Dịch vụ & lịch rảnh
                 </p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-2">
@@ -674,7 +669,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                       <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">
                         Hình thức
                       </p>
-                      <p className="text-xs text-green-400 font-bold">
+                      <p className="text-xs text-st-success font-bold">
                         {app.serviceMode === "ONLINE"
                           ? "Online qua video call"
                           : app.serviceMode === "OFFLINE"
@@ -702,7 +697,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                               key={d}
                               className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${
                                 isAvailable
-                                  ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                  ? "bg-green-500/10 text-st-success border-green-500/20"
                                   : "bg-zinc-950 text-zinc-700 border-zinc-800/40"
                               }`}
                             >
@@ -720,7 +715,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                             key={i}
                             className="flex items-center gap-3 p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/40"
                           >
-                            <Clock className="w-3.5 h-3.5 text-green-400" />
+                            <Clock className="w-3.5 h-3.5 text-st-success" />
                             <div className="text-xs text-zinc-300 font-medium">
                               <span className="text-zinc-500 w-10 inline-block">
                                 {DAY_FULL_VI[b.dayOfWeek] ?? b.dayOfWeek}
@@ -774,7 +769,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         app.targetClientGroups.map((t) => (
                           <span
                             key={t}
-                            className="px-2 py-0.5 rounded-md bg-blue-500/5 text-blue-400 text-[10px] border border-blue-500/10 font-medium"
+                            className="px-2 py-0.5 rounded-md bg-blue-500/5 text-st-info text-[10px] border border-blue-500/10 font-medium"
                           >
                             {t}
                           </span>
@@ -978,13 +973,49 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
 /* ═══════════════════════════════════════════════════════════
    MAIN LIST VIEW
    ═══════════════════════════════════════════════════════════ */
-export function PTManagement() {
-  const [filter, setFilter] = useState<FilterKey>("all");
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<App | null>(null);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+function isForbidden(err: unknown): boolean {
+  return (err as { response?: { status?: number } } | null)?.response?.status === 403;
+}
 
-  const { data: applications = [], isLoading } = useQuery({
+function ptTimeText(ms: number) {
+  if (!ms) return "—";
+  return new Date(ms).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+export function PTManagement() {
+  // B9a: bộ lọc và hồ sơ đang mở nằm trên URL (?status=&id=) để tải lại / Back / link gửi nhau vẫn đúng chỗ.
+  const [params, setParams] = useSearchParams();
+  const filter = parsePtFilter(params.get("status"));
+  const selectedId = parseIdParam(params.get("id"));
+  const [search, setSearch] = useState("");
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const setFilter = (next: FilterKey) =>
+    setParams((prev) => {
+      const n = new URLSearchParams(prev);
+      if (next === "all") n.delete("status");
+      else n.set("status", next);
+      n.delete("id");
+      return n;
+    });
+  const openApp = (id: string) =>
+    setParams((prev) => {
+      const n = new URLSearchParams(prev);
+      n.set("id", id);
+      return n;
+    });
+  const closeApp = (replace = false) =>
+    setParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("id");
+        return n;
+      },
+      { replace },
+    );
+
+  const { data: applications = [], isLoading, isError, error: listError, refetch, dataUpdatedAt, isFetching } = useQuery({
     queryKey: ["admin-pt-applications", filter],
     // Keeps the current rows on screen while the new filter loads, instead of
     // dropping to undefined and flashing an empty list on every filter change.
@@ -995,22 +1026,47 @@ export function PTManagement() {
       ),
   });
 
+  // Chi tiết một hồ sơ: cùng GET /pt-applications/admin/:id như trước; lỗi thì dùng dòng của danh sách (hành vi cũ).
+  const detailQuery = useQuery({
+    queryKey: ["admin-pt-application-detail", selectedId],
+    enabled: !!selectedId,
+    retry: false,
+    staleTime: 15_000,
+    queryFn: () => ptApplicationService.getById(selectedId as string),
+  });
+
   const handleSelectApp = async (app: App) => {
     setLoadingId(app.id);
     try {
-      const detail = await ptApplicationService.getById(app.id);
-      setSelected(detail);
+      // Nạp chi tiết trước khi chuyển trang (giữ spinner trên thẻ như cũ); lỗi thì vẫn mở bằng dữ liệu của danh sách.
+      await queryClient.fetchQuery({ queryKey: ["admin-pt-application-detail", app.id], staleTime: 15_000, queryFn: () => ptApplicationService.getById(app.id) });
     } catch {
-      // Fallback to list data if getById fails
-      setSelected(app);
+      /* mở bằng dữ liệu danh sách */
     } finally {
       setLoadingId(null);
+      openApp(app.id);
     }
   };
 
-  if (selected) {
-    return <DetailView app={selected} onBack={() => setSelected(null)} />;
+  if (selectedId) {
+    const fromList = applications.find((a) => a.id === selectedId);
+    const app = detailQuery.data ?? (detailQuery.isError ? fromList : undefined);
+    if (app) return <DetailView key={app.id} app={app} onBack={() => closeApp()} onDone={() => closeApp(true)} />;
+    if (detailQuery.isLoading) {
+      return (
+        <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4" data-testid="pt-detail-skeleton" aria-busy="true">
+          <div className="h-8 w-64 rounded-lg bg-zinc-800/60 animate-pulse motion-reduce:animate-none" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="h-72 rounded-2xl bg-zinc-800/40 animate-pulse motion-reduce:animate-none" />
+            <div className="lg:col-span-2 h-72 rounded-2xl bg-zinc-800/40 animate-pulse motion-reduce:animate-none" />
+          </div>
+        </div>
+      );
+    }
+    // Không có chi tiết và không có trong danh sách: về danh sách kèm thông báo không chặn.
+    // (Rơi xuống phần danh sách bên dưới, hiện dải thông báo.)
   }
+  const unknownSelected = !!selectedId && !detailQuery.isLoading && !detailQuery.data && !applications.find((a) => a.id === selectedId);
 
   const filtered = applications.filter((a) => {
     const term = search.toLowerCase();
@@ -1031,6 +1087,12 @@ export function PTManagement() {
           <p className="text-sm text-zinc-500">
             Xem xét và quản lý hồ sơ, chứng chỉ chuyên môn
           </p>
+          {dataUpdatedAt > 0 && (
+            <p data-testid="pt-updated" className="text-xs tabular-nums text-zinc-500 mt-1">
+              Cập nhật lúc {ptTimeText(dataUpdatedAt)}
+              {isFetching ? " · đang làm mới…" : ""}
+            </p>
+          )}
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
@@ -1038,12 +1100,19 @@ export function PTManagement() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên hoặc email..."
-            className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:outline-none focus:border-green-500"
+            className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:border-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]"
           />
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      {unknownSelected && (
+        <div role="status" data-testid="pt-unknown-id" className="rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-xs text-st-warning flex items-center justify-between gap-3">
+          <span>Không tìm thấy hồ sơ <span className="font-mono">{shortRef(selectedId)}</span> — có thể đã bị xoá hoặc đường dẫn sai. Đang hiện danh sách.</span>
+          <button onClick={() => closeApp(true)} className="font-bold underline shrink-0">Đóng</button>
+        </div>
+      )}
+
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" role="group" aria-label="Lọc theo trạng thái">
         {Object.entries({
           all: "Tất cả",
           SUBMITTED: "Mới",
@@ -1054,7 +1123,8 @@ export function PTManagement() {
         }).map(([k, v]) => (
           <button
             key={k}
-            onClick={() => setFilter(k as any)}
+            aria-pressed={filter === k}
+            onClick={() => setFilter(k as FilterKey)}
             className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
               filter === k
                 ? "bg-green-500 text-black border-green-500"
@@ -1067,8 +1137,19 @@ export function PTManagement() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+        <div data-testid="pt-list-skeleton" aria-busy="true" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-40 rounded-2xl border border-zinc-800 bg-zinc-900/60 animate-pulse motion-reduce:animate-none" />
+          ))}
+        </div>
+      ) : isError && applications.length === 0 ? (
+        <div role="alert" data-testid="pt-applications-load-error" className="bg-st-danger-bg border border-st-danger-border rounded-2xl py-16 text-center">
+          <p className="text-st-danger text-sm mb-3">
+            {isForbidden(listError) ? "Bạn không có quyền xem danh sách hồ sơ huấn luyện viên." : "Không tải được danh sách hồ sơ."}
+          </p>
+          <button onClick={() => void refetch()} className="px-4 py-2 border border-st-danger-border text-st-danger hover:bg-st-danger-bg text-xs font-bold rounded-lg">
+            Thử lại
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-zinc-900/50 border border-zinc-800 border-dashed rounded-2xl py-20 text-center">
@@ -1091,13 +1172,13 @@ export function PTManagement() {
               )}
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center text-sm font-bold text-zinc-400 group-hover:text-green-400 transition-colors">
+                  <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center text-sm font-bold text-zinc-400 group-hover:text-st-success transition-colors">
                     {app.user?.firstName?.[0] || "?"}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-200">
+                    <h2 className="text-sm font-bold text-zinc-200">
                       {app.user?.firstName || "—"} {app.user?.lastName || ""}
-                    </h3>
+                    </h2>
                     <p className="text-xs text-zinc-500">
                       {app.user?.email || "Chưa có email"}
                     </p>
@@ -1134,7 +1215,7 @@ export function PTManagement() {
                 >
                   {statusConfig[app.status || "DRAFT"].label}
                 </span>
-                <ChevronRight className="w-4 h-4 text-zinc-700 group-hover:text-green-400 group-hover:translate-x-1 transition-all" />
+                <ChevronRight className="w-4 h-4 text-zinc-700 group-hover:text-st-success group-hover:translate-x-1 transition-all" />
               </div>
             </button>
           ))}

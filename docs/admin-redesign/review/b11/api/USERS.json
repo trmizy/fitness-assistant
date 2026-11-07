@@ -1,0 +1,64 @@
+{
+ "users": [
+  {
+   "id": "2958c626-0734-4726-b1e8-0865df1e100a",
+   "email": "afr.pt@example.test",
+   "firstName": "Trainer",
+   "lastName": "Afr",
+   "role": "PT",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:34:32.441Z",
+   "updatedAt": "2026-10-30T09:34:32.441Z"
+  },
+  {
+   "id": "1213ec3c-70b6-45f5-86e3-ac7f67cb2034",
+   "email": "afr.c4@example.test",
+   "firstName": "Client",
+   "lastName": "Bon",
+   "role": "CUSTOMER",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:26:43.545Z",
+   "updatedAt": "2026-10-30T09:26:43.545Z"
+  },
+  {
+   "id": "8ea119ba-452b-478a-b64a-210cb705a9a4",
+   "email": "afr.c3@example.test",
+   "firstName": "Client",
+   "lastName": "Ba",
+   "role": "CUSTOMER",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:26:43.371Z",
+   "updatedAt": "2026-10-30T09:26:43.371Z"
+  },
+  {
+   "id": "4d2daa3b-1bbe-4d95-8cf6-eee7f8c05e32",
+   "email": "afr.c2@example.test",
+   "firstName": "Client",
+   "lastName": "Hai",
+   "role": "CUSTOMER",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:26:43.193Z",
+   "updatedAt": "2026-10-30T09:26:43.193Z"
+  },
+  {
+   "id": "53e26569-e4e7-495e-bfe1-c89a1b2534a4",
+   "email": "afr.c1@example.test",
+   "firstName": "Client",
+   "lastName": "Mot",
+   "role": "CUSTOMER",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:26:43.020Z",
+   "updatedAt": "2026-10-30T09:26:43.020Z"
+  },
+  {
+   "id": "fe3f3c34-c29a-4596-91fc-726e27663ba0",
+   "email": "afr.owner@example.test",
+   "firstName": "Owner",
+   "lastName": "Afr",
+   "role": "GYM_OWNER",
+   "isActive": true,
+   "createdAt": "2026-10-30T09:26:42.813Z",
+   "updatedAt": "2026-10-30T09:26:42.813Z"
+  }
+ ]
+}

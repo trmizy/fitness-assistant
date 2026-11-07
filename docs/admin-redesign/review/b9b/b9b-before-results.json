@@ -1,0 +1,22 @@
+[
+  {
+    "name": "before Users 1440: URL has no id",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "before AI 1440: trace not in URL",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "before Users 390: URL has no id",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "before AI 390: trace not in URL",
+    "pass": true,
+    "extra": ""
+  }
+]

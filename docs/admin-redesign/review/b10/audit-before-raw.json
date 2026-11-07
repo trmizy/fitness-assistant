@@ -1,0 +1,3851 @@
+[
+ {
+  "tag": "today@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "122",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hôm nay · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 43,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "today@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "122",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hôm nay · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 43,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "today@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "122",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hôm nay · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 21,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "fin-overview@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1222322",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-ptLocked",
+    "txt": "PT — đã khoá chờ chi: 12",
+    "w": 19,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-gymLocked",
+    "txt": "Phòng gym — đã khoá chờ ",
+    "w": 12,
+    "h": 36
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tổng quan · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 51,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-overview@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1222322",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-ptLocked",
+    "txt": "PT — đã khoá chờ chi: 12",
+    "w": 19,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-gymLocked",
+    "txt": "Phòng gym — đã khoá chờ ",
+    "w": 12,
+    "h": 36
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tổng quan · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 51,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-overview@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1222322",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-ptAvailable",
+    "txt": "PT — khả dụng: 41.300.00",
+    "w": 20,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-ptLocked",
+    "txt": "PT — đã khoá chờ chi: 12",
+    "w": 6,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-gymLocked",
+    "txt": "Phòng gym — đã khoá chờ ",
+    "w": 4,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-platformRevenuePending",
+    "txt": "Nền tảng — doanh thu chờ",
+    "w": 17,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-platformRevenueAvailable",
+    "txt": "Nền tảng — doanh thu đã ",
+    "w": 13,
+    "h": 32
+   }
+  ],
+  "small44": 4,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "mm-seg-clientBalances",
+    "txt": "Khách hàng — số dư ví: 1",
+    "w": 95,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-ptPending",
+    "txt": "PT — đang chờ giải phóng",
+    "w": 47,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-gymPending",
+    "txt": "Phòng gym — đang chờ giả",
+    "w": 64,
+    "h": 32
+   },
+   {
+    "t": "button",
+    "id": "mm-seg-gymAvailable",
+    "txt": "Phòng gym — khả dụng: 57",
+    "w": 29,
+    "h": 32
+   }
+  ],
+  "title": "Tổng quan · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 29,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "fin-recon@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 34,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-recon@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 34,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-recon@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 12,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "fin-recon-exc@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12343444434344443444443444434444",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 58,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-recon-exc@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12343444434344443444443444434444",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 58,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-recon-exc@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12343444434344443444443444434444",
+  "headingSkips": 0,
+  "live": {
+   "status": 2,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối soát · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 36,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "fin-withdrawals@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Rút tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 49,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-withdrawals@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Rút tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 49,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-withdrawals@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 6,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của n",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của y",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của n",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của y",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của n",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-withdrawal-copy-id",
+    "txt": "Sao chép mã đầy đủ của y",
+    "w": 36,
+    "h": 36
+   }
+  ],
+  "title": "Rút tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 27,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "fin-refunds@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hoàn tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 44,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-refunds@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hoàn tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 44,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "fin-refunds@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 9,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của k",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của h",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của đ",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của k",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của h",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "admin-refund-copy-id",
+    "txt": "Sao chép mã đầy đủ của đ",
+    "w": 36,
+    "h": 36
+   }
+  ],
+  "title": "Hoàn tiền · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 22,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "users@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "Tìm người dùng",
+    "w": 727,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Huong Pham",
+    "w": 87,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 01",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 02",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 03",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 04",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 05",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 06",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 07",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 08",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 09",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 10",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 11",
+    "w": 96,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 12",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 13",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 14",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 15",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 16",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 17",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 18",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 19",
+    "w": 99,
+    "h": 20
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Người dùng · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 70,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator",
+    "input[Tìm người dùng] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "users@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "Tìm người dùng",
+    "w": 727,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Huong Pham",
+    "w": 87,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 01",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 02",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 03",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 04",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 05",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 06",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 07",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 08",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 09",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 10",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 11",
+    "w": 96,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 12",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 13",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 14",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 15",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 16",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 17",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 18",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 19",
+    "w": 99,
+    "h": 20
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Người dùng · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 70,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator",
+    "input[Tìm người dùng] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "users@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 3,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "Tìm người dùng",
+    "w": 300,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Huong Pham",
+    "w": 87,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 01",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 02",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 03",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 04",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 05",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 06",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 07",
+    "w": 101,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 08",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 09",
+    "w": 102,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 10",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 11",
+    "w": 96,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 12",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 13",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 14",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 15",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 16",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 17",
+    "w": 98,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 18",
+    "w": 99,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Người Dùng 19",
+    "w": 99,
+    "h": 20
+   }
+  ],
+  "small44": 25,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Làm mới",
+    "w": 101,
+    "h": 32
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Lọc theo vai trò",
+    "w": 175,
+    "h": 37
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Lọc theo trạng thái",
+    "w": 175,
+    "h": 37
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Thao tác với Huong Pham",
+    "w": 28,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Thao tác với Người Dùng ",
+    "w": 28,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Thao tác với Người Dùng ",
+    "w": 28,
+    "h": 28
+   }
+  ],
+  "title": "Người dùng · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 48,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "input[Tìm người dùng] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "pts@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1333",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hồ sơ PT · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 35,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator",
+    "input[] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "pts@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1333",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Hồ sơ PT · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 35,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator",
+    "input[] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "pts@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1333",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 7,
+  "small44s": [
+   {
+    "t": "input",
+    "id": "",
+    "txt": "",
+    "w": 358,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tất cả",
+    "w": 70,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Mới",
+    "w": 56,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đang xem xét",
+    "w": 114,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Cần bổ sung",
+    "w": 107,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã duyệt",
+    "w": 87,
+    "h": 34
+   }
+  ],
+  "title": "Hồ sơ PT · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 13,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "input[] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "gym-mgmt@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12442",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tổng quan phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 25,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "gym-mgmt@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12442",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tổng quan phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 25,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "gym-mgmt@390",
+  "errors": [],
+  "axe": [
+   {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "n": 1,
+    "nodes": [
+     "#admin-main :: Element should have focusable content"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12442",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tổng quan phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 3,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "partners@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối tác phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 33,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "partners@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Đối tác phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 33,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "partners@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 7,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Hồ sơ đăng ký",
+    "w": 114,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đối tác",
+    "w": 75,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Chờ duyệt (1)",
+    "w": 101,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã yêu cầu sửa",
+    "w": 115,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đang soạn",
+    "w": 88,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã từ chối",
+    "w": 85,
+    "h": 30
+   }
+  ],
+  "title": "Đối tác phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 11,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "gyms@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Chi nhánh · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 38,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "gyms@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Chi nhánh · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 38,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "gyms@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 13,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "admin-gym-tab-pending",
+    "txt": "Chờ duyệt lần đầu2",
+    "w": 153,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "admin-gym-tab-gym-renames",
+    "txt": "Đổi tên/địa chỉ gym1",
+    "w": 158,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "admin-gym-tab-brand-renames",
+    "txt": "Đổi tên thương hiệu1",
+    "w": 159,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "admin-gym-tab-closed",
+    "txt": "Đã đóng cửa vĩnh viễn1",
+    "w": 175,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "admin-gym-tab-all-gyms",
+    "txt": "Tất cả chi nhánh",
+    "w": 120,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "admin-gym-view-detail-button",
+    "txt": "Xem chi tiết",
+    "w": 112,
+    "h": 30
+   }
+  ],
+  "title": "Chi nhánh · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 16,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "listings@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tin đăng & tiện ích · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 39,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "listings@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Tin đăng & tiện ích · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 39,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "listings@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 14,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tin PT",
+    "w": 71,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tin Gym",
+    "w": 84,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Danh mục tiện ích",
+    "w": 149,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đề xuất tiện ích3",
+    "w": 158,
+    "h": 36
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "",
+    "w": 332,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Chờ duyệt",
+    "w": 84,
+    "h": 28
+   }
+  ],
+  "title": "Tin đăng & tiện ích · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 17,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "disputes@1440",
+  "errors": [
+   "TypeError: Cannot read properties of undefined (reading 'slice')",
+   "TypeError: Cannot read properties of undefined (reading 'slice')"
+  ],
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "n": 2,
+    "nodes": [
+     "h2 :: Element has insufficient color contrast of 1.7 (foreground color: #ffa2a2, background color: #f8f0f2, font size: 13.5pt ",
+     "p :: Element has insufficient color contrast of 1.25 (foreground color: #ffcdce, background color: #f8f0f2, font size: 10.5pt"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 0,
+   "nav": 0,
+   "banner": 0,
+   "aside": 0
+  },
+  "h1": 0,
+  "headings": "2",
+  "headingSkips": 0,
+  "live": {
+   "status": 0,
+   "alert": 0
+  },
+  "small": [],
+  "small44": 0,
+  "small44s": [],
+  "title": "Fitness AI - AI Gym Coach",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 0,
+   "first": null,
+   "bad": []
+  }
+ },
+ {
+  "tag": "disputes@1440-dark",
+  "errors": [
+   "TypeError: Cannot read properties of undefined (reading 'slice')",
+   "TypeError: Cannot read properties of undefined (reading 'slice')"
+  ],
+  "axe": [],
+  "landmarks": {
+   "main": 0,
+   "nav": 0,
+   "banner": 0,
+   "aside": 0
+  },
+  "h1": 0,
+  "headings": "2",
+  "headingSkips": 0,
+  "live": {
+   "status": 0,
+   "alert": 0
+  },
+  "small": [],
+  "small44": 0,
+  "small44s": [],
+  "title": "Fitness AI - AI Gym Coach",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 0,
+   "first": null,
+   "bad": []
+  }
+ },
+ {
+  "tag": "disputes@390",
+  "errors": [
+   "TypeError: Cannot read properties of undefined (reading 'slice')",
+   "TypeError: Cannot read properties of undefined (reading 'slice')"
+  ],
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "n": 2,
+    "nodes": [
+     "h2 :: Element has insufficient color contrast of 1.7 (foreground color: #ffa2a2, background color: #f8f0f2, font size: 13.5pt ",
+     "p :: Element has insufficient color contrast of 1.25 (foreground color: #ffcdce, background color: #f8f0f2, font size: 10.5pt"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 0,
+   "nav": 0,
+   "banner": 0,
+   "aside": 0
+  },
+  "h1": 0,
+  "headings": "2",
+  "headingSkips": 0,
+  "live": {
+   "status": 0,
+   "alert": 0
+  },
+  "small": [],
+  "small44": 0,
+  "small44s": [],
+  "title": "Fitness AI - AI Gym Coach",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 0,
+   "first": null,
+   "bad": []
+  }
+ },
+ {
+  "tag": "complaints@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Khiếu nại phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 29,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "complaints@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Khiếu nại phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 29,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "complaints@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 4,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tất cả",
+    "w": 60,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Mới",
+    "w": 46,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đang xử lý",
+    "w": 86,
+    "h": 28
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã xử lý",
+    "w": 71,
+    "h": 28
+   }
+  ],
+  "title": "Khiếu nại phòng gym · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 7,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "marketplace@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Chợ kế hoạch · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 28,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "marketplace@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Chợ kế hoạch · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 28,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "marketplace@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 3,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Chờ duyệt",
+    "w": 94,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã duyệt",
+    "w": 87,
+    "h": 34
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã từ chối",
+    "w": 93,
+    "h": 34
+   }
+  ],
+  "title": "Chợ kế hoạch · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 6,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "exercise-review@1440",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 1,
+    "nodes": [
+     ".text-zinc-300 :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Duyệt bài tập trùng lặp · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 30,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "exercise-review@1440-dark",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 1,
+    "nodes": [
+     ".text-zinc-300 :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Duyệt bài tập trùng lặp · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 30,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "exercise-review@390",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 1,
+    "nodes": [
+     ".text-zinc-300 :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 5,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Chờ duyệt",
+    "w": 86,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Đã duyệt",
+    "w": 78,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tất cả",
+    "w": 62,
+    "h": 30
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Mọi mức độCó thể trùngCầ",
+    "w": 150,
+    "h": 31
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "",
+    "w": 200,
+    "h": 30
+   }
+  ],
+  "title": "Duyệt bài tập trùng lặp · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 8,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "catalog-quality@1440",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 2,
+    "nodes": [
+     ".text-zinc-300:nth-child(1) :: Element does not have an implicit (wrapped) <label>",
+     "select[data-testid=\"catalog-quality-status-filter\"] :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Ma trận chất lượng catalog · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 28,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "catalog-quality@1440-dark",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 2,
+    "nodes": [
+     ".text-zinc-300:nth-child(1) :: Element does not have an implicit (wrapped) <label>",
+     "select[data-testid=\"catalog-quality-status-filter\"] :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Ma trận chất lượng catalog · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 28,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "catalog-quality@390",
+  "errors": [],
+  "axe": [
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "n": 2,
+    "nodes": [
+     ".text-zinc-300:nth-child(1) :: Element does not have an implicit (wrapped) <label>",
+     "select[data-testid=\"catalog-quality-status-filter\"] :: Element does not have an implicit (wrapped) <label>"
+    ]
+   }
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "1",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 3,
+  "small44s": [
+   {
+    "t": "select",
+    "id": "catalog-quality-logging-mode-filter",
+    "txt": "Mọi cách ghiSố lần x TạT",
+    "w": 200,
+    "h": 31
+   },
+   {
+    "t": "select",
+    "id": "catalog-quality-status-filter",
+    "txt": "Mọi trạng tháiNháp (chưa",
+    "w": 177,
+    "h": 31
+   },
+   {
+    "t": "input",
+    "id": "",
+    "txt": "",
+    "w": 358,
+    "h": 30
+   }
+  ],
+  "title": "Ma trận chất lượng catalog · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 6,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "system@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "14444",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Giám sát hệ thống · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 30,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "system@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "14444",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Giám sát hệ thống · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 30,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "system@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "14444",
+  "headingSkips": 1,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Giám sát hệ thống · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 8,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ },
+ {
+  "tag": "ai@1440",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Trước",
+    "w": 52,
+    "h": 16
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Sau",
+    "w": 40,
+    "h": 16
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Giám sát AI · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 55,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "ai@1440-dark",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Quản trị",
+    "w": 52,
+    "h": 20
+   },
+   {
+    "t": "select",
+    "id": "",
+    "txt": "Chọn ngôn ngữ",
+    "w": 80,
+    "h": 17
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Trước",
+    "w": 52,
+    "h": 16
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Sau",
+    "w": 40,
+    "h": 16
+   }
+  ],
+  "small44": 0,
+  "small44s": [],
+  "title": "Giám sát AI · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 55,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": [
+    "select[Chọn ngôn ngữ] noIndicator"
+   ]
+  }
+ },
+ {
+  "tag": "ai@390",
+  "errors": [],
+  "axe": [],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "banner": 1,
+   "aside": 1
+  },
+  "h1": 1,
+  "headings": "12333",
+  "headingSkips": 0,
+  "live": {
+   "status": 1,
+   "alert": 0
+  },
+  "small": [
+   {
+    "t": "a",
+    "id": "",
+    "txt": "Bỏ qua tới nội dung chín",
+    "w": 1,
+    "h": 1
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Trước",
+    "w": 52,
+    "h": 16
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Sau",
+    "w": 40,
+    "h": 16
+   }
+  ],
+  "small44": 29,
+  "small44s": [
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Làm mới",
+    "w": 95,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Yêu cầu",
+    "w": 82,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Hàng đợi kế hoạch (1)",
+    "w": 161,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Lỗi (1)",
+    "w": 66,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Kiến thức (0)",
+    "w": 111,
+    "h": 30
+   },
+   {
+    "t": "button",
+    "id": "",
+    "txt": "Tất cả",
+    "w": 62,
+    "h": 26
+   }
+  ],
+  "title": "Giám sát AI · Gymini Quản trị",
+  "posTabindex": 0,
+  "imgNoAlt": 0,
+  "btnNoName": 0,
+  "kb": {
+   "stops": 33,
+   "first": "a:Bỏ qua tới nội dung ch",
+   "bad": []
+  }
+ }
+]

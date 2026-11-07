@@ -1,0 +1,38 @@
+{
+ "P3 normalizeReconciliation": "OK",
+ "P3 detail": {
+  "escrow": "3000000.00",
+  "claims": "3000000.00",
+  "drift": "0.00",
+  "balanced": true,
+  "breakdown": {
+   "clientBalances": "1749719.62",
+   "ptPending": "675000.00",
+   "ptAvailable": "0.00",
+   "ptLocked": "0.00",
+   "ptHoldback": "0.00",
+   "gymPending": "450000.00",
+   "gymAvailable": "251.00",
+   "gymLocked": "0.00",
+   "platformRevenuePending": "125000.00",
+   "platformRevenueAvailable": "29.38"
+  },
+  "negativeWallets": []
+ },
+ "P4 normalizeFinanceOverview": "OK",
+ "P4m normalizeFinanceOverview": "OK",
+ "P13 normalizeObligationsReport": "OK",
+ "U2 normalizeSessionsReport": "OK",
+ "P7 normalizeQueue": {
+  "rows": 1,
+  "ignored": 0,
+  "truncated": false
+ },
+ "A1 normalizeServiceRefunds": "OK",
+ "P2 normalizeGatewayDiscrepancies": "OK",
+ "U1 summarizeDisputes": "OK",
+ "P7 summarizeWithdrawalList": "OK",
+ "A1 summarizeServiceRefundQueue": "OK",
+ "USERS summarizeUsers": "OK",
+ "SYS summarizeMonitor": "OK"
+}

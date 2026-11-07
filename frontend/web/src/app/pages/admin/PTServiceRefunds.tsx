@@ -1,169 +1,284 @@
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
-import { personalizedServiceApi, type PersonalizedServiceOrder } from "../../services/api";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
+import { InfoIcon, WalletIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { personalizedServiceApi } from "../../services/api";
+import { describeAdminError } from "./shared/useAdminError";
+import { MembershipRefundCard } from "./refunds/MembershipRefundCard";
+import { ErrorBlock } from "./refunds/ErrorBlock";
+import { REFUND_LIST_KEY, REFUND_ROW_GRID, ServiceRefundRow } from "./refunds/ServiceRefundRow";
+import {
+  REFUND_TYPES,
+  formatAge,
+  normalizeServiceRefunds,
+  parseTypeParam,
+  staleMinutes,
+  summarizeServiceRefunds,
+  type RefundType,
+} from "./refunds/refundQueue";
 
 /**
- * Marketplace rework — admin resolution queue for Personalized PT Service
- * refund requests. Personalized Service purchases settle through
- * payment-service's generic wallet-transfer path, which credits the seller's
- * AVAILABLE balance immediately — payment-service DOES have a real
- * pending-balance/ESCROW mechanism, it's just wired to PT_CONTRACT/
- * GYM_MEMBERSHIP specifically (see contract-ledger.service.ts /
- * membership-ledger.service.ts), not this purchase type. So this page's job
- * is to give the admin the REAL numbers (total paid, already refunded,
- * refundable ceiling, delivery milestones reached) and let them make an
- * explicit, audited call — never an automatic release computation the
- * system has no factual basis to make for this purchase type yet.
- * Approving actually moves money through
- * payment-service's existing generic refund endpoint; this is not a
- * status-only action.
+ * "Tài chính › Hoàn tiền" (B6a) — one place for the two refund flows, as two chips kept in the URL
+ * (`?type=service|membership`):
+ *  - `service`  — personalised PT service orders whose client asked for a refund (ai-service `REFUND_REQUESTED`):
+ *    a table-on-desktop / card-on-phone worklist, oldest first, the admin opens a row to see the REAL numbers (total
+ *    paid, already refunded, refundable ceiling, delivery milestones) and decides explicitly (approve ≤ ceiling / deny
+ *    with a note). Approving really moves money through payment-service.
+ *  - `membership` — the exceptional gym-membership refund. There is NO list and NO read-by-id endpoint, so this chip
+ *    is the paste-an-id form (shared component with the dashboard card) and says so; the amount is computed by the
+ *    server and cannot be previewed.
+ *
+ * Both credit the CLIENT'S WALLET (available balance) — never a card or bank transfer; the money leaves the platform
+ * only when the client withdraws. Data limits are shown, not hidden: the service endpoint returns only pending
+ * requests (no history, no status filter) so there are no status chips, and no total of refund money is computed
+ * (the ceiling exists per order only).
+ *
+ * B1 behaviour (confirmation dialogs, per-row pending, one POST per confirmation, no retry, errors ≠ empty,
+ * amount ≤ ceiling guard, note required) lives in `refunds/ServiceRefundRow.tsx` / `MembershipRefundCard.tsx`.
  */
 
-function RefundCaseCard({ order }: { order: PersonalizedServiceOrder }) {
-  const queryClient = useQueryClient();
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  const [expanded, setExpanded] = useState(false);
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
 
-  const calcQuery = useQuery({
-    queryKey: ["refund-calculation", order.id],
-    queryFn: () => personalizedServiceApi.getRefundCalculation(order.id),
-    enabled: expanded,
-  });
+const CHIP_LABEL: Record<RefundType, string> = { service: "Dịch vụ cá nhân hoá", membership: "Gói hội viên (ngoại lệ)" };
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["refund-requests"] });
-    queryClient.invalidateQueries({ queryKey: ["refund-calculation", order.id] });
-  };
+const timeText = (ms: number) =>
+  ms ? new Date(ms).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "—";
 
-  const approveMutation = useMutation({
-    mutationFn: () => personalizedServiceApi.adminResolveRefund(order.id, { decision: "APPROVE", refundAmount: Number(amount), note }),
-    onSuccess: (resolved) => {
-      toast.success(resolved.status === "REFUNDED" ? "Đã hoàn tiền đầy đủ." : "Đã hoàn tiền một phần — đơn hàng tiếp tục.");
-      invalidate();
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message ?? "Không thể xử lý hoàn tiền."),
-  });
+/** Re-renders every `intervalMs` so ages and the "dữ liệu đã cũ" note stay true while the tab stays open. */
+function useNow(intervalMs: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
 
-  const denyMutation = useMutation({
-    mutationFn: () => personalizedServiceApi.adminResolveRefund(order.id, { decision: "DENY", note }),
-    onSuccess: () => { toast.success("Đã từ chối yêu cầu hoàn tiền."); invalidate(); },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message ?? "Không thể từ chối."),
-  });
-
-  const calc = calcQuery.data;
-
+function Skeleton() {
+  const bar = "animate-pulse rounded-md bg-adm-pill motion-reduce:animate-none";
   return (
-    <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-4 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-zinc-100">{order.titleSnapshot}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">Đơn #{order.id.slice(0, 8)} · {order.priceAtPurchase.toLocaleString("vi-VN")}đ</p>
-          {order.disputeReason && <p className="text-xs text-amber-400 mt-1">Lý do: "{order.disputeReason}"</p>}
-        </div>
-        <button onClick={() => setExpanded((e) => !e)} className="text-xs text-green-400 hover:text-green-300 font-semibold whitespace-nowrap">
-          {expanded ? "Thu gọn" : "Xem chi tiết & xử lý"}
-        </button>
+    <div role="status" aria-label="Đang tải" aria-busy="true" data-testid="admin-refunds-loading" className="space-y-4">
+      <div className={`${bar} h-5 w-72 max-w-full`} />
+      <div className="overflow-hidden rounded-xl border border-adm-border bg-adm-surface shadow-adm-card">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="grid grid-cols-2 gap-3 border-t border-adm-border-soft px-4 py-4 first:border-t-0">
+            <div className={`${bar} h-12`} />
+            <div className={`${bar} ml-auto h-6 w-28`} />
+            <div className={`${bar} col-span-2 h-4`} />
+            <div className={`${bar} col-span-2 h-9`} />
+          </div>
+        ))}
       </div>
-
-      {expanded && (
-        <div className="space-y-3 pt-2 border-t border-zinc-800/60">
-          {calcQuery.isLoading && <Loader2 className="w-4 h-4 animate-spin text-green-500" />}
-          {calc && (
-            <>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="rounded-lg bg-zinc-800/50 p-2.5">
-                  <p className="text-zinc-600">Tổng đã trả</p>
-                  <p className="text-zinc-200 font-bold tabular-nums">{calc.totalPaid.toLocaleString("vi-VN")}đ</p>
-                </div>
-                <div className="rounded-lg bg-zinc-800/50 p-2.5">
-                  <p className="text-zinc-600">Đã hoàn trước đó</p>
-                  <p className="text-zinc-200 font-bold tabular-nums">{calc.alreadyRefunded.toLocaleString("vi-VN")}đ</p>
-                </div>
-                <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-2.5">
-                  <p className="text-green-500/80">Còn có thể hoàn</p>
-                  <p className="text-green-400 font-bold tabular-nums">{calc.refundableCeiling.toLocaleString("vi-VN")}đ</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 text-[11px]">
-                <span className={`rounded px-2 py-1 ${calc.milestones.intakeSubmitted ? "bg-zinc-800 text-zinc-300" : "bg-zinc-800/40 text-zinc-600"}`}>✓ Intake đã gửi</span>
-                <span className={`rounded px-2 py-1 ${calc.milestones.draftDelivered ? "bg-zinc-800 text-zinc-300" : "bg-zinc-800/40 text-zinc-600"}`}>✓ Đã giao bản nháp</span>
-                <span className={`rounded px-2 py-1 ${calc.milestones.accepted ? "bg-zinc-800 text-zinc-300" : "bg-zinc-800/40 text-zinc-600"}`}>✓ Khách đã chấp nhận</span>
-              </div>
-              <p className="text-[11px] text-zinc-600 flex items-start gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500/70" />
-                Hệ thống không tự tính số tiền PT đã "xứng đáng nhận" cho loại giao dịch này — tiền đã chuyển thẳng vào ví PT, không giữ tạm. Bạn quyết định số tiền hoàn dựa trên các mốc trên.
-              </p>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  type="number"
-                  min={0}
-                  max={calc.refundableCeiling}
-                  placeholder={`Số tiền hoàn (tối đa ${calc.refundableCeiling.toLocaleString("vi-VN")}đ)`}
-                  className="px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                />
-                <button onClick={() => setAmount(String(calc.refundableCeiling))} className="text-xs text-zinc-500 hover:text-zinc-300 text-left">
-                  Dùng toàn bộ số tiền còn lại
-                </button>
-              </div>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Ghi chú quyết định (bắt buộc — sẽ lưu vào audit log)"
-                rows={2}
-                className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  data-testid="approve-refund-button"
-                  onClick={() => approveMutation.mutate()}
-                  disabled={approveMutation.isPending || !note || !amount || Number(amount) <= 0}
-                  className="flex-1 py-2.5 rounded-xl bg-green-500 text-black text-sm font-bold hover:bg-green-400 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                >
-                  {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Duyệt hoàn tiền
-                </button>
-                <button
-                  data-testid="deny-refund-button"
-                  onClick={() => denyMutation.mutate()}
-                  disabled={denyMutation.isPending || !note}
-                  className="flex-1 py-2.5 rounded-xl border border-red-500/40 text-red-400 text-sm font-bold hover:bg-red-500/10 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                >
-                  {denyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Từ chối
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      <span className="sr-only">Đang tải danh sách yêu cầu hoàn tiền…</span>
     </div>
   );
 }
 
 export function PTServiceRefunds() {
-  const q = useQuery({ queryKey: ["refund-requests"], queryFn: () => personalizedServiceApi.listRefundRequests() });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const active = parseTypeParam(searchParams.get("type"));
+  const now = useNow(30_000);
+  // After an approve / deny the row leaves the list; keep keyboard focus on the chips instead of the page top.
+  const focusLostPending = useRef(false);
 
-  // Vòng "Tài chính" — moved from its own /admin/pt-service-refunds route into a tab of the
-  // consolidated AdminFinancePage; the page-level heading/padding now lives there instead.
+  const query = useQuery({ queryKey: REFUND_LIST_KEY, queryFn: () => personalizedServiceApi.listRefundRequests() });
+
+  const hasData = query.data !== undefined;
+  const queue = normalizeServiceRefunds(query.data);
+  const summary = summarizeServiceRefunds(queue.rows);
+
+  const selectChip = (type: RefundType) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("type", type);
+        return next;
+      },
+      { replace: false },
+    );
+  };
+
+  useEffect(() => {
+    if (!focusLostPending.current) return;
+    const a = document.activeElement;
+    if (!a || a === document.body || !a.isConnected) {
+      document.querySelector<HTMLElement>(`[data-testid="admin-refunds-chip-${active}"]`)?.focus();
+      focusLostPending.current = false;
+    }
+  }, [query.dataUpdatedAt, active, queue.rows.length]);
+
+  const errorView = query.isError ? describeAdminError(query.error) : null;
+  const forbidden = !!errorView && !hasData && (errorView.kind === "forbidden" || errorView.kind === "unauthorized");
+  const loadFailed = !!errorView && !hasData && !forbidden;
+  const ageOfData = hasData ? staleMinutes(query.dataUpdatedAt, now) : null;
+  const refreshFailedWithData = !!errorView && hasData;
+  const dimmed = hasData && (ageOfData !== null || refreshFailedWithData);
+
   return (
-    <div className="space-y-5">
-      <p className="text-zinc-500 text-sm">
-        Danh sách đơn hàng Personalized Service đang chờ xử lý hoàn tiền. Duyệt sẽ chuyển tiền thật qua payment-service.
+    <div className="space-y-5" data-testid="admin-refunds-page">
+      {/* Header: title + subtitle, last update (the "Làm mới" button is the Tài chính header's) */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-adm-text">Hoàn tiền</h2>
+          <p className="mt-0.5 text-sm text-adm-text-2">Xử lý các yêu cầu hoàn tiền dịch vụ cá nhân hoá và hoàn tiền gói hội viên ngoại lệ.</p>
+        </div>
+        {active === "service" && (
+          // "Làm mới" lives in the Tài chính header (it re-reads this queue); only the timestamp stays here.
+          <div className="flex items-center gap-3">
+            {hasData && (
+              <span data-testid="admin-refunds-updated" className="text-xs tabular-nums text-adm-text-2">
+                Cập nhật lúc {timeText(query.dataUpdatedAt)}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Where the money goes — the same for both kinds */}
+      <p
+        role="note"
+        data-testid="admin-refunds-wallet-note"
+        className="flex items-start gap-2 rounded-lg border border-st-info-border bg-st-info-bg px-3 py-2 text-sm text-st-info"
+      >
+        <WalletIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />
+        <span>
+          <b>Hoàn tiền = ghi có vào ví khách hàng</b> (số dư khả dụng), không phải chuyển khoản về thẻ hay ngân hàng. Tiền chỉ rời nền tảng khi khách tự rút.
+        </span>
       </p>
 
-      {q.isLoading && <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>}
-      {q.data && q.data.length === 0 && (
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 py-16 text-center">
-          <p className="text-sm text-zinc-500">Không có yêu cầu hoàn tiền nào đang chờ xử lý.</p>
-        </div>
-      )}
-      <div className="space-y-3" data-testid="refund-requests-list">
-        {q.data?.map((order) => <RefundCaseCard key={order.id} order={order} />)}
+      {/* Chips (URL: ?type=) */}
+      <div role="group" aria-label="Loại hoàn tiền" data-testid="admin-refunds-chips" className="flex flex-wrap gap-2">
+        {REFUND_TYPES.map((type) => {
+          const selected = type === active;
+          return (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={selected}
+              data-testid={`admin-refunds-chip-${type}`}
+              onClick={() => selectChip(type)}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors motion-reduce:transition-none xl:min-h-10 ${FOCUS} ${
+                selected ? "border-adm-text bg-adm-text text-adm-bg" : "border-adm-border bg-adm-surface text-adm-text hover:bg-adm-surface-2"
+              }`}
+            >
+              {CHIP_LABEL[type]}
+              {type === "service" && hasData && (
+                <span
+                  data-testid="admin-refunds-chip-count-service"
+                  className={`rounded-full px-2 py-px text-xs font-semibold tabular-nums ${selected ? "bg-adm-bg/20 text-adm-bg" : "bg-adm-pill text-adm-text"}`}
+                >
+                  {summary.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
+
+      {active === "membership" ? (
+        <section className="space-y-4" aria-label="Hoàn tiền gói hội viên" data-testid="admin-refunds-membership">
+          <div
+            role="note"
+            data-testid="admin-refunds-membership-note"
+            className="flex items-start gap-2 rounded-lg border border-st-warning-border bg-st-warning-bg px-3 py-2 text-sm text-st-warning"
+          >
+            <InfoIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />
+            <span>
+              Hoàn tiền hội viên là <b>ngoại lệ</b>, không có hàng đợi: backend chưa có API cho admin liệt kê hoặc xem gói hội viên theo mã, nên chưa hiện được khách,
+              gói hay số tiền trước khi hoàn. Số tiền do hệ thống tự tính theo số ngày còn lại của gói — màn hình này không ước tính con số đó. Hãy lấy mã gói từ nguồn
+              đáng tin rồi dán vào đây.
+            </span>
+          </div>
+          <MembershipRefundCard />
+        </section>
+      ) : query.isLoading ? (
+        <Skeleton />
+      ) : forbidden ? (
+        <ErrorBlock testId="refund-requests-error" view={errorView!} message="" />
+      ) : loadFailed ? (
+        <ErrorBlock
+          testId="refund-requests-error"
+          view={errorView!}
+          message="Không tải được danh sách yêu cầu hoàn tiền. Đây không phải là “không có yêu cầu” — hãy thử lại trước khi kết luận."
+          onRetry={() => query.refetch()}
+        />
+      ) : (
+        <>
+          {/* Stale / refresh-failed note (E-08): numbers stay, slightly dimmed */}
+          {hasData && (ageOfData !== null || refreshFailedWithData) && (
+            <div
+              role="status"
+              data-testid="admin-refunds-stale"
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-st-pending-border bg-st-pending-bg px-3 py-2 text-sm text-st-pending"
+            >
+              <WarningCircleIcon className="size-4 shrink-0" weight="fill" aria-hidden />
+              <span>
+                {refreshFailedWithData ? "Không làm mới được — " : ""}
+                Dữ liệu lúc {timeText(query.dataUpdatedAt)}
+                {ageOfData !== null ? ` — đã cũ ${ageOfData} phút` : ""}
+              </span>
+            </div>
+          )}
+
+          <p data-testid="admin-refunds-data-note" className="flex items-start gap-2 text-xs text-adm-text-2">
+            <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
+            <span>
+              Danh sách chỉ gồm các đơn đang chờ xử lý hoàn tiền (cũ nhất trước); lịch sử đã duyệt/từ chối chưa có API nên chưa hiển thị. Số tiền tối đa được hoàn của từng đơn
+              chỉ có sau khi mở đơn đó.
+            </span>
+          </p>
+
+          {summary.count > 0 && (
+            <p data-testid="admin-refunds-summary" className={`text-sm text-adm-text ${dimmed ? "opacity-80" : ""}`}>
+              <span className="font-semibold tabular-nums">{summary.count}</span> yêu cầu đang chờ
+              {summary.oldest && (
+                <>
+                  {" "}
+                  · cũ nhất <span className="tabular-nums">{formatAge(summary.oldest, now)}</span>
+                </>
+              )}
+            </p>
+          )}
+          {queue.ignored > 0 && (
+            <p className="text-xs text-adm-text-2">Có {queue.ignored} bản ghi không đọc được trong phản hồi nên không hiển thị.</p>
+          )}
+
+          {queue.rows.length === 0 ? (
+            <div data-testid="admin-refunds-empty" className="rounded-xl border border-dashed border-adm-border bg-adm-surface py-14 text-center">
+              <WalletIcon className="mx-auto mb-3 size-10 text-adm-text-2" aria-hidden />
+              <p className="text-sm text-adm-text">Không có yêu cầu hoàn tiền nào đang chờ xử lý.</p>
+            </div>
+          ) : (
+            <div
+              role="table"
+              aria-label="Yêu cầu hoàn tiền dịch vụ cá nhân hoá"
+              data-testid="refund-requests-list"
+              className={`overflow-hidden rounded-xl border border-adm-border bg-adm-surface shadow-adm-card ${dimmed ? "opacity-85" : ""}`}
+            >
+              <div role="row" className={`hidden gap-x-4 border-b border-adm-border bg-adm-surface-2 px-4 py-2.5 text-xs font-semibold text-adm-text-2 xl:grid ${REFUND_ROW_GRID}`}>
+                <div role="columnheader">Ai</div>
+                <div role="columnheader">Dịch vụ</div>
+                <div role="columnheader" className="text-right">Giá đơn</div>
+                <div role="columnheader">Tuổi yêu cầu</div>
+                <div role="columnheader">Trạng thái</div>
+                <div role="columnheader" className="text-right">Thao tác</div>
+              </div>
+              <div role="rowgroup">
+                {queue.rows.map((item) => (
+                  <ServiceRefundRow
+                    key={item.id}
+                    item={item}
+                    now={now}
+                    onActionDone={() => {
+                      focusLostPending.current = true;
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

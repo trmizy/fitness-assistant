@@ -191,6 +191,134 @@
   --sidebar-ring: #22c55e;
 }
 
+/*
+ * ── Admin redesign tokens (B2) ────────────────────────────────────────────
+ * ADDITIVE ONLY: new variable names, no existing token is redefined, so client / PT /
+ * gym-owner colours are unchanged. Consumed by the admin shell and (from B3) the admin
+ * pages. `--st-*` = business/process status (fg / bg / border, text + icon always, never
+ * colour alone); `--money-*` = which "pocket" a sum of money sits in (a different concept
+ * from status, deliberately NOT green). `--adm-*` = admin surfaces and icon tiles.
+ * Dark values live under :root/.dark, light values under data-theme="light"/.light below.
+ * Pairs were checked for WCAG AA text contrast (>= 4.5:1) — see docs/admin-redesign/review/b2.
+ */
+:root,
+.dark {
+  --adm-bg: #0a0a0a;
+  --adm-surface: #111111;
+  --adm-surface-2: #17171a;
+  --adm-pill: #1f1f23;
+  --adm-border: #27272a;
+  --adm-border-soft: #1f1f23;
+  --adm-text: #f4f4f5;
+  --adm-text-2: #a1a1aa;
+  --adm-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --adm-shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.5);
+  --adm-scrim: rgba(0, 0, 0, 0.6);
+  --adm-focus: #22c55e;
+  --adm-badge-bg: #301316;
+  --adm-badge-fg: #f87171;
+
+  --st-success: #4ade80;
+  --st-success-bg: #0f2a1a;
+  --st-success-border: #14532d;
+  --st-warning: #fb923c;
+  --st-warning-bg: #2d1708;
+  --st-warning-border: #7c2d12;
+  --st-danger: #f87171;
+  --st-danger-bg: #301316;
+  --st-danger-border: #7f1d1d;
+  --st-info: #60a5fa;
+  --st-info-bg: #11213d;
+  --st-info-border: #1e3a8a;
+  --st-pending: #facc15;
+  --st-pending-bg: #2a2406;
+  --st-pending-border: #713f12;
+  --st-neutral: #a1a1aa;
+  --st-neutral-bg: #1f1f23;
+  --st-neutral-border: #3f3f46;
+  --st-disabled: #8b8b94;
+  --st-disabled-bg: #18181b;
+  --st-disabled-border: #27272a;
+
+  --money-held: #818cf8;
+  --money-held-fg: #a5b4fc;
+  --money-held-bg: #1a1c3a;
+  --money-pending: #fbbf24;
+  --money-pending-fg: #fcd34d;
+  --money-pending-bg: #2a2406;
+  --money-available: #2dd4bf;
+  --money-available-fg: #5eead4;
+  --money-available-bg: #0b2926;
+  --money-locked: #a78bfa;
+  --money-locked-fg: #c4b5fd;
+  --money-locked-bg: #241a3d;
+  --money-out: #8da2c4;
+  --money-out-fg: #a9bad6;
+  --money-out-bg: #161c28;
+  --money-revenue: #e4e4e7;
+  --money-revenue-fg: #e4e4e7;
+  --money-revenue-bg: #27272a;
+}
+
+.light,
+:root[data-theme="light"] {
+  --adm-bg: #f7f8fa;
+  --adm-surface: #ffffff;
+  --adm-surface-2: #f3f4f6;
+  --adm-pill: #eceef2;
+  --adm-border: #e6e8ec;
+  --adm-border-soft: #eef0f3;
+  --adm-text: #111827;
+  --adm-text-2: #475569;
+  --adm-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --adm-shadow-pop: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --adm-scrim: rgba(15, 23, 42, 0.38);
+  --adm-focus: #059669;
+  --adm-badge-bg: #fee2e2;
+  --adm-badge-fg: #b91c1c;
+
+  --st-success: #047857;
+  --st-success-bg: #d1fae5;
+  --st-success-border: #a7f3d0;
+  --st-warning: #c2410c;
+  --st-warning-bg: #ffedd5;
+  --st-warning-border: #fed7aa;
+  --st-danger: #b91c1c;
+  --st-danger-bg: #fee2e2;
+  --st-danger-border: #fecaca;
+  --st-info: #1d4ed8;
+  --st-info-bg: #dbeafe;
+  --st-info-border: #bfdbfe;
+  --st-pending: #854d0e;
+  --st-pending-bg: #fef3c7;
+  --st-pending-border: #fde68a;
+  --st-neutral: #475569;
+  --st-neutral-bg: #eef2f7;
+  --st-neutral-border: #d5dbe3;
+  --st-disabled: #5b6472;
+  --st-disabled-bg: #f3f4f6;
+  --st-disabled-border: #e5e7eb;
+
+  --money-held: #4f46e5;
+  --money-held-fg: #4338ca;
+  --money-held-bg: #e0e7ff;
+  --money-pending: #d97706;
+  --money-pending-fg: #b45309;
+  --money-pending-bg: #fef3c7;
+  --money-available: #0d9488;
+  --money-available-fg: #0f766e;
+  --money-available-bg: #ccfbf1;
+  --money-locked: #7c3aed;
+  --money-locked-fg: #6d28d9;
+  --money-locked-bg: #ede9fe;
+  --money-out: #52688f;
+  --money-out-fg: #475b7d;
+  --money-out-bg: #e8edf5;
+  --money-revenue: #1e293b;
+  --money-revenue-fg: #1e293b;
+  --money-revenue-bg: #e2e8f0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -230,6 +358,58 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Admin redesign (B2) — see the token block above */
+  --color-adm-bg: var(--adm-bg);
+  --color-adm-surface: var(--adm-surface);
+  --color-adm-surface-2: var(--adm-surface-2);
+  --color-adm-pill: var(--adm-pill);
+  --color-adm-border: var(--adm-border);
+  --color-adm-border-soft: var(--adm-border-soft);
+  --color-adm-text: var(--adm-text);
+  --color-adm-text-2: var(--adm-text-2);
+  --color-adm-badge-bg: var(--adm-badge-bg);
+  --color-adm-badge-fg: var(--adm-badge-fg);
+  --shadow-adm-card: var(--adm-shadow-card);
+  --shadow-adm-pop: var(--adm-shadow-pop);
+  --color-st-success: var(--st-success);
+  --color-st-success-bg: var(--st-success-bg);
+  --color-st-success-border: var(--st-success-border);
+  --color-st-warning: var(--st-warning);
+  --color-st-warning-bg: var(--st-warning-bg);
+  --color-st-warning-border: var(--st-warning-border);
+  --color-st-danger: var(--st-danger);
+  --color-st-danger-bg: var(--st-danger-bg);
+  --color-st-danger-border: var(--st-danger-border);
+  --color-st-info: var(--st-info);
+  --color-st-info-bg: var(--st-info-bg);
+  --color-st-info-border: var(--st-info-border);
+  --color-st-pending: var(--st-pending);
+  --color-st-pending-bg: var(--st-pending-bg);
+  --color-st-pending-border: var(--st-pending-border);
+  --color-st-neutral: var(--st-neutral);
+  --color-st-neutral-bg: var(--st-neutral-bg);
+  --color-st-neutral-border: var(--st-neutral-border);
+  --color-st-disabled: var(--st-disabled);
+  --color-st-disabled-bg: var(--st-disabled-bg);
+  --color-st-disabled-border: var(--st-disabled-border);
+  --color-money-held: var(--money-held);
+  --color-money-held-fg: var(--money-held-fg);
+  --color-money-held-bg: var(--money-held-bg);
+  --color-money-pending: var(--money-pending);
+  --color-money-pending-fg: var(--money-pending-fg);
+  --color-money-pending-bg: var(--money-pending-bg);
+  --color-money-available: var(--money-available);
+  --color-money-available-fg: var(--money-available-fg);
+  --color-money-available-bg: var(--money-available-bg);
+  --color-money-locked: var(--money-locked);
+  --color-money-locked-fg: var(--money-locked-fg);
+  --color-money-locked-bg: var(--money-locked-bg);
+  --color-money-out: var(--money-out);
+  --color-money-out-fg: var(--money-out-fg);
+  --color-money-out-bg: var(--money-out-bg);
+  --color-money-revenue: var(--money-revenue);
+  --color-money-revenue-fg: var(--money-revenue-fg);
+  --color-money-revenue-bg: var(--money-revenue-bg);
 }
 
 @layer base {

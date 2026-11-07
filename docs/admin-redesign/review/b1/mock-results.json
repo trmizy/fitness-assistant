@@ -1,0 +1,352 @@
+[
+  {
+    "name": "[1440] E-02 load error shows error state, not empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] retry loads the list",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] APPROVED card says approved != transferred",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] approve opens dialog; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] dialog shows amount + bucket effect",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] busy state: confirm disabled + aria-busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Esc ignored while busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-04 double click => exactly 1 approve POST",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[1440] success toast only after server (card now APPROVED)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-05 500 on approve => Vietnamese inline msg w/ balance hint, no [object Object]",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] confirm blocked after unknown outcome",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] mark-paid disabled with empty ref",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] whitespace ref still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] ref filled enables confirm",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-07 network loss => \"Chưa xác nhận được kết quả\", no auto-retry",
+    "pass": true,
+    "extra": "payCount=1"
+  },
+  {
+    "name": "[1440] reload button shown, confirm disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] INVALID_STATUS => specific Vietnamese stale message visible (toast outlives the removed card)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] stale list refetched: paid card removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] PENDING mark-paid dialog mentions skipping approve",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] success: payload {bankReference:\"OK-REF-1\"}",
+    "pass": true,
+    "extra": "{\"bankReference\":\"OK-REF-1\"}"
+  },
+  {
+    "name": "[1440] list error != empty (refunds)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] calculation error state with retry",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-10 amount > ceiling => error msg + approve disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] amount 0 blocked",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] valid amount enables approve",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] approve opens dialog; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] dialog text contains figures",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 409 => specific Vietnamese message, blocked",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] success: 1 POST with {decision,refundAmount,note}",
+    "pass": true,
+    "extra": "{\"decision\":\"APPROVE\",\"refundAmount\":1000000,\"note\":\"Chưa giao bản nháp trong hạn\"}"
+  },
+  {
+    "name": "[1440] deny needs confirm (no request yet)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] deny: 1 POST {decision:DENY,note}",
+    "pass": true,
+    "extra": "{\"decision\":\"DENY\",\"note\":\"Chưa giao bản nháp trong hạn\"}"
+  },
+  {
+    "name": "[1440] deny disabled without note",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] invalid UUID => error + open button disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] confirmation echoes exact id + reason + backend-computed note; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] success: 1 POST {reason}",
+    "pass": true,
+    "extra": "{\"reason\":\"GYM_CLOSED\"}"
+  },
+  {
+    "name": "[390] E-02 load error shows error state, not empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] retry loads the list",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] APPROVED card says approved != transferred",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] approve opens dialog; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] dialog shows amount + bucket effect",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] busy state: confirm disabled + aria-busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Esc ignored while busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-04 double click => exactly 1 approve POST",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[390] success toast only after server (card now APPROVED)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-05 500 on approve => Vietnamese inline msg w/ balance hint, no [object Object]",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] confirm blocked after unknown outcome",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] mark-paid disabled with empty ref",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] whitespace ref still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] ref filled enables confirm",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-07 network loss => \"Chưa xác nhận được kết quả\", no auto-retry",
+    "pass": true,
+    "extra": "payCount=1"
+  },
+  {
+    "name": "[390] reload button shown, confirm disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] INVALID_STATUS => specific Vietnamese stale message visible (toast outlives the removed card)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] stale list refetched: paid card removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] PENDING mark-paid dialog mentions skipping approve",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] success: payload {bankReference:\"OK-REF-1\"}",
+    "pass": true,
+    "extra": "{\"bankReference\":\"OK-REF-1\"}"
+  },
+  {
+    "name": "[390] list error != empty (refunds)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] calculation error state with retry",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-10 amount > ceiling => error msg + approve disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] amount 0 blocked",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] valid amount enables approve",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] approve opens dialog; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] dialog text contains figures",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 409 => specific Vietnamese message, blocked",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] success: 1 POST with {decision,refundAmount,note}",
+    "pass": true,
+    "extra": "{\"decision\":\"APPROVE\",\"refundAmount\":1000000,\"note\":\"Chưa giao bản nháp trong hạn\"}"
+  },
+  {
+    "name": "[390] deny needs confirm (no request yet)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] deny: 1 POST {decision:DENY,note}",
+    "pass": true,
+    "extra": "{\"decision\":\"DENY\",\"note\":\"Chưa giao bản nháp trong hạn\"}"
+  },
+  {
+    "name": "[390] deny disabled without note",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] invalid UUID => error + open button disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] confirmation echoes exact id + reason + backend-computed note; no request yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] success: 1 POST {reason}",
+    "pass": true,
+    "extra": "{\"reason\":\"GYM_CLOSED\"}"
+  }
+]

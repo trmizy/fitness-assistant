@@ -1,0 +1,567 @@
+[
+ {
+  "id": "INV:00-start",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "2000000.00",
+   "apiClaims": "2000000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "2000000",
+   "dbClaims": "2000000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:32:26.512Z"
+ },
+ {
+  "id": "G1-c1-refund",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "refundAmount": 499974.77,
+   "walletBefore": "0.00",
+   "walletAfter": "499974.77"
+  },
+  "at": "2026-10-30T09:32:26.725Z"
+ },
+ {
+  "id": "INV:01-after-G1-c1",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "2000000.00",
+   "apiClaims": "2000000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "2000000",
+   "dbClaims": "2000000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:32:26.787Z"
+ },
+ {
+  "id": "G1-c2-double-submit",
+  "ok": true,
+  "detail": {
+   "statuses": [
+    200,
+    200
+   ],
+   "refundAmount": 499965.03,
+   "clientWalletDelta": 499965.03,
+   "clientCreditEntries": 1
+  },
+  "at": "2026-10-30T09:32:27.063Z"
+ },
+ {
+  "id": "INV:02-after-G1-c2-double",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "2000000.00",
+   "apiClaims": "2000000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "2000000",
+   "dbClaims": "2000000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:32:27.120Z"
+ },
+ {
+  "id": "WD-requests-created",
+  "ok": true,
+  "detail": {
+   "W1": "50b8c8fa-80c8-479a-a081-a3def7f0e2a2",
+   "W2": "7006aa48-f84f-4fff-a0ef-5983dfdafcdb",
+   "W3": "bc784fd5-98e3-4e53-aed7-e3e801a08b17",
+   "W4": "3446b660-5334-43e5-9268-6529c3aecb68",
+   "W5": "7d52ab7d-6ba4-4712-8cbf-959fd37ea604",
+   "W6": "bd3398e0-a522-4fc3-88fe-3b5a1d6886e4",
+   "W7": "a11de817-bed8-445f-be86-712653c1d1a8"
+  },
+  "at": "2026-10-30T09:33:29.932Z"
+ },
+ {
+  "id": "P7-list-pending",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "n": 7,
+   "order": "createdAt asc"
+  },
+  "at": "2026-10-30T09:33:29.964Z"
+ },
+ {
+  "id": "INV:10-after-requests",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "2000000.00",
+   "apiClaims": "2000000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "2000000",
+   "dbClaims": "2000000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:30.043Z"
+ },
+ {
+  "id": "H-02/E-04 approve W1 double-submit",
+  "ok": true,
+  "detail": {
+   "statuses": [
+    200,
+    200
+   ],
+   "lockOps": 1,
+   "availDelta": -50000,
+   "lockedDelta": 50000,
+   "escrowDelta": 0,
+   "row": {
+    "status": "APPROVED",
+    "amount": "50000.00",
+    "reviewed_by": "02f8f1da-394d-4b43-abc8-8ba3fe06897f",
+    "bank_reference": null,
+    "paid_at": null
+   }
+  },
+  "at": "2026-10-30T09:33:30.314Z"
+ },
+ {
+  "id": "INV:11-after-approve-W1",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "2000000.00",
+   "apiClaims": "2000000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "2000000",
+   "dbClaims": "2000000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:30.365Z"
+ },
+ {
+  "id": "H-03 markPaid from APPROVED",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "lockedDelta": -50000,
+   "escrowDelta": -50000,
+   "tx": [
+    {
+     "id": "73cc1f39-d6c3-44f9-8617-5bb444d93a55",
+     "status": "PAID",
+     "purpose": "WITHDRAWAL",
+     "amount": "50000.00",
+     "initiated_by": "02f8f1da-394d-4b43-abc8-8ba3fe06897f"
+    }
+   ],
+   "row": {
+    "status": "PAID",
+    "amount": "50000.00",
+    "reviewed_by": "02f8f1da-394d-4b43-abc8-8ba3fe06897f",
+    "bank_reference": "AFR-BANK-REF-0001",
+    "paid_at": "2026-10-30T02:33:30.457Z"
+   }
+  },
+  "at": "2026-10-30T09:33:30.615Z"
+ },
+ {
+  "id": "INV:12-after-markPaid-W1",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1950000.00",
+   "apiClaims": "1950000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1950000",
+   "dbClaims": "1950000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:30.669Z"
+ },
+ {
+  "id": "E-03b markPaid replay with different bankReference (informational)",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "body": "{\"success\":false,\"error\":{\"code\":\"INVALID_STATUS\",\"message\":\"Không thể chi trả một yêu cầu ở trạng thái PAID\"}}",
+   "bankRefStored": "AFR-BANK-REF-0001"
+  },
+  "at": "2026-10-30T09:33:30.843Z"
+ },
+ {
+  "id": "INV:13-after-replay",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1950000.00",
+   "apiClaims": "1950000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1950000",
+   "dbClaims": "1950000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:30.908Z"
+ },
+ {
+  "id": "A-04/E-04 markPaid from PENDING double-submit",
+  "ok": true,
+  "detail": {
+   "statuses": [
+    200,
+    200
+   ],
+   "availDelta": -50000,
+   "lockedDelta": 0,
+   "escrowDelta": -50000,
+   "tx": [
+    {
+     "status": "PAID",
+     "purpose": "WITHDRAWAL"
+    }
+   ],
+   "lockOps": 0,
+   "row": {
+    "status": "PAID",
+    "amount": "50000.00",
+    "reviewed_by": "02f8f1da-394d-4b43-abc8-8ba3fe06897f",
+    "bank_reference": "AFR-BANK-REF-0002",
+    "paid_at": "2026-10-30T02:33:31.067Z"
+   }
+  },
+  "at": "2026-10-30T09:33:31.226Z"
+ },
+ {
+  "id": "INV:14-after-markPaid-from-PENDING",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:31.268Z"
+ },
+ {
+  "id": "reject PENDING W3",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "status": "REJECTED",
+   "availDelta": 0,
+   "escrowDelta": 0
+  },
+  "at": "2026-10-30T09:33:31.421Z"
+ },
+ {
+  "id": "reject without reason -> 400",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "code": "REASON_REQUIRED"
+  },
+  "at": "2026-10-30T09:33:31.439Z"
+ },
+ {
+  "id": "reject APPROVED W4 -> unlock",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "lockedDelta": -50000,
+   "availDelta": 50000,
+   "unlockOps": 1
+  },
+  "at": "2026-10-30T09:33:31.619Z"
+ },
+ {
+  "id": "reject PAID -> 400",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "code": "ALREADY_PAID"
+  },
+  "at": "2026-10-30T09:33:31.639Z"
+ },
+ {
+  "id": "approve PAID -> 400",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "code": "INVALID_STATUS"
+  },
+  "at": "2026-10-30T09:33:31.658Z"
+ },
+ {
+  "id": "markPaid without bankReference -> 400",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "code": "VALIDATION_ERROR"
+  },
+  "at": "2026-10-30T09:33:31.677Z"
+ },
+ {
+  "id": "approve unknown id -> 404",
+  "ok": true,
+  "detail": {
+   "http": 404,
+   "code": "NOT_FOUND"
+  },
+  "at": "2026-10-30T09:33:31.697Z"
+ },
+ {
+  "id": "customer approve -> 403, row unchanged",
+  "ok": true,
+  "detail": {
+   "http": 403
+  },
+  "at": "2026-10-30T09:33:31.727Z"
+ },
+ {
+  "id": "anonymous approve -> 401",
+  "ok": true,
+  "detail": {
+   "http": 401
+  },
+  "at": "2026-10-30T09:33:31.732Z"
+ },
+ {
+  "id": "INV:15-after-rejects",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:31.776Z"
+ },
+ {
+  "id": "seed W6 APPROVED for UI",
+  "ok": true,
+  "detail": {
+   "http": 200
+  },
+  "at": "2026-10-30T09:33:31.829Z"
+ },
+ {
+  "id": "INV:16-after-seed-W6",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:33:31.875Z"
+ },
+ {
+  "id": "E-03 markPaid sequential replay on PAID row (plan expects 200 replay)",
+  "ok": false,
+  "detail": {
+   "observedHttp": 400,
+   "observedCode": "INVALID_STATUS",
+   "message": "Khong the chi tra mot yeu cau o trang thai PAID",
+   "moneyEffect": "none (escrow/locked unchanged, 1 WITHDRAWAL tx)",
+   "source": "withdrawal.service.ts markPaid pre-check rejects PAID before the in-transaction replay; only a CONCURRENT second call replays (200)",
+   "severity": "P3 spec/audit mismatch, no money impact"
+  },
+  "at": "2026-10-30T09:34:02.083Z"
+ },
+ {
+  "id": "E-01 drift -> HTTP 409 with full data body",
+  "ok": true,
+  "detail": {
+   "http": 409,
+   "success": false,
+   "drift": "1234.56",
+   "escrow": "1901234.56",
+   "claims": "1900000.00",
+   "balanced": false
+  },
+  "at": "2026-10-30T09:34:02.190Z"
+ },
+ {
+  "id": "W1 dashboard tolerates 409 money state",
+  "ok": true,
+  "detail": {
+   "http": 200,
+   "money": "{\"escrow\":\"1901234.56\",\"platformRevenue\":\"7.20\",\"balanced\":false}"
+  },
+  "at": "2026-10-30T09:34:02.252Z"
+ },
+ {
+  "id": "P13 while drifted (obligations still 200)",
+  "ok": true,
+  "detail": {
+   "http": 200
+  },
+  "at": "2026-10-30T09:34:02.455Z"
+ },
+ {
+  "id": "INV:20-after-drift-restored",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:34:02.569Z"
+ },
+ {
+  "id": "E-05 approve with insufficient wallet -> currently 500 INTERNAL_ERROR (G-13)",
+  "ok": true,
+  "detail": {
+   "http": 500,
+   "code": "INTERNAL_ERROR",
+   "rowStatus": "PENDING",
+   "note": "plan says 500 today; target 409 not implemented (BACKEND GAP G-13)"
+  },
+  "at": "2026-10-30T09:34:02.793Z"
+ },
+ {
+  "id": "INV:21-after-E05-restored",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:34:02.841Z"
+ },
+ {
+  "id": "G1 sequential repeat on already-refunded membership (informational)",
+  "ok": true,
+  "detail": {
+   "http": 409,
+   "body": "{\"success\":false,\"error\":{\"code\":\"Cannot refund a membership in CANCELLED status\",\"message\":\"Cannot refund a membership in CANCELLED status\"}}",
+   "c2WalletAvail": "499965.03"
+  },
+  "at": "2026-10-30T09:34:02.965Z"
+ },
+ {
+  "id": "G1 invalid reason -> 4xx, membership untouched",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "body": "{\"success\":false,\"error\":{\"code\":\"INVALID_REFUND_REASON\",\"message\":\"reason must be one of: GYM_VIOLATION_SUSPENDED, GYM_CLOSED, TRANSACTION_ERROR\"}}"
+  },
+  "at": "2026-10-30T09:34:02.984Z"
+ },
+ {
+  "id": "G1 customer -> 403",
+  "ok": true,
+  "detail": {
+   "http": 403
+  },
+  "at": "2026-10-30T09:34:02.995Z"
+ },
+ {
+  "id": "INV:22-after-G1-negative",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "1900000.00",
+   "apiClaims": "1900000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "1900000",
+   "dbClaims": "1900000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:34:03.046Z"
+ },
+ {
+  "id": "INV:30-after-service-refund-requests",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "3100000.00",
+   "apiClaims": "3100000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "3100000",
+   "dbClaims": "3100000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:35:30.916Z"
+ },
+ {
+  "id": "A1 customer -> 403",
+  "ok": true,
+  "detail": {
+   "http": 403,
+   "code": "PERSONALIZED_SERVICE_ADMIN_ONLY"
+  },
+  "at": "2026-10-30T09:35:41.452Z"
+ },
+ {
+  "id": "A3 non-buyer customer -> 403",
+  "ok": true,
+  "detail": {
+   "http": 403,
+   "code": "PERSONALIZED_SERVICE_ADMIN_ONLY"
+  },
+  "at": "2026-10-30T09:35:41.468Z"
+ },
+ {
+  "id": "E-10 refund > ceiling -> 400, wallet unchanged",
+  "ok": true,
+  "detail": {
+   "http": 400,
+   "code": "PERSONALIZED_SERVICE_REFUND_INVALID_AMOUNT",
+   "walletBefore": "0.00",
+   "walletAfter": "0.00"
+  },
+  "at": "2026-10-30T09:35:41.553Z"
+ },
+ {
+  "id": "H-04 service refund 250k double-submit -> wallet credited once",
+  "ok": true,
+  "detail": {
+   "statuses": [
+    200,
+    200
+   ],
+   "bodies": [
+    "PT_REVIEWING",
+    "PT_REVIEWING"
+   ],
+   "clientWalletDelta": 250000,
+   "ledgerKeys": [
+    "PERSONALIZED_REFUND:1717c192-b7b1-4b25-b7cb-cf19a8f9a928:250000.00"
+   ]
+  },
+  "at": "2026-10-30T09:35:41.706Z"
+ },
+ {
+  "id": "INV:31-after-A3",
+  "ok": true,
+  "detail": {
+   "apiHttp": 200,
+   "apiEscrow": "3100000.00",
+   "apiClaims": "3100000.00",
+   "apiDrift": "0.00",
+   "dbEscrow": "3100000",
+   "dbClaims": "3100000",
+   "dbDrift": "0"
+  },
+  "at": "2026-10-30T09:35:41.752Z"
+ }
+]

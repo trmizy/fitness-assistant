@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -24,6 +25,12 @@ type SettingsContextValue = {
   setTheme: (theme: AppTheme) => void;
   setLanguage: (language: AppLanguage) => void;
   toggleTheme: () => void;
+  /**
+   * A workspace (currently only the admin shell) can ask for a different theme WHEN THE
+   * USER HAS NEVER CHOSEN ONE. An explicit choice (ThemeToggle / Settings) always wins, and
+   * with no registration nothing changes for any other role. Returns an unregister function.
+   */
+  registerDefaultTheme: (theme: "dark" | "light") => () => void;
 };
 
 const THEME_STORAGE_KEY = "fitness-assistant.theme";
@@ -33,11 +40,15 @@ const SettingsContext = createContext<SettingsContextValue | undefined>(
   undefined,
 );
 
-function readStoredTheme(): AppTheme {
-  const value = localStorage.getItem(THEME_STORAGE_KEY);
-  return value === "light" || value === "dark" || value === "system"
-    ? value
-    : "dark";
+function readStoredTheme(): AppTheme | null {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY);
+    return value === "light" || value === "dark" || value === "system"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function readStoredLanguage(): AppLanguage {
@@ -54,7 +65,14 @@ function readSystemPrefersDark(): boolean {
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<AppTheme>(() => readStoredTheme());
+  // `null` stored value = the user never chose a theme (the default is only written to
+  // storage once they do), which is what lets a workspace supply its own default.
+  const [storedTheme] = useState<AppTheme | null>(() => readStoredTheme());
+  const [chosenTheme, setChosenTheme] = useState<AppTheme | null>(storedTheme);
+  const [scopedDefault, setScopedDefault] = useState<"dark" | "light" | null>(
+    null,
+  );
+  const theme: AppTheme = chosenTheme ?? scopedDefault ?? "dark";
   const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
     readSystemPrefersDark(),
   );
@@ -75,7 +93,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => mql.removeEventListener("change", onChange);
   }, [theme]);
 
-  useEffect(() => {
+  // Layout effect: a workspace default registered on mount must reach the DOM before the
+  // first paint, otherwise the admin shell would flash dark and then flip to light.
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = effectiveTheme;
     document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
     document.documentElement.style.colorScheme = effectiveTheme;
@@ -88,8 +108,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .forEach((link) => {
         link.href = logoHref;
       });
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme, effectiveTheme]);
+    // Persist only an explicit choice (see `chosenTheme`).
+    if (chosenTheme) {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, chosenTheme);
+      } catch {
+        /* storage blocked — theme still applies for this session */
+      }
+    }
+  }, [chosenTheme, effectiveTheme]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -97,7 +124,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [language]);
 
   const setTheme = useCallback((nextTheme: AppTheme) => {
-    setThemeState(nextTheme);
+    setChosenTheme(nextTheme);
+  }, []);
+
+  const registerDefaultTheme = useCallback((next: "dark" | "light") => {
+    setScopedDefault(next);
+    return () => setScopedDefault((current) => (current === next ? null : current));
   }, []);
 
   const setLanguage = useCallback((nextLanguage: AppLanguage) => {
@@ -108,12 +140,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // based on what's currently showing, even when the stored preference is
   // "system"; it never sets "system" itself (that's Settings-only).
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const currentlyDark =
-        current === "system" ? readSystemPrefersDark() : current === "dark";
-      return currentlyDark ? "light" : "dark";
-    });
-  }, []);
+    setChosenTheme(effectiveTheme === "dark" ? "light" : "dark");
+  }, [effectiveTheme]);
 
   const value = useMemo(
     () => ({
@@ -123,8 +151,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTheme,
       setLanguage,
       toggleTheme,
+      registerDefaultTheme,
     }),
-    [effectiveTheme, language, setLanguage, setTheme, theme, toggleTheme],
+    [
+      effectiveTheme,
+      language,
+      registerDefaultTheme,
+      setLanguage,
+      setTheme,
+      theme,
+      toggleTheme,
+    ],
   );
 
   return (

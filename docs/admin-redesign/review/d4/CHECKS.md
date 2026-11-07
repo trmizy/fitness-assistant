@@ -1,0 +1,43 @@
+# D4 - Dispute V2.1 screens for the parties (M12): checks
+
+Labels: **MOCK BROWSER TEST** = real Chromium (Playwright 1.61, runtime from `D:/fitnessassistant-playwright-e2e`) driving the Vite dev server of this worktree, every `/api/**` call answered by `page.route` from fixtures I wrote in the session scratchpad (`.../scratchpad/d4/`). No backend, database or docker was touched. NOT E2E, NOT REAL HTTP/API. **TEST FIXTURE** = pure-function tests (`tsx --test`). **CODE AUDIT** = tests that read source text.
+
+## What was built (frontend only)
+- `/disputes` (B1) and `/disputes/:caseId` (B2) in the normal client/PT shell (`AppShell`, same `RequireRole(client, pt)` + `RequireOnboarding` as `/client`, theme tokens `--card-bg`, `--text-color`, `--st-*`; no admin tokens, no hex).
+- Forms: statement (B3) and document metadata (B4, JSON only, sha256 computed in the browser with `crypto.subtle`, no file upload).
+- Files: `frontend/web/src/app/pages/disputes/{partyLabels,partyModel,sha256}.ts`, `{PartyParts,StatementForm,DocumentForm,MyDisputesPage,DisputeCasePartyPage}.tsx`, `__tests__/d4-*.test.ts`. Edits outside the folder: `routes.tsx` (2 lazy imports + 1 route block, CRLF kept), `components/layout/Sidebar.tsx` (2 lines, the entry point "Khiếu nại của tôi" in the client nav and the PT nav; the file is clean in the main tree and was not being edited by anyone else).
+- D1 modules reused read-only: `disputeCaseApi` (listMyCases/getMyCase/submitStatement/submitEvidence), `useIdempotentAction`, `parseDisputeError`, `disputeQueryKeys` + `DISPUTE_QUERY_OPTIONS` + `useDisputeQueryKeys`, `describeMoneyGroup`, `GYM_CHECKIN_NOTE`. Admin-worded D1 labels (statuses, types, provenance) are replaced by a party map in `partyLabels.ts`.
+
+## Numbers
+| Check | Result |
+|---|---|
+| New unit tests (`d4-party-model` 35 + `d4-sha256-and-guards` 15) | **50 / 50 pass** (TEST FIXTURE; the source guards are CODE AUDIT) |
+| Full web suite `npx tsx --test $(find src -path '*__tests__*' -name '*.test.ts')` | **1047 / 1048** pass. The 1 failure is `D2 workspace - action slots: each write-capable tab has a named slot that renders nothing yet`, caused by the other worker's edit of `actionSlots.tsx` (not touched by D4). Baseline 939 + my 50 + the other worker's new tests |
+| `vite build` (temp config, cacheDir + outDir in the scratchpad, `node_modules/.vite` untouched) | passes (17.7 s) |
+| `tsc` (D2 CHECKS config, temp `tsconfig.d4tmp.json`, deleted) | **216** errors; **0** in `pages/disputes/**`. 215 are the pre-existing two-@types/react set; +1 is `pages/admin/disputes/actions/adminDirectory.ts` (other worker, TS2307). The first run had 4 errors of mine (boolean narrowing under `strict:false`), fixed with `"errors" in checked` |
+| Mock browser `run.mts` | **195 / 195** checks pass in the final run (MOCK BROWSER TEST), 14 of them axe runs scoped to `<main>` |
+
+## Mock-browser coverage (client and PT)
+- List: rows, newest first, party wording, "Bạn là", date, no uuid/session id/enum, tap height >= 44, no polling (3.5 s), loading skeleton `role=status`, empty vs 500 / 403 / network are different panels (error is never the empty state), retry recovers.
+- Detail: header, canSubmit note, accusations, 4 evidence kinds (system row, gym check-in with the caveat, unreadable source "không phải bằng chứng về việc vắng mặt", own document with "Của bạn" + "Bạn tự khai, chưa được xác minh"), system payload internals not shown, statements with versions/"Của bạn"/supplement reason, money = group label + "không phải xác nhận tiền đã về" and **no amount** in the page text (regex over the whole body), no raw enum/uuid, nothing about the other side or a notification, `canSubmit=false` removes both forms, invalid id = not found with no request, server 404 = "Không tìm thấy hồ sơ" with no hint of existence, 500/network/conflict panels with retry, failed refresh keeps content.
+- Statement: v1 form without reason; empty submit -> inline error + focus; double click = ONE POST; body exactly `{text}`; key valid; success -> one reload; v2 reason field appears; v2 without reason refused; 5001 chars refused; errors INVALID_INPUT (inline, our wording), SUPPLEMENT_REASON_REQUIRED (field revealed + focused), CASE_STATE_NOT_ALLOWED (party wording, reload offered, submit disabled, after reload forms gone), STATEMENT_VERSION_CONFLICT (reload re-enables), CASE_NOT_FOUND, 500; 500 -> network failure -> success = 3 POSTs with the SAME key and body, next statement gets a NEW key; legacy statement of my role makes the first UI statement v2.
+- Document: says plainly no file is uploaded / hash computed on the device; picking a file computes sha256 equal to node's for the same bytes and fills file name; POST is `application/json` with exactly `{description, sha256, title, fileName}` strings, the file's unique marker string is absent from the request, no multipart, no `/evidence-files` call; double click = 1 POST; paste fallback (upper case -> lower case); 63/65/non-hex refused; title 201 / fileName 256 / description 2001 refused; errors INVALID_INPUT / CASE_STATE_NOT_ALLOWED / CASE_NOT_FOUND / 500 (+ retry with the same key); empty file message; "Bỏ tệp".
+- PT: own list (only the PT's case), detail via the list link, v2 statement and a document with the PT's role.
+- Account switch (real in-app logout -> login as the PT -> sidebar link): after logout nothing of the case is in the page; the PT's list is a fresh GET and shows only the PT's case; opening the previous user's case id asks the server as the PT (the mock answers 404 like the real one) and shows "Không tìm thấy hồ sơ" with none of the previous text. Role guard: signed-out -> login; ADMIN -> the same 403 view as `/client`, no request.
+- Keyboard: tab order reload > statement text > submit > document description > title > file > sha256 > file name > submit, visible focus ring on every d4 control, Enter in a textarea is a new line (not a submit), Enter on the focused button sends.
+- Themes/widths: light and dark x 360 / 375 / 390 / 412 / 1440 on list, detail with form errors, read-only detail: no horizontal overflow (document scroll width AND every element of `<main>` inside the viewport, since `main` hides x-overflow); touch targets >= 36 px on <= 412. axe serious+critical = 0 on 14 runs (list, detail+errors, read-only, empty, failure, not-found; light and dark; 390/412/1440).
+- Entry point: sidebar link present for client (client view) and PT (PT view), active on `/disputes`; shown in the 390 px drawer.
+
+## Run history (honest)
+- Run 1: 189/194. Three were real: the shell's default `Button` (white on `--button-bg` #059669) has contrast 3.76:1 in light, so the two submit buttons use their own `PRIMARY_BUTTON` (fill `--st-success`, text `--card-bg`); one check measured outline only (the shell Button uses a ring); one was my fixture returning the client's case to the PT (the mock now answers 404 for a case the user is not a party of). Two other checks were timing flakes of my script (waited before the delayed reload).
+- Then the native file input printed "No file chosen" in the browser language: replaced by a Vietnamese label button (input kept focusable, `sr-only`). Final: 195/195.
+
+## Not checked / limits
+- No REAL BROWSER against a real stack, no REAL HTTP/API: shapes come from the contract and the D1 fixtures. Whether `payload` of a party document really carries `declaredSha256`/`description` was read from `dispute-case.service.ts` (CODE AUDIT), not from a server.
+- Account isolation relies on the user id in every query key plus the app-level `queryClient.clear()` of AppContext (unchanged); the test drives the real logout/login but the cache itself was not inspected.
+- Files > 100 MB are refused for hashing (`crypto.subtle` is not streaming): the user pastes a hash. Chromium only; no phone; 360-412 are viewport emulation.
+- axe was scoped to `<main>`. The shell's hamburger button in `Topbar.tsx` has no accessible name on mobile (pre-existing, not touched); a whole-page axe run would report it.
+- The floating AI-coach button of the shell overlaps the lower-right corner of long pages (shell behaviour, not changed).
+- System evidence rows show title, source wording and times only; their `payload` is deliberately not rendered to parties (internal fields). If product wants facts such as the check-in time inside the row, that is a decision, not a guess.
+- Evidence/statements the server shares (A18) are labelled "Được chia sẻ cho bạn"; no text refers to what the other side did.
+- Not stated anywhere: an appeal, a notification, an outcome (DQ-2(a)), "buổi tập không bị trừ". The hamburger/shell, `Topbar` user menu and `BottomNav` were not edited.

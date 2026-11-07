@@ -8,6 +8,7 @@ import { RevisionDetail } from "./listings/RevisionDetail";
 import { RevisionQueue } from "./listings/RevisionQueue";
 import { TargetPicker } from "./listings/TargetPicker";
 import { proposalsKey } from "./listings/adminListingShared";
+import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
 
 type Tab = "pts" | "gyms" | "catalog" | "proposals";
 const TABS: { key: Tab; label: string }[] = [
@@ -43,12 +44,11 @@ export function AdminListingsPage() {
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
       <PageHeader title="Tin đăng & tiện ích" description="Duyệt bản sửa tin đăng của huấn luyện viên và chi nhánh, quản lý danh mục tiện ích và đề xuất của chủ gym." />
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Các mục">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Các mục">
         {TABS.map((t) => (
           <button
             key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
+            {...tabProps(tab === t.key)}
             onClick={() => setTab(t.key)}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${tab === t.key ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800/60"}`}
           >

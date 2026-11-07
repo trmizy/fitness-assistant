@@ -1,0 +1,20 @@
+{
+ "success": true,
+ "data": [
+  {
+   "id": "694766a7-6a24-4fe8-9eae-2b589e515f1c",
+   "ownerId": "fe3f3c34-c29a-4596-91fc-726e27663ba0",
+   "name": "AFR Fit Brand",
+   "approvedName": "AFR Fit Brand",
+   "pendingName": null,
+   "description": null,
+   "logoKey": null,
+   "facebookUrl": null,
+   "instagramUrl": null,
+   "tiktokUrl": null,
+   "youtubeUrl": null,
+   "createdAt": "2026-10-30T09:27:37.624Z",
+   "updatedAt": "2026-10-30T09:27:37.850Z"
+  }
+ ]
+}
