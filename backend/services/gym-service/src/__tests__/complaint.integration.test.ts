@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
 import { complaintService } from '../services/complaint.service';
+import { authClient } from '../clients/auth.client';
 
 /**
  * GYM_MANAGEMENT master spec, Phase 5 — "Khiếu nại/Vi phạm". Same discipline as
@@ -183,7 +184,12 @@ integrationTest('updateStatus: RESOLVED bắt buộc có adminResponse, và là 
   }
 });
 
-integrationTest('assignAdmin gán/gỡ đúng', async () => {
+integrationTest('assignAdmin gán/gỡ đúng (F7: người được gán phải là ADMIN thật, auth-service được hỏi)', async () => {
+  const original = authClient.getUser;
+  (authClient as any).getUser = async (id: string) => {
+    if (id === 'admin-42') return { id, email: 'a@test.local', firstName: 'A', lastName: 'A', role: 'ADMIN', isActive: true };
+    throw Object.assign(new Error('404'), { response: { status: 404 } });
+  };
   try {
     const { gym } = await makeGymWithPartner();
     const complaint = await complaintService.createByAdmin('admin-1', {
@@ -194,7 +200,9 @@ integrationTest('assignAdmin gán/gỡ đúng', async () => {
     assert.equal(assigned.assignedAdminId, 'admin-42');
     const unassigned = await complaintService.assignAdmin(complaint.id, null);
     assert.equal(unassigned.assignedAdminId, null);
+    await assert.rejects(() => complaintService.assignAdmin(complaint.id, 'not-an-admin'), (e: any) => e.status === 400);
   } finally {
+    (authClient as any).getUser = original;
     await cleanup();
   }
 });

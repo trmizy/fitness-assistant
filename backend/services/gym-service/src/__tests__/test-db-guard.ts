@@ -15,6 +15,7 @@
  * (the rest of the file is unchanged: `test(...)`, `test.before/after/beforeEach/afterEach(...)`), or take `skip`
  * and pass `{ skip }` to each test.
  */
+import { validateTestDatabaseUrl } from './setup/db-isolation-validator';
 import nodeTest from "node:test";
 
 /** The database name of a Postgres URL, or "" when the URL is missing or unparsable. */
@@ -32,7 +33,8 @@ export function isTestDatabaseUrl(url: string | undefined): boolean {
   return /_test$/.test(databaseNameOf(url));
 }
 
-export const usable = isTestDatabaseUrl(process.env.DATABASE_URL);
+/** Slice 2 safety round: the preload (setup/db-isolation.ts) must have accepted an isolated database (host/port/role/name rules) - a bare name ending _test is no longer enough. */
+export const usable = process.env.DB_ISOLATION === 'accepted' && isTestDatabaseUrl(process.env.DATABASE_URL) && validateTestDatabaseUrl(process.env.DATABASE_URL).ok;
 
 export const skip: string | false = usable
   ? false

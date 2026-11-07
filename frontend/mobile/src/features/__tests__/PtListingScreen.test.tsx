@@ -3,7 +3,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { PtListingScreen } from "../ptListing/PtListingScreen";
-import { ptListingService, uploadPtPhysiquePhoto } from "../../services/api";
+import { availabilityService, ptListingService, uploadPtPhysiquePhoto } from "../../services/api";
 import { pickImages } from "../../lib/pickFile";
 import { LISTING_ERROR_VI } from "../ptListing/ptListing";
 
@@ -33,6 +33,10 @@ jest.mock("../../services/api", () => {
   return {
     ...actual,
     uploadPtPhysiquePhoto: jest.fn(),
+    availabilityService: {
+      getAvailability: jest.fn(), getExceptions: jest.fn(), setAvailability: jest.fn(),
+      addPlanningException: jest.fn(), removeException: jest.fn(),
+    },
     ptListingService: {
       get: jest.fn(),
       createDraft: jest.fn(),
@@ -52,6 +56,7 @@ jest.mock("../../services/api", () => {
 const svc = ptListingService as unknown as Record<string, jest.Mock>;
 const upload = uploadPtPhysiquePhoto as jest.Mock;
 const pick = pickImages as jest.Mock;
+const schedule = availabilityService as unknown as Record<string, jest.Mock>;
 
 const P = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
 
@@ -167,9 +172,41 @@ beforeEach(() => {
   Object.values(svc).forEach((fn) => fn.mockReset());
   upload.mockReset();
   pick.mockReset();
+  schedule.getAvailability.mockResolvedValue([]);
+  schedule.getExceptions.mockResolvedValue([]);
+  schedule.setAvailability.mockResolvedValue({ saved: true, affectedSessions: [] });
+  schedule.addPlanningException.mockResolvedValue({ affectedSessions: 0 });
+  schedule.removeException.mockResolvedValue({ success: true });
   alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
 afterEach(() => alertSpy.mockRestore());
+
+describe("lịch làm việc trong tin đăng", () => {
+  it("lưu nhiều khung giờ và ngày nghỉ bằng luồng chỉ ảnh hưởng lượt đặt mới", async () => {
+    svc.get.mockResolvedValue(listing());
+    schedule.getAvailability.mockResolvedValue([
+      { dayOfWeek: "MONDAY", startTime: "08:00", endTime: "12:00", isActive: true },
+      { dayOfWeek: "MONDAY", startTime: "13:00", endTime: "17:00", isActive: true },
+    ]);
+    const view = await renderScreen();
+    expect(await view.findByText("Lịch làm việc")).toBeTruthy();
+    await press(view.getByText("T4"));
+    await press(view.getByText("Bật nhận lịch"));
+    await press(view.getByText("Tạo breaktime 1 giờ"));
+    expect(view.getByText("Nghỉ giữa ca: 12:00–13:00")).toBeTruthy();
+    await press(view.getByText("Lưu lịch làm việc"));
+    await waitFor(() => expect(schedule.setAvailability).toHaveBeenCalledTimes(1));
+    expect(schedule.setAvailability.mock.calls[0][0]).toEqual([
+      { dayOfWeek: "MONDAY", startTime: "08:00", endTime: "12:00" },
+      { dayOfWeek: "MONDAY", startTime: "13:00", endTime: "17:00" },
+      { dayOfWeek: "WEDNESDAY", startTime: "08:00", endTime: "12:00" },
+      { dayOfWeek: "WEDNESDAY", startTime: "13:00", endTime: "17:00" },
+    ]);
+    await act(async () => { fireEvent.changeText(view.getByPlaceholderText("YYYY-MM-DD"), "2099-11-15"); });
+    await press(view.getByText("Thêm ngày nghỉ"));
+    await waitFor(() => expect(schedule.addPlanningException).toHaveBeenCalledWith("2099-11-15", undefined));
+  });
+});
 
 describe("status states", () => {
   it("nothing open: shows the published listing and offers to start a draft", async () => {

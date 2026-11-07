@@ -1031,6 +1031,48 @@ test('notifications: nothing is sent while LISTING_GYM_NOTIFICATIONS_ENABLED is 
   }
 });
 
+test('admin broadcast on submit (plan B22): a submit tells the admins in realtime (nothing stored); a broadcast failure or the flag off never fails or changes the submit', async () => {
+  const sent: any[] = [];
+  const original = userClient.notifyAdmins;
+  const previousFlag = process.env.LISTING_GYM_NOTIFICATIONS_ENABLED;
+  try {
+    const g = await gymOf(ownerA);
+    (userClient as any).notifyAdmins = async (p: unknown) => {
+      sent.push(p);
+    };
+    const r1 = await draftWith(ownerA.token, g.gymId, { description: 'Báo admin 1' }, { submit: true });
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].eventType, 'GYM_LISTING_SUBMITTED');
+    assert.equal(sent[0].entityType, 'GYM_LISTING');
+    assert.equal(sent[0].entityId, g.gymId);
+    assert.equal(sent[0].id, `gym-listing-${r1.id}`);
+    assert.equal(sent[0].link, '/admin/listings?tab=gyms');
+    assert.match(sent[0].text, /^Chủ gym vừa gửi tin chi nhánh .+ chờ duyệt$/);
+    assert.equal((await h.call(admin.token, 'POST', A(`/revisions/${r1.id}/reject`), { note: 'chưa đạt' })).status, 200);
+
+    // a failing broadcast: the submit still answers 200 and the revision is PENDING
+    (userClient as any).notifyAdmins = async () => {
+      throw new Error('user-service down');
+    };
+    const r2 = await draftWith(ownerA.token, g.gymId, { description: 'Báo admin 2' }, { submit: true });
+    assert.equal((await revRow(r2.id)).status, 'PENDING');
+    assert.equal((await h.call(admin.token, 'POST', A(`/revisions/${r2.id}/reject`), { note: 'chưa đạt' })).status, 200);
+
+    // flag off: no broadcast
+    process.env.LISTING_GYM_NOTIFICATIONS_ENABLED = 'false';
+    (userClient as any).notifyAdmins = async (p: unknown) => {
+      sent.push(p);
+    };
+    const r3 = await draftWith(ownerA.token, g.gymId, { description: 'Báo admin 3' }, { submit: true });
+    assert.equal(sent.length, 1, 'flag off -> no admin broadcast');
+    assert.equal((await h.call(admin.token, 'POST', A(`/revisions/${r3.id}/reject`), { note: 'chưa đạt' })).status, 200);
+  } finally {
+    (userClient as any).notifyAdmins = original;
+    if (previousFlag === undefined) delete process.env.LISTING_GYM_NOTIFICATIONS_ENABLED;
+    else process.env.LISTING_GYM_NOTIFICATIONS_ENABLED = previousFlag;
+  }
+});
+
 // ═══ the last word ════════════════════════════════════════════════════════════════════════════════
 
 test('no new path produced a WRITER_ABSENT compat event for any gym or partner created by this file', async () => {

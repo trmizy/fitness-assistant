@@ -1,0 +1,97 @@
+# h: client (pham-thu-uyen) opens PT "Lý Thành Đạt" (P11, plain APPROVED listing, one active package), selects the package; while the
+#    screen is open the package's price changes through a REAL approved listing revision (PT draft -> submit -> admin approve);
+#    pressing "Gửi yêu cầu huấn luyện" is refused 409 PACKAGE_CHANGED -> the sheet "Gói đã thay đổi — xem giá mới" with the NEW price
+#    -> "Xem giá mới" refreshes the package card to the new price. No contract request is created (the flow asserts the success toast
+#    never appears; the script step before the tap aborts the flow if the price was not really changed).
+# Start the trigger first and keep it running (Maestro cannot run node; its runScript talks to this localhost server):
+#    node helpers/h-package-trigger.mjs serve          (terminal 1)
+#    ... run this flow ...                              (terminal 2)
+#    Ctrl+C in terminal 1, or: node helpers/h-package-trigger.mjs restore     -> original price back through another approved revision
+# Run: run.sh h-client-package-changed.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test      (-e TRIGGER_URL=http://127.0.0.1:8765 is the default)
+# Mobile/emulator note: the trigger runs on the PC next to Maestro, never on the phone, so no tunnel is involved for it.
+appId: vn.fitnessassistant.app
+---
+# what will be selected / the old and new price, as regexes built by the trigger (nothing changes yet)
+- runScript:
+    file: helpers/trigger.js
+    env:
+      ACTION: state
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ"
+    timeout: 40000
+- tapOn: "Dịch vụ"
+- extendedWaitUntil:
+    visible: "Tìm PT"
+    timeout: 20000
+- tapOn: "Tìm theo tên, chuyên môn, khu vực..."
+# accent-insensitive name search; every word must match, so only "Lý Thành Đạt" is left
+- inputText: "Ly Thanh Dat"
+- extendedWaitUntil:
+    visible: '.*Th[^a-zA-Z ]nh.*'
+    timeout: 30000
+- takeScreenshot: h-01-search
+# the first tap may only close the soft keyboard
+- tapOn: '.*Th[^a-zA-Z ]nh.*'
+- runFlow:
+    when:
+      notVisible: "Nhắn tin"
+    commands:
+      - tapOn: '.*Th[^a-zA-Z ]nh.*'
+- extendedWaitUntil:
+    visible: "Gói.dịch.vụ"
+    timeout: 30000
+- tapOn: "Gói.dịch.vụ"
+- extendedWaitUntil:
+    visible: ${output.pkgRegex}
+    timeout: 20000
+- assertVisible: ${output.oldPriceRegex}
+- takeScreenshot: h-02-package-old-price
+- tapOn: ${output.pkgRegex}
+# --- the PT changes the price now (PT revision approved by an admin); aborts the flow if it did not really change ---
+- runScript:
+    file: helpers/trigger.js
+    env:
+      ACTION: change
+- scrollUntilVisible:
+    element: "Gửi.yêu.cầu.huấn.luyện"
+    centerElement: true
+- takeScreenshot: h-03-before-buy
+- tapOn: "Gửi.yêu.cầu.huấn.luyện"
+- extendedWaitUntil:
+    visible: "Gói.đã.thay.đổi.*"
+    timeout: 20000
+- assertVisible: "Huấn.luyện.viên.vừa.cập.nhật.gói.này.*"
+- assertVisible: ${output.newPriceRegex}
+- assertNotVisible: "Đã.gửi.yêu.cầu.*"
+- takeScreenshot: h-04-package-changed-sheet
+- tapOn: "Xem.giá.mới"
+# the sheet is gone and the package list was re-read: the card shows the new price
+- extendedWaitUntil:
+    notVisible: "Gói.đã.thay.đổi.*"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: ${output.newPriceRegex}
+    timeout: 20000
+- takeScreenshot: h-05-new-price
+- back
+- tapOn: "Cá nhân"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn: "ĐĂNG XUẤT"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

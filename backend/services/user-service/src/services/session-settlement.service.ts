@@ -7,7 +7,7 @@ import {
   isParkedRow,
   sessionSettlementRepository,
 } from "../repositories/session-settlement.repository";
-import { ledgerRefusalOf } from "./session-settlement-answers";
+import { ledgerRefusalOf, lateOpenRefusalOf } from "./session-settlement-answers";
 
 /**
  * Money-flow redesign plan 1.6 - "trạng thái buổi tập và trạng thái tiền phải tách nhau".
@@ -244,6 +244,20 @@ export async function settleTracked<R = void>(
         contractId: params.contractId,
         sessionId: params.sessionId,
         message: refusal.message,
+      });
+      return { state: "PARKED", cause: "LEDGER_REFUSAL" };
+    }
+    const lateOpen = lateOpenRefusalOf(e);
+    if (lateOpen) {
+      // D77 final: the ledger refused to settle the session on its own (nothing written). The step WAITS for a person: parked NEEDS_HUMAN, in the reconciliation queue.
+      await parkRow(deps, row.id, NEEDS_RECONCILIATION_PREFIX, `the session cannot be settled automatically (${lateOpen.code}): ${lateOpen.message}`);
+      logger.error({
+        error: `[MoneyAttention] the ledger will not settle this session on its own (${lateOpen.code}) - parked NEEDS_HUMAN, nothing moved`,
+        kind: params.kind,
+        idempotencyKey: params.idempotencyKey,
+        contractId: params.contractId,
+        sessionId: params.sessionId,
+        message: lateOpen.message,
       });
       return { state: "PARKED", cause: "LEDGER_REFUSAL" };
     }

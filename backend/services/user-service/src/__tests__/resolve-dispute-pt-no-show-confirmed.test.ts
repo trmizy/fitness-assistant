@@ -10,6 +10,7 @@ import { notificationService } from "../services/notification.service";
 import { paymentClient } from "../clients/payment.client";
 import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
 import { stubSessionSettlements } from "./session-settlement-memory.stub";
+import { prisma } from "../repositories/profile.repository";
 
 // pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
 stubPtRestrictionReads();
@@ -69,6 +70,11 @@ test("resolveDispute chấp nhận PT_NO_SHOW_CONFIRMED — bồi thường khá
   const calls: string[] = [];
 
   const restores = [
+    // B-1 release gate (D-NEW-12): the ruling core reads the contract's policy-eligibility review. Like the contract / session tables, that table is empty in this unit test, so the read is
+    // answered in memory (TEST FIXTURE: an approved ELIGIBLE_CURRENT_POLICY review). The guard itself is proved in dispute-policy-eligibility.integration.test.ts.
+    patch((prisma as any).disputeCasePolicyEligibilityReview, "findFirst", async () => ({ id: "fixture-review", result: "ELIGIBLE_CURRENT_POLICY" })),
+    // D65 track B: the old door reads whether the session has a Case (assertNoCaseForOldDoor); no Case here, no database.
+    patch((prisma as any).disputeCase, "findFirst", async () => null),
     patch(sessionRepository, "findById", async () => session as any),
     // F3: the ruling is a compare-and-set from DISPUTED
     patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
@@ -79,6 +85,11 @@ test("resolveDispute chấp nhận PT_NO_SHOW_CONFIRMED — bồi thường khá
       return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
+    // QUOTA A+ (01/11/2026, Ngai): the entitlement of a validly confirmed PT no-show is booked at the terminal change, in the decision's transaction, once (per-session mark) - not after the money step. The mark's compare-and-set is stubbed statefully here: the first claim wins (the decision), a later one (the settlement) loses.
+    patch(sessionRepository, "claimNoShowQuota", (() => {
+      let claimed = false;
+      return async () => (claimed ? false : (claimed = true));
+    })()),
     patch(contractRepository, "incrementCompensatedSessions", async () => {
       calls.push("incrementCompensatedSessions");
       return {} as any;
@@ -108,8 +119,8 @@ test("resolveDispute chấp nhận PT_NO_SHOW_CONFIRMED — bồi thường khá
 
   assert.deepEqual(calls, [
     `updateStatus:${SessionStatus.NO_SHOW}`,
+    "incrementCompensatedSessions", // A+: booked in the decision's transaction, before the money call
     "paymentClient.noShow",
-    "incrementCompensatedSessions",
     "checkAndCompleteContract",
   ]);
 });

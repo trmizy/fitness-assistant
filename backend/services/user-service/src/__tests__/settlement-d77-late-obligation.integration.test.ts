@@ -210,7 +210,8 @@ test("the client is never told they were compensated when they were not: no amou
   const failed = { state: "FAILED", error: "payment-service 503" };
   const text = ptLateArrivalClientMessage(readPtFaultMoney(failed), "01/01/2027");
   assert.doesNotMatch(text, /Đã bồi thường/);
-  assert.match(text, /đang được xử lý/);
+  // final safety gate: with no confirmed ledger answer the notice says it is being reconciled and NOT yet in the wallet (it used to say "đang được xử lý vào ví")
+  assert.match(text, /đang được đối soát, chưa ghi nhận vào ví/);
   assert.doesNotMatch(ptLateArrivalClientMessage(readPtFaultMoney({ state: "SETTLED", result: { owed: "250000.00", paid: "0.00", unpaid: "250000.00" } }), "01/01/2027"), /Đã bồi thường/);
 
   const { pt, contract } = await lateRow("NEEDS_HUMAN");

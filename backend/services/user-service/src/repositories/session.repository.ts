@@ -173,6 +173,18 @@ export const sessionRepository = {
    * may proceed to run side effects; every other concurrent caller gets `false` and must
    * treat this as "already handled by someone else", not retry the same write.
    */
+  /**
+   * Quota A+: the per-session compare-and-set that makes the booking of a PT no-show's entitlement happen ONCE (sets no_show_quota_booked_at while it is NULL). true = THIS call set it and so must move the
+   * contract counter. `requireNoShow` = the decision path (the session must be NO_SHOW right now); the settlement path of an older row does not require it.
+   */
+  claimNoShowQuota: async (id: string, contractId: string, opts: { requireNoShow?: boolean } = {}, db: Db = prisma): Promise<boolean> => {
+    const { count } = await db.session.updateMany({
+      where: { id, contractId, noShowQuotaBookedAt: null, ...(opts.requireNoShow ? { status: SessionStatus.NO_SHOW } : {}) },
+      data: { noShowQuotaBookedAt: new Date() },
+    });
+    return count === 1;
+  },
+
   transitionStatus: async (
     id: string,
     expected: SessionStatus[],
@@ -298,6 +310,45 @@ export const sessionRepository = {
       },
     }),
 
+  /** The CLIENT-side twin of findConflict: a REQUESTED/CONFIRMED session of this client, with ANY PT, overlapping
+   *  [startAt, endAt). Touching ends (07:00–08:00 then 08:00–09:00) do not overlap. */
+  findClientConflict: (
+    clientUserId: string,
+    startAt: Date,
+    endAt: Date,
+    excludeId?: string,
+    db: Db = prisma,
+  ) =>
+    db.session.findFirst({
+      where: {
+        clientUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        ...(excludeId && { id: { not: excludeId } }),
+        scheduledStartAt: { lt: endAt },
+        scheduledEndAt: { gt: startAt },
+      },
+      select: { id: true },
+    }),
+
+  /** Slot display for a CLIENT: their REQUESTED/CONFIRMED sessions (any PT) overlapping the day — mirrors findClientConflict. */
+  findClientBookingConflictsByDate: (clientUserId: string, dayStart: Date, dayEnd: Date) =>
+    prisma.session.findMany({
+      where: {
+        clientUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        scheduledStartAt: { lt: dayEnd },
+        scheduledEndAt: { gt: dayStart },
+      },
+      select: { scheduledStartAt: true, scheduledEndAt: true },
+    }),
+
+  /** Serialises schedule writes of ONE client across all of their PTs (the per-PT lock alone lets two bookings with
+   *  two different PTs at the same hour both pass). Taken LAST, inside withPtScheduleLock, so the order is always
+   *  PT lock -> (contract lock) -> client lock. */
+  lockClientSchedule: async (tx: Prisma.TransactionClient, clientUserId: string) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"client-schedule:" + clientUserId}, 0))`;
+  },
+
   /** Full proposal history for one session, newest first — for dispute resolution. */
   findRescheduleRequestsBySession: (sessionId: string) =>
     prisma.sessionRescheduleRequest.findMany({
@@ -329,6 +380,18 @@ export const sessionRepository = {
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         scheduledStartAt: { gte: dayStart, lte: dayEnd },
       },
+    }),
+
+  /** Slot display must mirror booking's overlap rule, including legacy sessions on ended contracts. */
+  findBookingConflictsByDate: (ptUserId: string, dayStart: Date, dayEnd: Date) =>
+    prisma.session.findMany({
+      where: {
+        ptUserId,
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        scheduledStartAt: { lt: dayEnd },
+        scheduledEndAt: { gt: dayStart },
+      },
+      select: { scheduledStartAt: true, scheduledEndAt: true },
     }),
 
   /** Create a session review (client rating the PT) */

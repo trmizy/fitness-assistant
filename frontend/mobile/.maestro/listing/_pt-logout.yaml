@@ -1,0 +1,18 @@
+# Subflow: log out from the PT workspace (Hồ sơ tab). If a drill-down ("Tin đăng") is open, go back first.
+appId: vn.fitnessassistant.app
+---
+- runFlow:
+    when:
+      visible: "Trạng thái tin đăng"
+    commands:
+      - back
+- tapOn: "Hồ sơ"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn:
+    text: "ĐĂNG XUẤT"
+    optional: true
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

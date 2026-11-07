@@ -31,6 +31,9 @@ const databaseUrl = process.env.DATABASE_URL || '';
 const skipOpts = {
   skip: isTestDatabaseUrl(databaseUrl) ? false : 'Requires DATABASE_URL pointing at a *_test database.',
 };
+// Fail-closed ledger switch (services/late-open-settlement-flag.ts): the case below PAYS an OPEN L, so the suite turns it on in-process (the database already ends _test; nothing else is changed).
+process.env.NODE_ENV = 'test';
+process.env.DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED = 'true';
 
 type Mods = {
   prisma: (typeof import('../repositories/prisma'))['prisma'];
@@ -95,7 +98,7 @@ const REASON = 'D77: the PT joined late; the ledger never performed the compensa
 const record = (m: Mods, c: Contract, s: string, reason = REASON) =>
   m.ledger.recordLateArrivalObligation({ ...base(c), label: `Contract ${c.id} PT late arrival ${s}`, idempotencyKey: key(c, s), reason });
 const release = (m: Mods, c: Contract, s: string) =>
-  m.ledger.releaseSession({ ...base(c), label: `Contract ${c.id} session ${s}`, idempotencyKey: `SESSION_RELEASE:${c.id}:${s}` });
+  m.ledger.releaseSession({ ...base(c), label: `Contract ${c.id} session ${s}`, idempotencyKey: `SESSION_RELEASE:${c.id}:${s}`, settleLateOpen: true });
 
 /** Everything that proves "no money moved". */
 async function moneyState(m: Mods) {
@@ -202,14 +205,17 @@ test('a key that is not PT_LATE_ARRIVAL:<session> is refused and records nothing
   assert.equal(await m.prisma.ledgerOperation.count(), 0);
 });
 
-test('the session still releases in FULL (nothing was deducted), the contract can end, the books balance', skipOpts, async () => {
+// POLICY CHANGE I5/C1 (Ngai, 31/10/2026). Before: a session whose D77 compensation was only RECORDED (OPEN, nothing charged) released in FULL (PT 225.000 / platform 25.000).
+// Now: the session's parties receive V - L whether L was paid or is still OPEN; the share that corresponds to the OPEN L is not paid to anyone.
+// POLICY CHANGE D77 FINAL (phuong an A): the release pays the OPEN L to the client, so after the ending nothing is open.
+test('the session releases V - L and pays the OPEN L to the client; the contract can end; no obligation is left open; the books balance', skipOpts, async () => {
   const m = await load();
   await reset(m);
   const A = await paidContract(m, 'A');
   await record(m, A, 's1');
   const r = await release(m, A, 's1');
-  assert.deepEqual(r.released, { pt: '225000.00', gym: '0.00', platform: '25000.00' }, 'the PT is paid the whole session: the record deducted nothing');
-  assert.deepEqual(r.lateArrivalDeducted, { pt: '0.00', gym: '0.00', platform: '0.00' });
+  assert.deepEqual(r.released, { pt: '112500.00', gym: '0.00', platform: '12500.00' }, 'the parties get V - L = 125.000: the OPEN L share is held back');
+  assert.deepEqual(r.lateArrivalDeducted, { pt: '112500.00', gym: '0.00', platform: '12500.00' });
   const D = (v: string) => new m.Prisma.Decimal(v);
   const out = await m.ledger.terminateContract({
     ...base(A), usedSessions: 1, compensatedSessions: 0, reason: 'CLIENT_CANCELLED',
@@ -217,7 +223,8 @@ test('the session still releases in FULL (nothing was deducted), the contract ca
     label: `Contract ${A.id} termination`, idempotencyKey: `CONTRACT_TERMINATE:${A.id}`,
   });
   assert.deepEqual([out.unpaid, out.shortfall], ['0.00', '0.00']);
-  assert.equal(await m.prisma.contractUnpaidObligation.count({ where: { status: 'OPEN' } }), 1, 'the late-arrival obligation is still the only open one');
+  assert.equal(await m.prisma.contractUnpaidObligation.count({ where: { status: 'OPEN' } }), 0, 'the late-arrival obligation was paid by the release');
+  assert.equal(await m.prisma.contractUnpaidObligation.count({ where: { status: 'PAID_VIA_LEDGER' } }), 1);
   assert.equal(await m.prisma.partnerReceivable.count(), 0);
   await assertBooksSound(m, 'release + terminate');
 });
@@ -265,7 +272,7 @@ test('visible: the admin obligations report lists it with reason / owed / paid /
   try {
     const one: any = await (await fetch(`${url}/ledger-operations/${encodeURIComponent(key(A, 's1'))}`)).json();
     assert.equal(one.data.kind, 'LATE_ARRIVAL');
-    assert.deepEqual(one.data.obligation, { id: rec.obligationId, status: 'OPEN', owed: '125000.00', paid: '0.00', unpaid: '125000.00' });
+    assert.deepEqual(one.data.obligation, { id: rec.obligationId, status: 'OPEN', owed: '125000.00', paid: '0.00', unpaid: '125000.00', resolvedNote: null, resolvedAt: null }, 'R-13: nothing resolved yet -> the two read-only fields are null');
     // after an authorised person handles it, the lookup says so
     await m.adjust.adjustObligation({
       obligationId: rec.obligationId!, expectedUnpaid: '125000.00', expectedTransactionId: A.txnId, action: 'RESOLVE',
@@ -275,6 +282,13 @@ test('visible: the admin obligations report lists it with reason / owed / paid /
       await fetch(`${url}/ledger-operations/lookup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keys: [key(A, 's1'), 'PT_LATE_ARRIVAL:nope'] }) })
     ).json();
     assert.equal(many.data.operations[0].obligation.status, 'RESOLVED');
+    // R-13: the reason (resolved_note) and the moment (resolved_at) now travel with the live status - read only, copied from the row
+    assert.equal(many.data.operations[0].obligation.resolvedNote, 'paid to the client by bank transfer, ref BT-77');
+    assert.match(many.data.operations[0].obligation.resolvedAt, /^\d{4}-\d{2}-\d{2}T/);
+    const row = await m.prisma.contractUnpaidObligation.findUniqueOrThrow({ where: { id: rec.obligationId! } });
+    assert.equal(many.data.operations[0].obligation.resolvedAt, row.resolvedAt!.toISOString());
+    const single: any = await (await fetch(`${url}/ledger-operations/${encodeURIComponent(key(A, 's1'))}`)).json();
+    assert.equal(single.data.obligation.resolvedNote, many.data.operations[0].obligation.resolvedNote);
     assert.deepEqual(many.data.missing, ['PT_LATE_ARRIVAL:nope']);
   } finally {
     await new Promise((r) => server.close(r));

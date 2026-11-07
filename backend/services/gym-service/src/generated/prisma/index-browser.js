@@ -735,6 +735,237 @@ exports.Prisma.GymAssistedCheckInExceptionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.GymComplaintCaseScalarFieldEnum = {
+  id: 'id',
+  complaintId: 'complaintId',
+  gymId: 'gymId',
+  membershipId: 'membershipId',
+  reporterUserId: 'reporterUserId',
+  caseClass: 'caseClass',
+  status: 'status',
+  escalated: 'escalated',
+  investigatorId: 'investigatorId',
+  version: 'version',
+  execStatus: 'execStatus',
+  execDecisionId: 'execDecisionId',
+  slaWarnedAt: 'slaWarnedAt',
+  slaOverdueAt: 'slaOverdueAt',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymCaseStatementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  partyRole: 'partyRole',
+  authorUserId: 'authorUserId',
+  version: 'version',
+  source: 'source',
+  text: 'text',
+  supplementReason: 'supplementReason',
+  supersedesId: 'supersedesId',
+  contentHash: 'contentHash',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseEvidenceScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  provenanceType: 'provenanceType',
+  source: 'source',
+  subject: 'subject',
+  scopeGymId: 'scopeGymId',
+  eventAt: 'eventAt',
+  capturedAt: 'capturedAt',
+  submittedBy: 'submittedBy',
+  submittedRole: 'submittedRole',
+  snapshotVersion: 'snapshotVersion',
+  contentHash: 'contentHash',
+  payload: 'payload',
+  sensitivity: 'sensitivity',
+  supersedesId: 'supersedesId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseShareScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  evidenceId: 'evidenceId',
+  statementId: 'statementId',
+  sharedWithRole: 'sharedWithRole',
+  sharedBy: 'sharedBy',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseClaimScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  claimantRole: 'claimantRole',
+  text: 'text',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseAssessmentScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  claimId: 'claimId',
+  assessorId: 'assessorId',
+  directEvidenceIds: 'directEvidenceIds',
+  indirectEvidenceIds: 'indirectEvidenceIds',
+  rebuttalEvidenceIds: 'rebuttalEvidenceIds',
+  relevanceNote: 'relevanceNote',
+  verifiabilityNote: 'verifiabilityNote',
+  consistencyNote: 'consistencyNote',
+  result: 'result',
+  reasoning: 'reasoning',
+  evidenceSnapshot: 'evidenceSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseFindingScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  finding: 'finding',
+  reasoning: 'reasoning',
+  recordedBy: 'recordedBy',
+  supersedesId: 'supersedesId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseProposalScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  findingId: 'findingId',
+  outcome: 'outcome',
+  proposerId: 'proposerId',
+  evidenceSnapshot: 'evidenceSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseApprovalScalarFieldEnum = {
+  id: 'id',
+  proposalId: 'proposalId',
+  approverId: 'approverId',
+  result: 'result',
+  reason: 'reason',
+  conflictOfInterestDeclaredNone: 'conflictOfInterestDeclaredNone',
+  evidenceChangeAcknowledged: 'evidenceChangeAcknowledged',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseEventScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  action: 'action',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  note: 'note',
+  idempotencyKey: 'idempotencyKey',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseExecutionScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  decisionId: 'decisionId',
+  outcome: 'outcome',
+  actorUserId: 'actorUserId',
+  idempotencyKey: 'idempotencyKey',
+  attempt: 'attempt',
+  state: 'state',
+  blockedReason: 'blockedReason',
+  note: 'note',
+  response: 'response',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseAccessLogScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  viewerUserId: 'viewerUserId',
+  viewerRole: 'viewerRole',
+  evidenceId: 'evidenceId',
+  action: 'action',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseNoticeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  kind: 'kind',
+  recipientUserId: 'recipientUserId',
+  recipientRole: 'recipientRole',
+  delivered: 'delivered',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseDeadlineScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  kind: 'kind',
+  partyRole: 'partyRole',
+  recipientUserId: 'recipientUserId',
+  noticeId: 'noticeId',
+  startsAt: 'startsAt',
+  dueAt: 'dueAt',
+  status: 'status',
+  resolvedAt: 'resolvedAt',
+  pausedAt: 'pausedAt',
+  pausedSeconds: 'pausedSeconds',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseAppealScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  filedBy: 'filedBy',
+  reason: 'reason',
+  noticeAt: 'noticeAt',
+  filedAt: 'filedAt',
+  status: 'status',
+  reviewerId: 'reviewerId',
+  assignedAt: 'assignedAt',
+  reviewedFindingId: 'reviewedFindingId'
+};
+
+exports.Prisma.GymCaseRefundQuoteScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  membershipId: 'membershipId',
+  paymentTxnId: 'paymentTxnId',
+  quotedAt: 'quotedAt',
+  pricePaid: 'pricePaid',
+  durationDays: 'durationDays',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  amount: 'amount',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymCaseDecisionReplacementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  oldApprovalId: 'oldApprovalId',
+  proposedBy: 'proposedBy',
+  reason: 'reason',
+  checksAtProposal: 'checksAtProposal',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  checksAtApproval: 'checksAtApproval',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1160,6 +1391,89 @@ exports.AssistedExceptionStatus = exports.$Enums.AssistedExceptionStatus = {
   USED: 'USED'
 };
 
+exports.GymCaseClass = exports.$Enums.GymCaseClass = {
+  MEM_TXN: 'MEM_TXN',
+  MEM_CLOSED: 'MEM_CLOSED',
+  MEM_VIOLATION: 'MEM_VIOLATION',
+  MEM_ACCESS: 'MEM_ACCESS',
+  GYM_GENERAL: 'GYM_GENERAL'
+};
+
+exports.GymCaseStatus = exports.$Enums.GymCaseStatus = {
+  INTAKE: 'INTAKE',
+  COLLECTING: 'COLLECTING',
+  AWAITING_PARTIES: 'AWAITING_PARTIES',
+  ASSESSING: 'ASSESSING',
+  FINDING_RECORDED: 'FINDING_RECORDED',
+  AWAITING_APPROVAL: 'AWAITING_APPROVAL',
+  DECISION_APPROVED: 'DECISION_APPROVED',
+  REJECTED_INTAKE: 'REJECTED_INTAKE',
+  APPEAL_REVIEW: 'APPEAL_REVIEW'
+};
+
+exports.GymCaseExecStatus = exports.$Enums.GymCaseExecStatus = {
+  NOT_STARTED: 'NOT_STARTED',
+  EXECUTING: 'EXECUTING',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  EXEC_BLOCKED: 'EXEC_BLOCKED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+exports.GymCasePartyRole = exports.$Enums.GymCasePartyRole = {
+  MEMBER: 'MEMBER',
+  ADMIN_ON_BEHALF: 'ADMIN_ON_BEHALF',
+  GYM: 'GYM'
+};
+
+exports.GymCaseProvenance = exports.$Enums.GymCaseProvenance = {
+  SERVER_OBSERVED: 'SERVER_OBSERVED',
+  USER_REPORTED_STORED: 'USER_REPORTED_STORED',
+  EXTERNAL_DOCUMENT: 'EXTERNAL_DOCUMENT',
+  ADMIN_RECEIVED_ON_BEHALF: 'ADMIN_RECEIVED_ON_BEHALF',
+  LEGACY_FIELD: 'LEGACY_FIELD'
+};
+
+exports.GymCaseSensitivity = exports.$Enums.GymCaseSensitivity = {
+  NORMAL: 'NORMAL',
+  SENSITIVE: 'SENSITIVE'
+};
+
+exports.GymCaseAssessmentResult = exports.$Enums.GymCaseAssessmentResult = {
+  ESTABLISHED: 'ESTABLISHED',
+  NOT_ESTABLISHED: 'NOT_ESTABLISHED',
+  REFUTED: 'REFUTED'
+};
+
+exports.GymCaseFindingKind = exports.$Enums.GymCaseFindingKind = {
+  ESTABLISHED: 'ESTABLISHED',
+  NOT_ESTABLISHED: 'NOT_ESTABLISHED'
+};
+
+exports.GymCaseOutcome = exports.$Enums.GymCaseOutcome = {
+  REFUND_TRANSACTION_ERROR: 'REFUND_TRANSACTION_ERROR',
+  REFUND_GYM_CLOSED: 'REFUND_GYM_CLOSED',
+  REFUND_GYM_VIOLATION: 'REFUND_GYM_VIOLATION',
+  RESOLVE_UPHELD: 'RESOLVE_UPHELD',
+  RESOLVE_INSUFFICIENT_EVIDENCE: 'RESOLVE_INSUFFICIENT_EVIDENCE'
+};
+
+exports.GymCaseApprovalResult = exports.$Enums.GymCaseApprovalResult = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.GymCaseExecState = exports.$Enums.GymCaseExecState = {
+  STARTED: 'STARTED',
+  BLOCKED: 'BLOCKED',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+exports.GymCaseAccessAction = exports.$Enums.GymCaseAccessAction = {
+  VIEW_CASE: 'VIEW_CASE',
+  VIEW_EVIDENCE: 'VIEW_EVIDENCE'
+};
+
 exports.Prisma.ModelName = {
   GymPhoto: 'GymPhoto',
   GymBranchDocument: 'GymBranchDocument',
@@ -1199,7 +1513,24 @@ exports.Prisma.ModelName = {
   AmenityAuditLog: 'AmenityAuditLog',
   GymAssistedCheckInEvent: 'GymAssistedCheckInEvent',
   GymAssistedCheckInChallenge: 'GymAssistedCheckInChallenge',
-  GymAssistedCheckInException: 'GymAssistedCheckInException'
+  GymAssistedCheckInException: 'GymAssistedCheckInException',
+  GymComplaintCase: 'GymComplaintCase',
+  GymCaseStatement: 'GymCaseStatement',
+  GymCaseEvidence: 'GymCaseEvidence',
+  GymCaseShare: 'GymCaseShare',
+  GymCaseClaim: 'GymCaseClaim',
+  GymCaseAssessment: 'GymCaseAssessment',
+  GymCaseFinding: 'GymCaseFinding',
+  GymCaseProposal: 'GymCaseProposal',
+  GymCaseApproval: 'GymCaseApproval',
+  GymCaseEvent: 'GymCaseEvent',
+  GymCaseExecution: 'GymCaseExecution',
+  GymCaseAccessLog: 'GymCaseAccessLog',
+  GymCaseNotice: 'GymCaseNotice',
+  GymCaseDeadline: 'GymCaseDeadline',
+  GymCaseAppeal: 'GymCaseAppeal',
+  GymCaseRefundQuote: 'GymCaseRefundQuote',
+  GymCaseDecisionReplacement: 'GymCaseDecisionReplacement'
 };
 
 /**

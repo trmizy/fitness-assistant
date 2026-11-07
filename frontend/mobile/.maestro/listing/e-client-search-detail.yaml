@@ -1,0 +1,92 @@
+# e: client (pham-thu-uyen) — Dịch vụ: PT search -> PT detail (profile, photos, packages); Phòng gym list -> gym detail (amenities).
+# NOTE: tab / section labels use non-breaking spaces, so multi-word text is matched with "." instead of " ".
+# Run: run.sh e-client-search-detail.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ"
+    timeout: 40000
+- tapOn: "Dịch vụ"
+- extendedWaitUntil:
+    visible: "Tìm PT"
+    timeout: 20000
+- tapOn: "Tìm theo tên, chuyên môn, khu vực..."
+- inputText: "Khoa"
+- extendedWaitUntil:
+    visible: ".*Khoa.*"
+    timeout: 30000
+- takeScreenshot: e-01-pt-search-khoa
+# first tap only dismisses the soft keyboard, the second opens the card
+- tapOn:
+    point: 50%,44%
+- runFlow:
+    when:
+      notVisible: "Nhắn tin"
+    commands:
+      - tapOn:
+          point: 50%,44%
+- extendedWaitUntil:
+    visible: "Gói.dịch.vụ"
+    timeout: 30000
+- takeScreenshot: e-02-pt-detail
+- scroll
+- takeScreenshot: e-03-pt-detail-photos
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 25%
+          end: 50%, 85%
+- tapOn: "Gói.dịch.vụ"
+- takeScreenshot: e-04-pt-packages
+- scroll
+- takeScreenshot: e-04b-pt-packages-2
+- back
+- tapOn: "Phòng gym"
+- extendedWaitUntil:
+    visible: "Xem gói"
+    timeout: 30000
+- tapOn: "Tìm theo tên, thương hiệu hoặc thành phố..."
+- inputText: "Iron District"
+- extendedWaitUntil:
+    visible: "Iron District Fitness B.*"
+    timeout: 30000
+- takeScreenshot: e-05-gym-list
+- tapOn:
+    point: 50%,46%
+- runFlow:
+    when:
+      notVisible: "Tiện.ích.&.dịch.vụ"
+    commands:
+      - tapOn:
+          point: 50%,46%
+- extendedWaitUntil:
+    visible: "Tiện.ích.&.dịch.vụ"
+    timeout: 30000
+- takeScreenshot: e-06-gym-detail
+- scrollUntilVisible:
+    element: "Tiện.ích.&.dịch.vụ"
+    centerElement: true
+- takeScreenshot: e-07-gym-amenities
+- back
+- tapOn: "Cá nhân"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn: "ĐĂNG XUẤT"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

@@ -142,20 +142,27 @@ export const profileRepository = {
       and.push({ userId: { in: ids } });
     }
 
-    // q: search by firstName OR lastName or search fields
-    if (filters.q) {
-      // `q` reaches the trainer's name, and the gym/address they work at. Specialty is left
-      // to the chips beside the box - see findPtUserIdsMatchingText. The extra ids are
-      // resolved in one accent-insensitive SQL pass and folded into the same OR, so paging
-      // stays correct.
-      const textMatchIds = await findPtUserIdsMatchingText(filters.q);
+    // q matches in either of two ways (OR):
+    //  1. the WHOLE string, exactly as before: the gym name / address the trainer works at (accent-insensitive,
+    //     findPtUserIdsMatchingText) or a first/last name containing it. Specialty is left to the chips.
+    //  2. TOKENS: q split on whitespace, EVERY token must be contained (case-insensitive, accent-sensitive like
+    //     before) in the trainer's own firstName OR lastName, so "Lý Thành Đạt" (first="Lý", last="Thành Đạt")
+    //     matches although no single column holds the whole string. Tokens never match gym name / address.
+    const q = (filters.q ?? "").trim();
+    if (q) {
+      const nameMatch = (text: string): Prisma.UserProfileWhereInput[] => [
+        { firstName: { contains: text, mode: "insensitive" as const } },
+        { lastName: { contains: text, mode: "insensitive" as const } },
+        { firstNameNormalized: { contains: text, mode: "insensitive" as const } },
+        { lastNameNormalized: { contains: text, mode: "insensitive" as const } },
+      ];
+      const textMatchIds = await findPtUserIdsMatchingText(q);
+      const tokens = q.split(/\s+/).filter(Boolean);
       and.push({
         OR: [
           ...(textMatchIds.length > 0 ? [{ userId: { in: textMatchIds } }] : []),
-          { firstName: { contains: filters.q, mode: "insensitive" as const } },
-          { lastName: { contains: filters.q, mode: "insensitive" as const } },
-          { firstNameNormalized: { contains: filters.q, mode: "insensitive" as const } },
-          { lastNameNormalized: { contains: filters.q, mode: "insensitive" as const } },
+          ...nameMatch(q),
+          ...(tokens.length > 1 ? [{ AND: tokens.map((t) => ({ OR: nameMatch(t) })) }] : []),
         ],
       });
     }

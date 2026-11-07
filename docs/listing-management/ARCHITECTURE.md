@@ -135,14 +135,14 @@ Danh mục tiện ích (`GS/routes/admin-listing.routes.ts`, `/admin/amenities`)
 
 | Method | Path | Ghi chú |
 |---|---|---|
-| GET | `/gyms`, `/gyms/:id`, `/gyms/:gymId/plans`, `/gyms/:gymId/trainers`, `/gyms/:gymId/reviews`, `/pt/:ptUserId/gyms` | mọi route đi qua `gymPublicWhere()`; chi nhánh không hiển thị → 404 |
+| GET | `/gyms`, `/gyms/:id`, `/gyms/:gymId/plans`, `/gyms/:gymId/trainers`, `/gyms/:gymId/reviews`, `/pt/:ptUserId/gyms` | mọi route đi qua `gymPublicWhere()`; chi nhánh không hiển thị → 404. Ngoại lệ B43: `GET /gyms/:id` dùng `gymDetailWhere()` nên chi nhánh `TEMPORARILY_CLOSED` vẫn 200 (ẩn khỏi danh sách) — xem FIELD_PERMISSIONS §5 |
 | GET | `/profile/pts`, `/profile/pts/:userId`, `/profile/pts/:id/service-packages` | `toPublicPtDto`; PT ẩn → 404 |
 | GET/HEAD | `/media/pt-physique/:photoId` (`US/routes/media.routes.ts`), `/media/gym-photos/:photoId` (`GS/routes/media.routes.ts`) | không auth; chỉ ảnh `PUBLISHED` của chủ đang hiển thị, 302 sang presigned GET 10 phút; còn lại 404. Gateway chặn phương thức khác GET/HEAD (405) |
 | GET | `/uploads/gym-photos/:file` (`GS/app.ts`) | URL cũ của ảnh lưu đĩa, kiểm từng request (đã bỏ `express.static`) |
 
 Luật hiển thị:
 - **PT**: `isPT` ∧ hồ sơ `APPROVED` ∧ `!ptSuspended` ∧ không có hạn chế phạm vi `ACCOUNT` đang mở. Hạn chế theo `CONTRACT` **không** ẩn.
-- **Gym**: `status=APPROVED` ∧ `operationalStatus=OPEN` ∧ chủ không nằm trong `partnerGuard.hiddenFromPublicOwnerUserIds()`.
+- **Gym** (danh sách và route con): `status=APPROVED` ∧ `operationalStatus=OPEN` ∧ chủ không nằm trong `partnerGuard.hiddenFromPublicOwnerUserIds()`.
 
 ## 5. Luồng tổng quát
 

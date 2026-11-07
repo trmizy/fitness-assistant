@@ -24,6 +24,40 @@ import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { contractOpMeta } from './contract-request-guard';
 import { ptHeld, recordObligation, releaseHeldToAvailable, OBLIGATION_STILL_OWED } from './contract-ledger.service';
 import { AdjustmentError, requireText } from './adjustment-operations.service';
+import { getUserInternal } from '../clients/auth-service.client';
+import { postServiceJson } from '../clients/service-lambda.client';
+
+/**
+ * E6 / F3 (Ngài, 05/11/2026) - what a holdback decision must verify OUTSIDE this database:
+ *   verifyAdmin     the decider and the approver are REAL, active ADMIN accounts (auth-service), identified by user id - not free names;
+ *   assertNoOpenCase the contract of the review has no UNFINISHED dispute Case (user-service, read-only): a reserve is not decided behind an open Case.
+ * Both fail CLOSED: an unreachable service refuses the decision. A mutable object so a test can stub the two network calls; production code never reassigns it.
+ */
+export const holdbackGuards = {
+  async verifyAdmin(userId: string, who: string): Promise<void> {
+    let user: { id: string; role?: string; isActive?: boolean } | null;
+    try {
+      user = await getUserInternal(userId);
+    } catch {
+      throw new AdjustmentError('ACCOUNT_LOOKUP_UNAVAILABLE', `Cannot verify the account of the ${who} with auth-service right now; nothing was changed.`);
+    }
+    if (!user || user.role !== 'ADMIN' || user.isActive === false) {
+      throw new AdjustmentError('NOT_AN_ADMIN', `The ${who} must be the user id of a real, active ADMIN account (auth-service says it is not).`);
+    }
+  },
+  async assertNoOpenCase(contractId: string): Promise<void> {
+    const headers = { 'x-service-secret': process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production' };
+    try {
+      await postServiceJson({ service: 'user', path: `/internal/contracts/${encodeURIComponent(contractId)}/refund-guard`, body: { openOnly: true }, headers, timeoutMs: 5000 });
+    } catch (e: any) {
+      const code = e?.response?.data?.error?.code ?? e?.body?.error?.code;
+      if ((e?.response?.status ?? e?.statusCode) === 409 && typeof code === 'string') {
+        throw new AdjustmentError('OPEN_CASE', `The contract has an unfinished dispute Case (${code}); the reserve is not decided behind it. Nothing was changed.`);
+      }
+      throw new AdjustmentError('CASE_CHECK_UNAVAILABLE', 'Cannot ask user-service whether the contract has an open dispute Case right now; nothing was changed.');
+    }
+  },
+};
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 const money = (v: Prisma.Decimal.Value) => D(v).toFixed(2);
@@ -87,11 +121,15 @@ export async function decideHoldbackReview(input: HoldbackReviewDecisionInput): 
   if (actor.toLowerCase() === approvedBy.toLowerCase()) {
     throw new AdjustmentError('FOUR_EYES', 'The person who decides and the person who approves must be different.');
   }
+  // E6 / F3: two distinct ADMIN user ids verified with auth-service (fail-closed), before anything else is read or written
+  await holdbackGuards.verifyAdmin(actor, 'decider');
+  await holdbackGuards.verifyAdmin(approvedBy, 'approver');
   if (input.decision !== 'VERIFIED' && input.decision !== 'NOT_VERIFIED') throw new AdjustmentError('INVALID_INPUT', 'decision must be VERIFIED or NOT_VERIFIED.');
   const verified = input.decision === 'VERIFIED' ? parseAmount(input.verifiedAmount) : ZERO;
 
-  const review = await prisma.ptHoldbackReview.findUnique({ where: { id: input.reviewId }, include: { transaction: { select: { id: true, relatedEntityId: true, metadata: true } } } });
+  const review = await prisma.ptHoldbackReview.findUnique({ where: { id: input.reviewId }, include: { transaction: { select: { id: true, relatedEntityId: true, relatedEntityType: true, metadata: true } } } });
   if (!review) throw new AdjustmentError('NOT_FOUND', 'No such holdback review.');
+  if (review.transaction.relatedEntityType === 'PT_CONTRACT' && review.transaction.relatedEntityId) await holdbackGuards.assertNoOpenCase(review.transaction.relatedEntityId);
   const contractRef = review.transaction.relatedEntityId ?? review.transactionId;
   const key = opKeyOf(contractRef, approvalRef);
   const eventKey = `HBR_EVENT:${review.id}:${approvalRef}`;

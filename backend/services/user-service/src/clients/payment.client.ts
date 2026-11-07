@@ -47,7 +47,7 @@ export interface LedgerOperationRecord {
    * Present when `result.obligationId` names an unpaid obligation: its LIVE status. OPEN = still owed; RESOLVED = handled outside
    * the ledger with a reference; WAIVED = the owner decided it is not pursued (the client was not paid).
    */
-  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | string; owed: string; paid: string; unpaid: string };
+  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | 'PAID_VIA_LEDGER' | string; owed: string; paid: string; unpaid: string };
 }
 
 export const paymentClient = {
@@ -112,6 +112,17 @@ export const paymentClient = {
     return data.data;
   },
 
+  /** READ-ONLY (final safety gate): what the ledger holds for the late-arrival obligation `PT_LATE_ARRIVAL:<sessionId>` of a contract. Writes nothing. */
+  async readLateOpenState(body: { transactionId: string; lateKey: string; parties: Record<string, unknown> }): Promise<{
+    contractEnded: boolean;
+    lateOperation: { exists: boolean; chargedTotal: string | null };
+    obligation: null | { id: string; key: string; kind: string; status: string; owed: string; paid: string; unpaid: string; verifiedPaid: string; externallyPaid: string; openPayments: number };
+    ownPending: { pt: string; gym: string | null; platform: string };
+  }> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-open-state`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
   /** Open-room online session — PT joined after the grace window (half a no-show's rate). */
   async lateArrival(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival`, body, { headers, timeout: 15_000 });
@@ -146,6 +157,20 @@ export const paymentClient = {
    */
   async resolveUnresolvedSession(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/resolve-unresolved-session`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * E5: the FORMAL obligation after a won appeal whose approved finding ESTABLISHED an amount and a responsible party. Idempotent per consequence (APPEAL_OBLIGATION:<consequenceId>); moves no money.
+   */
+  async createAppealObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /** E5, read-only: the live obligation created for a consequence ({found:false} when none). */
+  async readAppealObligation(consequenceId: string): Promise<any> {
+    const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation/${encodeURIComponent(consequenceId)}`, { headers, timeout: 10_000 });
     return data.data;
   },
 

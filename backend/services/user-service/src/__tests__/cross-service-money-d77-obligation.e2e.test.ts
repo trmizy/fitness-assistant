@@ -291,6 +291,10 @@ test("natural completion with a never-performed NO_SHOW: exactly ONE OPEN obliga
     const row = await H.m.prisma.sessionSettlement.findUniqueOrThrow({ where: { idempotencyKey: `PT_NO_SHOW:${ns.id}` } });
     assert.equal(row.status, "FAILED", "the compensation is recorded but unsettled");
     assert.equal((await obligations()).length, 0);
+    // QUOTA A+ (01/11/2026): a no-show decided NOW books its entitlement at the terminal change and its unpaid value is HELD by the ending (see cross-service-money-no-show-quota N6). This test keeps covering the
+    // record-only obligation for a LEGACY no-show - one decided BEFORE the fix, which has no mark and whose quota is booked only when it settles: TEST FIXTURE = the pre-fix state set by SQL.
+    await H.m.prisma.session.update({ where: { id: ns.id }, data: { noShowQuotaBookedAt: null } });
+    await H.m.prisma.contract.update({ where: { id: c.id }, data: { compensatedSessions: 0 } });
 
     // the contract then completes NATURALLY (2 + 2 delivered); nobody drains the NO_SHOW row
     await H.deliver(c, 2);

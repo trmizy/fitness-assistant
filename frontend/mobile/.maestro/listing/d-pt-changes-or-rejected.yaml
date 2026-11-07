@@ -1,0 +1,28 @@
+# d: PT listing state screens. -e EMAIL=<seed PT> -e STATE=<badge text regex>
+#   d1: pham-gia-huy@seed.gymini.test   STATE="C.n.ch.nh.s.a" STATE_TAG=d1  -> admin note visible
+#   d2: nguyen-hoang-anh@seed.gymini.test STATE="B.*ch.i" STATE_TAG=d2 -> admin note (+ re-draft button)
+# (STATE is ASCII-only: Vietnamese characters in -e args get corrupted by the Windows console)
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- runFlow: _pt-open-listing.yaml
+- extendedWaitUntil:
+    visible: ${STATE}
+    timeout: 15000
+- assertVisible: "Ghi chú của quản trị viên"
+- takeScreenshot: d-${STATE_TAG}-state
+- scroll
+- takeScreenshot: d-${STATE_TAG}-state-2
+- runFlow: _pt-logout.yaml

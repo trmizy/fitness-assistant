@@ -1386,6 +1386,58 @@ router.use(
   }),
 );
 
+// Dispute Case (slice 1) — admin side: intake, evidence, assessment, finding, proposal, four-eyes approval (User Service).
+// user-service re-checks the ADMIN role itself and takes the acting admin from the verified token.
+router.use(
+  "/admin/dispute-cases",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (dispute cases)"),
+  }),
+);
+
+// Late-open (D77 OPEN) reconciliation — admin side, four-eyes (User Service). The gateway only gates by role and forwards; user-service re-checks ADMIN,
+// takes the acting admin from the verified token and refuses every mutating route (409 LATE_OPEN_RECONCILIATION_DISABLED) while its fail-closed flag is off,
+// which is the case in every environment except the isolated test one. Proxying the route does not turn anything on.
+router.use(
+  "/admin/late-open-reconciliations",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (late-open reconciliation)"),
+  }),
+);
+
+// D65-B — admin resolution of the money held for a NO_SHOW session (User Service): propose / approve / list / detail. ADMIN only at the gateway;
+// user-service re-checks ADMIN, the conflict of interest and four-eyes, and takes the acting admin from the verified token.
+router.use(
+  "/admin/unconfirmed-session-resolutions",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (D65-B resolution)"),
+  }),
+);
+
+// Dispute Case (slice 1) — party side: the client / PT of a case reads their own redacted view and submits statements and
+// evidence metadata. Any authenticated user may reach it; user-service answers only for a party of the case.
+router.use(
+  "/dispute-cases",
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
 // Admin — temporary PT suspension: suspend / lift / history / list / justify (User Service). The
 // gateway gates by role; user-service re-checks ADMIN and takes the acting admin from the verified token.
 router.use(
@@ -1737,6 +1789,13 @@ router.use(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// Dispute V2.1 Slice 3 - the reporter's own complaint case (gym-service answers 404 for a case the caller did not file).
+router.use(
+  '/me/complaint-cases',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 
 // PT — gym affiliation invitations
 router.use(
@@ -1792,6 +1851,14 @@ router.get(
 );
 router.post(
   '/partner-invitations/:token/accept',
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
+// C10 - the Gym's evidence / explanation surface of a gym complaint case (gym-service re-checks the branch scope; there is no deciding route behind it).
+router.use(
+  '/owner/complaint-cases',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
@@ -1915,6 +1982,13 @@ router.use(
 );
 router.use(
   '/admin/complaint-photos',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+// Dispute V2.1 Slice 3 - gym complaint CASE layer (admin workspace). gym-service re-checks the role and refuses every write unless its own fail-closed flag is on.
+router.use(
+  '/admin/complaint-cases',
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),

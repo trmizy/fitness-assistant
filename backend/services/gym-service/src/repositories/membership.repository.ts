@@ -230,9 +230,10 @@ export const membershipRepository = {
   },
 
   /** EXPIRED memberships whose gym/platform/referral payout has not yet been released. */
-  async findExpiredNotReleased(limit: number) {
+  /** `excludeIds`: memberships a Gym Case holds (B1) - excluded in the query so a held row never starves the batch. */
+  async findExpiredNotReleased(limit: number, excludeIds: string[] = []) {
     return prisma.gymMembershipContract.findMany({
-      where: { status: 'EXPIRED', payoutReleasedAt: null, paymentTxnId: { not: null } },
+      where: { status: 'EXPIRED', payoutReleasedAt: null, paymentTxnId: { not: null }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
       include: { referral: true },
       take: limit,
       orderBy: { endDate: 'asc' },

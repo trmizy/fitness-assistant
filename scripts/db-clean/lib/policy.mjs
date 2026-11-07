@@ -6,6 +6,10 @@
  *   $1 text[]  the user ids of the APPROVED preserved accounts (resolved from auth.users by e-mail)
  *   $2 text[]  their e-mails (lower case)
  *   $3 text[]  the ids of the gyms that survive in gym-service (cross-database reference used by payment-service wallets)
+ *   $4 text[]  DENIED gym ids      (--deny-file, expanded by the audit; deleted even when the owner is preserved)
+ *   $5 text[]  DENIED amenity ids  (catalogue amenities named by amenityNameLike)
+ *   $6 text[]  DENIED amenity-proposal ids (proposalNameLike)
+ *   $7 text[]  DENIED pt package ids (packageNameLike, minus packages a contract still refers to)
  *
  * Semantics (decisions are listed as QUESTIONS in the Phase G report, they are not silent):
  *   PRESERVE  catalogue / reference / system / evidence tables - never touched (also checked by row counts at commit time).
@@ -21,6 +25,9 @@
 export const preserve = (why) => ({ kind: 'PRESERVE', why });
 
 const inP = (a, c) => `${a}."${c}" = ANY($1::text[])`;
+/** Row-level deny lists ($4..$7, see above): `notDenied(a, 'id', 4)` -> the row is NOT on the deny list. */
+const notDenied = (a, col, n) => `NOT (${a}."${col}" = ANY($${n}::text[]))`;
+const notDeniedOrNull = (a, col, n) => `(${a}."${col}" IS NULL OR NOT (${a}."${col}" = ANY($${n}::text[])))`;
 
 export function ownAll(...cols) {
   return {
@@ -98,8 +105,29 @@ const user = {
   client_compat_events: preserve('telemetry that is evidence for retiring LISTING_LEGACY_CLIENT_COMPAT (14-day window)'),
   UserPreference: ownAll('userId'),
   agent_contract_drafts: ownAll('user_id', 'pt_id'),
-  audit_logs: ownAll('actor_user_id'),
+  audit_logs: raw(
+    (a, h) => {
+      const c = h.uid();
+      return `(${inP(a, 'actor_user_id')} OR (${a}."actor_user_id" = 'SYSTEM' AND ${a}."entity_type" = 'CONTRACT' AND EXISTS (SELECT 1 FROM "contracts" ${c} WHERE ${c}."id" = ${a}."entity_id" AND ${h.K('contracts', c)})))`;
+    },
+    { owners: ['actor_user_id'], note: 'rows of a preserved actor; SYSTEM rows about a KEPT contract are kept too (seed evidence)' },
+  ),
   client_journeys: all(ownAll('user_id', 'pt_id'), childOfOrNull('contracts', ['contract_id', 'id'])),
+  // Dispute Case slice: never touched. A dispute row that depends on an account / contract / session / gym that WOULD be deleted is a
+  // BLOCKER (lib/deny.mjs disputeGuards), so a preserved row can never be orphaned by this tool.
+  dispute_case_access_logs: preserve('dispute case evidence - never touched'),
+  dispute_case_approvals: preserve('dispute case evidence - never touched'),
+  dispute_case_assessments: preserve('dispute case evidence - never touched'),
+  dispute_case_claims: preserve('dispute case evidence - never touched'),
+  dispute_case_events: preserve('dispute case evidence - never touched'),
+  dispute_case_evidence: preserve('dispute case evidence - never touched'),
+  dispute_case_executions: preserve('dispute case evidence - never touched'),
+  dispute_case_findings: preserve('dispute case evidence - never touched'),
+  dispute_case_issues: preserve('dispute case evidence - never touched'),
+  dispute_case_proposals: preserve('dispute case evidence - never touched'),
+  dispute_case_shares: preserve('dispute case evidence - never touched'),
+  dispute_case_statements: preserve('dispute case evidence - never touched'),
+  dispute_cases: preserve('dispute case evidence - never touched'),
   client_reviews: childOf('sessions', ['session_id', 'id']),
   contracts: ownAll('client_user_id', 'pt_user_id'),
   inbody_entries: ownAll('user_id'),
@@ -115,7 +143,7 @@ const user = {
   pt_restriction_contract_extensions: childOf('pt_restrictions', ['restriction_id', 'id']),
   pt_restrictions: all(ownAll('pt_user_id'), childOfOrNull('contracts', ['contract_id', 'id'])),
   pt_schedule_exceptions: ownAll('pt_user_id'),
-  pt_service_packages: ownAll('pt_user_id'),
+  pt_service_packages: all(ownAll('pt_user_id'), raw((a) => notDenied(a, 'id', 7))),
   pt_terms_acceptances: ownAll('user_id'),
   pt_training_locations: ownAll('pt_user_id'),
   push_devices: ownAll('user_id'),
@@ -274,14 +302,18 @@ const payment = {
 // ====================================================================================================================
 const gym = {
   _prisma_migrations: preserve('migration history'),
-  amenities: preserve('amenity catalogue'),
-  amenity_audit_logs: preserve('amenity catalogue audit (admin actions)'),
+  amenities: raw((a) => `${notDenied(a, 'id', 5)} AND ${notDeniedOrNull(a, 'created_from_proposal_id', 6)}`, {
+    note: 'amenity catalogue: kept unless named by --deny-file (amenityNameLike); an amenity created from a denied proposal goes with it',
+  }),
+  amenity_audit_logs: raw((a) => `${notDeniedOrNull(a, 'amenity_id', 5)} AND ${notDeniedOrNull(a, 'proposal_id', 6)}`, {
+    note: 'amenity catalogue audit (admin actions): kept unless it is about a denied amenity / proposal',
+  }),
   platform_commission_rates: preserve('platform configuration'),
   client_compat_events: preserve('evidence for retiring LISTING_LEGACY_CLIENT_COMPAT (14-day window)'),
   legacy_compat_events: preserve('evidence for retiring LISTING_LEGACY_CLIENT_COMPAT (14-day window)'),
   compat_writer_heartbeats: preserve('evidence for retiring LISTING_LEGACY_CLIENT_COMPAT (14-day window)'),
   gym_brands: ownAll('owner_id'),
-  gyms: all(ownAll('owner_id'), childOfOrNull('gym_brands', ['brand_id', 'id'])),
+  gyms: all(ownAll('owner_id'), childOfOrNull('gym_brands', ['brand_id', 'id']), raw((a) => notDenied(a, 'id', 4))),
   gym_partner_accounts: ownAll('user_id'),
   gym_partners: raw(
     (a, h) => {
@@ -302,12 +334,13 @@ const gym = {
     (a, h) => {
       const g = h.uid();
       const c = h.uid();
-      return `((${inP(a, 'owner_user_id')} AND (${a}."gym_id" IS NULL OR EXISTS (SELECT 1 FROM "gyms" ${g} WHERE ${g}."id" = ${a}."gym_id" AND ${h.K('gyms', g)})))
-        OR EXISTS (SELECT 1 FROM "amenities" ${c} WHERE ${c}."created_from_proposal_id" = ${a}."id"))`;
+      return `(((${inP(a, 'owner_user_id')} AND (${a}."gym_id" IS NULL OR EXISTS (SELECT 1 FROM "gyms" ${g} WHERE ${g}."id" = ${a}."gym_id" AND ${h.K('gyms', g)})))
+        OR EXISTS (SELECT 1 FROM "amenities" ${c} WHERE ${c}."created_from_proposal_id" = ${a}."id" AND ${h.K('amenities', c)}))
+        AND ${notDenied(a, 'id', 6)} AND ${notDeniedOrNull(a, 'resulting_amenity_id', 5)} AND ${notDeniedOrNull(a, 'target_amenity_id', 5)})`;
     },
-    { owners: ['owner_user_id'], note: 'a proposal that created a catalogue amenity is kept (the catalogue row points at it)' },
+    { owners: ['owner_user_id'], note: 'a proposal that created a kept catalogue amenity is kept (the catalogue row points at it); denied proposals / proposals about denied amenities go' },
   ),
-  gym_amenities: childOf('gyms', ['gym_id', 'id']),
+  gym_amenities: all(childOf('gyms', ['gym_id', 'id']), childOf('amenities', ['amenity_id', 'id'])),
   gym_branch_documents: childOf('gyms', ['gym_id', 'id']),
   gym_branch_review_issues: childOf('gyms', ['gym_id', 'id']),
   gym_listing_revisions: childOf('gyms', ['gym_id', 'id']),

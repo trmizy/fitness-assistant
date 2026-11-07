@@ -87,7 +87,7 @@ function fakeLedger(opts: { failTerminate?: number; failResolve?: number } = {})
   let resolveFailures = opts.failResolve ?? 0;
   const restores = [
     patch(paymentClient, "terminate", async (body: any) => {
-      terminateCalls.push(body);
+      terminateCalls.push(withoutHeldIds(body));
       if (terminateFailures > 0) {
         terminateFailures--;
         throw new Error("payment-service unavailable");
@@ -117,7 +117,7 @@ function fakeLedger(opts: { failTerminate?: number; failResolve?: number } = {})
       return resolved.get(body.idempotencyKey);
     }),
     patch(paymentClient, "moneyBreakdown", async (body: any) => {
-      breakdownCalls.push(body);
+      breakdownCalls.push(withoutHeldIds(body));
       return {
         remaining: "5000000.00",
         refundIfCancelledNow: body.reason === "CLIENT_CANCELLED" ? "4500000.00" : "5000000.00",
@@ -139,6 +139,17 @@ const suspendInput = (ptUserId: string, at?: Date) => ({
 });
 
 /** The exact body user-service sends payment-service to terminate a contract with `used` finished sessions. */
+/**
+ * D77 final (Q4): termination / preview bodies now carry `unresolvedSessionIds` (the ids of the held sessions) so the ledger attributes a late-arrival compensation to the RIGHT held
+ * session. The exact-body assertions of this file are about everything else, so the stub strips the ids after CHECKING they are there: exactly as many as `unresolvedSessions`.
+ */
+function withoutHeldIds(body: any) {
+  const { unresolvedSessionIds, ...rest } = body ?? {};
+  if ((body?.unresolvedSessions ?? 0) > 0) assert.ok(Array.isArray(unresolvedSessionIds) && unresolvedSessionIds.length === body.unresolvedSessions, "the held session ids are sent with the count");
+  else assert.equal(unresolvedSessionIds, undefined);
+  return rest;
+}
+
 function expectedTerminateBody(c: Awaited<ReturnType<typeof makeContract>>, reason: string, used: number, unresolved?: number) {
   return {
     transactionId: c.paymentTransactionId,

@@ -2,7 +2,36 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { prisma } from '../repositories/prisma';
-import { membershipService } from '../services/membership.service';
+import http from 'node:http';
+
+// 31/10 isolation round: this suite used to call the REAL payment-service on localhost:3007 (the dev stack), which left GYM_MEMBERSHIP
+// transactions in the dev payment database. payment.client reads PAYMENT_SERVICE_URL at import time, so a local fake payment server is started
+// first and membership.service is imported afterwards. The fake only answers /internal/payments/checkout (what retryPay needs).
+let fakePayment: http.Server;
+let checkoutCalls = 0;
+let membershipService: typeof import('../services/membership.service').membershipService;
+
+test.before(async () => {
+  fakePayment = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      if (req.method === 'POST' && req.url === '/internal/payments/checkout') {
+        checkoutCalls += 1;
+        res.end(JSON.stringify({ data: { transactionId: 'fake-txn', status: 'PENDING', redirectUrl: 'http://127.0.0.1/fake-gateway', qrCodeUrl: null, provider: 'MOCK' } }));
+      } else {
+        res.end(JSON.stringify({ data: {} }));
+      }
+    });
+  });
+  await new Promise<void>((resolve) => fakePayment.listen(0, '127.0.0.1', () => resolve()));
+  process.env.PAYMENT_SERVICE_URL = `http://127.0.0.1:${(fakePayment.address() as { port: number }).port}`;
+  membershipService = (await import('../services/membership.service')).membershipService;
+});
+
+test.after(async () => {
+  await new Promise<void>((resolve) => fakePayment.close(() => resolve()));
+});
 
 /**
  * P0 cluster E1 — retryPay không kiểm tra lại trạng thái phòng gym bị khoá.
@@ -86,11 +115,11 @@ test('retryPay vẫn hoạt động bình thường khi phòng gym còn APPROVED
   const membership = await makePendingMembership(gym.id, plan.id, clientId);
 
   try {
-    // payment-service thật đang chạy (docker) và checkout thật sự thành công (sandbox VNPay
-    // trả về redirect) — chỉ cần xác nhận kiểm tra trạng thái phòng gym KHÔNG chặn nhầm một
-    // yêu cầu hợp lệ.
+    // payment-service giả (xem test.before) trả về một redirect — chỉ cần xác nhận kiểm tra trạng thái
+    // phòng gym KHÔNG chặn nhầm một yêu cầu hợp lệ, và checkout thật sự được gọi đúng một lần.
     const result = await membershipService.retryPay(membership.id, clientId);
     assert.ok(result.payment, 'phải bắt đầu checkout thành công khi phòng gym vẫn APPROVED');
+    assert.equal(checkoutCalls, 1);
   } finally {
     await prisma.gymMembershipContract.delete({ where: { id: membership.id } }).catch(() => {});
     await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});

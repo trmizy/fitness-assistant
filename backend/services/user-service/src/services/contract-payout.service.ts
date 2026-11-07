@@ -1,11 +1,14 @@
 import { logger } from "@gym-coach/shared";
-import { Prisma, ContractStatus, SessionSettlementKind, SessionStatus } from "../generated/prisma";
+import { Prisma, ContractStatus, SessionSettlementKind, SessionSettlementStatus, SessionStatus } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
+import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient, type LedgerOperationRecord } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
 import { settleTracked, settlementAttemptLevel, staleProcessingMs, type SettleOutcome } from "./session-settlement.service";
 import { callOffOpenSessions, holdUnansweredNoShowReports, sessionCallOffReasonFor } from "./contract-session-closure";
 import { SYSTEM_ACTOR } from "./audit.service";
+import { assertPolicyEligibility } from "./dispute-case/execution-guard";
+import { lateOpenReconciliationEnabled } from "./dispute-case/flags";
 import {
   withContractLock,
   codedError,
@@ -154,6 +157,51 @@ export interface TerminationTerms {
    * call (and the preview) sends `usedSessions - heldDelivered`: the session is counted once, as held, not also as used.
    */
   heldDelivered?: number;
+  /**
+   * D77 final (Q4): the ids of the held sessions, so the ledger attributes a late-arrival compensation to the RIGHT held session (a count cannot tell a held
+   * session from a cancelled one that also had a late arrival). Present only when it is exactly the held ones (same number as `unresolvedSessions`).
+   */
+  unresolvedSessionIds?: string[];
+  /**
+   * Quota A+: `contracts.compensated_sessions` is now the QUOTA number (a confirmed PT no-show consumes an entitlement at once, paid or not). payment-service prices money with the number of
+   * no-shows that were REALLY compensated; a booked no-show whose money step is not SETTLED is HELD by the ending (counted in `unresolvedSessions`, outcome NOT_DELIVERED), not also compensated.
+   * This is what the terminate call and the preview send as `compensatedSessions`. Absent = the contract's own counter.
+   */
+  compensatedPaid?: number;
+}
+
+/**
+ * Quota A+: the NO_SHOW sessions whose quota was booked at the terminal change (mark set) but whose money step is not SETTLED: the client is owed their value and the ledger has not paid it.
+ * Nothing here is a second source of truth: the mark lives on the session, the money state on its settlement row.
+ */
+export async function unpaidBookedNoShowIds(contractId: string, db: Prisma.TransactionClient | typeof prisma = prisma): Promise<string[]> {
+  const booked = await db.session.findMany({ where: { contractId, status: SessionStatus.NO_SHOW, noShowQuotaBookedAt: { not: null } }, select: { id: true } });
+  if (booked.length === 0) return [];
+  const rows = await db.sessionSettlement.findMany({
+    where: { idempotencyKey: { in: booked.map((s) => `PT_NO_SHOW:${s.id}`) }, status: SessionSettlementStatus.SETTLED },
+    select: { idempotencyKey: true },
+  });
+  const paid = new Set(rows.map((r) => r.idempotencyKey));
+  return booked.map((s) => s.id).filter((id) => !paid.has(`PT_NO_SHOW:${id}`));
+}
+
+/** The number of no-shows payment-service must treat as compensated: the quota counter minus the booked ones that are still unpaid (those are HELD). */
+export async function compensatedPaidFor(contractId: string, quotaCounter: number, db: Prisma.TransactionClient | typeof prisma = prisma): Promise<number> {
+  const unpaid = await unpaidBookedNoShowIds(contractId, db);
+  return Math.max(0, quotaCounter - unpaid.length);
+}
+
+/**
+ * Quota A+: books the entitlement of a PT no-show, ONCE, in the transaction that made the session NO_SHOW (contract lock held by the caller, contract ACTIVE).
+ * The per-session mark is set by a compare-and-set; only the call that sets it moves the counter. An ended contract is the historical branch: nothing is booked.
+ * Returns whether THIS call booked it.
+ */
+export async function bookNoShowQuota(tx: Tx, contractId: string, sessionId: string): Promise<boolean> {
+  const contract = await contractRepository.findById(contractId, tx);
+  if (!contract || isContractEnded(contract)) return false;
+  if (!(await sessionRepository.claimNoShowQuota(sessionId, contractId, { requireNoShow: true }, tx))) return false;
+  await contractRepository.incrementCompensatedSessions(contractId, undefined, tx);
+  return true;
 }
 
 /** FH-3c: what the contract's UNCONFIRMED (held) session rows stand for. A late-arrival row holds no session value. */
@@ -178,22 +226,38 @@ export async function terminationTermsFor(
   // restricted-PT exit; every other ending split a disputed session's value between PT / gym / platform / client).
   const countedAwaiting = await countUnresolvedSessions(contractId, db);
   const held = await heldUnconfirmedCounts(contractId, db);
-  const counted = countedAwaiting + held.delivered + held.noShow;
-  if (counted === 0) return { reason, unresolvedSessions: 0 };
+  // Quota A+: a booked no-show whose money is not SETTLED is held too (whether or not its row was already flipped to UNCONFIRMED by an ending's drain).
+  const unpaidNoShow = await unpaidBookedNoShowIds(contractId, db);
+  const heldNoShowRows = settlingD65bEnabled() ? (await sessionSettlementRepository.findHeldSessionRows(contractId, db)).filter((r) => r.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION) : [];
+  const noShowHeldIds = new Set<string>([...unpaidNoShow, ...heldNoShowRows.map((r) => r.sessionId).filter((v): v is string => !!v)]);
+  const counted = countedAwaiting + held.delivered + noShowHeldIds.size;
+  const c = await db.contract.findUnique({ where: { id: contractId }, select: { totalSessions: true, usedSessions: true, compensatedSessions: true } });
+  const compensatedPaid = c ? Math.max(0, c.compensatedSessions - unpaidNoShow.length) : undefined; // no row (a unit test with a stubbed repository): the sender falls back to the contract's own counter
+  if (counted === 0) return { reason, unresolvedSessions: 0, compensatedPaid };
   // payment-service refuses used + compensated + held > total. Never let a data glitch block a refund: hold at most
   // what the contract can still owe (the surplus session, if any, is then simply not held - and logged).
-  const c = await db.contract.findUnique({ where: { id: contractId }, select: { totalSessions: true, usedSessions: true, compensatedSessions: true } });
   // A delivered session held by FH-3c is counted ONCE: as held, not also as used (see TerminationTerms.heldDelivered).
   const used = c ? Math.max(0, c.usedSessions - held.delivered) : 0;
-  const room = c ? Math.max(0, c.totalSessions - used - c.compensatedSessions) : counted;
+  const room = c ? Math.max(0, c.totalSessions - used - (compensatedPaid ?? 0)) : counted;
   if (counted > room) logger.warn(`[ContractPayout] ${contractId}: ${counted} sessions await a decision but only ${room} are still owed - holding ${room}`);
   const unresolvedSessions = Math.min(counted, room);
-  return { reason, unresolvedSessions, ...(held.delivered > 0 ? { heldDelivered: Math.min(held.delivered, unresolvedSessions) } : {}) };
+  const awaiting = await db.session.findMany({ where: { contractId, status: { in: UNRESOLVED_SESSION_STATUSES }, sessionDeducted: false }, select: { id: true } });
+  const heldRows = settlingD65bEnabled() ? await sessionSettlementRepository.findHeldSessionRows(contractId, db) : [];
+  const ids = [...new Set([...awaiting.map((r) => r.id), ...heldRows.map((r) => r.sessionId).filter((v): v is string => !!v), ...unpaidNoShow])];
+  return {
+    reason,
+    unresolvedSessions,
+    compensatedPaid,
+    ...(held.delivered > 0 ? { heldDelivered: Math.min(held.delivered, unresolvedSessions) } : {}),
+    ...(ids.length === unresolvedSessions ? { unresolvedSessionIds: ids } : {}),
+  };
 }
 
 /** The request-body fragment for the held sessions: absent (not 0) when there are none. */
-export function unresolvedArg(terms: Pick<TerminationTerms, "unresolvedSessions">): { unresolvedSessions?: number } {
-  return terms.unresolvedSessions > 0 ? { unresolvedSessions: terms.unresolvedSessions } : {};
+export function unresolvedArg(terms: Pick<TerminationTerms, "unresolvedSessions"> & { unresolvedSessionIds?: string[] }): { unresolvedSessions?: number; unresolvedSessionIds?: string[] } {
+  return terms.unresolvedSessions > 0
+    ? { unresolvedSessions: terms.unresolvedSessions, ...(terms.unresolvedSessionIds ? { unresolvedSessionIds: terms.unresolvedSessionIds } : {}) }
+    : {};
 }
 
 export type UnresolvedOutcome = "DELIVERED" | "NOT_DELIVERED";
@@ -259,7 +323,7 @@ function contractMoneyFacts(c: ContractRow): Prisma.InputJsonObject {
 async function recordIntent(
   tx: Tx,
   contractId: string,
-  spec: { kind: SessionSettlementKind; idempotencyKey: string; sessionId: string; reason?: string | null },
+  spec: { kind: SessionSettlementKind; idempotencyKey: string; sessionId: string; reason?: string | null; caseDecisionId?: string },
 ): Promise<void> {
   const contract = payableOrNull(await contractRepository.findById(contractId, tx));
   if (!contract) return;
@@ -271,25 +335,36 @@ async function recordIntent(
       contractId,
       reason: spec.reason ?? null,
       snapshotFacts: contractMoneyFacts(contract),
+      // Dispute Case slice 2: the CaseDecision that ruled the session, kept in the immutable request snapshot (create only). Absent for every other intent.
+      ...(spec.caseDecisionId ? { caseDecisionId: spec.caseDecisionId } : {}),
     },
     tx,
   );
 }
 
 /** A delivered session: an ordinary release, or - when the contract had already ended - the resolution of the value payment-service HELD. */
-export function recordReleaseIntent(tx: Tx, contractId: string, sessionId: string, endedAtClaim?: boolean): Promise<void> {
+export function recordReleaseIntent(tx: Tx, contractId: string, sessionId: string, endedAtClaim?: boolean, caseDecisionId?: string): Promise<void> {
   return endedAtClaim
     ? recordIntent(tx, contractId, {
         kind: SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION,
         idempotencyKey: `UNRESOLVED_SESSION:${sessionId}`,
         sessionId,
         reason: "DELIVERED",
+        caseDecisionId,
       })
-    : recordIntent(tx, contractId, { kind: SessionSettlementKind.SESSION_RELEASE, idempotencyKey: `SESSION_RELEASE:${sessionId}`, sessionId });
+    : recordIntent(tx, contractId, { kind: SessionSettlementKind.SESSION_RELEASE, idempotencyKey: `SESSION_RELEASE:${sessionId}`, sessionId, caseDecisionId });
 }
 
-export function recordNoShowIntent(tx: Tx, contractId: string, sessionId: string): Promise<void> {
-  return recordIntent(tx, contractId, { kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey: `PT_NO_SHOW:${sessionId}`, sessionId });
+/**
+ * THE one helper every road into the terminal status NO_SHOW goes through, inside the transaction of the status change (contract lock held, contract ACTIVE):
+ *   PT admits (markNoShow), PT AGREEs to a client report (respondToNoShowReport -> markNoShow), a late PT cancel (cancelSession), a PT blocking a date with a confirmed session < 24h away
+ *   (availability addException), the room-close sweep (PT never entered), the admin ruling PT_NO_SHOW_CONFIRMED and the Case Executor (both resolveDisputeCore).
+ * It (1) books the entitlement (Quota A+: compensatedSessions + 1, once, marked on the session) and (2) records the money intent. The payment is NOT awaited: the quota is the client's right, the money follows.
+ * (An ended contract - the historical branch - books nothing; its ruling records a resolution of the held value instead.)
+ */
+export async function recordNoShowIntent(tx: Tx, contractId: string, sessionId: string, caseDecisionId?: string): Promise<void> {
+  await bookNoShowQuota(tx, contractId, sessionId);
+  return recordIntent(tx, contractId, { kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey: `PT_NO_SHOW:${sessionId}`, sessionId, caseDecisionId });
 }
 
 export function recordLateArrivalIntent(tx: Tx, contractId: string, sessionId: string): Promise<void> {
@@ -301,12 +376,13 @@ export function recordLateArrivalIntent(tx: Tx, contractId: string, sessionId: s
 }
 
 /** A held session of an ended contract was decided. */
-export function recordResolutionIntent(tx: Tx, contractId: string, sessionId: string, outcome: UnresolvedOutcome): Promise<void> {
+export function recordResolutionIntent(tx: Tx, contractId: string, sessionId: string, outcome: UnresolvedOutcome, caseDecisionId?: string): Promise<void> {
   return recordIntent(tx, contractId, {
     kind: SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION,
     idempotencyKey: `UNRESOLVED_SESSION:${sessionId}`,
     sessionId,
     reason: outcome,
+    caseDecisionId,
   });
 }
 
@@ -351,6 +427,11 @@ export async function resolveUnresolvedSessionMoney(
     });
     return;
   }
+  const lateGate = await lateOpenGate(sessionId);
+  if (lateGate.hold) {
+    await holdContestedLateStep({ kind: SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION, idempotencyKey, contractId, sessionId, reason: outcome }, lateGate.hold);
+    return;
+  }
   return settleTracked<ResolveAnswer>(
     { kind: SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION, idempotencyKey, contractId, sessionId, reason: outcome },
     async () => {
@@ -365,6 +446,7 @@ export async function resolveUnresolvedSessionMoney(
           idempotencyKey,
           outcome,
           ...holdbackArgOf(contract),
+          ...(lateGate.settle ? { settleLateOpen: true } : {}),
         })) as ResolveAnswer;
       } catch (e: any) {
         // A definite answer, not a failure: the ledger holds nothing for this session (the contract ended before
@@ -475,11 +557,11 @@ async function applyReleaseBookkeeping(tx: Tx, contractId: string, sessionId: st
 
 async function applyNoShowBookkeeping(tx: Tx, contractId: string, sessionId: string, result: any): Promise<void> {
   const fresh = await tx.contract.findUnique({ where: { id: contractId }, select: { notes: true } });
-  await contractRepository.incrementCompensatedSessions(
-    contractId,
-    `${fresh?.notes ? fresh.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách.`,
-    tx,
-  );
+  const note = `${fresh?.notes ? fresh.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách.`;
+  // Quota A+: a session whose quota was booked at the terminal change (mark set) is NOT counted again when its money settles - only the note is written. A row that was waiting from BEFORE the fix has
+  // no mark: it books the quota the old way, ONCE, and sets the mark.
+  if (await sessionRepository.claimNoShowQuota(sessionId, contractId, {}, tx)) await contractRepository.incrementCompensatedSessions(contractId, note, tx);
+  else await tx.contract.update({ where: { id: contractId }, data: { notes: note } });
   if (Number(result.shortfall) > 0) {
     logger.warn(`[ContractPayout] No-show shortfall ${result.shortfall} on ${contractId} - the unpaid part is an open obligation to the client`);
   }
@@ -491,11 +573,103 @@ async function applyLateArrivalBookkeeping(_tx: Tx, contractId: string, _session
   }
 }
 
+/**
+ * I5/C1 (Ngai, 31/10): the late-arrival compensation (D77) of a session is paid out of THAT session's money BEFORE the session is paid out. So a
+ * session whose `PT_LATE_ARRIVAL:<id>` step is not SETTLED yet is not released: the D77 step is tried first (the same order the ending's drain uses)
+ * and, if it still is not SETTLED, the release stays PENDING (its intent is already recorded) and the settlement sweep retries both, D77 first.
+ * Releasing the whole session first would pay the PT V and leave L to be taken from another session's money. true = nothing in the way.
+ */
+async function lateArrivalSettledFirst(contractId: string, sessionId: string, mode: SettleMode): Promise<boolean> {
+  const key = `PT_LATE_ARRIVAL:${sessionId}`;
+  const row = await sessionSettlementRepository.findByKey(key);
+  if (!row || row.status === SessionSettlementStatus.SETTLED) return true;
+  await compensateLateArrivalMoney(contractId, sessionId, mode).catch((e) => {
+    logger.warn(`[ContractPayout] D77 step of session ${sessionId} did not settle before its release: ${String(e?.message ?? e)}`);
+  });
+  const again = await sessionSettlementRepository.findByKey(key);
+  if (again?.status === SessionSettlementStatus.SETTLED) return true;
+  logger.warn(`[ContractPayout] release of session ${sessionId} waits: its D77 late-arrival step is ${again?.status ?? "missing"} (paid out of the session's own money first)`);
+  return false;
+}
+
+/**
+ * D77 final (phuong an A): the verified-D77 flag the ledger needs to pay an OPEN late-arrival obligation of THIS session out of the session's own money.
+ *   settle  true  <=> the feature flag DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED is effective AND the session's `PT_LATE_ARRIVAL:<id>` settlement row is SETTLED (the ledger
+ *           really wrote the compensation / the OPEN obligation) AND no OPEN dispute case holds a PT_LATE issue finding LATE_CONTESTED or NOT_LATE for the session AND the
+ *           contract has an approved ELIGIBLE_CURRENT_POLICY review or the session has an approved late-open reconciliation. Flag OFF = settle false, whatever else is true.
+ *   hold    the D77 itself is contested: the money step must not run (the row is parked NEEDS_HUMAN, nothing moves).
+ * D-NEW-12 (historical exceptions) has no data marker in the code: it is NOT evaluated here (the owner decides those case by case) - reported as BLOCKED.
+ */
+export async function lateOpenGate(sessionId: string): Promise<{ settle: boolean; hold?: string }> {
+  const row = await sessionSettlementRepository.findByKey(`PT_LATE_ARRIVAL:${sessionId}`);
+  if (!row) return { settle: false };
+  // D-NEW-12 (policy guard fix, Q1/Q2): the policy review is NOT a reason to HOLD an ordinary session. A session WITH a D77 step whose contract has no approved
+  // ELIGIBLE_CURRENT_POLICY review simply does not get the settleLateOpen flag: the step goes to the ledger without it, an OPEN L obligation is refused there
+  // (LATE_OPEN_FLAG_REQUIRED, nothing written) and a SETTLED L is settled as usual. The policy guard itself lives only at the dispute ruling and the Case Executor.
+  const sess = await prisma.session.findUnique({ where: { id: sessionId }, select: { contractId: true } });
+  let policyEligible = true;
+  if (sess) {
+    try {
+      await prisma.$transaction((tx) => assertPolicyEligibility(tx, sess.contractId));
+    } catch (e: any) {
+      if (e?.code === "POLICY_ELIGIBILITY_UNVERIFIED" || e?.code === "POLICY_EXCEPTION_APPLIES") policyEligible = false;
+      else throw e;
+    }
+  }
+  const contested = await prisma.disputeCaseIssue.findFirst({
+    where: { kind: "PT_LATE", finding: { in: ["LATE_CONTESTED", "NOT_LATE"] }, case: { sessionId, status: { notIn: ["DECISION_APPROVED", "REJECTED_INTAKE", "CLOSED"] } } },
+    select: { id: true, finding: true },
+  });
+  if (contested) return { settle: false, hold: `the late arrival of this session is contested in an open dispute case (${contested.finding})` };
+  // Final safety gate: an ORDINARY session (no Case, so no policy review) can be settled out of its own money only after a late-open reconciliation was APPROVED by a second admin for exactly this session
+  // (late_open_reconciliations: one proposal, one approval, not yet executed). The flag is read from that stored approval - never from a request.
+  // Fail-closed feature flag (DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED): while it is NOT effective NOTHING gives a session the settleLateOpen flag - neither a stored
+  // late-open reconciliation approval nor an approved ELIGIBLE_CURRENT_POLICY review (policyEligible). The contested `hold` above is evaluated first and stays as it was.
+  // (payment-service re-checks its own copy of the flag at the single point where OPEN L money moves, so a direct call that sends settleLateOpen:true is refused there too.)
+  if (!lateOpenReconciliationEnabled()) return { settle: false };
+  const reconciled = policyEligible ? false : await hasApprovedLateOpenReconciliation(sessionId);
+  return { settle: (policyEligible || reconciled) && row.status === SessionSettlementStatus.SETTLED };
+}
+
+/** True when a late-open reconciliation of THIS session is approved and not yet consumed (EXECUTED) or rejected. */
+export async function hasApprovedLateOpenReconciliation(sessionId: string): Promise<boolean> {
+  const n = await prisma.lateOpenReconciliation.count({ where: { sessionId, approvedAt: { not: null }, outcome: null } });
+  return n > 0;
+}
+
+/**
+ * READ-ONLY look at the ledger's late-arrival obligation of a session (final safety gate): what the contract's payment transaction holds, for the reconciliation path to decide on.
+ * Returns null when the contract has no payment behind it.
+ */
+export async function readLateOpenLedgerState(contractId: string, sessionId: string) {
+  const contract = payableOrNull(await contractRepository.findById(contractId));
+  if (!contract) return null;
+  const state = await paymentClient.readLateOpenState({ transactionId: contract.paymentTransactionId!, lateKey: `PT_LATE_ARRIVAL:${sessionId}`, parties: partiesOf(contract) as unknown as Record<string, unknown> });
+  return { state, price: contract.price!.toString(), totalSessions: contract.totalSessions };
+}
+
+/** Parks the step of a session whose D77 is contested: the row is created (so the reconciliation queue shows it), parked NEEDS_HUMAN, nothing is sent to the ledger. */
+async function holdContestedLateStep(
+  params: { kind: SessionSettlementKind; idempotencyKey: string; contractId: string; sessionId: string; reason?: string | null },
+  why: string,
+): Promise<void> {
+  const row = await sessionSettlementRepository.upsertPending({ ...params, reason: params.reason ?? null });
+  if (row.status === SessionSettlementStatus.SETTLED) return;
+  await sessionSettlementRepository.park(row.id, NEEDS_RECONCILIATION_PREFIX, why);
+  logger.error({ error: "[MoneyAttention] a session step waits: its D77 late arrival is contested - parked NEEDS_HUMAN, nothing moved", ...params, why });
+}
+
 export async function releaseSessionMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<void> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
+  if (!(await lateArrivalSettledFirst(contractId, sessionId, mode))) return;
+  const lateGate = await lateOpenGate(sessionId);
 
   const idempotencyKey = `SESSION_RELEASE:${sessionId}`;
+  if (lateGate.hold) {
+    await holdContestedLateStep({ kind: SessionSettlementKind.SESSION_RELEASE, idempotencyKey, contractId, sessionId }, lateGate.hold);
+    return;
+  }
   // Money-flow plan 1.6: tracked so a failed release is retried by the settlement sweep
   // instead of only ever being reconciled whenever the contract eventually terminates.
   await settleTracked(
@@ -515,6 +689,7 @@ export async function releaseSessionMoney(contractId: string, sessionId: string,
         // The PT holdback, if this contract carries one: the PT's first earnings are kept back, so
         // `result.released.pt` below can be less than a full session (0 for the first one).
         ...holdbackArgOf(contract),
+        ...(lateGate.settle ? { settleLateOpen: true } : {}),
       }),
     undefined,
     {
@@ -552,6 +727,11 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
   if (!contract) return;
 
   const idempotencyKey = `PT_NO_SHOW:${sessionId}`;
+  const lateGate = await lateOpenGate(sessionId);
+  if (lateGate.hold) {
+    await holdContestedLateStep({ kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey, contractId, sessionId }, lateGate.hold);
+    return;
+  }
   return settleTracked(
     { kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey, contractId, sessionId },
     () =>
@@ -563,6 +743,7 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
         parties: partiesOf(contract),
         label: `Contract ${contract.id} no-show ${sessionId}`,
         idempotencyKey,
+        ...(lateGate.settle ? { settleLateOpen: true } : {}),
       }),
     undefined,
     {
@@ -668,6 +849,11 @@ export async function assessSettlementRow(row: SettlementRowLike, db: Tx | typeo
       }
       return { ok: true };
     case SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION: {
+      // D65-B: the resolution of a held NO_SHOW session that went through the four-eyes admin path is run ONLY by that path (the approver resumes it); the settlement sweep / the
+      // ending's drain never pay it on their own - not after a failed or timed-out attempt, not after a crash.
+      if (row.sessionId && (await db.d65bResolution.findFirst({ where: { sessionId: row.sessionId, rejectedAt: null }, select: { id: true } }))) {
+        return { ok: false, wait: "D65-B admin resolution: only its approver resumes this step" };
+      }
       if (!isContractEnded(contract)) return { ok: false, wait: "the contract has not ended - nothing is held" };
       if (await sessionSettlementRepository.hasUnconfirmedTermination(row.contractId, db)) {
         return { ok: false, wait: "the ending that created the hold is not confirmed yet" };
@@ -1003,6 +1189,20 @@ export async function settleEndedCompensationRow(rowId: string): Promise<"RECORD
     return "BLOCKED";
   }
   if (record) return (await applyStoredLedgerResult(row, contract, record)) === "APPLIED" ? "APPLIED" : "BLOCKED";
+  if (row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION) {
+    const sess = await prisma.session.findUnique({ where: { id: row.sessionId }, select: { noShowQuotaBookedAt: true } });
+    if (sess?.noShowQuotaBookedAt) {
+      // Quota A+: this no-show was booked at the terminal change while the contract was ACTIVE and its money step was still unpaid when the contract ended, so the ending HELD its value
+      // (unresolvedSessionIds, NOT_DELIVERED). Recording an OPEN obligation as well would be a second claim on the same money; the held value is resolved to the client by the existing
+      // resolution (same key UNRESOLVED_SESSION:<id>), which also closes this row. If the ledger refuses (e.g. an OPEN late-arrival obligation without a verified flag) the row stays held (UNCONFIRMED)
+      // and the resolution is parked NEEDS_HUMAN: the late-open reconciliation path takes it from there.
+      await sessionSettlementRepository.holdUnconfirmed(row.id, "the ending holds this booked no-show's value; resolved to the client against the held value", prisma);
+      await resolveUnresolvedSessionMoney(row.contractId, row.sessionId, "NOT_DELIVERED", { takeover: false }, { closeHeldRowId: row.id }).catch((e) =>
+        logger.warn(`[ContractPayout] resolving the held no-show ${row.sessionId} failed (${(e as Error).message}) - left held`),
+      );
+      return (await sessionSettlementRepository.findById(row.id))?.status === SessionSettlementStatus.SETTLED ? "APPLIED" : "BLOCKED";
+    }
+  }
   return recordUnperformedCompensation(row, contract);
 }
 
@@ -1398,9 +1598,10 @@ export async function completeContractTermination(
 
   const fresh = await contractRepository.findById(contractId);
   if (!fresh) throw new Error(`Contract ${contractId} no longer exists`);
-  const contract = payableOrNull(fresh);
-  // Counters are frozen while the ending is recorded (every money step is refused), so the terms are the same on every attempt.
-  const terms: TerminationTerms = contract ? await terminationTermsFor(contract.id, intent.reason) : { reason: intent.reason, unresolvedSessions: 0 };
+  let contract = payableOrNull(fresh);
+  // Counters are frozen while the ending is recorded (every money step is refused), so the terms are the same on every attempt - except right after a
+  // TERMINATE_SNAPSHOT_STALE refusal (a step already past the freeze committed at the ledger): then both are re-read (see the loop below).
+  let terms: TerminationTerms = contract ? await terminationTermsFor(contract.id, intent.reason) : { reason: intent.reason, unresolvedSessions: 0 };
 
   // b. The money.
   let result: any = null;
@@ -1422,6 +1623,7 @@ export async function completeContractTermination(
       if (cur && cur.status !== "SETTLED" && (mode.takeover ?? true) === false) throw new SettlementInFlightError(intent.rowId);
       // SETTLED already: the call below only replays the stored answer (idempotent), to report it.
     }
+    for (let attempt = 1; ; attempt++) {
     try {
       result = await paymentClient.terminate({
         transactionId: contract.paymentTransactionId,
@@ -1433,7 +1635,8 @@ export async function completeContractTermination(
         // does not know a no-show session was already compensated in cash, and counts it as
         // still-unused entitlement on top of the cash payout the client already received -
         // paying the same session's value twice.
-        compensatedSessions: contract.compensatedSessions,
+        // Quota A+: the number of no-shows REALLY compensated by the ledger (the quota counter minus the booked ones still unpaid, which are held in unresolvedSessions).
+        compensatedSessions: terms.compensatedPaid ?? contract.compensatedSessions,
         rates: ratesOf(contract),
         reason: terms.reason,
         alreadyReleased: {
@@ -1451,8 +1654,24 @@ export async function completeContractTermination(
         ...holdbackArgOf(contract),
         ...unresolvedArg(terms),
       });
+      break;
     } catch (e) {
       const refusal = ledgerRefusalOf(e);
+      // Q3 (policy guard fix): the ledger saw MORE releases / no-shows than the figures this call carried (a step past the user-service freeze committed meanwhile). It wrote
+      // nothing. Bounded retry: wait for the in-flight steps, RE-READ the counters and the held sessions, call again. Never the old snapshot, never an unbounded loop;
+      // after TERMINATE_STALE_MAX_ATTEMPTS the refusal falls through to the CONFLICT park below (a stray door outside user-service never converges).
+      if (refusal?.code === "TERMINATE_SNAPSHOT_STALE" && attempt < TERMINATE_STALE_MAX_ATTEMPTS) {
+        logger.warn({ message: "[ContractPayout] ending refused as stale - re-reading the figures and trying again", contractId, attempt, of: TERMINATE_STALE_MAX_ATTEMPTS });
+        await awaitInFlightSessionSteps(contractId);
+        await sleep(TERMINATE_STALE_PAUSE_MS);
+        const again = await contractRepository.findById(contractId);
+        const againPayable = again ? payableOrNull(again) : null;
+        if (againPayable) {
+          contract = againPayable;
+          terms = await terminationTermsFor(againPayable.id, intent.reason);
+          continue;
+        }
+      }
       if (refusal) {
         // FH-2b: payment-service refused BEFORE writing anything. Retrying only repeats the refusal: park CONFLICT, alert, no retry.
         const note = `payment-service refused the termination (${refusal.code}): ${refusal.message}`;
@@ -1480,6 +1699,7 @@ export async function completeContractTermination(
         message,
       });
       throw Object.assign(contractEndingError(), { cause: e });
+    }
     }
 
     const malformed = invalidMoneyFigures(result);
@@ -1557,6 +1777,20 @@ function invalidTerminationAnswer(result: any, reason: TerminationReason, held: 
     return `the ledger holds ${heldAnswered} unresolved session(s) for this contract, the recorded ending expects ${held}`;
   }
   return null;
+}
+
+/** Q3: the ledger refused the ending as stale (TERMINATE_SNAPSHOT_STALE): the call is repeated with re-read figures this many times IN TOTAL, then the ending is parked CONFLICT. */
+export const TERMINATE_STALE_MAX_ATTEMPTS = 3;
+const TERMINATE_STALE_PAUSE_MS = 100;
+
+/** Waits (bounded by SETTLEMENT_INFLIGHT_WAIT_MS) until no session money step of the contract is being processed by a live runner. */
+async function awaitInFlightSessionSteps(contractId: string): Promise<void> {
+  const until = Date.now() + INFLIGHT_WAIT_MS();
+  while (Date.now() < until) {
+    const rows = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, prisma, { excludeHeld: true });
+    if (!rows.some((r) => isLiveRow(r))) return;
+    await sleep(100);
+  }
 }
 
 /** The race loop re-reads and retries when the guarded write loses; this many times, then it throws. */
@@ -1657,7 +1891,7 @@ export async function moneyBreakdown(
     usedSessions: Math.max(0, contract.usedSessions - (terms?.heldDelivered ?? 0)),
     // Same reason as the terminate call above - a preview of "what would I get back right
     // now" must also exclude compensated sessions from the still-pending pool it quotes.
-    compensatedSessions: contract.compensatedSessions,
+    compensatedSessions: terms?.compensatedPaid ?? (await compensatedPaidFor(contract.id, contract.compensatedSessions)),
     rates: ratesOf(contract),
     ...(terms ? { reason: terms.reason, ...unresolvedArg(terms) } : {}),
   });

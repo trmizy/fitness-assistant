@@ -29,7 +29,8 @@ import assert from "node:assert/strict";
 process.env.INTERNAL_API_SECRET ??= "test-only-internal-api-secret";
 
 const chatDatabaseUrl = process.env.CHAT_DATABASE_URL || process.env.DATABASE_URL || "";
-const canUseIntegrationDb = /_test/i.test(chatDatabaseUrl);
+// Slice 2 safety round: a DB suite runs only after the test preload (setup/db-isolation.ts) accepted an isolated *_test database.
+const canUseIntegrationDb = process.env.DB_ISOLATION === "accepted" && /_test/i.test(chatDatabaseUrl);
 
 if (process.env.CHAT_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.CHAT_DATABASE_URL;

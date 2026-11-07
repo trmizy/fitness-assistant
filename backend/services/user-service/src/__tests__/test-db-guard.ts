@@ -16,6 +16,7 @@
  * and pass `{ skip }` to each test.
  */
 import nodeTest from "node:test";
+import { validateTestDatabaseUrl } from "./setup/db-isolation-validator";
 
 /** The database name of a Postgres URL, or "" when the URL is missing or unparsable. */
 export function databaseNameOf(url: string | undefined): string {
@@ -27,16 +28,28 @@ export function databaseNameOf(url: string | undefined): string {
   }
 }
 
-/** True only when the URL parses and its database name ends with `_test`. */
+/** True only when the URL parses and its database name ends with `_test`. NAME ONLY: for "may a test open this database" use `isIsolatedTestDatabaseUrl`. */
 export function isTestDatabaseUrl(url: string | undefined): boolean {
   return /_test$/.test(databaseNameOf(url));
 }
 
-export const usable = isTestDatabaseUrl(process.env.DATABASE_URL);
+/**
+ * Full isolation check (hardening): host in {localhost,127.0.0.1}, port 55433, name ends _test, and not the .env DATABASE_URL. Same validator the
+ * preload (setup/db-isolation.ts) applied to TEST_DATABASE_URL.
+ */
+export function isIsolatedTestDatabaseUrl(url: string | undefined): boolean {
+  return validateTestDatabaseUrl(url).ok;
+}
+
+/**
+ * Fail closed: a DB suite runs only when the preload ACCEPTED a TEST_DATABASE_URL (DB_ISOLATION=accepted) and the DATABASE_URL in this process
+ * still passes the validator. A process started without the preload (plain `tsx --test file`) has no acceptance flag, so every DB suite is skipped.
+ */
+export const usable = process.env.DB_ISOLATION === "accepted" && isIsolatedTestDatabaseUrl(process.env.DATABASE_URL);
 
 export const skip: string | false = usable
   ? false
-  : `Refusing to touch a database: DATABASE_URL must point at a database whose name ends with "_test" (got "${databaseNameOf(process.env.DATABASE_URL) || "<unset>"}").`;
+  : `Refusing to touch a database: set TEST_DATABASE_URL to a localhost:55433 database whose name ends with "_test" and run through the package.json test script (preload src/__tests__/setup/db-isolation.ts). DB_ISOLATION=${process.env.DB_ISOLATION ?? "<no preload>"}.`;
 
 type AnyFn = (...args: any[]) => any;
 

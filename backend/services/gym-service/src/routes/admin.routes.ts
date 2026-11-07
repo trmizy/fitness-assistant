@@ -9,6 +9,7 @@ import { gymAdminUpdateSchema } from '../schemas/gym.schemas';
 import { partnerController } from '../controllers/partner.controller';
 import { partnerDiligenceController } from '../controllers/partner-diligence.controller';
 import { commissionRateController } from '../controllers/commission-rate.controller';
+import { complaintCaseController } from '../controllers/complaint-case.controller';
 import { complaintController } from '../controllers/complaint.controller';
 import { complaintPhotoController } from '../controllers/complaint-photo.controller';
 import { branchDocumentPhotoController } from '../controllers/branch-document-photo.controller';
@@ -164,6 +165,36 @@ router.patch('/complaints/:id/status', asyncHandler(complaintController.updateSt
 router.patch('/complaints/:id/assigned-admin', asyncHandler(complaintController.assignAdmin));
 router.get('/complaint-photos/:token', asyncHandler(complaintPhotoController.serve));
 router.get('/partners/:id/complaints', asyncHandler(complaintController.listForPartner));
+
+// Dispute V2.1 Slice 3 - lop ho so (Case) tren khieu nai gym. Moi thao tac GHI bi tu choi (409 GYM_CASE_DISABLED) khi co GYM_COMPLAINT_CASE_ENABLED
+// khong hieu luc; doc luon dung duoc. Danh tinh chi lay tu token; body .strict(); Idempotency-Key tuy chon.
+router.post('/complaints/:id/case', asyncHandler(complaintCaseController.open));
+// INT-09: declared BEFORE /:id so 'capabilities' is never read as a case id.
+router.get('/complaint-cases/capabilities', asyncHandler(complaintCaseController.capabilities));
+router.get('/complaint-cases', asyncHandler(complaintCaseController.list));
+router.get('/complaint-cases/:id', asyncHandler(complaintCaseController.detail));
+router.get('/complaint-cases/:id/history', asyncHandler(complaintCaseController.history));
+router.post('/complaint-cases/:id/assign', asyncHandler(complaintCaseController.assign));
+router.post('/complaint-cases/:id/transition', asyncHandler(complaintCaseController.transition));
+router.post('/complaint-cases/:id/request-more', asyncHandler(complaintCaseController.requestMore));
+router.post('/complaint-cases/:id/recollect', asyncHandler(complaintCaseController.recollect));
+router.post('/complaint-cases/:id/claims', asyncHandler(complaintCaseController.claim));
+router.post('/complaint-cases/:id/assessments', asyncHandler(complaintCaseController.assessment));
+router.post('/complaint-cases/:id/finding', asyncHandler(complaintCaseController.finding));
+router.post('/complaint-cases/:id/proposal', asyncHandler(complaintCaseController.propose));
+router.post('/complaint-cases/:id/decision', asyncHandler(complaintCaseController.decision));
+router.post('/complaint-cases/:id/ack-evidence-change', asyncHandler(complaintCaseController.ack));
+router.post('/complaint-cases/:id/shares', asyncHandler(complaintCaseController.share));
+router.post('/complaint-cases/:id/statements', asyncHandler(complaintCaseController.statementOnBehalf));
+router.post('/complaint-cases/:id/evidence', asyncHandler(complaintCaseController.evidenceOnBehalf));
+router.post('/complaint-cases/:id/execute', asyncHandler(complaintCaseController.execute));
+router.post('/complaint-cases/:id/reconcile-execution', asyncHandler(complaintCaseController.reconcile));
+// A1: the member's one appeal re-opens a concluded case; an INDEPENDENT reviewer is assigned here (never automatic).
+router.post('/complaint-cases/:id/appeal/reviewer', asyncHandler(complaintCaseController.assignAppealReviewer));
+// E3: replace an approved decision that has had NO money / business effect (propose -> a different admin approves or rejects).
+router.post('/complaint-cases/:id/decision-replacement', asyncHandler(complaintCaseController.replacementPropose));
+router.post('/complaint-cases/:id/decision-replacement/approve', asyncHandler(complaintCaseController.replacementApprove));
+router.post('/complaint-cases/:id/decision-replacement/reject', asyncHandler(complaintCaseController.replacementReject));
 
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification". Defense-in-depth mirror of the
 // owner-side serve route (see branch-document-photo.controller.ts's own doc comment) — full

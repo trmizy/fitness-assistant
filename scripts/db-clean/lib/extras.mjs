@@ -5,11 +5,10 @@
 import { SERVICES } from './config.mjs';
 import { TcpDb } from './db.mjs';
 import { makeKeep, POLICY } from './policy.mjs';
-import { paramList } from './engine.mjs';
+import { paramList, GUARD } from './engine.mjs';
 import { allTableCounts } from './engine.mjs';
 
 const LIVE = `('PENDING_REVIEW', 'PENDING_SIGNATURE', 'PENDING_PAYMENT', 'ACTIVE')`;
-const GUARD = '($1::text[] IS NOT NULL AND $2::text[] IS NOT NULL AND $3::text[] IS NOT NULL)';
 
 /** How would the cleanup change the 'one live contract per (pt, client) pair' situation? (report only - never acts) */
 export async function contractPairImpact(userDb, params, policy) {
@@ -25,7 +24,7 @@ export async function contractPairImpact(userDb, params, policy) {
          'duplicatePairsBefore', (SELECT count(*)::int FROM (SELECT 1 FROM contracts WHERE status::text IN ${LIVE} AND source::text <> 'MARKETPLACE' GROUP BY pt_user_id, client_user_id HAVING count(*) > 1) d),
          'liveContractsAfter', (SELECT count(*)::int FROM contracts t WHERE status::text IN ${LIVE} AND source::text <> 'MARKETPLACE' AND COALESCE(${keep}, FALSE) AND ${GUARD}),
          'duplicatePairsAfter', (SELECT count(*)::int FROM (SELECT 1 FROM contracts t WHERE status::text IN ${LIVE} AND source::text <> 'MARKETPLACE' AND COALESCE(${keep}, FALSE) AND ${GUARD} GROUP BY pt_user_id, client_user_id HAVING count(*) > 1) d),
-         'duplicatePairsInvolvingPreserved', (SELECT count(*)::int FROM (SELECT 1 FROM contracts WHERE status::text IN ${LIVE} AND source::text <> 'MARKETPLACE' AND (pt_user_id = ANY($1::text[]) OR client_user_id = ANY($1::text[])) AND ($2::text[] IS NOT NULL AND $3::text[] IS NOT NULL) GROUP BY pt_user_id, client_user_id HAVING count(*) > 1) d),
+         'duplicatePairsInvolvingPreserved', (SELECT count(*)::int FROM (SELECT 1 FROM contracts WHERE status::text IN ${LIVE} AND source::text <> 'MARKETPLACE' AND (pt_user_id = ANY($1::text[]) OR client_user_id = ANY($1::text[])) AND ${GUARD} GROUP BY pt_user_id, client_user_id HAVING count(*) > 1) d),
          'indexInstalled', (SELECT count(*)::int FROM pg_indexes WHERE indexname = 'contracts_one_live_per_pair'))`,
       P,
     );

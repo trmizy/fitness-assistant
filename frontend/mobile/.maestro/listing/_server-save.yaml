@@ -1,0 +1,6 @@
+appId: vn.fitnessassistant.app
+---
+- tapOn: "Lưu"
+- assertVisible: "Đã lưu địa chỉ máy chủ"
+- takeScreenshot: server-after
+- back

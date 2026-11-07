@@ -76,6 +76,11 @@ test("a PT cancelling < 24h out compensates the client and marks the session NO_
       return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
+    // QUOTA A+ (01/11/2026, Ngai): the entitlement of a validly confirmed PT no-show is booked at the terminal change, in the decision's transaction, once (per-session mark) - not after the money step. The mark's compare-and-set is stubbed statefully here: the first claim wins (the decision), a later one (the settlement) loses.
+    patch(sessionRepository, "claimNoShowQuota", (() => {
+      let claimed = false;
+      return async () => (claimed ? false : (claimed = true));
+    })()),
     patch(contractRepository, "incrementCompensatedSessions", async () => {
       calls.push("incrementCompensatedSessions");
       return {} as any;
@@ -107,8 +112,8 @@ test("a PT cancelling < 24h out compensates the client and marks the session NO_
 
   assert.deepEqual(calls, [
     `updateStatus:${SessionStatus.NO_SHOW}`,
+    "incrementCompensatedSessions", // A+: booked in the decision's transaction, before the money call
     "paymentClient.noShow",
-    "incrementCompensatedSessions",
     "checkAndCompleteContract",
   ]);
   assert.ok(!calls.includes("incrementSession"), "the client's quota is NOT deducted for a PT-caused cancellation");

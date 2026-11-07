@@ -3,7 +3,7 @@
  * db-clean - the database cleanup tool for the Listing Management plan (Phase G / H). See README-db-clean.md next to this file
  * and plan sections 9, 12.9, 12.13-12.16.
  *
- *   audit    --env dev|test [--out DIR] [--report FILE] [--allowlist FILE] [--fixtures "a;b"] [--partner-dbs report|include] [--db-suffix S]
+ *   audit    --env dev|test [--out DIR] [--report FILE] [--allowlist FILE] [--deny-file FILE] [--fixtures "a;b"] [--partner-dbs report|include] [--db-suffix S]
  *            READ ONLY. Writes the candidate manifest + confirmToken (+ metadata) into --out. No write to any database.
  *   audit    --recheck --manifest F --confirm-token T [--run-dir DIR]
  *   approve  --manifest F --confirm-token T --out DIR        copy the (manifest, token) pair into DIR/approved/ (read only)
@@ -23,7 +23,7 @@ import * as C from './lib/commands.mjs';
 
 const COMMON = { env: 'val', 'db-suffix': 'val', 'run-dir': 'val' };
 const SPEC = {
-  audit: { ...COMMON, out: 'val', report: 'val', allowlist: 'val', fixtures: 'val', 'partner-dbs': 'val', recheck: 'bool', manifest: 'val', 'confirm-token': 'val' },
+  audit: { ...COMMON, out: 'val', report: 'val', allowlist: 'val', 'deny-file': 'val', fixtures: 'val', 'partner-dbs': 'val', recheck: 'bool', manifest: 'val', 'confirm-token': 'val' },
   approve: { ...COMMON, manifest: 'val', 'confirm-token': 'val', out: 'val' },
   freeze: { ...COMMON, manifest: 'val', 'confirm-token': 'val' },
   backup: { ...COMMON, manifest: 'val', 'confirm-token': 'val' },

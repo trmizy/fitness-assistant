@@ -111,6 +111,7 @@ test("blocking a date <24h ahead compensates the client and marks the session NO
       return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
+    patch(sessionRepository, "claimNoShowQuota", async () => true), // QUOTA A+: the entitlement mark is a compare-and-set in the decision's transaction (no DB in this unit test)
     patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
     patch(paymentClient, "noShow", async () => {
       calls.push("paymentClient.noShow");
@@ -150,6 +151,7 @@ test("a PT block that CANCELS a session records the PT as the canceller; the <24
         return true;
       }),
       patch(contractRepository, "findById", async () => contractFixture(contractId) as any),
+      patch(sessionRepository, "claimNoShowQuota", async () => true), // QUOTA A+ (see above)
       patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
       patch(paymentClient, "noShow", async () => ({ compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" }) as any),
       patch(notificationService, "create", async () => ({}) as any),

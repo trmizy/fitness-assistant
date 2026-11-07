@@ -1,0 +1,87 @@
+# f: PT (dang-quoc-bao, P8: APPROVED listing, 1 public physique photo) adds an UNDECODABLE image as a physique photo
+#    -> a Vietnamese error is shown (never the picker's raw English text) and the listing is unchanged; draft discarded.
+# Needs the broken image in the phone's gallery first (device-side fixture, not product code):
+#    helpers/push-broken-image.sh push        (default kind header-only; use `remove` afterwards)
+# Run: run.sh f-pt-photo-invalid.yaml -e EMAIL=dang-quoc-bao@seed.gymini.test -e PHOTOS=1     (PASSWORD injected by the runner)
+#   PHOTOS = how many public physique photos the PT has right now (the "Ảnh hình thể n/5" counter), so "unchanged" can be asserted.
+#
+# What happens (CODE AUDIT of expo-image-picker 57 + PtListingScreen.onAddPhotos): the gallery picker runs with quality 0.8, so it decodes
+# and RE-ENCODES the file before the app sees it. A file Android cannot decode (header-only JPEG, text) makes the picker reject, and
+# onAddPhotos shows pickErrorMessage(e) = "Không đọc được ảnh này. Hãy chọn ảnh khác (JPEG, PNG hoặc WebP)." in a toast.
+# A leniently-decodable truncated JPEG is REPAIRED by the picker and uploads fine, so the server's 422 IMAGE_INVALID (Vietnamese card
+# "Ảnh bị hỏng hoặc không đúng định dạng JPEG, PNG, WebP…") is not reachable from the gallery; it is covered by the backend integration test
+# user-service pt-listing-upload.integration.test.ts and by the ptListing unit tests of the code->sentence mapping.
+# NOTE: tap "Thư viện ảnh" only; never "Chụp ảnh" (camera) - and never run this on the TECNO.
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- runFlow: _pt-open-listing.yaml
+- takeScreenshot: f-01-listing
+- runFlow:
+    when:
+      visible: "Soạn bản sửa mới"
+    commands:
+      - tapOn: "Soạn bản sửa mới"
+- extendedWaitUntil:
+    visible: "Giới thiệu & chuyên môn"
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Thêm ảnh"
+- assertVisible: "Ảnh hình thể.${PHOTOS}/5"
+- tapOn: "Thêm ảnh"
+- extendedWaitUntil:
+    visible: "Thư viện ảnh"
+    timeout: 10000
+- tapOn: "Thư viện ảnh"
+# first run on a device: the storage-permission dialog (English or Vietnamese system language)
+- tapOn:
+    text: "Allow|ALLOW|Cho phép|CHO PHÉP"
+    optional: true
+- takeScreenshot: f-02-picker
+# document-style picker shows file names; the Android photo picker shows a grid whose first tile is the newest file
+- runFlow:
+    when:
+      visible: "maestro-broken.jpg"
+    commands:
+      - tapOn: "maestro-broken.jpg"
+- runFlow:
+    when:
+      visible: "Photo taken on.*|Ảnh được chụp vào.*"
+    commands:
+      - tapOn:
+          text: "Photo taken on.*|Ảnh được chụp vào.*"
+          index: 0
+- tapOn:
+    text: "Add.*|Done|Xong|Thêm.*"
+    optional: true
+# the picker rejects the undecodable file: Vietnamese toast, nothing attached, no upload card
+- extendedWaitUntil:
+    visible: "Không đọc được ảnh này.*"
+    timeout: 30000
+- takeScreenshot: f-03-picker-error
+- assertNotVisible: "Failed.*"
+- assertNotVisible: "Chưa.tải.được.*"
+# the listing is unchanged: same photo counter
+- assertVisible: "Ảnh hình thể.${PHOTOS}/5"
+- takeScreenshot: f-04-unchanged
+# discard the draft that "Soạn bản sửa mới" opened (restore)
+- scrollUntilVisible:
+    element: "Bỏ nháp"
+- tapOn: "Bỏ nháp"
+- assertVisible: "Bỏ bản nháp?"
+- tapOn: "BỎ NHÁP"
+- assertVisible: "Đã bỏ bản nháp"
+- takeScreenshot: f-05-discarded
+- runFlow: _pt-logout.yaml

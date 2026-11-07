@@ -75,6 +75,25 @@ không có mặt lúc hệ thống quyết định huỷ nó. Tự huỷ còn k�
 (`docs/money-flow.md` §5) — tức là **tự động chuyển tiền** vì một thao tác sửa lịch. Nếu PT
 thật sự muốn bỏ các buổi đó, dùng luồng dời lịch ở §2.
 
+### Quản lý lịch làm việc trong tin đăng PT (web và Expo)
+
+Màn “Tin đăng” cho PT chỉnh trực tiếp các khung giờ hằng tuần (nhiều khung trong một ngày;
+khoảng trống giữa khung là breaktime) và ngày nghỉ riêng. Các thay đổi lưu ngay vào
+`PTAvailability`/`PTScheduleException`, **không đi qua duyệt tin đăng**. `PUT /availability/me`
+thay lịch mở nhận đặt mới nhưng không sửa trạng thái các buổi đã đặt. Ngày nghỉ dùng
+`POST /availability/me/planning-exceptions`; endpoint này chỉ đóng nhận đặt mới, không gọi
+luồng hủy buổi hoặc bồi hoàn. `POST /availability/me/exceptions` cũ vẫn là nghiệp vụ hủy
+buổi riêng, không được gọi từ màn quản lý lịch làm việc.
+
+Trang chi tiết PT của Client chỉ gọi `GET /availability/:ptUserId/slots?date=…&bookableOnly=true`.
+Đáp án là các chuỗi `HH:mm`, không gồm tên Client, hợp đồng hay buổi đã đặt. Bộ lọc
+`bookableOnly` loại giờ quá hạn đặt trước 24 giờ và khung trùng buổi hiện có; bước đặt buổi
+vẫn kiểm tra lại trên server vì giờ trống có thể thay đổi.
+
+Nếu PT lưu một tuần không có giờ nhận lịch, repository giữ một dòng `PTAvailability` không
+hoạt động để phân biệt lựa chọn này với PT đời cũ chưa từng cấu hình. Dòng đánh dấu không
+hiển thị trong lịch làm việc, không mở giờ đặt mới, và ngăn lazy-seed khôi phục nhầm lịch cũ.
+
 ---
 
 ## 2. Dời lịch hai phía

@@ -133,6 +133,29 @@ export const contractRepository = {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"contract-pair:" + ptUserId + ":" + clientUserId}, 0))`;
   },
 
+  /** The OTHER PTs this client currently holds a live (non-terminal, non-marketplace) contract or request with —
+   *  the input to the "at most MAX_LIVE_PTS_PER_CLIENT PTs at once" rule. Marketplace orders are exempt (no sessions,
+   *  already paid before the contract row exists). Pass the transaction client under lockClientPtSlots. */
+  findOtherLivePtsForClient: async (clientUserId: string, excludePtUserId: string, db: Db = prisma) => {
+    const rows = await db.contract.findMany({
+      where: {
+        clientUserId,
+        ptUserId: { not: excludePtUserId },
+        source: { not: ContractSource.MARKETPLACE },
+        status: { in: NON_TERMINAL_PAIR_STATUSES },
+      },
+      select: { ptUserId: true },
+      distinct: ["ptUserId"],
+    });
+    return rows.map((r) => r.ptUserId);
+  },
+
+  /** Serialises contract creation for ONE client across all PTs, so two concurrent requests to two different PTs
+   *  cannot both pass the per-client PT cap. Always taken AFTER lockPtClientPair (single, fixed lock order). */
+  lockClientPtSlots: async (tx: Prisma.TransactionClient, clientUserId: string) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"client-pt-slots:" + clientUserId}, 0))`;
+  },
+
   /** A contract already created for this payment (marketplace retries must not create a second one). */
   findByPaymentTransactionId: (paymentTransactionId: string, db: Db = prisma) =>
     db.contract.findFirst({ where: { paymentTransactionId } }),

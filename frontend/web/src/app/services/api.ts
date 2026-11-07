@@ -5251,6 +5251,10 @@ export const availabilityService = {
     });
     return data;
   },
+  addPlanningException: async (date: string, reason?: string) => {
+    const { data } = await api.post("/availability/me/planning-exceptions", { date, reason });
+    return data;
+  },
   removeException: async (id: string) => {
     const { data } = await api.delete(`/availability/me/exceptions/${id}`);
     return data;
@@ -5260,6 +5264,10 @@ export const availabilityService = {
       `/availability/${ptUserId}/slots?date=${date}`,
     );
     return data;
+  },
+  getBookableSlots: async (ptUserId: string, date: string) => {
+    const { data } = await api.get(`/availability/${ptUserId}/slots?date=${date}&bookableOnly=true`);
+    return data as string[];
   },
 };
 

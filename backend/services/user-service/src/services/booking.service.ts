@@ -43,8 +43,10 @@ import {
   CONTRACT_ENDING,
 } from "./contract-lock";
 import { endOpenRoomCall } from "./open-room-call.service";
+import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, assertNoCaseForOldDoor, assertPolicyEligibility, type CaseDecisionCtx } from "./dispute-case/execution-guard";
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
+import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -68,10 +70,7 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
-const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/** BR-30: a session must START at least this long from now - the same number for booking and for rescheduling (B27). */
-const BOOKING_LEAD_TIME_MS = CANCEL_WINDOW_MS;
+/** BR-30: booking and rescheduling share BOOKING_LEAD_TIME_MS. */
 /** A reschedule may not be requested this close to the ORIGINAL start (unchanged rule). */
 const RESCHEDULE_ORIGINAL_CUTOFF_MS = 12 * 60 * 60 * 1000;
 
@@ -181,7 +180,7 @@ export interface QuotaDeps {
    * and "its release is owed" are one fact. Absent (unit tests with fake deps): nothing is recorded; the money step below
    * records it itself.
    */
-  recordMoneyIntent?: (tx: Prisma.TransactionClient, contractId: string, sessionId: string, endedAtClaim?: boolean) => Promise<void>;
+  recordMoneyIntent?: (tx: Prisma.TransactionClient, contractId: string, sessionId: string, endedAtClaim?: boolean, caseDecisionId?: string) => Promise<void>;
   checkAndCompleteContract: (contractId: string) => Promise<unknown>;
   /** Runs AFTER the decision committed, with no lock and no transaction around it (it calls payment-service). */
   releaseMoney: (contractId: string, sessionId: string, endedAtClaim?: boolean) => Promise<void>;
@@ -193,13 +192,25 @@ export interface QuotaDeps {
   exclusive?: <T>(contractId: string, fn: (tx?: Prisma.TransactionClient) => Promise<T>) => Promise<T>;
 }
 
+/**
+ * Dispute Case slice 2: what the CaseDecision executor adds to the delivery claim. Absent (every other caller): nothing changes.
+ *  - beforeClaim: runs INSIDE the contract-locked decision transaction, after the "ending?" check and BEFORE the compare-and-set (B-1 guard).
+ *  - caseDecisionId: written into the intent's request_snapshot (the session row gets it through the transition's `extra`).
+ *  - afterDecisionCommitted: TEST SEAM, awaited between the committed decision and its money step.
+ */
+export interface QuotaHooks {
+  beforeClaim?: (tx: Prisma.TransactionClient) => Promise<void>;
+  caseDecisionId?: string;
+  afterDecisionCommitted?: () => Promise<void>;
+}
+
 const defaultQuotaDeps: QuotaDeps = {
   claimDeduction: async (id, contractId, tx, transition) => {
     if (!tx) throw new Error("claimDeduction needs the contract-locked transaction");
     return sessionRepository.claimDelivery(tx, id, contractId, transition);
   },
   incrementSession: (id, tx) => contractRepository.incrementSession(id, tx),
-  recordMoneyIntent: (tx, contractId, sessionId, endedAtClaim) => recordReleaseIntent(tx, contractId, sessionId, endedAtClaim),
+  recordMoneyIntent: (tx, contractId, sessionId, endedAtClaim, caseDecisionId) => recordReleaseIntent(tx, contractId, sessionId, endedAtClaim, caseDecisionId),
   checkAndCompleteContract: (id) => contractService.checkAndCompleteContract(id),
   // On a contract that has ENDED (any reason), a delivered session settles against the value payment-service HELD
   // for it; on a running contract this is the ordinary release.
@@ -229,6 +240,7 @@ export async function deductQuotaOnce(
   contractId: string,
   deps: QuotaDeps = defaultQuotaDeps,
   transition?: DeliveryTransition,
+  hooks?: QuotaHooks,
 ): Promise<boolean> {
   const exclusive = deps.exclusive ?? (async <T>(_c: string, fn: (tx?: Prisma.TransactionClient) => Promise<T>) => fn());
   let endedAtClaim: boolean | undefined;
@@ -237,20 +249,54 @@ export async function deductQuotaOnce(
   // a crash before it leaves nothing - the claim, the count and the intent roll back together).
   const won = await exclusive(contractId, async (tx) => {
     if (tx) await assertNotEnding(contractId, tx); // D59: the ending is recorded but unconfirmed - nothing is delivered / released now
+    if (hooks?.beforeClaim) {
+      if (!tx) throw new Error("beforeClaim needs the contract-locked transaction");
+      await hooks.beforeClaim(tx); // slice 2: the CaseDecision guard, under the same lock, before the compare-and-set
+    }
     const claim = await deps.claimDeduction(sessionId, contractId, tx, transition);
     const claimed = typeof claim === "boolean" ? claim : claim.claimed;
     if (!claimed) return false;
     endedAtClaim = typeof claim === "boolean" ? undefined : claim.endedAtClaim;
     await deps.incrementSession(contractId, tx); // same transaction: the ending's snapshot sees the claim AND the count
-    if (tx && deps.recordMoneyIntent) await deps.recordMoneyIntent(tx, contractId, sessionId, endedAtClaim);
+    if (tx && deps.recordMoneyIntent) await deps.recordMoneyIntent(tx, contractId, sessionId, endedAtClaim, hooks?.caseDecisionId);
     return true;
   });
   if (!won) return false;
+  if (hooks?.afterDecisionCommitted) await hooks.afterDecisionCommitted();
   // The money step (idempotent on the intent's key; a failure is recorded on the row and retried, never lost).
   await deps.releaseMoney(contractId, sessionId, endedAtClaim);
   // After the lock: completing the contract takes it.
   await deps.checkAndCompleteContract(contractId);
   return true;
+}
+
+/** 409 - the client already has a REQUESTED/CONFIRMED session (with any PT) overlapping the slot. */
+export const CLIENT_SCHEDULE_CONFLICT = "CLIENT_SCHEDULE_CONFLICT";
+
+/**
+ * The client-side half of the slot rule: a client cannot be in two sessions at once, even with two different PTs.
+ * When `tx` is passed (always inside withPtScheduleLock) the client's own schedule lock is taken first, so two
+ * concurrent bookings with two different PTs - which hold two different PT locks - still serialise here.
+ */
+async function assertClientSlotFree(
+  clientUserId: string,
+  startAt: Date,
+  endAt: Date,
+  actor: "CLIENT" | "PT",
+  excludeSessionId?: string,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  if (tx) await sessionRepository.lockClientSchedule(tx, clientUserId);
+  const conflict = await sessionRepository.findClientConflict(clientUserId, startAt, endAt, excludeSessionId, tx);
+  if (conflict) {
+    throw codedError(
+      actor === "CLIENT"
+        ? "Bạn đã có một buổi tập khác (đang chờ duyệt hoặc đã xác nhận) trùng khung giờ này"
+        : "Học viên đã có một buổi tập khác trùng khung giờ này",
+      409,
+      CLIENT_SCHEDULE_CONFLICT,
+    );
+  }
 }
 
 /**
@@ -308,6 +354,186 @@ async function assertSlotBookable(
   dayEnd.setHours(23, 59, 59, 999);
   const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
   if (exceptions.length > 0) throw err("Huấn luyện viên nghỉ vào ngày này", 400);
+}
+
+/**
+ * P0 cluster B5: a DISPUTED session can arrive here from either direction —
+ * disputeSession (client disputes what the PT reported as delivered) or
+ * respondToNoShowReport's DENY branch (PT denies a client's no-show report). The first
+ * direction only ever needed COMPLETED/CANCELLED. The second needed a third outcome:
+ * confirming the client was right settles exactly like markNoShow's PT-self-admit branch
+ * (cash compensation, quota untouched) — CANCELLED alone left the client uncompensated for
+ * a PT absence an admin had just confirmed really happened, the same session's value a
+ * self-admitted no-show always pays out simply vanishing depending on which path got there.
+ */
+export async function resolveDisputeCore(
+  sessionId: string,
+  adminId: string,
+  resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED",
+  note: string,
+  ctx?: CaseDecisionCtx,
+) {
+  assertEntryAllowed(ctx); // T0 (slice 2): with the flag on, only a verified CaseDecision reaches the rulings below
+  if (!note?.trim()) throw err("Cần nhập ghi chú giải quyết", 400);
+  if (resolution !== "COMPLETED" && resolution !== "CANCELLED" && resolution !== "PT_NO_SHOW_CONFIRMED") {
+    throw err("Kết quả giải quyết không hợp lệ", 400);
+  }
+
+  const session = await sessionRepository.findById(sessionId);
+  if (!session) throw err("Không tìm thấy buổi tập", 404);
+  if (session.status !== SessionStatus.DISPUTED) {
+    throw err("Buổi tập này không ở trạng thái đang khiếu nại", 400);
+  }
+
+  // F2 / D45-L3 + F3: a disputed session of a contract that has ENDED (for any reason) is one whose value
+  // payment-service HELD at the ending; this ruling settles that held value (DELIVERED / NOT_DELIVERED) instead of
+  // the ordinary quota / no-show-compensation steps. The ruling is claimed with ONE compare-and-swap from DISPUTED
+  // (two admins cannot rule it two ways, and nothing else - a confirm, a cancel - can overwrite it), and the "has the
+  // contract ended?" fact is read in that same step under the contract lock, so it is ordered against an ending in
+  // flight. Phase 0 / D58: the ruling (the status CAS) and the INTENT of its money step commit together in that one
+  // short transaction; the money step itself runs after the lock is released, idempotent on the intent's key. A contract
+  // whose ending is recorded but unconfirmed refuses the ruling (409 CONTRACT_ENDING, D59).
+  const claimRuling = async (
+    next: SessionStatus,
+    extra: Record<string, unknown>,
+    intent: (tx: Prisma.TransactionClient, endedAtClaim: boolean) => Promise<void>,
+    money: (endedAtClaim: boolean) => Promise<void>,
+  ) => {
+    const endedAtClaim = await withContractLock(session.contractId, async (tx) => {
+      await assertNotEnding(session.contractId, tx);
+      // Dispute Case slice 2: the CaseDecision + D77 (B-1) guard, under THIS lock and BEFORE the compare-and-set below. No ctx = the old exit: nothing here.
+      await assertPolicyEligibility(tx, session.contractId); // D-NEW-12: every door (the old route and every retry included), fail-closed, before anything is written
+      await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B: the old door never rules over a Case (T0 off included). After the policy guard so that guard's answers are unchanged.
+      await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
+      await assertCancelNotOverD77(tx, sessionId, resolution); // I6 = A: every door, not only the Case executor
+      const contract = await contractRepository.findById(session.contractId, tx);
+      const won = await sessionRepository.transitionStatus(sessionId, [SessionStatus.DISPUTED], next, { ...extra, ...(ctx ? { resolvedByCaseDecisionId: ctx.caseDecisionId } : {}) }, tx);
+      if (!won) throw sessionAlreadyProcessedError("Buổi tập này đã được phân xử");
+      const ended = !!contract && isContractEnded(contract);
+      await intent(tx, ended);
+      return ended;
+    });
+    if (ctx?.afterDecisionCommitted) await ctx.afterDecisionCommitted(); // TEST SEAM: a crash between the committed decision and its money step
+    await money(endedAtClaim);
+    return { updated: await sessionRepository.findById(sessionId), endedAtClaim };
+  };
+
+  if (resolution === "PT_NO_SHOW_CONFIRMED") {
+    const noShowFields = {
+      resolvedBy: adminId,
+      resolutionNote: note.trim(),
+      resolvedAt: new Date(),
+      ptNotes: "Quản trị viên xác nhận huấn luyện viên vắng mặt",
+      // Vòng 4 / Phase E2 — counts toward the client's right to terminate after 3.
+      ptAtFault: true,
+    };
+    let moneyAnswer: unknown;
+    const { updated, endedAtClaim } = await claimRuling(
+      SessionStatus.NO_SHOW,
+      noShowFields,
+      async (tx, ended) => {
+        if (ended) await recordResolutionIntent(tx, session.contractId, sessionId, "NOT_DELIVERED", ctx?.caseDecisionId);
+        else await recordNoShowIntent(tx, session.contractId, sessionId, ctx?.caseDecisionId);
+      },
+      async (ended) => {
+        if (ended) {
+          // The PT did not turn up: the value held for this session goes back to the client. No separate
+          // no-show compensation (that would pay the same session twice) and no completion check (the
+          // contract already ended).
+          await resolveUnresolvedSessionMoney(session.contractId, sessionId, "NOT_DELIVERED");
+        } else {
+          // Same settlement markNoShow's PT-self-admit branch uses — cash compensation, charged
+          // to the three parties in proportion, the client's quota never touched.
+          moneyAnswer = await compensateNoShowMoney(session.contractId, sessionId);
+        }
+      },
+    );
+    // After the lock: completing the contract takes the same lock.
+    if (!endedAtClaim) await contractService.checkAndCompleteContract(session.contractId);
+
+    // DQ-2(a): the notices go out only after the money step has answered, and the amount is only stated when it is known.
+    const adminLead = "Quản trị viên xác nhận huấn luyện viên vắng mặt.";
+    for (const userId of [session.clientUserId, session.ptUserId]) {
+      await notificationService
+        .create({
+          userId,
+          text:
+            userId === session.clientUserId
+              ? ptFaultClientMessage(adminLead, readPtFaultMoney(moneyAnswer))
+              : ptFaultPtMessage(adminLead),
+          eventType: "SESSION_DISPUTE_RESOLVED",
+          entityType: "SESSION",
+          entityId: sessionId,
+          link: userId === session.clientUserId ? "/client/wallet" : "/pt/schedule",
+        })
+        .catch(() => {});
+    }
+
+    return { ...updated, quotaDeducted: false };
+  }
+
+  const rulingStatus = resolution === "COMPLETED" ? SessionStatus.COMPLETED : SessionStatus.CANCELLED;
+  const rulingFields = {
+    resolvedBy: adminId,
+    resolutionNote: note.trim(),
+    resolvedAt: new Date(),
+    ...(resolution === "COMPLETED"
+      ? { completedAt: new Date() }
+      : { cancelledBy: "ADMIN", cancellationReason: note.trim() }),
+  };
+  let deducted = false;
+  let updated: Awaited<ReturnType<typeof sessionRepository.findById>>;
+  if (resolution === "COMPLETED") {
+    // Only a COMPLETED ruling costs the client a session (and, on an ended contract, releases the held value).
+    // The ruling IS the delivery claim: status DISPUTED -> COMPLETED and the quota claim are one update (F3), so no
+    // instant exists where the session is "ruled delivered" but neither charged nor paid.
+    deducted = await deductQuotaOnce(
+      sessionId,
+      session.contractId,
+      undefined,
+      { from: [SessionStatus.DISPUTED], extra: { ...rulingFields, ...(ctx ? { resolvedByCaseDecisionId: ctx.caseDecisionId } : {}) } },
+      {
+        // D-NEW-12 + the CaseDecision guard, under the contract lock, before the compare-and-set - for the old route too (no ctx).
+        beforeClaim: async (tx) => {
+          await assertPolicyEligibility(tx, session.contractId);
+          await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B (after the policy guard, whose answers stay as they were)
+          await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
+        },
+        caseDecisionId: ctx?.caseDecisionId,
+        afterDecisionCommitted: ctx?.afterDecisionCommitted,
+      },
+    );
+    if (!deducted) throw sessionAlreadyProcessedError("Buổi tập này đã được phân xử");
+    updated = await sessionRepository.findById(sessionId);
+  } else {
+    // "Not delivered": nothing was consumed, so on an ended contract the held value is refunded to the client.
+    const ruled = await claimRuling(
+      rulingStatus,
+      rulingFields,
+      async (tx, ended) => {
+        if (ended) await recordResolutionIntent(tx, session.contractId, sessionId, "NOT_DELIVERED", ctx?.caseDecisionId);
+      },
+      async (ended) => {
+        if (ended) await resolveUnresolvedSessionMoney(session.contractId, sessionId, "NOT_DELIVERED");
+      },
+    );
+    updated = ruled.updated;
+  }
+
+  for (const userId of [session.clientUserId, session.ptUserId]) {
+    await notificationService
+      .create({
+        userId,
+        text: `Quản trị viên đã phân xử buổi tập: ${resolution === "COMPLETED" ? "tính là đã hoàn thành" : "huỷ, không trừ buổi"}`,
+        eventType: "SESSION_DISPUTE_RESOLVED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
+      })
+      .catch(() => {});
+  }
+
+  return { ...updated, quotaDeducted: deducted };
 }
 
 export const bookingService = {
@@ -441,8 +667,11 @@ export const bookingService = {
       // suspended cannot create its session after the suspension has called the PT's sessions off.
       await assertContractAcceptsClientAction(contract, "BOOK_SESSION", tx);
 
+      // Quota A+: a session that turns NO_SHOW books compensatedSessions + 1 in ITS transaction (under the CONTRACT lock, not this per-PT lock). The active count is therefore read FIRST and the contract
+      // AFTER it: a no-show that commits between the two reads is then counted twice (as active and as consumed) - stricter, never an extra session. (Read the other way round it would let one through.)
       const activeSessionCount = await sessionRepository.countActiveByContract(contractId, tx);
-      if (getRemainingEntitlements(freshContract) <= activeSessionCount) {
+      const entitled = (await contractRepository.findById(contractId, tx)) ?? freshContract;
+      if (getRemainingEntitlements(entitled) <= activeSessionCount) {
         throw err("Hợp đồng đã dùng hết số buổi", 400);
       }
 
@@ -457,6 +686,7 @@ export const bookingService = {
       if (conflict) {
         throw err("Khung giờ này trùng với một buổi tập khác", 409);
       }
+      await assertClientSlotFree(clientUserId, startAt, endAt, "CLIENT", undefined, tx);
 
       return sessionRepository.create(
         {
@@ -724,161 +954,14 @@ export const bookingService = {
   },
 
   // ── Admin rules on a disputed session ───────────────────────────
-  /**
-   * P0 cluster B5: a DISPUTED session can arrive here from either direction —
-   * disputeSession (client disputes what the PT reported as delivered) or
-   * respondToNoShowReport's DENY branch (PT denies a client's no-show report). The first
-   * direction only ever needed COMPLETED/CANCELLED. The second needed a third outcome:
-   * confirming the client was right settles exactly like markNoShow's PT-self-admit branch
-   * (cash compensation, quota untouched) — CANCELLED alone left the client uncompensated for
-   * a PT absence an admin had just confirmed really happened, the same session's value a
-   * self-admitted no-show always pays out simply vanishing depending on which path got there.
-   */
+  /** Old exit (the route, scripts): the ruling core without a CaseDecision. T0 (slice 2) refuses it when the flag is on. */
   async resolveDispute(
     sessionId: string,
     adminId: string,
     resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED",
     note: string,
   ) {
-    if (!note?.trim()) throw err("Cần nhập ghi chú giải quyết", 400);
-    if (resolution !== "COMPLETED" && resolution !== "CANCELLED" && resolution !== "PT_NO_SHOW_CONFIRMED") {
-      throw err("Kết quả giải quyết không hợp lệ", 400);
-    }
-
-    const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Không tìm thấy buổi tập", 404);
-    if (session.status !== SessionStatus.DISPUTED) {
-      throw err("Buổi tập này không ở trạng thái đang khiếu nại", 400);
-    }
-
-    // F2 / D45-L3 + F3: a disputed session of a contract that has ENDED (for any reason) is one whose value
-    // payment-service HELD at the ending; this ruling settles that held value (DELIVERED / NOT_DELIVERED) instead of
-    // the ordinary quota / no-show-compensation steps. The ruling is claimed with ONE compare-and-swap from DISPUTED
-    // (two admins cannot rule it two ways, and nothing else - a confirm, a cancel - can overwrite it), and the "has the
-    // contract ended?" fact is read in that same step under the contract lock, so it is ordered against an ending in
-    // flight. Phase 0 / D58: the ruling (the status CAS) and the INTENT of its money step commit together in that one
-    // short transaction; the money step itself runs after the lock is released, idempotent on the intent's key. A contract
-    // whose ending is recorded but unconfirmed refuses the ruling (409 CONTRACT_ENDING, D59).
-    const claimRuling = async (
-      next: SessionStatus,
-      extra: Record<string, unknown>,
-      intent: (tx: Prisma.TransactionClient, endedAtClaim: boolean) => Promise<void>,
-      money: (endedAtClaim: boolean) => Promise<void>,
-    ) => {
-      const endedAtClaim = await withContractLock(session.contractId, async (tx) => {
-        await assertNotEnding(session.contractId, tx);
-        const contract = await contractRepository.findById(session.contractId, tx);
-        const won = await sessionRepository.transitionStatus(sessionId, [SessionStatus.DISPUTED], next, extra, tx);
-        if (!won) throw sessionAlreadyProcessedError("Buổi tập này đã được phân xử");
-        const ended = !!contract && isContractEnded(contract);
-        await intent(tx, ended);
-        return ended;
-      });
-      await money(endedAtClaim);
-      return { updated: await sessionRepository.findById(sessionId), endedAtClaim };
-    };
-
-    if (resolution === "PT_NO_SHOW_CONFIRMED") {
-      const noShowFields = {
-        resolvedBy: adminId,
-        resolutionNote: note.trim(),
-        resolvedAt: new Date(),
-        ptNotes: "Quản trị viên xác nhận huấn luyện viên vắng mặt",
-        // Vòng 4 / Phase E2 — counts toward the client's right to terminate after 3.
-        ptAtFault: true,
-      };
-      let moneyAnswer: unknown;
-      const { updated, endedAtClaim } = await claimRuling(
-        SessionStatus.NO_SHOW,
-        noShowFields,
-        async (tx, ended) => {
-          if (ended) await recordResolutionIntent(tx, session.contractId, sessionId, "NOT_DELIVERED");
-          else await recordNoShowIntent(tx, session.contractId, sessionId);
-        },
-        async (ended) => {
-          if (ended) {
-            // The PT did not turn up: the value held for this session goes back to the client. No separate
-            // no-show compensation (that would pay the same session twice) and no completion check (the
-            // contract already ended).
-            await resolveUnresolvedSessionMoney(session.contractId, sessionId, "NOT_DELIVERED");
-          } else {
-            // Same settlement markNoShow's PT-self-admit branch uses — cash compensation, charged
-            // to the three parties in proportion, the client's quota never touched.
-            moneyAnswer = await compensateNoShowMoney(session.contractId, sessionId);
-          }
-        },
-      );
-      // After the lock: completing the contract takes the same lock.
-      if (!endedAtClaim) await contractService.checkAndCompleteContract(session.contractId);
-
-      // DQ-2(a): the notices go out only after the money step has answered, and the amount is only stated when it is known.
-      const adminLead = "Quản trị viên xác nhận huấn luyện viên vắng mặt.";
-      for (const userId of [session.clientUserId, session.ptUserId]) {
-        await notificationService
-          .create({
-            userId,
-            text:
-              userId === session.clientUserId
-                ? ptFaultClientMessage(adminLead, readPtFaultMoney(moneyAnswer))
-                : ptFaultPtMessage(adminLead),
-            eventType: "SESSION_DISPUTE_RESOLVED",
-            entityType: "SESSION",
-            entityId: sessionId,
-            link: userId === session.clientUserId ? "/client/wallet" : "/pt/schedule",
-          })
-          .catch(() => {});
-      }
-
-      return { ...updated, quotaDeducted: false };
-    }
-
-    const rulingStatus = resolution === "COMPLETED" ? SessionStatus.COMPLETED : SessionStatus.CANCELLED;
-    const rulingFields = {
-      resolvedBy: adminId,
-      resolutionNote: note.trim(),
-      resolvedAt: new Date(),
-      ...(resolution === "COMPLETED"
-        ? { completedAt: new Date() }
-        : { cancelledBy: "ADMIN", cancellationReason: note.trim() }),
-    };
-    let deducted = false;
-    let updated: Awaited<ReturnType<typeof sessionRepository.findById>>;
-    if (resolution === "COMPLETED") {
-      // Only a COMPLETED ruling costs the client a session (and, on an ended contract, releases the held value).
-      // The ruling IS the delivery claim: status DISPUTED -> COMPLETED and the quota claim are one update (F3), so no
-      // instant exists where the session is "ruled delivered" but neither charged nor paid.
-      deducted = await deductQuotaOnce(sessionId, session.contractId, undefined, { from: [SessionStatus.DISPUTED], extra: rulingFields });
-      if (!deducted) throw sessionAlreadyProcessedError("Buổi tập này đã được phân xử");
-      updated = await sessionRepository.findById(sessionId);
-    } else {
-      // "Not delivered": nothing was consumed, so on an ended contract the held value is refunded to the client.
-      const ruled = await claimRuling(
-        rulingStatus,
-        rulingFields,
-        async (tx, ended) => {
-          if (ended) await recordResolutionIntent(tx, session.contractId, sessionId, "NOT_DELIVERED");
-        },
-        async (ended) => {
-          if (ended) await resolveUnresolvedSessionMoney(session.contractId, sessionId, "NOT_DELIVERED");
-        },
-      );
-      updated = ruled.updated;
-    }
-
-    for (const userId of [session.clientUserId, session.ptUserId]) {
-      await notificationService
-        .create({
-          userId,
-          text: `Quản trị viên đã phân xử buổi tập: ${resolution === "COMPLETED" ? "tính là đã hoàn thành" : "huỷ, không trừ buổi"}`,
-          eventType: "SESSION_DISPUTE_RESOLVED",
-          entityType: "SESSION",
-          entityId: sessionId,
-          link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
-        })
-        .catch(() => {});
-    }
-
-    return { ...updated, quotaDeducted: deducted };
+    return resolveDisputeCore(sessionId, adminId, resolution, note);
   },
 
   /** Sessions waiting on this client's confirmation (what the client must act on). */
@@ -1566,6 +1649,8 @@ export const bookingService = {
       proposedEnd,
       sessionId,
     );
+    // ...and the client must be free then too (re-checked under lock on accept).
+    await assertClientSlotFree(session.clientUserId, proposedStart, proposedEnd, isClient ? "CLIENT" : "PT", sessionId);
 
     const request = await sessionRepository.createRescheduleRequest({
       sessionId,
@@ -1727,6 +1812,14 @@ export const bookingService = {
           session.ptUserId,
           request.proposedStartAt,
           request.proposedEndAt,
+          session.id,
+          tx,
+        );
+        await assertClientSlotFree(
+          session.clientUserId,
+          request.proposedStartAt,
+          request.proposedEndAt,
+          isClient ? "CLIENT" : "PT",
           session.id,
           tx,
         );

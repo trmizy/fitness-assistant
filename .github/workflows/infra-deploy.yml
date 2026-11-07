@@ -1,0 +1,128 @@
+# Promoted for manual dispatch; adoption and environment gates remain enforced.
+#
+# Executes ONE already-reviewed change set. GitHub Environment "dev-infra" must have
+# required reviewers (the human approval gate) and a deployment-branch rule (aws-deploy).
+# The role (GyminiDevInfraApplyRole) can execute but cannot create change sets or
+# write API Gateway directly - CloudFormation does the writes via GyminiDevCfnExecutionRole.
+name: DEV Infrastructure Apply (API Gateway)
+
+on:
+  workflow_dispatch:
+    inputs:
+      change_set_name:
+        description: "Change set created by infra-plan.yml"
+        required: true
+      reviewed_digest:
+        description: "sha256 of the Changes JSON the reviewer approved (printed by infra-plan)"
+        required: true
+      reviewed_proposed_template_digest:
+        description: "Phase 16A.3: proposed_template_digest printed by infra-plan.yml's template semantic diff step - proves APPLY uses the exact template semantics PLAN reviewed, not a modified one (Outputs/Parameters/Conditions/Mappings/Transform/Rules changes never show up in the change-set Changes array alone)"
+        required: true
+
+concurrency:
+  group: gymini-dev-deploy
+  cancel-in-progress: false          # NEVER cancel mid-execution
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+  STACK: fitness-assistant-dev-api-gateway
+  API_ID: id1iz7upbl
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require deployment branch and verified adoption
+        env:
+          DEPLOY_REF: ${{ github.ref }}
+          DONE: ${{ vars.APIGW_ADOPTION_COMPLETE }}
+        run: |
+          [ "$DEPLOY_REF" = "refs/heads/aws-deploy" ] || { echo "::error::DEPLOY_BRANCH_BLOCKED"; exit 1; }
+          [ "$DONE" = "true" ] || { echo "::error::CI_ACTIVATION_BLOCKED: API Gateway adoption is not verified"; exit 1; }
+
+  apply:
+    needs: gate
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    environment: dev-infra
+    timeout-minutes: 40
+    steps:
+      - name: Adoption gate
+        env: { DONE: "${{ vars.APIGW_ADOPTION_COMPLETE }}" }
+        run: '[ "$DONE" = "true" ] || { echo "::error::CI_ACTIVATION_BLOCKED"; exit 1; }'
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::191798898985:role/GyminiDevInfraApplyRole
+          aws-region: ap-southeast-1
+          role-session-name: gh-apply-${{ github.run_id }}
+      - run: pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -Identity -Mode Mutate -Context CI
+
+      - name: Re-scan the change set and bind it to what the reviewer approved
+        env: { NAME: "${{ inputs.change_set_name }}", DIGEST: "${{ inputs.reviewed_digest }}" }
+        run: |
+          # Phase 16A.1 fix: capture the FULL object (Changes + Parameters),
+          # same as infra-plan.yml, so the API_ID_MISMATCH gate below has a
+          # real, independently-derived HttpApiId to check - never just
+          # -ProtectedApiId echoed back at itself. The digest binding itself
+          # now runs through Test-ChangeSetDigest (scripts/ci/CiHelpers.psm1,
+          # unit-tested) via the wrapper's -ReviewedDigest, not a bare
+          # shell sha256sum comparison with no test coverage of its own.
+          aws cloudformation describe-change-set --stack-name "$STACK" --change-set-name "$NAME" --output json > changes.json
+          node -e "const c=require('./changes.json');if(c.Status!=='CREATE_COMPLETE'||c.ExecutionStatus!=='AVAILABLE')throw Error('CHANGESET_NOT_EXECUTABLE')"
+          pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -ChangeSetFile changes.json -ProtectedApiId "$API_ID" -ReviewedDigest "$DIGEST"
+          aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].StackStatus" --output text > pre-status.txt
+
+      - name: Bind to the exact template semantics PLAN reviewed (Phase 16A.3.8)
+        env:
+          REVIEWED_TEMPLATE_DIGEST: "${{ inputs.reviewed_proposed_template_digest }}"
+          NAME: "${{ inputs.change_set_name }}"
+        run: |
+          aws cloudformation get-template --stack-name "$STACK" --change-set-name "$NAME" --template-stage Original --output json \
+            | node -e "const t=JSON.parse(require('fs').readFileSync(0,'utf8')).TemplateBody;process.stdout.write(typeof t==='string'?t:JSON.stringify(t))" > changeset-template.yaml
+          pwsh -NoProfile -Command '
+            Import-Module ./scripts/ci/TemplateSemanticGuard.psm1 -Force
+            $actual = Get-TemplateSemanticModel -TemplatePath "changeset-template.yaml"
+            if (-not $actual.Success) { Write-Host "::error::TEMPLATE_PARSE_FAILED: $($actual.Error)"; exit 1 }
+            $r = Test-TemplateBindingMatch -ReviewedTemplateDigest "$env:REVIEWED_TEMPLATE_DIGEST" -ActualTemplateDigest $actual.Digest
+            if (-not $r.Match) {
+              Write-Host "::error::TEMPLATE_BINDING_$($r.Rule) - the template checked out now is not the one PLAN reviewed (reviewed=$env:REVIEWED_TEMPLATE_DIGEST actual=$($actual.Digest)). Re-run infra-plan.yml against the current template before applying."
+              exit 1
+            }
+            Write-Host "Template semantic binding OK ($($actual.Digest))"
+          '
+
+      - name: Execute (no manual rollback is ever scripted for imported resources)
+        env: { NAME: "${{ inputs.change_set_name }}" }
+        run: |
+          aws cloudformation execute-change-set --stack-name "$STACK" --change-set-name "$NAME"
+          aws cloudformation wait stack-update-complete --stack-name "$STACK"
+
+      - name: Post-apply invariants (read-only)
+        run: |
+          [ "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiId --output text)" = "$API_ID" ]
+          pwsh -NoProfile -File scripts/aws/api-gateway/Test-ApiRouteParity.ps1 -ApiId "$API_ID" -Region "$AWS_REGION"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiEndpoint --output text)/health")
+          [ "$code" = "200" ] || { echo "::error::SMOKE_FAIL /health=$code"; exit 1; }
+          aws cloudformation detect-stack-drift --stack-name "$STACK" --query StackDriftDetectionId --output text
+
+      - name: Summary
+        if: always()
+        env: { NAME: "${{ inputs.change_set_name }}" }
+        run: |
+          echo "## DEV infra apply" >> "$GITHUB_STEP_SUMMARY"
+          echo "stack: $STACK | change set: $NAME | commit: $GITHUB_SHA | result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Rollback: forward-fix via a new reviewed change set (see report). Previous template: previous commit's api-gateway-baseline.yaml." >> "$GITHUB_STEP_SUMMARY"
