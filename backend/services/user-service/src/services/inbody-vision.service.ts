@@ -111,7 +111,7 @@ const EXTRACTION_PROMPT =
 // and `extractWithOllama`/`extractJsonPayload` further down, and the
 // commented-out branch in `extractInBodyVision`. To turn it back on: set
 // INBODY_VISION_PROVIDER=ollama and uncomment those blocks back in.
-const INBODY_VISION_PROVIDER = (process.env.INBODY_VISION_PROVIDER || "anthropic").toLowerCase();
+const getProvider = () => (process.env.INBODY_VISION_PROVIDER || "anthropic").toLowerCase();
 
 // --- Local Ollama vision path — inactive, kept for future re-enablement ---
 // qwen2.5vl:3b default — chosen for running CPU-only on a modest dev
@@ -229,12 +229,25 @@ function normalizeVisionResult(raw: unknown): VisionResult {
 //   return normalizeVisionResult(parsed);
 // }
 
+class VisionValidationError extends Error {}
+
+type MediaType = "image/png" | "image/jpeg";
+
+export interface VisionDeps {
+  anthropicCreate?: (params: Anthropic.MessageCreateParamsNonStreaming) => Promise<Anthropic.Message>;
+  fetchImpl?: typeof fetch;
+}
+
 async function extractWithClaude(
   base64Data: string,
-  mediaType: "image/png" | "image/jpeg",
+  mediaType: MediaType,
+  deps: VisionDeps = {},
 ): Promise<VisionResult> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
+  const create =
+    deps.anthropicCreate ??
+    ((params: Anthropic.MessageCreateParamsNonStreaming) =>
+      new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }).messages.create(params));
+  const response = await create({
     model: process.env.INBODY_VISION_MODEL ?? "claude-sonnet-4-6",
     max_tokens: 1024,
     tools: [INBODY_TOOL],
@@ -255,26 +268,124 @@ async function extractWithClaude(
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {
-    throw new Error("Claude did not return structured InBody data");
+    throw new VisionValidationError("Claude did not return structured InBody data");
   }
   return normalizeVisionResult(toolUse.input);
+}
+
+// ── Gemini fallback (REST, no SDK) ──────────────────────────────────────────
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_NEXT_MODEL_STATUSES = new Set([503, 429, 404]);
+
+class GeminiHttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+function geminiModels(): string[] {
+  return (process.env.GEMINI_VISION_MODELS || "gemini-3.5-flash,gemini-3-flash-preview")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+}
+
+function parseJsonLoose(content: string): unknown {
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  return JSON.parse((fenced ? fenced[1] : content).trim());
+}
+
+async function extractWithGemini(
+  base64Data: string,
+  mediaType: MediaType,
+  deps: VisionDeps = {},
+): Promise<{ result: VisionResult; model: string }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+  const doFetch = deps.fetchImpl ?? fetch;
+  const timeoutMs = Number(process.env.GEMINI_VISION_TIMEOUT_MS) || 60_000;
+  const body = JSON.stringify({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inline_data: { mime_type: mediaType, data: base64Data } },
+          {
+            text: `${EXTRACTION_PROMPT}\n\nJSON schema to follow exactly:\n${JSON.stringify(INBODY_JSON_SCHEMA)}`,
+          },
+        ],
+      },
+    ],
+    generationConfig: { responseMimeType: "application/json", temperature: 0 },
+  });
+
+  let lastErr: unknown = new Error("No Gemini vision model configured");
+  for (const model of geminiModels()) {
+    try {
+      let res: Response;
+      try {
+        res = await doFetch(`${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch (err) {
+        // network/timeout: treat like an overloaded model, try the next one
+        throw new GeminiHttpError(503, `Gemini network error: ${err instanceof Error ? err.name : "unknown"}`);
+      }
+      if (!res.ok) throw new GeminiHttpError(res.status, `Gemini HTTP ${res.status}`);
+      const data = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
+      if (!text) throw new Error("Gemini did not return InBody data");
+      let parsed: unknown;
+      try {
+        parsed = parseJsonLoose(text);
+      } catch {
+        throw new Error("Gemini returned unreadable data — try a clearer photo");
+      }
+      return { result: normalizeVisionResult(parsed), model };
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof GeminiHttpError && GEMINI_NEXT_MODEL_STATUSES.has(err.status)) {
+        logger.warn({ provider: "gemini", model, status: err.status }, "InBody Gemini model unavailable, trying next");
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+// True when Anthropic cannot serve the request at all (billing, auth, limits,
+// overload, outage, network). A 400/404/413/422 that is not a billing message
+// is a problem with the request itself, so it is NOT retried on Gemini.
+export function shouldFallbackFromAnthropic(err: unknown): boolean {
+  if (err instanceof VisionValidationError) return false;
+  const status = (err as { status?: number } | null)?.status;
+  const message = err instanceof Error ? err.message : String(err);
+  if (typeof status !== "number") return true; // network, timeout, missing key
+  if (status === 401 || status === 403 || status === 429 || status === 529 || status >= 500) return true;
+  return status === 400 && /credit balance|billing|plan|usage limit/i.test(message);
+}
+
+function fallbackReason(err: unknown): string {
+  const status = (err as { status?: number } | null)?.status;
+  return typeof status === "number" ? `anthropic_http_${status}` : "anthropic_unavailable";
 }
 
 export async function extractInBodyVision(
   imagePath: string,
   uploadMimeType?: string,
+  deps: VisionDeps = {},
 ): Promise<VisionResult> {
   const base64Data = fs.readFileSync(imagePath).toString("base64");
   // BUG FIX (2026-09-05): multer's disk storage names temp files with a random hex string and
-  // NO extension (see inbody.routes.ts's `dest:` config) — path.extname(imagePath) was ALWAYS
-  // "" for every real upload, so this silently defaulted every image to "image/jpeg" regardless
-  // of its actual type. Ollama's vision API tolerates a wrong declared type; Claude's does not
-  // and rejects the request outright ("specified using image/jpeg, but the image appears to be
-  // image/png") — invisible while Ollama was the active provider, now a hard failure. Prefer the
-  // browser-declared, already-validated (validateUploadMime) req.file.mimetype the controller
-  // passes in; only fall back to sniffing the path's extension for callers that don't have one
-  // (e.g. the Ollama integration test, which calls this directly with a real .png file path).
-  const mediaType: "image/png" | "image/jpeg" =
+  // NO extension — prefer the already-validated upload mimetype, sniff the path only as fallback
+  // (Claude rejects a wrong declared image type outright).
+  const mediaType: MediaType =
     uploadMimeType === "image/png"
       ? "image/png"
       : uploadMimeType === "image/jpeg" || uploadMimeType === "image/jpg"
@@ -283,19 +394,52 @@ export async function extractInBodyVision(
           ? "image/png"
           : "image/jpeg";
 
-  // Ollama path temporarily disabled — see the "TEMPORARILY REVERTED" note
-  // near INBODY_VISION_PROVIDER above. Restore this branch (and uncomment
-  // extractWithOllama/extractJsonPayload + the OLLAMA_* constants) to
-  // re-enable local-first extraction:
-  //
-  // if (INBODY_VISION_PROVIDER === "ollama") {
-  //   return extractWithOllama(base64Data);
-  // }
-  if (INBODY_VISION_PROVIDER !== "anthropic") {
+  const provider = getProvider();
+  const hasGemini = !!process.env.GEMINI_API_KEY;
+
+  if (provider === "gemini" && hasGemini) {
+    try {
+      const { result, model } = await extractWithGemini(base64Data, mediaType, deps);
+      logger.info({ provider: "gemini", model, fallbackReason: null }, "InBody vision served");
+      return result;
+    } catch (geminiErr) {
+      if (!process.env.ANTHROPIC_API_KEY && !deps.anthropicCreate) throw geminiErr;
+      logger.warn({ provider: "gemini", reason: "gemini_failed" }, "InBody Gemini failed, trying Anthropic");
+      try {
+        const r = await extractWithClaude(base64Data, mediaType, deps);
+        logger.info({ provider: "anthropic", fallbackReason: "gemini_failed" }, "InBody vision served");
+        return r;
+      } catch {
+        throw geminiErr;
+      }
+    }
+  }
+
+  if (provider !== "anthropic" && provider !== "gemini") {
     logger.warn(
-      { provider: INBODY_VISION_PROVIDER },
+      { provider },
       "Unrecognized INBODY_VISION_PROVIDER (local Ollama path is currently disabled), falling back to anthropic",
     );
   }
-  return extractWithClaude(base64Data, mediaType);
+
+  try {
+    const r = await extractWithClaude(base64Data, mediaType, deps);
+    logger.info(
+      { provider: "anthropic", model: process.env.INBODY_VISION_MODEL ?? "claude-sonnet-4-6", fallbackReason: null },
+      "InBody vision served",
+    );
+    return r;
+  } catch (anthropicErr) {
+    if (!hasGemini || !shouldFallbackFromAnthropic(anthropicErr)) throw anthropicErr;
+    const reason = fallbackReason(anthropicErr);
+    logger.warn({ provider: "anthropic", fallbackReason: reason }, "InBody Anthropic unavailable, falling back to Gemini");
+    try {
+      const { result, model } = await extractWithGemini(base64Data, mediaType, deps);
+      logger.info({ provider: "gemini", model, fallbackReason: reason }, "InBody vision served");
+      return result;
+    } catch {
+      logger.error({ provider: "gemini", fallbackReason: reason }, "InBody Gemini fallback also failed");
+      throw anthropicErr; // same error contract as before the fallback existed
+    }
+  }
 }
