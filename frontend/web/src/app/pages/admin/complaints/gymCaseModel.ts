@@ -5,6 +5,7 @@
  */
 import { hasErrors, textError, type Errors } from "../disputes/actions/actionModel";
 import { asRecord, formatDateTimeSafe, shortRefSafe } from "./gymFormat";
+import { formatMoneyString } from "../adminFinanceOverview.utils";
 import {
   DECLARED_HASH_NOTE,
   GYM_EVENT_LABEL,
@@ -552,13 +553,19 @@ export function describeMoney(f: GymFinancial | null | undefined): MoneyView {
     };
   }
   const posted = f.state === "LEDGER_POSTED_FULL" || f.state === "LEDGER_POSTED_PARTIAL" || (f.state === "NEEDS_RECONCILIATION" && !!f.postedToMemberWallet);
+  // INT-22: the server sends raw decimals ("200000.00"), also inside its own label; show grouped VND, never the raw number.
+  const money = (v: string | number | null | undefined): string | null => (v === null || v === undefined || v === "" ? null : formatMoneyString(v));
+  let sentence = typeof f.label === "string" && f.label.trim() ? f.label.trim() : moneyChip(f.state);
+  for (const raw of [f.postedToMemberWallet, f.memberShortfall, f.referralClawbackShortfall]) {
+    if (raw !== null && raw !== undefined && String(raw) !== "") sentence = sentence.split(String(raw)).join(formatMoneyString(raw));
+  }
   return {
     tone: moneyTone(f.state),
     chip: moneyChip(f.state),
-    sentence: typeof f.label === "string" && f.label.trim() ? f.label.trim() : moneyChip(f.state),
-    posted: f.postedToMemberWallet ?? null,
-    shortfall: f.memberShortfall ?? null,
-    platformShortfall: f.referralClawbackShortfall ?? null,
+    sentence,
+    posted: money(f.postedToMemberWallet),
+    shortfall: money(f.memberShortfall),
+    platformShortfall: money(f.referralClawbackShortfall),
     refundHappened: posted,
   };
 }
