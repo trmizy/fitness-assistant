@@ -561,7 +561,8 @@ export function describeMoney(f: GymFinancial | null | undefined): MoneyView {
   }
   return {
     tone: moneyTone(f.state),
-    chip: moneyChip(f.state),
+    // NO_MONEY_EFFECT covers both "no money in this case" and "no money decision yet" (MEM_* undecided); only the server's label tells which (07/11)
+    chip: f.state === "NO_MONEY_EFFECT" && typeof f.label === "string" && f.label.trim() ? f.label.trim() : moneyChip(f.state),
     sentence,
     posted: money(f.postedToMemberWallet),
     shortfall: money(f.memberShortfall),

@@ -17,3 +17,14 @@ describe("INT-22 gym money amounts are grouped VND, never raw decimals", () => {
     assert.match(m.sentence, /100\.000\s₫/u);
   });
 });
+
+describe("NO_MONEY_EFFECT chip follows the server label (MEM_* undecided vs no money)", () => {
+  it("undecided MEM case says no money decision yet", () => {
+    const m = describeMoney({ derived: true, state: "NO_MONEY_EFFECT", group: "NONE_YET", label: "Chưa có quyết định về tiền", postedToMemberWallet: null, memberShortfall: null, referralClawbackShortfall: null } as never);
+    assert.equal(m.chip, "Chưa có quyết định về tiền");
+  });
+  it("falls back to the state label when the server sends none", () => {
+    const m = describeMoney({ derived: true, state: "NO_MONEY_EFFECT", label: "", postedToMemberWallet: null, memberShortfall: null, referralClawbackShortfall: null } as never);
+    assert.equal(m.chip, "Không phát sinh tiền");
+  });
+});
