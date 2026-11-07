@@ -1151,14 +1151,14 @@ async function writeEvidence(tx: Tx, c: CaseRow, actor: Actor, provenance: 'EXTE
 }
 
 export function financialOf(
-  c: { execStatus: string },
+  c: { execStatus: string; caseClass?: CaseClass | null },
   outcome: Outcome | null,
   executions: Array<{ state: string; blockedReason: string | null; response: unknown; createdAt: Date }>,
 ) {
   const done = [...executions].reverse().find((x) => x.state === 'BUSINESS_DONE');
   const blocked = [...executions].reverse().find((x) => x.state === 'BLOCKED');
   const obs = (done?.response as { payment?: PaymentObservation } | null)?.payment ?? null;
-  return deriveFinancialView({ outcome, execStatus: c.execStatus, observation: obs ? { ...obs, observedAt: obs.observedAt ?? done!.createdAt.toISOString() } : null, blockedReason: blocked?.blockedReason ?? null });
+  return deriveFinancialView({ outcome, execStatus: c.execStatus, observation: obs ? { ...obs, observedAt: obs.observedAt ?? done!.createdAt.toISOString() } : null, blockedReason: blocked?.blockedReason ?? null, caseClass: c.caseClass ?? null });
 }
 
 export interface AllowedAction {

@@ -338,11 +338,23 @@ export interface FinancialView {
   observedAt: string | null;
 }
 
+/** Amount inside a human sentence as Vietnamese VND: "200000.00" -> "200.000 ₫", "1234.50" -> "1.234,50 ₫". Display only; JSON amount fields stay decimal strings. */
+export function formatVnd(v: string | number | null | undefined): string {
+  const n = Number(v ?? 0);
+  const x = Number.isFinite(n) ? n : 0;
+  const cents = Math.round(Math.abs(x) * 100);
+  const whole = Math.floor(cents / 100);
+  const frac = cents % 100;
+  const w = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${x < 0 && cents > 0 ? '-' : ''}${w}${frac ? ',' + String(frac).padStart(2, '0') : ''} ₫`;
+}
+
 export function deriveFinancialView(i: {
   outcome: Outcome | null;
   execStatus: string;
   observation: PaymentObservation | null;
   blockedReason?: string | null;
+  caseClass?: CaseClass | null;
 }): FinancialView {
   const base = { derived: true as const, postedToMemberWallet: null, memberShortfall: null, referralClawbackShortfall: null, observedAt: i.observation?.observedAt ?? null };
   if (!i.outcome || !isRefundOutcome(i.outcome)) {
@@ -350,7 +362,7 @@ export function deriveFinancialView(i: {
       ...base,
       state: 'NO_MONEY_EFFECT',
       group: i.outcome ? 'F2' : 'NONE_YET',
-      label: i.outcome ? 'Không phát sinh tiền' : 'Chưa có quyết định',
+      label: i.outcome ? 'Không phát sinh tiền' : i.caseClass && hasMoneyExit(i.caseClass) ? 'Chưa có quyết định về tiền' : i.caseClass ? 'Không phát sinh tiền' : 'Chưa có quyết định',
     };
   }
   if (i.execStatus === 'NOT_STARTED') return { ...base, state: 'NOT_EXECUTED', group: 'NONE_YET', label: 'Chưa thực hiện hoàn tiền' };
@@ -373,10 +385,10 @@ export function deriveFinancialView(i: {
   };
   if (refunded <= 0 && releaseShort > 0) {
     // E1: the amount was fixed but the money held for this membership is gone (released earlier): nothing was paid and nothing is paid from elsewhere
-    return { ...withMoney, state: 'NEEDS_RECONCILIATION', group: 'F3', label: `Chưa trả được khoản hoàn ${releaseShort.toFixed(2)}: tiền giữ của gói này không còn, cần đối soát (không lấy từ nơi khác)` };
+    return { ...withMoney, state: 'NEEDS_RECONCILIATION', group: 'F3', label: `Chưa trả được khoản hoàn ${formatVnd(releaseShort)}: tiền giữ của gói này không còn, cần đối soát (không lấy từ nơi khác)` };
   }
   if (releaseShort > 0) {
-    return { ...withMoney, state: 'LEDGER_POSTED_PARTIAL', group: 'F3', label: `Đã ghi vào ví Gymini ${refunded.toFixed(2)}, còn thiếu ${releaseShort.toFixed(2)} (chưa trả)` };
+    return { ...withMoney, state: 'LEDGER_POSTED_PARTIAL', group: 'F3', label: `Đã ghi vào ví Gymini ${formatVnd(refunded)}, còn thiếu ${formatVnd(releaseShort)} (chưa trả)` };
   }
   if (refunded <= 0) {
     return { ...withMoney, state: 'NO_REFUNDABLE_AMOUNT', group: 'F2', label: 'Không có khoản nào để hoàn (phần chưa dùng bằng 0)' };
@@ -386,20 +398,20 @@ export function deriveFinancialView(i: {
       ...withMoney,
       state: 'NEEDS_RECONCILIATION',
       group: 'F3',
-      label: `Đã ghi vào ví Gymini ${refunded.toFixed(2)}; phần thu hồi hoa hồng giới thiệu cần đối soát`,
+      label: `Đã ghi vào ví Gymini ${formatVnd(refunded)}; phần thu hồi hoa hồng giới thiệu cần đối soát`,
     };
   }
-  return { ...withMoney, state: 'LEDGER_POSTED_FULL', group: 'F1', label: `Đã ghi vào ví Gymini: ${refunded.toFixed(2)}` };
+  return { ...withMoney, state: 'LEDGER_POSTED_FULL', group: 'F1', label: `Đã ghi vào ví Gymini: ${formatVnd(refunded)}` };
 }
 
 /** What the member may read: never an internal group, never the platform-side clawback shortfall; a refund is claimed ONLY when payment confirmed it. */
 export function memberFinancialView(v: FinancialView): { label: string; postedToWallet: string | null; stillOwed: string | null } {
   const posted = v.postedToMemberWallet;
   if (v.state === 'LEDGER_POSTED_FULL' || (v.state === 'NEEDS_RECONCILIATION' && posted && v.memberShortfall === null)) {
-    return { label: `Khoản hoàn ${posted} đã được ghi vào ví Gymini của bạn`, postedToWallet: posted, stillOwed: null };
+    return { label: `Khoản hoàn ${formatVnd(posted)} đã được ghi vào ví Gymini của bạn`, postedToWallet: posted, stillOwed: null };
   }
   if (v.state === 'LEDGER_POSTED_PARTIAL') {
-    return { label: `Đã ghi vào ví Gymini của bạn ${posted ?? '0.00'}; phần còn lại ${v.memberShortfall} đang được xử lý, chưa trả`, postedToWallet: posted, stillOwed: v.memberShortfall };
+    return { label: `Đã ghi vào ví Gymini của bạn ${formatVnd(posted)}; phần còn lại ${formatVnd(v.memberShortfall)} đang được xử lý, chưa trả`, postedToWallet: posted, stillOwed: v.memberShortfall };
   }
   if (v.state === 'NO_MONEY_EFFECT') return { label: 'Khiếu nại này không phát sinh khoản tiền', postedToWallet: null, stillOwed: null };
   if (v.state === 'NO_REFUNDABLE_AMOUNT') return { label: 'Không có khoản nào để hoàn', postedToWallet: null, stillOwed: null };

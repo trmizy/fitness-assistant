@@ -18,6 +18,7 @@ import {
   checkApprover,
   closureOf,
   deriveFinancialView,
+  formatVnd,
   diffAgainstSnapshot,
   evidenceVisibleTo,
   hasMoneyExit,
@@ -204,8 +205,8 @@ test('member text never claims money unless payment confirmed it, and never leak
 
   const claw = deriveFinancialView({ outcome: 'REFUND_GYM_VIOLATION', execStatus: 'BUSINESS_DONE', observation: { refundedToClient: '90000.00', releaseShortfall: '0.00', clawbackObserved: true, clawbackShortfall: '5000.00' } });
   const m = memberFinancialView(claw);
-  assert.match(m.label, /90000\.00/);
-  assert.doesNotMatch(JSON.stringify(m), /5000\.00|F3|NEEDS_RECONCILIATION|clawback/i);
+  assert.match(m.label, /90\.000 ₫/);
+  assert.doesNotMatch(JSON.stringify(m), /5\.000|5000\.00|F3|NEEDS_RECONCILIATION|clawback/i);
 
   const partial = deriveFinancialView({ outcome: 'REFUND_TRANSACTION_ERROR', execStatus: 'BUSINESS_DONE', observation: { refundedToClient: '100000.00', releaseShortfall: '50000.00', clawbackObserved: true } });
   assert.match(memberResolutionText('REFUND_TRANSACTION_ERROR', partial), /chưa trả/);
@@ -247,4 +248,18 @@ test('E1 pure: unused value on the complaint date - hand-computed 300,000 x 20/3
   assert.equal(unusedValueAt(300_000, 30, end, new Date(C.getTime() + 25 * day)), 0, 'after the term');
   assert.equal(unusedValueAt(300_000, 30, new Date(C.getTime() + 45 * day), C), 300_000, 'never above the price paid');
   assert.equal(unusedValueAt(100_000, 30, new Date(C.getTime() + 10 * day), C), 33_333.33, 'rounded to 2 decimals');
+});
+
+test('formatVnd and the no-decision money label by case class', () => {
+  assert.equal(formatVnd('200000.00'), '200.000 ₫');
+  assert.equal(formatVnd('1234.50'), '1.234,50 ₫');
+  assert.equal(formatVnd(0), '0 ₫');
+  const nd = (caseClass: any) => deriveFinancialView({ outcome: null, execStatus: 'NOT_STARTED', observation: null, caseClass });
+  assert.equal(nd('MEM_TXN').label, 'Chưa có quyết định về tiền');
+  assert.equal(nd('MEM_CLOSED').label, 'Chưa có quyết định về tiền');
+  assert.equal(nd('MEM_VIOLATION').label, 'Chưa có quyết định về tiền');
+  assert.equal(nd('MEM_ACCESS').label, 'Không phát sinh tiền');
+  assert.equal(nd('GYM_GENERAL').label, 'Không phát sinh tiền');
+  assert.equal(nd('MEM_TXN').state, 'NO_MONEY_EFFECT');
+  assert.equal(deriveFinancialView({ outcome: 'RESOLVE_UPHELD', execStatus: 'BUSINESS_DONE', observation: null, caseClass: 'MEM_TXN' }).label, 'Không phát sinh tiền');
 });

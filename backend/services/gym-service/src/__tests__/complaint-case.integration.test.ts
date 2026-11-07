@@ -411,7 +411,7 @@ test('shortfall > 0 and a clawback that was not recovered are REFLECTED, never s
   assert.equal(exec.money.group, 'F3');
   assert.equal(exec.closure, 'CLOSED_FINANCIAL_OPEN');
   const text = (await prisma.gymComplaint.findUniqueOrThrow({ where: { id: d.complaintId } })).adminResponse!;
-  assert.match(text, /còn lại 50000\.00/);
+  assert.match(text, /còn lại 50\.000 ₫/);
   assert.match(text, /chưa trả/);
   assert.ok(!/đã hoàn đủ/.test(text));
   const admin = ok(await call('GET', `/admin/complaint-cases/${d.caseId}`, d.inv.tok), 200, 'detail');
@@ -654,7 +654,7 @@ test('notifications: no internal enum in any text, the opening notice never ment
   await complaintCaseExecutionService.executeDecision({ id: d.appr.id, role: 'ADMIN' }, d.caseId, {}, stubDeps({ refundedToClient: '120000.00' }).deps);
   const last = notices[notices.length - 1];
   assert.equal(notices.length, before + 1);
-  assert.match(last.text, /120000\.00 đã được ghi vào ví Gymini/);
+  assert.match(last.text, /120\.000 ₫ đã được ghi vào ví Gymini/);
   for (const n of notices) assert.doesNotMatch(n.text, /\b[A-Z]{3,}(_[A-Z]+)+\b/, `internal enum in: ${n.text}`);
 });
 
