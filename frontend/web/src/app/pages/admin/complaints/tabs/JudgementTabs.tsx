@@ -105,9 +105,14 @@ export function DecisionTab(props: FormProps) {
             ))}
           </ul>
         )}
-        {detail.decision && (
+        {/* INT-19: after an appeal the old decision stays in `detail.decision` while a NEW proposal waits, and an executed
+            case stays DECISION_APPROVED: say "approved, nothing executed" only when both are true. */}
+        {detail.decision && detail.case.status === "DECISION_APPROVED" && (
           <Notice tone="info" testId="d6-approved-note">
-            Quyết định «{detail.decision.outcomeLabel || gymOutcomeLabel(detail.decision.outcome)}» đã được duyệt. Duyệt chưa thực thi gì: xem mục «Thực thi & tiền».
+            Quyết định «{detail.decision.outcomeLabel || gymOutcomeLabel(detail.decision.outcome)}» đã được duyệt.{" "}
+            {detail.case.execStatus === "BUSINESS_DONE"
+              ? "Đã thực thi phần nghiệp vụ: xem tiền ở mục «Thực thi & tiền»."
+              : "Duyệt chưa thực thi gì: xem mục «Thực thi & tiền»."}
           </Notice>
         )}
       </Section>

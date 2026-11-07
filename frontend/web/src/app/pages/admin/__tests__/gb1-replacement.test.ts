@@ -121,3 +121,15 @@ describe("DECISION_HAS_EFFECT reasons are translated by meaning, not by a loose 
     assert.match(v.message, /quyết toán tiền/);
   });
 });
+
+describe("INT-20 quota out of bounds states the real numbers", () => {
+  it("uses used/total from the server details", () => {
+    const v = parseDisputeErrorBody(409, { error: "x", code: "QUOTA_OUT_OF_BOUNDS", details: { used: 0, total: 4, delta: -1, after: -1 } });
+    assert.match(v.message, /đang dùng 0\/4 buổi/);
+  });
+  it("falls back to the plain sentence without details", () => {
+    const v = parseDisputeErrorBody(409, { error: "x", code: "QUOTA_OUT_OF_BOUNDS" });
+    assert.match(v.message, /ngoài khoảng/);
+    assert.doesNotMatch(v.message, /đang dùng/);
+  });
+});

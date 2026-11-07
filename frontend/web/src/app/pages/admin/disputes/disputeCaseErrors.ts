@@ -211,7 +211,14 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   AGREEMENT_NOT_AGREED: { kind: "blocked", message: "Cả hai bên chưa cùng xác nhận phương án chung này." },
   AGREEMENT_NOT_FOUND: { kind: "notFound", message: "Không tìm thấy phương án thoả thuận này." },
   // Quota corrections (A48, A49)
-  QUOTA_OUT_OF_BOUNDS: { kind: "validation", message: "Hiệu chỉnh làm số buổi đã dùng nằm ngoài khoảng từ 0 đến tổng số buổi của hợp đồng." },
+  // INT-20: the server sends {used, total, delta, after}; say the real numbers so the admin sees WHY (e.g. nothing used yet, so nothing to give back)
+  QUOTA_OUT_OF_BOUNDS: {
+    kind: "validation",
+    message: (d) =>
+      typeof d?.used === "number" && typeof d?.total === "number"
+        ? `Hiệu chỉnh làm số buổi đã dùng nằm ngoài khoảng từ 0 đến tổng số buổi của hợp đồng: hợp đồng đang dùng ${d.used}/${d.total} buổi.`
+        : "Hiệu chỉnh làm số buổi đã dùng nằm ngoài khoảng từ 0 đến tổng số buổi của hợp đồng.",
+  },
   CORRECTION_ALREADY_APPLIED: { kind: "blocked", message: "Đề xuất hiệu chỉnh này đã được áp dụng trước đó." },
   QUOTA_CHANGED: { kind: "conflictReload", message: "Số buổi đã dùng của hợp đồng vừa thay đổi. Hãy tải lại hồ sơ để kiểm tra." },
   CORRECTION_ALREADY_PROPOSED: { kind: "blocked", message: "Đã có một đề xuất hiệu chỉnh đang chờ duyệt cho hệ quả này." },
