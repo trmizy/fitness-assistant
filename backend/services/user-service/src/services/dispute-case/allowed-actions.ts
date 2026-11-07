@@ -1,6 +1,8 @@
 import {
   INVESTIGATION_STATUSES,
   MANUAL_TARGETS,
+  PARTY_SUBMIT_STATUSES,
+  APPEAL_WINDOW_DAYS,
   canTransitionManually,
   checkApprover,
   isTerminal,
@@ -34,7 +36,27 @@ export interface AllowedActionsInput {
   latestFinding: string | null;
   /** reviews of the case's contract that are not approved yet, with their proposer */
   pendingPolicyReviews: ReadonlyArray<{ id: string; proposedBy: string }>;
-  flags: { executionEnabled: boolean; evidenceStorageEnabled: boolean };
+  flags: { executionEnabled: boolean; evidenceStorageEnabled: boolean; appealsEnabled: boolean; decisionReplacementEnabled: boolean };
+  /** V2.1 process facts the service reads for the case (optional: absent = nothing recorded) */
+  v21?: V21Facts;
+}
+
+/** What the V2.1 process actions need to know about the case. Rows only, no behaviour. */
+export interface V21Facts {
+  agreements: ReadonlyArray<{ id: string; status: string; confirmedRoles: string[] }>;
+  appeals: ReadonlyArray<{
+    id: string;
+    status: string;
+    reviewerId: string | null;
+    consequences: ReadonlyArray<{ id: string; kind: string; status: string; amountRequested: boolean; corrections: ReadonlyArray<{ id: string; proposedBy: string; appliedAt: Date | null }> }>;
+  }>;
+  /** proposers and approvers of every proposal of the case (the appeal reviewer must not be one of them) */
+  involvedIds: string[];
+  replacement: { hasApprovedDecision: boolean; effectCode: string | null; pending: ReadonlyArray<{ id: string; proposedBy: string }> };
+  /** open held-money review ids of the case's session */
+  openHeldReviewIds: string[];
+  /** contract-level (no case) policy reviews not approved yet */
+  pendingContractPolicyReviews: ReadonlyArray<{ id: string; proposedBy: string }>;
 }
 
 export interface ActionVerdict {
@@ -70,6 +92,22 @@ export const ACTION_NAMES = [
   "closeOrphan",
   "closeExecuted",
   "readEvidenceFile",
+  // V2.1 process (mutual agreement, appeal, consequences, replacement, held money, contract-level policy)
+  "proposeAgreement",
+  "withdrawAgreement",
+  "recordAgreementFinding",
+  "assignAppealReviewer",
+  "decideAppeal",
+  "createAppealObligation",
+  "syncAppealObligation",
+  "proposeQuotaCorrection",
+  "approveQuotaCorrection",
+  "proposeDecisionReplacement",
+  "approveDecisionReplacement",
+  "rejectDecisionReplacement",
+  "decideHeldMoney",
+  "proposeContractPolicy",
+  "approveContractPolicy",
 ] as const;
 export type ActionName = (typeof ACTION_NAMES)[number];
 
@@ -194,8 +232,8 @@ export function computeAllowedActions(i: AllowedActionsInput): Record<ActionName
     adminOnly() ??
     notParty() ??
     notTerminal() ??
-    (i.sessionStatus === null ? no("SESSION_UNKNOWN", "Không đọc được trạng thái buổi tập") : null) ??
-    (sessionStillInDispute(i.sessionStatus) ? no("SESSION_STILL_IN_DISPUTE", "Buổi tập vẫn đang trong khiếu nại nên hồ sơ không phải hồ sơ mồ côi") : null) ??
+    (i.sessionStatus === null ? no("SESSION_NOT_FOUND", "Không đọc được trạng thái buổi tập") : null) ??
+    (sessionStillInDispute(i.sessionStatus) ? no("CASE_NOT_ORPHAN", "Buổi tập vẫn đang trong khiếu nại nên hồ sơ không phải hồ sơ mồ côi") : null) ??
     ok();
 
   out.closeExecuted =
@@ -203,10 +241,190 @@ export function computeAllowedActions(i: AllowedActionsInput): Record<ActionName
     notParty() ??
     stateOnly(["DECISION_APPROVED"]) ??
     (c.execStatus === "BUSINESS_DONE" ? null : no("DECISION_NOT_EXECUTED", "Quyết định đã duyệt chưa được thực thi xong; đóng hồ sơ không thay cho thực thi")) ??
+    ((i.v21?.appeals ?? []).some((a) => a.status !== "DECIDED") ? no("APPEAL_PENDING", "Còn yêu cầu xem xét lại chưa có kết quả nên chưa đóng được hồ sơ") : null) ??
+    ((i.v21?.appeals ?? []).some((a) => a.consequences.some((k) => k.status === "OPEN")) ? no("APPEAL_CONSEQUENCE_OPEN", "Kết quả xem xét lại còn việc chưa xử lý (tiền, buổi hoặc lỗi PT) nên chưa đóng được hồ sơ") : null) ??
     ok();
 
   out.readEvidenceFile = adminOnly() ?? notParty() ?? (i.flags.evidenceStorageEnabled ? null : no("FEATURE_DISABLED", "Chức năng lưu tệp bằng chứng chưa được bật")) ?? ok();
+
+  // ── V2.1 process actions. Same order as the services: (admin) -> flag -> party/investigator -> state -> object. ──
+  const v: V21Facts = i.v21 ?? { agreements: [], appeals: [], involvedIds: [], replacement: { hasApprovedDecision: false, effectCode: null, pending: [] }, openHeldReviewIds: [], pendingContractPolicyReviews: [] };
+  const processFlag = (): ActionVerdict | null => (i.flags.appealsEnabled ? null : no("DISPUTE_PROCESS_DISABLED", "Chức năng thoả thuận, xem xét lại và hiệu chỉnh buổi chưa được bật"));
+  const replacementFlag = (): ActionVerdict | null => (i.flags.decisionReplacementEnabled ? null : no("DECISION_REPLACEMENT_DISABLED", "Chức năng thay thế quyết định đã duyệt đang tắt"));
+  const conflict = (): ActionVerdict | null => (isParty ? no("CONFLICT_OF_INTEREST", "Quản trị viên là một bên của vụ việc") : null);
+
+  out.proposeAgreement =
+    adminOnly() ?? processFlag() ?? investigatorOnly() ?? stateOnly(["COLLECTING", "AWAITING_PARTIES", "ASSESSING"]) ?? classified() ?? ok(["COMPLETED", "CANCELLED", "PT_NO_SHOW_CONFIRMED"]);
+  out.withdrawAgreement = (() => {
+    const base = adminOnly() ?? processFlag() ?? investigatorOnly();
+    if (base) return base;
+    const open = v.agreements.filter((a) => a.status === "PROPOSED" || a.status === "AGREED");
+    return open.length ? ok(open.map((a) => a.id)) : no("AGREEMENT_NOT_OPEN", "Không có phương án chung nào còn hiệu lực để rút");
+  })();
+  out.recordAgreementFinding = (() => {
+    const base = adminOnly() ?? processFlag() ?? investigatorOnly() ?? stateOnly(["ASSESSING"]);
+    if (base) return base;
+    const agreed = v.agreements.filter((a) => a.status === "AGREED" && a.confirmedRoles.length === 2);
+    return agreed.length ? ok(agreed.map((a) => a.id)) : no("AGREEMENT_NOT_AGREED", "Chưa có phương án nào được cả hai bên cùng xác nhận");
+  })();
+
+  out.assignAppealReviewer = (() => {
+    const base = adminOnly() ?? processFlag() ?? conflict();
+    if (base) return base;
+    if (!v.appeals.length) return no("APPEAL_NOT_FOUND", "Hồ sơ chưa có yêu cầu xem xét lại");
+    const open = v.appeals.filter((a) => a.status !== "DECIDED");
+    return open.length ? ok(open.map((a) => a.id)) : no("APPEAL_ALREADY_DECIDED", "Mọi yêu cầu xem xét lại của hồ sơ đã có kết quả");
+  })();
+  out.decideAppeal = (() => {
+    const base = adminOnly() ?? processFlag();
+    if (base) return base;
+    if (!v.appeals.length) return no("APPEAL_NOT_FOUND", "Hồ sơ chưa có yêu cầu xem xét lại");
+    const mine = v.appeals.filter((a) => a.status === "UNDER_REVIEW" && a.reviewerId === actor.id);
+    if (!mine.length) {
+      return v.appeals.every((a) => a.status === "DECIDED") ? no("APPEAL_ALREADY_DECIDED", "Mọi yêu cầu xem xét lại của hồ sơ đã có kết quả") : no("NOT_APPEAL_REVIEWER", "Chỉ người xem xét lại được giao mới ghi kết quả");
+    }
+    // same order as assertIndependentReviewer
+    if (isParty) return no("CONFLICT_OF_INTEREST", "Người xem xét lại là một bên của vụ việc");
+    if (c.investigatorId && actor.id === c.investigatorId) return no("REVIEWER_NOT_INDEPENDENT", "Người xem xét lại không được là điều tra viên của hồ sơ");
+    if (v.involvedIds.includes(actor.id)) return no("REVIEWER_NOT_INDEPENDENT", "Người xem xét lại không được là người đã đề xuất hoặc duyệt quyết định ban đầu");
+    return ok(mine.map((a) => a.id));
+  })();
+
+  const consequences = v.appeals.flatMap((a) => a.consequences.map((k) => ({ ...k, reviewerId: a.reviewerId })));
+  out.createAppealObligation = (() => {
+    const base = adminOnly() ?? processFlag();
+    if (base) return base;
+    const money = consequences.filter((k) => k.kind === "MONEY");
+    if (!money.length) return no("CONSEQUENCE_NOT_FOUND", "Hồ sơ không có hệ quả tiền nào");
+    const est = money.filter((k) => k.amountRequested);
+    return est.length ? ok(est.map((k) => k.id)) : no("MONEY_NOT_ESTABLISHED", "Kết luận chưa xác lập số tiền và bên chịu trách nhiệm: không tạo khoản nợ, giữ để đối soát");
+  })();
+  out.syncAppealObligation = (() => {
+    const base = adminOnly() ?? processFlag();
+    if (base) return base;
+    const money = consequences.filter((k) => k.kind === "MONEY");
+    if (!money.length) return no("CONSEQUENCE_NOT_FOUND", "Hồ sơ không có hệ quả tiền nào");
+    const withDebt = money.filter((k) => k.status === "OBLIGATION_OPEN" || k.status === "RESOLVED");
+    return withDebt.length ? ok(withDebt.map((k) => k.id)) : no("NO_OBLIGATION", "Hệ quả này chưa có khoản nợ chính thức");
+  })();
+  out.proposeQuotaCorrection = (() => {
+    const base = adminOnly() ?? processFlag() ?? conflict();
+    if (base) return base;
+    const quota = consequences.filter((k) => k.kind === "QUOTA");
+    if (!quota.length) return no("CONSEQUENCE_NOT_FOUND", "Hồ sơ không có hệ quả buổi tập nào");
+    const open = quota.filter((k) => k.status === "OPEN");
+    if (!open.length) return no("CONSEQUENCE_NOT_OPEN", "Hệ quả này đã được xử lý");
+    const free = open.filter((k) => !k.corrections.some((x) => x.appliedAt === null));
+    return free.length ? ok(free.map((k) => k.id)) : no("CORRECTION_ALREADY_PROPOSED", "Đã có đề xuất hiệu chỉnh đang chờ duyệt cho hệ quả này");
+  })();
+  out.approveQuotaCorrection = (() => {
+    const base = adminOnly() ?? processFlag();
+    if (base) return base;
+    const all = consequences.flatMap((k) => k.corrections.map((x) => ({ ...x, reviewerId: k.reviewerId })));
+    if (!all.length) return no("CORRECTION_NOT_FOUND", "Hồ sơ chưa có đề xuất hiệu chỉnh nào");
+    const pending = all.filter((x) => x.appliedAt === null);
+    if (!pending.length) return no("CORRECTION_ALREADY_APPLIED", "Mọi đề xuất hiệu chỉnh đã được áp dụng");
+    const verdicts = pending.map((x) => {
+      const r = checkApprover({ approverId: actor.id, approverRole: actor.role, proposerId: x.proposedBy, investigatorId: c.investigatorId, clientUserId: c.clientUserId, ptUserId: c.ptUserId, conflictOfInterestDeclaredNone: true });
+      if (!r.ok) return { id: x.id, v: no(r.code, r.message) };
+      if (x.reviewerId === actor.id) return { id: x.id, v: no("SELF_APPROVAL_FORBIDDEN", "Người xem xét lại không được tự duyệt hiệu chỉnh buổi do mình quyết định") };
+      return { id: x.id, v: ok() };
+    });
+    const good = verdicts.filter((x) => x.v.allowed);
+    return good.length ? ok(good.map((x) => x.id)) : verdicts[0].v;
+  })();
+
+  // decision replacement (own flag; admin-only router): admin -> flag -> party -> object
+  out.proposeDecisionReplacement =
+    adminOnly() ??
+    replacementFlag() ??
+    conflict() ??
+    (v.replacement.hasApprovedDecision ? null : no("DECISION_NOT_APPROVED", "Hồ sơ chưa có quyết định đã duyệt để thay thế")) ??
+    (v.replacement.effectCode ? no(v.replacement.effectCode, "Quyết định đã duyệt này đã có tác động (buổi, quyền buổi, tiền hoặc thực thi): không thay thế được") : null) ??
+    (v.replacement.pending.length ? no("REPLACEMENT_PENDING", "Hồ sơ đã có một đề xuất thay thế đang chờ") : null) ??
+    ok();
+  const replacementDecision = (selfCode: string, checkEffect: boolean): ActionVerdict => {
+    const base = adminOnly() ?? replacementFlag() ?? conflict();
+    if (base) return base;
+    if (!v.replacement.pending.length) return no("REPLACEMENT_NOT_FOUND", "Không có đề xuất thay thế nào đang chờ");
+    const others = v.replacement.pending.filter((r) => r.proposedBy !== actor.id);
+    if (!others.length) {
+      return no(selfCode, selfCode === "SELF_APPROVAL_FORBIDDEN" ? "Người đề xuất không được tự duyệt đề xuất thay thế của mình" : "Người đề xuất không được tự từ chối đề xuất của mình (cần người thứ hai)");
+    }
+    if (checkEffect && v.replacement.effectCode) return no(v.replacement.effectCode, "Quyết định đã duyệt này đã có tác động: không thay thế được");
+    return ok(others.map((r) => r.id));
+  };
+  out.approveDecisionReplacement = replacementDecision("SELF_APPROVAL_FORBIDDEN", true);
+  out.rejectDecisionReplacement = replacementDecision("SELF_REJECT_FORBIDDEN", false);
+
+  out.decideHeldMoney = adminOnly() ?? processFlag() ?? (v.openHeldReviewIds.length ? ok(v.openHeldReviewIds) : no("HELD_REVIEW_NOT_FOUND", "Buổi của hồ sơ này không có khoản giữ nào đang chờ rà soát"));
+
+  // contract-level policy review (the contract of this case): no flag; admin -> party of the contract -> object
+  out.proposeContractPolicy = adminOnly() ?? (isParty ? no("CONFLICT_OF_INTEREST", "Quản trị viên là một bên của hợp đồng nên không được đề xuất kết luận chính sách") : null) ?? ok();
+  out.approveContractPolicy = (() => {
+    const base = adminOnly();
+    if (base) return base;
+    const verdictOf = (proposedBy: string) => checkApprover({ approverId: actor.id, approverRole: actor.role, proposerId: proposedBy, investigatorId: null, clientUserId: c.clientUserId, ptUserId: c.ptUserId, conflictOfInterestDeclaredNone: true });
+    const mine = v.pendingContractPolicyReviews.filter((r) => verdictOf(r.proposedBy).ok);
+    if (mine.length) return ok(mine.map((r) => r.id));
+    if (!v.pendingContractPolicyReviews.length) return no("POLICY_REVIEW_NOT_FOUND", "Không có kết luận chính sách cấp hợp đồng nào đang chờ duyệt");
+    const r = verdictOf(v.pendingContractPolicyReviews[0].proposedBy);
+    return r.ok ? ok() : no(r.code, r.message);
+  })();
+  return out;
+}
+
+// ── Party side (client / PT): the same idea for the routes under /dispute-cases ─────────────────────────────────────────────────────────────────
+export const PARTY_ACTION_NAMES = ["addStatement", "addEvidence", "addEvidenceFile", "confirmAgreement", "requestAppeal"] as const;
+export type PartyActionName = (typeof PARTY_ACTION_NAMES)[number];
+
+export interface PartyAllowedActionsInput {
+  /** the party's role in the case (null = not a party: the route answers 404) */
+  role: "CLIENT" | "PT" | null;
+  c: { status: string; closeReason: string | null };
+  flags: { evidenceStorageEnabled: boolean; appealsEnabled: boolean };
+  now: Date;
+  agreements: ReadonlyArray<{ id: string; status: string; confirmedRoles: string[] }>;
+  /** when the CONCLUSION notice to THIS party was validly recorded (null = none recorded) */
+  conclusionNoticeRecordedAt: Date | null;
+  /** this party already requested an appeal for this case */
+  appealRequested: boolean;
+}
+
+export function computePartyAllowedActions(i: PartyAllowedActionsInput): Record<PartyActionName, ActionVerdict> {
+  const out = {} as Record<PartyActionName, ActionVerdict>;
+  if (!i.role) {
+    for (const n of PARTY_ACTION_NAMES) out[n] = no("CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
+    return out;
+  }
+  const role = i.role;
+  const submitState = (): ActionVerdict | null =>
+    PARTY_SUBMIT_STATUSES.includes(i.c.status as CaseStatus) ? null : no("CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này");
+  const flag = (): ActionVerdict | null => (i.flags.appealsEnabled ? null : no("DISPUTE_PROCESS_DISABLED", "Chức năng thoả thuận, xem xét lại và hiệu chỉnh buổi chưa được bật"));
+  out.addStatement = submitState() ?? ok();
+  out.addEvidence = submitState() ?? ok();
+  out.addEvidenceFile = (i.flags.evidenceStorageEnabled ? null : no("FEATURE_DISABLED", "Chức năng lưu tệp bằng chứng chưa được bật")) ?? submitState() ?? ok();
+  out.confirmAgreement = (() => {
+    const base = flag();
+    if (base) return base;
+    if (!i.agreements.length) return no("AGREEMENT_NOT_FOUND", "Hồ sơ chưa có phương án chung nào");
+    const open = i.agreements.filter((a) => a.status === "PROPOSED");
+    if (!open.length) return no("AGREEMENT_NOT_OPEN", "Phương án chung này không còn chờ xác nhận");
+    const mine = open.filter((a) => !a.confirmedRoles.includes(role));
+    return mine.length ? ok(mine.map((a) => a.id)) : no("AGREEMENT_ALREADY_CONFIRMED", "Bạn đã xác nhận phương án này");
+  })();
+  out.requestAppeal = (() => {
+    const base = flag();
+    if (base) return base;
+    const appealable = i.c.status === "DECISION_APPROVED" || (i.c.status === "CLOSED" && ["EXECUTED", "APPEAL_CONCLUDED"].includes(String(i.c.closeReason ?? "")));
+    if (!appealable) return no("CASE_STATE_NOT_ALLOWED", "Trạng thái hiện tại của hồ sơ không cho phép thao tác này");
+    if (!i.conclusionNoticeRecordedAt) return no("APPEAL_NOTICE_NOT_RECORDED", "Chưa có thông báo kết luận được ghi nhận cho bạn nên chưa mở thời hạn xem xét lại");
+    if (i.now.getTime() > i.conclusionNoticeRecordedAt.getTime() + APPEAL_WINDOW_DAYS * 86_400_000) return no("APPEAL_WINDOW_CLOSED", "Đã quá 14 ngày kể từ khi thông báo kết luận được ghi nhận cho bạn");
+    if (i.appealRequested) return no("APPEAL_ALREADY_REQUESTED", "Mỗi bên chỉ được yêu cầu xem xét lại một lần cho mỗi hồ sơ");
+    return ok();
+  })();
   return out;
 }
 
 export const allowedList = (m: Record<ActionName, ActionVerdict>): ActionName[] => ACTION_NAMES.filter((a) => m[a].allowed);
+export const allowedPartyList = (m: Record<PartyActionName, ActionVerdict>): PartyActionName[] => PARTY_ACTION_NAMES.filter((a) => m[a].allowed);

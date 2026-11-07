@@ -751,7 +751,7 @@ test("11. orphan case (HTTP): a case whose session left dispute is flagged, clos
   // still in dispute: not an orphan, refuse
   const early = await call("POST", `/admin/dispute-cases/${caseId}/close-orphan`, A(admin()), { reason: "thử" });
   assert.deepEqual([early.status, early.json.code], [409, "CASE_NOT_ORPHAN"]);
-  assert.equal((await call("GET", `/admin/dispute-cases/${caseId}`, A(P))).json.actions.closeOrphan.code, "SESSION_STILL_IN_DISPUTE");
+  assert.equal((await call("GET", `/admin/dispute-cases/${caseId}`, A(P))).json.actions.closeOrphan.code, "CASE_NOT_ORPHAN");
 
   // [TEST FIXTURE] the session leaves DISPUTED outside the case (the old route ruled it)
   await prisma.session.update({ where: { id: s.session.id }, data: { status: "CANCELLED", cancelledBy: "ADMIN" } });

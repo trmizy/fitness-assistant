@@ -8,7 +8,7 @@ import { caseError } from "./errors";
 import { appealsEnabled } from "./flags";
 import { noticesFor } from "./notices";
 import { __internals, type Actor } from "./dispute-case.service";
-import { checkApprover, outcomeForFinding, partyRoleOf, type CaseStatus, type FindingKind } from "./rules";
+import { APPEAL_WINDOW_DAYS, checkApprover, outcomeForFinding, partyRoleOf, type CaseStatus, type FindingKind } from "./rules";
 import { HELD_REVIEW_DAYS } from "./dispute-timers.service";
 import { paymentClient } from "../../clients/payment.client";
 import { logger } from "@gym-coach/shared";
@@ -18,7 +18,7 @@ import { logger } from "@gym-coach/shared";
  * visible stuck queue. Every mutating route is behind the fail-closed flag DISPUTE_CASE_APPEALS_ENABLED (409 DISPUTE_PROCESS_DISABLED). Case-level actions go through the same lock + CAS +
  * append-only event + Idempotency-Key wrapper as every other case action. NOTHING here executes a ruling or pays: the money path stays the executor (and payment-service).
  */
-export const APPEAL_WINDOW_DAYS = 14;
+export { APPEAL_WINDOW_DAYS };
 const OUTCOME_LABEL_VI: Record<string, string> = {
   COMPLETED: "Buổi tập được tính là đã hoàn thành",
   CANCELLED: "Buổi tập huỷ, không trừ buổi",

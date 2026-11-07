@@ -12,7 +12,7 @@ const base = (over: Partial<AllowedActionsInput["c"]> = {}, rest: Partial<Allowe
   proposerId: null,
   latestFinding: null,
   pendingPolicyReviews: [],
-  flags: { executionEnabled: false, evidenceStorageEnabled: false },
+  flags: { executionEnabled: false, evidenceStorageEnabled: false, appealsEnabled: false, decisionReplacementEnabled: false },
   ...rest,
 });
 
@@ -25,7 +25,7 @@ test("every action has a verdict; a non-admin is refused everything with ADMIN_O
 
 test("investigator in ASSESSING: investigation actions yes, approval/execution no; another admin: only the non-investigator actions", () => {
   const inv = computeAllowedActions(base());
-  assert.deepEqual(allowedList(inv).sort(), ["addAssessment", "addClaim", "addIssue", "assign", "proposePolicyEligibility", "recollect", "recordFinding", "requestMore", "share", "transition"].sort());
+  assert.deepEqual(allowedList(inv).sort(), ["addAssessment", "addClaim", "addIssue", "assign", "proposeContractPolicy", "proposePolicyEligibility", "recollect", "recordFinding", "requestMore", "share", "transition"].sort());
   assert.deepEqual([...(inv.transition.options ?? [])].sort(), ["AWAITING_PARTIES", "COLLECTING", "TECH_RECONCILIATION"].sort());
   assert.equal(inv.decide.code, "CASE_STATE_NOT_ALLOWED");
   const other = computeAllowedActions(base({}, { actor: { id: "other", role: "ADMIN" } }));
@@ -48,14 +48,14 @@ test("approval is four-eyes and conflict-of-interest aware", () => {
 
 test("execution axis: execute needs DECISION_APPROVED + a startable exec state + the flag; reconcile only EXECUTING; acknowledge only NEEDS_HUMAN", () => {
   const actor = { id: "x", role: "ADMIN" };
-  const flagsOn = { executionEnabled: true, evidenceStorageEnabled: true };
+  const flagsOn = { executionEnabled: true, evidenceStorageEnabled: true, appealsEnabled: false, decisionReplacementEnabled: false };
   const approved = (execStatus: string, flags = flagsOn) => computeAllowedActions(base({ status: "DECISION_APPROVED", execStatus }, { actor, flags }));
   assert.equal(approved("NOT_STARTED").execute.allowed, true);
   assert.equal(approved("EXEC_BLOCKED").execute.allowed, true);
   assert.equal(approved("EXECUTING").execute.code, "EXECUTION_NOT_STARTABLE");
   assert.equal(approved("BUSINESS_DONE").execute.code, "EXECUTION_NOT_STARTABLE");
   assert.equal(approved("NEEDS_HUMAN").execute.code, "EXECUTION_NOT_STARTABLE");
-  assert.equal(approved("NOT_STARTED", { executionEnabled: false, evidenceStorageEnabled: false }).execute.code, "EXECUTION_DISABLED");
+  assert.equal(approved("NOT_STARTED", { executionEnabled: false, evidenceStorageEnabled: false, appealsEnabled: false, decisionReplacementEnabled: false }).execute.code, "EXECUTION_DISABLED");
   assert.equal(approved("EXECUTING").reconcileExecution.allowed, true);
   assert.equal(approved("NOT_STARTED").reconcileExecution.code, "NOTHING_TO_RECONCILE");
   assert.equal(approved("NEEDS_HUMAN").acknowledgeNeedsHuman.allowed, true);

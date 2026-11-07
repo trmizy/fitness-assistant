@@ -58,7 +58,7 @@ export async function hasPendingReplacement(db: Db, caseId: string): Promise<boo
 type CaseRow = NonNullable<Awaited<ReturnType<typeof prisma.disputeCase.findUnique>>>;
 
 /** DB-visible facts (callable inside the case-locked transaction). Throws 409 DECISION_HAS_EFFECT listing every effect found. */
-async function dbChecks(db: Db, c: CaseRow, approvalId: string) {
+export async function dbChecks(db: Db, c: CaseRow, approvalId: string) {
   const effects: string[] = [];
   if (c.status !== "DECISION_APPROVED") effects.push(`case status is ${c.status}`);
   if (c.execStatus !== "NOT_STARTED" && c.execStatus !== "EXEC_BLOCKED") effects.push(`case execution status is ${c.execStatus}`);

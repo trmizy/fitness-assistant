@@ -88,6 +88,8 @@ export function canTransitionManually(from: CaseStatus, to: CaseStatus): boolean
 }
 
 /** States in which a party (client / PT) may add a statement or an evidence record (§1.6.1 collecting window). */
+/** the appeal (review request) window, from the recorded CONCLUSION notice to the party */
+export const APPEAL_WINDOW_DAYS = 14;
 export const PARTY_SUBMIT_STATUSES: readonly CaseStatus[] = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "POLICY_PENDING"];
 /** States in which the investigator may record claims / issues / shares. */
 export const INVESTIGATION_STATUSES: readonly CaseStatus[] = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "TECH_RECONCILIATION", "POLICY_PENDING"];

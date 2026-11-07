@@ -8,7 +8,10 @@ import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflic
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
 import { DISPUTE_CASE_FLAGS, evidenceStorageEnabled, executionEnabled, flagVerdict, gateVerdict } from "./flags";
 import { assertRealAdmin, listActiveAdmins } from "./admin-account";
-import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
+import { computeAllowedActions, computePartyAllowedActions, allowedList, allowedPartyList, isOrphanCase, type V21Facts } from "./allowed-actions";
+import { now as clockNow } from "./clock";
+import { appealsEnabled, decisionReplacementEnabled } from "./flags";
+import { currentApprovalWhere, dbChecks as replacementDbChecks } from "./decision-replacement.service";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
 import { deadlineDueAt, satisfyDeadlines } from "./party-notices";
 import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
@@ -1401,14 +1404,48 @@ export const disputeCaseService = {
     const latestApproval = latestProposal?.approvals.length ? latestProposal.approvals[latestProposal.approvals.length - 1] : null;
     const sessionStatus = session?.status ?? null;
     const execution = executionView(c, approvedProposal, approval, executions, events.slice(0, EVENTS_LIMIT), sessionStatus, reviews.items);
+    // V2.1 facts for allowedActions (rows already read above, plus what only the process tables hold)
+    const [replacementRows, heldRows, currentApproval] = await Promise.all([
+      prisma.disputeCaseDecisionReplacement.findMany({ where: { caseId, approvedAt: null, rejectedAt: null }, select: { id: true, proposedBy: true } }),
+      prisma.disputeHeldMoneyReview.findMany({ where: { sessionId: c.sessionId, closedAt: null }, select: { id: true } }),
+      prisma.disputeCaseApproval.findFirst({ where: await currentApprovalWhere(prisma, caseId), orderBy: { createdAt: "desc" }, select: { id: true } }),
+    ]);
+    let effectCode: string | null = null;
+    if (currentApproval) {
+      try {
+        await replacementDbChecks(prisma, c, currentApproval.id); // DB-visible "no effect" checks only; the ledger check stays with the route
+      } catch (e: any) {
+        effectCode = e?.code ?? "DECISION_HAS_EFFECT";
+      }
+    }
+    const v21: V21Facts = {
+      agreements: agreementRows.map((a) => ({ id: a.id, status: a.status, confirmedRoles: a.confirmations.map((x) => x.partyRole) })),
+      appeals: appealRows.map((a) => ({
+        id: a.id,
+        status: a.status,
+        reviewerId: a.reviewerId,
+        consequences: a.consequences.map((k) => ({
+          id: k.id,
+          kind: k.kind,
+          status: k.status,
+          amountRequested: !!((k.detail as any)?.requested?.amountVnd),
+          corrections: k.quotaCorrections.map((x) => ({ id: x.id, proposedBy: x.proposedBy, appliedAt: x.appliedAt })),
+        })),
+      })),
+      involvedIds: [...new Set(proposals.flatMap((p) => [p.proposerId, ...p.approvals.map((a) => a.approverId)]))],
+      replacement: { hasApprovedDecision: !!currentApproval, effectCode, pending: replacementRows },
+      openHeldReviewIds: heldRows.map((r) => r.id),
+      pendingContractPolicyReviews: reviews.items.filter((r) => r.status === "PENDING" && !r.caseId).map((r) => ({ id: r.reviewId, proposedBy: r.proposedBy })),
+    };
     const actions = computeAllowedActions({
       actor,
       c,
+      v21,
       sessionStatus,
       proposerId: latestProposal?.proposerId ?? null,
       latestFinding: findings.length ? findings[findings.length - 1].finding : null,
       pendingPolicyReviews: reviews.items.filter((r) => r.status === "PENDING" && r.caseId === c.id).map((r) => ({ id: r.reviewId, proposedBy: r.proposedBy })),
-      flags: { executionEnabled: executionEnabled(), evidenceStorageEnabled: evidenceStorageEnabled() },
+      flags: { executionEnabled: executionEnabled(), evidenceStorageEnabled: evidenceStorageEnabled(), appealsEnabled: appealsEnabled(), decisionReplacementEnabled: decisionReplacementEnabled() },
     });
     return {
       case: { ...withNames(c, await displayNames([c.clientUserId, c.ptUserId, c.investigatorId])), sessionStatus, orphan: isOrphanCase(c.status, sessionStatus) },
@@ -1474,7 +1511,24 @@ export const disputeCaseService = {
       { caseId, viewer: actor, action: "VIEW_CASE" as const },
       ...evidence.map((e) => ({ caseId, viewer: actor, action: "VIEW_EVIDENCE" as const, evidenceId: e.id })),
     ]);
+    // the party's own allowedActions: the buttons the frontend may draw (same predicates as the party routes)
+    const [agreementFacts, notice, myAppeal] = await Promise.all([
+      prisma.disputeCaseAgreement.findMany({ where: { caseId }, include: { confirmations: true } }),
+      prisma.disputeCasePartyNotice.findFirst({ where: { caseId, userId: actor.id, kind: "CONCLUSION" }, orderBy: [{ recordedAt: "desc" }, { id: "desc" }] }),
+      prisma.disputeCaseAppeal.findUnique({ where: { caseId_partyRole: { caseId, partyRole: role } }, select: { id: true } }),
+    ]);
+    const partyActions = computePartyAllowedActions({
+      role,
+      c: { status: c.status, closeReason: c.closeReason },
+      flags: { evidenceStorageEnabled: evidenceStorageEnabled(), appealsEnabled: appealsEnabled() },
+      now: clockNow(),
+      agreements: agreementFacts.map((a) => ({ id: a.id, status: a.status, confirmedRoles: a.confirmations.map((x) => x.partyRole) })),
+      conclusionNoticeRecordedAt: notice?.recordedAt ?? null,
+      appealRequested: !!myAppeal,
+    });
     return {
+      allowedActions: allowedPartyList(partyActions),
+      actions: partyActions,
       case: { id: c.id, sessionId: c.sessionId, type: c.type, status: c.status, role, createdAt: c.createdAt, canSubmit: PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus) },
       accusations: claims.map((cl) => ({ id: cl.id, claimantRole: cl.claimantRole, text: cl.text, moves: cl.moves })),
       evidence: evidence.map((e) => ({
