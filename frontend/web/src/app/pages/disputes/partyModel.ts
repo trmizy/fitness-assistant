@@ -8,6 +8,7 @@ import { describeMoneyGroup } from "../admin/disputes/disputeFinancial";
 import type { CaseStatus, PartyCaseDetail, PartyCaseListItem } from "../admin/disputes/disputeCaseTypes";
 import { GYM_CHECKIN_SUBJECTS, subjectTitle } from "../admin/disputes/workspace/evidenceModel";
 import { asRecord, formatDateTime } from "../admin/disputes/workspace/format";
+import { storedFileOf } from "../admin/disputes/evidenceFileModel";
 import {
   MINE_LABEL,
   MONEY_STATUS_NOTE,
@@ -245,6 +246,8 @@ export interface EvidenceView {
   facts: EvidenceFact[];
   caveat: string | null;
   mine: boolean;
+  /** a real stored file the viewer may download: only the party's OWN file (the server refuses anyone else's) */
+  ownFile: { fileName: string | null } | null;
 }
 
 type PartyEvidence = PartyCaseDetail["evidence"][number];
@@ -297,6 +300,7 @@ export function evidenceViews(detail: Pick<PartyCaseDetail, "evidence">): Eviden
       facts: e.mine && party ? ownDocFacts(e.payload) : [],
       caveat: gym ? GYM_CHECKIN_NOTE : unreadable ? UNREADABLE_SOURCE : null,
       mine: e.mine,
+      ownFile: e.mine ? storedFileOf(e.payload) : null,
     };
   });
 }

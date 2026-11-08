@@ -80,8 +80,8 @@ describe("D2 source guards", () => {
     }
   });
 
-  it("no file entry point: no call to the evidence-file route", () => {
-    for (const p of owned) assert.doesNotMatch(code(p), /evidence-files|\/file`|\/file"|readEvidenceFile|\.\/file\b/, rel(p));
+  it("screens never build a file URL themselves: the evidence-file routes go only through disputeCaseApi (08/11)", () => {
+    for (const p of owned) assert.doesNotMatch(code(p), /evidence-files|\/file`|\/file"|\.\/file\b/, rel(p));
   });
 
   it("no raw internal names in visible strings (D77, B-1, FH-, I6, DESIGN_REQUIRED...)", () => {

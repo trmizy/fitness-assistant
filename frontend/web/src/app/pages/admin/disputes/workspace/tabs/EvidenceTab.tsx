@@ -1,4 +1,8 @@
-import { useId } from "react";
+import { useId, useState } from "react";
+import { disputeCaseApi } from "../../disputeCaseApi";
+import { parseDisputeError } from "../../disputeCaseErrors";
+import { downloadName, saveBlob, storedFileOf } from "../../evidenceFileModel";
+import { isAllowed } from "../../actions/actionModel";
 import type { DisputeEvidence, DisputeShare } from "../../disputeCaseTypes";
 import { GYM_CHECKIN_NOTE, partyRoleLabel } from "../../disputeCaseLabels";
 import {
@@ -87,7 +91,46 @@ function Times({ e }: { e: DisputeEvidence }) {
   );
 }
 
-function EvidenceCard({ item, shares }: { item: EvidenceItem; shares: DisputeShare[] }) {
+/** S2.8: an admin who is not a party reads a stored evidence file; the server logs every read. Shown only with `readEvidenceFile`. */
+function AdminFileDownload({ caseId, evidenceId, fileName }: { caseId: string; evidenceId: string; fileName: string | null }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      saveBlob(await disputeCaseApi.downloadEvidenceFile(caseId, evidenceId, "admin"), downloadName(fileName, evidenceId));
+    } catch (e) {
+      setError(parseDisputeError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-1" data-testid="d2-file">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void run()}
+          disabled={busy}
+          className="inline-flex min-h-9 items-center rounded-md border border-adm-border bg-adm-surface px-3 text-xs font-medium text-adm-text hover:bg-adm-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+          data-testid="d2-file-download"
+        >
+          {busy ? "Đang tải tệp…" : "Tải tệp bằng chứng"}
+        </button>
+        <span className="text-xs text-adm-text-2">Mỗi lần tải được ghi vào nhật ký truy cập hồ sơ.</span>
+      </div>
+      {error && (
+        <p role="alert" className="text-xs text-st-danger">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function EvidenceCard({ item, shares, caseId, canReadFile }: { item: EvidenceItem; shares: DisputeShare[]; caseId: string; canReadFile: boolean }) {
   const e = item.current;
   const badges = evidenceBadges(e);
   const unreadable = isUnreadable(e);
@@ -116,6 +159,7 @@ function EvidenceCard({ item, shares }: { item: EvidenceItem; shares: DisputeSha
       </p>
       <Times e={e} />
       <PayloadBlock view={view} showGymNote={gymNote} />
+      {canReadFile && storedFileOf(e.payload) && <AdminFileDownload caseId={caseId} evidenceId={e.id} fileName={storedFileOf(e.payload)?.fileName ?? null} />}
       {shares.length > 0 && (
         <p className="text-xs text-adm-text-2" data-testid="d2-shared-note">
           Đã chia sẻ cho: {shares.map((s) => partyRoleLabel(s.sharedWithRole)).join(", ")}.
@@ -159,7 +203,7 @@ export function EvidenceTab({ detail, currentUserId, onChanged }: ActionSlotProp
             </h3>
             <ul className="space-y-3">
               {g.items.map((item) => (
-                <EvidenceCard key={item.slotKey} item={item} shares={sharesOf(item)} />
+                <EvidenceCard key={item.slotKey} item={item} shares={sharesOf(item)} caseId={detail.case.id} canReadFile={isAllowed(detail, "readEvidenceFile")} />
               ))}
             </ul>
           </section>

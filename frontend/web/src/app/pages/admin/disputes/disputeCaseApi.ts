@@ -13,8 +13,8 @@
  *
  * Routes behind a server flag (execute / reconcile / acknowledge-needs-human) are built here, but the screens show them only
  * when `capabilities` says the flag is effective AND `allowedActions` lists the action.
- * NOT built on purpose: A8 / B5 / B6 evidence files (flag `evidenceStorage`; the web still declares a hash only), D65-B and late-open
- * (other batches). C1 (`listDisputedSessions`) and C3 (`resolveSessionDispute`) are re-exported unchanged from `adminService`.
+ * Evidence files (S2.8, flag `evidenceStorage`, 08/11): `uploadEvidenceFile` (party, multipart, key mandatory) and
+ * `downloadEvidenceFile` (party: own file; admin: `readEvidenceFile`). D65-B and late-open are other batches. C1 (`listDisputedSessions`) and C3 (`resolveSessionDispute`) are re-exported unchanged from `adminService`.
  */
 import { adminService, api } from "../../../services/api";
 import type {
@@ -80,6 +80,7 @@ export interface DisputeHttpClient {
     params?: Record<string, unknown>;
     headers?: Record<string, string>;
     timeout?: number;
+    responseType?: "json" | "blob";
   }): Promise<{ data: T; status: number }>;
 }
 
@@ -87,6 +88,8 @@ export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
 
 /** The default 10 s axios timeout is shorter than a ledger read (10 s per money step) + external evidence collection. */
 const SLOW_MS = 40_000;
+/** a 5 MB file on a slow mobile link */
+const UPLOAD_MS = 120_000;
 
 function assertKey(key: string): string {
   if (typeof key !== "string" || !IDEMPOTENCY_KEY_PATTERN.test(key)) throw new Error("INVALID_IDEMPOTENCY_KEY");
@@ -154,6 +157,13 @@ export type ShareInput = { sharedWithRole: ShareRole; reason: string } & ({ evid
 export interface StatementInput {
   text: string;
   supplementReason?: string;
+}
+export interface EvidenceFileCreated {
+  id?: string;
+  evidenceId?: string;
+  sha256?: string;
+  sizeBytes?: number;
+  mime?: string;
 }
 export interface PartyEvidenceInput {
   description: string;
@@ -516,6 +526,39 @@ export function createDisputeCaseApi(client: DisputeHttpClient) {
         compact({ description: input.description, sha256: input.sha256, title: input.title, fileName: input.fileName }),
         idempotencyKey,
       ),
+    /** B5. Real evidence file (multipart: file, description, title?). Idempotency-Key mandatory. 201 new / 200 replay. */
+    uploadEvidenceFile: async (caseId: string, input: { file: Blob; fileName: string; description: string; title?: string }, idempotencyKey: string) => {
+      const fd = new FormData();
+      fd.append("file", input.file, input.fileName);
+      fd.append("description", input.description.trim());
+      if (input.title && input.title.trim()) fd.append("title", input.title.trim());
+      return (
+        await client.request<EvidenceFileCreated>({
+          method: "POST",
+          url: `/dispute-cases/${enc(caseId)}/evidence-files`,
+          data: fd,
+          headers: { "Idempotency-Key": assertKey(idempotencyKey), "Content-Type": "multipart/form-data" },
+          timeout: UPLOAD_MS,
+        })
+      ).data;
+    },
+    /** B6 (party, own file) / A8 (admin, logged). The bytes come back as a Blob; a JSON error body is turned back into JSON for parseDisputeError. */
+    downloadEvidenceFile: async (caseId: string, evidenceId: string, as: "party" | "admin"): Promise<Blob> => {
+      const base = as === "admin" ? A : "/dispute-cases";
+      try {
+        return (await client.request<Blob>({ method: "GET", url: `${base}/${enc(caseId)}/evidence/${enc(evidenceId)}/file`, responseType: "blob", timeout: UPLOAD_MS })).data;
+      } catch (e) {
+        const r = (e as { response?: { data?: unknown } }).response;
+        if (r && typeof Blob !== "undefined" && r.data instanceof Blob) {
+          try {
+            r.data = JSON.parse(await r.data.text());
+          } catch {
+            /* not JSON: leave it, the parser falls back to the HTTP status */
+          }
+        }
+        throw e;
+      }
+    },
     /** B8. Request appeal. Idempotency-Key mandatory. */
     requestPartyAppeal: (caseId: string, input: { reason: string }, idempotencyKey: string) =>
       postData<AppealRequestResult>(`/dispute-cases/${enc(caseId)}/appeals`, { reason: input.reason }, idempotencyKey),

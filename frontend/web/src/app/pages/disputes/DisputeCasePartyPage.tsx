@@ -10,6 +10,7 @@ import { DocumentForm } from "./DocumentForm";
 import { StatementForm } from "./StatementForm";
 import { PartyAppealForm } from "./PartyAppealForm";
 import { PartyAgreementPanel } from "./PartyAgreementPanel";
+import { PartyEvidenceFileForm, PartyFileDownload } from "./PartyEvidenceFileForm";
 import { BackLink, CARD, FailureBlock, LoadingBlock, MUTED, Notice, Panel, Pill, ReloadButton } from "./PartyParts";
 import { partyAllowed, partyRefusal, partyVerdictOf } from "./partyActions";
 import { CANNOT_SUBMIT_NOTE, CAN_SUBMIT_NOTE, NOT_FOUND_TEXT, NOT_FOUND_TITLE, NO_AUTO_REFRESH_NOTE, VISIBLE_ONLY_NOTE } from "./partyLabels";
@@ -188,7 +189,11 @@ function DetailBody({
                     ))}
                   </dl>
                 )}
-                {e.mine && e.facts.length > 0 && <p className={`mt-2 text-xs ${MUTED}`}>Không có tệp nào được lưu cho tài liệu này.</p>}
+                {e.ownFile ? (
+                  <PartyFileDownload caseId={caseId} evidenceId={e.id} fileName={e.ownFile.fileName} />
+                ) : (
+                  e.mine && e.facts.length > 0 && <p className={`mt-2 text-xs ${MUTED}`}>Không có tệp nào được lưu cho tài liệu này.</p>
+                )}
                 {e.caveat && (
                   <div className="mt-2">
                     <Notice tone="warning" testId="d4-evidence-caveat">
@@ -261,6 +266,8 @@ function DetailBody({
           reloading={refreshing}
         />
       )}
+
+      {partyAllowed(detail, "addEvidenceFile") && <PartyEvidenceFileForm caseId={caseId} onSaved={() => void onReload()} />}
 
       <PartyAgreementPanel
         caseId={caseId}

@@ -204,6 +204,12 @@ export const DISPUTE_ERROR_CODES: Record<string, Entry> = {
   FEATURE_DISABLED: { kind: "blocked", message: "Chức năng này hiện chưa được bật." },
   LATE_OPEN_RECONCILIATION_DISABLED: { kind: "blocked", message: "Chức năng đối soát khoản bồi thường còn mở đang tắt." },
   EVIDENCE_FILE_INTEGRITY: { kind: "blocked", message: "Tệp lưu không còn khớp với mã băm lúc nộp." },
+  // Evidence files (S2.8, 08/11)
+  FILE_TOO_LARGE: { kind: "validation", message: "Tệp lớn hơn 5 MB, máy chủ không nhận." },
+  UNSUPPORTED_MEDIA_TYPE: { kind: "validation", message: "Chỉ nhận ảnh JPG, PNG, WEBP hoặc tệp PDF, và loại tệp phải khớp với nội dung thật (đổi đuôi tệp không qua được)." },
+  FILE_REQUIRED: { kind: "validation", message: "Chưa có tệp nào được gửi lên." },
+  INVALID_UPLOAD: { kind: "validation", message: "Không đọc được dữ liệu tải lên. Hãy chọn lại tệp và gửi lại." },
+  EVIDENCE_FILE_MISSING: { kind: "blocked", message: "Tệp đã lưu không còn đọc được trên máy chủ." },
   // Agreements (A41-A44, B7)
   AGREEMENT_CONTENT_MISMATCH: { kind: "blocked", message: "Nội dung xác nhận không khớp với phương án đề xuất. Vui lòng xác nhận đúng phương án đang hiển thị." },
   AGREEMENT_ALREADY_CONFIRMED: { kind: "blocked", message: "Bạn đã xác nhận phương án này rồi." },

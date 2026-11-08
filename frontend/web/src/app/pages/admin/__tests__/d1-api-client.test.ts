@@ -191,14 +191,16 @@ describe("D1 API client - URLs and bodies", () => {
     for (const f of ["userId", "adminId", "approvedBy", "amount"]) assert.ok(!new RegExp(`\\b${f}\\b`).test(src), `${f} appears in the client`);
     assert.ok(/investigatorId/.test(src));
   });
-  it("V2.1 executor routes are exposed, while evidence-file and late-open are not on this client", () => {
+  it("V2.1 executor routes and the two evidence-file calls (08/11) are exposed; late-open is not on this client", () => {
     const names = Object.keys(disputeCaseApi);
     for (const n of ["execute", "reconcileExecution", "acknowledgeNeedsHuman"]) assert.ok(names.includes(n), n);
-    for (const n of names) assert.ok(!/evidenceFile|lateOpen|downloadFile|readFile/i.test(n), n);
+    for (const n of ["uploadEvidenceFile", "downloadEvidenceFile"]) assert.ok(names.includes(n), n);
+    for (const n of names) assert.ok(!/lateOpen/i.test(n), n);
+    assert.deepEqual(names.filter((n) => /file/i.test(n)).sort(), ["downloadEvidenceFile", "uploadEvidenceFile"]);
     const src = readFileSync(join(dir, "..", "disputes", "disputeCaseApi.ts"), "utf8");
     assert.match(src, /\/execute/);
     assert.match(src, /reconcile-execution/);
-    assert.ok(!/evidence-files|late-open/.test(src.replace(/\/\*[\s\S]*?\*\//g, "")));
+    assert.ok(!/late-open/.test(src.replace(/\/\*[\s\S]*?\*\//g, "")));
   });
 });
 
