@@ -221,6 +221,67 @@ Ghi nhận mới: `POST /pt-applications/me/draft` nhận sai kiểu dữ liệu
 
 Dữ liệu thử thêm trên DB partner: buổi `f7ca3290…` COMPLETED (hợp đồng `08dbf885…` thành 2/4 buổi); đơn PT thử của qa.r2reg1007 (REJECTED) và 3 tệp ảnh thử; ứng viên qa.gymr2b.1007 có địa chỉ + toạ độ; 2 bản ghi cuộc gọi.
 
+## 2f. Đợt 4 — kiểm lại sau khi partner sửa lệch mật khẩu nội bộ (tối 09/10)
+
+Backend partner chạy commit `18774535` (đã gộp `b24db7f`) và đã sửa lệch mật khẩu nội bộ giữa user-service và chat-service. Máy khách: ROG Phone 6, bản release build 19:41 ngày 09/10; web của laptop này trỏ về tunnel. Không sửa mã nào trong đợt này.
+
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| LỖI-27 | ĐẠT. Buổi học thật 21:17–21:32: cả hai vào phòng rồi rời; PT báo hoàn thành lúc 21:32:47 (trước lượt quét đóng phòng); 21:33:15 PT gọi thoại → máy chủ nhận ngay, không gỡ tay; khách nghe máy trên ROG, nối sau 2 giây, kết thúc sạch. | REAL DEVICE + REAL BROWSER + REAL HTTP/API |
+| LỖI-26 (lặp lại) | ĐẠT: bản ghi `SESSION_PENDING_CONFIRMATION` + thẻ "Chờ bạn xác nhận" tự hiện trong 7 giây. | REAL DEVICE + REAL HTTP/API |
+| Thông báo tức thời qua socket | ĐẠT: khách nhận `notification:new` trên `/chat-socket.io` 2 giây sau khi PT xác nhận buổi (đợt 3 kênh này bị 401 ở máy partner). | REAL HTTP/API |
+| Lỗi lộ nguyên văn Prisma | ĐẠT: nháp đơn PT sai kiểu dữ liệu → 400 "Dữ liệu gửi lên không hợp lệ…", không tạo bản nháp. | REAL HTTP/API |
+| Quyết toán buổi | ĐẠT: khách xác nhận → COMPLETED; ví PT khả dụng 130.000 → 220.000, chờ 180.000 → 90.000; hợp đồng 3/4 buổi. | REAL DEVICE + REAL HTTP/API |
+| Nháp lộ trình AI | Trả bản dự phòng sau 8,7 giây (partner đặt mốc chờ 8 giây; trước là 90,6 giây). Vẫn chưa có bản nháp cá nhân hoá. | REAL HTTP/API |
+| AI Coach, câu hỏi tự do | CHƯA ĐẠT: 83,9 / 83,7 / 84,3 giây rồi nhận câu dự phòng tiếng Việt — cả sau khi partner giới hạn 320 token và khởi động lại Ollama. Câu về lịch tập trả thẻ đề xuất sau 3–4 giây. Thuộc máy AI chỉ có CPU của partner. | REAL HTTP/API |
+
+Chưa kiểm trên máy thật: Trang chủ tự sang ngày đúng lúc 00:00 khi đang mở sẵn màn hình (commit `47471ad`) — đợt này kết thúc lúc 21:35.
+
+Ghi nhận: đặt buổi ngoài giờ PT mở lịch trả câu tiếng Anh "This time is outside the trainer's available hours"; mật khẩu admin trên backend partner đã về giá trị mặc định (partner cho biết bị một phiên khác đổi lúc 02:58 ngày 09/10).
+
+Dữ liệu thử thêm trên DB partner: buổi `57751355…` COMPLETED (hợp đồng `08dbf885…` thành 3/4 buổi); 2 bản ghi cuộc gọi.
+
+## 2g. Đợt 5 — nhánh tiền của buổi học, vòng đời hợp đồng, chủ gym trên backend partner (tối 09/10, 21:55 → 23:27)
+
+Backend partner commit `18774535`. Máy khách: TECNO SPARK 40 Pro, bản release build 19:41 ngày 09/10, mạng 4G. Chủ máy tự trả tiền hai lần (hợp đồng 800.000 ₫, gói hội viên 300.000 ₫) và tự quét mã QR check-in; người kiểm chỉ đưa tới màn chọn phương thức thanh toán. Không sửa mã nào trong đợt này.
+
+### Lỗi mới
+
+| Mã | Mức | Thuộc | Tóm tắt | Bằng chứng |
+|---|---|---|---|---|
+| LỖI-31 | P0 | payment-service | Một hợp đồng đóng (dùng hết 4/4 buổi) đã rút sạch tiền chờ của PT thuộc MỌI hợp đồng khác: 720.000 ₫ của hợp đồng B vừa trả bị ghi "Contract A termination — pending released on termination". Hệ quả dây chuyền trên hợp đồng B: PT không nhận tiền công 2 buổi được tính (180.000), và 3 lần bồi thường khách bị trừ vào tiền PT đã kiếm (310.000 → 40.000). Trang chi tiết tiền của hợp đồng vẫn báo số "đúng trên giấy". Phiên khác trong repo đang sửa đúng lỗi này (chưa commit). | REAL HTTP/API (sổ ví thật trên partner) |
+| LỖI-30 | P2 | user-service | Thông báo dời lịch ghi ngày kiểu Mỹ ("10/12/2026, 10:00:00 AM" cho 12 tháng 10) vì dùng `toLocaleString()` không chỉ định vùng. | REAL HTTP/API + CODE AUDIT `booking.service.ts:1326` |
+| LỖI-32 | P2 | mobile | Khi PT báo KHÁCH vắng mặt, bảng chi tiết buổi trên app ghi "PT báo đã dạy buổi này" + nút "Xác nhận đã tập" như buổi hoàn thành thường; khách không biết mình bị báo vắng, bấm xác nhận là chịu trừ buổi. | REAL DEVICE |
+| LỖI-33 | P2 | user-service | Quét phiếu InBody không bao giờ đọc BMR và mức mỡ nội tạng: khuôn dữ liệu gửi cho máy đọc ảnh (`inbody-vision.service.ts`) không có hai mục này, nên dù phiếu in rõ (1676 kcal, mức 25) hai ô vẫn trống và người dùng phải tự gõ. | REAL DEVICE + CODE AUDIT |
+
+### Kết quả theo ca
+
+| Ca | Kết quả | Bằng chứng |
+|---|---|---|
+| Hợp đồng dùng hết 4/4 buổi | Hợp đồng COMPLETED, giải ngân đủ 360.000 cho PT; đặt thêm buổi bị từ chối. (Lộ LỖI-31.) | REAL HTTP/API |
+| Dời lịch | Thiếu lý do → từ chối; PT từ chối → giữ giờ; người gửi rút được, bên kia không rút hộ; khách chấp nhận đề xuất của PT → đổi giờ; lịch sử đủ 3 đề xuất. | REAL HTTP/API |
+| Khách huỷ sớm (>24 giờ) | App báo "không bị trừ buổi"; buổi huỷ, không trừ, không tiền. | REAL DEVICE + REAL HTTP/API |
+| PT huỷ sớm | Huỷ, không trừ, không bồi thường; thiếu lý do bị từ chối. | REAL HTTP/API |
+| Khách huỷ sát giờ (<24 giờ) | App cảnh báo "sẽ TRỪ 1 buổi… huấn luyện viên vẫn được tính công"; buổi huỷ, trừ buổi. Tiền công PT không về ví (LỖI-31). | REAL DEVICE + REAL HTTP/API |
+| PT huỷ sát giờ | Buổi thành vắng mặt, không trừ buổi, khách được bồi thường 100.000. | REAL HTTP/API |
+| PT báo khách vắng → khách khiếu nại → admin huỷ không trừ | Đủ chuỗi trạng thái và thông báo; khiếu nại làm trên máy. (Lộ LỖI-32.) | REAL DEVICE + REAL HTTP/API |
+| Khách báo PT vắng → PT phản đối → admin xác nhận PT vắng | Báo vắng làm trên máy; bồi thường 100.000; đánh dấu lỗi PT. | REAL DEVICE + REAL HTTP/API |
+| Khách báo PT vắng → PT thừa nhận | Bồi thường 100.000 ngay, không cần admin. | REAL HTTP/API |
+| PT báo hoàn thành → khách khiếu nại → admin "tính là đã hoàn thành" | Khiếu nại làm trên máy; buổi COMPLETED, trừ buổi. | REAL DEVICE + REAL HTTP/API |
+| Quyền hạn | Khách không trả lời hộ PT, không phân xử hộ admin (403); admin thiếu ghi chú bị từ chối; phân xử lần hai bị từ chối. | REAL HTTP/API |
+| Chấm dứt hợp đồng giữa chừng | Lý do "PT vắng mặt nhiều lần" bị từ chối đúng (mới 2/3 lần); "Tôi muốn dừng" → hợp đồng chấm dứt, khách được hoàn 270.000 đúng con số app báo trước. | REAL DEVICE + REAL HTTP/API |
+| Thanh toán (chủ máy tự trả) | Hợp đồng PT và gói hội viên đều kích hoạt; app hiện "Thanh toán thành công". | REAL DEVICE |
+| Chủ gym trên partner | Khai tài khoản nhận tiền → tổng quan; tạo gói hội viên; thêm chi nhánh thứ hai (không có ô chọn thương hiệu, bản đồ có nền và tự ghim trên mạng 4G); mã QR; admin duyệt chi nhánh hai (chủ gym tự duyệt bị 403); khách thấy cả hai chi nhánh. | REAL DEVICE + REAL HTTP/API |
+| Check-in | Chủ máy quét mã thật → "Check-in thành công"; chủ gym thấy 1 lượt. Quét lại ngay, không có gói, mã giả đều bị từ chối. | REAL DEVICE + REAL HTTP/API |
+| Thông báo các loại từng bị mất (LỖI-26) | SESSION_PENDING_CONFIRMATION, SESSION_DISPUTED, SESSION_PT_NO_SHOW_REPORTED, SESSION_DISPUTE_RESOLVED đều tới thật. | REAL HTTP/API |
+| Quét phiếu InBody từ ảnh trong thư viện (23:33, sau phần chính của đợt) | Chủ máy cho phép dùng ảnh phiếu InBody270 nhận qua Zalo lúc 21:53 (hai ảnh đứng trước nó trong thư viện là ảnh chụp màn hình có sau lời dặn nên bỏ qua). Chọn ảnh → cắt → khoảng 15 giây ra màn "Kiểm tra kết quả quét": ngày đo, chiều cao, cân nặng, khối cơ, % mỡ, khối mỡ, cơ và mỡ 5 vùng đều khớp phiếu giấy, trừ cơ tay trái đọc 3,55 (phiếu 3,56). Lưu → Tổng quan, Cân bằng cơ thể, Lịch sử hiện đúng; API trả đúng bản ghi. (Lộ LỖI-33.) | REAL DEVICE + REAL HTTP/API |
+
+Chưa kiểm được: tải ảnh từ thư viện ở các chỗ khác ngoài InBody (ảnh đại diện, ảnh trong chat, ảnh chi nhánh); rút tiền của chi nhánh (tiền gói hội viên còn ở trạng thái chờ); tự xác nhận sau 3 ngày; chấm dứt với lý do "PT vắng mặt nhiều lần" khi đủ 3 lần; mọi con số tiền của hợp đồng B sau thời điểm LỖI-31 xảy ra (phải kiểm lại sau khi có bản sửa).
+
+Ghi nhận nhỏ: chữ còn tiếng Anh ở thông báo huỷ buổi hai chiều và các câu "You already have an active or pending contract with this PT", "You cannot respond to your own reschedule request", "Contract is not active", "This time is outside the trainer's available hours"; thẻ hợp đồng ghi "2/8 buổi" dù 3 buổi đã mất do bồi thường; thẻ đã chấm dứt vẫn hiện "Dừng bây giờ được hoàn khoảng…"; nhãn "Vắng mặt" không nói ai vắng; điểm tự ghim của bộ tra dự phòng lệch đường khoảng 900 m; nút "Tạo chi nhánh" sát mép dưới màn hình TECNO; phiếu InBody quét từ ảnh vẫn mang nhãn "Nhập tay" vì yêu cầu lưu không gửi kèm dấu "đọc từ ảnh" (máy chủ lưu `status: manual`), nhãn "Đọc từ ảnh" của app vì thế không bao giờ hiện.
+
+Dữ liệu thử thêm trên DB partner: hợp đồng A COMPLETED 4/4; hợp đồng B (qa.r2reg1007) CANCELLED với 8 buổi ở các trạng thái trên; gói "Goi QA 8 buoi"; lịch rảnh qa.c1006b mở cả tuần; đối tác qa.gymr2b.1007 ACTIVE với 2 chi nhánh, 1 gói, 1 hội viên, 1 lượt check-in; ví khách qa.r2reg1007 570.000; ví PT sai lệch do LỖI-31; một phiếu InBody ngày 13/09/2026 trên tài khoản qa.r2reg1007 (số đo thật của chủ máy).
+
 ## 3. Phần đã đạt (tóm tắt)
 
 - Điện thoại, vai khách: giới thiệu, kiểm tra địa chỉ máy chủ, đăng ký + OTP, onboarding, quét 38 màn, buổi tập + hướng dẫn bài tập + cảm nhận sau buổi, ghi món ăn, mục tiêu dinh dưỡng, InBody nhập tay, thuật sĩ lộ trình + kích hoạt, sửa hồ sơ, tải ảnh đại diện, thư viện, cài đặt, xuất dữ liệu, báo cáo vấn đề, đánh giá phòng gym.
@@ -581,3 +642,102 @@ Máy khách: ROG Phone 6, bản release build 03:34 ngày 08/10, mạng di độ
 - 23:55 (08/10): Trang chủ ghi "Calo hôm nay 283 · Đạm 10g", thẻ buổi tập ghi "Th 6, 09/10".
 - 00:01 (09/10), chưa chạm máy: thẻ buổi tập đã đổi thành "Hôm nay", nhưng "Calo hôm nay" vẫn 283 (số của 08/10) — đúng như thiết kế bản sửa: ngày được đọc lại khi màn hình được mở lại / app trở lại tiền cảnh, không tự nhảy khi đang nhìn.
 - Chuyển sang tab Tập luyện rồi quay lại Trang chủ (không tắt app): "Calo hôm nay 0 · Đạm 0g" — ĐẠT (hôm trước phải tắt hẳn app mới đổi).
+
+### ĐỢT 4 — kiểm lại sau khi partner sửa lệch mật khẩu nội bộ (commit partner 18774535 = gồm b24db7f), tunnel feature-spice-trade-entirely, tối 09/10
+Máy khách: ROG Phone 6, bản release build 19:41 ngày 09/10. Mật khẩu admin đợt trước bị từ chối trên tunnel này → không dùng admin trong đợt.
+
+#### R4-1 — Thông báo tức thời qua socket; đặt buổi (REAL HTTP/API)
+- Đặt buổi qua API cho hợp đồng 08dbf885…: 11/10, 12/10, 13/10 lúc 10:00 đều bị 400 "This time is outside the trainer's available hours" (PT thử chỉ mở lịch Thứ 4; câu báo lỗi còn tiếng Anh — GHI NHẬN); 14/10 10:00 → REQUESTED (buổi 57751355…).
+- Nghe hai socket với tư cách khách rồi cho PT xác nhận buổi (20:46:25): `/chat-socket.io notification:new {SESSION_CONFIRMED}` tới lúc 20:46:27 — ĐẠT. Xác nhận partner đã sửa lỗi 401 ở `/internal/push-notification` (đợt 3 kênh này hỏng, chỉ còn push FCM).
+
+#### R4-2 — Lỗi lộ nguyên văn Prisma (REAL HTTP/API, backend partner)
+- `POST /pt-applications/me/draft {"yearsOfExperience":5}` (số thay vì chuỗi) với tài khoản chưa có đơn → 400 `"Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường đã nhập."` — không còn câu truy vấn hay đường dẫn tệp; không có bản nháp nào bị tạo — ĐẠT.
+
+#### R4-3 — AI trên máy partner sau khi họ chỉnh cấu hình (REAL HTTP/API)
+- `/ai/ask` câu hỏi ngắn (mốc 80 giây, giới hạn 320 token): 83,9 giây → 200 kèm câu dự phòng tiếng Việt "Tạm thời AI chưa sẵn sàng…" — vẫn không trả lời kịp, đúng như partner báo trước. Câu về lịch tập 12 tuần: 4,0 giây → thẻ đề xuất lịch tập (đường không cần model viết).
+- `/fitness-roadmaps/ai-draft`: 8,7 giây → bản dự phòng 1 giai đoạn (mốc chờ 8 giây của partner có hiệu lực; đợt trước 90,6 giây). Câu tóm tắt vẫn ghi "Không kết nối được AI service" dù thực tế là hết giờ.
+
+#### R4-4 — Chuẩn bị kiểm lại LỖI-27 (REAL DEVICE)
+- ROG: đặt địa chỉ máy chủ = tunnel mới, đăng nhập qa.c1006a; danh sách "Sắp tới" có buổi "Th 4, 14/10 · 10:00–11:00 · Đã xác nhận" (buổi 57751355… vừa đặt qua API) — chờ partner dời giờ.
+- Ghi chú công cụ: Gboard trên máy đã quay về tiếng Việt (telex) nên lần nhập đầu ra "êample.com" và app báo "Đã xảy ra lỗi. Vui lòng thử lại." — lỗi do cách nhập của người kiểm; đã chuyển Gboard sang tiếng Anh.
+
+#### R4-5 — Kiểm lại LỖI-27 bằng buổi học thật (REAL DEVICE + REAL BROWSER + REAL HTTP/API)
+- Partner dời buổi 57751355… về 21:17:41–21:32:41 giờ VN. PT vào phòng từ web 21:17:12 (bản ghi cuộc gọi của phòng 68e7b913…), khách vào từ ROG, nối 21:17:40, điện thoại hiện hình của web "00:06 · Còn 14:53". Cả hai rời phòng; backend ghi đủ hai mốc vào phòng.
+- 21:32:47 (6 giây sau giờ kết thúc, trước lượt quét đóng phòng) PT báo hoàn thành → PENDING_CLIENT_CONFIRMATION. Khách: bản ghi `SESSION_PENDING_CONFIRMATION` (14:32:48Z), thẻ "Th 6, 09/10 · Chờ bạn xác nhận" tự hiện ở tab "Cần xử lý" trong 7 giây.
+- **LỖI-27 ĐẠT**: 21:33:15 PT gọi thoại từ web → `call:initiated` ngay (đợt 3 cùng bước này bị "You are already in a call"), không gỡ tay gì. Khách nghe máy trên ROG: nhận 21:33:25, nối 21:33:27, màn cuộc gọi đếm 00:04; kết thúc trên máy → web nhận `call:ended`.
+- Khách xác nhận buổi trên máy (21:34:12) → COMPLETED, sessionDeducted=true; ví PT khả dụng 130.000 → 220.000, chờ 180.000 → 90.000; hợp đồng 3/4 buổi — ĐẠT.
+
+#### R4-6 — AI Coach sau khi partner khởi động lại Ollama (REAL HTTP/API)
+- 21:27 và 21:29: câu hỏi ngắn vẫn 83,7 giây và 84,3 giây rồi nhận câu dự phòng tiếng Việt (lần hai là khi model đã nạp). Câu về lịch tập: 3,3 giây. Khởi động lại Ollama không làm câu hỏi tự do trả lời kịp.
+- Mật khẩu admin trên backend partner hiện là giá trị mặc định (`password123` đăng nhập được) — partner cho biết DB bị một phiên khác đổi lúc 02:58 ngày 09/10.
+
+### ĐỢT 5 — nhánh tiền của buổi học, vòng đời hợp đồng, chủ gym trên backend partner (tunnel feature-spice-trade-entirely, từ 21:55 ngày 09/10)
+Máy khách: TECNO SPARK 40 Pro (máy đang cắm). Phần trả tiền: người kiểm chỉ đưa tới màn chọn phương thức, chủ máy tự trả. Ảnh: được phép dùng ảnh đầu tiên trong thư viện.
+
+#### R5-0 — Dựng dữ liệu (REAL HTTP/API = TEST FIXTURE cho các bước sau)
+- PT thử qa.c1006b: mở lịch cả 7 ngày 06:00–23:00; tạo gói "Goi QA 8 buoi" (8 buổi, 800.000 ₫, Online).
+- Khách qa.c1006a xin hợp đồng thứ hai với cùng PT → 409 "You already have an active or pending contract with this PT" (đúng luật một hợp đồng mỗi cặp; câu báo còn tiếng Anh — GHI NHẬN). Dùng khách thứ hai qa.r2reg1007: yêu cầu → PT nhận → hợp đồng B 1a110796… PENDING_PAYMENT (chờ chủ máy trả).
+- Hợp đồng A 08dbf885… (3/4): đặt buổi cuối 1fee672f… (11/10 10:00), PT xác nhận.
+- Chủ gym thử qa.gymr2b.1007: khai tên pháp lý, tải 3 giấy tờ (presign → 204 → confirm), nộp hồ sơ → UNDER_REVIEW; admin chấp nhận 3 giấy tờ + duyệt → APPROVED_PAYOUT_PENDING; `GET /owner/gyms` lúc này trả 409 "Cần hoàn tất trình thiết lập lần đầu trước khi dùng chức năng này" (cổng vận hành chặn đúng trước bước nhận tiền).
+
+#### R5-1 — Dời lịch buổi tập (REAL HTTP/API, backend partner, buổi 1fee672f… của hợp đồng A)
+- Khách đề xuất dời không nêu lý do → 400 "Phải nêu lý do dời lịch". Có lý do → 200; buổi vẫn CONFIRMED giờ cũ trong lúc chờ.
+- Khách tự trả lời đề xuất của mình → 403 "You cannot respond to your own reschedule request" (đúng luật; câu còn tiếng Anh). PT từ chối → buổi giữ nguyên giờ; khách nhận "Yêu cầu dời lịch đã bị từ chối. Buổi tập giữ nguyên giờ cũ."
+- Khách đề xuất lại; PT thử rút hộ → 403 "Chỉ người gửi mới được rút lại yêu cầu"; khách rút → 200, buổi giữ nguyên.
+- PT đề xuất dời sang 12/10 10:00; khách chấp nhận → buổi đổi thành 2026-10-12T03:00Z–04:00Z, vẫn CONFIRMED. Lịch sử có đủ 3 đề xuất (ACCEPTED, CANCELLED, REJECTED) — ĐẠT.
+- **LỖI-30 (MỚI, user-service)**: thông báo dời lịch ghi ngày kiểu Mỹ: "Có yêu cầu dời lịch buổi tập sang ngày 10/12/2026, 10:00:00 AM" — thực tế là ngày 12 tháng 10, người Việt đọc thành 10 tháng 12.
+
+#### R5-2 — Tới màn chọn phương thức thanh toán (REAL DEVICE TECNO, bản release build 19:41 ngày 09/10)
+- TECNO: cài bản mới, đặt máy chủ = tunnel, đăng nhập qa.r2reg1007 → Dịch vụ → Hợp đồng: thẻ "Goi QA 8 buoi · Chờ thanh toán · 800.000 ₫ · 0/8 buổi" có "Thanh toán" / "Rút yêu cầu" → "Thanh toán" → bảng "Thanh toán hợp đồng · Số tiền cần thanh toán: 800.000 ₫" với VNPay (chọn sẵn), ZaloPay, MoMo — dừng ở đây cho chủ máy tự trả.
+- Chủ máy tự trả trên TECNO: hợp đồng B chuyển ACTIVE lúc 22:10 (startDate 15:10:26Z). Ví PT: chờ 90.000 → 810.000 (+720.000 = 800.000 trừ 10%).
+- Đặt 8 buổi cho hợp đồng B (11/10, 07:00–14:00 mỗi giờ một buổi), PT xác nhận cả 8 (REAL HTTP/API).
+
+#### R5-3 — Huỷ buổi SỚM (còn hơn 24 giờ) — hợp đồng B
+- Khách huỷ trên TECNO (REAL DEVICE): Buổi tập → Sắp tới → chạm thẻ "CN, 11/10 · 07:00–08:00" → bảng "Huỷ buổi tập" / "Đổi lịch" → "Huỷ buổi tập" → "Còn hơn 24 giờ nữa: huỷ bây giờ không bị trừ buổi, bạn đặt lại lúc khác được." + ô lý do tuỳ chọn → "Xác nhận" → thẻ biến khỏi danh sách. Backend: buổi CANCELLED, sessionDeducted=false, lý do "Khách huỷ buổi"; hợp đồng vẫn 0/8; ví PT không đổi — ĐẠT.
+- PT huỷ sớm (REAL HTTP/API): không nêu lý do → bị từ chối; có lý do → CANCELLED, không trừ buổi, không bồi thường, ptAtFault=false; hợp đồng 0 dùng / 0 bồi thường — ĐẠT.
+- GHI NHẬN: thông báo huỷ buổi còn tiếng Anh ở cả hai chiều ("Client cancelled a session", "Trainer cancelled the session").
+
+#### R5-4 — Chủ gym trên backend partner (REAL DEVICE TECNO, mạng 4G, qa.gymr2b.1007 vừa được duyệt)
+- Đăng nhập → vào thẳng "Thiết lập tài khoản đối tác · Bước 3/4 · Thông tin nhận tiền" → nhập ngân hàng / số tài khoản / chủ tài khoản → "Tiếp tục" → Tổng quan chủ gym ("Ví chi nhánh · khả dụng 0 ₫", "QA Gym R2 - Chi nhanh 1 · 123 Lê Lợi", các ô thống kê) — ĐẠT.
+- Gói hội viên: "Gói mới" → tên "Goi thang QA R2", giá 300000, 30 ngày → "Tạo gói" → danh sách có "Goi thang QA R2 · 30 ngày · không giới hạn lượt · 300.000 ₫ · Đang bán" — ĐẠT.
+- Thêm chi nhánh thứ hai: hộp ghi "Chi nhánh này sẽ thuộc thương hiệu QA Gym R2 1007", không có ô chọn thương hiệu; nhập tên, "45 Nguyen Hue", chọn TP. Hồ Chí Minh → Phường Sài Gòn → bản đồ hiện nền (nguồn dự phòng) và tự ghim "Đã ghim theo tên đường — kéo ghim cho đúng cửa nếu cần · 10.78261, 106.70462" → "Tạo chi nhánh" → danh sách: "2 chi nhánh thuộc thương hiệu này", chi nhánh mới "Chờ duyệt · Đang chờ Gymini duyệt…" — ĐẠT. GHI NHẬN: điểm ghim tự động cách đường Nguyễn Huệ khoảng 900 m (bộ tra dự phòng khớp lỏng; app có nhắc kéo ghim). Nút "Tạo chi nhánh" nằm sát mép dưới màn hình TECNO, phải cuộn mới bấm được.
+- Mã QR check-in của chi nhánh 1: hiện mã, "Mã dùng được đến 09/10/2027", "Phóng to" / "Lưu ảnh để in" / "Tạo lại mã", "Chưa có lượt check-in nào" — ĐẠT hiển thị.
+- Vai khách (qa.r2reg1007) xem phòng gym vừa được duyệt: ảnh mặt tiền hiện (ảnh chỉ công khai sau khi duyệt), địa chỉ "123 Lê Lợi, Phường Bến Thành, Thành phố Hồ Chí Minh", bản đồ có nền + ghim, gói "Goi thang QA R2 · 1 tháng · Không giới hạn lượt tập · 300.000 ₫", ô mã giới thiệu; chọn gói → "Mua gói hội viên" → bảng "Thanh toán gói hội viên · 300.000 ₫" (VNPay / ZaloPay / MoMo) — dừng cho chủ máy tự trả.
+
+#### R5-5 — Hợp đồng dùng hết 4/4 buổi (REAL HTTP/API, backend partner) — ĐẠT phần trạng thái, LỘ LỖI TIỀN
+- Buổi cuối 1fee672f… (partner dời về 22:11:59–22:26:59): PT báo hoàn thành 22:27:02 → khách xác nhận → COMPLETED, sessionDeducted=true; hợp đồng A: COMPLETED, 4/4, completedAt 15:27:10Z; `money-breakdown` của A: đã giải ngân PT 360.000 + nền tảng 40.000, còn chờ 0 — ĐÚNG. Đặt thêm buổi cho hợp đồng đã xong → 400 "Contract is not active" (đúng luật; câu còn tiếng Anh).
+- **LỖI-31 (P0, payment-service, mã dùng chung)**: cùng giây 15:27:10Z, sổ ví PT có thêm bút toán `DEBIT PENDING 720.000 (720.000 → 0) · "Contract 08dbf885… termination — pending released on termination"`. 720.000 đó là phần PT của HỢP ĐỒNG B (1a110796…, vừa trả lúc 22:10, chưa dạy buổi nào), không phải của hợp đồng A. Sau đó: ví PT khả dụng 310.000, chờ 0; trong khi `money-breakdown` của hợp đồng B vẫn ghi "stillPending pt 720.000". Tức việc đóng một hợp đồng đã rút sạch tiền chờ của PT ở mọi hợp đồng khác. Ví của hai khách không nhận khoản nào. Phiên khác trong repo đang sửa đúng lỗi này (tệp chưa commit `contract-ledger.service.ts`, `contract-money.ts`, test `contract-pending-isolation.integration.test.ts` mô tả: phần dư bị ghi vào doanh thu nền tảng như "forfeited share") — bản chạy trên partner chưa có bản sửa đó.
+- Hệ quả cho đợt kiểm: mọi con số tiền của hợp đồng B từ đây không còn đáng tin (ví PT không còn tiền chờ để giải ngân/bồi thường).
+
+#### R5-6 — Mua gói hội viên trên backend partner + check-in (REAL DEVICE TECNO + REAL HTTP/API)
+- Chủ máy tự trả 300.000 ₫ trên TECNO: gói chuyển ACTIVE lúc 22:36 (30 ngày); app hiện "Thanh toán thành công · Giao dịch của bạn đã được kích hoạt" → "Xem gói hội viên" → thẻ "QA Gym R2 - Chi nhanh 1 · Đang hiệu lực · 300.000 ₫ · 30 ngày · Còn 30 ngày" với "Quét mã check-in" / "Huỷ gói hội viên" / "Báo cáo vấn đề". Ví chi nhánh: chờ 270.000 (300.000 trừ 10%), khả dụng 0; danh sách hội viên của chủ gym có 1 hội viên ACTIVE — ĐẠT.
+- Check-in bằng mã QR THẬT (chủ máy cầm TECNO quét mã mở trên màn hình laptop, 22:38): app hiện "Check-in thành công · QARegR2 · QA Gym R2 - Chi nhanh 1 · Gói tập Goi thang QA R2 · Lượt đã dùng 1 · không giới hạn · Hạn thẻ 8/11/2026 · Thời gian vào 22:38 · Đưa màn hình này cho nhân viên lễ tân xác nhận." Máy chủ: khách có 1 lượt check-in; chủ gym thấy 1 lượt (15:38:58Z) — ĐẠT.
+- Qua API: quét lại ngay → 429 TOO_SOON; tài khoản không có gói → 403 NO_MEMBERSHIP; mã giả → 400 INVALID_TOKEN — ĐẠT. Ví chi nhánh sau check-in vẫn chờ 270.000 / khả dụng 0.
+
+#### R5-7 — Huỷ buổi SÁT GIỜ, báo vắng mặt, khiếu nại (hợp đồng B; partner dời giờ lúc T0 = 23:04)
+- Khách huỷ sát giờ trên TECNO (buổi 02:04, còn 3 giờ): bảng chỉ còn "Huỷ buổi tập" (không có "Đổi lịch"); cảnh báo "Còn dưới 24 giờ nữa tới giờ tập: huỷ bây giờ sẽ TRỪ 1 buổi trong gói và huấn luyện viên vẫn được tính công buổi đó." → "Xác nhận" → buổi CANCELLED, sessionDeducted=true, hợp đồng 1/8 đã dùng — ĐẠT phần trạng thái.
+  - TIỀN SAI (hệ quả của LỖI-31): `money-breakdown` ghi "released pt 90.000 / actuallyReleased 90.000", nhưng ví PT không có bút toán nào mới (khả dụng vẫn 310.000, chờ 0) → PT không nhận được tiền công buổi này.
+- PT huỷ sát giờ (REAL HTTP/API, buổi 02:14, còn 3 giờ): buổi thành NO_SHOW, không trừ buổi, hợp đồng "bồi thường 1"; ví khách +100.000 ("Contract … no-show") — ĐẠT phần trạng thái và phần khách được bồi thường. Thông báo cho khách còn tiếng Anh "Trainer cancelled the session".
+  - TIỀN SAI (hệ quả của LỖI-31): ví PT khả dụng tụt 310.000 → 220.000 — phần PT của khoản bồi thường bị trừ vào tiền ĐÃ KIẾM ĐƯỢC vì tiền chờ của hợp đồng này đã bị rút sạch từ trước.
+- PT báo KHÁCH vắng mặt (API, buổi B6 đã bắt đầu 30 phút): buổi → PENDING_CLIENT_CONFIRMATION; khách nhận "PT báo bạn vắng mặt. Nếu không đúng, hãy khiếu nại trước 12/10/2026 — quá hạn buổi tập sẽ bị trừ."; trên TECNO thẻ tự hiện ở "Cần xử lý".
+  - **LỖI-32 (MỚI, mobile)**: bảng chi tiết của buổi đó ghi "PT báo đã dạy buổi này. Xác nhận hoặc khiếu nại…" với nút "Xác nhận đã tập" — y như một buổi hoàn thành bình thường, trong khi thực tế PT đang báo khách VẮNG MẶT. Khách đọc màn này không biết mình bị báo vắng; bấm "Xác nhận đã tập" là chấp nhận bị trừ buổi.
+  - Khách khiếu nại trên TECNO: "Khiếu nại buổi này" → ô "Buổi tập không diễn ra như PT báo vì..." → "Xác nhận" → thẻ đổi "Đang khiếu nại"; backend DISPUTED (CLIENT_NO_SHOW_CLAIM); PT nhận "Khách hàng đã khiếu nại buổi tập — chờ quản trị viên phân xử" — ĐẠT.
+- Khách báo PT vắng mặt trên TECNO (buổi B7): thẻ buổi đã bắt đầu có "Huỷ buổi tập" / "Báo PT vắng mặt" + dòng "Buổi tập đã bắt đầu, không đổi lịch được nữa." → "Báo huấn luyện viên vắng mặt" → nhập lý do → "Xác nhận" → backend PT_NO_SHOW_REPORTED; PT nhận "Khách báo bạn vắng mặt buổi tập. Vui lòng phản hồi — xác nhận hoặc phản đối." — ĐẠT.
+- PT phản hồi (API): khách thử trả lời hộ → 403; PT phản đối B7 → DISPUTED (PT_NO_SHOW_CLAIM). B8: khách báo không lý do → 400 "Phải nêu lý do báo cáo"; có lý do → PT thừa nhận → NO_SHOW, khách +100.000, hợp đồng "bồi thường 2" — ĐẠT phần trạng thái.
+- Admin phân xử (API): danh sách tranh chấp có đúng 2 buổi; khách gọi API phân xử → 403; thiếu ghi chú → 400 "Resolution note is required"; B6 = CANCELLED (không trừ buổi, không tiền); B7 = PT_NO_SHOW_CONFIRMED → NO_SHOW, khách +100.000, "bồi thường 3"; phân xử lại lần hai → 400 "Session is not disputed". Cả khách lẫn PT nhận 2 thông báo "Quản trị viên …" — ĐẠT.
+- Các loại thông báo từng bị mất ở LỖI-26 nay đều tới thật: SESSION_PENDING_CONFIRMATION, SESSION_DISPUTED, SESSION_PT_NO_SHOW_REPORTED, SESSION_DISPUTE_RESOLVED.
+- TIỀN (hệ quả LỖI-31): khách nhận đủ 3 × 100.000 bồi thường (ví 0 → 300.000), nhưng phần PT gánh (90.000 mỗi lần) bị trừ vào tiền đã kiếm được: ví PT khả dụng 310.000 → 220.000 → 130.000 → 40.000, chờ vẫn 0.
+- Màn "Đã qua" trên TECNO liệt kê đủ 7 buổi với nhãn "Đã huỷ" / "Vắng mặt". GHI NHẬN: nhãn "Vắng mặt" không nói ai vắng (ở đây đều là PT).
+
+#### R5-8 — Chủ gym: duyệt chi nhánh thứ hai, rút tiền (REAL HTTP/API)
+- Chủ gym tự gọi API duyệt chi nhánh của mình → 403; admin duyệt → chi nhánh 2 APPROVED; khách xem chi nhánh 1 thấy danh sách chi nhánh cùng thương hiệu gồm cả hai (có toạ độ).
+- Chủ gym xin rút 100.000 khi ví khả dụng 0 (270.000 còn chờ) → 400 "Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)" — đúng. CHƯA kiểm được rút tiền thật của chi nhánh vì tiền gói hội viên chưa chuyển sang khả dụng.
+- Khiếu nại buổi PT báo hoàn thành (buổi B3, hết giờ 23:24): PT báo hoàn thành 23:24:04 → trên TECNO thẻ tự hiện ở "Cần xử lý" → khách "Khiếu nại buổi này" + lý do → "Đang khiếu nại"; backend DISPUTED (DELIVERY_DISPUTE) → admin phân xử COMPLETED → buổi COMPLETED, trừ buổi (quotaDeducted=true), hợp đồng B: dùng 2, bồi thường 3, còn 3 buổi — ĐẠT phần trạng thái. Ví PT không nhận 90.000 của buổi này (hệ quả LỖI-31).
+- Tổng kết 8 buổi của hợp đồng B: B1, B2 huỷ sớm (không ảnh hưởng); B3 hoàn thành sau phân xử; B4 khách huỷ sát giờ (trừ buổi); B5 PT huỷ sát giờ (bồi thường); B6 PT báo khách vắng → khiếu nại → admin huỷ không trừ; B7 khách báo PT vắng → PT phản đối → admin xác nhận PT vắng (bồi thường, ptAtFault); B8 khách báo PT vắng → PT thừa nhận (bồi thường, ptAtFault).
+
+#### R5-9 — Chấm dứt hợp đồng giữa chừng (REAL DEVICE TECNO + REAL HTTP/API, hợp đồng B: dùng 2, bồi thường 3, còn 3 buổi)
+- Thẻ hợp đồng: "Đang hiệu lực · 800.000 ₫ · 2/8 buổi · Dừng bây giờ được hoàn khoảng 270.000 ₫" → "Chấm dứt hợp đồng" → bảng có 2 lý do: "Tôi muốn dừng hợp đồng" (hoàn phần lớn, trừ một phần) và "Huấn luyện viên vắng mặt nhiều lần" (hoàn toàn bộ, hệ thống tự kiểm).
+- Chọn "Huấn luyện viên vắng mặt nhiều lần" → bị từ chối đúng: "Chưa đủ điều kiện — cần ít nhất 3 lần huấn luyện viên vắng mặt được xác nhận (hiện tại: 2)"; hợp đồng vẫn hiệu lực.
+- Chọn "Tôi muốn dừng hợp đồng" → "Đã cập nhật hợp đồng."; thẻ chuyển sang nhóm "Đã kết thúc · Đã chấm dứt". Backend: hợp đồng CANCELLED (terminationReason CLIENT_CANCELLED); ví khách +270.000 ("termination — refund (CLIENT_CANCELLED)"), tổng ví khách 570.000 = 3 × 100.000 bồi thường + 270.000 hoàn — khớp con số app báo trước — ĐẠT.
+- GHI NHẬN: (a) thẻ hợp đồng ghi "2/8 buổi" dù 3 buổi nữa đã mất do bồi thường (thực còn 3, không phải 6); (b) thẻ đã chấm dứt vẫn hiện dòng "Dừng bây giờ được hoàn khoảng 270.000 ₫"; (c) `money-breakdown` sau chấm dứt vẫn ghi "stillPending pt 270.000".
+- Ví PT cuối đợt: khả dụng 40.000, chờ 0. Nếu không có LỖI-31, PT lẽ ra có 310.000 + 180.000 (hai buổi được tính công) = 490.000.

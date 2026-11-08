@@ -8,8 +8,8 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4031";
-process.env.USER_SERVICE_URL = "http://127.0.0.1:4032";
+process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4033";
+process.env.USER_SERVICE_URL = "http://127.0.0.1:4034";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-admin-users-role-test";
 
 let app: any;
@@ -43,7 +43,7 @@ test.before(async () => {
       res.end();
     });
   });
-  await new Promise<void>((r) => authServer.listen(4031, "127.0.0.1", r));
+  await new Promise<void>((r) => authServer.listen(4033, "127.0.0.1", r));
   gatewayServer = http.createServer(app);
   await new Promise<void>((r) => gatewayServer.listen(0, "127.0.0.1", r));
   gatewayBaseUrl = `http://127.0.0.1:${(gatewayServer.address() as any).port}`;

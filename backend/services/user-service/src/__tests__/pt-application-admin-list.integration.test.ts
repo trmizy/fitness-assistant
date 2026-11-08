@@ -209,7 +209,8 @@ test("B08: approving an already APPROVED application changes nothing and notifie
   assert.deepEqual(h.calls, [], "no role sync, no profile write, no status write, no notification");
 });
 
-test("B08: a REJECTED application can still be re-approved (the deliberate reconsider path) and runs in full", async () => {
+// Needs a database: the approve path reads the real user_profiles row (profileRepository.findByUserId is not stubbed) - SKIP with a reason when no valid test DB.
+test("B08: a REJECTED application can still be re-approved (the deliberate reconsider path) and runs in full", { skip }, async () => {
   const h = approvalHarness("REJECTED");
   try {
     await ptApplicationService.adminReviewAction("app-b08", "APPROVE", {}, "admin-1");
