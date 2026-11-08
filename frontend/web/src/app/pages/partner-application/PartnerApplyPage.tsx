@@ -24,6 +24,13 @@ export function PartnerApplyPage() {
   const start = useMutation({
     mutationFn: (addr: string) => partnerApplyPublic.start(addr),
     onSuccess: (res, addr) => {
+      if (res.status === "DELIVERY_FAILED") {
+        setSentTo(null);
+        setDevLink(null);
+        setError({ message: "Không gửi được email xác minh. Vui lòng thử lại sau hoặc liên hệ hỗ trợ." });
+        setCooldown(60);
+        return;
+      }
       setError(null);
       setSentTo(addr);
       setDevLink(res.devVerifyLink ?? null);
