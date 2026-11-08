@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { z } from "zod";
 import { converseVisionTool } from "./bedrock.client";
+import { VisionUnusableError, geminiConfigured, withGeminiFallback } from "./gemini-vision.client";
 
 export const GoalImageSchema = z.object({
   mediaType: z.enum(["image/jpeg", "image/png"]),
@@ -40,7 +41,11 @@ export const fitnessGoalVisionDeps = {
       if (input === undefined) throw new Error("Vision returned no goal attributes");
       return input;
     }
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (process.env.ANTHROPIC_API_KEY || (!process.env.GOAL_VISION_MODEL && geminiConfigured())) {
+      const geminiReq = { image, text: prompt, schema: schema };
+      return withGeminiFallback("goal-image", async () => {
+      // A missing key is a status-less error: counts as "cannot serve" and falls back to Gemini.
+      if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45000, maxRetries: 0 });
       const response = await client.messages.create({ model: process.env.GOAL_VISION_MODEL ?? process.env.INBODY_VISION_MODEL ?? "claude-sonnet-4-6", max_tokens: 500,
         tools: [{ name: "describe_goal_attributes", description: "Visual goal draft, never a body measurement", input_schema: schema as any }],
@@ -48,8 +53,9 @@ export const fitnessGoalVisionDeps = {
         messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.base64 } }, { type: "text", text: prompt }] }],
       });
       const output = response.content.find(b => b.type === "tool_use");
-      if (!output || output.type !== "tool_use") throw new Error("Vision returned no goal attributes");
+      if (!output || output.type !== "tool_use") throw new VisionUnusableError("Vision returned no goal attributes");
       return output.input;
+      }, geminiReq);
     }
     if (!process.env.GOAL_VISION_MODEL) throw Object.assign(new Error("Vision unavailable. Enter your goal manually."), { status: 503 });
     const { data } = await axios.post(`${process.env.OLLAMA_BASE_URL ?? "http://localhost:11434"}/api/chat`, {
