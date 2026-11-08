@@ -20,7 +20,15 @@ export function installNovaStsBoundary(client: STSClient, sourceKey: string, inp
     if (raw === null || [...fields].length !== expected.size || [...fields].some(([k, v]) => expected.get(k) !== v) ||
         [...expected.keys()].some(k => fields.getAll(k).length !== 1)) throw new PilotError("NOVA_STS_REQUEST_MISMATCH");
     const snapshot = Object.freeze({ ...request, headers, query, body: raw });
-    assertNovaEndpointEnvironment(); assertCurrent();
+    assertNovaEndpointEnvironment();
+    // Fail closed before dispatch: a valid authority is synchronous and returns undefined. Anything else
+    // (notably a Promise from an async authority) cannot be awaited here without reserving the single dispatch,
+    // so reject it. If it is a real Promise, swallow its settlement so it never surfaces as an unhandled rejection.
+    const authority = (assertCurrent as () => unknown)();
+    if (authority !== undefined) {
+      if (authority instanceof Promise) authority.catch(() => {});
+      throw new PilotError("NOVA_STS_ASYNC_AUTHORITY_FORBIDDEN");
+    }
     if (dispatched) throw new PilotError("NOVA_STS_DISPATCH_REPLAY");
     dispatched = true;
     return dispatch(snapshot, options).then(result => {
@@ -33,4 +41,7 @@ export function installNovaStsBoundary(client: STSClient, sourceKey: string, inp
     const value = Reflect.get(target, key, target); return typeof value === "function" ? value.bind(target) : value;
   } });
   Object.defineProperty(config, "requestHandler", { value: guarded, writable: false, configurable: false, enumerable: true });
+  // Seal the client root binding so client.config cannot be swapped for an unguarded config after install.
+  // The value is the same config object, kept enumerable, so SDK reads and destroy() still resolve through it.
+  Object.defineProperty(client, "config", { value: config, writable: false, configurable: false, enumerable: true });
 }

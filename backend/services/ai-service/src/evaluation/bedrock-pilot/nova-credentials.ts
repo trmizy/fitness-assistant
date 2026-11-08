@@ -51,7 +51,7 @@ export async function resolveNovaCredentials(args: { profile: string; binding: s
     if (Number.isNaN(approvalUntil) || now >= approvalUntil) throw new PilotError("LiveNotApproved");
     if (!Number.isFinite(until) || now >= until) throw new PilotError(args.expiryCategory ?? "LiveNotApproved");
   };
-  const assertCurrent = () => authority.check((now) => { novaGuardedCallback(authority, args.assertAuthority, () => deadlines(now)); deadlines(now); deadlines(clock()); });
+  const assertCurrent = () => authority.check((now) => { novaGuardedCallback(authority, args.assertAuthority, () => { deadlines(now); deadlines(clock()); }); deadlines(now); deadlines(clock()); });
   assertCurrent(); assertNovaEndpointEnvironment();
   if (!NovaScopeSchema.shape.awsProfile.safeParse(args.profile).success) throw new PilotError("NOVA_PROFILE_INVALID");
   if ((fixture?.metadataDisabled ?? process.env.AWS_EC2_METADATA_DISABLED) !== "true") throw new PilotError("NOVA_IMDS_MUST_BE_DISABLED");
