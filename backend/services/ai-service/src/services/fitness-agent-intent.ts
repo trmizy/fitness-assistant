@@ -66,7 +66,9 @@ export function parseFitnessAgentIntent(text: string): {
   // maps lowercase đ, not sentence-initial Đ) can miss a match — every
   // pattern below is written to match either spelling.
   const evaluate = /\b(danh gia|đanh gia)\b.*\b(chu ky|cycle)\b|\b(chu ky|cycle)\b.*\b(danh gia|đanh gia|the nao|tien do)\b|\btien do tap luyen\b/.test(s);
-  if (evaluate) {
+  // "Nên chia chu kỳ thế nào?" asks HOW TO PLAN cycles (periodization), not for an assessment of the user's own cycle.
+  const planningCycles = /\b(chia|lap|xay dung|len|thiet ke|bo tri|sap xep|periodi[sz]ation|peaking|taper|mesocycle|macrocycle)\b/.test(s);
+  if (evaluate && !planningCycles) {
     return { kind: "EVALUATE", preferences: {} };
   }
 
@@ -104,8 +106,10 @@ export function parseFitnessAgentIntent(text: string): {
   // the conversation. Checked AFTER CREATE_PLAN_BUNDLE/SAVE_GENERATED_PLAN
   // (both already returned above) so a "lộ trình" or save-verb request
   // always keeps its existing, more specific meaning.
-  const mentionsCreateWorkoutPlan = /\b(tao|len|xay|thiet ke)\b/.test(s)
-    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap|workout plan|training plan|workout program)\b/.test(s);
+  const mentionsCreateWorkoutPlan = (/\b(tao|len|xay|thiet ke)\b/.test(s)
+    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap|workout plan|training plan|workout program)\b/.test(s))
+    // "đổi/chuyển giúp tôi sang lịch upper/lower 4 buổi": switching to a differently-shaped schedule = a new draft to review.
+    || /\b(doi|chuyen|lam lai)\b.{0,20}\b(sang|thanh|qua)\b.{0,10}\blich\b/.test(s);
   if (mentionsCreateWorkoutPlan) {
     return { kind: "CREATE_WORKOUT_PLAN", preferences: {} };
   }

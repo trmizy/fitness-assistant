@@ -16,10 +16,17 @@ export interface ClientProposal { type: ProposalType; title: string; body: strin
 const SUBJECT = /\b(client|clients|hoc vien|khach hang cua (?:toi|minh)|khach cua (?:toi|minh)|nguoi tap cua (?:toi|minh)|hoi vien cua (?:toi|minh))\b/;
 const ASK = /\b(de xuat|soan|goi y|nen lam gi|xu ly|nhac nho|nhan tin|lien he|tiep can|dong vien|khuyen khich|ke hoach cham soc|cham soc|can lam gi)\b/;
 
+// A general how-to ("Làm sao để động viên học viên hay bỏ buổi?") asks for coaching advice, not for a drafted action on one
+// client: only an explicit draft/act verb makes it a proposal request (run-pt-eval D05, 2026-11-08: the how-to got a card for
+// one client and no advice at all).
+const GENERAL_HOWTO = /\b(lam sao|lam the nao|cach nao|nhu the nao|the nao de|meo|bi quyet|kinh nghiem)\b/;
+const EXPLICIT_ACT = /\b(de xuat|soan|nhan tin|nhac nho|lien he|xu ly|nen lam gi|can lam gi)\b/;
+
 export function isPtProposalRequest(rawText: string): boolean {
   if (!/[a-z]/i.test(rawText)) return false;
   const s = normalizeAgentText(rawText);
   if (s.split(" ").length > 40) return false;
+  if (GENERAL_HOWTO.test(s) && !EXPLICIT_ACT.test(s)) return false;
   return SUBJECT.test(s) && ASK.test(s);
 }
 

@@ -1,0 +1,450 @@
+{
+  "version": "everyday-vi-1",
+  "note": "Curated everyday foods for AI meal plans. Each entry pins ONE existing USDA Food row by fdcId; macros always come from that row (nothing here is a nutrition number). 'vi' is the Vietnamese display name and must describe the same preparation as the USDA row. Seeded into food_aliases with source 'everyday_curated' by prisma/seed_everyday_foods.ts. Composite Vietnamese dishes (phở, bún bò…) belong in Recipe, not here. 'maxG' is a realistic per-meal portion cap in grams (portion size, not a nutrition value), written to Food.realistic_serving_max_g for these rows only.",
+  "foods": [
+    {
+      "vi": "Ức gà nướng (bỏ da)",
+      "fdcId": 171477,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Ức gà hầm (bỏ da)",
+      "fdcId": 171478,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Đùi gà kho (bỏ da)",
+      "fdcId": 172853,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Thịt bò nạc (thăn đùi) nướng",
+      "fdcId": 171807,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Thịt bò xay 90% nạc, áp chảo",
+      "fdcId": 171793,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Thăn heo nạc nướng",
+      "fdcId": 168250,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Cá basa (cá tra) nướng",
+      "fdcId": 175166,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Cá hồi nướng",
+      "fdcId": 175168,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Cá ngừ đóng hộp ngâm nước",
+      "fdcId": 171986,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Cá rô phi nướng",
+      "fdcId": 175177,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Cá thu nướng",
+      "fdcId": 175120,
+      "group": "protein",
+      "maxG": 150
+    },
+    {
+      "vi": "Cá chép nướng",
+      "fdcId": 174185,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Tôm luộc",
+      "fdcId": 175180,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Nghêu (ngao) hấp",
+      "fdcId": 171975,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Thịt vịt quay (bỏ da)",
+      "fdcId": 172411,
+      "group": "protein",
+      "maxG": 150
+    },
+    {
+      "vi": "Ức gà tây nướng",
+      "fdcId": 174516,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Trứng gà luộc",
+      "fdcId": 173424,
+      "group": "protein",
+      "maxG": 150
+    },
+    {
+      "vi": "Lòng trắng trứng luộc",
+      "fdcId": 2707170,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Đậu phụ (đậu hũ)",
+      "fdcId": 172475,
+      "group": "protein",
+      "maxG": 250
+    },
+    {
+      "vi": "Tempeh (đậu nành lên men)",
+      "fdcId": 174272,
+      "group": "protein",
+      "maxG": 150
+    },
+    {
+      "vi": "Sữa chua Hy Lạp không đường (tách béo)",
+      "fdcId": 170894,
+      "group": "protein",
+      "maxG": 250
+    },
+    {
+      "vi": "Phô mai cottage ít béo",
+      "fdcId": 172182,
+      "group": "protein",
+      "maxG": 200
+    },
+    {
+      "vi": "Sữa chua ít béo không đường",
+      "fdcId": 170886,
+      "group": "dairy",
+      "maxG": 300
+    },
+    {
+      "vi": "Sữa tươi ít béo (2%)",
+      "fdcId": 171267,
+      "group": "dairy",
+      "maxG": 300
+    },
+    {
+      "vi": "Sữa tươi tách béo (1%)",
+      "fdcId": 170872,
+      "group": "dairy",
+      "maxG": 300
+    },
+    {
+      "vi": "Sữa đậu nành không đường",
+      "fdcId": 172446,
+      "group": "dairy",
+      "maxG": 300
+    },
+    {
+      "vi": "Cơm trắng",
+      "fdcId": 168878,
+      "group": "carb",
+      "maxG": 350
+    },
+    {
+      "vi": "Cơm gạo lứt",
+      "fdcId": 169704,
+      "group": "carb",
+      "maxG": 350
+    },
+    {
+      "vi": "Bún / bánh phở (sợi gạo luộc)",
+      "fdcId": 168914,
+      "group": "carb",
+      "maxG": 350
+    },
+    {
+      "vi": "Bánh tráng (khô)",
+      "fdcId": 2708166,
+      "group": "carb",
+      "maxG": 60
+    },
+    {
+      "vi": "Bánh mì (kiểu Pháp)",
+      "fdcId": 2707610,
+      "group": "carb",
+      "maxG": 120
+    },
+    {
+      "vi": "Bánh mì sandwich trắng",
+      "fdcId": 174924,
+      "group": "carb",
+      "maxG": 100
+    },
+    {
+      "vi": "Bánh mì nguyên cám",
+      "fdcId": 172688,
+      "group": "carb",
+      "maxG": 100
+    },
+    {
+      "vi": "Khoai lang luộc",
+      "fdcId": 168484,
+      "group": "carb",
+      "maxG": 300
+    },
+    {
+      "vi": "Khoai tây luộc",
+      "fdcId": 170440,
+      "group": "carb",
+      "maxG": 300
+    },
+    {
+      "vi": "Yến mạch (khô)",
+      "fdcId": 173904,
+      "group": "carb",
+      "maxG": 80
+    },
+    {
+      "vi": "Bắp (ngô) ngọt luộc",
+      "fdcId": 169999,
+      "group": "carb",
+      "maxG": 250
+    },
+    {
+      "vi": "Đậu xanh luộc",
+      "fdcId": 174257,
+      "group": "carb",
+      "maxG": 200
+    },
+    {
+      "vi": "Đậu đen luộc",
+      "fdcId": 173735,
+      "group": "carb",
+      "maxG": 200
+    },
+    {
+      "vi": "Chuối",
+      "fdcId": 173944,
+      "group": "fruit",
+      "maxG": 200
+    },
+    {
+      "vi": "Táo (cả vỏ)",
+      "fdcId": 171688,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Cam",
+      "fdcId": 169097,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Xoài chín",
+      "fdcId": 169910,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Đu đủ chín",
+      "fdcId": 169926,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Dưa hấu",
+      "fdcId": 167765,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Ổi",
+      "fdcId": 173044,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Bưởi",
+      "fdcId": 167754,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Nho",
+      "fdcId": 174683,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Dứa (thơm)",
+      "fdcId": 169124,
+      "group": "fruit",
+      "maxG": 250
+    },
+    {
+      "vi": "Dầu đậu nành (dầu ăn)",
+      "fdcId": 171411,
+      "group": "fat",
+      "maxG": 15
+    },
+    {
+      "vi": "Dầu ô liu",
+      "fdcId": 171413,
+      "group": "fat",
+      "maxG": 15
+    },
+    {
+      "vi": "Đậu phộng (lạc) rang không muối",
+      "fdcId": 173806,
+      "group": "fat",
+      "maxG": 30
+    },
+    {
+      "vi": "Hạt điều rang không muối",
+      "fdcId": 170571,
+      "group": "fat",
+      "maxG": 30
+    },
+    {
+      "vi": "Hạnh nhân",
+      "fdcId": 170567,
+      "group": "fat",
+      "maxG": 30
+    },
+    {
+      "vi": "Quả bơ",
+      "fdcId": 171705,
+      "group": "fat",
+      "maxG": 70
+    },
+    {
+      "vi": "Mè (vừng)",
+      "fdcId": 170150,
+      "group": "fat",
+      "maxG": 15
+    },
+    {
+      "vi": "Bơ đậu phộng không muối",
+      "fdcId": 172470,
+      "group": "fat",
+      "maxG": 30
+    },
+    {
+      "vi": "Cải xanh luộc",
+      "fdcId": 169257,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Bông cải xanh luộc",
+      "fdcId": 169967,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Cà chua",
+      "fdcId": 170457,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Dưa leo (dưa chuột)",
+      "fdcId": 168409,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Cà rốt luộc",
+      "fdcId": 170394,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Bắp cải luộc",
+      "fdcId": 169976,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Giá đỗ",
+      "fdcId": 169957,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Cải bó xôi (rau bina) luộc",
+      "fdcId": 168463,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Bí đỏ luộc",
+      "fdcId": 168449,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Đậu que luộc",
+      "fdcId": 169141,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Cải thìa luộc",
+      "fdcId": 170391,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Mướp đắng (khổ qua) luộc",
+      "fdcId": 168394,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Bí xanh luộc",
+      "fdcId": 170488,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Nấm mỡ luộc",
+      "fdcId": 169252,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Xà lách",
+      "fdcId": 169249,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Cà tím luộc",
+      "fdcId": 2709929,
+      "group": "vegetable",
+      "maxG": 250
+    },
+    {
+      "vi": "Đậu bắp luộc",
+      "fdcId": 169261,
+      "group": "vegetable",
+      "maxG": 250
+    }
+  ]
+}

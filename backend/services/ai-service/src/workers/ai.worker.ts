@@ -37,7 +37,10 @@ import {
 import type { CoachContext } from "../coach/coach_context.types";
 import type { UserProfile } from "../llm/types";
 import type { WorkerUserContext } from "./worker-user-context";
-import { validateWorkoutPlanInvariants } from "../services/workout-plan-invariant.service";
+import {
+  validateWorkoutPlanInvariants,
+  type WorkoutPlanInvariantViolation,
+} from "../services/workout-plan-invariant.service";
 
 type AllowedExercise = AllowedExerciseItem;
 
@@ -405,6 +408,86 @@ function buildExercisePrescription(
     restSeconds: order === 1 ? 120 : 75,
     note,
   };
+}
+
+/**
+ * Repairs `exercise_outside_day_candidates` / `duplicate_exercise`
+ * violations in place by swapping each violating slot for the next
+ * UNUSED exercise from that exact day's own perDayCatalogs entry — the
+ * same candidate pool the prompt gave the model and
+ * validateWorkoutPlanInvariants checks against, never a different/wider
+ * pool. Mirrors buildDeterministicPlanFromCatalogs's own
+ * catalog-only-source discipline, applied surgically to only the
+ * violating slots instead of rebuilding the whole plan.
+ *
+ * Root cause this addresses: the per-day candidate catalogs themselves
+ * are built correctly (confirmed: 8 muscle-group-correct exercises per
+ * day), but Nova Pro does not reliably honor the prompt's "For Day N,
+ * use ONLY ids under Day N" instruction for this compact catalog
+ * format — a model-compliance gap, not a catalog bug. Repairing after
+ * the fact from the already-correct per-day catalog fixes the output
+ * without depending on improving the model's instruction-following.
+ *
+ * Returns the repairs actually made. A day whose catalog doesn't have
+ * enough spare exercises to fix every violation on it is left partially
+ * unrepaired (the untouched slots still carry the original, invalid
+ * exerciseId) — the caller re-validates afterward, so a genuinely
+ * unrepairable plan still fails closed exactly as before, never
+ * silently accepted.
+ */
+export function repairDayCandidateExercises(
+  content: any,
+  violations: WorkoutPlanInvariantViolation[],
+  perDayCatalogs: DayExerciseCatalog[],
+): Array<{ dayIndex: number; exerciseIndex: number; from: string; to: string }> {
+  const repaired: Array<{ dayIndex: number; exerciseIndex: number; from: string; to: string }> = [];
+  if (!Array.isArray(content?.weeklySchedule)) return repaired;
+
+  const pathRe = /^weeklySchedule\.(\d+)\.exercises\.(\d+)\.exerciseId$/;
+  const byDay = new Map<number, number[]>();
+  for (const violation of violations) {
+    if (violation.code !== "exercise_outside_day_candidates" && violation.code !== "duplicate_exercise") continue;
+    const match = pathRe.exec(violation.path);
+    if (!match) continue;
+    const dayIndex = Number(match[1]);
+    const exerciseIndex = Number(match[2]);
+    if (!byDay.has(dayIndex)) byDay.set(dayIndex, []);
+    byDay.get(dayIndex)!.push(exerciseIndex);
+  }
+
+  for (const [dayIndex, exerciseIndexes] of byDay) {
+    const day = content.weeklySchedule[dayIndex];
+    const catalog = perDayCatalogs.find((c) => c.dayIndex === dayIndex);
+    if (!day || !Array.isArray(day.exercises) || !catalog) continue;
+
+    const flaggedSet = new Set(exerciseIndexes);
+    const usedIds = new Set<string>(
+      day.exercises
+        .filter((_: any, i: number) => !flaggedSet.has(i))
+        .map((ex: any) => String(ex?.exerciseId ?? "")),
+    );
+    const spares = catalog.exercises.filter((ex) => !usedIds.has(ex.id));
+    let spareIndex = 0;
+
+    for (const exerciseIndex of exerciseIndexes) {
+      const slot = day.exercises[exerciseIndex];
+      if (!slot) continue;
+      const replacement = spares[spareIndex];
+      if (!replacement) break; // not enough spares on this day — leave as-is, re-validation still catches it
+      spareIndex += 1;
+      const fromId = String(slot.exerciseId ?? "");
+      const order = slot.order ?? exerciseIndex + 1;
+      day.exercises[exerciseIndex] = buildExercisePrescription(
+        replacement,
+        order,
+        "Auto-repaired: exercise did not match this day's muscle-group candidates",
+      );
+      usedIds.add(replacement.id);
+      repaired.push({ dayIndex, exerciseIndex, from: fromId, to: replacement.id });
+    }
+  }
+
+  return repaired;
 }
 
 // (safeParseJsonCandidate imported from utils)
@@ -1346,13 +1429,35 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           if (!generationRepairReasons.includes(reason)) generationRepairReasons.push(reason);
         }
       }
-      const semanticResult = validateWorkoutPlanInvariants({
+      let semanticResult = validateWorkoutPlanInvariants({
         content,
         daysPerWeek,
         exercisesPerDay,
         allowedExercises,
         perDayCatalogs,
       });
+      if (!semanticResult.ok) {
+        const onlyDayCandidateIssues = semanticResult.violations.every(
+          (violation) =>
+            violation.code === "exercise_outside_day_candidates" ||
+            violation.code === "duplicate_exercise",
+        );
+        if (onlyDayCandidateIssues) {
+          const repairs = repairDayCandidateExercises(content, semanticResult.violations, perDayCatalogs);
+          if (repairs.length > 0) {
+            appendTrackedPlanWarnings(content, [
+              { type: "day_candidate_repair", reason: "day_candidate_repair", repairs },
+            ]);
+            semanticResult = validateWorkoutPlanInvariants({
+              content,
+              daysPerWeek,
+              exercisesPerDay,
+              allowedExercises,
+              perDayCatalogs,
+            });
+          }
+        }
+      }
       const equipmentViolations = await enforceFinalPlanEquipmentInvariant(content);
       const failedConstraints = [
         ...(semanticResult.ok

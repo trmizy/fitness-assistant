@@ -35,6 +35,15 @@ const common = {
   AI_SERVICE_URL: `http://localhost:${p(3003)}`, CHAT_SERVICE_URL: `http://localhost:${p(3005)}`, GYM_SERVICE_URL: `http://localhost:${p(3006)}`, PAYMENT_SERVICE_URL: `http://localhost:${p(3007)}`,
   REQUIRE_CONTRACT_ESIGN: "false", CORS_ORIGIN: "http://localhost:5173",
 };
+// LOCAL_BEDROCK=1 (opt-in, default off): the ai service uses Nova Pro for chat and Cohere for embeddings through the AWS CLI
+// profile (default `divuzha`; nothing secret is set here — the SDK reads the profile), with vectors in a SEPARATE Qdrant on
+// :6334 (1024 dims) so the 768-dim nomic collections on :6333 are never touched. Set it up with scripts/dev/local-bedrock.ps1.
+const bedrockEnv = process.env.LOCAL_BEDROCK === "1" ? {
+  LLM_PROVIDER: "bedrock", BEDROCK_CHAT_MODEL: process.env.BEDROCK_CHAT_MODEL || "apac.amazon.nova-pro-v1:0",
+  BEDROCK_REGION: "ap-southeast-1", AWS_REGION: "ap-southeast-1", AWS_PROFILE: process.env.AWS_PROFILE || "divuzha", AWS_SDK_LOAD_CONFIG: "1",
+  EMBEDDING_PROVIDER: "bedrock", BEDROCK_EMBEDDING_MODEL: "cohere.embed-multilingual-v3", KNOWLEDGE_VECTOR_SIZE: "1024", EMBEDDING_DIMENSIONS: "1024",
+  QDRANT_PORT: "6340", LLM_TIMEOUT_MS: "90000",
+} : {};
 const services = [
   { name: "auth", cwd: "backend/services/auth-service", port: p(3001), env: { PORT: String(p(3001)), DATABASE_URL: `${PG}/gymcoach_auth_test?schema=public`, AUTH_DATABASE_URL: `${PG}/gymcoach_auth_test?schema=public`, JWT_ACCESS_EXPIRY: "3h", JWT_REFRESH_EXPIRY: "7d" } },
   { name: "user", cwd: "backend/services/user-service", port: p(3004), env: { PORT: String(p(3004)), DATABASE_URL: `${PG}/gymcoach_user_test?schema=public`, USER_DATABASE_URL: `${PG}/gymcoach_user_test?schema=public` } },
@@ -43,7 +52,7 @@ const services = [
     PORT: String(p(3003)), DATABASE_URL: `${PG}/gymcoach_ai_test?schema=public`, AI_DATABASE_URL: `${PG}/gymcoach_ai_test?schema=public`, QDRANT_HOST: "localhost", QDRANT_PORT: "6333",
     LLM_PROVIDER: process.env.LLM_PROVIDER_OVERRIDE || "ollama", LLM_MODEL: MODEL, LLM_BASE_URL: LLM, OLLAMA_BASE_URL: LLM, EMBEDDING_PROVIDER: "ollama", EMBEDDING_MODEL: "nomic-embed-text", EMBEDDING_DIMENSIONS: "768",
     LLM_TIMEOUT_MS: "170000", EMBEDDING_TIMEOUT_MS: "120000", LLM_NUM_CTX: "8192", LLM_JSON_NUM_CTX: "8192", ENABLE_TOOL_CALLING: "false",
-    AI_ASK_RATE_LIMIT_MAX: "1000", AI_EXPENSIVE_RATE_LIMIT_MAX: "1000" } },
+    AI_ASK_RATE_LIMIT_MAX: "1000", AI_EXPENSIVE_RATE_LIMIT_MAX: "1000", ...bedrockEnv } },
   { name: "gateway", cwd: "backend/gateway", port: p(3000), env: { PORT: String(p(3000)), NODE_PATH: path.join(root, ".tmp-stack/deps/node_modules"), AI_ASK_RATE_LIMIT_MAX_REQUESTS: "1000", PARTNER_APPLICATION_START_RATE_MAX: "1000", PARTNER_APPLICATION_RATE_MAX: "1000" } },
 ];
 if (process.argv.includes("--web")) services.push({ name: "web", cwd: "frontend/web", port: 15173, cmd: ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "15173"], env: { VITE_API_URL: `http://localhost:${p(3000)}` } });

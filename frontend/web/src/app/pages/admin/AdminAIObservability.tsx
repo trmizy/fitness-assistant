@@ -637,17 +637,18 @@ export function AdminAIObservability() {
       else setLoading(true);
 
       try {
-        const [ovRes, rqRes, qRes, erRes, kRes] = await Promise.all([
-          adminService.getAIOverview(),
-          adminService.getAIRequests({
-            filter: filter === "all" ? undefined : filter,
-            page,
-            limit: 20,
-          }),
-          adminService.getAIQueue(),
-          adminService.getAIErrors(),
-          adminService.getAIKnowledgePipeline(),
-        ]);
+        // One at a time on purpose: every call makes the ai Lambda invoke the auth Lambda to
+        // verify the token, and the AWS account caps Lambda concurrency at 10 — five parallel
+        // calls saturated it (auth throttled, requests hit the 10s client timeout).
+        const ovRes = await adminService.getAIOverview();
+        const rqRes = await adminService.getAIRequests({
+          filter: filter === "all" ? undefined : filter,
+          page,
+          limit: 20,
+        });
+        const qRes = await adminService.getAIQueue();
+        const erRes = await adminService.getAIErrors();
+        const kRes = await adminService.getAIKnowledgePipeline();
 
         const ovPayload = unwrapApiData<any>(ovRes);
         const rqPayload = unwrapApiData<any>(rqRes);

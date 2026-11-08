@@ -115,7 +115,9 @@ function detectSevereEnergyRestriction(question: string): boolean {
 
 // ── Jailbreak / prompt-injection attempts ─────────────────────────────────────
 function detectPromptInjection(question: string): boolean {
-  const q = question.toLowerCase();
+  // The Vietnamese patterns below are written unaccented ("bo qua … huong dan"): fold the question, otherwise the accented
+  // "Bỏ qua mọi hướng dẫn trước đó…" never matched (found 2026-11-08 with examiner-style questions).
+  const q = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
   const patterns: RegExp[] = [
     // `*` (not `?`) on the qualifier group — real jailbreak phrasing often
     // stacks multiple qualifiers ("ignore all previous instructions"), and a
@@ -289,6 +291,15 @@ function isDefinitelyOffTopic(question: string): boolean {
 const EMERGENCY_SIGNAL_CLASSES = new Set<SafetySignalClass>([
   "CHEST_OR_CARDIO_RED_FLAG", "SEVERE_DIZZINESS_OR_FAINTING", "SEVERE_SHORTNESS_OF_BREATH", "NEUROLOGICAL_SYMPTOM",
 ]);
+/** A personal, acute symptom during/after a session ("tập xong tôi bị chóng mặt, buồn nôn, run tay chân"), not a knowledge question. */
+function detectPostExerciseSymptoms(question: string): boolean {
+  const q = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
+  const context = /\b(tap xong|sau (khi |buoi )?tap|dang tap|khi tap|trong luc tap|chay xong|sau khi chay|after (my )?(workout|training)|during (my )?(workout|training))\b/.test(q);
+  const symptom = /\b(chong mat|choang|hoa mat|buon non|non mua|run tay|run chan|tay chan run|run ray|run run|va mo hoi|met la|la di|dizz(y|iness)|nause(a|ous)|shaky|lightheaded|light-headed)\b/.test(q);
+  const personal = /\b(toi|minh|em|tui|bi|i|i'm|i am|my)\b/.test(q);
+  return context && symptom && personal;
+}
+
 function detectMedicalEmergency(question: string): boolean {
   if (MEDICAL_PATTERNS.some((p) => p.test(question))) return true;
   try {
@@ -315,6 +326,7 @@ export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
   | { type: "medical_emergency"; messageVi: string; messageEn: string }
+  | { type: "post_exercise_symptoms"; messageVi: string; messageEn: string }
   | { type: "medical_diagnosis_request"; messageVi: string; messageEn: string }
   | { type: "off_topic"; messageVi: string; messageEn: string }
   | { type: "unsafe_ped_request"; messageVi: string; messageEn: string }
@@ -339,6 +351,31 @@ export type SafetyResult =
 
 // ── Public API ────────────────────────────────────────────────────────────────
 export const safetyGuard = {
+  /**
+   * Minor-age result. Also used by the orchestrator when the user's PROFILE (not the question) says they are under 18 —
+   * the question-only detector cannot see the profile (found by test/ai-quality-eval SF-D1, 2026-11-08: a 16-year-old's
+   * "1000 calo để giảm cân" got the adult energy-restriction answer).
+   */
+  minorAgeResult(): SafetyResult {
+    return {
+      type: "minor_age_nutrition_request",
+      messageVi: [
+          "## ⚠️ Cần phụ huynh/bác sĩ nhi khoa tư vấn",
+          "",
+          "Mình là **AI Fitness Coach** được thiết kế và kiểm chứng cho người trưởng thành — nhu cầu dinh dưỡng và tập luyện ở tuổi vị thành niên khác biệt đáng kể (ảnh hưởng đến tăng trưởng, phát triển xương, dậy thì) và mình không có đủ cơ sở để đưa ra khuyến nghị an toàn cho nhóm tuổi này.",
+          "",
+          "🏥 Hãy trao đổi với phụ huynh và bác sĩ nhi khoa hoặc chuyên gia dinh dưỡng có kinh nghiệm với trẻ vị thành niên trước khi thay đổi chế độ ăn hoặc tập luyện.",
+        ].join("\n"),
+        messageEn: [
+          "## ⚠️ Please involve a parent/guardian and a pediatrician",
+          "",
+          "I'm an **AI Fitness Coach** designed and validated for adults — nutrition and training needs during adolescence differ significantly (affecting growth, bone development, puberty) and I don't have a safe basis for recommendations for this age group.",
+          "",
+          "🏥 Please talk with a parent/guardian and a pediatrician or a dietitian experienced with adolescents before changing diet or training.",
+        ].join("\n"),
+      };
+  },
+
   /** Backward-compatible single-purpose check for rapid weight loss. */
   evaluate(question: string): UnsafeGuidance | undefined {
     if (!detectUnsafeWeightLoss(question)) return undefined;
@@ -403,6 +440,7 @@ export const safetyGuard = {
           "Mình là **AI Fitness Coach** và không thể tư vấn về các triệu chứng y tế như đau ngực, khó thở đột ngột, ngất xỉu, hoặc chấn thương nghiêm trọng.",
           "",
           "🏥 **Hành động ngay:**",
+          "- **Dừng tập ngay**, ngồi hoặc nằm nghỉ — không cố tập tiếp.",
           "- Nếu đây là tình trạng khẩn cấp, hãy gọi **115** (cấp cứu) ngay lập tức.",
           "- Nếu triệu chứng ổn hơn, hãy đặt lịch khám với bác sĩ trước khi tiếp tục tập luyện.",
           "",
@@ -418,6 +456,42 @@ export const safetyGuard = {
           "- For less urgent symptoms, schedule a doctor appointment before resuming exercise.",
           "",
           "Once you have medical clearance, I'm here to help you build a safe and effective training program! 💪",
+        ].join("\n"),
+      };
+    }
+
+    // Acute symptoms right after/while training (no chest/fainting red flag — those took the emergency reply above). Found by
+    // test/ai-quality-eval coach SC-A3 (2026-11-08): "Tập xong tôi bị chóng mặt, buồn nôn, tay chân run" got a LEG WORKOUT ("chân").
+    if (detectPostExerciseSymptoms(question)) {
+      return {
+        type: "post_exercise_symptoms",
+        messageVi: [
+          "## ⚠️ Dừng tập và nghỉ ngơi trước",
+          "",
+          "Chóng mặt, buồn nôn, run tay chân sau/khi tập thường gặp khi **hạ đường huyết**, **mất nước**, tập quá sức hoặc đứng dậy quá nhanh — nhưng mình không thể chẩn đoán nguyên nhân.",
+          "",
+          "**Làm ngay:**",
+          "- **Dừng tập**, ngồi hoặc nằm xuống (kê chân cao nếu choáng), ở nơi thoáng mát.",
+          "- Uống nước từng ngụm; nếu đã lâu chưa ăn, dùng một ít đường nhanh (nước trái cây, viên đường, chuối).",
+          "- Nghỉ ít nhất 15–30 phút, không tập tiếp trong hôm nay nếu chưa hết hẳn.",
+          "",
+          "🏥 **Gọi 115 / đến cơ sở y tế ngay** nếu: đau hoặc tức ngực, khó thở, ngất hoặc suýt ngất, lú lẫn, nước tiểu sẫm màu như trà, hoặc triệu chứng **không đỡ sau 30 phút**. Nếu tình trạng lặp lại nhiều lần, hãy đi khám bác sĩ trước khi tập lại.",
+          "",
+          "Khi đã ổn, mình có thể giúp bạn điều chỉnh cường độ buổi tập và bữa ăn trước tập để tránh lặp lại.",
+        ].join("\n"),
+        messageEn: [
+          "## ⚠️ Stop training and rest first",
+          "",
+          "Dizziness, nausea and shaky limbs during/after training are common with **low blood sugar**, **dehydration**, overexertion or standing up too fast — but I can't diagnose the cause.",
+          "",
+          "**Do now:**",
+          "- **Stop exercising**, sit or lie down (legs raised if light-headed) somewhere cool.",
+          "- Sip water; if you haven't eaten for a while, take some fast sugar (juice, glucose tablets, a banana).",
+          "- Rest at least 15–30 minutes and don't resume today until it has fully passed.",
+          "",
+          "🏥 **Call emergency services / seek care now** if you have chest pain or tightness, shortness of breath, fainting or near-fainting, confusion, tea-coloured urine, or symptoms **not improving after 30 minutes**. If it keeps happening, see a doctor before training again.",
+          "",
+          "Once you feel fine, I can help adjust training intensity and your pre-workout meal so it doesn't recur.",
         ].join("\n"),
       };
     }
@@ -447,23 +521,7 @@ export const safetyGuard = {
     }
 
     if (detectMinorAge(question)) {
-      return {
-        type: "minor_age_nutrition_request",
-        messageVi: [
-          "## ⚠️ Cần phụ huynh/bác sĩ nhi khoa tư vấn",
-          "",
-          "Mình là **AI Fitness Coach** được thiết kế và kiểm chứng cho người trưởng thành — nhu cầu dinh dưỡng và tập luyện ở tuổi vị thành niên khác biệt đáng kể (ảnh hưởng đến tăng trưởng, phát triển xương, dậy thì) và mình không có đủ cơ sở để đưa ra khuyến nghị an toàn cho nhóm tuổi này.",
-          "",
-          "🏥 Hãy trao đổi với phụ huynh và bác sĩ nhi khoa hoặc chuyên gia dinh dưỡng có kinh nghiệm với trẻ vị thành niên trước khi thay đổi chế độ ăn hoặc tập luyện.",
-        ].join("\n"),
-        messageEn: [
-          "## ⚠️ Please involve a parent/guardian and a pediatrician",
-          "",
-          "I'm an **AI Fitness Coach** designed and validated for adults — nutrition and training needs during adolescence differ significantly (affecting growth, bone development, puberty) and I don't have a safe basis for recommendations for this age group.",
-          "",
-          "🏥 Please talk with a parent/guardian and a pediatrician or a dietitian experienced with adolescents before changing diet or training.",
-        ].join("\n"),
-      };
+      return safetyGuard.minorAgeResult();
     }
 
     if (detectPregnancyOrBreastfeeding(question)) {

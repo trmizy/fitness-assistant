@@ -1,4 +1,4 @@
-import { nutritionCalculator } from "./nutrition_calculator";
+import { nutritionCalculator, isNutritionWhatIf } from "./nutrition_calculator";
 import { workoutPlanSelector } from "./workout_plan_selector";
 import { mealPlanLoader } from "./meal_plan_loader";
 import type {
@@ -1025,8 +1025,14 @@ function buildMealPlanTemplate(
 
   // The header numbers of a chat meal plan must be the user's ACTIVE NutritionGoal (single source of truth), not the
   // kcal of whichever dataset template happened to be the closest sample.
+  const whatIf = isNutritionWhatIf(profile, intent) && nutrition.targetCalories !== undefined && nutrition.proteinGrams !== undefined;
   const withAuthoritativeTargets = (plan: MealPlanTemplate): MealPlanTemplate =>
-    profile.nutritionGoal
+    whatIf
+      ? {
+          ...plan, whatIf: true, kcal: nutrition.targetCalories!, proteinGrams: nutrition.proteinGrams!,
+          carbsGrams: nutrition.carbsGrams ?? plan.carbsGrams, fatGrams: nutrition.fatGrams ?? plan.fatGrams,
+        }
+      : profile.nutritionGoal
       ? {
           ...plan,
           kcal: profile.nutritionGoal.calories,

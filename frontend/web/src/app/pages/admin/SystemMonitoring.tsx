@@ -92,7 +92,11 @@ export function SystemMonitoring() {
         setError("Không tải được dữ liệu giám sát");
       }
     } catch (err: any) {
-      setError(err?.message || "Lỗi kết nối mạng");
+      setError(
+        err?.response?.status === 404
+          ? "Giám sát từng dịch vụ chỉ khả dụng khi chạy qua API gateway. Trên bản AWS, xem CloudWatch."
+          : err?.message || "Lỗi kết nối mạng",
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);

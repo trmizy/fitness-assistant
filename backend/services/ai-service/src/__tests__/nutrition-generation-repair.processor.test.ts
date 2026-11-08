@@ -80,12 +80,21 @@ test("GOLDEN through the REAL processor: the same output now COMPLETES — 3 mea
   for (const id of after) assert.ok(foodsBefore(before).has(id), "repair introduced a food that was not in the plan");
 });
 
-test("no-op through the processor: an already-valid 4-meal 30B plan is persisted EXACTLY as the builder produced it", async () => {
-  const expected = builderOutput(valid4);
-  assert.equal(inv(expected, 4, valid4.foods).ok, true);
-  const { completed, failure } = await runJob(valid4, jobFor(valid4));
+// Contract change (test/ai-quality-eval, 2026-11-08): the calorie tolerance was tightened 20% -> 10% because builder
+// output that erased a fat-loss deficit (+12-16% kcal) used to pass. This 4-meal 30B capture was "already valid" only
+// under the old ±20%; it is now repaired. The "already-valid plan is untouched" property itself is still covered by
+// nutrition-plan-repair.test.ts's pure no-op test.
+test("4-meal 30B plan through the processor: builder output outside ±10% kcal is repaired (same foods, same meal count, targets unchanged)", async () => {
+  const built = builderOutput(valid4);
+  const { completed, failure, llmCalls } = await runJob(valid4, jobFor(valid4));
   assert.equal(failure, null, String(failure));
-  assert.deepEqual(completed, expected);
+  assert.ok(completed, "plan must complete");
+  assert.equal(llmCalls, 1, "repair is deterministic: no extra LLM call");
+  assert.equal(inv(completed, 4, valid4.foods).ok, true, JSON.stringify(inv(completed, 4, valid4.foods).violations.slice(0, 3)));
+  assert.ok(completed.weeklySchedule.every((d: any) => d.meals.length === 4), "meal count preserved");
+  assert.ok(completed.weeklySchedule.every((d: any) => Math.abs(d.totalCalories - completed.dailyCaloriesTarget) / completed.dailyCaloriesTarget <= 0.1), "every day within ±10% kcal");
+  const ids = (c: any) => new Set(c.weeklySchedule.flatMap((d: any) => d.meals.flatMap((m: any) => m.items.map((i: any) => i.foodId))));
+  for (const id of ids(completed)) assert.ok(ids(built).has(id), "repair introduced a food that was not in the plan");
 });
 
 test("impossible repair through the processor still FAILS CLOSED with the real constraint failure (no invalid plan persisted)", async () => {

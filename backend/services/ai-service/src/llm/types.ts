@@ -127,6 +127,11 @@ export interface InputIntent {
   parsedTrainingDays?: number;
   minimumExercisesPerDay?: number;
   parsedMealsPerDay?: number;
+  /** Targets the user named explicitly for THIS request ("khoảng 3200 kcal, protein 180g"). Applied only inside safe bounds. */
+  statedCalories?: number;
+  statedProteinGrams?: number;
+  /** The question itself names a goal ("cắt mỡ", "bulking"), as opposed to the goal merely falling back to the profile. */
+  goalStatedInQuestion?: boolean;
   requestsCardio?: boolean;
   mentionsInjury?: boolean;
   needsPersonalization: boolean;
@@ -250,6 +255,8 @@ export interface MealItem {
 
 export interface MealPlanTemplate {
   isDefaultTemplate: boolean;
+  /** Numbers come from what the user asked for in THIS message, not from the saved NutritionGoal (which is left untouched). */
+  whatIf?: boolean;
   kcal: number;
   proteinGrams: number;
   carbsGrams: number;

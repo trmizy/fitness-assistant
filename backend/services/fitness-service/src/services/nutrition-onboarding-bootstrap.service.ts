@@ -100,7 +100,11 @@ function reasonCodesToVietnamese(codes: string[], goal: string): string {
   } else {
     lines.push("Chưa có dữ liệu InBody nên năng lượng nền (BMR) được ước tính bằng công thức Mifflin-St Jeor.");
   }
-  if (codes.includes("MAINTENANCE_ONLY_PENDING_SAFETY_SCREENING_REVIEW")) {
+  if (codes.includes("MINOR_AGE_PAEDIATRIC_REVIEW")) {
+    lines.push("Vì bạn dưới 18 tuổi và cơ thể còn đang phát triển, Gymini đặt mục tiêu ở mức duy trì (không cắt giảm calo) — hãy cùng phụ huynh trao đổi với bác sĩ nhi khoa hoặc chuyên gia dinh dưỡng trước khi thay đổi chế độ ăn.");
+  } else if (codes.includes("GOAL_TARGET_WEIGHT_CONFLICT")) {
+    lines.push("Mục tiêu trong hồ sơ và cân nặng mong muốn đang ngược chiều nhau (ví dụ chọn \"tăng cơ\" nhưng cân nặng mong muốn thấp hơn hiện tại), nên Gymini tạm đặt calo ở mức duy trì — hãy chọn lại mục tiêu trong Hồ sơ (giảm mỡ, tăng cơ hoặc tái cấu trúc cơ thể) để có mục tiêu calo phù hợp.");
+  } else if (codes.includes("MAINTENANCE_ONLY_PENDING_SAFETY_SCREENING_REVIEW")) {
     lines.push("Vì bạn đã báo cáo yếu tố sức khỏe cần lưu ý, Gymini tạm thời đặt mục tiêu ở mức duy trì (không giảm/tăng calo) cho đến khi bạn hoặc chuyên gia xem xét lại.");
   } else if (codes.includes("INITIAL_DEFICIT_FOR_WEIGHT_LOSS_GOAL")) {
     lines.push("Calo mục tiêu thấp hơn mức duy trì một mức vừa phải, an toàn cho chu kỳ đầu tiên — không phải mức cắt giảm cực đoan.");
@@ -188,14 +192,28 @@ async function assembleBootstrapInput(userId: string): Promise<AssembledBootstra
     // it — see nutrition-bootstrap.engine.ts's useMaintenanceOnly doc
     // comment for why this is a real numeric change, not just a warning
     // string attached to the same aggressive number.
-    useMaintenanceOnly: screening.professionalReviewRequired,
+    // A goal that contradicts the target weight (nutrition-bootstrap-screening.ts) also starts at maintenance until the user
+    // picks the goal they mean — never a surplus for someone who wants to lose 9 kg.
+    useMaintenanceOnly: screening.professionalReviewRequired || !!screening.goalTargetConflict,
   };
   return { ok: true, profile, screening, input, latestInBody };
 }
 
+/** How the COMPUTED target was reached — the engine's own numbers (ESTIMATED, never measured), so the goal modal can show
+ * "BMR × activity factor = maintenance ± adjustment". Added 2026-11-08: a user saw 3543 kcal with no way to tell it came from
+ * EXTREMELY_ACTIVE ×1.9, a factor meant for heavy manual labour / twice-daily training, not for a desk job + gym. */
+export interface NutritionTargetEstimate {
+  bmr: number;
+  bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+  activityLevel: string;
+  activityFactor: number;
+  maintenanceCalories: number;
+  adjustmentKcal: number;
+}
+
 export type NutritionTargetResolution =
   | { status: "ACTIVE_GOAL"; goalId: string; calories: number; protein: number; carbs: number; fat: number }
-  | { status: "COMPUTED"; calories: number; protein: number; carbs: number; fat: number; professionalReviewRequired: boolean; waterMl?: number }
+  | { status: "COMPUTED"; calories: number; protein: number; carbs: number; fat: number; professionalReviewRequired: boolean; waterMl?: number; goalTargetConflict?: { goal: string; currentWeight: number; targetWeight: number }; estimate?: NutritionTargetEstimate }
   | { status: "insufficient_data"; missingFields: string[] };
 
 export async function computeRecommendedNutritionTargetForUser(
@@ -212,6 +230,15 @@ export async function computeRecommendedNutritionTargetForUser(
     fat: prescription.fatGrams,
     waterMl: prescription.waterMl,
     professionalReviewRequired: assembled.screening.professionalReviewRequired,
+    ...(assembled.screening.goalTargetConflict ? { goalTargetConflict: assembled.screening.goalTargetConflict } : {}),
+    estimate: {
+      bmr: prescription.bmr,
+      bmrFormula: prescription.bmrFormula,
+      activityLevel: assembled.input.activityLevel,
+      activityFactor: cycleThresholds.nutritionBootstrap.activityMultiplier[assembled.input.activityLevel],
+      maintenanceCalories: prescription.maintenanceCalories,
+      adjustmentKcal: prescription.deficitOrSurplusKcal,
+    },
   };
 }
 
@@ -273,7 +300,10 @@ export async function bootstrapNutritionForUser(
       // MAINTENANCE_ONLY_PENDING_SAFETY_SCREENING_REVIEW code (set above,
       // input.useMaintenanceOnly) — no separate suffix needed here, which
       // would otherwise say it twice.
-      reason: reasonCodesToVietnamese(prescription.reasonCodes, input.goal),
+      reason: reasonCodesToVietnamese(
+        [...prescription.reasonCodes, ...(screening.minorAge ? ["MINOR_AGE_PAEDIATRIC_REVIEW"] : []), ...(screening.goalTargetConflict && !screening.professionalReviewRequired ? ["GOAL_TARGET_WEIGHT_CONFLICT"] : [])],
+        input.goal,
+      ),
       trainingCycleId: cycleId,
     },
   );
@@ -291,6 +321,8 @@ export async function bootstrapNutritionForUser(
         reasonCodes: [
           ...prescription.reasonCodes,
           ...(screening.professionalReviewRequired ? ["SAFETY_SCREENING_PROFESSIONAL_REVIEW_REQUIRED"] : []),
+          ...(screening.minorAge ? ["MINOR_AGE_PAEDIATRIC_REVIEW"] : []),
+          ...(screening.goalTargetConflict ? ["GOAL_TARGET_WEIGHT_CONFLICT"] : []),
         ],
         metricsSnapshot: {
           input,

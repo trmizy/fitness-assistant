@@ -193,3 +193,9 @@ test("TURN: a roster outage is said plainly and creates nothing; an ordinary cus
     assert.equal(await r.prisma.fitnessAgentAction.count({ where: { userId: r.userId, kind: "PT_CLIENT_ACTION_PROPOSAL" } }), 0);
   } finally { await r.restore(); await r.prisma.$disconnect(); }
 });
+
+// run-pt-eval D05 (2026-11-08): a general how-to got a drafted card for one client and no advice.
+test("a general how-to about clients is coaching advice, not a proposal request", () => {
+  for (const q of ["Làm sao để động viên học viên hay bỏ buổi?", "Có mẹo nào khuyến khích học viên tập đều không?"]) assert.equal(isPtProposalRequest(q), false, q);
+  for (const q of ["Soạn tin nhắn động viên cho học viên An", "Làm sao xử lý học viên Huy bỏ tập, đề xuất giúp mình", "Nên làm gì với học viên Dũng?"]) assert.equal(isPtProposalRequest(q), true, q);
+});

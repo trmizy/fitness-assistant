@@ -14,6 +14,7 @@ import { safeParseJsonCandidate } from "../utils/json";
 import { validateNutritionPlanInvariants } from "./nutrition-plan-invariant.service";
 import { repairNutritionPlanQuantities } from "./nutrition-plan-repair";
 import { filterFoodsByExclusions, findExclusionViolations, isKnownExclusionKey } from "./nutrition-food-constraints";
+import { catalogTiers, withVietnameseDisplayNames } from "./nutrition-everyday-foods";
 
 type AiFood = {
   id: string;
@@ -29,6 +30,9 @@ type AiFood = {
   // guess.
   foodForm?: string | null;
   realisticServingMaxG?: number | null;
+  // curated everyday food (fitness-service prisma/seed_everyday_foods.ts) and its Vietnamese display name
+  curated?: boolean;
+  viName?: string | null;
 };
 
 type NutritionTemplate = {
@@ -322,6 +326,13 @@ async function processNutritionPlanJobInner(job: Job): Promise<void> {
     // list, deterministic protein/carb/fat pools, name lookup, invariant
     // allowedFoodIds) sees only permitted foods, so nothing can re-add one.
     allowedFoods = filterFoodsByExclusions(allowedFoods, excludedFoodKeys);
+    // Catalog tiers (nutrition-everyday-foods.ts): curated Vietnamese everyday foods → everyday screen → full list, so the
+    // LLM list and the role pools see real meal foods first instead of "dehydrated apples / Wagyu seam fat / pudding dry
+    // mix". The LLM drafts from the first tier's list; the tier actually used is chosen by a dry run right before the build,
+    // and the exclusion-filtered full list stays the last resort, so a thin catalog is never worse than before.
+    const exclusionFilteredFoods = allowedFoods;
+    const catalogTierList = catalogTiers(allowedFoods);
+    allowedFoods = catalogTierList[0].foods;
 
     if (allowedFoods.length === 0) {
       await conversationRepository.updateNutritionPlanFailed(
@@ -449,6 +460,29 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       return;
     }
 
+    const buildParams = {
+      goal,
+      mealsPerDay,
+      dailyCaloriesTarget,
+      template: templateResult.template,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
+      proteinTargetG,
+      carbTargetG,
+      fatTargetG,
+    };
+    // First tier whose dry run (build + quantity repair) passes the invariants; the full list is never dry-run (it is the
+    // previous behaviour and keeps its own fail-closed checks below). e.g. a vegan catalog may need a later tier.
+    const dryRuns: Array<{ tier: string; ok: boolean; codes: string[] }> = [];
+    let catalogTier = catalogTierList[catalogTierList.length - 1];
+    for (const tier of catalogTierList) {
+      if (tier.label === "full") break;
+      const r = catalogMeetsTargets({ ...buildParams, allowedFoods: tier.foods }, mealsPerDay);
+      dryRuns.push({ tier: tier.label, ok: r.ok, codes: r.codes });
+      if (r.ok) { catalogTier = tier; break; }
+    }
+    allowedFoods = catalogTier.foods;
+    logger.info({ jobId: job.id, planId, catalogTier: catalogTier.label, foods: allowedFoods.length, of: exclusionFilteredFoods.length, dryRuns }, "[nutrition-foods] catalog tier chosen");
     const content = buildNutritionPlanFromTemplate({
       goal,
       mealsPerDay,
@@ -579,7 +613,10 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       );
       return;
     }
-    // 7. Complete plan
+    // 7. Complete plan — Vietnamese display names for curated foods only now, after every name-based check above.
+    finalContent = withVietnameseDisplayNames(finalContent, exclusionFilteredFoods);
+    // the exclusions this plan was built under travel with it (an "Điều chỉnh" of this plan must keep them)
+    if (excludedFoodKeys.length) finalContent = { ...finalContent, excludedFoodKeys: [...new Set(excludedFoodKeys)] };
     await conversationRepository.updateNutritionPlanCompletion(planId, finalContent);
     logger.info(
       { jobId: job.id, planId, userId },
@@ -714,6 +751,27 @@ export async function replayCompletedNutritionAutoSave(op: {
     content,
     process.env.INTERNAL_SERVICE_SECRET,
   );
+}
+
+/** Dry run of the deterministic build (+ quantity repair) on a candidate catalog: true when the plan would pass the invariants. */
+function catalogMeetsTargets(params: Parameters<typeof buildNutritionPlanFromTemplate>[0], mealsPerDay: number): { ok: boolean; codes: string[] } {
+  const content = buildNutritionPlanFromTemplate({ ...params, template: structuredClone(params.template) });
+  const allowedFoodIds = new Set(params.allowedFoods.map((f) => String(f.id)));
+  // Same name -> id resolution the real path applies before its invariant check (items the builder emits by name only).
+  const foodByName = new Map(params.allowedFoods.map((f) => [normalizeFoodName(f.name), f]));
+  for (const day of content.weeklySchedule) for (const meal of day.meals) for (const item of meal.items) {
+    if (item.foodId && allowedFoodIds.has(String(item.foodId))) continue;
+    const matched = foodByName.get(normalizeFoodName(item.name));
+    if (matched) { item.foodId = matched.id; item.name = matched.name; }
+  }
+  const first = validateNutritionPlanInvariants({ content, mealsPerDay, allowedFoodIds });
+  if (first.ok) return { ok: true, codes: [] };
+  const repair = repairNutritionPlanQuantities(content, {
+    foodById: new Map(params.allowedFoods.map((f) => [String(f.id), f])),
+    capG: (f) => realisticServingCapG(f.name, f.realisticServingMaxG),
+  });
+  const after = repair.report.changed ? validateNutritionPlanInvariants({ content: repair.content, mealsPerDay, allowedFoodIds }) : first;
+  return { ok: after.ok, codes: [...new Set(after.violations.map((v) => v.code))] };
 }
 
 function normalizeFoodName(value: string): string {
@@ -1010,7 +1068,14 @@ export function buildNutritionPlanFromTemplate(params: {
         b.carbs / Math.max(1, b.calories) -
         a.carbs / Math.max(1, a.calories),
     );
+  // Curated staples that can actually deliver this meal's carbs within their realistic portion come first (rice at 350 g ≈
+  // 99 g carbs; a banana capped at 200 g cannot) — without it a 2370 kcal / 3-meal day picked banana + potato by density,
+  // stayed ~11% short on carbs and fell back to the non-curated catalog (test/ai-quality-eval, 2026-11-08). Only applies
+  // when curated foods are present, so other catalogs keep the previous ordering.
+  const carbNeedPerMeal = carbTargetG && mealsPerDay > 0 ? carbTargetG / mealsPerDay : undefined;
   const carbFoods = preferredPool(carbFoodsAll, [
+    (f) => !!f.curated && carbNeedPerMeal !== undefined && f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G
+      && (f.carbs * realisticServingCapG(f.name, f.realisticServingMaxG)) / 100 >= 0.85 * carbNeedPerMeal,
     (f) => f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G && isCapFriendly(f),
     (f) => f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G,
     isCapFriendly,
@@ -1028,6 +1093,10 @@ export function buildNutritionPlanFromTemplate(params: {
     isCapFriendly,
   ]);
   const fallbackFoods = allowedFoods.length > 0 ? allowedFoods : proteinFoods;
+  // Curated vegetables (low-energy, low-fat; fruit excluded by name) for the lunch/dinner side below.
+  const VEGETABLE_SIDE_G = 150, VEG_ROTATION = 8;
+  const vegetableFoods = allowedFoods.filter((f) => f.curated && f.calories <= 45 && (f.fat ?? f.fats ?? 0) < 1 && f.protein < 4.5 && f.carbs <= 9
+    && !/\b(watermelon|pummelo|papaya|orange|apple|mango|grape|pineapple|banana|guava|melon|berr)/i.test(f.name));
 
   // Root-cause fix: quantities used to be sized from FIXED calorie-role
   // percentages (primary=5%, secondary=70%, tertiary=25% of meal
@@ -1137,10 +1206,20 @@ export function buildNutritionPlanFromTemplate(params: {
       // same flawed raw-quantity accounting, and both the overshoot and
       // this undershoot are direct consequences of crediting a serving
       // that never makes it to the plate.
+      // A vegetable side at lunch/dinner from the curated everyday foods (test/ai-quality-eval 2026-11-08: plans had no
+      // vegetables at all). Its carbs/protein are taken off this meal's targets BEFORE the other roles are sized, so the
+      // day totals still land on target. No curated vegetables in the catalog -> no side (previous behaviour).
+      const mealTypeHere = normalizeMealType(templateMeal?.mealType, mealIndex);
+      const vegetable = (mealTypeHere === "LUNCH" || mealTypeHere === "DINNER") && vegetableFoods.length
+        ? vegetableFoods[(dayIndex * mealsPerDay + mealIndex) % Math.min(VEG_ROTATION, vegetableFoods.length)]
+        : undefined;
+      const vegetableQuantity = vegetable ? Math.min(VEGETABLE_SIDE_G, realisticServingCapG(vegetable.name, vegetable.realisticServingMaxG)) : 0;
+      const vegCarbs = vegetable ? (vegetableQuantity / 100) * vegetable.carbs : 0;
+      const vegProtein = vegetable ? (vegetableQuantity / 100) * vegetable.protein : 0;
       const rawSecondaryQuantity =
         secondary.id === primary.id
           ? 0
-          : macroTargetQuantity(secondary, carbPerMeal, "carbs");
+          : macroTargetQuantity(secondary, Math.max(0, carbPerMeal - vegCarbs), "carbs");
       const rawTertiaryQuantity =
         tertiary.id === primary.id || tertiary.id === secondary.id
           ? 0
@@ -1161,7 +1240,8 @@ export function buildNutritionPlanFromTemplate(params: {
           : applyServingBounds(rawTertiaryQuantity, tertiary, 10);
       const incidentalProteinFromOtherRoles =
         (secondaryQuantity / 100) * secondary.protein +
-        (tertiaryQuantity / 100) * tertiary.protein;
+        (tertiaryQuantity / 100) * tertiary.protein +
+        vegProtein;
       const remainingProteinTarget = Math.max(
         0,
         proteinPerMeal - incidentalProteinFromOtherRoles,
@@ -1196,6 +1276,7 @@ export function buildNutritionPlanFromTemplate(params: {
               ),
             ]
           : []),
+        ...(vegetable && vegetableQuantity > 0 ? [buildMealItem(vegetable, vegetableQuantity, "Rau xanh — chất xơ và vi chất")] : []),
       ];
 
       const totals = sumItems(items);

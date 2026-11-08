@@ -43,8 +43,13 @@ function recoverOtpFromHash(email) {
   return null;
 }
 /** Real registration: POST /auth/register -> OTP (devOtp if echoed, else recovered from the real DB hash) -> POST /auth/register/verify -> real JWT. */
-export async function registerUser(email, fullName, password = "TestPass#12345") {
-  let r = await http("POST", "/auth/register", { body: { email, password, fullName, role: "CLIENT" } });
+// opts.names: also send firstName/lastName (the fields /auth/register actually stores; `fullName` alone is ignored), split exactly
+// like the real RegisterPage.tsx does: firstName = first word, lastName = the rest or "." ("Nguyễn Văn An" -> "Nguyễn" / "Văn An",
+// displayed "Nguyễn Văn An"). Off by default so existing probes that expect email labels are unchanged.
+export async function registerUser(email, fullName, password = "TestPass#12345", opts = {}) {
+  const words = String(fullName ?? "").trim().split(/\s+/);
+  const names = opts.names && words.length ? { firstName: words[0], lastName: words.slice(1).join(" ") || "." } : {};
+  let r = await http("POST", "/auth/register", { body: { email, password, fullName, ...names, role: "CLIENT" } });
   if (r.status === 409) { // already registered in a previous run: log in
     r = await http("POST", "/auth/login", { body: { email, password } });
     return { email, token: r.json.accessToken, userId: r.json.user?.id, refresh: r.json.refreshToken };

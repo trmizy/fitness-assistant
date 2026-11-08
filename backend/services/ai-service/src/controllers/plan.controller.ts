@@ -11,6 +11,7 @@ import {
   PlanStatus,
 } from "../repositories/conversation.repository";
 import { llmService } from "../services/llm.service";
+import { extractNutritionConstraints, unsupportedRestrictionMessage, isKnownExclusionKey } from "../services/nutrition-food-constraints";
 import {
   ApiError,
   RateLimitedError,
@@ -1238,6 +1239,17 @@ Hãy giải thích:
         return;
       }
 
+      // A food exclusion in the adjustment text ("tôi dị ứng với bò") must be ENFORCED, not only forwarded as a prompt note the
+      // model may ignore (user test 2026-11-08: the adjusted plan still had beef). The previous plan's exclusions carry over;
+      // a restriction that cannot be enforced is refused honestly instead of pretending (same policy as the chat workflow).
+      const constraints = extractNutritionConstraints(adjustments);
+      if (constraints.unsupported.length > 0) {
+        res.status(422).json(formatErrorResponse("VALIDATION_ERROR", unsupportedRestrictionMessage(constraints.unsupported)));
+        return;
+      }
+      const priorKeys = Array.isArray((plan.plan as any)?.excludedFoodKeys) ? ((plan.plan as any).excludedFoodKeys as string[]) : [];
+      const excludedFoodKeys = [...new Set([...priorKeys, ...constraints.exclusions.map((e) => e.key)])].filter(isKnownExclusionKey).slice(0, 20);
+
       if (!(await ensureLlmAvailable(res))) return;
 
       const result = await conversationService.queueNutritionPlanGeneration({
@@ -1246,6 +1258,7 @@ Hãy giải thích:
         durationWeeks: 1,
         mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
         notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
+        excludedFoodKeys,
         idempotencyKey: idempotencyKeyFrom(req, `nutrition-adjust:${planId}`),
       });
 

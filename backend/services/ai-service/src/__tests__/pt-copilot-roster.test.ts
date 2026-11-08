@@ -136,3 +136,20 @@ test("TURN: an ordinary customer message does not reach the roster handler at al
     assert.deepEqual(r.seen, [], "the roster tool was never called for a customer's own questions");
   } finally { await r.restore(); await r.prisma.$disconnect(); }
 });
+
+// Paraphrases from test/ai-quality-eval run-pt-eval.mjs (pt-r1, 2026-11-08): these fell through to the general LLM chat, which
+// then answered about the PT's OWN profile ("Với cân nặng hiện tại 70kg… học viên của bạn…").
+test("everyday PT phrasings are recognized as the roster overview", () => {
+  for (const q of ["Học viên của tôi dạo này sao rồi?", "Client nào lười tập vậy?", "Những người tôi đang huấn luyện có ai tụt lại không?"])
+    assert.equal(isPtRosterAdherenceQuestion(q), true, q);
+  for (const q of ["Tiến độ của tôi dạo này sao rồi?", "Dạo này tôi lười tập quá", "Tôi là học viên mới, dạo này nên tập gì?", "Mình là học viên, tập 2 tháng rồi có tiến bộ không?"])
+    assert.equal(isPtRosterAdherenceQuestion(q), false, q);
+});
+test("a general how-to about clients is advice, not the roster overview (run-pt-eval D05)", () => {
+  assert.equal(isPtRosterAdherenceQuestion("Làm sao để động viên học viên hay bỏ buổi?"), false);
+  assert.equal(isPtRosterAdherenceQuestion("Làm sao biết học viên nào đang bỏ tập?"), true);
+});
+test("'2 tuần qua' is a 14-day window, not 'tuần qua'", () => {
+  assert.equal(parseRosterWindow("học viên nào tuân thủ lịch tập kém trong 2 tuần qua"), 14);
+  assert.equal(parseRosterWindow("Ai bỏ tập nhiều nhất trong tuần qua?"), 7);
+});

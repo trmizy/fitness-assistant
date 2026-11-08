@@ -15,7 +15,8 @@ import {
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, adminService } from "../../services/api";
+import { adminService } from "../../services/api";
+import { getAdminDashboard } from "../../services/adminAggregates";
 import { formatVND } from "../../utils/currency";
 import { adminRoleVi, adminShortDateVi, adminStatusVi } from "../../utils/adminLabels";
 
@@ -62,10 +63,7 @@ export function AdminDashboard() {
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["admin-dashboard"],
-    queryFn: async () => {
-      const { data } = await api.get("/admin/dashboard");
-      return data.data;
-    },
+    queryFn: getAdminDashboard,
   });
 
   // Exceptional gym-membership refund (money-flow §2.4) — the route has existed since the
@@ -183,12 +181,14 @@ export function AdminDashboard() {
               className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`}
             />
           </button>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-            {data?.monitor?.healthScore === 100
-              ? "Mọi hệ thống hoạt động bình thường"
-              : `${data?.monitor?.healthScore}% hệ thống khỏe mạnh`}
-          </span>
+          {typeof data?.monitor?.healthScore === "number" && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+              {data.monitor.healthScore === 100
+                ? "Mọi hệ thống hoạt động bình thường"
+                : `${data.monitor.healthScore}% hệ thống khỏe mạnh`}
+            </span>
+          )}
         </div>
       </div>
 

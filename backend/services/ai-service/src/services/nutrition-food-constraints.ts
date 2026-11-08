@@ -18,6 +18,12 @@ const FISH = ["fish", "salmon", "tuna", "cod", "tilapia", "trout", "sardine", "s
 const SHELLFISH = ["shrimp", "prawn", "prawns", "crab", "lobster", "crayfish", "crawfish", "clam", "clams", "oyster", "oysters", "mussel", "mussels", "scallop", "scallops", "squid", "octopus", "abalone", "cuttlefish", "tôm", "cua", "mực"];
 const DAIRY = ["milk", "cheese", "yogurt", "yoghurt", "butter", "cream", "whey", "casein", "kefir", "dairy", "ghee", "custard", "sữa"];
 
+// Every land-animal meat a USDA-derived name can carry (whole-token match), plus the Vietnamese words.
+const MEAT = ["meat", "meats", "beef", "veal", "steak", "brisket", "wagyu", "pork", "bacon", "ham", "sausage", "sausages", "lard", "crackling", "cracklings",
+  "chicken", "broiler", "broilers", "fryer", "fryers", "turkey", "duck", "goose", "lamb", "mutton", "goat", "venison", "bison", "buffalo", "elk", "moose",
+  "caribou", "rabbit", "quail", "pheasant", "ostrich", "emu", "salami", "pepperoni", "prosciutto", "chorizo", "jerky", "frankfurter", "frankfurters",
+  "bologna", "pastrami", "liver", "giblets", "gelatin", "gelatine", "thịt", "bò", "heo", "lợn", "gà", "vịt"];
+
 type Entry = { key: string; label: string; tokens: string[]; aliases: string[] };
 
 // aliases: normalized (diacritic-stripped, lowercase) user phrases.
@@ -33,6 +39,8 @@ const ENTRIES: Entry[] = [
   { key: "egg", label: "trứng", tokens: ["egg", "eggs", "trứng"], aliases: ["trung", "egg", "eggs"] },
   { key: "dairy", label: "sữa và chế phẩm từ sữa", tokens: DAIRY, aliases: ["sua", "sua bo", "che pham tu sua", "dairy", "pho mai", "lactose"] },
   { key: "soy", label: "đậu nành", tokens: ["soy", "soya", "soybean", "soybeans", "tofu", "tempeh", "edamame", "miso"], aliases: ["dau nanh", "dau hu", "soy", "dau phu"] },
+  // Diet types are expanded into these keys by extractNutritionConstraints (a diet is not a food name).
+  { key: "meat", label: "thịt các loại", tokens: MEAT, aliases: ["thit", "cac loai thit", "thit dong vat", "meat"] },
   { key: "gluten", label: "gluten (lúa mì/lúa mạch/lúa mạch đen)", tokens: ["wheat", "barley", "rye", "flour", "bread", "pasta", "noodle", "noodles", "couscous", "semolina", "bulgur"], aliases: ["gluten", "lua mi", "bot mi", "banh mi"] },
 ];
 
@@ -88,7 +96,7 @@ export function filterFoodsByExclusions<T extends { name: string }>(foods: T[], 
 
 /** Final gate over a fully expanded plan — every selected item, by name. */
 export function findExclusionViolations(
-  content: { weeklySchedule: Array<{ meals: Array<{ items: Array<{ name: string }> }> }> },
+  content: { weeklySchedule: Array<{ meals: Array<{ items: Array<{ name: string; sourceName?: string }> }> }> },
   excludedKeys: string[],
 ): string[] {
   const hits = new Set<string>();
@@ -96,7 +104,10 @@ export function findExclusionViolations(
   for (const day of content.weeklySchedule) {
     for (const meal of day.meals) {
       for (const item of meal.items) {
-        if (foodViolatesExclusions(item.name, excludedKeys)) hits.add(item.name);
+        // A curated food shows its Vietnamese display name; its USDA name (sourceName) is the identity the token ontology is
+        // written for, so it alone is checked — a display word like "vịt" in "Rau chân vịt" (spinach) is not duck
+        // (found 2026-11-08: a vegetarian plan was blocked as "violating thịt các loại" by its spinach side).
+        if (foodViolatesExclusions(item.sourceName ?? item.name, excludedKeys)) hits.add(item.name);
       }
     }
   }
@@ -127,7 +138,9 @@ export const MAX_NUTRITION_HINTS = 10;
 const CUE_RE = /(không ăn|không dùng|không uống|dị ứng|kiêng|tránh)\s+([^.!?\n]+)/giu;
 // First words of clauses that are preferences/quantities, not food names.
 const NON_FOOD_STARTERS = new Set(["ưu", "tiết", "muốn", "thêm", "hãy", "ít", "nhiều", "giảm", "dễ", "cho", "tôi", "mình", "đổi", "giúp", "món", "chia", "làm", "tạo", "và", "cũng", "nhớ", "lưu"]);
-const STOP_TOKENS = new Set(["đổi", "giúp", "nhé", "nha", "với", "thay", "làm", "cho", "tôi", "mình", "dùm", "được", "nhưng", "mà", "rồi", "thì", "và", "hoặc", "cũng"]);
+const STOP_TOKENS = new Set(["đổi", "giúp", "nhé", "nha", "với", "thay", "làm", "cho", "tôi", "mình", "dùm", "được", "nhưng", "mà", "rồi", "thì", "và", "hoặc", "cũng",
+  // clause enders ("dị ứng thịt bò NÊN bỏ bò ra", "kiêng hải sản VÌ dị ứng")
+  "nên", "vì", "do", "để", "khi", "luôn", "lắm", "quá", "ra", "đi", "ạ"]);
 
 export function extractNutritionConstraints(message: string): NutritionConstraintSet {
   const set: NutritionConstraintSet = { exclusions: [], unsupported: [], hints: [] };
@@ -141,9 +154,13 @@ export function extractNutritionConstraints(message: string): NutritionConstrain
     for (const item of items) {
       // Every clause is processed independently (final remediation M2): the old
       // `idx === 0` rule silently dropped an unsupported LATER exclusion.
-      const own = item.trim().match(/^(không ăn|không dùng|không uống|dị ứng|kiêng|tránh)\s+(.*)$/iu);
+      // "…, chỉ không ăn cá" / "nhưng dị ứng tôm": a leading connective must not hide the clause's own cue.
+      const own = item.trim().replace(/^(?:chỉ|nhưng|mà|cũng)\s+/iu, "").match(/^(không ăn|không dùng|không uống|dị ứng|kiêng|tránh)\s+(.*)$/iu);
       const itemCue = (own ? own[1] : cue).toLowerCase();
-      const bare = own ? own[2] : item.trim();
+      // Filler right after the cue ("dị ứng VỚI bò", "không ăn ĐƯỢC bò", "kiêng ĂN hải sản") is not the food: it used to hit the
+      // stop words below first and the allergy was silently dropped (user test 2026-11-08: "tôi dị ứng với bò" via the plan's
+      // "Điều chỉnh" -> the new plan still had beef).
+      const bare = (own ? own[2] : item.trim()).replace(/^(?:(?:với|được|nổi|ăn|uống|dùng|các|những|loại|món|đồ|cái)\s+)+/iu, "");
       const tokens = bare.split(/\s+/).filter(Boolean);
       // A clause that is not a food exclusion ("4 bữa", "ưu tiên món Việt", "giảm ngân sách") is
       // never counted as an unsupported hard exclusion — unless it repeats an explicit cue.
@@ -155,6 +172,8 @@ export function extractNutritionConstraints(message: string): NutritionConstrain
       }
       const phrase = words.join(" ").trim();
       if (!phrase) continue;
+      // "không ăn chay" negates a diet, it is not a food to exclude (diets are handled below) — never an unsupported exclusion.
+      if (/^(an )?chay\b/.test(normalizeForMatch(phrase))) continue;
       const resolution = resolveFoodRestriction(`${itemCue} ${phrase}`);
       if (resolution.supported) {
         if (!seen.has(resolution.resolved.key)) { seen.add(resolution.resolved.key); set.exclusions.push(resolution.resolved); }
@@ -163,6 +182,20 @@ export function extractNutritionConstraints(message: string): NutritionConstrain
         if (!set.unsupported.includes(label)) set.unsupported.push(label);
       }
     }
+  }
+  // Diet types (found by test/ai-quality-eval PL-B1, 2026-11-08: "ăn chay trứng sữa" produced excludedFoods = [] and a
+  // plan with salmon, Wagyu beef and pork cracklings — a diet is not a food name, so the cue parser above never saw it).
+  // vegetarian / lacto-ovo: no meat, fish or seafood; vegan: additionally no egg and no dairy. A negated "không ăn chay"
+  // is not a diet statement.
+  const folded = normalizeForMatch(text);
+  const addKey = (key: string, phrase: string) => {
+    const entry = ENTRIES.find((e) => e.key === key);
+    if (entry && !seen.has(key)) { seen.add(key); set.exclusions.push({ key, label: entry.label, phrase }); }
+  };
+  if (/(?<!khong )\b(thuan chay|an chay thuan|chay hoan toan|vegan)\b/.test(folded)) {
+    for (const key of ["meat", "seafood", "egg", "dairy"]) addKey(key, "thuần chay");
+  } else if (/(?<!khong )\b(an chay|chay truong|chay trung sua|vegetarian|lacto ovo)\b/.test(folded)) {
+    for (const key of ["meat", "seafood"]) addKey(key, "ăn chay");
   }
   if (/giảm ngân sách|ngân sách thấp|rẻ hơn|tiết kiệm hơn/i.test(text)) set.hints.push("Ưu tiên thực phẩm rẻ, dễ mua, tiết kiệm chi phí hơn thực đơn trước");
   if (/món việt|đồ việt/i.test(text)) set.hints.push("Ưu tiên món ăn Việt Nam quen thuộc");

@@ -17,6 +17,8 @@ import { nutritionService, foodService } from "../../services/api";
 import type { NutritionGoalPlanConsistency } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
+import { activityLevelInfo } from "../../constants/activityLevels";
+import { DayMacroQuickEstimate } from "../../components/nutrition/DayMacroEstimate";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
 import { useApp } from "../../context/AppContext";
@@ -765,6 +767,10 @@ export function NutritionPage() {
       toast.error(e.response?.data?.error ?? "Không thể lưu mục tiêu"),
   });
 
+  // Profile goal vs target weight contradiction reported by the recommendation (fitness-service nutrition-bootstrap-screening.ts).
+  const [goalConflict, setGoalConflict] = useState<{ goal: string; currentWeight: number; targetWeight: number } | null>(null);
+  // How the recommended number was reached (ESTIMATED) — shown so a user can spot an over-chosen activity level.
+  const [goalEstimate, setGoalEstimate] = useState<{ bmr: number; bmrFormula: string; activityLevel: string; activityFactor: number; maintenanceCalories: number; adjustmentKcal: number } | null>(null);
   const recommendedGoalMutation = useMutation({
     mutationFn: () => nutritionService.getTargetPreview(true),
     onSuccess: (result) => {
@@ -780,6 +786,8 @@ export function NutritionPage() {
         fat: Math.round(result.fat),
       });
       setGoalMode("RECOMMENDED");
+      setGoalConflict((result as { goalTargetConflict?: { goal: string; currentWeight: number; targetWeight: number } }).goalTargetConflict ?? null);
+      setGoalEstimate(result.status === "COMPUTED" ? result.estimate ?? null : null);
       toast.success("Đã lấy mục tiêu AI đề xuất mới nhất");
     },
     onError: () => toast.error("Không thể lấy mục tiêu AI đề xuất lúc này"),
@@ -1964,6 +1972,9 @@ export function NutritionPage() {
           ))}
         </div>
       )}
+
+      {/* ── Quick estimate: describe the day in words -> per-item + total macros (save on explicit confirm) ── */}
+      <DayMacroQuickEstimate dateStr={dateStr} />
 
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -3167,6 +3178,32 @@ export function NutritionPage() {
                       ? "Đang đề xuất..."
                       : "AI đề xuất lại"}
                   </button>
+                  {goalEstimate && (
+                    <div data-testid="goal-estimate" className="rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-3 py-2 text-xs text-zinc-300 space-y-1">
+                      <div>
+                        <span className="text-zinc-500">Cách tính (ước tính): </span>
+                        BMR {goalEstimate.bmr.toLocaleString("vi-VN")} kcal{goalEstimate.bmrFormula === "inbody_measured" ? " (đo InBody)" : " (công thức Mifflin-St Jeor)"}
+                        {" × "}{goalEstimate.activityFactor} ({activityLevelInfo(goalEstimate.activityLevel)?.label ?? goalEstimate.activityLevel})
+                        {" = "}{goalEstimate.maintenanceCalories.toLocaleString("vi-VN")} kcal duy trì
+                        {goalEstimate.adjustmentKcal !== 0 && (
+                          <>{goalEstimate.adjustmentKcal > 0 ? " + " : " − "}{Math.abs(goalEstimate.adjustmentKcal).toLocaleString("vi-VN")} kcal {goalEstimate.adjustmentKcal > 0 ? "dư" : "thâm hụt"}</>
+                        )}
+                      </div>
+                      {(goalEstimate.activityLevel === "VERY_ACTIVE" || goalEstimate.activityLevel === "EXTREMELY_ACTIVE") && (
+                        <div className="text-amber-300">
+                          Hệ số {goalEstimate.activityFactor} dành cho: {activityLevelInfo(goalEstimate.activityLevel)?.hint.toLowerCase()}.
+                          Nếu bạn làm việc ngồi và tập gym 3–5 buổi/tuần, hãy chọn <strong>Vận động vừa</strong> (×1.55) trong <a href="/client/profile" className="underline">Hồ sơ</a> rồi bấm “AI đề xuất lại”.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {goalConflict && (
+                    <div role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                      Hồ sơ đang chọn mục tiêu <strong>{goalConflict.goal === "MUSCLE_GAIN" ? "Tăng cơ" : "Giảm cân"}</strong> nhưng cân nặng mong muốn
+                      ({goalConflict.targetWeight} kg) {goalConflict.targetWeight < goalConflict.currentWeight ? "thấp hơn" : "cao hơn"} cân nặng hiện tại ({goalConflict.currentWeight} kg).
+                      Mình tạm đề xuất mức <strong>duy trì</strong>. Vào <a href="/client/profile" className="underline">Hồ sơ</a> chọn lại mục tiêu (giảm mỡ / tăng cơ / tái cấu trúc) rồi bấm “AI đề xuất lại”.
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -220,7 +220,9 @@ function hasDateSignal(q: string): boolean {
 
 function hasSavedLookupAction(q: string): boolean {
   return (
-    /\b(xem|cho\s*(toi|minh)\s*xem|hien\s*thi|lay|mo|lookup|show|view|display)\b/.test(
+    // "mo" only as "mở <thực đơn/nhật ký/...>": after diacritic folding a bare "mo" also matches "mỡ" (fat), which turned
+    // "nhịn ăn 16:8 có giảm mỡ tốt hơn…" into a saved-meal lookup (test/ai-quality-eval KN-08, 2026-11-08).
+    /\b(xem|cho\s*(toi|minh)\s*xem|hien\s*thi|lay|mo\s*(thuc\s*don|nhat\s*ky|lich\s*an|ke\s*hoach|bua)|lookup|show|view|display)\b/.test(
       q,
     ) ||
     /\b(da\s*luu|dang\s*luu|saved|stored|nhat\s*ky|diary|log|lich\s*an|ke\s*hoach\s*hom\s*nay|thuc\s*don\s*hom\s*nay|hom\s*nay\s*(toi|minh)\s*(da\s*)?an\s*gi)\b/.test(

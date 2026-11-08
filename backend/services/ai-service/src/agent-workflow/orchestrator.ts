@@ -392,7 +392,7 @@ async function handleSemanticTurn(
 async function handleSlotReply(
   active: { id: string; slotsJson: unknown; expectedSlot: string | null },
   def: WorkflowDefinition, question: string, identity: AgentIdentity, deps: OrchestratorDeps,
-): Promise<TurnResult> {
+): Promise<TurnResult | null> {
   const storedKnown0 = (active.slotsJson as Record<string, unknown>) ?? {};
   const slot = def.slots.find((s) => s.key === active.expectedSlot)!;
   // A reply may CHANGE another slot instead of (or besides) answering the expected one — e.g. "đổi mục tiêu sang giảm
@@ -413,6 +413,9 @@ async function handleSlotReply(
     // No number at all = the user said something else (a new request, "số gì?"), not a wrong number: don't scold them with
     // "give me a specific number, e.g. 72 kg" — just say what is still needed and how to leave.
     if (!/\d/.test(question)) {
+      // A substantive question about something ELSE ("Squat đúng kỹ thuật thế nào?", "Tôi nên ăn gì…?") must not be trapped by the pending
+      // question: let the normal chat answer it; the workflow stays pending and the user can still answer it afterwards.
+      if (question.includes("?") && question.trim().split(/\s+/).length >= 5) return null;
       return { answer: `Mình vẫn cần thông tin này để tiếp tục: ${restated} (Nhắn "hủy" nếu bạn muốn dừng.)`, blocks: [] };
     }
     return { answer: hint.includes(restated) ? hint : `${restated} ${hint}`, blocks: [] };

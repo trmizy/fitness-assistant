@@ -232,12 +232,23 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const queue = getKnowledgePipelineQueue();
+      // 2026-10-25 live incident: on AWS (QUEUE_PROVIDER=sqs) there is no Redis, and BullMQ
+      // pointed at the default localhost:6379 never answers — this handler hung until the
+      // 30s Lambda timeout, which made the whole AI Observability page fail ("timeout of
+      // 10000ms exceeded"). Skip BullMQ entirely when SQS is the provider, and bound every
+      // queue call otherwise so a dead Redis degrades to "unavailable" instead of a hang.
+      const bullmqAvailable = process.env.QUEUE_PROVIDER !== "sqs";
+      const bounded = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        Promise.race([
+          p.catch(() => fallback),
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), 2000)),
+        ]);
+      const queue = bullmqAvailable ? getKnowledgePipelineQueue() : null;
       const [runs, reviewItems, queueCounts, repeatable] = await Promise.all([
         knowledgeRepository.listPipelineRuns(10),
         knowledgeRepository.listReviewQueue(20),
-        updateKnowledgeQueueDepthMetrics().catch(() => null),
-        queue.getRepeatableJobs().catch(() => []),
+        queue ? bounded(updateKnowledgeQueueDepthMetrics(), null) : Promise.resolve(null),
+        queue ? bounded(queue.getRepeatableJobs(), [] as unknown[]) : Promise.resolve([] as unknown[]),
       ]);
 
       res.json(
@@ -246,7 +257,7 @@ export const adminController = {
           runs,
           reviewItems,
           queue: {
-            name: queue.name,
+            name: queue?.name ?? "knowledge-pipeline (SQS mode: BullMQ queue not used)",
             ...(queueCounts ?? {
               waiting: null,
               active: null,

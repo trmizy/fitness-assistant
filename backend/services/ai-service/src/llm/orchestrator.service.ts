@@ -29,7 +29,29 @@ import {
   hasCriticalStructureMismatch,
 } from "./answer_validator";
 import { responseFormatter } from "./response_formatter";
+import {
+  isDirectNutritionQuestion,
+  formatDirectNutritionAnswer,
+  stripTemplateArtifacts,
+  isPersonalQuestion,
+  isPersonalDailyTargetQuestion,
+  isCalculationExplanationQuestion,
+  parseWeightChangeGoal,
+  formatWeightChangeAnswer,
+  parseMealSplit,
+  formatMealSplitAnswer,
+  parseStatedKcalComparison,
+  formatStatedKcalComparison,
+  isFollowUpMacroQuestion,
+  formatCalculationExplanation,
+  nutritionValidationMode,
+} from "./nutrition_answer_mode";
 import { labelLocalizer } from "./label_localizer";
+import { detectThirdPartyClientQuestion, thirdPartyDeterministicAnswer } from "./third_party_question";
+import { detectMetaQuestion, metaAnswer } from "./meta_question";
+import { explainMaintenanceEstimate } from "./nutrition_calculator";
+import { estimateDayMacros, formatDayEstimate, isDayMacroRequest } from "../services/day-macro-estimate";
+import { isPtProposalRequest } from "../services/pt-copilot-proposals";
 import { traceLogger } from "./trace_logger";
 import {
   analyzeBodyComposition,
@@ -125,6 +147,16 @@ async function timeAsync<T>(
     }
   }
 }
+
+/** Safety answers about cutting calories / losing weight that must change when the profile says the user is a minor. */
+const PROFILE_AGE_SENSITIVE_SAFETY_TYPES = new Set<string>([
+  "unsafe_extreme_calorie_request",
+  "severe_energy_restriction_warning",
+  "unsafe_weight_loss_behavior",
+  "prolonged_extreme_calorie_disclosure",
+]);
+/** Folded text: skipping meals / fasting, "N kg in <short time>", crash wording, slimming pills — read with the profile age above. */
+const AGGRESSIVE_WEIGHT_LOSS_PLAN = /\b(nhin (an|bua|doi|toi|sang|trua)|bo bua|giam \d{1,2} ?kg (trong|sau|chi) (\d|mot|hai|ba|1)|cap toc|that nhanh|thuoc giam can|tra giam can|an kieng khat khe|chi an (1|mot) bua)\b/;
 
 export function buildAiUnavailableFallback(language: LanguageDecision): string {
   if (language.responseLanguage === "vi") {
@@ -301,6 +333,23 @@ function safeErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+// "Đau cơ sau khi tập 1-2 ngày có bình thường không?" — "1-2 ngày" is a duration, not the date 1/2 (coach TK-04, 2026-11-08:
+// answered "Mình chưa thấy lịch tập cụ thể được lưu cho Chủ Nhật 2026-02-01").
+// Also: frequency ADVICE ("Vậy một tuần nên tập mấy buổi?") is not a lookup of the saved schedule (coach MT-1, 2026-11-08:
+// "Mình chưa thấy lịch tập cụ thể được lưu cho Chủ Nhật 2026-11-08").
+function isDurationNotDate(question: string): boolean {
+  const noDateWord = !/(lịch|lich|ngày\s*\d{1,2}\s*\/|ngay\s*\d{1,2}\s*\/|thứ\s*\d|thu\s*\d|hôm nay|hôm qua|ngày mai)/i.test(question);
+  const durationRange = /\b\d{1,2}\s*[-–]\s*\d{1,2}\s*(ngày|ngay|tuần|tuan|tháng|thang|hôm|hom)\b/i.test(question);
+  const frequencyAdvice = /(^|\s)nên(\s|$)/iu.test(question) && /(mấy|bao nhiêu)\s+(buổi|lần|ngày)/iu.test(question);
+  return noDateWord && (durationRange || frequencyAdvice);
+}
+
+function isYesNoKnowledgeQuestion(question: string): boolean {
+  const q = question.trim().toLowerCase();
+  // (JS \b is ASCII-only, so "có" is delimited by whitespace explicitly)
+  return /(^|\s)có\s.{2,60}\skhông\s*[?.!]*$/u.test(q) &&!/(gợi ý|tạo|lên lịch|lên giáo án|cho (tôi|mình|em)|bài nào|tập gì|nên tập|giáo án|lịch tập)/u.test(q);
+}
+
 function emptyPersonalizationContext(userId?: string): PersonalizationContext {
   return {
     profile: {
@@ -378,7 +427,21 @@ async function runInner(
 
     // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
-    const safetyCheck = safetyGuard.check(question);
+    let safetyCheck = safetyGuard.check(question);
+    // The question-only detector cannot see the profile: a user who is a MINOR by profile age and asks to cut calories /
+    // lose weight gets the minor-age guidance (parent + paediatric professional), not the adult energy-restriction answer
+    // (found by test/ai-quality-eval SF-D1, 2026-11-08). The profile is only read on these rare safety turns.
+    // Also a "safe"-classified but aggressive self weight-loss plan ("Em muốn uống whey và nhịn bữa tối để giảm 7kg trong 1 tháng",
+    // SF-D2 2026-11-08: a 16-year-old got adult advice, no parent/doctor) — skipping meals, N kg in a short time, "cấp tốc".
+    const aggressiveWeightLossPlan = safetyCheck.type === "safe" && AGGRESSIVE_WEIGHT_LOSS_PLAN.test(question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase());
+    if ((PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(safetyCheck.type) || aggressiveWeightLossPlan) && userId) {
+      try {
+        const age = (await profileExtractor.extract(userId, authHeader)).profile?.age;
+        if (typeof age === "number" && age > 0 && age < 18) safetyCheck = safetyGuard.minorAgeResult();
+      } catch (err) {
+        logger.warn({ err: (err as Error)?.message, userId }, "[safety] profile age lookup failed; adult safety answer kept");
+      }
+    }
 
     // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
     // memory-write provenance (see memory_extraction.ts's own doc comment).
@@ -396,6 +459,7 @@ async function runInner(
     if (
       safetyCheck.type === "off_topic" ||
       safetyCheck.type === "medical_emergency" ||
+      safetyCheck.type === "post_exercise_symptoms" ||
       safetyCheck.type === "medical_diagnosis_request" ||
       safetyCheck.type === "unsafe_ped_request" ||
       safetyCheck.type === "unsafe_extreme_calorie_request" ||
@@ -448,6 +512,31 @@ async function runInner(
       );
     }
 
+    // Questions about the assistant itself / clearly off-topic (meta_question.ts): answered directly instead of the model's
+    // out-of-scope refusal being replaced by the profile overview.
+    const metaKind = detectMetaQuestion(question);
+    if (metaKind) {
+      traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "meta_question" });
+      return makeEarlyPayload(trace.traceId, metaAnswer(metaKind, language.responseLanguage === "vi" ? "vi" : "en"), language, `meta_${metaKind}`);
+    }
+
+    // A PT asking ABOUT a client (third_party_question.ts): a plan request is not executed on the PT's own account and a question
+    // about the client's numbers gets an honest answer (client data is not reachable here). PT Copilot proposals keep their path.
+    const thirdParty = detectThirdPartyClientQuestion(question);
+    if (thirdParty && thirdParty.kind !== "coaching" && !isPtProposalRequest(question)) {
+      const answer = thirdPartyDeterministicAnswer(thirdParty, question)!;
+      traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "third_party_guard" });
+      return makeEarlyPayload(trace.traceId, answer, language, "third_party_guard");
+    }
+
+    // "Hôm nay tôi ăn …, tính macro giúp" (day-macro-estimate.ts): per-item + total macros from real food data, compared with
+    // the saved goal; read-only — the block's "Lưu vào nhật ký" is the user's explicit save.
+    if (userId && isDayMacroRequest(question)) {
+      const estimate = await estimateDayMacros({ userId, authorizationHeader: authHeader }, question);
+      traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "day_macro_estimate" });
+      return { ...makeEarlyPayload(trace.traceId, formatDayEstimate(estimate), language, "day_macro_estimate"), structuredBlocks: [{ type: "NUTRITION_DAY_ESTIMATE", estimate }] };
+    }
+
     // Emit before any I/O - fires immediately after safety gate passes.
     if (userId && sessionId) {
       const agentResult = await fitnessAgent.tryTurn(question, { userId, authorizationHeader: authHeader }, sessionId, trace.traceId);
@@ -461,7 +550,7 @@ async function runInner(
     // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently -
     // neither depends on the other, so parallelising saves ~150-300 ms per request.
     const preliminaryNutritionIntent = detectNutritionLookupIntent(question);
-    const preliminaryScheduleIntent = preliminaryNutritionIntent.enabled
+    const preliminaryScheduleIntent = preliminaryNutritionIntent.enabled || isDurationNotDate(question)
       ? { enabled: false }
       : detectWorkoutScheduleIntent(question);
     const [context, retrieval, chatHistory, memories] = await Promise.all([
@@ -526,6 +615,16 @@ async function runInner(
       }),
     ]);
     context.memories = memories;
+    // Coaching question about a client: answer without the ASKER's personal context, so nothing of the PT's own profile, goal or
+    // history is presented as the client's (pt-r1: "học viên của bạn… với cân nặng hiện tại 70kg").
+    if (thirdParty) {
+      const blank = emptyPersonalizationContext(userId);
+      context.profile = blank.profile;
+      context.inBodyHistory = [];
+      context.workoutHistory = [];
+      context.nutritionHistory = [];
+      context.memories = [];
+    }
 
     // Part 3 precedence fix: a weight the user states in THIS message must
     // be usable (with the conflict against the latest InBody explicitly
@@ -556,7 +655,8 @@ async function runInner(
       nutritionWeightConflictTotal.inc();
     }
 
-    const nutritionIntent = detectNutritionLookupIntent(question, chatHistory);
+    // "Còn protein thì sao?" asks for the user's own target, not for the saved meal plan (expert review H22, 2026-11-08).
+    const nutritionIntent = isFollowUpMacroQuestion(question) ? { ...detectNutritionLookupIntent(question, chatHistory), enabled: false } : detectNutritionLookupIntent(question, chatHistory);
     if (nutritionIntent.enabled) {
       const nutritionContext = await timeAsync(
         timing,
@@ -635,7 +735,8 @@ async function runInner(
       };
     }
 
-    const scheduleIntent = detectWorkoutScheduleIntent(question, chatHistory);
+    const detectedScheduleIntent = detectWorkoutScheduleIntent(question, chatHistory);
+    const scheduleIntent = isDurationNotDate(question) ? { ...detectedScheduleIntent, enabled: false } : detectedScheduleIntent;
     const workoutScheduleContext = scheduleIntent.enabled
       ? await timeAsync(timing, "scheduleContextMs", () =>
           withTimeout(
@@ -840,9 +941,22 @@ async function runInner(
     onProgress?.("AI đang đối chiếu ngữ cảnh và bằng chứng...");
 
     const routedIntent = intentRouter.route(question, context.profile);
+    // The user's own daily fat amount routes like their protein/carb/kcal amount (direct answer from the saved goal).
+    if (routedIntent.intent === "general_fitness_knowledge" && isPersonalDailyTargetQuestion(question)) routedIntent.intent = "meal_plan_request";
+    // A yes/no question about an effect ("Tập bụng nhiều có giảm mỡ bụng không?") asks for knowledge, not for a workout routine
+    // (coach TK-06, 2026-11-08: answered with a full core session; the spot-reduction answer was buried in the template).
+    if (routedIntent.intent === "muscle_group_routine_request" && isYesNoKnowledgeQuestion(question)) routedIntent.intent = "general_fitness_knowledge";
+    // "Nếu tôi bắt đầu tập tạ 3 buổi mỗi tuần thì có cần ăn thêm không?" is about EATING: it got a workout schedule (expert human
+    // review H02, 2026-11-08) — a yes/no question about food/energy on a workout route goes to the nutrition answer instead.
+    if (/workout|routine|frequency|program|training/.test(String(routedIntent.intent)) && isYesNoKnowledgeQuestion(question)
+      && /\b(an|an them|calo|kcal|protein|dam|dinh duong|nang luong)\b/.test(foldForIntent(question))) routedIntent.intent = "meal_plan_request";
     const parsedInput = inputParser.parse(question, context.profile);
     parsedInput.routeIntent = routedIntent.intent;
     parsedInput.goalHint = routedIntent.goalHint || parsedInput.goalHint;
+    // An impersonal knowledge question that merely mentions a goal ("Nhịn ăn 16:8 có giảm mỡ tốt hơn…?") is not a personal
+    // what-if: without this the calculator recomputed fat-loss targets and the answer presented them as the user's current
+    // numbers (Opus judge, KN-08 2026-11-08: "calo hiện tại của bạn là 1630 kcal" while the saved goal was 1852 kcal).
+    if (!isPersonalQuestion(question) && !parsedInput.statedCalories && !parsedInput.statedProteinGrams) parsedInput.goalStatedInQuestion = false;
 
     const unsafe =
       safetyCheck.type === "unsafe_weight_loss"
@@ -853,6 +967,37 @@ async function runInner(
       parsedInput,
       language.responseLanguage,
     );
+
+    // "Con số 2370 kcal của tôi được tính như thế nào?" — answered from the engine's own figures (explainMaintenanceEstimate),
+    // not by the model (which answered "Harris-Benedict hoặc Mifflin-St Jeor" with no number; examiner-style probe 2026-11-08).
+    if (!unsafe?.blocked && isCalculationExplanationQuestion(question)) {
+      const explanation = formatCalculationExplanation(context.profile as any, recommendation, explainMaintenanceEstimate(context.profile), language.responseLanguage === "vi" ? "vi" : "en", context.profile.nutritionGoal);
+      if (explanation) {
+        traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "calculation_explanation" });
+        return makeEarlyPayload(trace.traceId, explanation, language, routedIntent.intent);
+      }
+    }
+
+    // Nutrition arithmetic answered deterministically from the saved goal / engine estimate (nutrition_answer_mode.ts; expert
+    // human review 2026-11-08 found the model's sums wrong: deficit for "3 kg in 2 months", per-meal split, "2200 kcal có quá nhiều?").
+    if (!unsafe?.blocked && language.responseLanguage === "vi") {
+      const est = explainMaintenanceEstimate(context.profile);
+      const saved = context.profile.nutritionGoal;
+      const weightKg = context.profile.currentWeightKg ?? context.profile.inBody?.weightKg;
+      const n = recommendation.nutrition;
+      const target = saved ?? (n?.targetCalories && n.proteinGrams !== undefined && n.carbsGrams !== undefined && n.fatGrams !== undefined
+        ? { calories: n.targetCalories, protein: n.proteinGrams, carbs: n.carbsGrams, fat: n.fatGrams } : undefined);
+      const change = parseWeightChangeGoal(question), split = parseMealSplit(question), statedKcal = parseStatedKcalComparison(question);
+      const math = change ? formatWeightChangeAnswer(change, { maintenance: est.maintenanceCalories, saved, weightKg, gender: context.profile.gender })
+        : split && target ? formatMealSplitAnswer(split, target, saved ? "PRESCRIBED" : "ESTIMATED")
+        : statedKcal ? formatStatedKcalComparison(statedKcal, { saved, maintenance: est.maintenanceCalories, goalType: context.profile.goal })
+        : isFollowUpMacroQuestion(question) ? formatDirectNutritionAnswer(question, recommendation, weightKg)
+        : null;
+      if (math) {
+        traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "nutrition_math" });
+        return makeEarlyPayload(trace.traceId, math, language, routedIntent.intent);
+      }
+    }
 
     if (unsafe?.blocked) {
       recommendation.unsafeGuidance = unsafe;
@@ -869,10 +1014,17 @@ async function runInner(
       ];
     }
 
-    const deterministicAnswer = responseFormatter.format(
-      recommendation,
-      language.responseLanguage,
-    );
+    // A direct nutrition question routed to meal_plan_request ("tôi cần bao nhiêu calo/protein?") falls back to a direct
+    // numeric answer built from the same deterministic targets, not to the meal-plan template (nutrition_answer_mode.ts).
+    const directNutritionQuestion = isDirectNutritionQuestion(routedIntent.intent, question);
+    const deterministicAnswer = directNutritionQuestion
+      ? formatDirectNutritionAnswer(
+          question,
+          recommendation,
+          context.profile.currentWeightKg ?? context.profile.inBody?.weightKg,
+          language.responseLanguage === "vi" ? "vi" : "en",
+        )
+      : responseFormatter.format(recommendation, language.responseLanguage);
 
     let llmAnswer = deterministicAnswer;
     let prompt = "";
@@ -1045,12 +1197,16 @@ async function runInner(
       }
     }
 
+    // The model sometimes copies the prompt's "[...]" format-instruction lines verbatim; never show those.
+    if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = stripTemplateArtifacts(llmAnswer);
+
     const validation = await timeAsync(timing, "validationMs", async () =>
       answerValidator.validate(
         llmAnswer,
         recommendation,
         language.responseLanguage,
         context.profile,
+        { nutritionAnswerMode: nutritionValidationMode(routedIntent.intent, question), personalQuestion: isPersonalQuestion(question) },
       ),
     );
 
@@ -1071,6 +1227,18 @@ async function runInner(
       llmAnswer = deterministicAnswer;
       usedDeterministicFallbackBecauseOfValidation = true;
       fallbackReason = "validation_fallback";
+      // Which validator rule discarded the model's answer — the one fact needed to tell a real model error from a
+      // validator false positive (52% of baseline answers were the latter; test/ai-quality-eval, 2026-11-08).
+      // Warnings carry rule names and numbers only, never the user's text.
+      logger.warn(
+        {
+          traceId: trace.traceId,
+          intent: routedIntent.intent,
+          nutritionAnswerMode: nutritionValidationMode(routedIntent.intent, question),
+          warnings: validation.warnings.slice(0, 6).map((w) => w.slice(0, 200)),
+        },
+        "[answer-validation] LLM answer replaced by deterministic fallback",
+      );
       onProgress?.("Đang dùng kế hoạch an toàn đã kiểm chứng.");
       if (routedIntent.intent === "meal_plan_request") {
         nutritionLlmInstructionOverrideTotal.inc({ reason: "validation_mismatch" });

@@ -100,8 +100,50 @@ const EXPERIENCE_PROTEIN_MULTIPLIER: Partial<
   ADVANCED: 2.1, // within cited 2.0-2.2
 };
 
+const GOAL_OF_PROFILE: Record<string, string> = { WEIGHT_LOSS: "fat_loss", MUSCLE_GAIN: "muscle_gain", MAINTENANCE: "maintenance", RECOMPOSITION: "recomposition" };
+
+/** The user asked for numbers or a goal DIFFERENT from the saved one ("cắt mỡ 8 tuần…", "3200 kcal, protein 180g"): answer that as a what-if, never overwrite the goal. */
+export function isNutritionWhatIf(profile: UserProfile, intent: InputIntent): boolean {
+  if (intent.statedCalories || intent.statedProteinGrams) return true;
+  return !!intent.goalStatedInQuestion && !!intent.goalHint && intent.goalHint !== GOAL_OF_PROFILE[profile.goal ?? ""];
+}
+
+const STATED_KCAL_RANGE = [1200, 5000] as const;
+const STATED_PROTEIN_PER_KG = [0.8, 3.0] as const;
+
+/** A target the user NAMED for this request wins over the computed one — but only inside safe bounds; otherwise the computed value stays. */
+function applyStatedTargets(t: NutritionTargets, intent: InputIntent, weight: number | undefined): NutritionTargets {
+  const out = { ...t };
+  const kcal = intent.statedCalories;
+  if (kcal && kcal >= STATED_KCAL_RANGE[0] && kcal <= STATED_KCAL_RANGE[1]) out.targetCalories = kcal;
+  const prot = intent.statedProteinGrams;
+  if (prot && weight && prot >= weight * STATED_PROTEIN_PER_KG[0] && prot <= weight * STATED_PROTEIN_PER_KG[1]) out.proteinGrams = prot;
+  if (out.targetCalories !== t.targetCalories || out.proteinGrams !== t.proteinGrams) {
+    if (out.targetCalories !== undefined && out.proteinGrams !== undefined) {
+      const fat = out.fatGrams ?? 0;
+      out.carbsGrams = Math.round(clamp(out.targetCalories - out.proteinGrams * 4 - fat * 9, 0, 99999) / 4);
+    }
+    if (out.maintenanceCalories !== undefined && out.targetCalories !== undefined) out.deficitOrSurplusKcal = out.targetCalories - out.maintenanceCalories;
+  }
+  return out;
+}
+
+/**
+ * The inputs behind the maintenance ESTIMATE (same estimateBmr/ACTIVITY_FACTOR as calculateBase — no second formula), so a chat
+ * answer to "con số 2370 kcal của tôi được tính thế nào?" can show the engine's own numbers (added by test/ai-quality-eval,
+ * 2026-11-08: the model answered "Harris-Benedict hoặc Mifflin-St Jeor" with no figure).
+ */
+export function explainMaintenanceEstimate(profile: UserProfile): { bmr?: number; formula: string; activityFactor: number; maintenanceCalories?: number } {
+  const activityFactor = profile.activityLevel ? ACTIVITY_FACTOR[profile.activityLevel] : 1.375;
+  const { bmr, formula } = estimateBmr(profile);
+  return { bmr, formula, activityFactor, maintenanceCalories: bmr ? Math.round(bmr * activityFactor) : undefined };
+}
+
 export const nutritionCalculator = {
   calculate(profile: UserProfile, intent: InputIntent): NutritionTargets {
+    return applyStatedTargets(nutritionCalculator.calculateBase(profile, intent), intent, getWeight(profile));
+  },
+  calculateBase(profile: UserProfile, intent: InputIntent): NutritionTargets {
     const weight = getWeight(profile);
     const goal = resolveGoal(profile, intent);
     const experienceLevel = profile.experienceLevel;
@@ -113,7 +155,7 @@ export const nutritionCalculator = {
     // Source of truth: the user's ACTIVE NutritionGoal (fitness-service) owns calories/macros. Chat must state exactly those
     // numbers; the profile-based estimate below is only the fallback for a user who has no goal yet. (Found by the full chat
     // verification: "Một ngày tôi cần bao nhiêu calo?" answered 2000 kcal while the stored goal was 2187 kcal.)
-    if (profile.nutritionGoal) {
+    if (profile.nutritionGoal && !isNutritionWhatIf(profile, intent)) {
       const g = profile.nutritionGoal;
       const maintenance = bmr && weight ? Math.round(bmr * activityFactor) : undefined;
       return {

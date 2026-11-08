@@ -1,16 +1,10 @@
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { logger } from "@gym-coach/shared";
 import {
   conversationRepository,
   PlanStatus,
 } from "../repositories/conversation.repository";
 import type { ResponseLanguage } from "./types";
-
-const FITNESS_SERVICE_URL =
-  process.env.FITNESS_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://fitness-service:3002"
-    : "http://localhost:3002");
 
 const TZ = "Asia/Ho_Chi_Minh";
 
@@ -249,6 +243,9 @@ function asksStoredWorkoutDetails(q: string): boolean {
 }
 
 function hasScheduleFollowUpSignal(q: string): boolean {
+  // A follow-up is a SHORT elliptical turn ("còn mai thì sao?", "thế thứ 4?"). In a long question "thế" is just part of "như thế nào"
+  // ("Progressive overload nên áp dụng thế nào cho bài bench press?" was answered with "no saved schedule for today").
+  if (q.split(/\s+/).length > 7) return false;
   return /(^|\b)(con|vay|the|thi sao|what about|how about|and|then)\b/.test(q);
 }
 
@@ -817,10 +814,11 @@ async function fetchSchedules(
     params.startDate = intent.targetDate;
     params.endDate = intent.targetDate;
   }
-  const res = await axios.get(`${FITNESS_SERVICE_URL}/workouts/schedules`, {
-    headers: authHeaders(authHeader),
-    params,
-    timeout: 3500,
+  // requestService (not raw axios to http://fitness-service:3002): on AWS that host does not exist
+  // (ENOTFOUND), so every schedule read silently fell through to an OLD saved AI plan.
+  const res = await requestService({
+    service: "fitness", method: "GET", path: "/workouts/schedules",
+    headers: authHeaders(authHeader), params, timeoutMs: 3500,
   });
   const data = unwrap<any>(res);
   if (Array.isArray(data)) return data;
@@ -828,25 +826,26 @@ async function fetchSchedules(
   return [];
 }
 
-async function fetchCurrentProgram(authHeader?: string): Promise<any | null> {
+// Exported for substitute-saved-exercise.ts (real Bug D chat exercise-swap
+// feature) — the same real /workouts/programs/current read this file's own
+// detectWorkoutScheduleIntent path already uses, now also consumed by a
+// second caller that needs the raw (unmapped) exercises, including each
+// row's real WorkoutProgramExercise id, to build a PATCH payload.
+export async function fetchCurrentProgram(authHeader?: string): Promise<any | null> {
   if (!authHeader) return null;
-  const res = await axios.get(
-    `${FITNESS_SERVICE_URL}/workouts/programs/current`,
-    {
-      headers: authHeaders(authHeader),
-      timeout: 3500,
-    },
-  );
+  const res = await requestService({
+    service: "fitness", method: "GET", path: "/workouts/programs/current",
+    headers: authHeaders(authHeader), timeoutMs: 3500,
+  });
   const data = unwrap<any>(res);
   return data?.program ?? data ?? null;
 }
 
 async function fetchRecentLogs(authHeader?: string): Promise<any[]> {
   if (!authHeader) return [];
-  const res = await axios.get(`${FITNESS_SERVICE_URL}/workouts`, {
-    headers: authHeaders(authHeader),
-    params: { limit: 10 },
-    timeout: 3500,
+  const res = await requestService({
+    service: "fitness", method: "GET", path: "/workouts",
+    headers: authHeaders(authHeader), params: { limit: 10 }, timeoutMs: 3500,
   });
   const data = unwrap<any>(res);
   return Array.isArray(data)

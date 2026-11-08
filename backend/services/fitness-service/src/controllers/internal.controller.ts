@@ -197,9 +197,29 @@ export const internalController = {
       // existed before today; it only ever narrows the pool for NEW
       // imports still in STAGING/REVIEW_REQUIRED.
       where.status = "PUBLISHED";
+      // 2026-10-22 live incident: this endpoint's candidate pool was
+      // missing the archivedAt exclusion that
+      // plan-equipment-validator.service.ts's final visibility check
+      // already requires (status=PUBLISHED AND archivedAt=null) — an
+      // archived-but-still-PUBLISHED exercise could reach the AI worker's
+      // candidate pool, get selected into a plan, then get rejected by
+      // that final check, failing the whole plan closed. Same
+      // "archived = never reaches a plan" invariant as the status gate
+      // above, just the missing other half of it.
+      where.archivedAt = null;
 
       const result = await exerciseRepository.findMany(where);
-      let candidates = result.data as any[];
+      // 2026-10-25 live incident: PUBLISHED alone is not "visible to this
+      // user" — plan-equipment-validator.service.ts's final check accepts
+      // only (PUBLISHED + SYSTEM) or the caller's OWN USER_CUSTOM exercise.
+      // Another user's PUBLISHED USER_CUSTOM row (e.g. a custom "Hip Thrust")
+      // leaked into every user's candidate pool, got picked into a plan, then
+      // failed that final check -> "equipment_constraint_violation" and the
+      // whole plan failed closed. Filter per user here, after the (shared,
+      // cached) findMany, to the exact same visibility rule.
+      let candidates = (result.data as any[]).filter(
+        (ex) => ex.source === "SYSTEM" || (ex.source === "USER_CUSTOM" && !!userId && ex.ownerId === userId),
+      );
 
       // Deterministic equipment gate (never delegated to the LLM — see
       // equipment-availability.util.ts). Applied here, before the
@@ -431,8 +451,16 @@ export const internalController = {
           LIMIT ${PER_AXIS_LIMIT}
         `),
       ]);
+      // Curated everyday foods (prisma/seed_everyday_foods.ts): real USDA rows with a Vietnamese display name, returned
+      // regardless of the keyword filter above (cooking oil and avocado are everyday fat sources it excludes). Listed
+      // first so their name survives the merge. ai-service prefers them for meal plans (test/ai-quality-eval, 2026-11-08).
+      const curatedRows = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT f.id, f.name, f.calories, f.protein, f.carbs, f.fats, f.food_form, f.realistic_serving_max_g, a.alias AS vi_name
+        FROM foods f JOIN food_aliases a ON a.food_id = f.id AND a.source = 'everyday_curated' AND a.language = 'vi'
+        WHERE f.is_supplement = false
+      `);
       const foodsById = new Map<string, any>();
-      for (const row of [...proteinRows, ...carbRows, ...fatRows]) {
+      for (const row of [...curatedRows, ...proteinRows, ...carbRows, ...fatRows]) {
         if (!foodsById.has(row.id)) foodsById.set(row.id, row);
       }
       const foods = [...foodsById.values()];
@@ -449,6 +477,8 @@ export const internalController = {
         tags: [],
         foodForm: f.food_form ?? null,
         realisticServingMaxG: f.realistic_serving_max_g ?? null,
+        viName: f.vi_name ?? null,
+        curated: Boolean(f.vi_name),
       }));
       res.json({ success: true, data: { foods: mappedFoods } });
     } catch (err) {

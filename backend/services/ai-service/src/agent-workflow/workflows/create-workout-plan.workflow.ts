@@ -75,7 +75,7 @@ export const createWorkoutPlanWorkflow: WorkflowDefinition = {
     const s = normalizeAgentText(message);
     const days = s.match(/(\d)\s*(?:buoi|ngay)\s*(?:\/|moi|mot|trong|1)?\s*tuan\b/);
     if (days) { const r = parseSessionsPerWeek(days[1]); if (r.ok) out.daysPerWeek = r.value; }
-    const mins = s.match(/(?<![\d.,])(\d{2,3})\s*(?:phut|min)\b|(?<![\d.,])(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:gio|tieng)\b/);
+    const mins = s.match(/(?<![\d.,])(\d{2,3})\s*(?:phut|min|p)\b|(?<![\d.,])(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:gio|tieng)\b/);
     if (mins) { const r = parseMinutes(mins[0]); if (r.ok) out.sessionMinutes = r.value; }
     return out;
   },

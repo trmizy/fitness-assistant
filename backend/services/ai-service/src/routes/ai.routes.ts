@@ -6,6 +6,7 @@ import { feedbackAnalysisController } from "../controllers/feedback-analysis.con
 import { clientPlanDraftController } from "../controllers/client-plan-draft.controller";
 import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
+import { dayMacroEstimateController } from "../controllers/day-macro-estimate.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { askRateLimiter, expensiveRateLimiter, internalAiRateLimiter } from "../middleware/ai-rate-limiters";
 import { bindRequestIdentity } from "../services/request-identity";
@@ -49,6 +50,9 @@ router.post(
   bindRequestIdentity,
   aiController.askStream,
 );
+
+// "Tính macro cả ngày" from a free-text description (day-macro-estimate.ts) — read-only; one LLM extraction call per request.
+router.post("/nutrition/day-estimate", expensiveRateLimiter, dayMacroEstimateController.estimate);
 
 router.get(
   "/conversations",

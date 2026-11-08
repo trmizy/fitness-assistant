@@ -108,6 +108,8 @@ export const NutritionMealItemSchema = z.object({
   foodId: z.string().min(1).optional(),
   customFoodName: z.string().max(200).optional(),
   name: z.string().min(1).max(200),
+  // USDA name of a curated food whose `name` is its Vietnamese display name (exclusion checks read both)
+  sourceName: z.string().max(300).optional(),
   quantity: z.number().min(0).max(5000).default(100),
   unit: z.string().max(20).default("g"),
   calories: z.number().int().min(0).max(5000),
@@ -149,6 +151,9 @@ export const NutritionPlanContentSchema = z.object({
   weeklySchedule: z.array(NutritionDaySchema).min(1).max(7),
   generalNotes: z.array(z.string().max(500)).max(20).optional(),
   shoppingTips: z.array(z.string().max(500)).max(20).optional(),
+  // Canonical exclusion keys this plan was built under (nutrition-food-constraints.ts). Kept with the plan so an "Điều chỉnh"
+  // of it carries them forward instead of silently dropping a declared allergy.
+  excludedFoodKeys: z.array(z.string().max(40)).max(20).optional(),
 });
 
 export type NutritionPlanContent = z.infer<typeof NutritionPlanContentSchema>;
@@ -243,6 +248,7 @@ function normalizeNutritionCandidate(parsed: unknown): unknown {
                   ? item.customFoodName.trim()
                   : undefined,
               name: asString(item?.name ?? item?.customFoodName, "Thực phẩm"),
+              ...(typeof item?.sourceName === "string" && item.sourceName.trim() ? { sourceName: item.sourceName.trim() } : {}),
               quantity: asNumber(item?.quantity ?? item?.amount, 100),
               unit: asString(item?.unit, "g"),
               calories: Math.trunc(asNumber(item?.calories, 0)),
@@ -264,6 +270,7 @@ function normalizeNutritionCandidate(parsed: unknown): unknown {
       ? source.nutritionNotes
       : source.generalNotes,
     shoppingTips: source.shoppingTips,
+    ...(Array.isArray(source.excludedFoodKeys) ? { excludedFoodKeys: source.excludedFoodKeys.filter((k: unknown) => typeof k === "string") } : {}),
   };
 }
 

@@ -1,7 +1,9 @@
 import type { NutritionPlanContent } from "../schemas/nutrition-plan.schemas";
 
 // Tolerances are part of the invariant contract; exported so the deterministic repair uses the SAME numbers.
-export const NUTRITION_CALORIE_TOLERANCE_PCT = 0.2;
+// Calories tightened 0.2 -> 0.1 (test/ai-quality-eval, 2026-11-08): at ±20% a fat-loss plan of 2661-2747 kcal for a
+// 2370 kcal target (+12-16%, i.e. the deficit erased) passed, so the existing repair was never invoked.
+export const NUTRITION_CALORIE_TOLERANCE_PCT = 0.1;
 export const NUTRITION_MACRO_TOLERANCE_PCT = 0.35;
 
 export type NutritionViolation = { code: string; path: string; actual?: unknown; expected?: unknown };

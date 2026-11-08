@@ -1,5 +1,6 @@
 import { requestService } from "../clients/service-lambda.client";
 import { z } from "zod";
+import { canonicalExerciseName, pickExerciseByName } from "./exercise-name-resolution";
 import { logger, AgentPreferencesSchema, type AgentPreferences, type PTCandidate, type TrainingProgramCandidate } from "@gym-coach/shared";
 import { profileExtractor } from "../llm/profile_extractor";
 import { buildCoachContext } from "../coach/coach_context_builder";
@@ -83,7 +84,7 @@ function markProfileReadOrigin(err: unknown): never {
   throw err;
 }
 
-async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
+async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT" | "PATCH", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
   try {
     const response = await requestService({ service, path: route, method, body, timeoutMs,
@@ -411,60 +412,68 @@ export const fitnessAgentTools = {
   // "Military Press"/"Barbell Squat". Small and evidence-based: add an
   // entry here only after confirming (via a real DB query) the catalog
   // truly has no substring/plural/qualifier-dropped match.
+  async listExercises(identity: AgentIdentity, query: { typeOfEquipment?: string; bodyPart?: string; limit?: number }): Promise<{ id: string; exerciseName: string; instructions?: string | null }[]> {
+    const qs = new URLSearchParams();
+    if (query.typeOfEquipment) qs.set("typeOfEquipment", query.typeOfEquipment);
+    if (query.bodyPart) qs.set("bodyPart", query.bodyPart);
+    qs.set("limit", String(Math.min(100, query.limit ?? 40)));
+    const result = await domain(identity, "fitness", "GET", `/exercises?${qs.toString()}`, undefined,
+      z.object({ success: z.boolean(), data: z.object({ exercises: z.array(z.object({ id: z.string(), exerciseName: z.string() }).passthrough()) }).passthrough() }));
+    return result.data.exercises as { id: string; exerciseName: string; instructions?: string | null }[];
+  },
   async searchExerciseByName(identity: AgentIdentity, name: string): Promise<{ id: string; exerciseName: string } | null> {
+    // Resolution order (see services/exercise-name-resolution.ts for why): verified canonical catalog name
+    // for known template names, then the user's own text, then plural->singular, then dropping the leading
+    // qualifier word, then known terminology differences. Every step only accepts a NAME match — never an
+    // exercise whose instructions merely mention the term — and returns the first step that resolves.
     const SYNONYMS: Record<string, string> = {
       "overhead press": "military press",
       "back squat": "barbell squat",
     };
     const search = async (term: string) => {
       const result = await domain(identity, "fitness", "GET",
-        `/exercises?search=${encodeURIComponent(term)}&limit=20`, undefined,
+        `/exercises?search=${encodeURIComponent(term)}&limit=100`, undefined,
         z.object({ success: z.boolean(), data: z.object({ exercises: z.array(z.object({ id: z.string(), exerciseName: z.string() }).passthrough()) }).passthrough() }));
       return result.data.exercises;
     };
-    const pick = (exercises: { id: string; exerciseName: string }[], term: string) => {
-      if (!exercises.length) return null;
-      const normalized = term.trim().toLowerCase();
-      const exact = exercises.find(e => e.exerciseName.trim().toLowerCase() === normalized);
-      if (exact) return exact;
-      // No exact match — prefer the shortest name over the DB's default
-      // (alphabetical) order. Confirmed live: a plain "Deadlift" search
-      // picked "Axle Deadlift" first alphabetically (a specialty-equipment
-      // variant most users don't own) over the plain "Deadlift" everyone
-      // has, which then failed equipment validation.
-      return [...exercises].sort((a, b) => a.exerciseName.length - b.exerciseName.length)[0];
-    };
 
     const trimmed = name.trim();
-    let exercises = await search(trimmed);
-    if (exercises.length) return pick(exercises, trimmed);
-
-    // Fallback 1: plural -> singular ("Walking Lunges" -> "Walking Lunge").
-    const singular = trimmed.replace(/s\b/i, "");
-    if (singular !== trimmed) {
-      exercises = await search(singular);
-      if (exercises.length) return pick(exercises, singular);
-    }
-
-    // Fallback 2: drop the leading qualifier word ("Bulgarian Split Squat"
-    // -> "Split Squat", "Cable Lateral Raise" -> "Lateral Raise"). Never
-    // drops below 2 words — a single leftover word like "Squat" or "Press"
-    // is too generic and risks matching an obscure numbered variant.
-    const words = trimmed.split(/\s+/);
-    if (words.length > 2) {
-      const dropped = words.slice(1).join(" ");
-      exercises = await search(dropped);
-      if (exercises.length) return pick(exercises, dropped);
-    }
-
-    // Fallback 3: known catalog terminology differences.
+    const words = trimmed.split(/s+/);
+    const candidates: string[] = [];
+    const canonical = canonicalExerciseName(trimmed);
+    if (canonical) candidates.push(canonical);
+    candidates.push(trimmed);
+    const singularTerm = trimmed.replace(/s/i, "");
+    if (singularTerm !== trimmed) candidates.push(singularTerm);
+    // Never drops below 2 words — a lone "Squat" or "Press" is too generic.
+    if (words.length > 2) candidates.push(words.slice(1).join(" "));
     const synonym = SYNONYMS[trimmed.toLowerCase()];
-    if (synonym) {
-      exercises = await search(synonym);
-      if (exercises.length) return pick(exercises, synonym);
-    }
+    if (synonym) candidates.push(synonym);
 
+    for (const term of [...new Set(candidates)]) {
+      const hit = pickExerciseByName(await search(term), term);
+      if (hit) return { id: hit.id, exerciseName: hit.exerciseName };
+    }
     return null;
+  },
+  // Real Bug D follow-up (2026-10-23) — the chat "thay bài X bằng bài Y"
+  // feature for an ALREADY-SAVED schedule. Wraps the EXISTING, already-
+  // validated PATCH /workouts/program-exercises/:id endpoint
+  // (workout.service.ts::updateProgramExercise) — the same one the
+  // standard workout-editing UI uses — so this never becomes a second
+  // persistence path; validateExerciseIds on the fitness-service side
+  // still rejects an unowned/unpublished exerciseId.
+  // Raw (unmapped) active program incl. each WorkoutProgramExercise id. Goes through domain()/requestService
+  // (Lambda invoke on AWS) — workout_schedule_context.ts's own axios call to http://fitness-service:3002 has no
+  // host on Lambda (ENOTFOUND), so it cannot be reused here.
+  async getCurrentProgram(identity: AgentIdentity): Promise<any | null> {
+    const raw: any = await domain(identity, "fitness", "GET", "/workouts/programs/current", undefined, z.unknown());
+    const data = raw?.data?.data ?? raw?.data ?? raw;
+    return data?.program ?? data ?? null;
+  },
+  async updateProgramExercise(identity: AgentIdentity, programExerciseId: string, exerciseId: string) {
+    return domain(identity, "fitness", "PATCH", `/workouts/program-exercises/${encodeURIComponent(programExerciseId)}`,
+      { exerciseId }, z.record(z.unknown()));
   },
   // CREATE_WORKOUT_PLAN revision ("Đổi squat", "Tôi không muốn deadlift",
   // "Tôi không có máy cable" when a specific machine-tied exercise can be

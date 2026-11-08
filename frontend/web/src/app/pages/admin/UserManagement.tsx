@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MagnifyingGlassIcon as Search, ShieldIcon as Shield, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon as Search, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
 import { Button } from "../ui/button";
 // Goes through the shared `api` instance, not a bare axios import: only that instance
 // attaches the token, refreshes it on a 401, and queues concurrent callers behind one
@@ -419,14 +419,6 @@ export function UserManagement() {
               </div>
 
               <div className="space-y-2">
-                <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
-                  <Shield className="w-4 h-4 text-blue-400" /> Xem hồ sơ đầy đủ
-                </button>
-                {selectedUser.status === "Pending" && (
-                  <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors font-semibold">
-                    <UserCheck className="w-4 h-4" /> Duyệt PT
-                  </button>
-                )}
                 <button
                   disabled={isSelf(selectedUser)}
                   onClick={() => openRoleDialog(selectedUser)}

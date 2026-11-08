@@ -4685,6 +4685,16 @@ export const nutritionService = {
           fat: number;
           waterMl?: number;
           professionalReviewRequired: boolean;
+          goalTargetConflict?: { goal: string; currentWeight: number; targetWeight: number };
+          // ESTIMATED breakdown (fitness-service NutritionTargetEstimate): BMR × activity factor = maintenance ± adjustment.
+          estimate?: {
+            bmr: number;
+            bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+            activityLevel: string;
+            activityFactor: number;
+            maintenanceCalories: number;
+            adjustmentKcal: number;
+          };
         }
       | { status: "insufficient_data"; missingFields: string[] };
   },

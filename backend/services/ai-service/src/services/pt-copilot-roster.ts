@@ -23,20 +23,29 @@ export interface RosterView {
 
 // A PT-side subject ("client", "học viên", "khách của tôi"…) AND a concern about progress/adherence. Both are required so an ordinary
 // customer's "tiến độ của tôi" or a general fitness question is never taken over.
-const SUBJECT = /\b(client|clients|hoc vien|hoc vien cua (?:toi|minh)|khach hang cua (?:toi|minh)|khach cua (?:toi|minh)|nguoi tap cua (?:toi|minh)|hoi vien cua (?:toi|minh))\b/;
-const CONCERN = /\b(cham tien do|tien do|tuan thu|bo tap|bo buoi|can chu y|can quan tam|nguy co|dang the nao|tinh hinh|tinh trang|dang tap tot|ai (?:can|dang)|nao (?:dang|can)|bo bua|khong tap|ngung tap|on dinh|kem)\b/;
+const SUBJECT = /\b(client|clients|hoc vien|hoc vien cua (?:toi|minh)|khach hang cua (?:toi|minh)|khach cua (?:toi|minh)|nguoi tap cua (?:toi|minh)|hoi vien cua (?:toi|minh)|nhung nguoi (?:toi|minh) (?:dang )?(?:huan luyen|kem|day))\b/;
+const CONCERN = /\b(cham tien do|tien do|tuan thu|bo tap|bo buoi|can chu y|can quan tam|nguy co|dang the nao|tinh hinh|tinh trang|dang tap tot|ai (?:can|dang)|nao (?:dang|can)|bo bua|khong tap|ngung tap|on dinh|kem|luoi tap|luoi|tut lai|chung lai)\b/;
+// Weak, open phrasings ("dạo này sao rồi") only count with an explicitly possessive PT subject or a "which client" question, so
+// "Tôi là học viên mới, dạo này nên tập gì?" is never taken over.
+const WEAK_CONCERN = /\b(dao nay|sao roi|the nao roi|tien bo)\b/;
+const OWNED_SUBJECT = /\b((?:hoc vien|client|clients|khach|khach hang|hoi vien|nguoi tap) (?:cua )?(?:toi|minh)|nhung nguoi (?:toi|minh) (?:dang )?(?:huan luyen|kem|day)|(?:hoc vien|client) nao)\b/;
 const OWN_DATA = /\b(cua toi|cua minh)\b.*\b(tien do|can nang|calo)\b/;
 
 export function isPtRosterAdherenceQuestion(rawText: string): boolean {
   if (/[a-z]/i.test(rawText) === false) return false;
   const s = normalizeAgentText(rawText);
   if (s.split(" ").length > 30) return false;
-  return SUBJECT.test(s) && CONCERN.test(s) && !(OWN_DATA.test(s) && !/\b(client|hoc vien)\b/.test(s));
+  // "Làm sao để động viên học viên hay bỏ buổi?" asks for advice, not for the roster (unless it asks WHICH client: "nào"/"ai").
+  if (/\b(lam sao|lam the nao|cach nao|the nao de|meo|bi quyet|kinh nghiem)\b/.test(s) && !/\b(nao|ai)\b/.test(s.replace(/\b(lam the nao|cach nao|the nao de)\b/g, ""))) return false;
+  const concern = CONCERN.test(s) || (WEAK_CONCERN.test(s) && OWNED_SUBJECT.test(s));
+  return SUBJECT.test(s) && concern && !(OWN_DATA.test(s) && !/\b(client|hoc vien)\b/.test(s));
 }
 
 /** "7 ngày / 1 tuần" -> 7, "2 tuần / 14 ngày" (default) -> 14, "1 tháng / 4 tuần / 28 ngày" -> 28. */
 export function parseRosterWindow(rawText: string): RosterWindowDays {
   const s = normalizeAgentText(rawText);
+  // "2 tuần qua" contains "tuần qua": the explicit two-week phrasing is checked first (run pt-r1 2026-11-08 answered it with 7 days).
+  if (/\b(2 tuan|hai tuan|14 ngay|nua thang)\b/.test(s)) return 14;
   if (/\b(1 thang|mot thang|thang nay|4 tuan|28 ngay)\b/.test(s)) return 28;
   if (/\b(1 tuan|mot tuan|7 ngay|tuan nay|tuan qua)\b/.test(s)) return 7;
   return 14;

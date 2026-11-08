@@ -25,7 +25,7 @@ function inferGoal(
 ): IntentRoute["goalHint"] {
   const q = question.toLowerCase();
   if (
-    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
+    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|c[aắ]t m[oỡ]|cat mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
       q,
     )
   )

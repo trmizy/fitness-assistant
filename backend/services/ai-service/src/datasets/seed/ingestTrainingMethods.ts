@@ -34,7 +34,8 @@
  */
 
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { EMBEDDING_MODEL, llmService } from "../../services/llm.service";
+import { EMBEDDING_MODEL } from "../../services/llm.service";
+import { embedDocument } from "./embedding-backoff";
 import { EMBEDDING_VECTOR_SIZE } from "../../services/embedding-config";
 import { ensureCollectionDimension } from "../../repositories/qdrant-collection";
 import fs from "node:fs";
@@ -171,10 +172,7 @@ export function mapTrainingMethodToPoint(record: TrainingMethodRecord): Training
 /** Stored-document embedding through the configured EMBEDDING_PROVIDER
  * (Bedrock Cohere on AWS, Ollama locally). */
 async function embed(text: string): Promise<number[]> {
-  return llmService.generateEmbedding(text, {
-    inputType: "search_document",
-    timeoutMs: 30000,
-  });
+  return embedDocument(text); // throttle-aware, see embedding-backoff.ts
 }
 
 async function main() {

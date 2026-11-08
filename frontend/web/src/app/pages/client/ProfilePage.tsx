@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../../services/api";
 import { toast } from "sonner";
 import { feetInchesFromCm, cmFromFeetInches, kgFromLb, lbFromKg } from "../../utils/units";
+import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
 const goals = [
   { key: "lose_fat", label: "Giảm mỡ", emoji: "🔥" },
@@ -612,6 +613,12 @@ export function ProfilePage() {
                       <option key={a}>{a}</option>
                     ))}
                   </select>
+                ) : null}
+                {/* Same description as onboarding (constants/activityLevels.ts): job + training together. */}
+                {editing ? (
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    {ACTIVITY_LEVELS.find((x) => x.label === activity)?.hint}
+                  </p>
                 ) : (
                   <div className="text-sm font-medium text-zinc-300 py-2">
                     {activity}

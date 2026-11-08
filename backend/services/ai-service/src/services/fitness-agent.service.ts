@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { isPtRosterAdherenceQuestion, parseRosterWindow, formatRosterOverview } from "./pt-copilot-roster";
 import { isPtProposalRequest, pickProposalClient, buildClientProposals, proposalLines } from "./pt-copilot-proposals";
+import { isBeginnerStartQuestion, buildBeginnerStartAnswer } from "./beginner-start";
+import { friendlyStepDetail } from "./friendly-step-detail";
+import { tryFirstSessionGuidance, tryExerciseHowTo, tryHomeNoEquipmentAnswer, tryDishAdditionAnalysis } from "./guidance-turns";
+import { detectDirectionGoal, buildDirectionAnswer, parseDirectionChoice, questionForDirectionChoice } from "./training-direction";
 import {
   parseRoadmapTimeframe, resolveRoadmapTimeframe, timeframeForGenerator, draftTotalWeeks, timeframeMet, describeTimeframe,
   DEFAULT_ROADMAP_TIMEFRAME_WEEKS, type RoadmapTimeframe,
@@ -59,6 +63,8 @@ import type { BoundedTurnPlan } from "./bounded-turn/types";
 import { tryReviseRecommendation } from "./revision/pt-program-revision";
 import { tryReviseNutritionTarget } from "./revision/nutrition-revision";
 import { tryExplainUnsupportedPermanentSwap } from "./revision/workout-guards";
+import { parseSubstituteSavedExerciseRequest, parseDayFilter, findOccurrencesByName } from "./revision/substitute-saved-exercise";
+import { exercisesPerDayFor, convertAiPlanToDraft } from "./ai-workout-draft";
 
 registerWorkflow(createRoadmapWorkflow);
 registerWorkflow(findPtWorkflow);
@@ -110,7 +116,47 @@ function generationAdmissionRefusal(err: unknown): string | null {
   }
   return null;
 }
-export type AgentBlock = { type: "PT_RECOMMENDATIONS" | "PROGRAM_RECOMMENDATIONS" | "ACTION_CONFIRMATION" | "GOAL_ANALYSIS" | "ACTION_RESULT" | "SUBSTITUTE_RESULT" | "CYCLE_EVALUATION_RESULT" | "IMAGE_CHAT" | "WORKFLOW_MISSING_DATA" | "PROFILE_UPDATE_CONFIRMATION" | "WORKOUT_PLAN_PREVIEW" | "NUTRITION_PLAN_PREVIEW"; [key: string]: unknown };
+/** Operation key for a chat-initiated AI workout generation (same contract as nutritionGenerationKey). */
+async function workoutGenerationKey(kind: "propose" | "revise", userId: string, sessionId: string, params: unknown, actionId?: string): Promise<string> {
+  const clientRequestId = currentClientRequestId();
+  if (clientRequestId) return `chat:req:${clientRequestId}`;
+  const turn = await previousTurnId(userId, sessionId);
+  return kind === "propose"
+    ? `chat:workout:${sessionId}:${turn}:${fingerprintOf(params)}`
+    : `chat:workout-rev:${actionId}:${turn}:${fingerprintOf(params)}`;
+}
+
+function workoutAdmissionRefusal(err: unknown): string | null {
+  if (err instanceof RateLimitedError) {
+    return `Bạn đã dùng hết lượt tạo/tính lại kế hoạch bằng AI trong lúc này nên mình chưa tạo lịch tập mới — bạn thử lại sau khoảng ${err.retryAfterSeconds} giây nhé.`;
+  }
+  if (err instanceof RateLimitUnavailableError) {
+    return "Hệ thống giới hạn lượt dùng AI đang tạm thời không khả dụng nên mình chưa tạo lịch tập mới — bạn thử lại sau ít phút nhé.";
+  }
+  if (err instanceof ApiError && err.code === "IDEMPOTENCY_KEY_CONFLICT") {
+    return "Mã yêu cầu này đã được dùng cho một nội dung khác nên mình không tạo lịch tập mới — bạn gửi lại yêu cầu như một tin nhắn mới nhé.";
+  }
+  if (err instanceof ApiError && err.code === "OPERATION_IN_PROGRESS") {
+    return "Yêu cầu tạo lịch tập giống hệt đang được xử lý — bạn đợi giây lát rồi nhắn lại nhé (mình sẽ không tạo trùng).";
+  }
+  return null;
+}
+
+/** Queues the REAL AI workout generation (the same worker POST /plans/workout/generate uses). Returns the Plan/job ids. */
+async function queueAiWorkoutPlan(
+  identity: AgentIdentity, sessionId: string,
+  params: { goal: string; daysPerWeek: number; exercisesPerDay: number },
+  kind: "propose" | "revise", actionId?: string,
+): Promise<{ planId: string; jobId: string }> {
+  const idempotencyKey = await workoutGenerationKey(kind, identity.userId, sessionId, params, actionId);
+  const queued = await conversationService.queuePlanGeneration({
+    userId: identity.userId, goal: params.goal, durationWeeks: 8, daysPerWeek: params.daysPerWeek,
+    exercisesPerDay: params.exercisesPerDay, idempotencyKey,
+  });
+  return { planId: queued.planId, jobId: String(queued.jobId) };
+}
+
+export type AgentBlock = { type: "PT_RECOMMENDATIONS" | "PROGRAM_RECOMMENDATIONS" | "ACTION_CONFIRMATION" | "GOAL_ANALYSIS" | "ACTION_RESULT" | "SUBSTITUTE_RESULT" | "CYCLE_EVALUATION_RESULT" | "IMAGE_CHAT" | "WORKFLOW_MISSING_DATA" | "PROFILE_UPDATE_CONFIRMATION" | "WORKOUT_PLAN_PREVIEW" | "NUTRITION_PLAN_PREVIEW" | "SUBSTITUTE_SAVED_EXERCISE_PREVIEW" | "NUTRITION_DAY_ESTIMATE" /* day-macro-estimate.ts (chat "tính macro cả ngày") */; [key: string]: unknown };
 const TRAINING_DECISION_LABEL_VI: Record<string, string> = {
   KEEP: "Giữ nguyên", PROGRESS: "Tăng tải", ADJUST: "Điều chỉnh nhỏ", DELOAD: "Giảm tải (deload)",
   REBUILD: "Xây lại chương trình", INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
@@ -151,6 +197,25 @@ async function generateRoadmapDraftForTimeframe(identity: AgentIdentity, goalTyp
 // Shared by proposePlanBundle (initial draft) and tryReviseRoadmapDraft
 // (revised draft) so the confirmation card is built identically either way
 // — a revision is never a second, differently-shaped preview.
+/**
+ * A statement (no "?") that revises a pending roadmap draft. By design any constraint revises the bundle — including diet and
+ * intensity ("ăn chay giúp tôi", "Tập nhẹ nhàng hơn giúp tôi"), which the roadmap generator takes as constraints — EXCEPT a
+ * message about the menu / a dish / a meal (the meal-plan feature owns those: "thực đơn tôi muốn có cá hồi" used to regenerate
+ * the roadmap) and a bare acknowledgement ("cảm ơn", "ok").
+ */
+export function isRoadmapRevisionStatement(text: string): boolean {
+  const s = normalizeAgentText(text);
+  const roadmapWord = /\b(lo trinh|giai doan|ke hoach dai han|trong \d+ (tuan|thang)|\d+ (tuan|thang)|khong gioi han thoi gian)\b/.test(s);
+  if (/\b(thuc don|mon an|mon|bua (sang|trua|toi|phu|an))\b/.test(s) && !roadmapWord) return false;
+  if (/^(cam on|thanks?|thank you|ok|oke|okay|duoc|vang|da|u|uh|tot|hay qua)\b[\s!.]*(ban|nhe|nha|nhieu)?[\s!.]*$/.test(s)) return false;
+  return true;
+}
+
+const ROADMAP_PHASE_LABEL_VI: Record<string, string> = {
+  FAT_LOSS: "Giảm mỡ", DIET_BREAK: "Nghỉ giữa kỳ", MAINTENANCE: "Duy trì", LEAN_GAIN: "Tăng cơ nạc", MINI_CUT: "Cắt ngắn",
+  RECOMPOSITION: "Tái cấu trúc cơ thể", PERFORMANCE: "Hiệu suất", RECOVERY: "Hồi phục",
+};
+
 function buildPlanBundleConfirmationBlock(
   draft: any, workoutCandidate: any, actionId: string, risk: string, expiresAt: Date,
 ): AgentBlock {
@@ -168,6 +233,27 @@ function buildPlanBundleConfirmationBlock(
     summary: {
       roadmapSummary: draft?.summary ?? null,
       phaseCount, totalWeeks,
+      // What the user is actually confirming, phase by phase (user test 2026-11-08: "khi cập nhật lộ trình mà tôi không biết
+      // chi tiết lộ trình đó như thế nào thì làm sao user xác nhận được" — the card only showed "4 giai đoạn · 20 tuần").
+      phases: Array.isArray(draft?.phases)
+        ? draft.phases.map((p: any, i: number) => {
+            // the stored draft carries plannedStartAt/plannedEndAt (not the generator's plannedDurationWeeks)
+            const start = new Date(p?.plannedStartAt).getTime(), end = new Date(p?.plannedEndAt).getTime();
+            const datedWeeks = Number.isFinite(start) && Number.isFinite(end) ? Math.round((end - start) / (7 * 86_400_000)) : null;
+            const fmt = (t: number) => new Date(t).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" });
+            return {
+              index: i + 1,
+              name: String(p?.name ?? ""),
+              typeLabel: ROADMAP_PHASE_LABEL_VI[String(p?.phaseType)] ?? null,
+              weeks: Number.isFinite(Number(p?.plannedDurationWeeks)) ? Number(p.plannedDurationWeeks) : datedWeeks,
+              dateRange: Number.isFinite(start) && Number.isFinite(end) ? `${fmt(start)} – ${fmt(end)}` : null,
+              reason: typeof p?.reason === "string" ? p.reason : null,
+            };
+          })
+        : [],
+      reasoningSummary: typeof draft?.reasoningSummary === "string" ? draft.reasoningSummary : null,
+      assumptions: Array.isArray(draft?.assumptions) ? draft.assumptions.filter((a: unknown) => typeof a === "string").slice(0, 5) : [],
+      warnings: Array.isArray(draft?.warnings) ? draft.warnings.filter((w: unknown) => typeof w === "string").slice(0, 5) : [],
       workoutName: workoutCandidate?.name ?? null,
       workoutDaysPerWeek: workoutCandidate?.daysPerWeek ?? null,
     },
@@ -453,10 +539,44 @@ export function extractExerciseRevisionKeyword(rawMessage: string): string | nul
     .replace(/\bkhong\s+(?:co|muon|thich|can|dung|the|tap|choi)\b/g, " ")
     .replace(/\b(?:khong|tranh|kieng|bo|doi|thay the|thay|loai bo|loai|xoa|hay|xin|giup|nhe|nha|di|voi)\b/g, " ")
     .replace(/\b(?:toi|ban|minh|hien|dang)\b/g, " ")
-    .replace(/\b(?:thiet bi|dung cu|may|bai tap|bai|cai|nay|do|ay|kia)\b/g, " ")
+    .replace(/\b(?:thiet bi|dung cu|may|bai tap|bai|cai|nay|do|ay|kia|ke hoach|chuong trinh|lich tap|buoi tap|lich)\b/g, " ")
+    // "bang" ("thay X bằng Y" = "replace X with Y") is a connector, never
+    // part of the exercise name itself — without stripping it, a real,
+    // legitimate substitution like "thay thế bằng Single Arm Cable Row"
+    // left "bang single arm cable row" (5 words), tripping the word-count
+    // safety net below for a perfectly valid request.
+    .replace(/\bbang\b/g, " ")
+    // 2026-10-23 real bug: "hãy cập nhật cho toàn bộ lịch tập" (an
+    // instruction this function has no handler for, not an exercise
+    // exclusion at all) survived every filter above and was returned
+    // whole as the "keyword" — the caller then confidently told the user
+    // it would "avoid cap nhat cho toan lich tap" in their workout, a
+    // nonsensical, confusing answer (confirmed live). These are common
+    // instruction/quantifier words that are never themselves part of a
+    // real exercise name, stripped for the same reason "doi"/"thay" above
+    // already are.
+    .replace(/\b(?:cap nhat|toan bo|toan|tat ca|sua|chinh sua|chinh|lam lai|tao lai|lai|cho)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return s.length >= 3 ? s : null;
+  if (s.length < 3) return null;
+  // The schedule/plan ITSELF is never a valid exercise-exclusion target —
+  // "lịch tập", "kế hoạch", "chương trình" are what the user is editing,
+  // not what they want excluded from it. Without this, an instruction
+  // this function doesn't understand ("cập nhật cho toàn bộ lịch tập")
+  // can still bottom out at exactly these leftover meta-words after every
+  // stop-word strip above, short enough to slip past the word-count cap
+  // below (confirmed live: stripped to "lịch tập").
+  if (/^(?:lich|lich tap|buoi tap|ke hoach|chuong trinh|tap)$/.test(s)) return null;
+  // A real exercise name referenced in chat is short ("deadlift", "cable
+  // row", "single arm cable row") — never a long leftover instructional
+  // sentence. Capping word count is a general safety net (not just the
+  // specific phrase above): when this many words survive every known
+  // stop-word strip, the message is almost certainly something this
+  // function was never meant to handle, and the caller should say "I
+  // don't understand" via its normal fallback dispatch rather than this
+  // function confidently inventing an exercise-exclusion interpretation.
+  if (s.split(" ").length > 4) return null;
+  return s;
 }
 
 const exerciseTokens = (name: string) => normalizeAgentText(name).split(/[^a-z0-9]+/).filter(Boolean).map((t) => t.replace(/s$/, ""));
@@ -890,7 +1010,7 @@ async function buildAndPersistRecommendation(
   } });
   return { answer: candidates.length
     ? "Đây là các lựa chọn phù hợp từ dữ liệu Gymini. Compatibility Score là điểm phù hợp, không phải xác suất thành công. Mở từng thẻ để xem lý do và nguồn bằng chứng."
-    : "Chưa có lựa chọn phù hợp với các điều kiện hiện tại. Bạn có thể đổi lịch, ngân sách hoặc hình thức tập rồi thử lại.", blocks: [block] };
+    : "Chưa có lựa chọn phù hợp với đúng các điều kiện hiện tại. Bạn có thể nới ngân sách, đổi lịch hoặc hình thức tập rồi thử lại, hoặc xem toàn bộ huấn luyện viên tại mục **Huấn luyện viên** của ứng dụng (/client/coaches) để tự so sánh.", blocks: [block] };
 }
 
 export const fitnessAgent = {
@@ -953,6 +1073,32 @@ export const fitnessAgent = {
     if (isPtRosterAdherenceQuestion(question)) {
       const overview = await this.tryPtRosterOverview(question, identity);
       if (overview) return overview;
+    }
+    // "Hướng A, 4 buổi, 60 phút" — the reply to the two-direction guide continues into the normal create-schedule flow.
+    const directionChoice = parseDirectionChoice(question);
+    if (directionChoice) {
+      const continued = await this.tryTurn(questionForDirectionChoice(directionChoice), identity, sessionId);
+      if (continued) return { ...continued, answer: `Mình dựa trên **hướng ${directionChoice.option}** nhé. ${continued.answer}` };
+    }
+    // "Tôi muốn giảm cân, bây giờ nên làm gì?" asks for a DIRECTION (two options + how to adapt), not for a generated schedule.
+    const directionGoal = detectDirectionGoal(question);
+    if (directionGoal) {
+      let experienceLevel: string | null = null;
+      try { experienceLevel = (await fitnessAgentDeps.tools.getUserFitnessContext(identity)).profile.experienceLevel ?? null; } catch { /* generic guide */ }
+      return { answer: buildDirectionAnswer(directionGoal, { rawText: question, experienceLevel }), blocks: [] };
+    }
+    // The user's REAL first/next session, "how do I do <exercise>", and "can I train at home without equipment" are answered from their draft /
+    // schedule / the exercise library — never from an invented workout.
+    const guidance = await tryFirstSessionGuidance(question, identity, sessionId, fitnessAgentDeps.tools)
+      ?? await tryHomeNoEquipmentAnswer(question, identity, fitnessAgentDeps.tools)
+      ?? await tryExerciseHowTo(question, identity, fitnessAgentDeps.tools)
+      ?? await tryDishAdditionAnalysis(question, identity, fitnessAgentDeps.tools);
+    if (guidance) return guidance;
+    // A brand-new user asking where to start gets the starter guide (profile-aware, deterministic), not the "today's schedule" reader.
+    if (isBeginnerStartQuestion(question)) {
+      let profile: { goal?: string | null } | null = null;
+      try { profile = (await fitnessAgentDeps.tools.getUserFitnessContext(identity)).profile as { goal?: string | null }; } catch { /* generic guide */ }
+      return { answer: buildBeginnerStartAnswer(profile), blocks: [] };
     }
     // Final remediation M1: nutritionConstraints is an ACCUMULATING set, but the
     // (signed-off) orchestrator never overwrites an already-known slot — so a
@@ -1042,6 +1188,16 @@ export const fitnessAgent = {
         // draft > ask) instead of a fixed first-match order.
         const draftResult = await this.routePendingDraftTurn(question, identity, sessionId);
         if (draftResult) return draftResult;
+        // Real Bug D follow-up — a day-only follow-up ("chỉ buổi 2") while a
+        // SUBSTITUTE_SAVED_EXERCISE preview is pending narrows that draft.
+        // Kept out of routePendingDraftTurn's own DRAFT_KINDS/domain system
+        // deliberately: that machinery exists to arbitrate between several
+        // CONCURRENT create-roadmap/workout/nutrition drafts, a situation
+        // that doesn't apply here (a single-exercise swap draft never
+        // competes with those), so a dedicated, narrower check is simpler
+        // and safer than extending that system for one more kind.
+        const substituteRevision = await this.tryReviseSubstituteSavedExerciseDraft(question, identity, sessionId);
+        if (substituteRevision) return substituteRevision;
         if (
           /\b(?:nang|tang|giam|rut|doi|chinh|them|muon)\b/.test(normalizeAgentText(question))
           && parseExercisesPerSessionRevision(normalizeAgentText(question)) !== null
@@ -1064,12 +1220,40 @@ export const fitnessAgent = {
           const nutritionRevision = await tryReviseNutritionTarget(question, identity, { resolveNutritionTarget })
             .catch((err) => { logger.warn({ err: (err as Error)?.message }, "[revision] nutrition revision failed"); return null; });
           if (nutritionRevision) return nutritionRevision;
-          const hasPendingWorkoutDraft = await prisma.fitnessAgentAction.findFirst({
-            where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
-          }) !== null;
-          const permanentSwapGuard = tryExplainUnsupportedPermanentSwap(question, hasPendingWorkoutDraft, extractExerciseRevisionKeyword);
-          if (permanentSwapGuard) return permanentSwapGuard;
         }
+        // 2026-10-23 real bug, found live: a saved-schedule exercise-swap
+        // request ("ngày mai tôi tập gì" → real deterministic answer, then
+        // "thay bài X bằng bài Y") had no recognized intent here and fell
+        // through all the way to general LLM chat, which fabricated a
+        // brand-new, entirely invented weekly table (not the user's real
+        // saved exercises) and presented it as if it had actually been
+        // applied — nothing was persisted, and most of the shown exercises
+        // were not even real substitutions of the real data. This guard
+        // already existed and is fully tested (revision-workout-guards.
+        // test.ts) but was only reachable behind unifiedCoachMode()="on"
+        // above, bundled with two unrelated, separately-scoped revision
+        // features (PT/PROGRAM and nutrition-target) this fix does not
+        // touch. Pulled out to run unconditionally — it only ever returns
+        // an honest "can't permanently change this via chat yet" message
+        // or null (never fabricates data), so it's safe regardless of that
+        // flag's state, and directly closes the hallucination this task
+        // was asked to fix.
+        // Real Bug D fix (2026-10-23) — before falling to the honest
+        // "can't do this yet" refusal below, actually try the real
+        // substitution against the saved schedule. Returns null (not the
+        // refusal) only when the message doesn't even parse as a named
+        // swap request ("thay X bằng Y") — every case it DOES parse is
+        // answered here, truthfully, whether that's a real preview, an
+        // ambiguous-match question, or a not-found message, so the old
+        // refusal text is never shown for a request this now actually
+        // understands.
+        const substituteProposal = await this.trySubstituteSavedExercise(question, identity, sessionId);
+        if (substituteProposal) return substituteProposal;
+        const hasPendingWorkoutDraft = await prisma.fitnessAgentAction.findFirst({
+          where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
+        }) !== null;
+        const permanentSwapGuard = tryExplainUnsupportedPermanentSwap(question, hasPendingWorkoutDraft, extractExerciseRevisionKeyword);
+        if (permanentSwapGuard) return permanentSwapGuard;
         // Not PT/PROGRAM/SELECT — check for a food-substitution request
         // before falling through to the normal RAG/LLM chat pipeline (see
         // docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md). Cheap
@@ -1346,7 +1530,7 @@ export const fitnessAgent = {
         await persistProgress(true);
       }
       const label: Record<string, string> = { roadmap: "Lộ trình", workout: "Chương trình tập", nutrition: "Mục tiêu dinh dưỡng" };
-      const summaryLines = steps.map(s => `${s.ok ? "✅" : "❌"} ${label[s.step]}${s.detail ? ` — ${s.detail}` : ""}`);
+      const summaryLines = steps.map(s => `${s.ok ? "✅" : "❌"} ${label[s.step]}${s.detail ? ` — ${friendlyStepDetail(s.step as "roadmap" | "workout" | "nutrition", s.detail)}` : ""}`);
       block = {
         type: "ACTION_RESULT",
         message: allOk
@@ -1397,7 +1581,7 @@ export const fitnessAgent = {
       } catch (err: any) {
         retryable = true;
         block = { type: "ACTION_RESULT", message: `Không lưu được lịch tập — ${err?.message ?? "lỗi không xác định"}.`,
-          steps: [`❌ Chương trình tập — ${err?.message ?? "lỗi không xác định"}`], nextUrl: "/client/training" };
+          steps: [`❌ Chương trình tập — ${friendlyStepDetail("workout", err?.message) ?? "lỗi không xác định"}`], nextUrl: "/client/training" };
       }
     } else if (action.kind === "CREATE_WORKOUT_PLAN") {
       // Same persistence boundary as SAVE_GENERATED_PLAN above
@@ -1407,6 +1591,10 @@ export const fitnessAgent = {
       // could drift from what the user actually saw and agreed to.
       // importAiPlanToSchedule is idempotent per (userId, sourcePlanId) —
       // a repeated confirm of this same action produces one logical write.
+      // An AI draft still GENERATING has no schedule yet: refuse instead of importing an empty plan.
+      if (payload.phase === "GENERATING" || !Array.isArray(payload.weeklySchedule) || payload.weeklySchedule.length === 0) {
+        throw fail("Lịch tập chưa sẵn sàng để lưu — vui lòng đợi AI tạo xong.", 409);
+      }
       try {
         const result = await fitnessAgentDeps.tools.importAiPlanToSchedule(identity, {
           sourcePlanId: action.id, sourcePlanName: "Lịch tập do AI Coach tạo",
@@ -1422,7 +1610,7 @@ export const fitnessAgent = {
       } catch (err: any) {
         retryable = true;
         block = { type: "ACTION_RESULT", message: `Không lưu được lịch tập — ${err?.message ?? "lỗi không xác định"}.`,
-          steps: [`❌ Chương trình tập — ${err?.message ?? "lỗi không xác định"}`], nextUrl: "/client/training" };
+          steps: [`❌ Chương trình tập — ${friendlyStepDetail("workout", err?.message) ?? "lỗi không xác định"}`], nextUrl: "/client/training" };
       }
     } else if (action.kind === "CREATE_NUTRITION_PLAN") {
       // Real persistence boundary — the SAME fitness-service endpoint
@@ -1541,6 +1729,39 @@ export const fitnessAgent = {
       } catch (err: any) {
         block = { type: "ACTION_RESULT", message: `Không ${VERB[action.kind]} được buổi tập — ${err?.message ?? "lỗi không xác định"}.`, nextUrl: "/client/training" };
       }
+    } else if (action.kind === "SUBSTITUTE_SAVED_EXERCISE") {
+      // Real Bug D fix — the ONLY write this performs is one exerciseId
+      // swap per selected day, via the existing, already-validated PATCH
+      // /workouts/program-exercises/:id (ownership + validateExerciseIds
+      // both re-checked server-side on fitness-service, not trusted from
+      // this payload). Nothing else about those rows changes. Each day is
+      // independent and idempotent (re-patching the same exerciseId is a
+      // no-op), so a partial failure can be safely retried without
+      // double-applying the days that already succeeded.
+      const occurrences = (payload.occurrences ?? []) as Array<{ programExerciseId: string; dayNumber: number; dayTitle: string | null }>;
+      const results: { dayNumber: number; dayTitle: string | null; ok: boolean; detail?: string }[] = [];
+      for (const occ of occurrences) {
+        try {
+          await fitnessAgentDeps.tools.updateProgramExercise(identity, occ.programExerciseId, payload.newExerciseId as string);
+          results.push({ dayNumber: occ.dayNumber, dayTitle: occ.dayTitle, ok: true });
+        } catch (err: any) {
+          results.push({ dayNumber: occ.dayNumber, dayTitle: occ.dayTitle, ok: false, detail: err?.message ?? "lỗi không xác định" });
+        }
+      }
+      const allOk = results.every((r) => r.ok);
+      const anyOk = results.some((r) => r.ok);
+      retryable = !allOk; // every failed day can be retried by re-confirming; already-applied days are idempotent to repeat
+      const lines = results.map((r) => `${r.ok ? "✅" : "❌"} Buổi ${r.dayNumber}${r.dayTitle ? ` (${r.dayTitle})` : ""}${r.detail ? ` — ${r.detail}` : ""}`);
+      block = {
+        type: "ACTION_RESULT",
+        message: allOk
+          ? `Đã đổi "${payload.oldExerciseName}" thành "${payload.newExerciseName}" trong lịch tập đang áp dụng của bạn.`
+          : anyOk
+            ? `Đã đổi được một phần — các buổi còn lỗi có thể xác nhận lại để thử lại.`
+            : `Không đổi được bài tập — ${results[0]?.detail ?? "lỗi không xác định"}.`,
+        steps: lines,
+        nextUrl: "/client/training",
+      };
     } else throw fail("Unsupported action");
     return { block, retryable };
   },
@@ -1804,6 +2025,21 @@ export const fitnessAgent = {
   async tryReviseRoadmapDraft(question: string, identity: AgentIdentity, sessionId: string, given?: { id: string; risk: string; payload: unknown }): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
     const trimmed = question.trim();
     if (!trimmed) return null;
+    // A QUESTION about something else ("Squat đúng kỹ thuật thế nào?", "Tôi nên ăn gì…?") is not a revision of the roadmap: it used to be
+    // appended to the draft's constraints and regenerate the roadmap. Only a message that also carries a revision wish is a revision.
+    // (Accented text is matched accented: folding would read "thấy" as the revision verb "thay".)
+    if (trimmed.includes("?")) {
+      const accented = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(trimmed);
+      const wish = accented
+        ? /(?:^|[\s,.;!?])(?:đổi|thay đổi|thay|thêm|bỏ|bớt|sửa|điều chỉnh|rút gọn|kéo dài|tránh|thay vì|trong \d+ (?:tuần|tháng))(?=$|[\s,.;!?])/iu.test(trimmed)
+        : /\b(?:doi|thay|them|bo|bot|sua|dieu chinh|rut gon|keo dai|tranh|thay vi|trong \d+ (?:tuan|thang))\b/.test(normalizeAgentText(trimmed));
+      if (!wish) return null;
+    } else if (!isRoadmapRevisionStatement(trimmed)) {
+      // Found 2026-11-08 (user's own test in the chat UI): with a bundle draft pending, EVERY statement was treated as a
+      // roadmap revision — "thực đơn tôi muốn có cá hồi" regenerated the roadmap ("Mình đã điều chỉnh lộ trình…"). A
+      // statement now has to talk about the roadmap (a change verb, its length, a phase or the goal) to revise it.
+      return null;
+    }
     const action = given ?? await prisma.fitnessAgentAction.findFirst({
       where: { userId: identity.userId, sessionId, kind: "CREATE_PLAN_BUNDLE", status: "PENDING", expiresAt: { gt: new Date() } },
       orderBy: { createdAt: "desc" },
@@ -1846,6 +2082,122 @@ export const fitnessAgent = {
       blocks: [block],
     };
   },
+  /**
+   * Real Bug D fix (2026-10-23) — "thay bài child's pose bằng bài barbell
+   * row" against an ALREADY-SAVED active WorkoutProgram. Returns null (not
+   * an error) whenever the message doesn't parse as a named swap request
+   * at all, so tryTurn falls through to the existing honest-refusal guard
+   * for everything this doesn't understand. Every case that DOES parse is
+   * answered truthfully here — found-and-previewed, ambiguous, or
+   * not-found — never a fabricated table.
+   */
+  async trySubstituteSavedExercise(question: string, identity: AgentIdentity, sessionId: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+    const parsed = parseSubstituteSavedExerciseRequest(question);
+    if (!parsed) return null;
+    let program: any;
+    try {
+      program = await fitnessAgentDeps.tools.getCurrentProgram(identity);
+    } catch (err: any) {
+      logger.warn({ err: err?.message }, "[substitute-saved-exercise] failed to read current program");
+      return null; // let the existing honest-refusal guard answer instead of silently failing here
+    }
+    if (!program) {
+      // No real WorkoutProgram — but the schedule the user is looking at may be a saved AI plan
+      // (workout_schedule_context's "Kế hoạch AI đã lưu" fallback), which has no WorkoutProgramExercise
+      // rows to PATCH. Say so honestly instead of the generic "can't change via chat" refusal.
+      try {
+        const plans = await conversationRepository.findPlansByUser(identity.userId, PlanStatus.COMPLETED, 5);
+        const needle = normalizeAgentText(parsed.oldKeyword);
+        const inSavedAiPlan = plans.some((p: any) => normalizeAgentText(JSON.stringify(p?.plan ?? {})).includes(needle));
+        if (inSavedAiPlan) {
+          return { answer: `Lịch bạn đang xem là kế hoạch AI đã lưu, chưa được gán vào lịch tập thật nên mình chưa đổi bài "${parsed.oldKeyword}" được. Bạn hãy gán kế hoạch vào lịch tập trước (nói "lưu lịch tập vào hệ thống"), rồi nhờ mình đổi bài lại nhé.`, blocks: [] };
+        }
+      } catch (err: any) {
+        logger.warn({ err: err?.message }, "[substitute-saved-exercise] failed to read saved AI plans");
+      }
+      return null;
+    }
+    const matched = findOccurrencesByName(program, parsed.oldKeyword);
+    if (matched.kind === "ambiguous") {
+      return { answer: `Mình thấy nhiều bài khác nhau khớp với "${parsed.oldKeyword}" trong lịch tập của bạn: ${matched.names.join(", ")}. Bạn gõ lại đúng tên đầy đủ của bài muốn đổi giúp mình nhé.`, blocks: [] };
+    }
+    if (matched.kind === "none") {
+      return { answer: `Mình không thấy bài "${parsed.oldKeyword}" trong lịch tập đang áp dụng của bạn.`, blocks: [] };
+    }
+    const target = await fitnessAgentDeps.tools.searchExerciseByName(identity, parsed.newKeyword).catch(() => null);
+    if (!target) {
+      return { answer: `Mình không tìm thấy bài "${parsed.newKeyword}" trong thư viện bài tập. Bạn thử lại với một tên khác được không?`, blocks: [] };
+    }
+    const { occurrences } = matched;
+    const oldExerciseName = occurrences[0].exerciseName;
+    const action = await prisma.fitnessAgentAction.create({ data: {
+      userId: identity.userId, sessionId, recommendationId: null,
+      kind: "SUBSTITUTE_SAVED_EXERCISE", risk: agentActionRisk("SUBSTITUTE_SAVED_EXERCISE" as AgentActionKind),
+      payload: {
+        oldExerciseName, newExerciseId: target.id, newExerciseName: target.exerciseName,
+        allOccurrences: occurrences.map((o) => ({ programExerciseId: o.programExerciseId, dayNumber: o.dayNumber, dayTitle: o.dayTitle ?? null })),
+        occurrences: occurrences.map((o) => ({ programExerciseId: o.programExerciseId, dayNumber: o.dayNumber, dayTitle: o.dayTitle ?? null })),
+      },
+      expiresAt: new Date(Date.now() + 15 * 60000),
+    } });
+    const dayList = occurrences.map((o) => `Buổi ${o.dayNumber}${o.dayTitle ? ` (${o.dayTitle})` : ""}`).join(", ");
+    return {
+      answer: `Mình sẽ đổi "${oldExerciseName}" thành "${target.exerciseName}" ở ${occurrences.length} buổi: ${dayList}. Nếu chỉ muốn áp dụng cho một hoặc vài buổi cụ thể, bạn nói ví dụ "chỉ buổi ${occurrences[0].dayNumber}" trước khi xác nhận. Kiểm tra bên dưới và bấm "Gán vào lịch tập" nếu đồng ý — nếu chưa, bài tập hiện tại vẫn giữ nguyên.`,
+      blocks: [{
+        type: "SUBSTITUTE_SAVED_EXERCISE_PREVIEW", actionId: action.id, risk: action.risk,
+        oldExerciseName, newExerciseName: target.exerciseName,
+        substituteDays: occurrences.map((o) => ({ dayNumber: o.dayNumber, title: o.dayTitle ?? null })),
+        expiresAt: action.expiresAt.toISOString(),
+      }],
+    };
+  },
+  /** "chỉ buổi 2" / "buổi 2 và 3" while a SUBSTITUTE_SAVED_EXERCISE preview
+   * is still PENDING — narrows which days the eventual confirm will touch.
+   * Returns null (not an error) whenever there's no pending draft of this
+   * kind, or the message names no day at all, so an unrelated message
+   * never gets silently swallowed by this check. */
+  async tryReviseSubstituteSavedExerciseDraft(question: string, identity: AgentIdentity, sessionId: string): Promise<{ answer: string; blocks: AgentBlock[] } | null> {
+    const dayFilter = parseDayFilter(question);
+    // "chỉ 1 buổi" / "một vài buổi" with no number: ask which, instead of letting it fall to general chat
+    // (which fabricated a whole schedule table for exactly this message).
+    const vagueDayRequest = !dayFilter && /\b(chi|mot|1|vai|buoi nao)\b.*\bbuoi\b|\bbuoi nao\b/.test(normalizeAgentText(question));
+    if (!dayFilter && !vagueDayRequest) return null;
+    const action = await prisma.fitnessAgentAction.findFirst({
+      where: { userId: identity.userId, sessionId, kind: "SUBSTITUTE_SAVED_EXERCISE", status: "PENDING", expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!action) return null;
+    const payload = action.payload as any;
+    if (!dayFilter) {
+      const all = (payload.allOccurrences ?? payload.occurrences ?? []) as Array<{ dayNumber: number; dayTitle: string | null }>;
+      return {
+        answer: `Bài "${payload.oldExerciseName}" đang có ở: ${all.map((o) => `Buổi ${o.dayNumber}${o.dayTitle ? ` (${o.dayTitle})` : ""}`).join(", ")}. Bạn muốn đổi ở buổi nào? Hãy nhắn ví dụ "chỉ buổi ${all[0]?.dayNumber ?? 1}" rồi bấm "Gán vào lịch tập".`,
+        blocks: [{
+          type: "SUBSTITUTE_SAVED_EXERCISE_PREVIEW", actionId: action.id, risk: action.risk,
+          oldExerciseName: payload.oldExerciseName, newExerciseName: payload.newExerciseName,
+          substituteDays: (payload.occurrences ?? []).map((o: any) => ({ dayNumber: o.dayNumber, title: o.dayTitle ?? null })),
+          expiresAt: action.expiresAt.toISOString(),
+        }],
+      };
+    }
+    const allOccurrences = (payload.allOccurrences ?? payload.occurrences ?? []) as Array<{ programExerciseId: string; dayNumber: number; dayTitle: string | null }>;
+    const narrowed = allOccurrences.filter((o) => dayFilter.includes(o.dayNumber));
+    if (!narrowed.length) {
+      return { answer: `Lịch tập hiện không có buổi nào trong số ${dayFilter.join(", ")} chứa bài "${payload.oldExerciseName}" — bạn kiểm tra lại số buổi giúp mình nhé. Bản nháp hiện tại vẫn giữ nguyên.`, blocks: [] };
+    }
+    const expiresAt = new Date(Date.now() + 15 * 60000);
+    await prisma.fitnessAgentAction.update({ where: { id: action.id }, data: { payload: { ...payload, occurrences: narrowed }, expiresAt } });
+    const dayList = narrowed.map((o) => `Buổi ${o.dayNumber}${o.dayTitle ? ` (${o.dayTitle})` : ""}`).join(", ");
+    return {
+      answer: `Đã thu hẹp lại — mình sẽ chỉ đổi "${payload.oldExerciseName}" thành "${payload.newExerciseName}" ở ${narrowed.length} buổi: ${dayList}. Bấm "Gán vào lịch tập" để xác nhận.`,
+      blocks: [{
+        type: "SUBSTITUTE_SAVED_EXERCISE_PREVIEW", actionId: action.id, risk: action.risk,
+        oldExerciseName: payload.oldExerciseName, newExerciseName: payload.newExerciseName,
+        substituteDays: narrowed.map((o) => ({ dayNumber: o.dayNumber, title: o.dayTitle })),
+        expiresAt: expiresAt.toISOString(),
+      }],
+    };
+  },
   // "gán/lưu lịch tập [vừa tạo] vào hệ thống" — the chat "hãy tạo lịch tập"
   // answer is produced by recommendation_engine.ts, a DETERMINISTIC template
   // (pure function of profile+question) that is never persisted anywhere —
@@ -1864,6 +2216,24 @@ export const fitnessAgent = {
     // try to reconstruct a stale recommendation_engine.ts answer instead of
     // the draft the user is actually looking at. Redirect to the real
     // pending draft instead of creating a competing action.
+    // Same collision, for a pending SUBSTITUTE_SAVED_EXERCISE preview: "gán vào lịch tập" there means
+    // "press the Gán button on that card", never "save a generated plan".
+    const pendingSubstitute = await prisma.fitnessAgentAction.findFirst({
+      where: { userId: identity.userId, sessionId, kind: "SUBSTITUTE_SAVED_EXERCISE", status: "PENDING", expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (pendingSubstitute) {
+      const p = pendingSubstitute.payload as any;
+      return {
+        answer: `Bạn đang có một thay đổi bài tập chờ xác nhận ("${p.oldExerciseName}" → "${p.newExerciseName}") — hãy bấm "Gán vào lịch tập" trên thẻ bên dưới để áp dụng, hoặc "Bỏ qua" để hủy.`,
+        blocks: [{
+          type: "SUBSTITUTE_SAVED_EXERCISE_PREVIEW", actionId: pendingSubstitute.id, risk: pendingSubstitute.risk,
+          oldExerciseName: p.oldExerciseName, newExerciseName: p.newExerciseName,
+          substituteDays: (p.occurrences ?? []).map((o: any) => ({ dayNumber: o.dayNumber, title: o.dayTitle ?? null })),
+          expiresAt: pendingSubstitute.expiresAt.toISOString(),
+        }],
+      };
+    }
     const pendingWorkoutPlan = await prisma.fitnessAgentAction.findFirst({
       where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
       orderBy: { createdAt: "desc" },
@@ -1965,6 +2335,53 @@ export const fitnessAgent = {
       ?? (typeof contextProfile.sessionMinutes === "number" ? contextProfile.sessionMinutes : undefined)
       ?? 60;
 
+    // Real AI path (2026-10-25): the plan is generated by the same worker POST /plans/workout/generate uses — the LLM
+    // reads a per-day, equipment-filtered pool of real catalog exercises, personalised from the user's profile, and
+    // returns canonical exerciseIds that are validated before storage. Generation is async (~1-2 min), so this turn
+    // only queues it and records a GENERATING draft; the next poll-shaped message turns it into the PREVIEW (same
+    // lifecycle as the nutrition plan). If the AI is unavailable we fall back to the fixed template below, and say so.
+    const aiHealth = await llmService.getHealthStatus().catch(() => ({ llmAvailable: false }));
+    let aiFallbackNote = "";
+    if (aiHealth.llmAvailable) {
+      const goalLabel = profile.goal ?? "MUSCLE_GAIN";
+      const exercisesPerDay = exercisesPerDayFor(sessionMinutes);
+      try {
+        const queued = await queueAiWorkoutPlan(identity, sessionId, { goal: goalLabel, daysPerWeek, exercisesPerDay }, "propose");
+        const draftPayload = {
+          phase: "GENERATING", source: "AI", planId: queued.planId, jobId: queued.jobId,
+          goal: profile.goal ?? null, sessionMinutes, daysPerWeek, exercisesPerDay,
+          preferredWeekdays: agentDaysToWeekdays(contextProfile.days) ?? null,
+          weeklySchedule: [] as any[], selectedWeekdays: [] as number[], exclusions: [] as string[], lastTouchedAt: new Date().toISOString(),
+        };
+        // A retry of an already-persisted request (same operation => same plan) must not leave a second draft for that plan.
+        const existingDraft = await prisma.fitnessAgentAction.findFirst({
+          where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
+          orderBy: { createdAt: "desc" },
+        });
+        if ((existingDraft?.payload as { planId?: string } | null | undefined)?.planId !== queued.planId) {
+          await prisma.fitnessAgentAction.create({
+            data: {
+              userId: identity.userId, sessionId, recommendationId: null,
+              kind: "CREATE_WORKOUT_PLAN", risk: agentActionRisk("CREATE_WORKOUT_PLAN"),
+              payload: draftPayload as any,
+              expiresAt: new Date(Date.now() + 20 * 60000), // generation itself can take 1-2 minutes
+            },
+          });
+        }
+        return {
+          answer: `Mình đang để AI đọc hồ sơ của bạn (mục tiêu, kinh nghiệm, chấn thương, thiết bị) và chọn ${exercisesPerDay} bài/buổi cho ${daysPerWeek} buổi/tuần trực tiếp từ thư viện bài tập thật. Việc này có thể mất khoảng 1-2 phút — bạn nhắn lại (ví dụ "xong chưa") để mình kiểm tra nhé.`,
+          blocks: [],
+        };
+      } catch (err) {
+        const refusal = workoutAdmissionRefusal(err);
+        if (refusal) return { answer: refusal, blocks: [] };
+        logger.warn({ err: (err as Error)?.message }, "[workout-plan] AI generation could not be queued — using the template draft");
+        aiFallbackNote = " (AI chưa tạo được lúc này nên đây là lịch mẫu theo mục tiêu của bạn, chưa cá nhân hoá bằng AI.)";
+      }
+    } else {
+      aiFallbackNote = " (AI đang chưa sẵn sàng nên đây là lịch mẫu theo mục tiêu của bạn, chưa cá nhân hoá bằng AI.)";
+    }
+
     // The user's real weekly availability (agent numbering 1=Mon..7=Sun) wins
     // over the engine's hardcoded weekday labels when it matches the day count.
     const { weeklySchedule, selectedWeekdays, unmatchedCount, equipmentSubstitutedCount, equipmentDroppedCount, equipmentValidationUnavailable } = await generateWorkoutDraft(identity, profile, daysPerWeek, sessionMinutes, agentDaysToWeekdays(contextProfile.days));
@@ -1988,7 +2405,7 @@ export const fitnessAgent = {
         ? ` Mình đã đổi ${equipmentSubstitutedCount} bài tập sang phiên bản phù hợp với thiết bị bạn có.`
         : "";
     return {
-      answer: `Đây là lịch tập mình đề xuất (${weeklySchedule.length} buổi/tuần, khoảng ${sessionMinutes} phút/buổi).${unmatchedNote}${equipmentNote} Bạn có thể yêu cầu chỉnh sửa (ví dụ đổi bài, đổi thời lượng) hoặc xác nhận để lưu.`,
+      answer: `Đây là lịch tập mình đề xuất (${weeklySchedule.length} buổi/tuần, khoảng ${sessionMinutes} phút/buổi).${aiFallbackNote}${unmatchedNote}${equipmentNote} Bạn có thể yêu cầu chỉnh sửa (ví dụ đổi bài, đổi thời lượng) hoặc xác nhận để lưu.`,
       blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)],
     };
   },
@@ -2017,6 +2434,9 @@ export const fitnessAgent = {
       bodyPartExclusions?: BodyPartExclusion[];
       // The agent asked "bỏ các buổi chỉ có bài chân?" and waits for a short yes/no; cleared by any other revision.
       pendingBodyPartDecision?: PendingBodyPartDecision;
+      // AI-generated drafts (see proposeWorkoutPlan): GENERATING until the worker's Plan row is COMPLETED, then PREVIEW.
+      phase?: "GENERATING" | "PREVIEW" | "FAILED"; source?: "AI"; planId?: string; jobId?: string;
+      daysPerWeek?: number; exercisesPerDay?: number; preferredWeekdays?: number[] | null;
     };
     const exclusions = payload.exclusions ?? [];
     const bodyPartExclusions = payload.bodyPartExclusions ?? [];
@@ -2024,6 +2444,37 @@ export const fitnessAgent = {
     const personalization = await fitnessAgentDeps.profileExtractor.extract(identity.userId, identity.authorizationHeader);
     const profile = personalization.profile as any;
     const warnings = workoutSafetyWarnings(profile);
+
+    // ── AI generation lifecycle ────────────────────────────────────────────────────────────────────────────────
+    if (payload.phase === "FAILED") return null;
+    if (payload.phase === "GENERATING") {
+      // Poll only on a poll-shaped message — a GENERATING draft must never swallow an unrelated turn.
+      if (!/\b(xong|chua|san sang|the nao|ket qua|dau roi|kiem tra|lich tap|ke hoach)\b/.test(s)) return null;
+      const plan = payload.planId ? await conversationRepository.findPlanById(payload.planId) : null;
+      if (!plan) return { answer: "Mình không tìm thấy lịch tập vừa tạo — bạn thử nhờ mình tạo lại nhé.", blocks: [] };
+      if (plan.status === PlanStatus.FAILED) {
+        await prisma.fitnessAgentAction.update({ where: { id: action.id }, data: { payload: { ...payload, phase: "FAILED" } as any, status: "CANCELLED" } });
+        return { answer: `AI chưa tạo được lịch tập lúc này${plan.failReason ? ` (${plan.failReason})` : ""}. Bạn có thể nhờ mình tạo lại.`, blocks: [] };
+      }
+      if (plan.status !== PlanStatus.COMPLETED) {
+        return { answer: "AI vẫn đang tạo lịch tập — bạn đợi thêm khoảng 1 phút rồi nhắn lại nhé.", blocks: [] };
+      }
+      const { days, discarded } = convertAiPlanToDraft(plan.plan);
+      if (!days.length) {
+        await prisma.fitnessAgentAction.update({ where: { id: action.id }, data: { payload: { ...payload, phase: "FAILED" } as any, status: "CANCELLED" } });
+        return { answer: "AI trả về lịch tập không có bài tập hợp lệ nên mình không hiển thị. Bạn nhờ mình tạo lại nhé.", blocks: [] };
+      }
+      const selected = resolveSelectedWeekdays(days, payload.preferredWeekdays ?? undefined);
+      const labelled = applyWeekdayLabels(days, selected);
+      const expiresAt = new Date(Date.now() + 15 * 60000);
+      const previewPayload = { ...payload, phase: "PREVIEW", weeklySchedule: labelled, selectedWeekdays: selected, lastTouchedAt: new Date().toISOString() };
+      await prisma.fitnessAgentAction.update({ where: { id: action.id }, data: { payload: previewPayload as any, expiresAt } });
+      const dropNote = discarded > 0 ? ` (${discarded} bài không có mã bài tập hợp lệ đã được loại bỏ)` : "";
+      return {
+        answer: `Lịch tập do AI tạo đã sẵn sàng (${labelled.length} buổi/tuần, khoảng ${payload.sessionMinutes} phút/buổi), mọi bài đều lấy trực tiếp từ thư viện bài tập thật nên lưu vào lịch tập được.${dropNote} Bạn có thể yêu cầu chỉnh sửa hoặc xác nhận để lưu.`,
+        blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, expiresAt, previewPayload as any, warnings)],
+      };
+    }
 
     const respond = async (
       weeklySchedule: any[], sessionMinutes: number, note: string,
@@ -2043,6 +2494,32 @@ export const fitnessAgent = {
       return { answer: note, blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, expiresAt, newPayload, warnings)] };
     };
     const keepDraft = (answer: string) => ({ answer, blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)] });
+    // AI-generated drafts cannot be reshaped by the fixed template (it would silently replace the AI's choices), so a
+    // revision that changes the plan's SHAPE (more exercises per session, a different number of sessions) asks the AI to
+    // generate again; the draft goes back to GENERATING and the next poll-shaped message turns it into the new PREVIEW.
+    const aiRequeue = async (next: { daysPerWeek: number; exercisesPerDay: number; preferredWeekdays?: number[] | null }, lead: string) => {
+      try {
+        const queued = await queueAiWorkoutPlan(identity, sessionId, { goal: payload.goal ?? "MUSCLE_GAIN", daysPerWeek: next.daysPerWeek, exercisesPerDay: next.exercisesPerDay }, "revise", action.id);
+        const expiresAt = new Date(Date.now() + 20 * 60000);
+        await prisma.fitnessAgentAction.update({
+          where: { id: action.id },
+          data: {
+            payload: {
+              ...payload, phase: "GENERATING", planId: queued.planId, jobId: queued.jobId,
+              daysPerWeek: next.daysPerWeek, exercisesPerDay: next.exercisesPerDay,
+              preferredWeekdays: next.preferredWeekdays ?? payload.preferredWeekdays ?? null,
+              weeklySchedule: [], selectedWeekdays: [], lastTouchedAt: new Date().toISOString(),
+            } as any,
+            expiresAt,
+          },
+        });
+        return { answer: `${lead} Mình đã nhờ AI tạo lại lịch tập theo yêu cầu này (${next.daysPerWeek} buổi/tuần, ${next.exercisesPerDay} bài/buổi). Việc này mất khoảng 1-2 phút — bạn nhắn lại (ví dụ "xong chưa") để mình kiểm tra nhé.`, blocks: [] as AgentBlock[] };
+      } catch (err) {
+        const refusal = workoutAdmissionRefusal(err);
+        if (!refusal) logger.warn({ err: (err as Error)?.message }, "[workout-plan] AI regeneration could not be queued");
+        return keepDraft(`${refusal ?? "Mình chưa nhờ AI tạo lại lịch được lúc này"} Mình giữ nguyên lịch hiện tại.`);
+      }
+    };
     const loadMuscleProfiles = async (schedule: any[]): Promise<Map<string, MuscleProfile> | null> => {
       try {
         const ids = schedule.flatMap((d: any) => (Array.isArray(d.exercises) ? d.exercises : []).map((e: any) => String(e.exerciseId)));
@@ -2125,7 +2602,16 @@ export const fitnessAgent = {
     // Gated on an explicit unit word before ever calling the parsers below
     // — parseSessionsPerWeek's own bare-digit pattern would otherwise
     // misread "45" out of "Buổi tập ngắn xuống 45 phút." as a day-count.
-    const mentionsMinutesUnit = /\b(phut|gio|tieng)\b/.test(s);
+    // 2026-10-23 real bug: "p" is common Vietnamese chat shorthand for
+    // "phút" ("120p"), but it's a plain ASCII letter directly adjacent to
+    // the digits (both \w, so \b never falls between them) — \b(phut|gio|
+    // tieng)\b alone never matched it, so "tăng lên 120p" silently fell
+    // through this whole revision loop to general chat, which then
+    // fabricated a brand-new, non-persisted, partially-invented schedule
+    // instead of actually resizing the draft (confirmed live). Matches
+    // ONLY a digit immediately followed by a standalone "p" (never inside
+    // a longer word like "tập"/"đẹp", which have no \b before their "p").
+    const mentionsMinutesUnit = /\b(phut|gio|tieng)\b/.test(s) || /\d\s?p\b/.test(s);
     const mentionsDaysUnit = /\b(buoi|ngay)\b/.test(s) && !mentionsMinutesUnit;
     const requestedExercisesPerSession = parseExercisesPerSessionRevision(s);
     const requestedExerciseWeekday = parseRevisionWeekday(s);
@@ -2150,6 +2636,13 @@ export const fitnessAgent = {
           answer: `Với ${payload.sessionMinutes} phút/buổi, ${targetLabel}mình chỉ xếp an toàn khoảng ${maxByDuration} bài/buổi. ${requestedExercisesPerSession} bài/buổi sẽ cần khoảng ${neededMinutes} phút. Mình chưa thay đổi lịch; nếu muốn, hãy nhắn "tăng buổi lên ${neededMinutes} phút" nhé.`,
           blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)],
         };
+      }
+
+      if (payload.source === "AI" && requestedExerciseWeekday === null) {
+        const fewest = Math.min(...payload.weeklySchedule.map((d: any) => (Array.isArray(d?.exercises) ? d.exercises.length : 0)));
+        if (requestedExercisesPerSession > fewest) {
+          return aiRequeue({ daysPerWeek: payload.weeklySchedule.length, exercisesPerDay: requestedExercisesPerSession }, `Mình sẽ nâng lên ${requestedExercisesPerSession} bài/buổi.`);
+        }
       }
 
       const targetIndexes = requestedExerciseWeekday === null
@@ -2255,6 +2748,12 @@ export const fitnessAgent = {
             const relabeled = applyWeekdayLabels(payload.weeklySchedule, weekdays);
             return respond(relabeled, payload.sessionMinutes, `Mình đã đổi lịch tập sang các ngày: ${weekdays.map(weekdayLabel).join(", ")}.`, { selectedWeekdays: weekdays });
           }
+          if (payload.source === "AI") {
+            return aiRequeue(
+              { daysPerWeek: weekdays.length, exercisesPerDay: payload.exercisesPerDay ?? exercisesPerDayFor(payload.sessionMinutes), preferredWeekdays: weekdays },
+              `Mình sẽ đổi sang ${weekdays.length} buổi/tuần vào: ${weekdays.map(weekdayLabel).join(", ")}.`,
+            );
+          }
           const draft = await regenerate(weekdays.length, weekdays);
           if (draft.weeklySchedule.length === weekdays.length) {
             return respond(draft.weeklySchedule, payload.sessionMinutes, `Mình đã đổi lịch tập sang ${weekdays.length} buổi/tuần vào: ${weekdays.map(weekdayLabel).join(", ")}.`, { selectedWeekdays: draft.selectedWeekdays });
@@ -2287,6 +2786,12 @@ export const fitnessAgent = {
     if (mentionsDaysUnit) {
       const daysResult = parseSessionsPerWeek(trimmed);
       if (daysResult.ok) {
+        if (payload.source === "AI") {
+          return aiRequeue(
+            { daysPerWeek: daysResult.value, exercisesPerDay: payload.exercisesPerDay ?? exercisesPerDayFor(payload.sessionMinutes) },
+            `Mình sẽ đổi sang ${daysResult.value} buổi/tuần.`,
+          );
+        }
         const { weeklySchedule, selectedWeekdays, unmatchedCount, equipmentSubstitutedCount, equipmentDroppedCount, equipmentValidationUnavailable } = await regenerate(daysResult.value);
         if (!weeklySchedule.length) {
           return { answer: "Mình chưa tạo lại được lịch tập với số buổi này. Bạn có thể thử số buổi khác.", blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)] };

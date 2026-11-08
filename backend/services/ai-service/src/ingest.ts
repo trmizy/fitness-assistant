@@ -1,23 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
-import { llmService } from "./services/llm.service";
+import { embedDocuments, EMBED_BATCH_SIZE } from "./datasets/seed/embedding-backoff";
 import { EMBEDDING_VECTOR_SIZE } from "./services/embedding-config";
 import { getVectorStore } from "./vector-store/provider";
-
-async function generateEmbedding(text: string): Promise<number[]> {
-  try {
-    // Stored documents: the configured EMBEDDING_PROVIDER (Bedrock Cohere on
-    // AWS, Ollama locally), encoded as search_document.
-    return await llmService.generateEmbedding(text, {
-      inputType: "search_document",
-      timeoutMs: 30000,
-    });
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("Error generating embedding:", msg);
-    throw error;
-  }
-}
 
 /**
  * RFC 4180-compliant CSV line parser.
@@ -120,7 +105,7 @@ async function ingestCollection(
 
   // Generate embeddings and upload
   console.log(`Generating embeddings and uploading to ${store.provider}...`);
-  const batchSize = 20;
+  const batchSize = EMBED_BATCH_SIZE;
 
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
@@ -128,17 +113,9 @@ async function ingestCollection(
       `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(items.length / batchSize)}...`,
     );
 
-    const points = await Promise.all(
-      batch.map(async (item) => {
-        const text = extractTextForEmbedding(item);
-        const embedding = await generateEmbedding(text);
-        return {
-          id: item.id,
-          vector: embedding,
-          payload: item,
-        };
-      }),
-    );
+    // One request per batch on Bedrock (Cohere takes up to 96 texts), with throttle back-off — see embedding-backoff.ts.
+    const vectors = await embedDocuments(batch.map((item) => extractTextForEmbedding(item)));
+    const points = batch.map((item, idx) => ({ id: item.id, vector: vectors[idx], payload: item }));
 
     await store.upsert(collectionName, points);
     await new Promise((resolve) => setTimeout(resolve, 50));

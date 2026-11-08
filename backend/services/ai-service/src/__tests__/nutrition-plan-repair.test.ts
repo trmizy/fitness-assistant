@@ -129,7 +129,8 @@ test("rounding/consistency: item, meal and day totals stay consistent after repa
 });
 
 test("no-op: an already-valid plan is returned untouched (same object per day), report.changed=false", () => {
-  const plan = planOf([[["chicken", 130], ["rice", 200], ["oil", 8]], [["chicken", 130], ["rice", 200], ["oil", 8]], [["egg", 100], ["oats", 90], ["banana", 100]]]);
+  // rice 200 -> 260 g: the original fixture (1674 kcal / 1992 target, -16%) was valid only under the old ±20% kcal.
+  const plan = planOf([[["chicken", 130], ["rice", 260], ["oil", 8]], [["chicken", 130], ["rice", 260], ["oil", 8]], [["egg", 100], ["oats", 90], ["banana", 100]]]);
   assert.equal(valid(plan, 3).ok, true, JSON.stringify(valid(plan, 3).violations.slice(0, 3)));
   const { content, report } = run(plan);
   assert.equal(report.changed, false);
@@ -162,9 +163,9 @@ test("unknown food id in a failing day -> that day is not repaired (fail closed)
   assert.ok(report.failedDays.includes(0));
 });
 
-test("dayWithinTolerance uses the invariant's own tolerances (20% kcal, 35% macros)", () => {
+test("dayWithinTolerance uses the invariant's own tolerances (10% kcal, 35% macros)", () => {
   const p = { dailyCaloriesTarget: 2000, proteinTargetGrams: 100, carbTargetGrams: 200, fatTargetGrams: 50 };
-  assert.equal(dayWithinTolerance({ kcal: 2400, protein: 135, carbs: 200, fat: 50 }, p), true);
-  assert.equal(dayWithinTolerance({ kcal: 2401, protein: 100, carbs: 200, fat: 50 }, p), false);
+  assert.equal(dayWithinTolerance({ kcal: 2200, protein: 135, carbs: 200, fat: 50 }, p), true);
+  assert.equal(dayWithinTolerance({ kcal: 2201, protein: 100, carbs: 200, fat: 50 }, p), false);
   assert.equal(dayWithinTolerance({ kcal: 2000, protein: 100, carbs: 200, fat: 67.6 }, p), false);
 });

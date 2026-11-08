@@ -80,7 +80,7 @@ function toQueryStringParameters(
 
 export async function requestService<T = any>(params: {
   service: ServiceKey;
-  method: "GET" | "POST" | "PUT";
+  method: "GET" | "POST" | "PUT" | "PATCH";
   path: string;
   params?: Record<string, unknown>;
   body?: unknown;
@@ -115,7 +115,9 @@ export async function requestService<T = any>(params: {
       ? await axios.get<T>(url, { headers: params.headers, params: queryParams, timeout })
       : params.method === "PUT"
         ? await axios.put<T>(url, params.body, { headers: params.headers, timeout })
-        : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
+        : params.method === "PATCH"
+          ? await axios.patch<T>(url, params.body, { headers: params.headers, timeout })
+          : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
 
   return { status: response.status, data: response.data };
 }
