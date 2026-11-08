@@ -28,3 +28,14 @@ describe("NO_MONEY_EFFECT chip follows the server label (MEM_* undecided vs no m
     assert.equal(m.chip, "Không phát sinh tiền");
   });
 });
+
+import { heldAlreadyResolved } from "../reconciliation/moneyExceptions/heldMoneyModel";
+describe("held review of a session whose D65-B already EXECUTED waits for the sweep, no decision offered", () => {
+  const p = (sessionId: string, status: string) => ({ id: "x", sessionId, contractId: null, status, reason: "", evidenceRefs: [], proposedBy: null, createdAt: null }) as never;
+  it("true only for an EXECUTED proposal of the same session", () => {
+    assert.equal(heldAlreadyResolved([p("s1", "EXECUTED")], "s1"), true);
+    assert.equal(heldAlreadyResolved([p("s1", "PROPOSED")], "s1"), false);
+    assert.equal(heldAlreadyResolved([p("s2", "EXECUTED")], "s1"), false);
+    assert.equal(heldAlreadyResolved(null, "s1"), false);
+  });
+});

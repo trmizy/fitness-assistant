@@ -11,7 +11,7 @@ import { shortId } from "../../adminReconciliation.utils";
 import { Btn, FOCUS, MutedLine, Notice, Pill, Section } from "./MoneyExceptionParts";
 import type { D65bSummary } from "./moneyExceptionTypes";
 import { D65B_STATUS_LABEL } from "./moneyExceptionLabels";
-import { exitRefCandidates, HELD_MONEY_DECISION_LABEL } from "./heldMoneyModel";
+import { exitRefCandidates, heldAlreadyResolved, HELD_MONEY_DECISION_LABEL, HELD_RESOLVED_NOTE } from "./heldMoneyModel";
 import { ErrorBox, useWrite } from "../../disputes/actions/actionKit";
 
 interface HeldMoneyReviewSectionProps {
@@ -217,14 +217,20 @@ export function HeldMoneyReviewSection({ d65bProposals, proposalsComplete = fals
                     {r.note && <p className="mt-0.5 line-clamp-1 text-adm-text-2">{r.note}</p>}
                   </td>
                   <td className="py-2.5 text-right">
-                    <button
-                      type="button"
-                      data-testid={`held-review-decide-btn-${r.reviewId}`}
-                      onClick={() => openDecide(r)}
-                      className={`inline-flex min-h-8 items-center rounded-md border border-adm-border bg-adm-surface px-2.5 py-1 text-xs font-medium text-adm-text hover:bg-adm-surface-2 ${FOCUS}`}
-                    >
-                      Quyết định
-                    </button>
+                    {heldAlreadyResolved(d65bProposals, r.sessionId) ? (
+                      <p className="ml-auto max-w-56 text-left text-adm-text-2" data-testid={`held-review-resolved-${r.reviewId}`}>
+                        {HELD_RESOLVED_NOTE}
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid={`held-review-decide-btn-${r.reviewId}`}
+                        onClick={() => openDecide(r)}
+                        className={`inline-flex min-h-8 items-center rounded-md border border-adm-border bg-adm-surface px-2.5 py-1 text-xs font-medium text-adm-text hover:bg-adm-surface-2 ${FOCUS}`}
+                      >
+                        Quyết định
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
