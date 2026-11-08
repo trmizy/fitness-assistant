@@ -12,7 +12,8 @@
  *   GET /admin/ai/errors
  */
 import { Request, Response, NextFunction } from "express";
-import { logger } from "@gym-coach/shared";
+import { logger, testAccountsBlocked } from "@gym-coach/shared";
+import { fetchTestAccountIds } from "../clients/test-accounts.client";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { getAiQueueStats } from "../workers/queue-provider";
 import {
@@ -91,7 +92,8 @@ export const adminController = {
   ): Promise<void> {
     try {
       const [dbStats, queue] = await Promise.all([
-        conversationRepository.adminGetOverviewStats(),
+        // test/seed/eval accounts left out on the server only (2026-11-08)
+        (async () => conversationRepository.adminGetOverviewStats(testAccountsBlocked() ? await fetchTestAccountIds() : null))(),
         getAiQueueStats(),
       ]);
 
@@ -99,6 +101,7 @@ export const adminController = {
         formatSuccessResponse({
           generatedAt: new Date().toISOString(),
           conversations: dbStats.conversations,
+          excludedTestAccounts: dbStats.excludedTestAccounts,
           intents: dbStats.intents,
           languages: dbStats.languages,
           plans: {

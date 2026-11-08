@@ -190,11 +190,20 @@ function validatePhoneField(data: any): void {
 }
 
 async function syncRoleToPT(userId: string): Promise<void> {
-  await authServiceClient.internalPatch(
-    `/auth/internal/users/${userId}/role`,
-    { role: "PT" },
-    { timeoutMs: 5000 },
-  );
+  try {
+    await authServiceClient.internalPatch(
+      `/auth/internal/users/${userId}/role`,
+      { role: "PT" },
+      { timeoutMs: 5000 },
+    );
+  } catch (err: any) {
+    // The applicant has no login account in auth-service (e.g. a seeded profile that only exists in
+    // this service). Say so, instead of surfacing "auth-service responded 4xx/5xx" to the admin.
+    if (err?.response?.status === 404) {
+      throw new Error("Hồ sơ này chưa có tài khoản đăng nhập (auth-service không tìm thấy người dùng) nên không thể duyệt thành PT.");
+    }
+    throw err;
+  }
 }
 
 export const ptApplicationService = {

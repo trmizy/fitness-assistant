@@ -78,7 +78,15 @@ function buildHttpApiV2Event(params: {
   headers: Record<string, string>;
   body?: unknown;
 }) {
-  const { method, path, headers, body } = params;
+  const { method, path, body } = params;
+  // express.json() in auth-service only parses a body that declares a JSON content-type. Real
+  // API Gateway events always carry one; this hand-built event did not, so every internal
+  // POST/PATCH reached the handler with an empty body and answered 400 (e.g. approving a PT
+  // application failed at "sync role to PT" with "auth-service responded 400").
+  const headers =
+    body !== undefined
+      ? { "content-type": "application/json", ...params.headers }
+      : params.headers;
   return {
     version: "2.0",
     routeKey: `${method} ${path}`,
@@ -215,6 +223,28 @@ async function call(params: {
 }
 
 export const authServiceClient = {
+  /**
+   * Admin-gated auth-service routes (GET /auth/users, PATCH /auth/users/:id/role|enable|disable):
+   * forwards the calling admin's OWN Authorization header verbatim — auth-service re-checks the
+   * actor's role itself, nothing is trusted from this service. Used by routes/admin-users.routes.ts,
+   * the AWS replacement for the gateway's admin user-management aggregation.
+   */
+  forward(
+    method: "get" | "patch",
+    path: string,
+    authorizationHeader: string,
+    body?: unknown,
+    opts?: { timeoutMs?: number },
+  ): Promise<Result> {
+    return call({
+      method,
+      path,
+      headers: { Authorization: authorizationHeader },
+      body: method === "get" ? undefined : (body ?? {}),
+      timeoutMs: opts?.timeoutMs,
+    });
+  },
+
   /** POST /auth/verify — forwards the caller's own Authorization header verbatim. */
   verifyToken(authorizationHeader: string, opts?: { timeoutMs?: number }): Promise<Result> {
     return call({

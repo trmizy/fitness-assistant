@@ -6,6 +6,7 @@
 // must never be the path of least resistance for running a script against a
 // real environment. Every credential is now required explicitly; there is no
 // value this script will supply on your behalf.
+import { assertLocalTarget } from './lib/assert-local-target.mjs';
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {
@@ -24,7 +25,7 @@ function requireEnv(name) {
   return value;
 }
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const BASE_URL = assertLocalTarget(process.env.BASE_URL || 'http://localhost:3000'); // creates test accounts: local stacks only
 
 const ADMIN_EMAIL = requireEnv('ADMIN_EMAIL');
 const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');

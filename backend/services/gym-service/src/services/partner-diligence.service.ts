@@ -2,6 +2,7 @@ import { diligenceRepository } from '../repositories/diligence.repository';
 import { partnerRepository } from '../repositories/partner.repository';
 import { countAdminQueues } from './admin-queue.definitions';
 import { prisma } from '../repositories/prisma';
+import { isTestAccountEmail } from '@gym-coach/shared';
 import type { PartnerDocumentType, PartnerDocumentStatus, PartnerContactChannel, PartnerVerificationStatus } from '../generated/prisma';
 
 function err(message: string, status: number) {
@@ -232,7 +233,25 @@ export const partnerDiligenceService = {
    * would blur the IA boundary the spec is explicit about). `needsAttention` reuses `queue()`
    * rather than duplicating its counting logic.
    */
-  async overviewStats() {
+  /**
+   * @param testUserIds ids of test/seed/eval accounts (auth-service) to leave out on the server, or null for no filter.
+   * A test partner = contact email on a reserved test domain, or any of its login accounts is a test account; a test
+   * branch = owned by a test account. The review queue (needsAttention) is work to do, not a statistic — left as is.
+   */
+  async overviewStats(testUserIds: string[] | null = null) {
+    let partnerNot: { id: { notIn: string[] } } | {} = {};
+    let gymNot: { ownerId: { notIn: string[] } } | {} = {};
+    let excludedPartners: number | null = null;
+    if (testUserIds) {
+      const [byEmail, byAccount] = await Promise.all([
+        prisma.gymPartner.findMany({ where: { contactEmail: { not: null } }, select: { id: true, contactEmail: true } }),
+        testUserIds.length ? prisma.gymPartnerAccount.findMany({ where: { userId: { in: testUserIds } }, select: { partnerId: true } }) : Promise.resolve([]),
+      ]);
+      const ids = [...new Set([...byEmail.filter((x) => isTestAccountEmail(x.contactEmail)).map((x) => x.id), ...byAccount.map((x) => x.partnerId)])];
+      excludedPartners = ids.length;
+      if (ids.length) partnerNot = { id: { notIn: ids } };
+      if (testUserIds.length) gymNot = { ownerId: { notIn: testUserIds } };
+    }
     const [
       totalPartners,
       activePartners,
@@ -242,12 +261,12 @@ export const partnerDiligenceService = {
       temporarilyClosedBranches,
       needsAttention,
     ] = await Promise.all([
-      prisma.gymPartner.count(),
-      prisma.gymPartner.count({ where: { status: 'ACTIVE' } }),
-      prisma.gymPartner.count({ where: { status: 'SUSPENDED' } }),
-      prisma.gymPartner.count({ where: { status: 'TERMINATED' } }),
-      prisma.gym.count({ where: { status: 'APPROVED' } }),
-      prisma.gym.count({ where: { operationalStatus: 'TEMPORARILY_CLOSED' } }),
+      prisma.gymPartner.count({ where: { ...partnerNot } }),
+      prisma.gymPartner.count({ where: { status: 'ACTIVE', ...partnerNot } }),
+      prisma.gymPartner.count({ where: { status: 'SUSPENDED', ...partnerNot } }),
+      prisma.gymPartner.count({ where: { status: 'TERMINATED', ...partnerNot } }),
+      prisma.gym.count({ where: { status: 'APPROVED', ...gymNot } }),
+      prisma.gym.count({ where: { operationalStatus: 'TEMPORARILY_CLOSED', ...gymNot } }),
       this.queue(),
     ]);
 
@@ -260,6 +279,8 @@ export const partnerDiligenceService = {
       pendingBranches: needsAttention.branchesFirstApproval,
       temporarilyClosedBranches,
       needsAttention,
+      /** test partners left out (null = no filter: local stack, or auth-service unreadable) */
+      excludedTestPartners: excludedPartners,
     };
   },
 };

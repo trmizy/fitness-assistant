@@ -28,6 +28,12 @@ export interface FinanceOverviewReport {
    * kept apart from `netRevenue`, which only ever counts realized revenue.
    */
   platformRevenue: { available: string; pending: string; asOf: string };
+  /**
+   * Test/seed/eval accounts whose transactions were left out of buckets/totals (2026-11-08). null = no filter applied
+   * (local stack, or auth-service unreadable). platformRevenue is the live wallet balance and is NOT filtered — money
+   * already in the wallet cannot be un-counted, only reported.
+   */
+  excludedTestAccounts: number | null;
 }
 
 const VALID_GROUP_BY: FinanceGroupBy[] = ['day', 'week', 'month', 'quarter'];
@@ -74,22 +80,27 @@ export async function buildFinanceOverview(params: {
   from: Date;
   to: Date;
   groupBy: FinanceGroupBy;
+  /** ids of test accounts to leave out (payer or PT side); undefined/null = no filter */
+  excludeUserIds?: string[] | null;
 }): Promise<FinanceOverviewReport> {
   const { from, to, groupBy } = params;
+  const ex = params.excludeUserIds ?? [];
+  const notTest = ex.length ? Prisma.sql` AND NOT (payer_id = ANY(${ex}) OR COALESCE(pt_id, '') = ANY(${ex}))` : Prisma.empty;
+  const notTestT = ex.length ? Prisma.sql` AND NOT (t.payer_id = ANY(${ex}) OR COALESCE(t.pt_id, '') = ANY(${ex}))` : Prisma.empty;
 
   const [incomeRows, expenseRows, revenueRows] = await Promise.all([
     prisma.$queryRaw<BucketSumRow[]>(Prisma.sql`
       SELECT date_trunc(${groupBy}, paid_at) AS bucket, SUM(amount)::text AS total, COUNT(*) AS count
       FROM payment_transactions
       WHERE status = 'PAID' AND purpose NOT IN ('REFUND', 'WITHDRAWAL')
-        AND paid_at >= ${from} AND paid_at < ${to}
+        AND paid_at >= ${from} AND paid_at < ${to}${notTest}
       GROUP BY bucket
     `),
     prisma.$queryRaw<BucketSumRow[]>(Prisma.sql`
       SELECT date_trunc(${groupBy}, paid_at) AS bucket, SUM(amount)::text AS total, COUNT(*) AS count
       FROM payment_transactions
       WHERE status = 'PAID' AND purpose IN ('REFUND', 'WITHDRAWAL')
-        AND paid_at >= ${from} AND paid_at < ${to}
+        AND paid_at >= ${from} AND paid_at < ${to}${notTest}
       GROUP BY bucket
     `),
     prisma.$queryRaw<BucketSumRow[]>(Prisma.sql`
@@ -101,7 +112,7 @@ export async function buildFinanceOverview(params: {
       JOIN payment_transactions t ON t.id = e.transaction_id
       WHERE w.owner_type = 'PLATFORM' AND w.owner_id = ${PLATFORM_REVENUE_ID}
         AND e.bucket = 'AVAILABLE' AND t.purpose != 'WITHDRAWAL'
-        AND e.created_at >= ${from} AND e.created_at < ${to}
+        AND e.created_at >= ${from} AND e.created_at < ${to}${notTestT}
       GROUP BY 1
     `),
   ]);
@@ -171,5 +182,6 @@ export async function buildFinanceOverview(params: {
       pending: recon.breakdown.platformRevenuePending,
       asOf: new Date().toISOString(),
     },
+    excludedTestAccounts: params.excludeUserIds ? params.excludeUserIds.length : null,
   };
 }

@@ -4,7 +4,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-export const GATEWAY = process.env.GATEWAY_URL || "http://localhost:3000";
+import { assertLocalTarget } from "../../scripts/lib/assert-local-target.mjs";
+
+// Never point these helpers (they register test accounts) at the deployed server.
+export const GATEWAY = assertLocalTarget(process.env.GATEWAY_URL || "http://localhost:3000");
 export const SECRET = "test_internal_service_secret_32_chars_minimum";
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

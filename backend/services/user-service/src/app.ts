@@ -20,12 +20,25 @@ import internalRoutes from "./routes/internal.routes";
 import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
+import adminUsersRoutes from "./routes/admin-users.routes";
+import adminOverviewRoutes from "./routes/admin-overview.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 import mediaRoutes from "./routes/media.routes";
 
 import agenticFitnessRoutes from "./routes/agentic-fitness.routes";
 
 const app = express();
+
+// On AWS every API Gateway route is ANY, so CORS preflight (OPTIONS) reaches this Lambda, where router-level auth
+// (e.g. /admin) answers 401 — browsers reject a non-2xx preflight and the page shows "Network Error". API Gateway's own
+// CORS config supplies the Access-Control-* headers; this only has to answer 2xx before any auth runs.
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
 
 app.use(
   helmet({
@@ -125,6 +138,10 @@ app.use("/sessions", sessionRoutes);
 app.use("/availability", availabilityRoutes);
 
 // Admin-only operations owned by this service (disputed sessions, …)
+// Admin user management (GET /admin/users, PATCH /admin/users/:id/{role,enable,disable}) — must precede adminRoutes.
+app.use("/admin", adminUsersRoutes);
+// GET /admin/dashboard, GET /admin/system-monitor — AWS replacement for the gateway aggregations.
+app.use("/admin", adminOverviewRoutes);
 app.use("/admin", adminRoutes);
 
 // Public media: PT physique photos (302 to a short presigned GET, only for PUBLISHED photos of a visible trainer).

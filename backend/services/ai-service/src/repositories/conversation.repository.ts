@@ -1,4 +1,4 @@
-import { PrismaClient, PlanStatus } from "../generated/prisma";
+import { PrismaClient, PlanStatus, Prisma } from "../generated/prisma";
 import type { PlanContent } from "../schemas/plan.schemas";
 import { runFenced, expectOneRowInWorker } from "../services/generation-lease-context";
 
@@ -196,8 +196,12 @@ export const conversationRepository = {
    * Aggregate stats for the overview card: totals, averages, distributions.
    * Uses two raw queries (for AVG and distribution) plus standard count calls.
    */
-  async adminGetOverviewStats() {
+  async adminGetOverviewStats(excludeUserIds: string[] | null = null) {
     const now = new Date();
+    // Test/seed/eval accounts left out on the server (2026-11-08). Anonymous rows (user_id NULL) are kept.
+    const ex = excludeUserIds ?? [];
+    const cw: Prisma.ConversationWhereInput = ex.length ? { OR: [{ userId: null }, { userId: { notIn: ex } }] } : {};
+    const rawNot = ex.length ? Prisma.sql` AND ("user_id" IS NULL OR NOT ("user_id" = ANY(${ex})))` : Prisma.empty;
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -213,25 +217,25 @@ export const conversationRepository = {
       langRows,
       planStats,
     ] = await Promise.all([
-      prisma.conversation.count(),
-      prisma.conversation.count({ where: { createdAt: { gte: since24h } } }),
-      prisma.conversation.count({ where: { usedFallback: true } }),
-      prisma.conversation.count({ where: { usedDeterministicFallback: true } }),
-      prisma.conversation.count({ where: { warningCount: { gt: 0 } } }),
+      prisma.conversation.count({ where: cw }),
+      prisma.conversation.count({ where: { createdAt: { gte: since24h }, ...cw } }),
+      prisma.conversation.count({ where: { usedFallback: true, ...cw } }),
+      prisma.conversation.count({ where: { usedDeterministicFallback: true, ...cw } }),
+      prisma.conversation.count({ where: { warningCount: { gt: 0 }, ...cw } }),
       prisma.$queryRaw<Array<{ avg: number | null; p95: number | null }>>`
         SELECT
           AVG("response_time")                                                                   AS avg,
           PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY "response_time")                         AS p95
         FROM "conversations"
-        WHERE "created_at" >= ${since7d}
+        WHERE "created_at" >= ${since7d}${rawNot}
       `,
       prisma.conversation.count({
-        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d } },
+        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d }, ...cw },
       }),
       prisma.$queryRaw<Array<{ route_intent: string | null; cnt: bigint }>>`
         SELECT "route_intent", COUNT(*) AS cnt
         FROM "conversations"
-        WHERE "created_at" >= ${since7d} AND "route_intent" IS NOT NULL
+        WHERE "created_at" >= ${since7d} AND "route_intent" IS NOT NULL${rawNot}
         GROUP BY "route_intent"
         ORDER BY cnt DESC
         LIMIT 10
@@ -241,10 +245,10 @@ export const conversationRepository = {
       >`
         SELECT "response_language", COUNT(*) AS cnt
         FROM "conversations"
-        WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL
+        WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL${rawNot}
         GROUP BY "response_language"
       `,
-      prisma.workoutPlan.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.workoutPlan.groupBy({ by: ["status"], ...(ex.length ? { where: { userId: { notIn: ex } } } : {}), _count: { _all: true } }),
     ]);
 
     const avgLatency = avgResult[0]?.avg ?? null;
@@ -283,6 +287,8 @@ export const conversationRepository = {
           p95Latency !== null ? Number(Number(p95Latency).toFixed(3)) : null,
         slowCount,
       },
+      /** test accounts left out (null = no filter: local stack, or auth-service unreadable) */
+      excludedTestAccounts: excludeUserIds ? excludeUserIds.length : null,
       intents: intentDistribution,
       languages: languageDistribution,
       plans: {

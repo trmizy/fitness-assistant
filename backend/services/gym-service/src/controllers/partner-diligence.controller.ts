@@ -1,3 +1,5 @@
+import { testAccountsBlocked } from '@gym-coach/shared';
+import { fetchTestAccountIds } from '../clients/test-accounts.client';
 import { Request, Response } from 'express';
 import { partnerDiligenceService } from '../services/partner-diligence.service';
 import { partnerAuditService } from '../services/partner-audit.service';
@@ -13,7 +15,9 @@ export const partnerDiligenceController = {
   },
 
   async overviewStats(_req: Request, res: Response) {
-    const data = await partnerDiligenceService.overviewStats();
+    // Test/seed accounts are left out on the server only (2026-11-08); local stacks keep every row.
+    // (auth unreadable -> [] : partners are still filtered by their own contact email)
+    const data = await partnerDiligenceService.overviewStats(testAccountsBlocked() ? (await fetchTestAccountIds()) ?? [] : null);
     res.json({ success: true, data });
   },
 

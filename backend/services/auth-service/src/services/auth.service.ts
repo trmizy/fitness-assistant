@@ -2,7 +2,15 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
-import { logger } from "@gym-coach/shared";
+import { logger, isTestAccountEmail, testAccountsBlocked, TEST_ACCOUNT_BLOCKED_MESSAGE } from "@gym-coach/shared";
+
+/** Test/seed/eval accounts (reserved never-deliverable domains, see @gym-coach/shared test-accounts) must not be created on
+ * the deployed server: off in local/dev/test stacks, on by default on Lambda (TEST_ACCOUNTS_POLICY=allow|block overrides). */
+function assertNotTestAccount(email: string) {
+  if (testAccountsBlocked() && isTestAccountEmail(email)) {
+    throw { status: 400, code: "TEST_ACCOUNT_BLOCKED", message: TEST_ACCOUNT_BLOCKED_MESSAGE };
+  }
+}
 import { authRepository, prisma } from "../repositories/auth.repository";
 import type { Role } from "../generated/prisma";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
@@ -126,7 +134,14 @@ export const authService = {
     return authRepository.listUsers(role);
   },
 
+  /** Ids of accounts on reserved test email domains (see assertNotTestAccount). */
+  async listTestAccountIds(): Promise<string[]> {
+    const users = await prisma.user.findMany({ select: { id: true, email: true } });
+    return users.filter((u) => isTestAccountEmail(u.email)).map((u) => u.id);
+  },
+
   async register(data: RegisterStartDto) {
+    assertNotTestAccount(data.email);
     const existing = await authRepository.findUserByEmail(data.email);
     // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
     // the frontend to distinguish "already verified" from "validation error".
@@ -209,6 +224,7 @@ export const authService = {
       throw { status: 400, message: "Invalid OTP" };
     }
 
+    assertNotTestAccount(data.email);
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) {
       await authRepository.deleteEmailVerification(data.email);
@@ -735,6 +751,7 @@ export const authService = {
     lastName?: string;
   }) {
     const email = data.email.trim().toLowerCase();
+    assertNotTestAccount(email);
     const existing = await authRepository.findUserByEmail(email);
     if (existing) throw { status: 409, message: "Email đã được sử dụng" };
     if (!data.password || data.password.length < 8) {

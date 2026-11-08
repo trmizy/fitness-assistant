@@ -1,3 +1,5 @@
+import { testAccountsBlocked } from '@gym-coach/shared';
+import { fetchTestAccountIds } from '../clients/test-accounts.client';
 import { randomUUID } from 'crypto';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
@@ -77,7 +79,9 @@ router.get('/finance-overview', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: 'from phải trước to và cả hai phải là ngày hợp lệ' } });
   }
 
-  const report = await buildFinanceOverview({ from, to, groupBy });
+  // Test/seed/eval accounts are left out on the server (null = filter off or auth unreadable -> unfiltered, flagged).
+  const excludeUserIds = testAccountsBlocked() ? await fetchTestAccountIds() : null;
+  const report = await buildFinanceOverview({ from, to, groupBy, excludeUserIds });
   return res.json({ success: true, data: report });
 });
 
