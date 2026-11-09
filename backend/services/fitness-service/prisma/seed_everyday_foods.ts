@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 
 seedEverydayFoods(prisma)
   .then((r) => {
-    console.log(`[everyday-foods] ${r.found}/${r.total} rows found · created ${r.created} · unchanged ${r.unchanged} · removed stale ${r.removedStale} · portion caps set ${r.portionCapsSet}`);
+    console.log(`[everyday-foods] ${r.found}/${r.total} rows found · created ${r.created} · adopted ${r.adopted} · unchanged ${r.unchanged} · removed stale ${r.removedStale} · portion caps set ${r.portionCapsSet}`);
     if (r.missingFdcIds.length) {
       console.error(`[everyday-foods] fdcId not in this database: ${r.missingFdcIds.join(", ")}`);
       process.exitCode = 1;

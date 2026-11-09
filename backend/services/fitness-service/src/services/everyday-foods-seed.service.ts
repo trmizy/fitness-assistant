@@ -27,6 +27,8 @@ export interface EverydayFoodsSeedResult {
   found: number;
   created: number;
   unchanged: number;
+  /** existing same-meaning aliases (other importers) taken over as the curated display name */
+  adopted: number;
   removedStale: number;
   portionCapsSet: number;
   missingFdcIds: number[];
@@ -42,7 +44,7 @@ export async function seedEverydayFoods(prisma: PrismaClient, foods: EverydayFoo
   const rows = await prisma.food.findMany({ where: { fdcId: { in: [...byFdc.keys()] } }, select: { id: true, fdcId: true, realisticServingMaxG: true } });
   const missingFdcIds = [...byFdc.keys()].filter((id) => !rows.some((r) => r.fdcId === id));
 
-  let created = 0, unchanged = 0, portionCapsSet = 0;
+  let created = 0, unchanged = 0, adopted = 0, portionCapsSet = 0;
   const keep = new Set<string>();
   for (const food of rows) {
     const entry = byFdc.get(food.fdcId!)!;
@@ -54,14 +56,24 @@ export async function seedEverydayFoods(prisma: PrismaClient, foods: EverydayFoo
       portionCapsSet++;
     }
     keep.add(`${food.id}|${entry.vi}`);
-    const existing = await prisma.foodAlias.findUnique({ where: { foodId_alias_language: { foodId: food.id, alias: entry.vi, language: "vi" } } });
-    if (existing) { unchanged++; continue; }
-    await prisma.foodAlias.create({ data: { foodId: food.id, alias: entry.vi, aliasNormalized: normalizeVietnamese(entry.vi), language: "vi", source: EVERYDAY_ALIAS_SOURCE } });
+    const aliasNormalized = normalizeVietnamese(entry.vi);
+    // An alias for the same food that is equal after normalization may already exist from another importer (the AWS DB had
+    // food_aliases.vi.json rows; 2026-11-09 the first AWS run died on the (food_id, alias_normalized, language) unique key).
+    // Adopt that row as the curated display name instead of inserting a duplicate; an exact alias from another source is
+    // adopted too, otherwise the food would never be marked curated.
+    const existing = await prisma.foodAlias.findFirst({ where: { foodId: food.id, language: "vi", OR: [{ alias: entry.vi }, { aliasNormalized }] } });
+    if (existing) {
+      if (existing.source === EVERYDAY_ALIAS_SOURCE && existing.alias === entry.vi) { unchanged++; continue; }
+      await prisma.foodAlias.update({ where: { id: existing.id }, data: { alias: entry.vi, aliasNormalized, source: EVERYDAY_ALIAS_SOURCE } });
+      adopted++;
+      continue;
+    }
+    await prisma.foodAlias.create({ data: { foodId: food.id, alias: entry.vi, aliasNormalized, language: "vi", source: EVERYDAY_ALIAS_SOURCE } });
     created++;
   }
   const stale = (await prisma.foodAlias.findMany({ where: { source: EVERYDAY_ALIAS_SOURCE }, select: { id: true, foodId: true, alias: true } }))
     .filter((a) => !keep.has(`${a.foodId}|${a.alias}`));
   if (stale.length) await prisma.foodAlias.deleteMany({ where: { id: { in: stale.map((a) => a.id) } } });
 
-  return { total: foods.length, found: rows.length, created, unchanged, removedStale: stale.length, portionCapsSet, missingFdcIds };
+  return { total: foods.length, found: rows.length, created, unchanged, adopted, removedStale: stale.length, portionCapsSet, missingFdcIds };
 }

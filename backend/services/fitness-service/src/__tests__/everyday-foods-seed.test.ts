@@ -19,7 +19,7 @@ test("seedEverydayFoods reports fdcIds missing from the database and never inven
   const fake: any = {
     food: { findMany: async () => [{ id: "f1", fdcId: 1, realisticServingMaxG: null }], update: async () => { calls.push("food.update"); } },
     foodAlias: {
-      findUnique: async () => null,
+      findFirst: async () => null,
       create: async (a: any) => { calls.push(`alias.create:${a.data.alias}`); },
       findMany: async () => [{ id: "old", foodId: "fX", alias: "Món đã bỏ" }],
       deleteMany: async () => { calls.push("alias.deleteMany"); },
@@ -35,4 +35,21 @@ test("seedEverydayFoods reports fdcIds missing from the database and never inven
 
 test("jobs Lambda: an unknown job is a 400-class error, not a silent no-op", async () => {
   await assert.rejects(runFitnessServiceJob({ job: "nope" }), (e: any) => e.statusCode === 400);
+});
+
+test("an alias that already exists from another importer (same normalized text) is adopted, never duplicated", async () => {
+  const calls: string[] = [];
+  const fake: any = {
+    food: { findMany: async () => [{ id: "f1", fdcId: 1, realisticServingMaxG: 350 }], update: async () => { calls.push("food.update"); } },
+    foodAlias: {
+      findFirst: async () => ({ id: "a1", alias: "cơm trắng", source: "food_aliases_vi" }),
+      update: async (a: any) => { calls.push(`alias.update:${a.data.alias}:${a.data.source}`); },
+      create: async () => { calls.push("alias.create"); },
+      findMany: async () => [], deleteMany: async () => {},
+    },
+  };
+  const r = await seedEverydayFoods(fake, [{ vi: "Cơm trắng", fdcId: 1, group: "carb", maxG: 350 }]);
+  assert.equal(r.adopted, 1);
+  assert.equal(r.created, 0);
+  assert.deepEqual(calls, ["alias.update:Cơm trắng:everyday_curated"]);
 });
