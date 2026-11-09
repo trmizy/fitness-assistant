@@ -2,7 +2,9 @@
  * DISPUTE CASE slice 2 - feature flags, FAIL-CLOSED.
  *
  * (Isolated E2E environment: runtime-gate.ts also opens the gate for DISPUTE_RUNTIME_MODE=e2e-isolated + compose marker + allowlisted *_e2e DB, for a fixed
- *  subset of flags only (E2E_PERMITTED_FLAGS) and, for money flags, only while payment-service reports the same gate verdict - see payment-peer.ts.)
+ *  subset of flags only (E2E_PERMITTED_FLAGS) and, for money flags, only while payment-service reports the same gate verdict - see payment-peer.ts.
+ *  The shared dev stack opens the same way ONLY with the override file docker-compose.dispute-dev.yml: DISPUTE_RUNTIME_MODE=dev-shared + its own marker + a hard-coded
+ *  database allowlist, for the fixed list DEV_SHARED_PERMITTED_FLAGS, with the same payment-service agreement for money flags.)
  *
  * In the test environment a flag is EFFECTIVE only when ALL THREE hold:
  *   1. its value is exactly the string "true",
@@ -48,6 +50,7 @@ const warned = new Set<string>();
 export type FlagRefusal =
   | GateRefusal
   | "E2E_FLAG_NOT_PERMITTED"
+  | "DEV_FLAG_NOT_PERMITTED"
   | "PEER_UNCONFIRMED"
   | "PEER_UNREACHABLE"
   | "PEER_STALE"
@@ -72,7 +75,20 @@ export const E2E_PERMITTED_FLAGS: ReadonlySet<DisputeCaseFlag> = new Set<Dispute
   DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT,
 ]);
 
-/** Flags that move money / settle sessions: in e2e mode they additionally need payment-service to agree on the gate verdict. */
+/**
+ * The only flags the shared dev stack (docker-compose.dispute-dev.yml, mode dev-shared) may switch on. Same list as E2E_PERMITTED_FLAGS, written out on its own so
+ * that changing one environment's list never silently changes the other. T0 and late-open OPEN-L settlement are NOT here (owner decision 09/11/2026).
+ */
+export const DEV_SHARED_PERMITTED_FLAGS: ReadonlySet<DisputeCaseFlag> = new Set<DisputeCaseFlag>([
+  DISPUTE_CASE_FLAGS.EXECUTION,
+  DISPUTE_CASE_FLAGS.EVIDENCE_STORAGE,
+  DISPUTE_CASE_FLAGS.D65B_RESOLUTION,
+  DISPUTE_CASE_FLAGS.TIMERS,
+  DISPUTE_CASE_FLAGS.APPEALS,
+  DISPUTE_CASE_FLAGS.DECISION_REPLACEMENT,
+]);
+
+/** Flags that move money / settle sessions: in e2e and dev-shared mode they additionally need payment-service to agree on the gate verdict. */
 const NEEDS_PAYMENT_PEER: ReadonlySet<DisputeCaseFlag> = new Set<DisputeCaseFlag>([
   DISPUTE_CASE_FLAGS.EXECUTION,
   DISPUTE_CASE_FLAGS.LATE_OPEN_RECONCILIATION,
@@ -88,8 +104,10 @@ export function flagVerdict(name: DisputeCaseFlag, env: NodeJS.ProcessEnv = proc
   const gate = gateVerdict(env);
   if (!gate.open) return warn(name, gate.refusedBecause!);
   if (gate.mode === "test") return { effective: true };
-  // e2e-isolated
-  if (!E2E_PERMITTED_FLAGS.has(name)) return warn(name, "E2E_FLAG_NOT_PERMITTED");
+  // e2e-isolated or dev-shared: each has its own fixed list
+  if (gate.mode === "dev-shared") {
+    if (!DEV_SHARED_PERMITTED_FLAGS.has(name)) return warn(name, "DEV_FLAG_NOT_PERMITTED");
+  } else if (!E2E_PERMITTED_FLAGS.has(name)) return warn(name, "E2E_FLAG_NOT_PERMITTED");
   if (NEEDS_PAYMENT_PEER.has(name)) {
     const peer = peerAgrees(gate, now);
     if (!peer.agrees) return warn(name, peer.why!);
@@ -105,11 +123,11 @@ function warn(name: string, why: FlagRefusal): FlagVerdict {
     console.warn(
       `[dispute-case] ${name}=true IGNORED (flag stays OFF): ${
         why === "NOT_TEST_ENV"
-          ? "NODE_ENV is not 'test' and the e2e-isolated runtime mode is not requested"
+          ? "NODE_ENV is not 'test' and neither the e2e-isolated nor the dev-shared runtime mode is requested"
           : why === "DB_ISOLATION_NOT_ACCEPTED"
             ? "no isolated *_test database was accepted by the test preload (DB_ISOLATION !== 'accepted')"
             : why
-      }. This flag only works inside the isolated test / e2e environment.`,
+      }. This flag only works inside the isolated test / e2e environment or the dev-shared stack started with docker-compose.dispute-dev.yml.`,
     );
   }
   return { effective: false, refusedBecause: why };

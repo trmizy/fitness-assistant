@@ -23,7 +23,7 @@ export const paymentGateVerdict = (env: NodeJS.ProcessEnv = process.env): GateVe
 
 export const LATE_OPEN_SETTLEMENT_FLAG = 'DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED';
 
-export type LateOpenFlagRefusal = 'NOT_TEST_ENV' | 'DATABASE_NOT_TEST' | 'E2E_FLAG_NOT_PERMITTED';
+export type LateOpenFlagRefusal = 'NOT_TEST_ENV' | 'DATABASE_NOT_TEST' | 'E2E_FLAG_NOT_PERMITTED' | 'DEV_FLAG_NOT_PERMITTED';
 
 export interface LateOpenFlagVerdict {
   effective: boolean;
@@ -41,6 +41,8 @@ export function lateOpenSettlementVerdict(env: NodeJS.ProcessEnv = process.env):
   // The shared runtime gate: NODE_ENV=test AND a DB name ending _test, OR the isolated e2e environment. OPEN-L settlement is NEVER permitted in the e2e environment (owner decision).
   const gate = paymentGateVerdict(env);
   if (!gate.open) return warn(gate.mode === 'test' ? 'DATABASE_NOT_TEST' : gate.refusedBecause === 'NOT_TEST_ENV' ? 'NOT_TEST_ENV' : 'E2E_FLAG_NOT_PERMITTED');
+  // dev-shared (docker-compose.dispute-dev.yml) is also never permitted to settle OPEN L (owner decision 09/11/2026)
+  if (gate.mode === 'dev-shared') return warn('DEV_FLAG_NOT_PERMITTED');
   if (gate.mode !== 'test') return warn('E2E_FLAG_NOT_PERMITTED');
   return { effective: true };
 }
@@ -51,7 +53,7 @@ function warn(why: LateOpenFlagRefusal): LateOpenFlagVerdict {
     // eslint-disable-next-line no-console
     console.warn(
       `[payment-service] ${LATE_OPEN_SETTLEMENT_FLAG}=true IGNORED (settlement of an OPEN late-arrival obligation stays OFF): ${
-        why === 'NOT_TEST_ENV' ? "NODE_ENV is not 'test'" : why === 'E2E_FLAG_NOT_PERMITTED' ? 'settling OPEN L is never permitted in the isolated e2e environment (or the e2e gate is closed)' : 'DATABASE_URL does not name a database ending _test'
+        why === 'NOT_TEST_ENV' ? "NODE_ENV is not 'test'" : why === 'E2E_FLAG_NOT_PERMITTED' ? 'settling OPEN L is never permitted in the isolated e2e environment (or the e2e gate is closed)' : why === 'DEV_FLAG_NOT_PERMITTED' ? 'settling OPEN L is never permitted in the dev-shared stack' : 'DATABASE_URL does not name a database ending _test'
       }. This flag only works inside the isolated test environment.`,
     );
   }

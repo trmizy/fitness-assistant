@@ -2,7 +2,7 @@
  * DISPUTE RUNTIME GATE - the single rule that decides whether ANY Dispute V2.1 feature flag may be effective in this process.
  * The same file (an identical copy) lives in user-service, payment-service and gym-service, so the three services evaluate one rule.
  *
- * Two ways the gate opens, nothing else:
+ * Three ways the gate opens, nothing else:
  *   1. TEST   NODE_ENV === "test" AND the service's own test-isolation check passed (user/gym: DB_ISOLATION === "accepted"; payment: DB name ends _test).
  *   2. E2E    the explicitly named isolated environment (infra/compose/docker-compose.e2e-dispute.yml). ALL of these must hold, each one alone is not enough:
  *               a. DISPUTE_RUNTIME_MODE === "e2e-isolated"
@@ -10,6 +10,14 @@
  *               c. DISPUTE_E2E_COMPOSE_MARKER === MARKER_VALUE (a second marker only that compose file sets)
  *               d. the database in DATABASE_URL ends "_e2e" AND is listed in DISPUTE_E2E_DB_ALLOWLIST (comma separated, exact names)
  *         Which flags the e2e gate lets through is a fixed list (E2E_PERMITTED_FLAGS) in the caller: T0 and late-open OPEN-L settlement are NEVER permitted there.
+ *   3. DEV    the shared dev stack WITH the override file infra/compose/docker-compose.dispute-dev.yml (Ngai approved 09/11/2026). ALL of these must hold:
+ *               a. DISPUTE_RUNTIME_MODE === "dev-shared"
+ *               b. NODE_ENV is set and is neither "production" nor "test"
+ *               c. DISPUTE_DEV_COMPOSE_MARKER === DEV_MARKER_VALUE (a marker only the dev override file sets; NOT the e2e marker)
+ *               d. the database in DATABASE_URL is one of DEV_DB_ALLOWLIST - a list written in THIS file, never read from the environment, so a
+ *                  misconfigured production environment cannot widen it
+ *         Which flags the dev gate lets through is a fixed list (DEV_SHARED_PERMITTED_FLAGS) in the caller: T0 and late-open OPEN-L settlement are NEVER permitted there.
+ *         Money flags additionally need payment-service to report the same verdict (user-service/payment-peer.ts), exactly as in e2e.
  * Anything else - production, a missing marker, a DB name outside the allowlist, a typo in the mode - is LOCKED. Fail closed; read on every call (no cache).
  */
 
@@ -19,13 +27,22 @@ export const MARKER_VAR = "DISPUTE_E2E_COMPOSE_MARKER";
 export const MARKER_VALUE = "gymini-e2e-dispute-v1";
 export const DB_ALLOWLIST_VAR = "DISPUTE_E2E_DB_ALLOWLIST";
 
-export type GateMode = "test" | "e2e-isolated" | "locked";
+export const DEV_MODE = "dev-shared";
+export const DEV_MARKER_VAR = "DISPUTE_DEV_COMPOSE_MARKER";
+export const DEV_MARKER_VALUE = "gymini-dev-dispute-v1";
+/** The shared dev databases (infra/compose/docker-compose.dev.yml). Hard-coded on purpose: NOT configurable by an environment variable. */
+export const DEV_DB_ALLOWLIST: readonly string[] = Object.freeze(["gymcoach_user", "gymcoach_payment", "gymcoach_gym"]);
+
+export type GateMode = "test" | "e2e-isolated" | "dev-shared" | "locked";
 export type GateRefusal =
   | "NOT_TEST_ENV"
   | "DB_ISOLATION_NOT_ACCEPTED"
   | "E2E_NODE_ENV_NOT_ALLOWED"
   | "E2E_MARKER_MISSING"
-  | "E2E_DB_NOT_ALLOWLISTED";
+  | "E2E_DB_NOT_ALLOWLISTED"
+  | "DEV_NODE_ENV_NOT_ALLOWED"
+  | "DEV_MARKER_MISSING"
+  | "DEV_DB_NOT_ALLOWLISTED";
 
 export interface GateVerdict {
   mode: GateMode;
@@ -53,6 +70,13 @@ export function evaluateRuntimeGate(env: NodeJS.ProcessEnv, testIsolationAccepte
     return testIsolationAccepted
       ? { mode: "test", open: true, database }
       : { mode: "test", open: false, refusedBecause: "DB_ISOLATION_NOT_ACCEPTED", database };
+  }
+  if (env[RUNTIME_MODE_VAR] === DEV_MODE) {
+    const devNodeEnv = env.NODE_ENV;
+    if (!devNodeEnv || devNodeEnv === "production") return { mode: "locked", open: false, refusedBecause: "DEV_NODE_ENV_NOT_ALLOWED", database };
+    if (env[DEV_MARKER_VAR] !== DEV_MARKER_VALUE) return { mode: "locked", open: false, refusedBecause: "DEV_MARKER_MISSING", database };
+    if (!DEV_DB_ALLOWLIST.includes(database)) return { mode: "locked", open: false, refusedBecause: "DEV_DB_NOT_ALLOWLISTED", database };
+    return { mode: "dev-shared", open: true, database };
   }
   if (env[RUNTIME_MODE_VAR] !== E2E_MODE) return { mode: "locked", open: false, refusedBecause: "NOT_TEST_ENV", database };
   const nodeEnv = env.NODE_ENV;

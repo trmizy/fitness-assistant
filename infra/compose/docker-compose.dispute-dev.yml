@@ -1,0 +1,54 @@
+# DISPUTE V2.1 on the SHARED DEV stack (owner approval 09/11/2026). An OVERRIDE, layered on top of docker-compose.dev.yml (+ low-resource):
+#
+#   docker compose -f infra/compose/docker-compose.dev.yml \
+#                  -f infra/compose/docker-compose.low-resource.yml \
+#                  -f infra/compose/docker-compose.dispute-dev.yml up -d --no-deps user-service payment-service gym-service
+#
+# Whether the Dispute V2.1 features run on dev is decided by ONE thing: whether this file is part of the command.
+#   - WITHOUT this file the dev stack is fully LOCKED (docker-compose.dev.yml sets no DISPUTE_* / GYM_COMPLAINT_* variable at all).
+#   - TO ROLL BACK: drop this file from the command and recreate user-service, payment-service and gym-service. Everything is off again.
+#
+# Runtime gate "dev-shared" (backend/services/{user,payment,gym}-service, runtime-gate.ts) opens ONLY when ALL of these hold in a service:
+#   DISPUTE_RUNTIME_MODE=dev-shared  +  DISPUTE_DEV_COMPOSE_MARKER=gymini-dev-dispute-v1 (set only HERE)  +  NODE_ENV set and not production/test
+#   +  DATABASE_URL names gymcoach_user / gymcoach_payment / gymcoach_gym (a list written in the code, not in any environment variable)
+# and money flags (execution, D65-B) additionally need user-service and payment-service to report the SAME verdict.
+#
+#   ON  : execution, evidence storage, D65-B resolution, timers, appeals, decision replacement (user-service); gym complaint case + its decision replacement (gym-service).
+#   OFF : T0 (DISPUTE_CASE_T0) and late-open OPEN-L reconciliation. They are NOT set below and the gate never permits them in dev-shared even if someone sets them.
+#
+# Production must never include this file. The same gate also refuses NODE_ENV=production, and docker-compose.prod.yml carries no marker.
+# Dev data only: use accounts / contracts created for testing. The timers run on the real clock (48/72/48 h deadlines, SLA day 10/14, held-money review 7/30 days).
+
+x-dispute-dev-gate: &dispute-dev-gate
+  DISPUTE_RUNTIME_MODE: dev-shared
+  DISPUTE_DEV_COMPOSE_MARKER: gymini-dev-dispute-v1
+
+services:
+  user-service:
+    environment:
+      <<: *dispute-dev-gate
+      DISPUTE_CASE_EXECUTION_ENABLED: "true"
+      DISPUTE_CASE_EVIDENCE_STORAGE_ENABLED: "true"
+      DISPUTE_CASE_D65B_RESOLUTION_ENABLED: "true"
+      DISPUTE_CASE_TIMERS_ENABLED: "true"
+      DISPUTE_CASE_APPEALS_ENABLED: "true"
+      DISPUTE_CASE_DECISION_REPLACEMENT_ENABLED: "true"
+      # evidence files: a named volume, deliberately NOT under .../user-service/uploads (storage refuses any path inside an 'uploads' folder)
+      DISPUTE_CASE_EVIDENCE_DIR: /var/lib/gymini-dev/dispute-evidence
+    volumes:
+      - dispute_dev_evidence:/var/lib/gymini-dev/dispute-evidence
+
+  payment-service:
+    # payment-service evaluates the same gate: user-service asks it for its verdict (GET /internal/dispute-runtime-verdict) before any money flag turns on.
+    environment:
+      <<: *dispute-dev-gate
+
+  gym-service:
+    environment:
+      <<: *dispute-dev-gate
+      GYM_COMPLAINT_CASE_ENABLED: "true"
+      GYM_COMPLAINT_DECISION_REPLACEMENT_ENABLED: "true"
+
+volumes:
+  dispute_dev_evidence:
+    name: gymini-dev-dispute_evidence
