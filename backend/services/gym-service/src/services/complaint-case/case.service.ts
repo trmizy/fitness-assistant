@@ -944,6 +944,36 @@ export const complaintCaseService = {
 
   // ── Reads ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+  /** INT-15 (read-only, admin): the complaint reporter's memberships AT THE COMPLAINT'S GYM, newest first, so the admin picks one instead of typing an id. */
+  async membershipOptions(actor: Actor, complaintId: string) {
+    assertAdmin(actor);
+    requireUuid(complaintId);
+    const complaint = await prisma.gymComplaint.findUnique({ where: { id: complaintId }, select: { gymId: true, reporterUserId: true } });
+    if (!complaint) throw caseError(404, 'COMPLAINT_NOT_FOUND', 'Không tìm thấy khiếu nại');
+    if (!complaint.reporterUserId) return { items: [] };
+    const rows = await prisma.gymMembershipContract.findMany({
+      where: { gymId: complaint.gymId, clientId: complaint.reporterUserId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      include: { plan: { select: { name: true } } },
+    });
+    return {
+      items: rows.map((m) => {
+        const block = membershipRefundBlock(m);
+        const reason = block === 'STATUS' ? 'STATUS_NOT_REFUNDABLE' : block === 'NO_PAYMENT' ? 'NO_PAYMENT' : m.payoutReleasedAt ? 'PAYOUT_ALREADY_RELEASED' : undefined;
+        return {
+          membershipId: m.id,
+          planName: m.plan.name,
+          status: m.status,
+          startDate: m.startDate,
+          endDate: m.endDate,
+          price: m.priceAtPurchase.toString(),
+          refundable: reason === undefined,
+          ...(reason ? { reasonNotRefundable: reason } : {}),
+        };
+      }),
+    };
+  },
+
   async list(actor: Actor, q: { status?: string; limit: number; offset: number }) {
     assertAdmin(actor);
     const where = q.status ? { status: q.status as any } : {};
@@ -1109,15 +1139,25 @@ function provenanceLabelVi(p: string): string {
   }
 }
 
+/**
+ * The ONE membership-level refund predicate of the case path (E1): ACTIVE or EXPIRED (the term may end while the case runs), with a payment on record.
+ * assertRefundable throws from it; INT-15 membership-options reads it. The released-money check mirrors membershipService.refundByAdmin's fixed-amount branch.
+ */
+export function membershipRefundBlock(m: { status: string; paymentTxnId: string | null }): 'STATUS' | 'NO_PAYMENT' | null {
+  if (m.status !== 'ACTIVE' && m.status !== 'EXPIRED') return 'STATUS';
+  if (!m.paymentTxnId) return 'NO_PAYMENT';
+  return null;
+}
+
 /** Refund outcomes need a membership that can still be refunded NOW (the executor asks refundByAdmin again at execution time). */
 export async function assertRefundable(db: Db, c: { id: string; gymId: string; membershipId: string | null; reporterUserId: string }) {
   if (!c.membershipId) throw caseError(409, 'MEMBERSHIP_REQUIRED', 'Hồ sơ chưa gắn gói hội viên nên không đề xuất hoàn tiền được');
   const m = await db.gymMembershipContract.findUnique({ where: { id: c.membershipId } });
   if (!m) throw caseError(404, 'MEMBERSHIP_NOT_FOUND', 'Không tìm thấy gói hội viên');
   if (m.gymId !== c.gymId || m.clientId !== c.reporterUserId) throw caseError(409, 'MEMBERSHIP_MISMATCH', 'Gói hội viên không thuộc người phản ánh hoặc chi nhánh của hồ sơ');
-  // E1: ACTIVE or EXPIRED (the term may end while the case runs); CANCELLED / anything else cannot be refunded again.
-  if (m.status !== 'ACTIVE' && m.status !== 'EXPIRED') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái hoàn được', { status: m.status });
-  if (!m.paymentTxnId) throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên chưa có giao dịch thanh toán để hoàn');
+  const block = membershipRefundBlock(m);
+  if (block === 'STATUS') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn ở trạng thái hoàn được', { status: m.status });
+  if (block === 'NO_PAYMENT') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên chưa có giao dịch thanh toán để hoàn');
   const quote = await db.gymCaseRefundQuote.findUnique({ where: { caseId: c.id } });
   if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại nên không hoàn tiền được');
 }
