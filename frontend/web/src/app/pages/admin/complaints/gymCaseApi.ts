@@ -41,6 +41,7 @@ import type {
   GymReplacementResult,
   GymAppealReviewerResult,
 } from "./gymCaseTypes";
+import type { MembershipOption } from "./membershipOptions";
 
 export interface GymHttpClient {
   request<T = unknown>(config: {
@@ -168,6 +169,12 @@ export function createGymCaseApi(client: GymHttpClient) {
     /** 201 `existing:false` / 200 `existing:true` (the complaint already had a case: go there). The class is chosen from a list, the membership from the reporter's. */
     openCase: (complaintId: string, input: OpenCaseInput, key: string) =>
       postData<GymOpenCaseResult>(`/admin/complaints/${enc(complaintId)}/case`, compact({ caseClass: input.caseClass, membershipId: input.membershipId }), key),
+
+    /** INT-15 `GET /admin/complaints/:id/membership-options`: the reporter's memberships at the complaint's gym (newest first; [] when there is no reporter). A read, no key. */
+    membershipOptions: async (complaintId: string): Promise<MembershipOption[]> => {
+      const d = await get<{ items?: MembershipOption[] } | null>(`/admin/complaints/${enc(complaintId)}/membership-options`);
+      return Array.isArray(d?.items) ? d.items : [];
+    },
 
     // ── G2-G4 reads (every call writes access-log rows: never poll) ──
     listCases: (q: { status?: GymCaseStatus; limit?: number; offset?: number } = {}) => get<GymCaseList>(A, compact({ status: q.status, limit: q.limit, offset: q.offset })),

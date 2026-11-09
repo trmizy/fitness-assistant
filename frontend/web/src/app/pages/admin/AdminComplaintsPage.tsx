@@ -36,6 +36,7 @@ import { CaseQueue, ComplaintCards, Pager, complaintTone } from "./complaints/Co
 import { ActionButton, ButtonRow, ErrorBox, Field, MutedLine, Select, TextArea, TextInput, counter } from "./complaints/gymCaseKit";
 import { EmptyBox, FOCUS, GymFailurePanel, LoadingSkeleton, Muted, Notice, Pill, describeGymLoadFailure } from "./complaints/GymParts";
 import { formatDateTimeSafe, shortRefSafe } from "./complaints/gymFormat";
+import { MEMBERSHIP_EMPTY_TEXT, MEMBERSHIP_LOADING_TEXT, MEMBERSHIP_MANUAL_LABEL, MEMBERSHIP_PICK_PLACEHOLDER, membershipSelectOptions } from "./complaints/membershipOptions";
 
 // The label maps and `statusMeta` stay exported unchanged: AdminPartnersPage imports them.
 export const ISSUE_TYPE_LABEL: Record<ComplaintIssueType, string> = {
@@ -454,8 +455,21 @@ function OpenCaseSection({ complaint }: { complaint: GymComplaint }) {
   const [caseClass, setCaseClass] = useState("");
   const [membershipId, setMembershipId] = useState("");
   const [shown, setShown] = useState(false);
+  const [manual, setManual] = useState(false);
   const [error, setError] = useState<GymErrorView | null>(null);
   const opt = OPEN_CLASS_OPTIONS.find((o) => o.value === caseClass);
+  // INT-15: the classes that REQUIRE a membership pick it from the reporter's memberships at this gym (one read, no polling, no retry).
+  const picks = !!opt?.needsMembership && !manual;
+  const optionsQuery = useQuery({
+    queryKey: keys ? keys.membershipOptions(complaint.id) : ["gym-complaint", "disabled", "mo"],
+    queryFn: () => gymCaseApi.membershipOptions(complaint.id),
+    enabled: !!keys && open && picks,
+    ...GYM_QUERY_OPTIONS,
+  });
+  const optionItems = optionsQuery.data ?? [];
+  const optionsLoading = picks && (!keys || optionsQuery.isLoading);
+  const optionsError = picks && optionsQuery.isError ? parseGymError(optionsQuery.error) : null;
+  const optionsEmpty = picks && optionsQuery.isSuccess && optionItems.length === 0;
   const v = validateOpen({ caseClass, membershipId });
   const errs = { ...(shown ? v : {}), ...fieldErrs(error) };
 
@@ -506,7 +520,43 @@ function OpenCaseSection({ complaint }: { complaint: GymComplaint }) {
               hint={!!opt?.help}
             />
           </Field>
-          {opt?.allowsMembership && (
+          {picks && (
+            <Field id={`${id}-m`} label="Gói hội viên của người khiếu nại" required error={errs.membershipId} hint="Chỉ liệt kê các gói của người khiếu nại tại phòng tập này. Máy chủ kiểm lại.">
+              {optionsLoading ? (
+                <MutedLine testId="open-case-options-loading">{MEMBERSHIP_LOADING_TEXT}</MutedLine>
+              ) : optionsError ? (
+                <div role="alert" data-testid="open-case-options-error" data-error-code={optionsError.code ?? ""} className="space-y-2 rounded-lg border border-st-danger-border bg-st-danger-bg px-3 py-2.5 text-sm text-st-danger">
+                  <p className="break-words">{optionsError.message}</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ActionButton variant="outline" onClick={() => void optionsQuery.refetch()} pending={optionsQuery.isFetching} testId="open-case-options-retry">
+                      Thử lại
+                    </ActionButton>
+                    <button
+                      type="button"
+                      onClick={() => { setManual(true); setMembershipId(""); setError(null); }}
+                      data-testid="open-case-manual"
+                      className={`inline-flex min-h-11 items-center text-sm font-medium text-adm-text underline underline-offset-2 hover:no-underline xl:min-h-8 ${FOCUS}`}
+                    >
+                      {MEMBERSHIP_MANUAL_LABEL}
+                    </button>
+                  </div>
+                </div>
+              ) : optionsEmpty ? (
+                <MutedLine testId="open-case-options-empty">{MEMBERSHIP_EMPTY_TEXT}</MutedLine>
+              ) : (
+                <Select
+                  id={`${id}-m`}
+                  value={membershipId}
+                  onChange={(x) => { setMembershipId(x); setError(null); }}
+                  options={membershipSelectOptions(optionItems)}
+                  placeholder={MEMBERSHIP_PICK_PLACEHOLDER}
+                  error={errs.membershipId}
+                  hint
+                />
+              )}
+            </Field>
+          )}
+          {opt?.allowsMembership && !picks && (
             <Field
               id={`${id}-m`}
               label="Mã gói hội viên của người phản ánh"
@@ -525,10 +575,10 @@ function OpenCaseSection({ complaint }: { complaint: GymComplaint }) {
             <ErrorBox error={error} mustReload={false} reloading={false} onReload={() => undefined} onRetry={() => void send()} pending={action.pending} testId="open-case-error" />
           )}
           <ButtonRow>
-            <ActionButton onClick={() => void send()} pending={action.pending} testId="open-case-send">
+            <ActionButton onClick={() => void send()} pending={action.pending} disabled={picks && (optionsLoading || optionsEmpty)} testId="open-case-send">
               {error?.outcomeUnknown ? "Mở hồ sơ (thử lại)" : "Mở hồ sơ"}
             </ActionButton>
-            <ActionButton variant="outline" onClick={() => { setOpen(false); setError(null); action.reset(); }} disabled={action.pending} testId="open-case-cancel">
+            <ActionButton variant="outline" onClick={() => { setOpen(false); setError(null); setManual(false); action.reset(); }} disabled={action.pending} testId="open-case-cancel">
               Huỷ
             </ActionButton>
           </ButtonRow>
