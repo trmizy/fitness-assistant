@@ -100,7 +100,8 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
     logger.info({ tool: route, latencyMs: Date.now() - started, status: "success" }, "fitness agent tool");
     return output;
   } catch (error: any) {
-    logger.warn({ tool: route, latencyMs: Date.now() - started, status: error.response?.status ?? 503 }, "fitness agent tool failed");
+    // reason included (2026-11-09: a roadmap activation 409 was logged as a bare status, so the cause had to be guessed)
+    logger.warn({ tool: route, latencyMs: Date.now() - started, status: error.response?.status ?? 503, reason: String(error.response?.data?.error ?? error.response?.data?.message ?? error.message ?? "").slice(0, 200) }, "fitness agent tool failed");
     throw Object.assign(new Error(error.response?.status < 500 ? error.response.data?.error ?? "Request rejected" : "Domain service unavailable"), { status: error.response?.status ?? 503 });
   }
 }

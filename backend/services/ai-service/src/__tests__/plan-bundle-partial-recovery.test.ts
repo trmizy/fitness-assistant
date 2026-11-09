@@ -90,7 +90,7 @@ test("workout apply fails transiently -> retry applies the workout only", dbOpts
 test("profile data missing for nutrition (insufficient_data) is retryable after the user fixes the profile", dbOpts, async () => {
   const r = await rig(true, { nutritionInsufficient: 1 });
   const first = await r.run();
-  assert.match(first.steps[2], /thiếu dữ liệu hồ sơ \(activityLevel\)/);
+  assert.match(first.steps[2], /thiếu dữ liệu hồ sơ \(mức độ vận động\)/); // field shown in Vietnamese, not the raw key (2026-11-09)
   assert.equal((await r.row()).status, "PENDING");
   await r.run();
   assert.deepEqual(r.calls, { accept: 1, activate: 1, apply: 1, boot: 2 });

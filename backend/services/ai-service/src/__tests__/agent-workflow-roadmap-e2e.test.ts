@@ -93,6 +93,8 @@ function stubRoadmapFixtures() {
     profile: {
       goal: profile.goal, age: profile.age, heightCm: profile.heightCm,
       currentWeightKg: profile.currentWeight, gender: profile.gender,
+      // a complete profile: proposePlanBundle now asks for activityLevel before any card (2026-11-09)
+      activityLevel: "MODERATELY_ACTIVE",
       training: { preferredTrainingDays: profile.days, trainingDaysPerWeek: (profile.days as number[]).length },
     },
   } as any);
@@ -303,7 +305,7 @@ test("CREATE_PLAN_BUNDLE honesty (real DB): bootstrapNutrition 'insufficient_dat
     const result = (await fitnessAgent.execute(identity, actionId, true)) as any;
     const nutritionLine = (result.steps as string[]).find((s) => s.includes("Mục tiêu dinh dưỡng"));
     assert.ok(nutritionLine?.startsWith("❌"), nutritionLine);
-    assert.match(nutritionLine!, /activityLevel/);
+    assert.match(nutritionLine!, /mức độ vận động/); // field shown in Vietnamese, not the raw key
     assert.doesNotMatch(result.message, /^Đã tạo và kích hoạt lộ trình, chương trình tập và mục tiêu dinh dưỡng/);
   } finally {
     await prisma.fitnessAgentAction.deleteMany({ where: { userId } });

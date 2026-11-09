@@ -216,8 +216,20 @@ const ROADMAP_PHASE_LABEL_VI: Record<string, string> = {
   RECOMPOSITION: "Tái cấu trúc cơ thể", PERFORMANCE: "Hiệu suất", RECOVERY: "Hồi phục",
 };
 
+/** Profile/onboarding field names as the user knows them (fitness-service bootstrap missingFields). */
+const PROFILE_FIELD_LABEL_VI: Record<string, string> = {
+  activityLevel: "mức độ vận động", age: "tuổi", gender: "giới tính", heightCm: "chiều cao", weightKg: "cân nặng",
+  currentWeight: "cân nặng", goal: "mục tiêu", experienceLevel: "trình độ tập", dateOfBirth: "ngày sinh",
+};
+
+type NutritionPreview = { status: "ACTIVE_GOAL" | "COMPUTED"; calories: number; protein: number; carbs: number; fat: number } | null;
+/** An ACTIVE training cycle that belongs to no roadmap ("legacy") — fitness-service refuses to activate a roadmap phase while one
+ * exists. The card names it and confirming closes it (completeCycle: history + assessment kept) before the roadmap starts. */
+type LegacyCycle = { id: string; name: string | null; startDate: string | null } | null;
+
 function buildPlanBundleConfirmationBlock(
-  draft: any, workoutCandidate: any, actionId: string, risk: string, expiresAt: Date,
+  draft: any, workoutCandidate: any, actionId: string, risk: string, expiresAt: Date, nutritionPreview: NutritionPreview = null,
+  legacyCycle: LegacyCycle = null,
 ): AgentBlock {
   const phaseCount = Array.isArray(draft?.phases) ? draft.phases.length : 0;
   const totalWeeks = Array.isArray(draft?.phases)
@@ -256,9 +268,22 @@ function buildPlanBundleConfirmationBlock(
       warnings: Array.isArray(draft?.warnings) ? draft.warnings.filter((w: unknown) => typeof w === "string").slice(0, 5) : [],
       workoutName: workoutCandidate?.name ?? null,
       workoutDaysPerWeek: workoutCandidate?.daysPerWeek ?? null,
+      // The numbers confirming will actually write (same engine as the bundle's bootstrapNutrition: /nutrition/target-preview —
+      // an existing ACTIVE goal is kept, otherwise the deterministic onboarding prescription). Shown so the user knows what
+      // "(3) tạo mục tiêu dinh dưỡng" means before confirming (2026-11-09).
+      nutritionPreview: nutritionPreview
+        ? { kept: nutritionPreview.status === "ACTIVE_GOAL", calories: Math.round(nutritionPreview.calories), protein: Math.round(nutritionPreview.protein), carbs: Math.round(nutritionPreview.carbs), fat: Math.round(nutritionPreview.fat) }
+        : null,
+      legacyCycle: legacyCycle
+        ? { name: legacyCycle.name, startDate: legacyCycle.startDate ? new Date(legacyCycle.startDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }) : null }
+        : null,
     },
     expiresAt: expiresAt.toISOString(),
-    note: "Xác nhận sẽ: (1) kích hoạt lộ trình mới này (thay thế lộ trình đang hoạt động nếu có), (2) áp dụng chương trình tập bên trên (thay lịch tập chưa hoàn thành), (3) tạo mục tiêu dinh dưỡng thật dựa trên hồ sơ/InBody hiện tại của bạn. Đây là thay đổi thật trên hệ thống.",
+    // (the old "thay thế lộ trình đang hoạt động nếu có" was untrue: activation refuses a second ACTIVE roadmap — proposePlanBundle now checks first)
+    // (the legacy cycle that confirming closes is its own line on the card: summary.legacyCycle)
+    note: (workoutCandidate
+      ? "Xác nhận sẽ: (1) tạo và kích hoạt lộ trình mới này, (2) áp dụng chương trình tập bên trên (thay lịch tập chưa hoàn thành), (3) tạo mục tiêu dinh dưỡng thật dựa trên hồ sơ/InBody hiện tại của bạn. Đây là thay đổi thật trên hệ thống."
+      : "Xác nhận sẽ: (1) tạo và kích hoạt lộ trình mới này, (2) tạo mục tiêu dinh dưỡng thật dựa trên hồ sơ/InBody hiện tại của bạn. Chưa có chương trình tập mẫu phù hợp — sau khi xác nhận, nhắn “Tạo lịch tập cho tôi” để mình tạo lịch riêng. Đây là thay đổi thật trên hệ thống.").replace("Xác nhận sẽ: (1)", legacyCycle ? "Xác nhận sẽ: (0) kết thúc chu kỳ tập đang chạy nêu trên, (1)" : "Xác nhận sẽ: (1)"),
   };
 }
 
@@ -1452,7 +1477,7 @@ export const fitnessAgent = {
       // accepted twice (acceptRoadmapDraft is not idempotent), an applied workout program and a created nutrition goal are never
       // repeated. Never claim full success on partial failure: every step is reported with what really happened.
       const draft = payload.roadmapDraft as any;
-      type BundleProgress = { roadmapId?: string; roadmapActive?: boolean; workoutDone?: boolean; nutritionDone?: boolean };
+      type BundleProgress = { roadmapId?: string; roadmapActive?: boolean; workoutDone?: boolean; nutritionDone?: boolean; legacyCycleClosed?: boolean };
       const progress: BundleProgress = { ...(payload.bundleProgress ?? {}) };
       const persistProgress = async (extend = false) => {
         await prisma.fitnessAgentAction.update({
@@ -1466,6 +1491,16 @@ export const fitnessAgent = {
         steps.push({ step: "roadmap", ok: true, detail: "đã tạo từ lần trước" });
       } else {
         try {
+          // Only the cycle the card named (payload.legacyCycle) — never whatever happens to be active at confirm time.
+          if (payload.legacyCycle?.id && !progress.legacyCycleClosed) {
+            try {
+              await fitnessAgentDeps.tools.completeCycle(identity, payload.legacyCycle.id);
+            } catch (err: any) {
+              if (!(err?.status === 409 && /already completed/i.test(String(err?.message)))) throw err;
+            }
+            progress.legacyCycleClosed = true;
+            await persistProgress();
+          }
           if (!progress.roadmapId) {
             const accepted = await fitnessAgentDeps.tools.acceptRoadmapDraft(identity, {
               name: "Lộ trình do AI Coach tạo", goalType: draft.goalType, plannedStartAt: draft.plannedStartAt,
@@ -1510,7 +1545,8 @@ export const fitnessAgent = {
           const nutritionOutcome = (nutritionResult as any).data;
           if (nutritionOutcome?.status === "insufficient_data") {
             // bootstrapNutrition wrote NO NutritionGoal (e.g. activityLevel missing) — never present that as a success.
-            const missing = Array.isArray(nutritionOutcome.missingFields) ? nutritionOutcome.missingFields.join(", ") : "";
+            // field names in plain Vietnamese (the card used to show "(activityLevel)")
+            const missing = Array.isArray(nutritionOutcome.missingFields) ? nutritionOutcome.missingFields.map((f: string) => PROFILE_FIELD_LABEL_VI[f] ?? f).join(", ") : "";
             steps.push({ step: "nutrition", ok: false, detail: `Chưa tạo được mục tiêu dinh dưỡng vì thiếu dữ liệu hồ sơ${missing ? ` (${missing})` : ""}. Bổ sung rồi tạo lại.` });
           } else {
             progress.nutritionDone = true;
@@ -1950,9 +1986,23 @@ export const fitnessAgent = {
     if (profile.heightCm == null) missing.push("chiều cao");
     if (profile.currentWeightKg == null) missing.push("cân nặng");
     if (!profile.gender) missing.push("giới tính");
+    // 2026-11-09 (user test on AWS): the bundle's nutrition step needs activityLevel; without it the user confirmed, and only
+    // AFTER confirming read "Chưa tạo được mục tiêu dinh dưỡng vì thiếu dữ liệu hồ sơ (activityLevel)". Ask first instead.
+    if (!profile.activityLevel) missing.push("mức độ vận động (Hồ sơ → Mức độ hoạt động)");
     if (missing.length > 0) {
       return {
         answer: `Mình cần thêm vài thông tin trong hồ sơ của bạn trước khi lên lộ trình thật: ${missing.join(", ")}. Hãy cập nhật hồ sơ (hoặc đo InBody) rồi thử lại — mình sẽ không tự giả định số liệu cho một lộ trình sắp được kích hoạt thật.`,
+        blocks: [],
+      };
+    }
+    // One ACTIVE roadmap at a time: fitness-service refuses to activate a second one ("Another roadmap is already ACTIVE"),
+    // which the user only learned after confirming, as a misleading "lỗi tạm thời". Say it before any card is shown; ending or
+    // archiving the current roadmap is a lifecycle decision made on the Journey page, never silently from this card.
+    const current = await fitnessAgentDeps.tools.getCurrentRoadmap(identity).catch(() => null);
+    if (current?.roadmap) {
+      const currentName = typeof (current.roadmap as any).name === "string" ? (current.roadmap as any).name : "hiện tại";
+      return {
+        answer: `Bạn đang có lộ trình "${currentName}" đang hoạt động, nên mình chưa tạo lộ trình mới được — mỗi lúc chỉ chạy một lộ trình. Nếu muốn đổi hướng, bạn có thể nói "điều chỉnh lộ trình" để mình sửa lộ trình đang chạy, hoặc vào trang Lộ trình để kết thúc/lưu trữ nó rồi nhắn lại "tạo lộ trình mới".`,
         blocks: [],
       };
     }
@@ -1991,16 +2041,24 @@ export const fitnessAgent = {
       workoutCandidate = null;
     }
 
+    const preview = await fitnessAgentDeps.tools.getNutritionTargetPreview(identity).catch(() => null);
+    const nutritionPreview: NutritionPreview = preview && preview.status !== "insufficient_data" ? (preview as NutritionPreview) : null;
+    const active = await fitnessAgentDeps.tools.getActiveCycle(identity).catch(() => null);
+    const activeCycle = active?.cycle as any;
+    const legacyCycle: LegacyCycle = activeCycle && !activeCycle.roadmapPhaseId
+      ? { id: String(activeCycle.id), name: typeof activeCycle.name === "string" ? activeCycle.name : null, startDate: activeCycle.startDate ? String(activeCycle.startDate) : null }
+      : null;
+
     const action = await prisma.fitnessAgentAction.create({
       data: {
         userId: identity.userId, sessionId, recommendationId: null,
         kind: "CREATE_PLAN_BUNDLE", risk: agentActionRisk("CREATE_PLAN_BUNDLE"),
-        payload: { roadmapDraft: draft, workoutCandidate, preferences, timeframe },
+        payload: { roadmapDraft: draft, workoutCandidate, preferences, timeframe, nutritionPreview, legacyCycle },
         expiresAt: new Date(Date.now() + 15 * 60000),
       },
     });
 
-    const block = buildPlanBundleConfirmationBlock(draft, workoutCandidate, action.id, action.risk, action.expiresAt);
+    const block = buildPlanBundleConfirmationBlock(draft, workoutCandidate, action.id, action.risk, action.expiresAt, nutritionPreview, legacyCycle);
     const timeframeNote = describeTimeframe(timeframe, actualWeeks);
     return {
       answer: draft?.summary
@@ -2073,7 +2131,7 @@ export const fitnessAgent = {
       where: { id: action.id },
       data: { payload: { ...payload, roadmapDraft: draft, constraints, timeframe, lastTouchedAt: new Date().toISOString() }, expiresAt },
     });
-    const block = buildPlanBundleConfirmationBlock(draft, payload.workoutCandidate, action.id, action.risk, expiresAt);
+    const block = buildPlanBundleConfirmationBlock(draft, payload.workoutCandidate, action.id, action.risk, expiresAt, payload.nutritionPreview ?? null, payload.legacyCycle ?? null);
     const timeframeNote = describeTimeframe(timeframe, actualWeeks);
     return {
       answer: draft?.summary

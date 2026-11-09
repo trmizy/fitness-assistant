@@ -153,10 +153,15 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         {Array.isArray(block.summary?.warnings) && block.summary.warnings.length > 0 && <ul className="list-disc space-y-0.5 pl-4 text-amber-300">
           {block.summary.warnings.map((w: string, i: number) => <li key={i} className="break-words">{w}</li>)}
         </ul>}
+        {/* an active cycle outside any roadmap blocks activation; confirming closes exactly this one (history kept) — 2026-11-09 */}
+        {block.summary?.legacyCycle && <p className="text-amber-300 break-words">🔁 Chu kỳ tập đang chạy{block.summary.legacyCycle.name ? ` “${block.summary.legacyCycle.name}”` : ""}{block.summary.legacyCycle.startDate ? ` (từ ${block.summary.legacyCycle.startDate})` : ""} sẽ được kết thúc khi xác nhận — lịch sử buổi tập và kết quả đánh giá vẫn được giữ.</p>}
         {block.summary?.workoutName
           ? <p>🏋️ Chương trình tập: {block.summary.workoutName} · {block.summary.workoutDaysPerWeek} buổi/tuần</p>
           : <p className="text-amber-300">🏋️ Chưa có chương trình tập mẫu khớp với mục tiêu này — khi xác nhận, chỉ lộ trình và dinh dưỡng được áp dụng; sau đó bạn có thể nhờ mình tạo lịch tập riêng.</p>}
-        <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>
+        {/* the numbers confirming will write (fitness /nutrition/target-preview — same engine as the confirm step), 2026-11-09 */}
+        {block.summary?.nutritionPreview
+          ? <p>🥗 Dinh dưỡng{block.summary.nutritionPreview.kept ? " (giữ mục tiêu đang dùng)" : " (ước tính từ hồ sơ/InBody)"}: <strong>{block.summary.nutritionPreview.calories} kcal/ngày</strong> · đạm {block.summary.nutritionPreview.protein} g · tinh bột {block.summary.nutritionPreview.carbs} g · chất béo {block.summary.nutritionPreview.fat} g</p>
+          : <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>}
         {block.risk === "HIGH" && <p className="text-zinc-400">“Rủi ro cao” ở đây nghĩa là thao tác thay đổi dữ liệu thật của bạn (lộ trình, lịch tập, mục tiêu dinh dưỡng) — không phải rủi ro sức khỏe. Bạn có thể nhắn để điều chỉnh trước khi xác nhận.</p>}
       </div>}
       {block.kind === "PT_CLIENT_ACTION_PROPOSAL" && <div className="space-y-2 rounded-lg border border-zinc-700 p-2.5 text-xs">

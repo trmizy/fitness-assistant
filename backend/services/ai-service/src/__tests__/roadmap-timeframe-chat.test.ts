@@ -43,7 +43,7 @@ async function rig(opts: { weeksFor?: (call: any, n: number) => number } = {}) {
   const userId = `tf-chat-${randomUUID()}`;
   const session = await prisma.chatSession.create({ data: { userId, title: "roadmap timeframe" } });
   const calls: any[] = [];
-  fitnessAgentDeps.profileExtractor.extract = (async () => ({ profile: { goal: "WEIGHT_LOSS", age: 30, heightCm: 170, currentWeightKg: 80, gender: "MALE", training: { preferredTrainingDays: [1, 3, 5], trainingDaysPerWeek: 3 } } })) as any;
+  fitnessAgentDeps.profileExtractor.extract = (async () => ({ profile: { goal: "WEIGHT_LOSS", age: 30, heightCm: 170, currentWeightKg: 80, gender: "MALE", activityLevel: "MODERATELY_ACTIVE", training: { preferredTrainingDays: [1, 3, 5], trainingDaysPerWeek: 3 } } })) as any;
   fitnessAgentDeps.tools.generateRoadmapDraft = (async (_i: any, input: any) => {
     calls.push(input);
     const weeks = opts.weeksFor ? opts.weeksFor(input, calls.length) : (input.timeframeWeeks ?? 20);

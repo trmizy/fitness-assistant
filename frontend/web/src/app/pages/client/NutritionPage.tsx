@@ -775,8 +775,10 @@ export function NutritionPage() {
     mutationFn: () => nutritionService.getTargetPreview(true),
     onSuccess: (result) => {
       if (result.status === "insufficient_data") {
-        const missing = result.missingFields?.join(", ") || "hồ sơ/InBody";
-        toast.error(`Chưa đủ dữ liệu để AI đề xuất mục tiêu: ${missing}`);
+        // field names in plain Vietnamese + where to fix them (the toast used to read "...: activityLevel")
+        const LABEL: Record<string, string> = { activityLevel: "mức độ vận động", age: "tuổi", gender: "giới tính", heightCm: "chiều cao", weightKg: "cân nặng", goal: "mục tiêu" };
+        const missing = result.missingFields?.map((f) => LABEL[f] ?? f).join(", ") || "hồ sơ/InBody";
+        toast.error(`Chưa đủ dữ liệu để AI đề xuất mục tiêu: thiếu ${missing}. Bổ sung trong trang Hồ sơ rồi bấm lại.`);
         return;
       }
       setGoalForm({

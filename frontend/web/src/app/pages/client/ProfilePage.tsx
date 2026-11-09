@@ -64,7 +64,9 @@ export function ProfilePage() {
 
   const [editing, setEditing] = useState(false);
   const [goal, setGoal] = useState("lose_fat");
-  const [activity, setActivity] = useState("Vận động vừa");
+  // "" = not chosen yet. It used to default to "Vận động vừa", so a missing activityLevel looked set (AI goal/roadmap then failed
+  // with "thiếu activityLevel"), and an unmatched label was saved as EXTREMELY_ACTIVE (2026-11-09).
+  const [activity, setActivity] = useState("");
   const [diet, setDiet] = useState("Nhiều protein");
 
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -105,7 +107,7 @@ export function ProfilePage() {
           VERY_ACTIVE: "Năng động",
           EXTREMELY_ACTIVE: "Cực kỳ năng động",
         };
-        setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
+        setActivity(activityMap[profileData.activityLevel] || "");
       }
       setDateOfBirth(
         profileData.dateOfBirth
@@ -161,16 +163,8 @@ export function ProfilePage() {
             : goal === "maintain"
               ? "MAINTENANCE"
               : "ATHLETIC_PERFORMANCE",
-      activityLevel:
-        activity === "Ít vận động"
-          ? "SEDENTARY"
-          : activity === "Vận động nhẹ"
-            ? "LIGHTLY_ACTIVE"
-            : activity === "Vận động vừa"
-              ? "MODERATELY_ACTIVE"
-              : activity === "Năng động"
-                ? "VERY_ACTIVE"
-                : "EXTREMELY_ACTIVE",
+      // only a level the user actually chose; never a fallback value
+      activityLevel: ACTIVITY_LEVELS.find((a) => a.label === activity)?.key,
       dateOfBirth: dateOfBirth || undefined,
       gender: gender ? gender.toUpperCase() : undefined,
       heightCm: height ? parseFloat(height) : undefined,
@@ -609,6 +603,7 @@ export function ProfilePage() {
                     onChange={(e) => setActivity(e.target.value)}
                     className={selectClass}
                   >
+                    <option value="">Chưa chọn</option>
                     {activityLevels.map((a) => (
                       <option key={a}>{a}</option>
                     ))}
@@ -620,8 +615,8 @@ export function ProfilePage() {
                     {ACTIVITY_LEVELS.find((x) => x.label === activity)?.hint}
                   </p>
                 ) : (
-                  <div className="text-sm font-medium text-zinc-300 py-2">
-                    {activity}
+                  <div className={`text-sm font-medium py-2 ${activity ? "text-zinc-300" : "text-amber-400"}`}>
+                    {activity || "Chưa chọn — cần cho AI tính mục tiêu dinh dưỡng"}
                   </div>
                 )}
               </div>
