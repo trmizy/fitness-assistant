@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.MINIO_PROXY_TARGET = "http://127.0.0.1:4051";
+process.env.MINIO_PROXY_TARGET = "http://127.0.0.1:4055";
 process.env.PARTNER_S3_PRIVATE_BUCKET = "partner-private-bucket";
 process.env.PT_MEDIA_S3_BUCKET = "pt-media-bucket";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-pt-media-proxy-test";
@@ -27,7 +27,7 @@ test.before(async () => {
     res.writeHead(200, { "Content-Type": "image/jpeg" });
     res.end("jpeg-bytes");
   });
-  await new Promise<void>((resolve) => minio.listen(4051, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => minio.listen(4055, "127.0.0.1", resolve));
   gatewayServer = http.createServer(app);
   await new Promise<void>((resolve) => gatewayServer.listen(0, "127.0.0.1", resolve));
   gatewayPort = (gatewayServer.address() as any).port;

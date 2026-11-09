@@ -26,6 +26,8 @@ import net from "node:net";
 import path from "node:path";
 import { PrismaClient } from "../generated/prisma";
 import { isTestDatabaseUrl } from "./test-db-guard";
+import { insertPolicyReviewFixture } from "./dispute-policy-eligibility.fixture";
+import { registerTestService, registeredTestServices } from "./setup/outbound-guard";
 
 export const PAYMENT_DB_URL =
   process.env.E2E_PAYMENT_DATABASE_URL ??
@@ -192,6 +194,12 @@ ${gymLog.slice(-30).join("")}`);
       await new Promise((r) => setTimeout(r, 250));
     }
   }
+  // Slice 2 safety round: the outbound guard of the test preload refuses every target a test has not registered. These are the services THIS harness starts
+  // in other processes (in-process servers - the user app, the auth fixture - register themselves when they listen). DEAD is the discard port the harness
+  // points unused dependencies at, so that a call to them fails fast with ECONNREFUSED as before.
+  registerTestService(payUrl);
+  registerTestService(DEAD);
+  if (gymChild) registerTestService(gymUrl);
   const onGymExit = () => killTree(gymChild);
   process.on("exit", onGymExit);
   process.env.PAYMENT_SERVICE_URL = payUrl;
@@ -312,6 +320,7 @@ ${gymLog.slice(-30).join("")}`);
   }
 
   await startPayment();
+  console.log(`[outbound-guard] test services registered for this run: ${registeredTestServices().join(", ")}`);
 
   // ── raw SQL view of the payment ledger (an independent reader of the isolated payment test DB) ──
   const payDb = new PrismaClient({ datasourceUrl: paymentDbUrl });
@@ -507,7 +516,7 @@ ${gymLog.slice(-30).join("")}`);
    * settles the ledger and calls user-service /internal/contracts/:id/activate-after-payment, which calls payment-service
    * back to verify the transaction (all real HTTP). Afterwards the contract is ACTIVE and carries the transaction id.
    */
-  async function startCheckout(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms } = {}) {
+  async function startCheckout(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms; eligibility?: false } = {}) {
     const price = over.price ?? 5_000_000;
     const row = await prisma.contract.create({
       data: {
@@ -530,11 +539,13 @@ ${gymLog.slice(-30).join("")}`);
       },
     });
     created.contracts.push(row.id);
+    // TEST FIXTURE (B-1 release gate, D-NEW-12): an approved ELIGIBLE_CURRENT_POLICY review, unless the test is about the guard (eligibility: false).
+    if (over.eligibility !== false) await insertPolicyReviewFixture(prisma, row);
     const paid = await m.contractService.pay(row.id, row.clientUserId, "VNPAY", "web");
     return { row, price, txnId: paid.payment.transactionId as string };
   }
 
-  async function paidContract(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms } = {}) {
+  async function paidContract(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms; eligibility?: false } = {}) {
     const { row, price, txnId } = await startCheckout(ptUserId, over);
     const ipn = await gatewayIpn(txnId, price);
     if (ipn.RspCode !== "00") throw new Error(`gateway IPN refused: ${JSON.stringify(ipn)}`);

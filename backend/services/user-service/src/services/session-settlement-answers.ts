@@ -16,7 +16,7 @@ export function settlingD65bEnabled(): boolean {
   return !["false", "0", "off", "no"].includes(raw);
 }
 
-export type LedgerRefusalCode = "IDEMPOTENCY_KEY_CONFLICT" | "REQUEST_DOES_NOT_MATCH_TRANSACTION";
+export type LedgerRefusalCode = "IDEMPOTENCY_KEY_CONFLICT" | "REQUEST_DOES_NOT_MATCH_TRANSACTION" | "TERMINATE_SNAPSHOT_STALE" | "CONTRACT_ALREADY_TERMINATED";
 
 export interface LedgerRefusal {
   code: LedgerRefusalCode;
@@ -26,6 +26,10 @@ export interface LedgerRefusal {
 const REFUSAL_STATUS: Record<LedgerRefusalCode, number> = {
   IDEMPOTENCY_KEY_CONFLICT: 409,
   REQUEST_DOES_NOT_MATCH_TRANSACTION: 422,
+  // B-1 release gate: the ledger holds a session step the ending's snapshot did not know about; nothing was written, a person reconciles.
+  TERMINATE_SNAPSHOT_STALE: 409,
+  // Final safety gate: a second ending under another key; nothing was written; never retried.
+  CONTRACT_ALREADY_TERMINATED: 409,
 };
 
 /** The refusal an axios-style error carries (or a client-wrapped error with `status` / `code`), or null for anything else. */
@@ -34,8 +38,22 @@ export function ledgerRefusalOf(e: unknown): LedgerRefusal | null {
   const err = e as { response?: { status?: number; data?: { error?: { code?: string; message?: string } } }; status?: number; code?: string; message?: string };
   const status = err.response?.status ?? err.status;
   const code = err.response?.data?.error?.code ?? err.code;
-  if (code !== "IDEMPOTENCY_KEY_CONFLICT" && code !== "REQUEST_DOES_NOT_MATCH_TRANSACTION") return null;
+  if (code !== "IDEMPOTENCY_KEY_CONFLICT" && code !== "REQUEST_DOES_NOT_MATCH_TRANSACTION" && code !== "TERMINATE_SNAPSHOT_STALE" && code !== "CONTRACT_ALREADY_TERMINATED") return null;
   if (status !== REFUSAL_STATUS[code]) return null;
+  return { code, message: err.response?.data?.error?.message ?? err.message ?? code };
+}
+
+/**
+ * D77 final: payment-service refused to settle a session whose late-arrival obligation it cannot settle on its own (409 LATE_OPEN_NEEDS_RECONCILIATION: an outside-the-ledger
+ * payment is open / verified, the obligation is under review ...; 409 LATE_OPEN_FLAG_REQUIRED: the caller did not confirm the late arrival is verified). NOTHING was written.
+ * Retrying produces the same refusal, so the step is parked NEEDS_HUMAN (the existing reconciliation queue); the money stays PENDING in the ledger.
+ */
+export function lateOpenRefusalOf(e: unknown): { code: string; message: string } | null {
+  if (!e || typeof e !== "object") return null;
+  const err = e as { response?: { status?: number; data?: { error?: { code?: string; message?: string } } }; status?: number; code?: string; message?: string };
+  const status = err.response?.status ?? err.status;
+  const code = err.response?.data?.error?.code ?? err.code;
+  if (status !== 409 || (code !== "LATE_OPEN_NEEDS_RECONCILIATION" && code !== "LATE_OPEN_FLAG_REQUIRED")) return null;
   return { code, message: err.response?.data?.error?.message ?? err.message ?? code };
 }
 

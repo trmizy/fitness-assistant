@@ -1,13 +1,18 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, PencilSimpleIcon as Pencil, MagnifyingGlassIcon as Search, NotePencilIcon as NotePencil, EyeIcon as Eye } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
-import { ModerationStatusBadge } from "../../components/gym-management/ModerationStatusBadge";
+import { GymStatusPill } from "./shared/b9aStatusPill";
+import { useRestoreFocus } from "./shared/b9aReturnFocus";
 import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
 import { BranchReviewIssuesPanel } from "../../components/gym-management/BranchReviewIssuesPanel";
 import { BranchReviewDetail } from "../../components/gym-management/BranchReviewDetail";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { DEFAULT_GYM_TAB, GYM_TABS, parseGymTab, parseIdParam, shortRef, type GymTab } from "./shared/b9aUrlState";
+import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
 
 /**
  * Vòng 4 / Phase C — there was no admin-facing gym/brand moderation screen at all before this
@@ -37,7 +42,7 @@ import { BranchReviewDetail } from "../../components/gym-management/BranchReview
  * already-disabled zzz-test-* leftovers.
  */
 
-type Tab = "pending" | "gym-renames" | "brand-renames" | "closed" | "all-gyms";
+type Tab = GymTab;
 
 function formatDateTime(iso?: string | null) {
   if (!iso) return "—";
@@ -46,22 +51,33 @@ function formatDateTime(iso?: string | null) {
 }
 
 export function AdminGymModeration() {
-  const [tab, setTab] = useState<Tab>("pending");
+  // B9a: tab và chi nhánh đang xem chi tiết nằm trên URL (?tab=&id=).
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = parseGymTab(params.get("tab"));
+  const detailTargetId = parseIdParam(params.get("id"));
+  const setTab = (next: Tab) => setParams(next === DEFAULT_GYM_TAB ? {} : { tab: next });
+  const setDetailTargetId = (id: string | null) =>
+    setParams(id ? { ...(tab === DEFAULT_GYM_TAB ? {} : { tab }), id } : tab === DEFAULT_GYM_TAB ? {} : { tab });
   const queryClient = useQueryClient();
 
-  const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
+  const { data: gyms = [], isLoading: gymsLoading, isError: gymsError, error: gymsErr, refetch: refetchGyms, dataUpdatedAt: gymsUpdatedAt } = useQuery<Gym[]>({
     queryKey: ["admin-gyms"],
     queryFn: () => adminService.listGymsForAdmin(),
   });
-  const { data: brands = [], isLoading: brandsLoading } = useQuery<GymBrand[]>({
+  const { data: brands = [], isLoading: brandsLoading, isError: brandsError, refetch: refetchBrands } = useQuery<GymBrand[]>({
     queryKey: ["admin-brands"],
     queryFn: () => adminService.listBrandsForAdmin(),
   });
-  const { data: permanentlyClosed = [], isLoading: closedLoading } = useQuery<(Gym & { activeMembershipCount: number })[]>({
+  const { data: permanentlyClosed = [], isLoading: closedLoading, isError: closedError, refetch: refetchClosed } = useQuery<(Gym & { activeMembershipCount: number })[]>({
     queryKey: ["admin-gyms-permanently-closed"],
     queryFn: () => adminService.listPermanentlyClosedGyms(),
   });
 
+  // Duyệt / từ chối chi nhánh đều phải xác nhận trước khi gửi. Backend (PATCH /admin/gyms/:id/status)
+  // chỉ nhận { status } — chưa có trường lý do, nên chỉ xác nhận, không bắt nhập lý do.
+  const [statusConfirm, setStatusConfirm] = useState<{ gym: Gym; status: "APPROVED" | "REJECTED" } | null>(null);
+
+  useRestoreFocus(!!statusConfirm);
   const invalidateGyms = () => queryClient.invalidateQueries({ queryKey: ["admin-gyms"] });
   const invalidateBrands = () => queryClient.invalidateQueries({ queryKey: ["admin-brands"] });
 
@@ -108,7 +124,6 @@ export function AdminGymModeration() {
   const [branchReviewTargetId, setBranchReviewTargetId] = useState<string | null>(null);
   // GYM_BRANCH_FORM_SPEC.md, Phase 6 — admin review workspace: everything the wizard
   // collected, shown before "Duyệt" is a blind click off a bare name/address card.
-  const [detailTargetId, setDetailTargetId] = useState<string | null>(null);
   const requestBranchChangesMutation = useMutation({
     mutationFn: (payload: { id: string; issues: { category: any; message: string }[] }) =>
       adminService.requestBranchChanges(payload.id, payload.issues),
@@ -153,6 +168,7 @@ export function AdminGymModeration() {
     return name.includes(q) || address.includes(q) || (g.city ?? "").toLowerCase().includes(q);
   });
 
+  const unknownDetailId = tab === "pending" && !!detailTargetId && !gymsLoading && !gymsError && !pendingGyms.some((g) => g.id === detailTargetId);
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: "pending", label: "Chờ duyệt lần đầu", count: pendingGyms.length },
     { key: "gym-renames", label: "Đổi tên/địa chỉ gym", count: gymsWithPendingRename.length },
@@ -165,7 +181,7 @@ export function AdminGymModeration() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Building2 className="w-5 h-5 text-green-400" /> Quản lý Gym
+          <Building2 className="w-5 h-5 text-st-success" /> Quản lý Gym
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
           Duyệt phòng gym mới, duyệt đổi tên/địa chỉ, duyệt đổi tên thương hiệu, sửa trực tiếp
@@ -175,11 +191,25 @@ export function AdminGymModeration() {
         </p>
       </div>
 
-      <div data-testid="admin-gym-moderation-tabs" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
+      {gymsUpdatedAt > 0 && (
+        <p data-testid="admin-gym-updated" className="-mt-4 text-xs tabular-nums text-zinc-500">
+          Cập nhật lúc {new Date(gymsUpdatedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        </p>
+      )}
+
+      {unknownDetailId && (
+        <div role="status" data-testid="admin-gym-unknown-id" className="rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-xs text-st-warning flex items-center justify-between gap-3">
+          <span>Không tìm thấy chi nhánh <span className="font-mono">{shortRef(detailTargetId)}</span> trong danh sách chờ duyệt lần đầu — có thể đã được xử lý. Đang hiện danh sách.</span>
+          <button onClick={() => setDetailTargetId(null)} className="font-bold underline shrink-0">Đóng</button>
+        </div>
+      )}
+
+      <div data-testid="admin-gym-moderation-tabs" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Các mục kiểm duyệt chi nhánh" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
         {TABS.map((t) => (
           <button
             key={t.key}
             data-testid={`admin-gym-tab-${t.key}`}
+            {...tabProps(tab === t.key)}
             onClick={() => setTab(t.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               tab === t.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"
@@ -187,16 +217,41 @@ export function AdminGymModeration() {
           >
             {t.label}
             {t.count > 0 && (
-              <span className={`text-[10px] px-1.5 rounded-full ${tab === t.key ? "bg-black/20" : "bg-amber-500/20 text-amber-400"}`}>{t.count}</span>
+              <span className={`text-[10px] px-1.5 rounded-full ${tab === t.key ? "bg-black/20" : "bg-amber-500/20 text-st-warning"}`}>{t.count}</span>
             )}
           </button>
         ))}
       </div>
 
+      <ConfirmDialog
+        open={!!statusConfirm}
+        onOpenChange={(o) => !o && setStatusConfirm(null)}
+        title={statusConfirm?.status === "APPROVED" ? "Duyệt chi nhánh này?" : "Từ chối chi nhánh này?"}
+        description={
+          statusConfirm?.status === "APPROVED"
+            ? `Chi nhánh "${statusConfirm?.gym.name}" sẽ được hiển thị công khai và nhận hội viên. Nếu là chi nhánh đầu tiên của thương hiệu thì tên thương hiệu cũng được duyệt theo.`
+            : `Chi nhánh "${statusConfirm?.gym.name}" sẽ bị từ chối và không được hiển thị công khai. Chủ gym sẽ thấy trạng thái bị từ chối.`
+        }
+        confirmLabel={statusConfirm?.status === "APPROVED" ? "Duyệt" : "Từ chối"}
+        danger={statusConfirm?.status === "REJECTED"}
+        onConfirm={async () => {
+          if (!statusConfirm) return;
+          const { gym, status } = statusConfirm;
+          try {
+            await setStatusMutation.mutateAsync({ id: gym.id, status });
+          } catch {
+            /* onError của mutation đã hiện thông báo */
+          }
+          setStatusConfirm(null);
+        }}
+      />
+
       {tab === "pending" && (
         <div className="space-y-3">
           {gymsLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+            <ListSkeleton />
+          ) : gymsError ? (
+            <ErrorState error={gymsErr} onRetry={() => void refetchGyms()} />
           ) : pendingGyms.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đang chờ duyệt lần đầu." icon={Building2} />
           ) : (
@@ -209,14 +264,14 @@ export function AdminGymModeration() {
                     {g.brand && (
                       <p className="text-[11px] text-zinc-600 mt-1">
                         Thương hiệu: {g.brand.name}
-                        {g.brand.approvedName == null && <span className="text-amber-400 font-semibold"> · chi nhánh đầu tiên, tên thương hiệu cũng đang chờ duyệt</span>}
+                        {g.brand.approvedName == null && <span className="text-st-warning font-semibold"> · chi nhánh đầu tiên, tên thương hiệu cũng đang chờ duyệt</span>}
                       </p>
                     )}
                   </div>
-                  <ModerationStatusBadge status={g.status} />
+                  <GymStatusPill status={g.status} />
                 </div>
 
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-3">
                   <button
                     data-testid="admin-gym-view-detail-button"
                     onClick={() => setDetailTargetId(detailTargetId === g.id ? null : g.id)}
@@ -226,7 +281,7 @@ export function AdminGymModeration() {
                   </button>
                   <button
                     data-testid="admin-gym-approve-button"
-                    onClick={() => setStatusMutation.mutate({ id: g.id, status: "APPROVED" })}
+                    onClick={() => setStatusConfirm({ gym: g, status: "APPROVED" })}
                     disabled={setStatusMutation.isPending}
                     className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
@@ -235,15 +290,15 @@ export function AdminGymModeration() {
                   <button
                     data-testid="admin-gym-request-changes-button"
                     onClick={() => setBranchReviewTargetId(branchReviewTargetId === g.id ? null : g.id)}
-                    className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 border border-amber-500/30 text-st-warning hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   >
                     <NotePencil className="w-3.5 h-3.5" /> Yêu cầu chỉnh sửa
                   </button>
                   <button
                     data-testid="admin-gym-reject-button"
-                    onClick={() => setStatusMutation.mutate({ id: g.id, status: "REJECTED" })}
+                    onClick={() => setStatusConfirm({ gym: g, status: "REJECTED" })}
                     disabled={setStatusMutation.isPending}
-                    className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 border border-red-500/30 text-st-danger hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   >
                     <X className="w-3.5 h-3.5" /> Từ chối
                   </button>
@@ -275,7 +330,9 @@ export function AdminGymModeration() {
       {tab === "gym-renames" && (
         <div className="space-y-3">
           {gymsLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+            <ListSkeleton />
+          ) : gymsError ? (
+            <ErrorState error={gymsErr} onRetry={() => void refetchGyms()} />
           ) : gymsWithPendingRename.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đang chờ duyệt đổi tên/địa chỉ." icon={Building2} />
           ) : (
@@ -284,13 +341,13 @@ export function AdminGymModeration() {
                 {g.pendingName && (
                   <div className="text-xs">
                     <span className="text-zinc-600">Tên hiện đang hiển thị: </span><span className="text-zinc-400">{g.approvedName ?? g.name}</span>
-                    <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-amber-400 font-semibold">{g.pendingName}</span>
+                    <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-st-warning font-semibold">{g.pendingName}</span>
                   </div>
                 )}
                 {g.pendingAddress && (
                   <div className="text-xs">
                     <span className="text-zinc-600">Địa chỉ hiện đang hiển thị: </span><span className="text-zinc-400">{g.approvedAddress ?? g.address}</span>
-                    <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-amber-400 font-semibold">{g.pendingAddress}</span>
+                    <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-st-warning font-semibold">{g.pendingAddress}</span>
                   </div>
                 )}
 
@@ -309,7 +366,7 @@ export function AdminGymModeration() {
                   </button>
                   <button
                     onClick={() => setRequestChangesTargetId(requestChangesTargetId === g.id ? null : g.id)}
-                    className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 border border-amber-500/30 text-st-warning hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   >
                     <NotePencil className="w-3.5 h-3.5" /> Yêu cầu chỉnh sửa
                   </button>
@@ -329,7 +386,9 @@ export function AdminGymModeration() {
       {tab === "brand-renames" && (
         <div className="space-y-3">
           {brandsLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+            <ListSkeleton />
+          ) : brandsError ? (
+            <ErrorState error={undefined} onRetry={() => void refetchBrands()} />
           ) : brandsWithPendingRename.length === 0 ? (
             <EmptyState text="Không có thương hiệu nào đang chờ duyệt đổi tên." icon={Store} />
           ) : (
@@ -338,7 +397,7 @@ export function AdminGymModeration() {
                 <div className="text-xs">
                   <span className="text-zinc-600">Tên hiện đang hiển thị: </span>
                   <span className="text-zinc-400">{b.approvedName ?? "(chưa từng được duyệt)"}</span>
-                  <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-amber-400 font-semibold">{b.pendingName}</span>
+                  <span className="text-zinc-600"> → chờ duyệt: </span><span className="text-st-warning font-semibold">{b.pendingName}</span>
                 </div>
                 <button
                   data-testid="admin-brand-approve-rename-button"
@@ -362,7 +421,9 @@ export function AdminGymModeration() {
             viên. Trang này chỉ để biết phòng gym nào cần xử lý.
           </p>
           {closedLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+            <ListSkeleton />
+          ) : closedError ? (
+            <ErrorState error={undefined} onRetry={() => void refetchClosed()} />
           ) : permanentlyClosed.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đã đóng cửa vĩnh viễn." icon={AlertTriangle} />
           ) : (
@@ -374,7 +435,7 @@ export function AdminGymModeration() {
                     <p className="text-xs text-zinc-500 mt-0.5">Đóng cửa lúc {formatDateTime(g.closedAt)}{g.closureReason ? ` — ${g.closureReason}` : ""}</p>
                   </div>
                   {g.activeMembershipCount > 0 ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-red-400 whitespace-nowrap flex items-center gap-1">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-st-danger whitespace-nowrap flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" /> {g.activeMembershipCount} hội viên cần hoàn tiền
                     </span>
                   ) : (
@@ -399,7 +460,9 @@ export function AdminGymModeration() {
             />
           </div>
           {gymsLoading ? (
-            <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+            <ListSkeleton />
+          ) : gymsError ? (
+            <ErrorState error={gymsErr} onRetry={() => void refetchGyms()} />
           ) : filteredGyms.length === 0 ? (
             <EmptyState text="Không tìm thấy chi nhánh nào." icon={Building2} />
           ) : (
@@ -480,7 +543,7 @@ export function AdminGymModeration() {
                           )}
                           {g.brand && <p className="text-[11px] text-zinc-600 mt-1">Thương hiệu: {g.brand.name}</p>}
                         </div>
-                        <ModerationStatusBadge status={g.status} />
+                        <GymStatusPill status={g.status} />
                       </div>
                       <button
                         data-testid="admin-gym-edit-button"
@@ -507,6 +570,29 @@ export function AdminGymModeration() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div data-testid="admin-gym-skeleton" aria-busy="true" className="space-y-3">
+      {[0, 1].map((i) => (
+        <div key={i} className="h-24 rounded-xl border border-zinc-800/60 bg-zinc-900/60 animate-pulse motion-reduce:animate-none" />
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({ onRetry, error }: { onRetry: () => void; error?: unknown }) {
+  const forbidden = (error as { response?: { status?: number } } | null | undefined)?.response?.status === 403;
+  return (
+    <div role="alert" data-testid="admin-gym-load-error" className="bg-st-danger-bg border border-st-danger-border rounded-2xl py-10 text-center">
+      <AlertTriangle className="w-8 h-8 text-st-danger mx-auto mb-2" />
+      <p className="text-st-danger text-sm mb-3">{forbidden ? "Bạn không có quyền xem danh sách chi nhánh." : "Không tải được dữ liệu. Danh sách chưa thể hiển thị."}</p>
+      <button onClick={onRetry} className="border border-st-danger-border text-st-danger hover:bg-st-danger-bg px-3 py-1.5 rounded-lg text-xs font-medium">
+        Thử lại
+      </button>
     </div>
   );
 }

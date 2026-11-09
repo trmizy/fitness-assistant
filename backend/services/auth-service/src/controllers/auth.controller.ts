@@ -497,6 +497,27 @@ export const authController = {
     }
   },
 
+  /** Read-only, service-secret: ACTIVE ADMIN accounts (id + names only) for the dispute assignee picker. */
+  async listActiveAdminsInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      if (!INTERNAL_SERVICE_SECRET) {
+        res.status(503).json({ error: "Internal endpoint disabled" });
+        return;
+      }
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(401).json({ error: "Invalid service secret" });
+        return;
+      }
+      const admins = await authRepository.listActiveAdminsMinimal();
+      res.json({ admins });
+    } catch (error: any) {
+      logger.error(error, "Internal list admins error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   async getUserInternal(req: Request, res: Response): Promise<void> {
     try {
       const serviceSecret = req.headers["x-service-secret"];

@@ -298,9 +298,10 @@ export type NotificationEventType =
   | "WORKOUT_RESCHEDULED"
   | "WORKOUT_UNFINISHED"
   | "TRAINING_PLAN_UPDATED"
-  | "PT_FEEDBACK_RECEIVED";
+  | "PT_FEEDBACK_RECEIVED"
+  | "DISPUTE_CASE_UPDATED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE";
 
 export interface AppNotification {
   id: string;

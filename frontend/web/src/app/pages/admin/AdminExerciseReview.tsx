@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { useModalA11y } from "./shared/useModalA11y";
 import { ArrowsLeftRightIcon as GitCompare, MagnifyingGlassIcon as Search, XIcon as X, CheckIcon as Check, LinkSimpleIcon as Link2, PlusCircleIcon as PlusCircle, QuestionIcon as HelpCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, ShieldWarningIcon as ShieldAlert, ClockCounterClockwiseIcon as History } from "@phosphor-icons/react";
 import {
   exerciseReviewService,
@@ -61,6 +62,9 @@ export function AdminExerciseReview() {
   const [decisionTier, setDecisionTier] = useState<string>("");
   const [search, setSearch] = useState("");
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const detailPanelRef = useRef<HTMLDivElement>(null);
+  const detailTitleId = useId();
+  useModalA11y(detailPanelRef, () => setSelectedRef(null), !!selectedRef);
   useBackDismissible(!!selectedRef, () => setSelectedRef(null));
   const [pendingDecision, setPendingDecision] = useState<(typeof DECISION_OPTIONS)[number] | null>(null);
   const [note, setNote] = useState("");
@@ -161,6 +165,7 @@ export function AdminExerciseReview() {
           </button>
         ))}
         <select
+          aria-label="Lọc theo mức độ trùng"
           value={decisionTier}
           onChange={(e) => setDecisionTier(e.target.value)}
           className="px-3 py-1.5 rounded-lg text-xs border border-zinc-700/40 bg-zinc-900/60 text-zinc-300"
@@ -200,13 +205,18 @@ export function AdminExerciseReview() {
       {selectedRef && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setSelectedRef(null)}>
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/40 bg-zinc-900 p-6 space-y-5"
+            ref={detailPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={detailTitleId}
+            tabIndex={-1}
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/40 bg-zinc-900 p-6 space-y-5 outline-none"
             onClick={(e) => e.stopPropagation()}
             data-testid="exercise-review-detail-modal"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg text-zinc-100 font-semibold">So sánh chi tiết</h2>
-              <button onClick={() => setSelectedRef(null)} className="text-zinc-500 hover:text-zinc-300">
+              <h2 id={detailTitleId} className="text-lg text-zinc-100 font-semibold">So sánh chi tiết</h2>
+              <button type="button" aria-label="Đóng" onClick={() => setSelectedRef(null)} className="grid size-8 place-items-center rounded-md text-zinc-500 hover:text-zinc-300">
                 <X className="w-5 h-5" />
               </button>
             </div>

@@ -22,6 +22,7 @@ import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
 import adminUsersRoutes from "./routes/admin-users.routes";
 import adminOverviewRoutes from "./routes/admin-overview.routes";
+import disputeCaseRoutes from "./routes/dispute-case.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 import mediaRoutes from "./routes/media.routes";
 
@@ -143,6 +144,9 @@ app.use("/admin", adminUsersRoutes);
 // GET /admin/dashboard, GET /admin/system-monitor — AWS replacement for the gateway aggregations.
 app.use("/admin", adminOverviewRoutes);
 app.use("/admin", adminRoutes);
+
+// Dispute Case (slice 1), party side: the client / PT of a case read their own redacted view and submit statements and evidence metadata.
+app.use("/dispute-cases", disputeCaseRoutes);
 
 // Public media: PT physique photos (302 to a short presigned GET, only for PUBLISHED photos of a visible trainer).
 app.use("/media", mediaRoutes);

@@ -54,6 +54,19 @@ function codedError(message: string, status: number, code: string) {
   return Object.assign(new Error(message), { status, code });
 }
 
+/** A client may have live (non-terminal) session-package contracts or requests with at most this many DIFFERENT PTs at
+ *  once. Pending review / signature / payment count as well as ACTIVE; marketplace orders do not. */
+export const MAX_LIVE_PTS_PER_CLIENT = 2;
+/** 409 - the client already has live contracts/requests with MAX_LIVE_PTS_PER_CLIENT other PTs. */
+export const CLIENT_PT_LIMIT_REACHED = "CLIENT_PT_LIMIT_REACHED";
+function clientPtLimitError() {
+  return codedError(
+    `Bạn đang có hợp đồng hoặc yêu cầu hợp đồng với ${MAX_LIVE_PTS_PER_CLIENT} huấn luyện viên. Mỗi học viên chỉ tập cùng lúc tối đa ${MAX_LIVE_PTS_PER_CLIENT} huấn luyện viên — hãy kết thúc hoặc hủy một hợp đồng trước khi đăng ký thêm.`,
+    409,
+    CLIENT_PT_LIMIT_REACHED,
+  );
+}
+
 /** Machine-readable code of the 409 activate-after-payment answers when the contract cannot be
  * activated by the payment that just landed. payment-service matches on it to refund the
  * client — keep the two in step (payment-service reconciliation.service.ts). */
@@ -674,6 +687,10 @@ export const contractService = {
     if (existing) {
       throw err("Bạn đang có hợp đồng hoặc yêu cầu hợp đồng còn hiệu lực với huấn luyện viên này", 409);
     }
+    // 5b. At most MAX_LIVE_PTS_PER_CLIENT different PTs at once (fast refusal; re-checked under lock below).
+    if ((await contractRepository.findOtherLivePtsForClient(clientUserId, data.ptUserId)).length >= MAX_LIVE_PTS_PER_CLIENT) {
+      throw clientPtLimitError();
+    }
 
     // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
     //    the client request. This is the security-critical step.
@@ -695,6 +712,12 @@ export const contractService = {
       await contractRepository.lockPtClientPair(tx, data.ptUserId, clientUserId);
       if (await contractRepository.findActiveByPair(data.ptUserId, clientUserId, tx)) {
         throw err("Bạn đang có hợp đồng hoặc yêu cầu hợp đồng còn hiệu lực với huấn luyện viên này", 409);
+      }
+      // Per-client PT cap race guard: two concurrent requests to two DIFFERENT PTs hold different pair locks, so
+      // serialise on the client too (always after the pair lock) and count again.
+      await contractRepository.lockClientPtSlots(tx, clientUserId);
+      if ((await contractRepository.findOtherLivePtsForClient(clientUserId, data.ptUserId, tx)).length >= MAX_LIVE_PTS_PER_CLIENT) {
+        throw clientPtLimitError();
       }
       const locked = await ptServicePackageRepository.findByIdForShare(data.packageId, tx);
       if (!locked) throw err("Gói dịch vụ không tồn tại", 404);

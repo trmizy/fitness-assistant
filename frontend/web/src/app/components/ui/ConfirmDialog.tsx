@@ -12,6 +12,15 @@ import {
 } from "./alert-dialog";
 import { Button } from "./button";
 
+/**
+ * Non-danger confirm button. The `default` Button variant is `--button-bg` emerald-600 (#059669) with white text in the
+ * light theme = 3.76:1 (fails WCAG AA for 14px text). Light uses `--st-success` (#047857) on `--primary-foreground`
+ * (white) = 5.48:1; dark keeps the original `--button-bg` / `--button-text` pair (6.5:1), so only light changes.
+ * (`text-white` is avoided on purpose: theme.css remaps `.text-white` to the body text colour in the light theme.)
+ */
+const CONFIRM_CLASS =
+  "bg-[var(--st-success)] text-[var(--primary-foreground)] hover:brightness-95 dark:bg-[var(--button-bg)] dark:text-[var(--button-text)] dark:hover:brightness-110";
+
 export interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,12 +70,17 @@ export function ConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
+          {description && <AlertDialogDescription className="text-adm-text-2">{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Huỷ</AlertDialogCancel>
-          <Button variant={danger ? "destructive" : "default"} disabled={confirmDisabled || pending} onClick={handleConfirm}>
+          <Button
+            variant={danger ? "destructive" : "default"}
+            className={danger ? undefined : CONFIRM_CLASS}
+            disabled={confirmDisabled || pending}
+            onClick={handleConfirm}
+          >
             {pending && <CircleNotchIcon className="size-4 animate-spin" />}
             {confirmLabel}
           </Button>

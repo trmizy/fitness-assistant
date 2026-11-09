@@ -10,7 +10,9 @@
  *
  * NO static data, NO mock cards, NO placeholder charts.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -24,8 +26,14 @@ import {
   CartesianGrid,
 } from "recharts";
 import { BrainIcon as Brain, WarningIcon as AlertTriangle, PulseIcon as Activity, ArrowsClockwiseIcon as RefreshCw, ClockIcon as Clock, CircleNotchIcon as Loader2, CaretRightIcon as ChevronRight, XIcon as X, StackIcon as Layers, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, LightningIcon as Zap, TranslateIcon as Languages, FunnelIcon as Filter, MagnifyingGlassIcon as Search, ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight } from "@phosphor-icons/react";
-import { adminService } from "../../services/api";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { adminService, api } from "../../services/api";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { PageSkeleton } from "../../components/ui/PageSkeleton";
+import { ErrorState } from "../../components/ui/ErrorState";
+import { describeAdminError, errorStateKind, type AdminErrorView } from "./shared/useAdminError";
+import { parseIdParam, shortRef } from "./shared/b9aUrlState";
+import { useReturnFocus } from "./shared/b9aReturnFocus";
+import { buildAiParams, parseAiFilter, parseAiTab, parsePageParam } from "./shared/b9bUrlState";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -265,17 +273,17 @@ const STATUS_LABEL_VI: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   QUEUED: "text-zinc-400 bg-zinc-800",
-  PROCESSING: "text-blue-400 bg-blue-500/10",
-  COMPLETED: "text-green-400 bg-green-500/10",
-  FAILED: "text-red-400 bg-red-500/10",
-  RUNNING: "text-blue-400 bg-blue-500/10",
-  SUCCESS: "text-green-400 bg-green-500/10",
-  PENDING: "text-amber-400 bg-amber-500/10",
-  APPROVED: "text-green-400 bg-green-500/10",
-  REJECTED: "text-red-400 bg-red-500/10",
-  REVIEW: "text-amber-400 bg-amber-500/10",
-  SCORED: "text-blue-400 bg-blue-500/10",
-  EMBEDDED: "text-green-400 bg-green-500/10",
+  PROCESSING: "text-st-info bg-st-info-bg",
+  COMPLETED: "text-st-success bg-st-success-bg",
+  FAILED: "text-st-danger bg-st-danger-bg",
+  RUNNING: "text-st-info bg-st-info-bg",
+  SUCCESS: "text-st-success bg-st-success-bg",
+  PENDING: "text-st-warning bg-st-warning-bg",
+  APPROVED: "text-st-success bg-st-success-bg",
+  REJECTED: "text-st-danger bg-st-danger-bg",
+  REVIEW: "text-st-warning bg-st-warning-bg",
+  SCORED: "text-st-info bg-st-info-bg",
+  EMBEDDED: "text-st-success bg-st-success-bg",
 };
 
 const INTENT_COLORS = [
@@ -423,7 +431,7 @@ function StatusBadge({ status }: { status: string }) {
 function FallbackBadge({ used }: { used: boolean }) {
   if (!used) return null;
   return (
-    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-amber-400 bg-amber-500/10">
+    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-st-warning bg-st-warning-bg">
       dự phòng
     </span>
   );
@@ -431,12 +439,14 @@ function FallbackBadge({ used }: { used: boolean }) {
 
 // ─── Trace detail drawer ──────────────────────────────────────────────────────
 
-function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
-  // The whole component is the drawer, so it only exists while open.
-  useBackDismissible(true, onClose);
+function TraceDrawer({ id, onClose, onMissing }: { id: string; onClose: () => void; onMissing: () => void }) {
+  // Mounted only while open; Radix Dialog gives the focus trap, Esc and Android-Back handling.
+  const ret = useReturnFocus("[data-trace-opener]");
   const [detail, setDetail] = useState<RequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const onMissingRef = useRef(onMissing);
+  onMissingRef.current = onMissing;
 
   useEffect(() => {
     setLoading(true);
@@ -446,33 +456,24 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         if (res.success) setDetail(res.data.conversation);
         else setError("Không tải được chi tiết");
       })
-      .catch((err: unknown) => setError((err as Error).message))
+      .catch((err: unknown) => {
+        const v = describeAdminError(err);
+        if (v.status === 404) onMissingRef.current();
+        else setError(v.message);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-
-      {/* Drawer */}
-      <div className="relative w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 overflow-y-auto flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
-          <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-semibold text-zinc-200">
-              Chi tiết yêu cầu
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" data-testid="ai-trace" onCloseAutoFocus={ret.onCloseAutoFocus}>
+        <DialogHeader className="border-b border-zinc-800 px-5 py-4 pr-12">
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Brain className="w-4 h-4 text-violet-400" aria-hidden /> Chi tiết yêu cầu
+          </DialogTitle>
+          <DialogDescription className="sr-only">Nội dung câu hỏi, câu trả lời và các chỉ số của một yêu cầu AI.</DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto">
         <div className="p-5 flex-1">
           {loading && (
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
@@ -510,7 +511,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
                   <div className="text-[10px] text-zinc-600 mb-1">Ý định</div>
-                  <div className="text-xs text-violet-400 font-medium truncate">
+                  <div className="text-xs text-st-info font-medium truncate">
                     {detail.routeIntent ?? "—"}
                   </div>
                 </div>
@@ -537,15 +538,13 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {/* Flags */}
               <div className="flex flex-wrap gap-2">
                 {detail.usedFallback && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Qdrant không truy xuất được
-                    (fallback)
+                  <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-st-warning-bg text-st-warning border border-amber-500/20">
+                    <AlertTriangle className="w-3 h-3" /> Qdrant không truy xuất được (dự phòng)
                   </span>
                 )}
                 {detail.usedDeterministicFallback && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Bị kiểm tra từ chối
-                    LLM answer (deterministic used)
+                  <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-st-warning-bg text-st-warning border border-orange-500/20">
+                    <AlertTriangle className="w-3 h-3" /> Câu trả lời của mô hình bị kiểm tra từ chối (dùng phương án dự phòng cố định)
                   </span>
                 )}
                 {detail.relevance && (
@@ -554,11 +553,11 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                       detail.relevance === "RELEVANT"
                         ? "bg-green-500/10 text-green-400 border-green-500/20"
                         : detail.relevance === "PARTLY_RELEVANT"
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          ? "bg-st-warning-bg text-st-warning border-amber-500/20"
                           : "bg-red-500/10 text-red-400 border-red-500/20"
                     }`}
                   >
-                    Relevance: {detail.relevance}
+                    Mức liên quan: {detail.relevance}
                   </span>
                 )}
               </div>
@@ -604,8 +603,57 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── OCR InBody stats (moved here from the old dashboard, B9b) ───────────────
+
+/**
+ * "Thống kê quét InBody OCR (7 ngày)" — same endpoint as the old "Tổng quan" dashboard: GET /admin/dashboard
+ * → data.ocrStats {total, extracted, manual, pending}, same query key ["admin-dashboard"]. Loading and error
+ * never show 0; the block fails on its own without blocking the AI figures.
+ */
+function OcrStatsCard() {
+  const q = useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: async () => {
+      const { data } = await api.get("/admin/dashboard");
+      return data.data;
+    },
+  });
+  const o = q.data?.ocrStats as { total: number; extracted: number; manual: number; pending: number } | undefined;
+  const err = q.isError ? describeAdminError(q.error) : null;
+  return (
+    <section aria-labelledby="ocr-stats-h" data-testid="ocr-stats" className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
+      <h2 id="ocr-stats-h" className="text-sm font-semibold text-zinc-200 mb-3">Thống kê quét InBody OCR (7 ngày)</h2>
+      {q.isLoading ? (
+        <div role="status" data-testid="ocr-stats-loading" aria-busy="true" aria-label="Đang tải thống kê OCR"><PageSkeleton variant="list" rows={1} /></div>
+      ) : err ? (
+        <div role="alert" data-testid="ocr-stats-error" className="flex items-center justify-between gap-3 text-xs text-st-danger">
+          <span>Không tải được thống kê quét InBody. {err.message}</span>
+          {err.kind !== "forbidden" && <button onClick={() => q.refetch()} className="font-bold underline shrink-0">Thử lại</button>}
+        </div>
+      ) : !o ? (
+        <p className="text-xs text-zinc-500">Chưa có số liệu quét InBody.</p>
+      ) : (
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { k: "Tổng lượt quét", v: o.total },
+            { k: "AI đọc được", v: o.extracted },
+            { k: "Nhập tay", v: o.manual },
+            { k: "Chờ AI xử lý", v: o.pending },
+          ].map((x) => (
+            <div key={x.k} className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
+              <dt className="text-xs text-zinc-500">{x.k}</dt>
+              <dd className="mt-1 text-2xl font-bold text-zinc-100">{(x.v ?? 0).toLocaleString("vi-VN")}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
   );
 }
 
@@ -619,16 +667,23 @@ export function AdminAIObservability() {
   const [knowledge, setKnowledge] = useState<KnowledgeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<AdminErrorView | null>(null);
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
   const [knowledgeBusy, setKnowledgeBusy] = useState<string | null>(null);
   const [knowledgeEmbed, setKnowledgeEmbed] = useState(true);
   const [knowledgeForce, setKnowledgeForce] = useState(false);
   const [knowledgeLimit, setKnowledgeLimit] = useState(10);
-  const [activeTab, setActiveTab] = useState<AdminTab>("requests");
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  const activeTab: AdminTab = parseAiTab(params.get("tab"));
+  const filter: FilterType = parseAiFilter(params.get("filter"));
+  const page = parsePageParam(params.get("page"));
+  const selectedId = parseIdParam(params.get("id"));
+  const [missingTrace, setMissingTrace] = useState<string | null>(null);
+  const setUrl = (next: { tab?: AdminTab; filter?: FilterType; page?: number; id?: string | null }, replace = false) =>
+    setParams(buildAiParams({ tab: activeTab, filter, page, id: selectedId, ...next }), { replace });
+  const setActiveTab = (tab: AdminTab) => setUrl({ tab, id: null });
+  const setSelectedId = (id: string | null, replace = false) => setUrl({ id }, replace);
+  const loadedOnce = useRef(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const fetchAll = useCallback(
@@ -768,10 +823,9 @@ export function AdminAIObservability() {
 
         setApiError(null);
       } catch (err: unknown) {
-        setApiError(
-          (err as Error).message || "Không tải được dữ liệu giám sát",
-        );
+        setApiError(describeAdminError(err));
       } finally {
+        loadedOnce.current = true;
         setLoading(false);
         setRefreshing(false);
         setLastRefresh(new Date());
@@ -780,13 +834,16 @@ export function AdminAIObservability() {
     [filter, page],
   );
 
+  // First load shows the skeleton; later filter/page changes refresh in place (same requests, no flash).
   useEffect(() => {
-    fetchAll();
+    fetchAll(loadedOnce.current);
   }, [fetchAll]);
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s — skipped while the tab is hidden (nobody is looking; react-query polling elsewhere pauses the same way).
   useEffect(() => {
-    const t = setInterval(() => fetchAll(true), 30_000);
+    const t = setInterval(() => {
+      if (document.visibilityState !== "hidden") fetchAll(true);
+    }, 30_000);
     return () => clearInterval(t);
   }, [fetchAll]);
 
@@ -810,28 +867,28 @@ export function AdminAIObservability() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
-        <span className="ml-2 text-zinc-400 text-sm">
-          Loading AI observability data…
-        </span>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5" role="status" data-testid="ai-loading" aria-busy="true" aria-label="Đang tải dữ liệu giám sát AI">
+        <h1 className="text-zinc-100 flex items-center gap-2 text-lg font-semibold">
+          <Brain className="w-5 h-5 text-violet-400" aria-hidden /> Giám sát AI
+        </h1>
+        <PageSkeleton variant="kpiRow" />
+        <PageSkeleton variant="list" rows={4} />
       </div>
     );
   }
 
   if (apiError) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5 text-center">
-          <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
-          <p className="text-red-400 text-sm font-semibold">{apiError}</p>
-          <button
-            onClick={() => fetchAll()}
-            className="mt-3 text-xs text-red-300 hover:text-red-200 underline"
-          >
-            Thử lại
-          </button>
-        </div>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5" data-testid="ai-load-error">
+        <h1 className="text-zinc-100 flex items-center gap-2 text-lg font-semibold">
+          <Brain className="w-5 h-5 text-violet-400" aria-hidden /> Giám sát AI
+        </h1>
+        <ErrorState
+          kind={errorStateKind(apiError)}
+          message={apiError.message}
+          onRetry={apiError.kind === "forbidden" ? undefined : () => fetchAll()}
+        />
+        <OcrStatsCard />
       </div>
     );
   }
@@ -846,7 +903,7 @@ export function AdminAIObservability() {
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-lg font-semibold">
             <Brain className="w-5 h-5 text-violet-400" />
-            Giám sát yêu cầu AI
+            Giám sát AI
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
             Theo dõi trực tiếp yêu cầu AI coach, hàng đợi kế hoạch và phân tích lỗi
@@ -875,7 +932,7 @@ export function AdminAIObservability() {
           <KpiCard
             label="Tổng yêu cầu"
             value={convStats.total.toLocaleString()}
-            sub={`${convStats.last24h} in last 24h`}
+            sub={`${convStats.last24h} trong 24 giờ qua`}
           />
           <KpiCard
             label="Độ trễ trung bình"
@@ -924,6 +981,8 @@ export function AdminAIObservability() {
           />
         </div>
       )}
+
+      <OcrStatsCard />
 
       {/* Charts row */}
       {ov && (
@@ -1007,8 +1066,9 @@ export function AdminAIObservability() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <PieChart width={80} height={80}>
-                    <Pie
+                  <div aria-hidden="true">
+                  <PieChart width={80} height={80} accessibilityLayer={false} tabIndex={-1}>
+                    <Pie rootTabIndex={-1}
                       data={ov.languages}
                       dataKey="count"
                       cx="50%"
@@ -1021,6 +1081,7 @@ export function AdminAIObservability() {
                       ))}
                     </Pie>
                   </PieChart>
+                  </div>
                   <div className="space-y-1">
                     {ov.languages.map((l, i) => (
                       <div
@@ -1088,15 +1149,23 @@ export function AdminAIObservability() {
         </div>
       )}
 
+      {missingTrace && (
+        <div role="status" data-testid="ai-unknown-id" className="rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-xs text-st-warning flex items-center justify-between gap-3">
+          <span>Không tìm thấy yêu cầu AI <span className="font-mono">{shortRef(missingTrace)}</span> — có thể đã bị xoá hoặc đường dẫn sai. Đang hiện danh sách.</span>
+          <button onClick={() => setMissingTrace(null)} className="font-bold underline shrink-0">Đóng</button>
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-900/60 rounded-lg p-1 w-fit border border-zinc-800/60">
+      <div className="flex max-w-full gap-1 overflow-x-auto bg-zinc-900/60 rounded-lg p-1 w-fit border border-zinc-800/60" role="group" aria-label="Chuyển mục">
         {(["requests", "queue", "errors", "knowledge"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
+            aria-pressed={activeTab === tab}
+            className={`whitespace-nowrap px-4 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
               activeTab === tab
-                ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                ? "bg-st-info-bg text-st-info border border-st-info-border"
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -1121,13 +1190,11 @@ export function AdminAIObservability() {
               (f) => (
                 <button
                   key={f}
-                  onClick={() => {
-                    setFilter(f);
-                    setPage(1);
-                  }}
+                  onClick={() => setUrl({ filter: f, page: 1 })}
+                  aria-pressed={filter === f}
                   className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                     filter === f
-                      ? "bg-violet-500/20 text-violet-300 border-violet-500/30"
+                      ? "bg-st-info-bg text-st-info border-st-info-border"
                       : "text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-300"
                   }`}
                 >
@@ -1189,9 +1256,16 @@ export function AdminAIObservability() {
                         {formatTime(r.createdAt)}
                       </td>
                       <td className="px-4 py-2.5 text-zinc-300 max-w-xs">
-                        {truncate(r.question, 70)}
+                        <button
+                          type="button"
+                          data-trace-opener
+                          onClick={(e) => { e.stopPropagation(); setSelectedId(r.id); }}
+                          className="text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500 rounded"
+                        >
+                          {truncate(r.question, 70)}
+                        </button>
                       </td>
-                      <td className="px-4 py-2.5 text-violet-400 whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-st-info whitespace-nowrap">
                         {r.routeIntent?.replace(/_/g, " ") ?? "—"}
                       </td>
                       <td className="px-4 py-2.5 text-zinc-400 uppercase font-mono">
@@ -1212,17 +1286,17 @@ export function AdminAIObservability() {
                       <td className="px-4 py-2.5">
                         <div className="flex flex-wrap gap-1">
                           {r.usedFallback && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 font-bold uppercase">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-st-warning-bg text-st-warning font-bold uppercase">
                               FB
                             </span>
                           )}
                           {r.usedDeterministicFallback && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-orange-500/10 text-orange-400 font-bold uppercase">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-st-warning-bg text-st-warning font-bold uppercase">
                               DFB
                             </span>
                           )}
                           {r.warningCount > 0 && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-yellow-500/10 text-yellow-400 font-bold">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-st-pending-bg text-st-pending font-bold">
                               W:{r.warningCount}
                             </span>
                           )}
@@ -1249,8 +1323,8 @@ export function AdminAIObservability() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800/60">
               <button
                 disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                onClick={() => setUrl({ page: page - 1 })}
+                className="flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Trước
               </button>
@@ -1259,8 +1333,8 @@ export function AdminAIObservability() {
               </span>
               <button
                 disabled={page >= requests.pages}
-                onClick={() => setPage((p) => p + 1)}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                onClick={() => setUrl({ page: page + 1 })}
+                className="flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
                 Sau <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -1473,13 +1547,16 @@ export function AdminAIObservability() {
                 {errors.highWarnConversations.map((c) => (
                   <div
                     key={c.id}
-                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"
                     onClick={() => setSelectedId(c.id)}
+                    role="button"
+                    tabIndex={0}
+                    data-trace-opener
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(c.id); } }}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">
-                        {c.warningCount} warning
-                        {c.warningCount !== 1 ? "s" : ""}
+                        {c.warningCount} cảnh báo
                       </span>
                       <span className="text-[10px] text-zinc-600 whitespace-nowrap">
                         {formatTime(c.createdAt)}
@@ -1496,7 +1573,7 @@ export function AdminAIObservability() {
                         {formatLatency(c.responseTime)}
                       </span>
                       <span className="ml-auto text-zinc-700">
-                        → click for trace
+                        → bấm để xem chi tiết
                       </span>
                     </div>
                   </div>
@@ -1787,7 +1864,7 @@ export function AdminAIObservability() {
                               {item.sourceName}
                             </span>
                             {item.topic && (
-                              <span className="text-[10px] text-violet-400">
+                              <span className="text-[10px] text-st-info">
                                 {item.topic}
                               </span>
                             )}
@@ -1871,7 +1948,7 @@ export function AdminAIObservability() {
 
       {/* Trace detail drawer */}
       {selectedId && (
-        <TraceDrawer id={selectedId} onClose={() => setSelectedId(null)} />
+        <TraceDrawer id={selectedId} onClose={() => setSelectedId(null)} onMissing={() => { setMissingTrace(selectedId); setSelectedId(null, true); }} />
       )}
     </div>
   );

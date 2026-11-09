@@ -1,8 +1,5 @@
-import { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowsClockwiseIcon as RefreshCw, CheckCircleIcon as CheckCircle2, CircleNotchIcon as Loader2, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
-import { adminService } from "../../services/api";
-import { formatVND } from "../../utils/currency";
+import { useState } from "react";
+import { formatMoneyString, staleness } from "./adminFinanceOverview.utils";
 import {
   TargetUnverifiedCandidate,
   DisputeItem,
@@ -30,8 +27,6 @@ import {
   formatDateTimeVi,
   formatObligationEvent,
   formatPendingPayment,
-  normalizeObligationsReport,
-  normalizeSessionsReport,
   obligationKindLabel,
   obligationStatusLabel,
   obligationTone,
@@ -48,155 +43,39 @@ import {
   terminationReasonLabel,
   toAmount,
 } from "./adminReconciliation.utils";
+import { AdminLink } from "../../components/layout/admin/AdminLink";
+import { exceptionLinksFor } from "./reconciliation/moneyExceptions/moneyExceptionModel";
+import { Block, ExpandContext, FOCUS, GroupTitle, LoadError, Rows, type Column, type ExpandControl } from "./reconciliation/ExceptionParts";
+import { EXCEPTIONS_MAX_AGE_MS, ForbiddenPanel, LevelNote, StaleChip, useNow } from "./reconciliation/ReconStates";
+import { errorView, useExceptionReports } from "./reconciliation/useReconciliationData";
+import {
+  NO_PROCEDURE_TEXT,
+  exceptionAttention,
+  discrepancyDelta,
+  discrepancySourceLabel,
+  exceptionGroupStats,
+  overviewOfGroups,
+  providerLabel,
+  type GatewayDiscrepancyReport,
+  type GatewayDiscrepancyRow,
+  type GroupStat,
+  type GroupsOverview,
+} from "./reconciliation/reconciliationView";
 
 /**
- * Tab "Đối soát" — các khối CHỈ ĐỌC (FH-4, DQ-6): không có nút chuyển tiền, hoàn tiền hay sửa. Mỗi khối là một
- * danh sách để admin nhìn thấy "cái gì đang kẹt và kẹt bao lâu"; việc xử lý đi qua công cụ có kiểm toán phía vận hành.
- * Hai nguồn độc lập: nếu một bên lỗi, bên kia vẫn hiện.
+ * Chip "Ngoại lệ" của Tài chính › Đối soát — các nhóm CHỈ ĐỌC (FH-4, DQ-6): không có nút chuyển tiền, hoàn tiền hay
+ * sửa. Mỗi nhóm cho admin thấy "cái gì đang kẹt và kẹt bao lâu"; xử lý đi qua công cụ có kiểm toán phía vận hành.
+ * 23 nhóm P13/U2 (L1, `EXCEPTION_GROUPS`: 22 nhóm cũ + «Đã trả vào ví Gymini» thêm ở D1) + 1 nhóm P2 (L2). Nguồn độc lập: nếu một bên lỗi, bên kia vẫn hiện.
+ * Số nhóm chỉ ĐẾM, không cộng thành tiền.
  */
 
-const money = (v: string | number | null | undefined) => {
-  const n = toAmount(v);
-  return n === null ? "—" : formatVND(n);
-};
-const addAmounts = (...vs: Array<string | number | null | undefined>) => vs.reduce<number>((a, v) => a + (toAmount(v) ?? 0), 0);
-
-// ───────────────────────────────────────────────────────────── khung dùng chung ──
-interface Column<T> {
-  header: string;
-  cell: (row: T) => ReactNode;
-  right?: boolean;
-}
-
-/** Bảng từ `sm` trở lên; thẻ xếp dọc (nhãn: giá trị) ở màn hình hẹp 360–412px, không cuộn ngang. */
-function Rows<T>({ rows, columns, rowKey }: { rows: T[]; columns: Column<T>[]; rowKey: (r: T) => string }) {
-  return (
-    <>
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-zinc-500 text-left border-b border-zinc-800/60">
-              {columns.map((c) => (
-                <th key={c.header} className={`py-1.5 pr-3 font-medium ${c.right ? "text-right" : ""}`}>
-                  {c.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={rowKey(r)} className="border-b border-zinc-800/40 last:border-0 text-zinc-300 align-top">
-                {columns.map((c) => (
-                  <td key={c.header} className={`py-1.5 pr-3 ${c.right ? "text-right" : ""}`}>
-                    {c.cell(r)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <ul className="sm:hidden space-y-2">
-        {rows.map((r) => (
-          <li key={rowKey(r)} className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-2.5 text-xs space-y-1">
-            {columns.map((c, i) => (
-              <div key={c.header} className={i === 0 ? "text-zinc-100 font-semibold" : "flex justify-between gap-3"}>
-                {i === 0 ? (
-                  c.cell(r)
-                ) : (
-                  <>
-                    <span className="text-zinc-500 shrink-0">{c.header}</span>
-                    <span className="text-zinc-300 text-right break-words min-w-0">{c.cell(r)}</span>
-                  </>
-                )}
-              </div>
-            ))}
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-function Block({
-  testId,
-  title,
-  hint,
-  count,
-  tone,
-  truncated,
-  emptyText,
-  children,
-}: {
-  testId: string;
-  title: string;
-  hint?: string;
-  count: number;
-  /** critical: đỏ khi count>0 · watch: vàng khi count>0 · neutral: xám (thông tin, không phải cảnh báo) */
-  tone: "critical" | "watch" | "neutral";
-  truncated?: boolean;
-  emptyText: string;
-  children?: ReactNode;
-}) {
-  const active = count > 0;
-  const badge = !active
-    ? "bg-green-500/10 text-green-400"
-    : tone === "critical"
-      ? "bg-red-500/10 text-red-400"
-      : tone === "neutral"
-        ? "bg-zinc-500/10 text-zinc-300"
-        : "bg-amber-500/10 text-amber-400";
-  return (
-    <section data-testid={testId} className="rounded-xl border border-zinc-800/60 bg-zinc-900 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h4 className="text-sm font-bold text-zinc-200">{title}</h4>
-          {hint && <p className="text-[11px] text-zinc-500 mt-0.5">{hint}</p>}
-        </div>
-        <span data-testid={`${testId}-count`} className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${badge}`}>
-          {count}
-        </span>
-      </div>
-      <div className="mt-3">
-        {active ? (
-          <>
-            {children}
-            {truncated && (
-              <p className="text-[11px] text-zinc-500 mt-2">Chỉ hiện các mục đầu tiên; còn nhiều mục khác chưa hiển thị.</p>
-            )}
-          </>
-        ) : (
-          <p data-testid={`${testId}-empty`} className="text-xs text-zinc-500 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> {emptyText}
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function GroupTitle({ children }: { children: ReactNode }) {
-  return <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 pt-2">{children}</h3>;
-}
-
-function LoadError({ what, onRetry }: { what: string; onRetry: () => void }) {
-  return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 flex items-center justify-between gap-3">
-      <p className="text-xs text-amber-400 flex items-center gap-1.5">
-        <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Không tải được {what}.
-      </p>
-      <button onClick={onRetry} className="text-xs font-semibold text-zinc-300 hover:text-zinc-100 shrink-0">
-        Thử lại
-      </button>
-    </div>
-  );
-}
+const money = (v: unknown) => formatMoneyString(v);
 
 // ───────────────────────────────────────────────────────────── cột từng khối ──
 const subledgerCols: Column<NegativeSubledgerRow>[] = [
   { header: "Bên giữ tiền", cell: (r) => `${partyLabel(r.ownerType)} ${shortId(r.owner)}` },
   { header: "Giao dịch", cell: (r) => shortId(r.transactionShortId) },
-  { header: "Âm", cell: (r) => <span className="text-red-400 font-semibold">{money(r.net)}</span>, right: true },
+  { header: "Âm", cell: (r) => <span className="text-st-danger font-semibold">{money(r.net)}</span>, right: true },
   { header: "Số bút toán", cell: (r) => r.entries, right: true },
   { header: "Từ — đến", cell: (r) => `${formatDateTimeVi(r.firstEntry)} — ${formatDateTimeVi(r.lastEntry)}` },
 ];
@@ -214,11 +93,11 @@ const ptHoldbackCols: Column<PtHoldbackRow>[] = [
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.transactionId) },
   { header: "PT", cell: (r) => shortId(r.pt) },
   { header: "Đang tạm giữ", cell: (r) => money(r.held), right: true },
-  { header: "Tình trạng", cell: (r) => <span className={r.state === "STUCK" ? "text-red-400 font-semibold" : r.state === "WAITING_RECONCILIATION" ? "text-amber-400" : "text-zinc-300"}>{HOLDBACK_STATE_LABEL[r.state] ?? r.state}</span> },
+  { header: "Tình trạng", cell: (r) => <span className={r.state === "STUCK" ? "text-st-danger font-semibold" : r.state === "WAITING_RECONCILIATION" ? "text-st-warning" : "text-adm-text"}>{HOLDBACK_STATE_LABEL[r.state] ?? r.state}</span> },
   { header: "Dự phòng", cell: (r) => (toAmount(r.reserved) > 0 ? `${money(r.reserved)} · ${r.reviewKinds.map((k) => HOLDBACK_KIND_LABEL[k] ?? k).join(", ")}` : "—") },
   {
     header: "Hạn xem xét",
-    cell: (r) => (r.reviewBy ? <span className={r.overdue ? "text-red-400 font-semibold" : "text-zinc-300"}>{formatDateTimeVi(r.reviewBy)}{r.overdue ? " · QUÁ HẠN" : ""}</span> : "—"),
+    cell: (r) => (r.reviewBy ? <span className={r.overdue ? "text-st-danger font-semibold" : "text-adm-text"}>{formatDateTimeVi(r.reviewBy)}{r.overdue ? " · QUÁ HẠN" : ""}</span> : "—"),
   },
 ];
 const negativeWalletCols: Column<NegativeWalletRow>[] = [
@@ -232,7 +111,7 @@ const mismatchCols: Column<WalletMismatchRow>[] = [
   { header: "Khoản", cell: (r) => bucketLabel(r.bucket) },
   { header: "Trên ví", cell: (r) => money(r.wallet), right: true },
   { header: "Theo sổ cái", cell: (r) => money(r.ledger), right: true },
-  { header: "Chênh", cell: (r) => <span className={r.isEscrow ? "text-amber-400" : "text-red-400 font-semibold"}>{money(r.difference)}</span>, right: true },
+  { header: "Chênh", cell: (r) => <span className={r.isEscrow ? "text-st-warning" : "text-st-danger font-semibold"}>{money(r.difference)}</span>, right: true },
 ];
 const receivableCols: Column<ReceivableRow>[] = [
   { header: "Đối tượng", cell: (r) => `${partyLabel(r.partnerType)} ${shortId(r.partner)}` },
@@ -240,9 +119,9 @@ const receivableCols: Column<ReceivableRow>[] = [
     header: "Trạng thái",
     cell: (r) =>
       r.state === "SUSPENDED" ? (
-        <span className="text-amber-400">Đã tạm ngừng (lưu vết){r.suspensionRef ? ` (${r.suspensionRef})` : ""}</span>
+        <span className="text-st-warning">Đã tạm ngừng (lưu vết){r.suspensionRef ? ` (${r.suspensionRef})` : ""}</span>
       ) : (
-        <span className="text-zinc-300">Đang mở (lưu vết, không tự thu)</span>
+        <span className="text-adm-text">Đang mở (lưu vết, không tự thu)</span>
       ),
   },
   { header: "Còn nợ", cell: (r) => <span className="font-semibold">{money(r.outstanding)}</span>, right: true },
@@ -252,11 +131,11 @@ const receivableCols: Column<ReceivableRow>[] = [
 ];
 /** Lịch sử thao tác của một nghĩa vụ (chỉ đọc, thu gọn sẵn để thẻ ở màn hình hẹp không dài). */
 function History({ events }: { events: ObligationEventRow[] | undefined }) {
-  if (!events || events.length === 0) return <span className="text-zinc-600">—</span>;
+  if (!events || events.length === 0) return <span className="text-adm-text-2">—</span>;
   return (
     <details data-testid="recon-obligation-history" className="text-left">
-      <summary className="cursor-pointer text-zinc-400">{events.length} lần ghi nhận</summary>
-      <ul className="mt-1 space-y-1 text-[11px] text-zinc-400">
+      <summary className="cursor-pointer text-adm-text-2">{events.length} lần ghi nhận</summary>
+      <ul className="mt-1 space-y-1 text-[11px] text-adm-text-2">
         {events.map((e, i) => (
           <li key={`${e.at}-${i}`} className="break-words">
             {formatObligationEvent(e, money)}
@@ -268,11 +147,12 @@ function History({ events }: { events: ObligationEventRow[] | undefined }) {
   );
 }
 const TONE_CLASS: Record<string, string> = {
-  verified: "text-green-400",
-  unverified: "text-amber-400 font-semibold",
-  pending: "text-sky-300",
-  open: "text-zinc-200",
-  closed: "text-zinc-300",
+  verified: "text-st-success",
+  ledgerPaid: "text-st-success",
+  unverified: "text-st-warning font-semibold",
+  pending: "text-st-info",
+  open: "text-adm-text",
+  closed: "text-adm-text",
 };
 const StatusText = ({ status }: { status: string }) => <span className={TONE_CLASS[obligationTone(status)]}>{obligationStatusLabel(status)}</span>;
 
@@ -285,12 +165,12 @@ const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Đã trả / phải trả", cell: (r) => `${money(r.paid)} / ${money(r.owed)}`, right: true },
   {
     header: "Đã trả và được xác minh",
-    cell: (r) => (toAmount(r.verifiedPaid) ? <span className="text-green-400">{money(r.verifiedPaid)}</span> : "—"),
+    cell: (r) => (toAmount(r.verifiedPaid) ? <span className="text-st-success">{money(r.verifiedPaid)}</span> : "—"),
     right: true,
   },
   {
     header: "Ghi nhận cũ, chưa xác minh",
-    cell: (r) => (toAmount(r.externallyPaid) ? <span className="text-amber-400">{money(r.externallyPaid)} (chưa xác minh)</span> : "—"),
+    cell: (r) => (toAmount(r.externallyPaid) ? <span className="text-st-warning">{money(r.externallyPaid)} (chưa xác minh)</span> : "—"),
     right: true,
   },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
@@ -316,9 +196,20 @@ const inFlightCols: Column<UnpaidObligationRow>[] = [
 const verifiedCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
   { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
-  { header: "Đã trả và được xác minh", cell: (r) => <span className="text-green-400 font-semibold">{money(r.verifiedPaid)}</span>, right: true },
+  { header: "Đã trả và được xác minh", cell: (r) => <span className="text-st-success font-semibold">{money(r.verifiedPaid)}</span>, right: true },
   { header: "Phải trả", cell: (r) => money(r.owed), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+// Đã trả vào ví Gymini (bút toán sổ cái nội bộ): KHÔNG phải chuyển khoản ngân hàng, KHÔNG gộp với "được xác minh"
+const ledgerPaidCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Đã trả vào ví Gymini", cell: (r) => <span className="text-st-success font-semibold">{money(r.paid)}</span>, right: true },
+  { header: "Phải trả", cell: (r) => money(r.owed), right: true },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Buổi", cell: (r) => shortId(r.sessionId) },
   { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
   { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
 ];
@@ -326,7 +217,7 @@ const verifiedCols: Column<UnpaidObligationRow>[] = [
 const unverifiedCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
   { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
-  { header: "Ghi nhận đã trả (CHƯA xác minh)", cell: (r) => <span className="text-amber-400">{money(r.externallyPaid)}</span>, right: true },
+  { header: "Ghi nhận đã trả (CHƯA xác minh)", cell: (r) => <span className="text-st-warning">{money(r.externallyPaid)}</span>, right: true },
   { header: "Đã xác minh", cell: (r) => money(r.verifiedPaid), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
   { header: "Ghi nhận lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
@@ -348,7 +239,7 @@ const productCols: Column<ProductPaymentRow>[] = [
   { header: "Ở dịch vụ sở hữu", cell: (r) => productTargetStatusLabel(r.targetStatus) },
   { header: "Số tiền khách đã trả", cell: (r) => money(r.amount), right: true },
   { header: "Đã hoàn cho khách", cell: (r) => money(r.refundedToClient), right: true },
-  { header: "Còn thiếu", cell: (r) => (toAmount(r.refundShortBy) ? <span className="text-amber-400 font-semibold">{money(r.refundShortBy)}</span> : "—"), right: true },
+  { header: "Còn thiếu", cell: (r) => (toAmount(r.refundShortBy) ? <span className="text-st-warning font-semibold">{money(r.refundShortBy)}</span> : "—"), right: true },
   { header: "Tiền còn giữ ở đối tác", cell: (r) => money(r.partnerPendingRemaining), right: true },
   { header: "Giao dịch", cell: (r) => shortId(r.transactionId) },
 ];
@@ -372,6 +263,28 @@ const attentionCols: Column<SettlementAttentionItem>[] = [
   { header: "Số lần thử", cell: (r) => r.attempts, right: true },
   { header: "Treo", cell: (r) => formatAge(r.ageMinutes), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId) },
+  {
+    // D7: a row waiting for a person leads to the money-exception views (matched by the row id / session id); other rows have nothing to open
+    header: "Xử lý tiếp",
+    cell: (r) => {
+      const links = exceptionLinksFor(r);
+      if (links.length === 0) return <span className="text-adm-text-2">—</span>;
+      return (
+        <span className="flex flex-col items-start gap-1">
+          {links.map((l) => (
+            <AdminLink
+              key={l.view}
+              to={`?${l.search}`}
+              data-testid={`recon-attention-link-${l.view}`}
+              className={`inline-flex min-h-11 items-center font-semibold text-adm-text underline underline-offset-2 lg:min-h-0 ${FOCUS}`}
+            >
+              {l.label}
+            </AdminLink>
+          ))}
+        </span>
+      );
+    },
+  },
 ];
 const unconfirmedCols: Column<UnconfirmedEndingItem>[] = [
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId) },
@@ -392,7 +305,7 @@ const disputeCols: Column<DisputeItem>[] = [
   {
     header: "Hạn xử lý",
     cell: (r) => (
-      <span className={r.slaState === "OVERDUE" ? "text-red-400 font-semibold" : r.slaState === "DUE_SOON" ? "text-amber-400" : "text-zinc-300"}>
+      <span className={r.slaState === "OVERDUE" ? "text-st-danger font-semibold" : r.slaState === "DUE_SOON" ? "text-st-warning" : "text-adm-text"}>
         {slaLabel(r.slaState)} ({r.ageDays} ngày)
       </span>
     ),
@@ -402,7 +315,7 @@ const disputeCols: Column<DisputeItem>[] = [
 ];
 
 // ───────────────────────────────────────────────────────────── phần hiển thị ──
-function PaymentBlocks({ r }: { r: ObligationsReport }) {
+function PaymentBlocks({ r, stats }: { r: ObligationsReport; stats: Record<string, GroupStat> }) {
   const s = r.summary;
   return (
     <>
@@ -411,13 +324,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-negative-subledgers"
         title="Tiền chờ của hợp đồng bị rút quá mức"
         hint="Một hợp đồng đã bị trừ nhiều hơn số tiền đã ghi cho nó (lấy từ tiền chờ của hợp đồng khác)."
-        count={s.negativeSubledgers.count}
+        count={stats["negative-subledgers"].count}
         tone="critical"
-        truncated={r.truncated.negativeSubledgers}
+        truncated={stats["negative-subledgers"].truncated}
         emptyText="Không có hợp đồng nào bị trừ quá số tiền của nó."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Tổng tiền chờ của hợp đồng khác đang bị thiếu: <span className="text-red-400 font-semibold">{money(s.negativeSubledgers.unbackedTotal)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Tổng tiền chờ của hợp đồng khác đang bị thiếu: <span className="text-st-danger font-semibold">{money(s.negativeSubledgers.unbackedTotal)}</span>
         </p>
         <Rows rows={r.negativeSubledgers} columns={subledgerCols} rowKey={(x) => `${x.ownerType}-${x.owner}-${x.transactionId}`} />
       </Block>
@@ -425,9 +338,9 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-negative-wallets"
         title="Ví có số dư âm"
         hint="Luôn là lỗi, không bao giờ được xảy ra."
-        count={s.negativeWallets}
+        count={stats["negative-wallets"].count}
         tone="critical"
-        truncated={r.truncated.negativeWallets}
+        truncated={stats["negative-wallets"].truncated}
         emptyText="Không có ví nào âm."
       >
         <Rows rows={r.negativeWallets} columns={negativeWalletCols} rowKey={(x) => `${x.ownerType}-${x.owner}`} />
@@ -436,9 +349,9 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-wallet-mismatch"
         title="Ví lệch so với sổ cái"
         hint="Số dư trên ví khác tổng các bút toán của chính ví đó. Dòng “tiền giữ hộ” chỉ là thông tin (dữ liệu mẫu có thể không ghi đủ)."
-        count={s.walletMismatches.nonEscrowCount}
+        count={stats["wallet-mismatch"].count}
         tone="critical"
-        truncated={r.truncated.walletMismatches}
+        truncated={stats["wallet-mismatch"].truncated}
         emptyText="Mọi ví khớp với sổ cái."
       >
         <Rows rows={r.walletMismatches} columns={mismatchCols} rowKey={(x) => `${x.ownerType}-${x.owner}-${x.bucket}`} />
@@ -448,27 +361,27 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-pt-holdback"
         title="Tiền tạm giữ của PT theo hợp đồng"
         hint="Tiền PT đã kiếm nhưng chưa rút được; chỉ trả khi hợp đồng kết thúc và đối soát xong. Đây không phải doanh thu của nền tảng. “Đã xong mà chưa trả” phải bằng 0."
-        count={s.ptHoldback.contractsHolding}
+        count={stats["pt-holdback"].count}
         tone="neutral"
-        truncated={r.truncated.ptHoldbacks}
+        truncated={stats["pt-holdback"].truncated}
         emptyText="Không có hợp đồng nào đang tạm giữ tiền của PT."
       >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
           <div data-testid="recon-pt-holdback-overdue">
-            <div className="text-zinc-500">Quá hạn xem xét</div>
-            <div className={s.ptHoldback.overdue.count > 0 ? "text-red-400 font-semibold" : "text-zinc-200 font-semibold"}>{s.ptHoldback.overdue.count} · {money(s.ptHoldback.overdue.reserved)}</div>
+            <div className="text-adm-text-2">Quá hạn xem xét</div>
+            <div className={s.ptHoldback.overdue.count > 0 ? "text-st-danger font-semibold" : "text-adm-text font-semibold"}>{s.ptHoldback.overdue.count} · {money(s.ptHoldback.overdue.reserved)}</div>
           </div>
           <div data-testid="recon-pt-holdback-total">
-            <div className="text-zinc-500">Đang tạm giữ</div>
-            <div className="text-zinc-200 font-semibold">{money(s.ptHoldback.totalHeld)} · {s.ptHoldback.contractsHolding} hợp đồng</div>
+            <div className="text-adm-text-2">Đang tạm giữ</div>
+            <div className="text-adm-text font-semibold">{money(s.ptHoldback.totalHeld)} · {s.ptHoldback.contractsHolding} hợp đồng</div>
           </div>
           <div data-testid="recon-pt-holdback-waiting">
-            <div className="text-zinc-500">Chờ xử lý việc của hợp đồng</div>
-            <div className="text-amber-300 font-semibold">{s.ptHoldback.waitingReconciliation.count} · {money(s.ptHoldback.waitingReconciliation.held)}</div>
+            <div className="text-adm-text-2">Chờ xử lý việc của hợp đồng</div>
+            <div className="text-st-warning font-semibold">{s.ptHoldback.waitingReconciliation.count} · {money(s.ptHoldback.waitingReconciliation.held)}</div>
           </div>
           <div data-testid="recon-pt-holdback-stuck">
-            <div className="text-zinc-500">Xong mà chưa trả</div>
-            <div className={s.ptHoldback.stuck.count > 0 ? "text-red-400 font-semibold" : "text-zinc-200 font-semibold"}>{s.ptHoldback.stuck.count} · {money(s.ptHoldback.stuck.held)}</div>
+            <div className="text-adm-text-2">Xong mà chưa trả</div>
+            <div className={s.ptHoldback.stuck.count > 0 ? "text-st-danger font-semibold" : "text-adm-text font-semibold"}>{s.ptHoldback.stuck.count} · {money(s.ptHoldback.stuck.held)}</div>
           </div>
         </div>
         <Rows rows={r.ptHoldbacks} columns={ptHoldbackCols} rowKey={(x) => x.transactionId} />
@@ -479,21 +392,21 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-receivables"
         title="Khoản phải thu từ đối tác"
         hint="Khoản cũ nền tảng từng ứng trước. Chỉ để lưu vết và ra quyết định: hệ thống KHÔNG tự trừ vào thu nhập của đối tác (cả khoản đang thu lẫn tạm ngừng)."
-        count={s.receivables.active.count + s.receivables.suspended.count}
+        count={stats["receivables"].count}
         tone="watch"
-        truncated={r.truncated.receivables}
+        truncated={stats["receivables"].truncated}
         emptyText="Không có khoản phải thu nào còn mở."
       >
         <div className="grid grid-cols-2 gap-3 text-xs mb-3">
           <div data-testid="recon-receivables-active">
-            <div className="text-zinc-500">Đang mở (lưu vết)</div>
-            <div className="text-zinc-200 font-semibold">
+            <div className="text-adm-text-2">Đang mở (lưu vết)</div>
+            <div className="text-adm-text font-semibold">
               {s.receivables.active.count} khoản · {money(s.receivables.active.outstanding)}
             </div>
           </div>
           <div data-testid="recon-receivables-suspended">
-            <div className="text-zinc-500">Đã tạm ngừng</div>
-            <div className="text-zinc-200 font-semibold">
+            <div className="text-adm-text-2">Đã tạm ngừng</div>
+            <div className="text-adm-text font-semibold">
               {s.receivables.suspended.count} khoản · {money(s.receivables.suspended.outstanding)}
             </div>
           </div>
@@ -501,7 +414,7 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         <Rows rows={r.receivables} columns={receivableCols} rowKey={(x) => x.id} />
       </Block>
       <GroupTitle>Nghĩa vụ chưa thanh toán — mỗi trạng thái một nhóm</GroupTitle>
-      <p data-testid="recon-obligations-note" className="text-[11px] text-zinc-500">
+      <p data-testid="recon-obligations-note" className="text-[11px] text-adm-text-2">
         Số tiền nền tảng còn phải trả cho khách mà chính hợp đồng đó không đủ tiền để chi (không phải nợ của PT). Hệ thống không tự chi. Việc trả được làm
         ngoài hệ thống và chỉ được tính là ĐÃ THANH TOÁN khi chứng từ được một người khác xác minh; mã chuyển khoản tự nhập chưa phải bằng chứng.
       </p>
@@ -509,13 +422,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-open"
         title="Đang mở"
         hint="Đã ghi nhận, chưa ai phê duyệt chi."
-        count={s.unpaidObligations.open.count}
+        count={stats["obligations-open"].count}
         tone="watch"
-        truncated={r.truncated.unpaidObligations}
+        truncated={stats["obligations-open"].truncated}
         emptyText="Không có nghĩa vụ nào đang mở."
       >
-        <p data-testid="recon-obligations-summary" className="text-xs text-zinc-400 mb-2">
-          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.open.unpaid)}</span>
+        <p data-testid="recon-obligations-summary" className="text-xs text-adm-text-2 mb-2">
+          Còn thiếu: <span className="text-adm-text font-semibold">{money(s.unpaidObligations.open.unpaid)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.unpaidObligations, "OPEN")} columns={obligationCols} rowKey={(x) => x.id} />
       </Block>
@@ -523,13 +436,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-under-review"
         title="Đang xem xét"
         hint="Có người đang xem xét; chưa phê duyệt chi."
-        count={s.unpaidObligations.underReview.count}
+        count={stats["obligations-under-review"].count}
         tone="watch"
-        truncated={r.truncated.unpaidObligations}
+        truncated={stats["obligations-under-review"].truncated}
         emptyText="Không có nghĩa vụ nào đang xem xét."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.underReview.unpaid)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Còn thiếu: <span className="text-adm-text font-semibold">{money(s.unpaidObligations.underReview.unpaid)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.unpaidObligations, "UNDER_REVIEW")} columns={obligationCols} rowKey={(x) => x.id} />
       </Block>
@@ -537,13 +450,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-approved"
         title="Đã phê duyệt chi"
         hint="Người có thẩm quyền đã duyệt số tiền và nguồn chi; chưa có chứng từ. Vẫn CHƯA trả."
-        count={s.unpaidObligations.approvedForPayment.count}
+        count={stats["obligations-approved"].count}
         tone="watch"
-        truncated={r.truncated.inFlightObligations}
+        truncated={stats["obligations-approved"].truncated}
         emptyText="Không có khoản nào đang chờ chi."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.approvedForPayment.unpaid)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Còn thiếu: <span className="text-adm-text font-semibold">{money(s.unpaidObligations.approvedForPayment.unpaid)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.inFlightObligations, "APPROVED_FOR_PAYMENT")} columns={inFlightCols} rowKey={(x) => x.id} />
       </Block>
@@ -551,13 +464,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-awaiting"
         title="Đang chờ chứng từ"
         hint="Đã trả ngoài hệ thống và đã nộp chứng từ, đang chờ MỘT NGƯỜI KHÁC xác minh. Chưa xác minh thì chưa tính là đã trả."
-        count={s.unpaidObligations.awaitingEvidence.count}
+        count={stats["obligations-awaiting"].count}
         tone="watch"
-        truncated={r.truncated.inFlightObligations}
+        truncated={stats["obligations-awaiting"].truncated}
         emptyText="Không có khoản nào đang chờ xác minh chứng từ."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Vẫn còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.awaitingEvidence.unpaid)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Vẫn còn thiếu: <span className="text-adm-text font-semibold">{money(s.unpaidObligations.awaitingEvidence.unpaid)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.inFlightObligations, "AWAITING_EVIDENCE")} columns={inFlightCols} rowKey={(x) => x.id} />
       </Block>
@@ -567,26 +480,37 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-paid-verified"
         title="Đã thanh toán được xác minh"
         hint="Đã phê duyệt, đã trả ngoài hệ thống và chứng từ đã được một người khác xác minh. Đây là nhóm DUY NHẤT được tính là đã trả."
-        count={s.unpaidObligations.paidVerified.count}
+        count={stats["obligations-paid-verified"].count}
         tone="neutral"
-        truncated={r.truncated.closedObligations}
+        truncated={stats["obligations-paid-verified"].truncated}
         emptyText="Chưa có khoản nào được thanh toán và xác minh."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Tổng đã trả và được xác minh (gồm các lần trả một phần): <span className="text-green-400 font-semibold">{money(s.unpaidObligations.paidVerified.amount)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Tổng đã trả và được xác minh (gồm các lần trả một phần): <span className="text-st-success font-semibold">{money(s.unpaidObligations.paidVerified.amount)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.closedObligations, "PAID_VERIFIED")} columns={verifiedCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-paid-via-ledger"
+        title="Đã trả vào ví Gymini"
+        hint="Khoản được trả bằng bút toán trong sổ cái nội bộ của Gymini (vào ví của khách), không phải chuyển khoản ngân hàng và không qua bước xác minh chứng từ. Tách riêng khỏi nhóm «Đã thanh toán được xác minh»."
+        count={stats["obligations-paid-via-ledger"].count}
+        tone="neutral"
+        truncated={stats["obligations-paid-via-ledger"].truncated}
+        emptyText="Chưa có khoản nào được trả vào ví Gymini."
+      >
+        <Rows rows={rowsWithStatus(r.closedObligations, "PAID_VIA_LEDGER")} columns={ledgerPaidCols} rowKey={(x) => x.id} />
       </Block>
       <Block
         testId="recon-obligations-unverified"
         title="Đã ghi nhận chứng từ — CHƯA xác minh (bản ghi cũ)"
         hint="Ghi nhận theo cách cũ: chỉ có mã chuyển khoản tự nhập, chưa ai kiểm tra. KHÔNG phải bằng chứng đã trả và không được tự nâng thành đã xác minh."
-        count={s.unpaidObligations.paidExternally.count}
+        count={stats["obligations-unverified"].count}
         tone="watch"
-        truncated={r.truncated.closedObligations}
+        truncated={stats["obligations-unverified"].truncated}
         emptyText="Không có bản ghi cũ nào chưa xác minh."
       >
-        <p className="text-xs text-amber-400 mb-2">
+        <p className="text-xs text-st-warning mb-2">
           Tổng đã ghi nhận nhưng CHƯA xác minh: <span className="font-semibold">{money(s.unpaidObligations.paidExternally.amount)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.closedObligations, "PAID_EXTERNALLY")} columns={unverifiedCols} rowKey={(x) => x.id} />
@@ -595,13 +519,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-waived"
         title="Không truy đòi"
         hint="Chủ sở hữu quyết định không truy đòi; khách KHÔNG được trả."
-        count={s.unpaidObligations.waived.count}
+        count={stats["obligations-waived"].count}
         tone="neutral"
-        truncated={r.truncated.closedObligations}
+        truncated={stats["obligations-waived"].truncated}
         emptyText="Chưa có khoản nào bị bỏ qua."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Tổng bỏ qua: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.waived.unpaid)}</span>
+        <p className="text-xs text-adm-text-2 mb-2">
+          Tổng bỏ qua: <span className="text-adm-text font-semibold">{money(s.unpaidObligations.waived.unpaid)}</span>
         </p>
         <Rows rows={rowsWithStatus(r.closedObligations, "WAIVED")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
       </Block>
@@ -609,9 +533,9 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-resolved-other"
         title="Đã giải quyết bằng phương thức khác"
         hint="Được giải quyết không qua chi trả có xác minh (lý do ghi ở lịch sử). Không tính là đã trả."
-        count={s.unpaidObligations.resolvedOther.count}
+        count={stats["obligations-resolved-other"].count}
         tone="neutral"
-        truncated={r.truncated.closedObligations}
+        truncated={stats["obligations-resolved-other"].truncated}
         emptyText="Chưa có khoản nào được giải quyết bằng phương thức khác."
       >
         <Rows rows={rowsWithStatus(r.closedObligations, "RESOLVED_OTHER")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
@@ -620,9 +544,9 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-obligations-legacy"
         title="Bản ghi cũ (đã xử lý)"
         hint="Đánh dấu 'đã xử lý' theo cách cũ, không có bằng chứng."
-        count={s.unpaidObligations.resolved.count}
+        count={stats["obligations-legacy"].count}
         tone="neutral"
-        truncated={r.truncated.closedObligations}
+        truncated={stats["obligations-legacy"].truncated}
         emptyText="Không có bản ghi cũ."
       >
         <Rows rows={rowsWithStatus(r.closedObligations, "RESOLVED")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
@@ -633,23 +557,23 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-paid-not-activated"
         title="Đã thanh toán nhưng chưa kích hoạt"
         hint={`Khách đã trả hơn ${r.params.staleMinutes} phút trước mà hợp đồng/đơn/gói chưa chạy.`}
-        count={s.paidNotActivated}
+        count={stats["paid-not-activated"].count}
         tone="critical"
-        truncated={r.truncated.paidNotActivated}
+        truncated={stats["paid-not-activated"].truncated}
         emptyText="Không có thanh toán nào bị kẹt."
       >
         <Rows rows={r.paidNotActivated} columns={paidNotActivatedCols} rowKey={(x) => x.transactionId} />
       </Block>
-      <p data-testid="recon-product-active-valid" className="text-[11px] text-zinc-500">
+      <p data-testid="recon-product-active-valid" className="text-[11px] text-adm-text-2">
         Đã kiểm tra với dịch vụ sở hữu: {s.productPayments.activeValid} gói/đơn còn hiệu lực (bình thường, không phải vấn đề).
       </p>
       <Block
         testId="recon-cancelled-paid"
         title="Gói/đơn đã hủy nhưng khách đã trả"
         hint="Dịch vụ sở hữu xác nhận gói/đơn đã hủy, nhưng tiền khách trả vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn."
-        count={s.productPayments.cancelledPaid}
+        count={stats["cancelled-paid"].count}
         tone="critical"
-        truncated={r.truncated.cancelledPaid}
+        truncated={stats["cancelled-paid"].truncated}
         emptyText="Không có gói/đơn nào đã hủy mà tiền vẫn bị giữ."
       >
         <Rows rows={r.cancelledPaid} columns={productCols} rowKey={(x) => x.transactionId} />
@@ -658,12 +582,12 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-refund-outcomes"
         title="Hoàn tiền của gói/đơn đã hủy"
         hint="Gói/đơn đã hủy và khách đã được hoàn một phần hoặc toàn bộ. 'Hoàn chưa đủ' là số khách nhận ít hơn số đáng được hoàn."
-        count={s.productPayments.refundCompleted + s.productPayments.refundShort}
+        count={stats["refund-outcomes"].count}
         tone={s.productPayments.refundShort > 0 ? "watch" : "neutral"}
-        truncated={r.truncated.refundOutcomes}
+        truncated={stats["refund-outcomes"].truncated}
         emptyText="Chưa có gói/đơn đã hủy nào có hoàn tiền."
       >
-        <p className="text-xs text-zinc-400 mb-2">
+        <p className="text-xs text-adm-text-2 mb-2">
           Đã hoàn đủ {s.productPayments.refundCompleted} · hoàn chưa đủ {s.productPayments.refundShort}
         </p>
         <Rows rows={r.refundOutcomes} columns={productCols} rowKey={(x) => x.transactionId} />
@@ -672,9 +596,9 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         testId="recon-target-unverified"
         title="Chưa xác minh trạng thái"
         hint={`Thanh toán gói tập/dịch vụ đã kích hoạt mà tiền vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn. Phần lớn là bình thường (gói/đơn đang chạy). ${productLookupNote(s.productPayments)}`}
-        count={s.targetUnverified.candidates}
+        count={stats["target-unverified"].count}
         tone="neutral"
-        truncated={r.truncated.targetUnverified}
+        truncated={stats["target-unverified"].truncated}
         emptyText="Không có giao dịch nào cần đối chiếu."
       >
         <Rows rows={r.targetUnverified.candidates} columns={candidateCols} rowKey={(x) => x.transactionId} />
@@ -683,7 +607,7 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
   );
 }
 
-function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
+function SessionBlocks({ r, stats }: { r: SessionsReconciliationReport; stats: Record<string, GroupStat> }) {
   return (
     <>
       <GroupTitle>Tất toán hợp đồng và buổi tập</GroupTitle>
@@ -691,9 +615,9 @@ function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
         testId="recon-needs-attention"
         title="Tất toán cần người xử lý"
         hint="Các bước tiền bị dừng vì lệch số liệu, cần người xem hoặc đã thử lại hết số lần."
-        count={r.needsAttention.items.length}
+        count={stats["needs-attention"].count}
         tone="critical"
-        truncated={r.needsAttention.truncated}
+        truncated={stats["needs-attention"].truncated}
         emptyText="Không có tất toán nào đang chờ người xử lý."
       >
         <Rows rows={r.needsAttention.items} columns={attentionCols} rowKey={(x) => x.id} />
@@ -702,9 +626,9 @@ function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
         testId="recon-endings-unconfirmed"
         title="Kết thúc hợp đồng chưa được xác nhận"
         hint="Đã ghi nhận kết thúc nhưng chưa có xác nhận hoàn tất phần tiền."
-        count={r.endingsUnconfirmed.items.length}
+        count={stats["endings-unconfirmed"].count}
         tone="watch"
-        truncated={r.endingsUnconfirmed.truncated}
+        truncated={stats["endings-unconfirmed"].truncated}
         emptyText="Mọi hợp đồng vừa kết thúc đều đã xác nhận."
       >
         <Rows rows={r.endingsUnconfirmed.items} columns={unconfirmedCols} rowKey={(x) => x.id} />
@@ -713,9 +637,9 @@ function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
         testId="recon-ended-unsettled"
         title="Hợp đồng đã kết thúc nhưng chưa tất toán"
         hint="Khách đã thanh toán và hợp đồng đã đóng, nhưng chưa có bước tất toán hoàn tất."
-        count={r.endedWithoutSettledEnding.items.length}
+        count={stats["ended-unsettled"].count}
         tone="critical"
-        truncated={r.endedWithoutSettledEnding.truncated}
+        truncated={stats["ended-unsettled"].truncated}
         emptyText="Mọi hợp đồng đã kết thúc đều đã tất toán."
       >
         <Rows rows={r.endedWithoutSettledEnding.items} columns={endedCols} rowKey={(x) => x.contractId} />
@@ -724,9 +648,9 @@ function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
         testId="recon-disputes"
         title="Tranh chấp buổi tập đang chờ"
         hint={`Tiền của buổi tranh chấp bị giữ cho tới khi có phán quyết. Hạn: cảnh báo sau ${r.disputes.sla?.warnDays ?? 10} ngày, quá hạn sau ${r.disputes.sla?.breachDays ?? 14} ngày.`}
-        count={r.disputes.items.length}
+        count={stats["disputes"].count}
         tone="watch"
-        truncated={r.disputes.truncated}
+        truncated={stats["disputes"].truncated}
         emptyText="Không có tranh chấp nào đang chờ."
       >
         <Rows rows={r.disputes.items} columns={disputeCols} rowKey={(x) => x.sessionId} />
@@ -735,54 +659,125 @@ function SessionBlocks({ r }: { r: SessionsReconciliationReport }) {
   );
 }
 
+const gatewayCols: Column<GatewayDiscrepancyRow>[] = [
+  { header: "Cổng", cell: (r) => providerLabel(r.provider) },
+  { header: "Mã giao dịch của cổng", cell: (r) => <span className="break-all font-mono">{r.gatewayTransactionNo ?? "—"}</span> },
+  { header: "Gymini kỳ vọng", cell: (r) => money(r.expectedAmount), right: true },
+  { header: "Cổng báo", cell: (r) => <span className="font-semibold text-st-danger">{money(r.reportedAmount)}</span>, right: true },
+  { header: "Chênh", cell: (r) => discrepancyDelta(r.expectedAmount, r.reportedAmount), right: true },
+  { header: "Số lần cổng gửi", cell: (r) => r.occurrences, right: true },
+  { header: "Phát hiện lần đầu", cell: (r) => formatDateTimeVi(r.firstDetectedAt) },
+  { header: "Nguồn báo", cell: (r) => discrepancySourceLabel(r.source) },
+  { header: "Giao dịch", cell: (r) => shortId(r.transactionId) },
+  { header: "Xử lý", cell: () => <span className="text-adm-text-2">{NO_PROCEDURE_TEXT}</span> },
+];
+
+function GatewayBlock({ report }: { report: GatewayDiscrepancyReport }) {
+  return (
+    <Block
+      testId="recon-gateway-discrepancies"
+      title="Cổng báo số tiền khác số Gymini"
+      hint="Cổng gọi về với số tiền khác giá của giao dịch: giao dịch KHÔNG được ghi sổ (không cộng tiền giữ hộ, không kích hoạt). Đây là dữ liệu L2 — callback cổng do hệ thống tự lưu, chưa phải xác minh độc lập từ cổng/ngân hàng (L3 — BLOCKED). Hệ thống chưa có bước ghi nhận xử lý: chưa có quy trình (G-15)."
+      count={report.rows.length}
+      tone="critical"
+      truncated={report.truncated}
+      emptyText="Chưa có callback nào của cổng báo số tiền khác số Gymini."
+    >
+      <Rows rows={report.rows} columns={gatewayCols} rowKey={(x) => x.transactionId} />
+    </Block>
+  );
+}
+
+function ExpandBar({ overview, onAll, onNone }: { overview: GroupsOverview; onAll: () => void; onNone: () => void }) {
+  const btn = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-adm-border bg-adm-surface px-3 text-xs font-semibold text-adm-text transition-colors hover:bg-adm-surface-2 disabled:opacity-60 motion-reduce:transition-none lg:min-h-9 ${FOCUS}`;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <p data-testid="recon-groups-overview" className="text-xs text-adm-text-2">
+        {overview.known === overview.total
+          ? `${overview.withItems} trong ${overview.total} nhóm có mục${overview.truncated ? ` · ${overview.truncated} nhóm chưa hiện hết` : ""}`
+          : `Mới đọc được ${overview.known} trong ${overview.total} nhóm`}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={onAll} data-testid="recon-expand-all" className={btn}>
+          Mở hết
+        </button>
+        <button type="button" onClick={onNone} data-testid="recon-collapse-all" className={btn}>
+          Thu gọn hết
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AdminReconciliationBlocks() {
-  const payment = useQuery({
-    queryKey: ["admin", "finance", "obligations-report"],
-    queryFn: async () => normalizeObligationsReport(await adminService.getObligationsReport()),
-    refetchInterval: 60_000,
-  });
-  const sessions = useQuery({
-    queryKey: ["admin", "finance", "sessions-reconciliation"],
-    queryFn: async () => normalizeSessionsReport(await adminService.getSessionsReconciliation()),
-    refetchInterval: 60_000,
-  });
+  const { payment, sessions, gateway } = useExceptionReports({ gateway: true });
+  const nowMs = useNow(30_000);
+  const [ctrl, setCtrl] = useState<ExpandControl>({ epoch: 0, mode: "default" });
 
   const paymentData = payment.data ?? null;
   const sessionData = sessions.data ?? null;
-  const attention = countAttention(paymentData, sessionData);
+  const gatewayData = gateway.data ?? null;
+  const stats = exceptionGroupStats(paymentData, sessionData);
+  const overview = overviewOfGroups(stats);
+  // Gồm cả nhóm P2 khi đã tải (khớp huy hiệu thanh bên); P2 lỗi thì nhóm đó tự báo lỗi bên dưới.
+  const attention = exceptionAttention(paymentData, sessionData, gatewayData) ?? countAttention(paymentData, sessionData);
   const loading = payment.isLoading || sessions.isLoading;
-  const refreshing = payment.isFetching || sessions.isFetching;
+  const refreshing = payment.isFetching || sessions.isFetching || gateway.isFetching;
   const bothLoaded = Boolean(paymentData) && Boolean(sessionData);
+
+  const paymentErr = payment.isError ? errorView(payment.error, "dữ liệu sổ cái và nghĩa vụ") : null;
+  const sessionsErr = sessions.isError ? errorView(sessions.error, "dữ liệu tất toán hợp đồng") : null;
+  const gatewayErr = gateway.isError ? errorView(gateway.error, "báo cáo sai lệch số tiền cổng") : null;
+
+  const refetchAll = () => {
+    void payment.refetch();
+    void sessions.refetch();
+    void gateway.refetch();
+  };
+
+  if (paymentErr?.forbidden || sessionsErr?.forbidden || gatewayErr?.forbidden) return <ForbiddenPanel />;
+
+  // E-08: some data on screen but it is old or the last refresh failed → say so, with the time.
+  const loadedAt = [paymentData && payment.dataUpdatedAt, sessionData && sessions.dataUpdatedAt].filter((x): x is number => typeof x === "number" && x > 0);
+  const oldest = loadedAt.length ? Math.min(...loadedAt) : 0;
+  const stale = staleness({
+    hasData: loadedAt.length > 0,
+    updatedAt: oldest,
+    refetchFailed: (payment.isError && !!paymentData) || (sessions.isError && !!sessionData),
+    nowMs,
+    maxAgeMs: EXCEPTIONS_MAX_AGE_MS,
+  });
+
+  // A "successful" read whose body could not be understood is a failure, not an empty list.
+  const paymentBad = !payment.isLoading && !paymentData;
+  const sessionsBad = !sessions.isLoading && !sessionData;
 
   return (
     <div data-testid="admin-recon-blocks" className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-zinc-200">Tiền đang kẹt và việc cần theo dõi</h3>
-          <p className="text-[11px] text-zinc-500 mt-0.5">Chỉ để xem. Mọi điều chỉnh đi qua công cụ vận hành có lưu vết và cần chủ sở hữu duyệt.</p>
-        </div>
-        <button
-          onClick={() => {
-            payment.refetch();
-            sessions.refetch();
-          }}
-          disabled={refreshing}
-          className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
-          title="Làm mới"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-        </button>
-      </div>
+      <h2 className="text-base font-bold text-adm-text">Ngoại lệ đối soát</h2>
+
+      <LevelNote
+        level="L1"
+        testId="recon-exceptions-level"
+        text="Các nhóm dưới đây đọc từ sổ cái và hợp đồng của Gymini (P13 nghĩa vụ và tiền giữ lại, U2 tất toán và tranh chấp buổi tập) — không đối chiếu với bên ngoài. Riêng “Cổng báo số tiền khác số Gymini” là L2 (callback cổng do hệ thống tự lưu, P2). Báo cáo độc lập của cổng/ngân hàng (L3) chưa có nguồn nên chưa làm được."
+      />
+
+      <p className="text-[11px] text-adm-text-2">Chỉ để xem, không có thao tác tiền ở đây. Số mục được đếm, không cộng thành tiền. Hệ thống chưa có quy trình ghi nhận xử lý ngoại lệ — {NO_PROCEDURE_TEXT}.</p>
+
+      {stale.stale && (
+        <StaleChip info={stale} nowMs={nowMs} busy={refreshing} onRefresh={refetchAll} testId="recon-exceptions-stale" />
+      )}
 
       {!loading && bothLoaded && (
         <div
           data-testid="recon-attention-summary"
+          role="status"
           className={`rounded-xl border p-3 text-xs font-semibold ${
             attention.critical > 0
-              ? "bg-red-500/5 border-red-500/20 text-red-400"
+              ? "border-st-danger-border bg-st-danger-bg text-st-danger"
               : attention.watch > 0
-                ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
-                : "bg-green-500/5 border-green-500/20 text-green-400"
+                ? "border-st-warning-border bg-st-warning-bg text-st-warning"
+                : "border-st-success-border bg-st-success-bg text-st-success"
           }`}
         >
           {attention.critical > 0
@@ -794,20 +789,40 @@ export function AdminReconciliationBlocks() {
       )}
 
       {loading && (
-        <div className="flex justify-center py-4">
-          <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+        <div role="status" aria-busy="true" data-testid="recon-exceptions-loading" className="space-y-2">
+          <span className="sr-only">Đang tải các nhóm ngoại lệ</span>
+          <div aria-hidden className="space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-12 animate-pulse rounded-xl bg-adm-pill motion-reduce:animate-none" />
+            ))}
+          </div>
         </div>
       )}
 
-      {!payment.isLoading && !paymentData && <LoadError what="dữ liệu sổ cái và nghĩa vụ" onRetry={() => payment.refetch()} />}
-      {paymentData && <PaymentBlocks r={paymentData} />}
+      <ExpandBar
+        overview={overview}
+        onAll={() => setCtrl((c) => ({ epoch: c.epoch + 1, mode: "all" }))}
+        onNone={() => setCtrl((c) => ({ epoch: c.epoch + 1, mode: "none" }))}
+      />
 
-      {!sessions.isLoading && !sessionData && <LoadError what="dữ liệu tất toán hợp đồng" onRetry={() => sessions.refetch()} />}
-      {sessionData && <SessionBlocks r={sessionData} />}
+      <ExpandContext.Provider value={ctrl}>
+        <GroupTitle>Callback cổng đã lưu — L2</GroupTitle>
+        {gateway.isLoading && <p className="text-xs text-adm-text-2">Đang tải sai lệch số tiền cổng…</p>}
+        {gatewayErr && <LoadError testId="recon-gateway-error" what="báo cáo sai lệch số tiền cổng" onRetry={() => void gateway.refetch()} />}
+        {gatewayData && <GatewayBlock report={gatewayData} />}
 
-      {paymentData?.generatedAt && (
-        <p className="text-[11px] text-zinc-600">Số liệu tại {formatDateTimeVi(paymentData.generatedAt)}</p>
-      )}
+        {(paymentErr || paymentBad) && !payment.isLoading && (
+          <LoadError testId="recon-payment-error" what="dữ liệu sổ cái và nghĩa vụ" onRetry={() => void payment.refetch()} />
+        )}
+        {paymentData && <PaymentBlocks r={paymentData} stats={stats} />}
+
+        {(sessionsErr || sessionsBad) && !sessions.isLoading && (
+          <LoadError testId="recon-sessions-error" what="dữ liệu tất toán hợp đồng" onRetry={() => void sessions.refetch()} />
+        )}
+        {sessionData && <SessionBlocks r={sessionData} stats={stats} />}
+      </ExpandContext.Provider>
+
+      {paymentData?.generatedAt && <p className="text-[11px] text-adm-text-2">Số liệu tại {formatDateTimeVi(paymentData.generatedAt)}</p>}
     </div>
   );
 }

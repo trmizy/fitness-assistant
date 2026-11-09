@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { compensateNoShowMoney } from "../services/contract-payout.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient } from "../clients/payment.client";
 import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
 import { stubSessionSettlements } from "./session-settlement-memory.stub";
@@ -76,6 +77,8 @@ test("a PT no-show does NOT decrement totalSessions — it increments compensate
       assert.equal(body.idempotencyKey, `PT_NO_SHOW:${sessionId}`);
       return { compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" };
     }),
+    // QUOTA A+: this test drives the SETTLEMENT of a row that has no mark (a no-show that was decided before the fix): it books the quota the old way, once. The mark's compare-and-set is stubbed to "unclaimed".
+    patch(sessionRepository, "claimNoShowQuota", async () => true),
     patch(contractRepository, "incrementCompensatedSessions", async (id: string, notes?: string) => {
       calls.push("incrementCompensatedSessions");
       assert.equal(id, contractId);
@@ -122,6 +125,7 @@ test("a 1-session contract's no-show compensates without any special-casing", as
       assert.equal(body.totalSessions, 1);
       return { compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" };
     }),
+    patch(sessionRepository, "claimNoShowQuota", async () => true), // legacy row without the mark (see the first test)
     patch(contractRepository, "incrementCompensatedSessions", async () => {
       incremented = true;
       return {} as any;

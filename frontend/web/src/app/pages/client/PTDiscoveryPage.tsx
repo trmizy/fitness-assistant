@@ -17,7 +17,8 @@ import {
   InstagramLogoIcon as Instagram,
   StarIcon as StarSolid,
 } from "@phosphor-icons/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { PT_PAGE_SIZE, mergePtPages, nextPtPage } from "../../utils/ptPaging";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import {
   profileService,
@@ -40,6 +41,8 @@ import {
   type EligibilityReason,
 } from "../../utils/contractGymOptions";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
+import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -58,35 +61,6 @@ function serviceModeLabel(mode?: string) {
   if (mode === "OFFLINE") return "Offline tại phòng gym";
   if (mode === "HYBRID") return "Cả online và offline";
   return undefined;
-}
-
-// Same day codes/labels as PTApplicationPage.tsx's weekly-availability editor — kept as its
-// own small copy here rather than a shared import, since this file only needs the labels for
-// read-only display. availabilityBlocks replaced the older availableDays/availableFrom/
-// availableUntil fields; grouping+sorting is done fresh from the raw array on every render, no
-// state needed for it.
-const DAY_LABELS: Record<string, string> = {
-  Mon: "Thứ 2",
-  Tue: "Thứ 3",
-  Wed: "Thứ 4",
-  Thu: "Thứ 5",
-  Fri: "Thứ 6",
-  Sat: "Thứ 7",
-  Sun: "Chủ nhật",
-};
-const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function groupAvailabilityByDay(
-  raw: unknown,
-): { day: string; ranges: { startTime: string; endTime: string }[] }[] {
-  const blocks: { dayOfWeek: string; startTime: string; endTime: string }[] =
-    Array.isArray(raw) ? (raw as any[]) : [];
-  return DAY_ORDER.map((day) => ({
-    day,
-    ranges: blocks
-      .filter((b) => b.dayOfWeek === day)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime)),
-  })).filter((d) => d.ranges.length > 0);
 }
 
 function getLowestPerSessionPrice(app: any): number | null {
@@ -360,11 +334,21 @@ export function PTDiscoveryPage() {
   // 404 on the detail: the trainer was hidden / suspended / is no longer approved (the id cannot be probed past the list).
   const ptGone = !!selectedId && !!ptDetailError && isPtGone(ptDetailError);
 
-  const { data: ptsData, isLoading } = useQuery({
-
+  const {
+    data: ptsData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    // Đổi bộ lọc = queryKey mới = quay về trang 1.
     queryKey: ["pts-list", activeFilters],
-    queryFn: () =>
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any, allPages: any[]) => nextPtPage(lastPage, allPages.length),
+    queryFn: ({ pageParam }) =>
       profileService.listPTs({
+        page: pageParam,
+        limit: PT_PAGE_SIZE,
         q: activeFilters.q || undefined,
         minPrice: activeFilters.minPrice
           ? Number(activeFilters.minPrice)
@@ -390,7 +374,7 @@ export function PTDiscoveryPage() {
     );
   }
 
-  const ptsList = ptsData?.pts || [];
+  const ptsList = mergePtPages<any>(ptsData?.pages);
 
   const filtered = ptsList.filter((pt: any) => {
     const specialties: string[] = pt.ptApplication?.mainSpecialties || [];
@@ -709,6 +693,17 @@ export function PTDiscoveryPage() {
               </p>
             </div>
           )}
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-zinc-700/60 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors disabled:opacity-60"
+            >
+              {isFetchingNextPage && <Loader2 className="w-4 h-4 animate-spin" />}
+              Xem thêm
+            </button>
+          )}
         </div>
 
         {/* Detail panel */}
@@ -969,40 +964,8 @@ export function PTDiscoveryPage() {
                     </div>
                   )}
 
-                  {/* Availability schedule — reads availabilityBlocks (the day-grouped
-                      {dayOfWeek,startTime,endTime}[] shape the current PT application form
-                      writes), not the older availableDays/availableFrom/availableUntil fields:
-                      those have no input left in the form since it moved to
-                      availabilityBlocks, so they are always empty for any PT approved since —
-                      this section used to never render as a result. */}
-                  {(() => {
-                    const byDay = groupAvailabilityByDay(app?.availabilityBlocks);
-                    if (byDay.length === 0) return null;
-                    return (
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                          Lịch làm việc
-                        </h4>
-                        <div className="space-y-1">
-                          {byDay.map(({ day, ranges }) => (
-                            <div
-                              key={day}
-                              className="flex items-baseline gap-2 text-sm"
-                            >
-                              <span className="text-zinc-300 font-medium w-16 shrink-0">
-                                {DAY_LABELS[day] ?? day}
-                              </span>
-                              <span className="text-zinc-500">
-                                {ranges
-                                  .map((r) => `${r.startTime}-${r.endTime}`)
-                                  .join(", ")}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <PtWeeklySchedule ptUserId={selectedPT.userId} />
+                  <PtBookableSchedule ptUserId={selectedPT.userId} />
 
                   {/* Gym affiliation */}
                   {app?.gymAffiliation && (

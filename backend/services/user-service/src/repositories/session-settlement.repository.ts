@@ -86,7 +86,7 @@ export interface SettlementIntentInput {
  * terms (never a number a caller supplies). `facts` is whatever the caller knows at the moment it decides (the contract's money
  * state). Only written on CREATE - a retry or a replay never rewrites it.
  */
-function buildRequestSnapshot(input: SettlementIntentInput, facts?: Prisma.InputJsonObject): Prisma.InputJsonObject {
+function buildRequestSnapshot(input: SettlementIntentInput, facts?: Prisma.InputJsonObject, caseDecisionId?: string): Prisma.InputJsonObject {
   return {
     v: 1,
     kind: input.kind,
@@ -96,6 +96,7 @@ function buildRequestSnapshot(input: SettlementIntentInput, facts?: Prisma.Input
     reason: input.reason,
     recordedAt: new Date().toISOString(),
     ...(facts ? { facts } : {}),
+    ...(caseDecisionId ? { caseDecisionId } : {}),
   };
 }
 
@@ -121,13 +122,15 @@ export const sessionSettlementRepository = {
     input: SettlementIntentInput & {
       /** FH-3a: the money facts known at decision time, stored inside `request_snapshot` (create only). */
       snapshotFacts?: Prisma.InputJsonObject;
+      /** Dispute Case slice 2: the CaseDecision that ruled the session; stored in `request_snapshot.caseDecisionId` (create only). */
+      caseDecisionId?: string;
     },
     db: Db = prisma,
   ) => {
-    const { snapshotFacts, ...row } = input;
+    const { snapshotFacts, caseDecisionId, ...row } = input;
     return db.sessionSettlement.upsert({
       where: { idempotencyKey: row.idempotencyKey },
-      create: { ...row, status: SessionSettlementStatus.PENDING, requestSnapshot: buildRequestSnapshot(row, snapshotFacts) },
+      create: { ...row, status: SessionSettlementStatus.PENDING, requestSnapshot: buildRequestSnapshot(row, snapshotFacts, caseDecisionId) },
       update: {}, // no-op write - just fetch the existing row
     });
   },
@@ -251,6 +254,18 @@ export const sessionSettlementRepository = {
         },
       },
       data: { status: SessionSettlementStatus.UNCONFIRMED, lastError: `UNCONFIRMED: ${note}`.slice(0, 2000) },
+    });
+    return count === 1;
+  },
+
+  /**
+   * Final safety gate: the person-approved reopening of ONE parked row (NEEDS_HUMAN -> PENDING), compare-and-set on the status so two executions cannot both reopen it. The attempt counter is kept
+   * (history); the next claim adds one. Only the late-open reconciliation service calls it, and only after a second admin approved a proposal for exactly this row.
+   */
+  reopenParkedForReconciliation: async (id: string, db: Db = prisma): Promise<boolean> => {
+    const { count } = await db.sessionSettlement.updateMany({
+      where: { id, status: SessionSettlementStatus.NEEDS_HUMAN },
+      data: { status: SessionSettlementStatus.PENDING, lastError: null, nextAttemptAt: null },
     });
     return count === 1;
   },

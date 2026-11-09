@@ -48,6 +48,7 @@ router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
 // Ids of test/seed/eval accounts (reserved test email domains) — other services leave them out of admin statistics.
 router.get("/internal/test-account-ids", authController.testAccountIdsInternal);
+router.get("/internal/admins", authController.listActiveAdminsInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
 router.post("/internal/send-email", authController.sendEmailInternal);
 router.patch(

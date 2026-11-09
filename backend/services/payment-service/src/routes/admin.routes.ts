@@ -14,6 +14,7 @@ import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-repo
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
+import { assertRefundNotBypassingCase, RefundGuardError } from '../services/refund-case-guard';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -157,10 +158,12 @@ router.post('/withdrawals/:id/mark-paid', async (req: Request, res: Response) =>
   }
 });
 
-const refundSchema = z.object({
-  adminId: z.string().min(1),
-  reason: z.string().min(1),
-});
+// E6 / F1: the acting admin is the VERIFIED TOKEN's user (req.user.userId), never a body field: a body `adminId` (or any other extra field) is refused 400.
+const refundSchema = z
+  .object({
+    reason: z.string().min(1),
+  })
+  .strict();
 
 // POST /admin/payments/:id/refund — payment-service is the single source of truth for
 // refund/ledger/commission logic; gym-service and user-service never reimplement this,
@@ -170,7 +173,8 @@ router.post('/:id/refund', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
-  const { adminId, reason } = parsed.data;
+  const { reason } = parsed.data;
+  const adminId = req.user!.userId; // requireAuth + requireRoles('ADMIN') ran above: this is the verified identity
   const originalTransactionId = req.params.id;
 
   const original = await transactionRepository.findById(originalTransactionId);
@@ -183,6 +187,16 @@ router.post('/:id/refund', async (req: Request, res: Response) => {
   if (original.status !== 'PAID') {
     const code = original.status === 'REFUNDED' ? 'ALREADY_REFUNDED' : 'NOT_REFUNDABLE';
     return res.status(409).json({ success: false, error: { code } });
+  }
+
+  // E6 / F2: a refund must not bypass a dispute Case. The owning service is asked (read-only) BEFORE anything is written; its 409 is returned as is, and an owner that does not answer REFUSES the refund.
+  try {
+    await assertRefundNotBypassingCase(original);
+  } catch (e) {
+    if (e instanceof RefundGuardError) {
+      return res.status(e.status).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
+    }
+    throw e;
   }
 
   if (!original.payerWalletId || !original.receiverWalletId) {

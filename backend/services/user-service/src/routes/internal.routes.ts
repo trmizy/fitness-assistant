@@ -14,6 +14,7 @@ import { vietnamDayRange } from "../utils/vi-datetime.util";
 import { PtRestrictionError, getActiveRestriction, ptRestrictionService } from "../services/pt-restriction.service";
 import { parsePtGymSessionsQuery, ptGymSessionsService } from "../services/pt-gym-sessions.service";
 import gymBookedClientsRoutes from "./internal-gym-booked-clients.routes";
+import { assertContractRefundNotBypassingCase } from "../services/dispute-case/refund-guard";
 
 const router = Router();
 
@@ -280,6 +281,21 @@ router.post(
   "/contracts/:id/cancel-after-refund",
   contractController.cancelAfterRefund as any,
 );
+// E6 / F2 (Ngài, 05/11): payment-service asks this BEFORE POST /admin/payments/:id/refund writes anything. READ-ONLY (a POST only so it can travel the same service-call helper):
+// 200 {allowed:true}, or 409 CONTRACT_CASE_OPEN / CONTRACT_CASE_DECISION_EXISTS. Any other failure is a 5xx that payment-service reads as "refuse" (fail-closed).
+router.post("/contracts/:id/refund-guard", async (req, res) => {
+  try {
+    await assertContractRefundNotBypassingCase(String(req.params.id), { openOnly: req.body?.openOnly === true });
+    res.json({ success: true, data: { allowed: true } });
+  } catch (e: any) {
+    if (e?.status === 409 && typeof e?.code === "string") {
+      res.status(409).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
+      return;
+    }
+    logger.error(e, "contract refund-guard error");
+    res.status(500).json({ success: false, error: { code: "REFUND_GUARD_FAILED", message: "Không kiểm tra được hồ sơ khiếu nại của hợp đồng" } });
+  }
+});
 
 // Roadmap P4.1 "Notifications/reminders" (§27) — fitness-service calls
 // this to persist a real, listable notification (never had a write path
@@ -300,6 +316,19 @@ router.post("/notifications", async (req, res) => {
     logger.error(error, "Internal notification create failed");
     res.status(500).json({ error: error.message });
   }
+});
+
+// Listing Management B22 - gym-service tells the admins' open sessions that a branch listing revision was submitted.
+// Realtime only, nothing stored (same as the PT listing submit). Answers 202; delivery is best-effort.
+router.post("/admin-broadcast", (req, res) => {
+  const { id, text, eventType, entityType, entityId, link } = req.body ?? {};
+  const isStr = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+  if (!isStr(id) || !isStr(text) || !isStr(eventType) || !isStr(entityType) || !isStr(entityId) || (link !== undefined && typeof link !== "string")) {
+    res.status(400).json({ error: "id, text, eventType, entityType, entityId are required strings" });
+    return;
+  }
+  notificationService.broadcastToAdmins({ id, text: text.slice(0, 240), eventType, entityType, entityId, link });
+  res.status(202).json({ accepted: true });
 });
 
 // Mobile E2/E3 — chat-service's realtime phone nudges (incoming call, new chat message). Push

@@ -1,0 +1,43 @@
+# c: ONBOARDING owner (doan-minh-tam) resumes the 10-step application at its saved step (8/10 Ảnh cơ sở),
+#    jumps to the Tiện ích step (7/10), toggles an amenity locally. Nothing is saved or submitted.
+# Run: run.sh c-owner-application-resume.yaml -e EMAIL=doan-minh-tam@seed.gymini.test
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Hồ sơ đối tác"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Hồ sơ đối tác"
+    timeout: 40000
+- assertVisible: "Bước .*/10.*"
+- takeScreenshot: c-01-resumed
+# jump to the Tiện ích step (7/10) via the step chips (scroll the chip row to it)
+- swipe:
+    start: 85%, 14%
+    end: 5%, 14%
+- takeScreenshot: c-01b-chips
+- tapOn: "Tiện ích"
+- assertVisible: "Bước 7/10.*"
+- assertVisible: "Chọn những tiện ích chi nhánh đầu tiên.*"
+- assertVisible: "Đã chọn 7 tiện ích."
+- takeScreenshot: c-02-amenities-step
+# toggle one amenity locally (not saved: "Lưu bước này" is not pressed, seed stays untouched)
+- tapOn: "Phòng Yoga.*"
+- assertVisible: "Đã chọn 8 tiện ích."
+- takeScreenshot: c-03-amenity-toggled
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

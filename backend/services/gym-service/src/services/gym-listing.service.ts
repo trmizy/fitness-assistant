@@ -22,6 +22,7 @@
 import { Prisma } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import { diffPayloads } from './gym-listing-diff';
+import { notifyAdminsListingSubmitted } from './gym-listing-notify';
 import { toListingPreviewDto } from './gym-listing-preview';
 import {
   ListingError,
@@ -266,6 +267,8 @@ export const gymListingService = {
       return tx.gymListingRevision.findUniqueOrThrow({ where: { id: open.id } });
     }, TX);
     if (!rev) return explainLostRace(gymId, open.id, { draftVersion: body.expectedDraftVersion, baseVersion: published.listingVersion });
+    // After commit, best-effort, not awaited: the admins' realtime tell must never fail or slow the submit.
+    void notifyAdminsListingSubmitted(rev, gym.approvedName ?? gym.name);
     return { revision: toOwnerRevisionDto(rev, published.listingVersion) };
   },
 

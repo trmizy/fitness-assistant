@@ -66,10 +66,19 @@ test("refund sentence: nothing paid yet but owed -> reconciling, no 'Đã hoàn'
   assert.doesNotMatch(text, /Đã hoàn/);
 });
 
-test("refund sentence: unknown result is neutral and names no amount", () => {
+test("refund sentence: unknown result is neutral, names no amount and does NOT say the money is in the wallet", () => {
   const text = refundMoneySentence(null);
   assert.doesNotMatch(text, /\d/);
   assert.doesNotMatch(text, /Đã hoàn/);
+  assert.equal(text, "Khoản hoàn đang được đối soát, chưa ghi nhận vào ví.");
+});
+
+test("final safety gate: an OPEN obligation says it is still to be paid; an unknown late-arrival result is not a wallet claim", () => {
+  assert.match(refundMoneySentence({ paid: "0", owed: "250000", unpaid: "250000" }), /vẫn còn phải thanh toán cho bạn/);
+  assert.match(compensationMoneySentence({ paid: "0", owed: "125000", unpaid: "125000" }), /vẫn còn phải thanh toán cho bạn/);
+  const unknown = compensationMoneySentence(null);
+  assert.equal(unknown, "Khoản bồi thường một phần đang được đối soát, chưa ghi nhận vào ví.");
+  assert.doesNotMatch(unknown, /Đã bồi thường/);
 });
 
 test("client message: closed + counted + no replacement, never 'không bị trừ'", () => {

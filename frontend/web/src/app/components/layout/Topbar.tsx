@@ -24,6 +24,7 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   PT_FEEDBACK_RECEIVED: "phản hồi từ PT",
   CONTRACT_PAUSED_PT_SUSPENDED: "Hợp đồng tạm dừng",
   CONTRACT_RESUMED_PT_REINSTATED: "Hợp đồng hoạt động trở lại",
+  DISPUTE_CASE_UPDATED: "Cập nhật hồ sơ khiếu nại",
 };
 import { useSocket } from "../../hooks/useSocket";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
@@ -314,8 +315,9 @@ export function Topbar() {
                       data-testid={`notification-item-${n.eventType}`}
                       onClick={() => {
                         if (n.unread) markReadMutation.mutate(n.id);
-                        if (n.link) {
-                          navigate(n.link);
+                        const caseLink = n.entityType === "DISPUTE_CASE" && n.entityId ? `${isAdmin ? "/admin/disputes" : "/disputes"}/${encodeURIComponent(n.entityId)}` : null;
+                        if (caseLink || n.link) {
+                          navigate(caseLink ?? n.link!);
                           setNotifOpen(false);
                         }
                       }}

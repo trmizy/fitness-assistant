@@ -296,7 +296,9 @@ test("MAIN (cases 4, 8, 10): eligible client -> gym-options -> request -> accept
     assert.equal(ctx.status, 200, JSON.stringify(ctx.body));
     assert.equal(ctx.body.amount, PRICE);
     assert.deepEqual(ctx.body.parties, { ptUserId: ptw.pt, gymId: A1, clientUserId: client.id });
-    assert.deepEqual(ctx.body.gym, { gymId: A1, brandId: world.brandId, agreementId: world.agreementId, agreementScope: "BRAND" });
+    // 02021460 (21/10): the client's view hides which PT↔gym agreement produced the split (redactCheckoutContextForViewer), and the rates themselves
+    assert.deepEqual(ctx.body.gym, { gymId: A1, brandId: world.brandId, agreementId: null, agreementScope: null });
+    assert.equal(ctx.body.rates, undefined, "the client never sees the revenue split");
     assert.equal(ctx.body.membership.membershipId, mem.id);
     assert.deepEqual(ctx.body.recheck, { ptAcceptsNewBusiness: true, paymentDeadlinePassed: false, gym: "OK" });
     assert.equal(ctx.body.payment.hasPaymentTransaction, false);

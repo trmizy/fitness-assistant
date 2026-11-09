@@ -20,9 +20,11 @@ import { deleteOrder, loadSchema } from './schema.mjs';
 import { computeScriptVersion, staticChecks, confirmTokenOf } from './manifest.mjs';
 import { recheck } from './audit.mjs';
 import { loadBackupSet } from './backup.mjs';
+import { denyParams, emptyDeny } from './deny.mjs';
+import { allowlistEntry, triggerPreflight, guardTriggerLiveProblems, triggerStates, disableTriggerSql, enableTriggerSql, triggerStateSql } from './triggers.mjs';
 
 export const progressFile = (runDir) => path.join(runDir, 'cleanup-progress.json');
-export const paramsOfManifest = (m) => ({ userIds: m.allowlist.users.map((u) => u.userId).sort(), emails: m.allowlist.emails, keptGymIds: m.allowlist.keptGymIds });
+export const paramsOfManifest = (m) => ({ userIds: m.allowlist.users.map((u) => u.userId).sort(), emails: m.allowlist.emails, keptGymIds: m.allowlist.keptGymIds, deny: denyParams(m.deny || emptyDeny()) });
 
 function sumCounts(c) {
   return Object.values(c).reduce((a, b) => a + b, 0);
@@ -32,6 +34,7 @@ async function runHook(ctx, svc, when) {
   if (ctx.profile.name !== 'test' || !process.env.DBCLEAN_TEST_HOOK) return;
   const h = JSON.parse(process.env.DBCLEAN_TEST_HOOK);
   if (h.svc !== svc || h.when !== when) return;
+  if (h.throw) throw new Error(`test hook ${when}: forced failure`); // lets a test fail INSIDE the guard-trigger window
   const m = await new PsqlDb({ container: ctx.profile.container, user: 'gymini_maintenance', password: process.env.DBCLEAN_MAINT_PASSWORD, database: ctx.profile.dbName(svc) }).connect();
   try {
     await m.exec(h.sql);
@@ -62,15 +65,43 @@ async function cleanOneDb(ctx, svc, manifest, maintPassword, progressEntry) {
       if (problems.length) throw new Refused(`${datname}: the live data no longer matches the approved manifest:\n  - ${problems.join('\n  - ')}`, 'MANIFEST_MISMATCH');
       const before = await allTableCounts(db);
       progressEntry.rowsBefore = before;
+      // 1b. guard triggers: the live preflight must give exactly the allowlisted pairs the manifest lists - nothing else armed
+      const mGuards = (manifest.guardTriggers || []).filter((e) => e.db === datname);
+      const tp = await triggerPreflight(db, { svc, datname, tables: a1.tables });
+      const gp = guardTriggerLiveProblems(datname, manifest.guardTriggers || [], tp);
+      if (gp.length) throw new Refused(`${datname}: trigger preflight does not match the approved manifest:\n  - ${gp.join('\n  - ')}`, 'GUARD_TRIGGERS');
+      const guardByTable = new Map();
+      for (const e of mGuards) {
+        const a = allowlistEntry(svc, e.schema, e.table, e.trigger); // the statement is built from the allowlist constant, never from manifest text
+        if (!a) throw new Refused(`${datname}: ${e.table}.${e.trigger} is not in the guard-trigger allowlist`, 'GUARD_TRIGGERS');
+        guardByTable.set(`${e.schema}.${e.table}`, a);
+      }
+      const statesAtBegin = JSON.stringify(await triggerStates(db));
       await runHook(ctx, svc, 'after-verify');
       // 2. delete, children first
       const keysByTable = new Map(mTables.map((t) => [`${t.schema}.${t.table}`, t]));
       const ord = deleteOrder([...keysByTable.keys()], (await loadSchema(db)).fks);
       if (!ord.order) throw new Refused(`${datname}: foreign-key cycle ${ord.cycle.join(' -> ')}`, 'FK_CYCLE');
       const deleted = {};
+      const guardUsed = [];
       for (const key of ord.order) {
         const t = keysByTable.get(key);
+        const g = guardByTable.get(key);
+        if (g) {
+          // exactly this one trigger, only for the window of this table's DELETE; a ROLLBACK restores it (ALTER TABLE is transactional)
+          await db.exec(disableTriggerSql(g));
+          const s = JSON.stringify(await db.json(triggerStateSql(g)));
+          if (s !== '["D"]') throw new Refused(`${datname}.${t.table}: trigger ${g.trigger} did not become disabled (tgenabled ${s})`, 'GUARD_TRIGGERS');
+          await runHook(ctx, svc, 'guard-disabled');
+        }
         const removed = await deleteKeys(db, t, t.keys);
+        if (g) {
+          await db.exec('SET CONSTRAINTS ALL IMMEDIATE'); // ALTER TABLE refuses while deferred trigger events of this table are pending
+          await db.exec(enableTriggerSql(g));
+          const s = JSON.stringify(await db.json(triggerStateSql(g)));
+          if (s !== '["O"]') throw new Refused(`${datname}.${t.table}: trigger ${g.trigger} is not enabled again (tgenabled ${s})`, 'GUARD_TRIGGERS');
+          guardUsed.push({ table: t.table, trigger: g.trigger, rowsDeleted: removed.length });
+        }
         // 3a. what was removed must be exactly what was approved
         const diff = diffTuples(removed, t.keys);
         if (removed.length !== t.count || fingerprintOf(removed) !== t.fingerprint || diff.extra.length || diff.missing.length) {
@@ -88,9 +119,17 @@ async function cleanOneDb(ctx, svc, manifest, maintPassword, progressEntry) {
       if (left.length) throw new Refused(`${datname}: rows are still selected for deletion after the delete: ${left.join(', ')}`, 'LEFTOVER');
       const hp = compareWithManifest({ tables: [], preserved: a2.preserved }, [], mPres);
       if (hp.length) throw new Refused(`${datname}: kept rows changed during the cleanup:\n  - ${hp.join('\n  - ')}`, 'PRESERVED_CHANGED');
+      // 3d. every trigger of the database is in the state it had at BEGIN, and each guard we switched off is enabled ('O') - read from pg_trigger, before COMMIT
+      const statesNow = JSON.stringify(await triggerStates(db));
+      if (statesNow !== statesAtBegin) throw new Refused(`${datname}: trigger states changed during the cleanup: at BEGIN ${statesAtBegin}, now ${statesNow}`, 'GUARD_TRIGGERS');
+      for (const g of guardByTable.values()) {
+        const s = JSON.stringify(await db.json(triggerStateSql(g)));
+        if (s !== '["O"]') throw new Refused(`${datname}.${g.table}: trigger ${g.trigger} is not enabled before COMMIT (tgenabled ${s})`, 'GUARD_TRIGGERS');
+      }
       await db.exec('COMMIT');
       progressEntry.rowsAfter = after;
       progressEntry.deleted = deleted;
+      progressEntry.guardTriggers = guardUsed.map((u) => ({ ...u, enabledBeforeCommit: true }));
     } catch (e) {
       await db.exec('ROLLBACK').catch(() => {});
       throw e;

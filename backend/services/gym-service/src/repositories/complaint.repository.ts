@@ -16,11 +16,18 @@ export const complaintRepository = {
   },
 
   /** Admin-wide queue, optionally filtered by status. */
-  listAll(status?: ComplaintStatus) {
+  listAll(status?: ComplaintStatus, page?: { limit?: number; offset?: number }) {
     return prisma.gymComplaint.findMany({
       where: status ? { status } : undefined,
-      orderBy: { createdAt: 'desc' },
+      // id as the tie-break keeps a page boundary stable when two complaints share a timestamp
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      ...(page?.limit !== undefined ? { take: page.limit } : {}),
+      ...(page?.offset ? { skip: page.offset } : {}),
     });
+  },
+
+  count(status?: ComplaintStatus) {
+    return prisma.gymComplaint.count({ where: status ? { status } : undefined });
   },
 
   /** The COMPLAINTS tab on a partner's detail page. */

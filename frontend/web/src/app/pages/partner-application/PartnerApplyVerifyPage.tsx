@@ -40,9 +40,10 @@ const clearSetup = () => {
   }
 };
 
-type Phase = "checking" | "ready" | "INVALID" | "EXPIRED" | "USED";
+type Phase = "checking" | "ready" | "INVALID" | "EXPIRED" | "USED" | "SETUP_INVALID";
 
-const PROBLEM_COPY: Record<"INVALID" | "EXPIRED" | "USED", { title: string; body: string }> = {
+const PROBLEM_COPY: Record<"INVALID" | "EXPIRED" | "USED" | "SETUP_INVALID", { title: string; body: string }> = {
+  SETUP_INVALID: { title: "Phiên tạo mật khẩu không còn hợp lệ", body: "Phiên tạo mật khẩu có hiệu lực 15 phút và có thể bị thay thế khi mở lại liên kết. Hãy mở lại email mới nhất để tiếp tục." },
   INVALID: { title: "Liên kết không hợp lệ", body: "Liên kết này không đúng hoặc đã bị thay thế. Hãy yêu cầu một liên kết mới." },
   EXPIRED: { title: "Liên kết đã hết hạn", body: "Liên kết xác minh chỉ có hiệu lực 24 giờ. Hãy yêu cầu một liên kết mới." },
   USED: { title: "Liên kết đã được sử dụng", body: "Tài khoản đã được tạo từ liên kết này. Hãy đăng nhập để tiếp tục hồ sơ." },
@@ -126,10 +127,15 @@ export function PartnerApplyVerifyPage() {
     },
     onError: (e) => {
       const f = friendlyError(e, "Không tạo được tài khoản. Vui lòng thử lại.");
-      if (f.status === 400 || f.status === 401 || f.status === 410) {
+      if (f.code === "SETUP_INVALID") {
         // setupToken hết hạn/đã thay: cần verify lại từ link email.
         clearSetup();
-        setPhase("EXPIRED");
+        setPhase("SETUP_INVALID");
+      } else if (f.code === "TOKEN_USED") {
+        clearSetup();
+        setPhase("USED");
+      } else if (f.code === "VALIDATION_FAILED") {
+        setError("Mật khẩu cần từ 8 đến 128 ký tự, có chữ hoa, chữ thường và số.");
       } else {
         setError(f.message);
       }
@@ -167,7 +173,8 @@ export function PartnerApplyVerifyPage() {
 
   const match = password.length > 0 && password === confirm;
   const st = strength(password);
-  const canSubmit = password.length >= 8 && match && !create.isPending;
+  const validPassword = password.length >= 8 && password.length <= 128 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
+  const canSubmit = validPassword && match && !create.isPending;
 
   return (
     <PartnerApplyShell>
@@ -188,7 +195,7 @@ export function PartnerApplyVerifyPage() {
       >
         <div>
           <label htmlFor="pw" className="text-xs text-zinc-500 mb-1.5 block">
-            Mật khẩu (tối thiểu 8 ký tự)
+            Mật khẩu (8–128 ký tự, có chữ hoa, chữ thường và số)
           </label>
           <div className="relative">
             <input

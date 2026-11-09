@@ -5,6 +5,12 @@ import { bookingController } from "../controllers/booking.controller";
 import { ptRestrictionController } from "../controllers/pt-restriction.controller";
 import { adminReconciliationController } from "../controllers/admin-reconciliation.controller";
 import adminPtListingRoutes from "./admin-pt-listing.routes";
+import disputeCaseAdminRoutes from "./dispute-case-admin.routes";
+import { disputeCaseController } from "../controllers/dispute-case.controller";
+import lateOpenReconciliationRoutes from "./late-open-reconciliation.routes";
+import d65bResolutionRoutes from "./d65b-resolution.routes";
+import disputeCaseReplacementRoutes from "./dispute-case-replacement.routes";
+import disputeCaseAppealObligationRoutes from "./dispute-case-appeal-obligation.routes";
 
 const router = Router();
 
@@ -16,7 +22,22 @@ router.use(authMiddleware, roleMiddleware(["ADMIN"]));
 router.get("/sessions/disputed", bookingController.listDisputed as any);
 // FH-4: read-only money reconciliation report (settlement rows needing a person, unconfirmed endings, disputes by SLA age).
 router.get("/sessions/reconciliation", roleMiddleware(["ADMIN"]), adminReconciliationController.get as any);
+// R-16: an admin reads one session (GET /sessions/:id is for its parties).
+router.get("/sessions/:id", disputeCaseController.adminSession as any);
 router.post("/sessions/:id/resolve", bookingController.resolveDispute as any);
+
+// ── Dispute Case (slice 1): investigation file of a disputed session. Records and decides; executes nothing (see dispute-case.service.ts). ──
+// A4: replacement of an approved decision that has had no effect (mounted BEFORE the dispute-cases router, its own flag).
+router.use("/dispute-cases/:caseId/replacements", disputeCaseReplacementRoutes);
+// E5: the formal obligation after a won appeal (create / retry, sync). Before the dispute-cases router; behind the V2.1 process flag.
+router.use("/dispute-cases/:caseId/appeal-consequences", disputeCaseAppealObligationRoutes);
+router.use("/dispute-cases", disputeCaseAdminRoutes);
+
+// ── Late-open reconciliation (final safety gate): the four-eyes way out for a D77-OPEN step of an ORDINARY session (no Case, no policy review). Never touches the dispute-case tables. ──
+router.use("/late-open-reconciliations", lateOpenReconciliationRoutes);
+
+// ── D65-B: four-eyes admin resolution of the money HELD for one NO_SHOW session (its refund was never paid, the contract ended). Only NOT_DELIVERED, only to the client. ──
+router.use("/unconfirmed-session-resolutions", d65bResolutionRoutes);
 
 // ── Temporary PT suspension (contracts are NOT touched; see pt-restriction.service.ts) ──────────
 // The literal /pts/suspended is declared before the parameterised paths, though no parameterised path

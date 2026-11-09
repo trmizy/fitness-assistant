@@ -666,7 +666,7 @@ test("[SAFE] no-show compensation: answer lost -> the ending drains it FIRST (re
     faults.add(/\/contracts\/no-show$/, "LOSE_RESPONSE");
     assert.equal((await H.call("PATCH", `/sessions/${s.id}/no-show`, A.ptToken, { noShowBy: "PT" })).status, 200);
     assert.equal((await settlements(A.id)).find((x) => x.sessionId === s.id)!.status, "FAILED");
-    assert.equal((await contractRow(A.id)).compensatedSessions, 0, "not recorded yet, though the client already got 500,000");
+    assert.equal((await contractRow(A.id)).compensatedSessions, 1, "QUOTA A+: booked at the terminal change (once), not after the money step"); // was 0 ("not recorded yet")
     assert.equal((await H.wallet("CLIENT", A.clientUserId)).a, 500_000);
     const end = await cancelReq(A)(); // used=2, compensated=1 (after the drain) => 7 unused => 3,150,000
     assert.equal(end.status, 200, JSON.stringify(end.body));
@@ -692,7 +692,7 @@ test("[REGRESSION D58 apply-once, was DEFECT/P1] no-show compensation: the ledge
     };
     try {
       assert.equal((await H.call("PATCH", `/sessions/${s.id}/no-show`, A.ptToken, { noShowBy: "PT" })).status, 200);
-      assert.equal((await contractRow(A.id)).compensatedSessions, 0, "not counted without its settle");
+      assert.equal((await contractRow(A.id)).compensatedSessions, 1, "QUOTA A+: booked at the terminal change, so the failed settle does not leave it uncounted"); // was 0 ("not counted without its settle")
       assert.equal((await settlements(A.id)).find((x) => x.sessionId === s.id)!.status, "FAILED");
       assert.equal((await H.wallet("CLIENT", A.clientUserId)).a, 500_000, "the ledger already paid the client");
       const end = await cancelReq(A)(); // the drain replays the 'failed' compensation first and applies it once

@@ -321,7 +321,7 @@ export function BookingPage() {
   const { data: availableSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ["available-slots", selectedContract?.ptUserId, selectedDateStr],
     queryFn: () =>
-      availabilityService.getAvailableSlots(
+      availabilityService.getBookableSlots(
         selectedContract!.ptUserId,
         selectedDateStr!,
       ),
@@ -357,6 +357,8 @@ export function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+      // The new session also blocks this client's slots with their OTHER PT(s).
+      queryClient.invalidateQueries({ queryKey: ["available-slots"] });
       setSelectedDate(null);
       setSelectedSlot(null);
       setBookingNotes("");
@@ -1167,7 +1169,7 @@ export function BookingPage() {
             <h3 className="text-zinc-100 font-bold mb-2">Khiếu nại buổi tập</h3>
             <p className="text-xs text-zinc-500 mb-4">
               Cho biết vì sao bạn không đồng ý với báo cáo của PT. Quản trị viên sẽ xem xét và
-              phân xử — buổi tập không bị trừ cho tới khi có kết luận.
+              phân xử. Buổi đang chờ kết luận; quyền buổi tuỳ theo kết luận.
             </p>
             <textarea
               value={disputeReason}

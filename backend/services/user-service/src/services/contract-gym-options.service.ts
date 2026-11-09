@@ -5,6 +5,7 @@ import { ptServicePackageRepository } from "../repositories/pt_service_package.r
 import { trainingLocationRepository } from "../repositories/training_location.repository";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { assertPtAcceptsNewBusiness, PtRestrictionError } from "./pt-restriction.service";
+import { CLIENT_PT_LIMIT_REACHED, MAX_LIVE_PTS_PER_CLIENT } from "./contract.service";
 import {
   evaluateMembershipForContract,
   toGymContractEligibility,
@@ -39,6 +40,8 @@ import {
 
 export const GYM_OPTIONS_PT_NOT_ACCEPTING_CLIENTS = "PT_NOT_ACCEPTING_CLIENTS";
 export const GYM_OPTIONS_ACTIVE_CONTRACT_EXISTS = "ACTIVE_CONTRACT_EXISTS";
+/** Same code requestContract answers with when the client already has live contracts with the maximum number of PTs. */
+export const GYM_OPTIONS_CLIENT_PT_LIMIT_REACHED = CLIENT_PT_LIMIT_REACHED;
 
 /** Why `gyms` is empty without the trainer simply having no usable branch. */
 export type GymOptionsGymsReason =
@@ -138,6 +141,12 @@ export const contractGymOptionsService = {
     }
     if (!requestBlockedReason && (await contractRepository.findActiveByPair(ptUserId, clientUserId))) {
       requestBlockedReason = GYM_OPTIONS_ACTIVE_CONTRACT_EXISTS;
+    }
+    if (
+      !requestBlockedReason &&
+      (await contractRepository.findOtherLivePtsForClient(clientUserId, ptUserId)).length >= MAX_LIVE_PTS_PER_CLIENT
+    ) {
+      requestBlockedReason = GYM_OPTIONS_CLIENT_PT_LIMIT_REACHED;
     }
     if (requestBlockedReason) {
       return { ...base, requestBlockedReason, gymsReason: "REQUEST_BLOCKED", gyms: [] };

@@ -1,6 +1,8 @@
 import { logger } from '@gym-coach/shared';
 import { membershipRepository } from '../repositories/membership.repository';
 import { paymentClient } from '../clients/payment.client';
+import { prisma } from '../repositories/prisma';
+import { membershipHolds } from './complaint-case/refund-guard';
 
 /**
  * Money-flow plan §2.3①: a membership's gym/platform/referral share sits in the pending
@@ -20,6 +22,12 @@ const PENDING_PAYMENT_STALE_MINUTES = Number(process.env.GYM_MEMBERSHIP_PENDING_
 
 let running = false;
 
+/** B1: the memberships a Gym Case holds right now (cheap pre-filter; the decision is re-made under the row lock before each release). */
+async function heldMembershipIds(): Promise<Set<string>> {
+  const rows = await prisma.gymMembershipContract.findMany({ where: { status: 'EXPIRED', payoutReleasedAt: null, paymentTxnId: { not: null } }, select: { id: true }, take: 5000 });
+  return new Set((await membershipHolds(prisma, rows.map((r) => r.id))).keys());
+}
+
 export function startMembershipPayoutSweep(): void {
   logger.info(`Membership payout sweep started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`);
   setInterval(() => {
@@ -27,7 +35,7 @@ export function startMembershipPayoutSweep(): void {
   }, INTERVAL_MS);
 }
 
-export async function runSweep(): Promise<{ cancelledStale: number; expired: number; released: number; failed: number }> {
+export async function runSweep(): Promise<{ cancelledStale: number; expired: number; released: number; failed: number; held?: number }> {
   if (running) {
     logger.info('[MembershipPayoutSweep] Previous run still in progress — skipping tick');
     return { cancelledStale: 0, expired: 0, released: 0, failed: 0 };
@@ -37,6 +45,7 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
   let cancelledStale = 0;
   let expired = 0;
   let released = 0;
+  let held = 0;
   let failed = 0;
   try {
     // Step 0 (P0 cluster E3): a PENDING_PAYMENT order nobody ever paid for and nobody
@@ -70,10 +79,19 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
     }
 
     // Step 2: release the payout for every EXPIRED membership that still has one pending.
-    const due = await membershipRepository.findExpiredNotReleased(BATCH_SIZE);
+    // B1: a membership with an unfinished Gym Case (or an approved, unexecuted refund) keeps ITS OWN unsettled money; every other membership releases as before.
+    const heldNow = await heldMembershipIds();
+    held += heldNow.size;
+    const due = await membershipRepository.findExpiredNotReleased(BATCH_SIZE, [...heldNow]);
     for (const m of due) {
       try {
-        await paymentClient.releaseMembershipPending({
+        // Decide "hold or release" under the membership row lock: opening a case / an appeal takes the same lock, so none can slip between this check and the release.
+        const skipped = await prisma.$transaction(
+          async (tx) => {
+            await tx.$queryRaw`SELECT id FROM gym_membership_contracts WHERE id = ${m.id} FOR UPDATE`;
+            const holds = await membershipHolds(tx as any, [m.id]);
+            if (holds.has(m.id)) return holds.get(m.id)!;
+            await paymentClient.releaseMembershipPending({
           transactionId: m.paymentTxnId!,
           gymId: m.gymId,
           clientId: m.clientId,
@@ -85,8 +103,16 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
           // AFTER this call returns, so a crash between the two used to risk a second release
           // on the next tick before this key existed.
           idempotencyKey: `MEMBERSHIP_RELEASE:${m.id}`,
-        });
-        await membershipRepository.markPayoutReleased(m.id);
+            });
+            await tx.gymMembershipContract.update({ where: { id: m.id }, data: { payoutReleasedAt: new Date() } });
+            return null;
+          },
+          { timeout: 30_000, maxWait: 10_000 },
+        );
+        if (skipped) {
+          held++;
+          continue;
+        }
         released++;
       } catch (err) {
         failed++;
@@ -104,5 +130,6 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
   } finally {
     running = false;
   }
-  return { cancelledStale, expired, released, failed };
+  if (held > 0) logger.info(`[MembershipPayoutSweep] Held ${held} membership(s) with an unfinished Gym Case (their money stays pending)`);
+  return { cancelledStale, expired, released, failed, held };
 }

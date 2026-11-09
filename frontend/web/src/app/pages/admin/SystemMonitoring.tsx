@@ -15,6 +15,9 @@ import {
 import { MonitorIcon as Monitor, PulseIcon as Activity, DatabaseIcon as Server, CpuIcon as Cpu, HardDriveIcon as HardDrive, WifiHighIcon as Wifi, WarningIcon as AlertTriangle, ArrowsClockwiseIcon as RefreshCw, ArrowSquareOutIcon as ExternalLink, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import { grafanaUrl } from "../../config/serverUrl";
+import { PageSkeleton } from "../../components/ui/PageSkeleton";
+import { ErrorState } from "../../components/ui/ErrorState";
+import { describeAdminError, errorStateKind, type AdminErrorView } from "./shared/useAdminError";
 
 type ServiceProbe = {
   key: string;
@@ -77,7 +80,7 @@ function formatUptime(seconds: number | null): string {
 export function SystemMonitoring() {
   const [data, setData] = useState<MonitorData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AdminErrorView | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -89,14 +92,10 @@ export function SystemMonitoring() {
         setData(res.data);
         setError(null);
       } else {
-        setError("Không tải được dữ liệu giám sát");
+        setError(describeAdminError({ response: { status: 502 } }, { fallback: "Không tải được dữ liệu giám sát" }));
       }
     } catch (err: any) {
-      setError(
-        err?.response?.status === 404
-          ? "Giám sát từng dịch vụ chỉ khả dụng khi chạy qua API gateway. Trên bản AWS, xem CloudWatch."
-          : err?.message || "Lỗi kết nối mạng",
-      );
+      setError(describeAdminError(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -106,36 +105,35 @@ export function SystemMonitoring() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    // Auto-refresh every 30s, skipped while the tab is hidden.
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") fetchData();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
-        <span className="ml-2 text-zinc-400 text-sm">
-          Đang tải dữ liệu giám sát...
-        </span>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5" role="status" data-testid="system-loading" aria-busy="true" aria-label="Đang tải dữ liệu giám sát">
+        <h1 className="text-zinc-100 flex items-center gap-2">
+          <Monitor className="w-5 h-5 text-violet-500" aria-hidden /> Giám sát hệ thống
+        </h1>
+        <PageSkeleton variant="detail" />
       </div>
     );
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
-          <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
-          <p className="text-red-400 text-sm font-semibold">
-            {error || "Không có dữ liệu"}
-          </p>
-          <button
-            onClick={fetchData}
-            className="mt-2 text-xs text-red-300 hover:text-red-200 underline"
-          >
-            Thử lại
-          </button>
-        </div>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5" data-testid="system-load-error">
+        <h1 className="text-zinc-100 flex items-center gap-2">
+          <Monitor className="w-5 h-5 text-violet-500" aria-hidden /> Giám sát hệ thống
+        </h1>
+        <ErrorState
+          kind={error ? errorStateKind(error) : "generic"}
+          message={error?.message ?? "Không có dữ liệu giám sát."}
+          onRetry={error?.kind === "forbidden" ? undefined : fetchData}
+        />
       </div>
     );
   }
@@ -180,7 +178,7 @@ export function SystemMonitoring() {
               href={`${GRAFANA_URL}/d/gym-platform-overview`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg border border-orange-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-st-warning-bg hover:brightness-95 text-st-warning text-xs font-medium rounded-lg border border-st-warning-border transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Mở Grafana
@@ -200,6 +198,13 @@ export function SystemMonitoring() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" data-testid="system-refresh-error" className="rounded-xl border border-st-danger-border bg-st-danger-bg px-4 py-3 text-xs text-st-danger flex items-center justify-between gap-3">
+          <span>Không cập nhật được dữ liệu mới — đang hiện số liệu của lần tải trước. {error.message}</span>
+          <button onClick={fetchData} className="font-bold underline shrink-0">Thử lại</button>
+        </div>
+      )}
 
       {/* Health Score Banner */}
       <div
@@ -323,9 +328,9 @@ export function SystemMonitoring() {
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-blue-400" />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Độ trễ phản hồi dịch vụ (ms)
-            </h4>
+            </h2>
           </div>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={latencyData}>
@@ -359,9 +364,9 @@ export function SystemMonitoring() {
         {/* Service Uptime */}
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Thời gian chạy của dịch vụ
-            </h4>
+            </h2>
             <span className="text-xs text-zinc-500">Từ lần khởi động lại gần nhất</span>
           </div>
           <div className="space-y-2">
@@ -408,9 +413,9 @@ export function SystemMonitoring() {
               className="w-4 h-4"
               alt="Grafana"
             />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Bảng điều khiển Grafana
-            </h4>
+            </h2>
           </div>
           <p className="text-xs text-zinc-500 mb-3">
             Xem chi tiết các chỉ số qua bảng điều khiển Grafana dựng sẵn, dữ liệu từ Prometheus.
@@ -482,9 +487,9 @@ export function SystemMonitoring() {
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Sự cố đang xảy ra
-            </h4>
+            </h2>
             {data.recentErrors.length === 0 && (
               <span className="ml-auto text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 font-semibold">
                 Ổn định
@@ -511,8 +516,8 @@ export function SystemMonitoring() {
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
                         e.level === "error"
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-amber-500/20 text-amber-400"
+                          ? "bg-st-danger-bg text-st-danger"
+                          : "bg-st-warning-bg text-st-warning"
                       }`}
                     >
                       {ISSUE_LEVEL_VI[e.level] ?? e.level}
@@ -534,12 +539,10 @@ export function SystemMonitoring() {
 
       {/* Footer */}
       <div className="text-center text-[10px] text-zinc-700 py-2">
-        Dữ liệu từ{" "}
-        <code className="text-zinc-600">GET /admin/system-monitor</code> ·
-        chu kỳ thu thập Prometheus: 15 giây
+        Dữ liệu thu thập từ Prometheus, chu kỳ 15 giây
         {GRAFANA_URL ? (
           <>
-            {" "}· Grafana at <code className="text-zinc-600">{GRAFANA_URL}</code>
+            {" "}· Grafana: <code className="text-zinc-600">{GRAFANA_URL}</code>
           </>
         ) : null}
       </div>

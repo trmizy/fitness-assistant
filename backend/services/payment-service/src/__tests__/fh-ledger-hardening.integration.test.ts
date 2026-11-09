@@ -478,7 +478,8 @@ test('FH-1 routes /internal/contracts/{no-show,late-arrival,terminate} return pa
     const ns = await srv.call('POST', '/contracts/no-show', body(A, { idempotencyKey: 'PT_NO_SHOW:A:http' }));
     assert.equal(ns.status, 200, JSON.stringify(ns.json));
     assert.deepEqual([ns.json.data.owed, ns.json.data.paid, ns.json.data.unpaid], ['250000.00', '250000.00', '0.00']);
-    const la = await srv.call('POST', '/contracts/late-arrival', body(A, { idempotencyKey: 'PT_LATE_ARRIVAL:A:http' }));
+    // I5/A (31/10): a late arrival on the SAME session as the no-show is inside V (owes nothing more). This route test is about the response shape, so the late arrival is on ANOTHER session.
+    const la = await srv.call('POST', '/contracts/late-arrival', body(A, { idempotencyKey: 'PT_LATE_ARRIVAL:A:http-late-session' }));
     assert.deepEqual([la.json.data.owed, la.json.data.paid, la.json.data.unpaid], ['125000.00', '125000.00', '0.00']);
     const term = await srv.call('POST', '/contracts/terminate', body(A, {
       idempotencyKey: 'CONTRACT_TERMINATE:A', usedSessions: 0, compensatedSessions: 1, reason: 'MUTUAL',

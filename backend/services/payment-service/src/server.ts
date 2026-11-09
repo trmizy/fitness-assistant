@@ -6,12 +6,16 @@ import { prisma } from './repositories/prisma';
 import { logger } from '@gym-coach/shared';
 import { startReconciliationJob } from './services/reconciliation.service';
 
+import { paymentGateVerdict, lateOpenSettlementVerdict } from './services/late-open-settlement-flag';
+
 const PORT = process.env.PORT || 3007;
 
 async function startServer() {
   try {
     app.listen(PORT, () => {
       logger.info(`Payment Service running on port ${PORT}`);
+      const gate = paymentGateVerdict();
+      logger.info(`[dispute-runtime-gate] payment-service mode=${gate.mode} open=${gate.open} db=${gate.database || '?'}${gate.refusedBecause ? ` refused=${gate.refusedBecause}` : ''} lateOpenSettlement=${lateOpenSettlementVerdict().effective}`);
       startReconciliationJob();
     });
   } catch (error) {

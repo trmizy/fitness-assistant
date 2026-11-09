@@ -1,0 +1,18 @@
+# Subflow: log out from the gym-owner workspace (Hồ sơ tab). Goes back first if a drill-down is open.
+appId: vn.fitnessassistant.app
+---
+- runFlow:
+    when:
+      visible: "Tin đăng & tiện ích"
+    commands:
+      - back
+- tapOn: "Hồ sơ"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn:
+    text: "ĐĂNG XUẤT"
+    optional: true
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

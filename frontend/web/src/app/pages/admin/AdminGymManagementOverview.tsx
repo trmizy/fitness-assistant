@@ -113,13 +113,23 @@ export function AdminGymManagementOverview() {
         ) : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {attentionItems.map((item) => (
-              <EntityCard
+              // EntityCard is a clickable <div>: the wrapper makes it a keyboard-operable link (Tab + Enter) without a second handler.
+              <div
                 key={item.key}
-                title={item.title}
-                subtitle={`${item.count} mục`}
-                badge={<item.icon className="size-4 text-amber-400" />}
-                onClick={() => navigate(item.to)}
-              />
+                role="link"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.target === e.currentTarget) navigate(item.to);
+                }}
+                className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]"
+              >
+                <EntityCard
+                  title={item.title}
+                  subtitle={`${item.count} mục`}
+                  badge={<item.icon className="size-4 text-amber-400" />}
+                  onClick={() => navigate(item.to)}
+                />
+              </div>
             ))}
           </div>
         )}

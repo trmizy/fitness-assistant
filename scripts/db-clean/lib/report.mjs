@@ -84,8 +84,33 @@ export function renderReport({ ctx, manifest, token, metadata, plan, files, part
   L.push('## 6. Other databases on the server');
   L.push(tbl(['database', 'MB', 'tables', 'non-empty tables', 'error'], ex.otherDatabases.map((d) => [d.datname, d.mb, d.tables, d.nonEmptyTables && JSON.stringify(d.nonEmptyTables), d.error])));
   L.push('');
+  if (metadata.deny) {
+    const d = metadata.deny;
+    L.push('## 6b. Row-level deny list (--deny-file) and wallet proof');
+    L.push(`Deny file: ${d.file || 'none'}; patterns (each must start with E2E): \`${JSON.stringify(d.patterns)}\``);
+    L.push(`Expanded to explicit ids (stored in the manifest, covered by the token): gyms ${d.counts.gyms}, amenities ${d.counts.amenities}, amenity proposals ${d.counts.proposals}, packages ${d.counts.packages}.`);
+    if (d.keptDespiteDeny.length) L.push(`Matched by a pattern but KEPT (a contract still refers to it): ${d.keptDespiteDeny.map((k) => `${k.name} (${k.contracts} contract(s))`).join('; ')}`);
+    L.push(`Guard info: ${JSON.stringify(d.guardInfo)}`);
+    L.push('Denied rows (names):');
+    L.push(['```json', JSON.stringify(d.names, null, 1), '```'].join(String.fromCharCode(10)));
+    L.push('Wallet proof for payment transactions deleted together with a deleted party (kept wallets involved; before/after; ledger entries deleted from them):');
+    L.push(['```json', JSON.stringify(metadata.walletImpact, null, 1), '```'].join(String.fromCharCode(10)));
+    L.push('');
+  }
+  if (metadata.triggerPreflight) {
+    const tp = metadata.triggerPreflight;
+    L.push('## 6c. Trigger preflight (immutability guards that the DELETE would fire)');
+    L.push(`Allowlisted pairs the tool may disable for the window of one table's DELETE (recorded in the manifest as \`guardTriggers\`, covered by the token): ${manifest.guardTriggers.length ? manifest.guardTriggers.map((g) => `\`${g.db}.${g.table}.${g.trigger}\` (${g.rowsDeleted} manifest row(s))`).join('; ') : '**none used**'}.`);
+    L.push('Every user trigger of the in-scope databases and what the cleanup does to it:');
+    for (const [svc, list] of Object.entries(tp.listing)) {
+      if (!list.length) continue;
+      L.push(`### ${svc}`);
+      L.push(tbl(['table', 'trigger', 'timing / events', 'enabled', 'status', 'why'], list.map((t) => [t.table, t.trigger, `${t.timing} ${t.events}${t.row ? ' ROW' : ''}`, t.enabled, t.status, t.reason])));
+    }
+    L.push('');
+  }
   L.push('## 7. What is deleted / what is preserved (policy summary)');
-  L.push('- **Preserved untouched:** `_prisma_migrations`, geography (`vietnam_*`), the amenity catalogue + its audit log, platform commission rates, the compat-evidence tables (`legacy_compat_events`, `client_compat_events`, `compat_writer_heartbeats`), fitness/AI catalogues and the knowledge base, PLATFORM wallets.');
+  L.push('- **Preserved untouched:** `_prisma_migrations`, geography (`vietnam_*`), the amenity catalogue + its audit log (except rows named by the deny file), platform commission rates, the compat-evidence tables (`legacy_compat_events`, `client_compat_events`, `compat_writer_heartbeats`), fitness/AI catalogues and the knowledge base, PLATFORM wallets.');
   L.push('- **Kept:** every row of a preserved account, and the rows below it that stay consistent (a child of a kept parent). A row involving a preserved account AND a deleted account (e.g. a contract between them) is deleted (counted in section 3).');
   L.push('- **Deleted:** everything else in the four in-scope databases (chat, payment, gym, user, auth).');
   L.push('');

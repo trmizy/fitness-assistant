@@ -172,6 +172,17 @@ export const notificationService = {
   },
 
   /**
+   * Realtime-only tell to every admin's open session (not stored, same as a new PT application / PT listing submit).
+   * Best-effort and non-blocking: never throws.
+   */
+  broadcastToAdmins(data: { id: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }): void {
+    pushToSocket({
+      adminBroadcast: true,
+      notification: { ...data, unread: true, createdAt: new Date().toISOString() },
+    });
+  },
+
+  /**
    * The row inside the caller's transaction: it commits or rolls back together with the state change it
    * announces, so a crash can neither lose the notice of a committed change nor leave a notice for one
    * that never happened. Push it with {@link publish} once the transaction has committed.

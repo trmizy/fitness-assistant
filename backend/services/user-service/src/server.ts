@@ -11,6 +11,10 @@ import { startContractExpirySweepJob } from "./services/contract-expiry-sweep.se
 import { startRoomCloseResolutionJob } from "./services/room-close-resolution.service";
 import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
 import { startIpUaRetentionSweepJob } from "./services/ip-ua-retention.service";
+import { startDisputeExecutionSweepJob } from "./services/dispute-case/execution-sweep.service";
+import { startDisputeTimersSweepJob } from "./services/dispute-case/dispute-timers.service";
+import { auditDisputeRuntimeGate } from "./services/dispute-case/flags";
+import { startPeerVerdictMonitor } from "./services/dispute-case/payment-peer";
 import { installGracefulShutdown } from "./lifecycle";
 
 const PORT = process.env.PORT || 3004;
@@ -22,6 +26,8 @@ const server = app.listen(PORT, () => {
   logger.info(`👤 User Service running on port ${PORT}`);
   // Settles sessions the client never responded to, so a PT is not left uncredited
   // forever by silence (see session-autoconfirm.service.ts).
+  auditDisputeRuntimeGate();
+  stopJobs.push(startPeerVerdictMonitor());
   stopJobs.push(startSessionAutoConfirmJob());
   stopJobs.push(startRescheduleExpiryJob());
   // Retries no-show compensation / session release / contract termination that failed on
@@ -41,6 +47,10 @@ const server = app.listen(PORT, () => {
   // Personal data: clears ip_address / user_agent on PT-terms acceptances and audit rows older than 12 months (never deletes a row,
   // skips rows under legal hold) - see ip-ua-retention.service.ts.
   stopJobs.push(startIpUaRetentionSweepJob());
+  // Dispute Case: a decision left EXECUTING by a dead process is reconciled (real state first, never a blind retry). A no-op unless the fail-closed execution flag is effective.
+  stopJobs.push(startDisputeExecutionSweepJob());
+  // Dispute V2.1 timers (response clocks, S2.4, SLA day 10/14, held-money review): moves no money; a no-op unless DISPUTE_CASE_TIMERS_ENABLED is effective.
+  stopJobs.push(startDisputeTimersSweepJob());
 });
 
 // SIGTERM / SIGINT: stop the ticks, stop accepting, let the requests and sweeps that are running FINISH (bounded by

@@ -8,6 +8,7 @@
  * money call was made. notificationService.create is replaced too (it would push to chat-service).
  */
 import { randomUUID } from "node:crypto";
+import { insertPolicyReviewFixture } from "./dispute-policy-eligibility.fixture";
 import { prisma } from "../repositories/profile.repository";
 import { paymentClient } from "../clients/payment.client";
 import { notificationService } from "../services/notification.service";
@@ -45,8 +46,12 @@ export async function acceptCurrentPtTerms(ptUserId: string): Promise<void> {
   });
 }
 
-export async function makeContract(ptUserId: string, overrides: Record<string, unknown> = {}) {
-  return prisma.contract.create({
+/**
+ * TEST FIXTURE note (B-1 release gate, D-NEW-12): every contract made here also gets an APPROVED ELIGIBLE_CURRENT_POLICY review (see dispute-policy-eligibility.fixture.ts), because the
+ * ruling core refuses to rule on a contract without one and there is no switch to turn that off. Pass { eligibility: "none" } for a test about the guard itself.
+ */
+export async function makeContract(ptUserId: string, overrides: Record<string, unknown> = {}, opts: { eligibility?: "none" | "exception" } = {}) {
+  const created = await prisma.contract.create({
     data: {
       id: randomUUID(),
       ptUserId,
@@ -61,6 +66,8 @@ export async function makeContract(ptUserId: string, overrides: Record<string, u
       ...overrides,
     },
   });
+  if (opts.eligibility !== "none") await insertPolicyReviewFixture(prisma, created, { result: opts.eligibility === "exception" ? "EXCEPTION_APPLIES" : "ELIGIBLE_CURRENT_POLICY" });
+  return created;
 }
 
 export async function addSession(

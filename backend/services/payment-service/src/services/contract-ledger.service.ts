@@ -21,6 +21,7 @@ import {
   contractOpMeta,
   RequestDoesNotMatchTransactionError,
 } from './contract-request-guard';
+import { lateOpenSettlementEnabled } from './late-open-settlement-flag';
 
 /**
  * Moves the money a contract's formulas call for.
@@ -105,7 +106,7 @@ export async function ownPending(ops: LedgerOps, walletId: string, transactionId
 
 // ── FH-1: unpaid obligations (D48 / N7) ──────────────────────────────────────
 
-export type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED';
+export type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED' | 'APPEAL_AWARD';
 
 /**
  * Writes the durable record of what a PT-fault step could not pay out of THE CONTRACT'S OWN money.
@@ -203,21 +204,232 @@ function chargedOf(result: unknown): PartyAmounts | null {
   return { pt: new Prisma.Decimal(c.pt ?? 0), gym: new Prisma.Decimal(c.gym ?? 0), platform: new Prisma.Decimal(c.platform ?? 0) };
 }
 
+function deductedOf(result: unknown): PartyAmounts | null {
+  const c = (result as { lateArrivalDeducted?: Record<string, string> } | null)?.lateArrivalDeducted;
+  if (!c) return null;
+  return { pt: new Prisma.Decimal(c.pt ?? 0), gym: new Prisma.Decimal(c.gym ?? 0), platform: new Prisma.Decimal(c.platform ?? 0) };
+}
+
 type LedgerOpReader = { ledgerOperation: LedgerOps['tx']['ledgerOperation'] };
 
+interface LateCoverage {
+  /** What the ledger charged the parties (and credited the client) for the late arrival. */
+  charged: PartyAmounts;
+  /** The part of L that is still an obligation to the client (not WAIVED), split by the contract's rates. */
+  open: PartyAmounts;
+  chargedTotal: Prisma.Decimal;
+  openTotal: Prisma.Decimal;
+}
+
 /**
- * What the late-arrival compensation of THIS session already took out of each party's pending, read from the ledger:
- * the stored result of the session's `PT_LATE_ARRIVAL:<session>` operation (same session id as the release /
- * resolution key - no field from the caller). Only operations written under this transaction by FH-2b-and-later code
- * count (they carry `kind` and `transactionId`); an older row, or no row, means no deduction, so a session that was
- * already released in full before D77 keeps the outcome it had and nothing is clawed back.
+ * I5/C1 (Ngai, 31/10). The ledger's account of the late-arrival compensation L of one session of THIS transaction, or null when it has none: what it
+ * charged the parties (the stored result of `PT_LATE_ARRIVAL:<session>`) PLUS the part still owed to the client as an obligation
+ * (owed - paid of the obligation under the same key, split by the contract's rates), unless that obligation was WAIVED. A release / resolution
+ * deducts the WHOLE of it, so the session's own money never pays its parties more than V - L, whether L was paid in cash or is still OPEN.
+ * D77 FINAL (01/11/2026): this function now serves only the RECORD-ONLY no-show (recordCompensationObligation); an OPEN L is paid to the client by
+ * {@link settleLateOpen} inside the settlement of the session, so nothing is held back for it any more.
  */
-async function lateDeductionFor(ops: LedgerOps, transactionId: string, opKey: string): Promise<PartyAmounts | null> {
-  const lateKey = lateArrivalKeyFor(opKey);
-  if (!lateKey) return null;
+async function lateCoverage(ops: LedgerOps, transactionId: string, lateKey: string, rates: RateTable): Promise<LateCoverage | null> {
   const row = await ops.tx.ledgerOperation.findUnique({ where: { key: lateKey } });
   if (!row || row.kind !== 'LATE_ARRIVAL' || row.transactionId !== transactionId) return null;
-  return chargedOf(row.result);
+  const charged = chargedOf(row.result);
+  if (!charged) return null;
+  const ob = await ops.tx.contractUnpaidObligation.findUnique({ where: { key: lateKey } });
+  let open: PartyAmounts = NO_AMOUNTS();
+  if (ob && ob.transactionId === transactionId && ob.status !== 'WAIVED') {
+    const remainder = ob.owed.minus(ob.paid);
+    if (remainder.greaterThan(0)) open = splitThreeWays(remainder, rates);
+  }
+  const sum = (a: PartyAmounts) => a.pt.plus(a.gym).plus(a.platform);
+  return { charged, open, chargedTotal: sum(charged), openTotal: sum(open) };
+}
+
+/** What is already on the books for one session under the keys that settle it, so a late-arriving D77 / no-show step can see it (same transaction only). */
+async function sessionMoneyOps(ops: LedgerOps, transactionId: string, sessionId: string) {
+  const find = async (key: string, kind: string) => {
+    const row = await ops.tx.ledgerOperation.findUnique({ where: { key } });
+    return row && row.kind === kind && row.transactionId === transactionId ? row : null;
+  };
+  return {
+    noShow: await find(`PT_NO_SHOW:${sessionId}`, 'NO_SHOW'),
+    released: await find(`SESSION_RELEASE:${sessionId}`, 'RELEASE_SESSION'),
+    resolved: await find(`UNRESOLVED_SESSION:${sessionId}`, 'RESOLVE_UNRESOLVED'),
+  };
+}
+
+const sessionIdOfKey = (key: string, prefix: string): string | null => (key.startsWith(prefix) && key.length > prefix.length ? key.slice(prefix.length) : null);
+
+// ── D77 phuong an A (Ngai, 01/11/2026): the OPEN late-arrival obligation of a session is paid INSIDE that session's own settlement ──
+
+/**
+ * The settlement of a session that has a `PT_LATE_ARRIVAL:<session>` obligation the ledger cannot settle on its own (no verified-D77 flag from the caller, an
+ * outside-the-ledger payment is open or done, the obligation is under review ...). Thrown BEFORE any row is written: the operation fails as a whole, no
+ * success result is stored, the caller keeps the step PENDING / parks it for a person (409, stable code).
+ */
+export class LateOpenReconciliationError extends Error {
+  readonly status = 409;
+  constructor(
+    readonly code: 'LATE_OPEN_NEEDS_RECONCILIATION' | 'LATE_OPEN_FLAG_REQUIRED',
+    message: string,
+    readonly details: { obligationId?: string; status?: string; reason: string },
+  ) {
+    super(message);
+  }
+}
+
+interface LateOpenOutcome {
+  /** The session has a late-arrival compensation on the books (paid and / or an obligation). */
+  hasL: boolean;
+  /** What the session's parties are reduced by: charged earlier + paid now + what is STILL owed (null = no L at all). */
+  deduction: PartyAmounts | null;
+  /** charged earlier by the real late-arrival step (cash to the client) */
+  chargedTotal: Prisma.Decimal;
+  /** still owed to the client BEFORE this step (0 when WAIVED / none) */
+  openBefore: Prisma.Decimal;
+  /** paid to the client by THIS step, from the session's own pending */
+  paidNow: PartyAmounts;
+  paidNowTotal: Prisma.Decimal;
+  info?: { amount: string; obligationId: string; fromStatus: string; toStatus: string };
+}
+const noLateOpen = (): LateOpenOutcome => ({ hasL: false, deduction: null, chargedTotal: ZERO, openBefore: ZERO, paidNow: NO_AMOUNTS(), paidNowTotal: ZERO });
+const sumAmounts = (a: PartyAmounts) => a.pt.plus(a.gym).plus(a.platform);
+const addAmounts = (a: PartyAmounts, b: PartyAmounts): PartyAmounts => ({ pt: a.pt.plus(b.pt), gym: a.gym.plus(b.gym), platform: a.platform.plus(b.platform) });
+
+/**
+ * Pays the OPEN part of the session's late-arrival compensation L to the client, out of THE SESSION'S OWN money, inside the operation of the session (release /
+ * resolve / no-show), under the wallet locks the operation already holds and a row lock on the obligation (FH-8's approve / verify / waive take the same lock).
+ *
+ *   amount = min(still owed, the session's value - what L already charged, the contract's own pending (per party, by the frozen rates, minus the FH-2c reserve))
+ *
+ * The parties are debited PENDING, the client is credited by real wallet_ledger_entries rows, obligation.paid / unpaid move in the same transaction and a
+ * SETTLE_VIA_LEDGER event (append-only; actor = the operation key) says by which operation and how much. Fully paid -> status PAID_VIA_LEDGER (the ONLY place that
+ * value is ever written); not fully paid (the own pending is short) -> stays OPEN with a bigger `paid`. Nothing is faked: no money, no PAID.
+ *
+ * Refused (LateOpenReconciliationError, nothing written): `settleLateOpen` was not sent while L is OPEN; the obligation is UNDER_REVIEW / APPROVED_FOR_PAYMENT /
+ * AWAITING_EVIDENCE / PAID_VERIFIED / RESOLVED_OTHER / PAID_EXTERNALLY / RESOLVED, or OPEN with verified money or an open outside-the-ledger payment.
+ * WAIVED: nothing is paid and nothing is deducted (the parties get the whole session).
+ */
+async function settleLateOpen(
+  ops: LedgerOps,
+  p: {
+    transactionId: string;
+    wallets: ResolvedWallets;
+    rates: RateTable;
+    opKey: string;
+    lateKey: string | null;
+    flag: boolean;
+    sessionLimit: Prisma.Decimal;
+    reserve: PartyAmounts;
+    label: string;
+    /** true only for resolveUnresolvedSession: the one session step that legitimately runs after the ending. */
+    afterEndingOk?: boolean;
+  },
+): Promise<LateOpenOutcome> {
+  if (!p.lateKey) return noLateOpen();
+  const lateOp = await ops.tx.ledgerOperation.findUnique({ where: { key: p.lateKey } });
+  if (!lateOp || lateOp.kind !== 'LATE_ARRIVAL' || lateOp.transactionId !== p.transactionId) return noLateOpen();
+  const charged = chargedOf(lateOp.result);
+  if (!charged) return noLateOpen();
+  const chargedTotal = sumAmounts(charged);
+  const base = { hasL: true, chargedTotal, paidNow: NO_AMOUNTS(), paidNowTotal: ZERO };
+
+  const rows = await ops.tx.$queryRaw<Array<{ id: string; status: string; owed: unknown; paid: unknown; unpaid: unknown; verified_paid: unknown; transaction_id: string }>>(
+    Prisma.sql`SELECT id, status::text AS status, owed, paid, unpaid, verified_paid, transaction_id FROM contract_unpaid_obligations WHERE key = ${p.lateKey} FOR UPDATE`,
+  );
+  const row = rows[0];
+  if (!row || row.transaction_id !== p.transactionId) {
+    // L was paid in cash in full (no obligation exists): the session is reduced by what was charged
+    return { ...base, openBefore: ZERO, deduction: charged };
+  }
+  const D = (v: unknown) => new Prisma.Decimal(String(v));
+  const paid = D(row.paid);
+  const unpaid = D(row.unpaid);
+  const verifiedPaid = D(row.verified_paid);
+  const refuse = (code: 'LATE_OPEN_NEEDS_RECONCILIATION' | 'LATE_OPEN_FLAG_REQUIRED', reason: string): never => {
+    throw new LateOpenReconciliationError(code, `${reason} (obligation ${row.id}, status ${row.status})`, { obligationId: row.id, status: row.status, reason });
+  };
+
+  if (row.status === 'WAIVED') return { ...base, openBefore: ZERO, deduction: charged };
+  if (row.status === 'PAID_VIA_LEDGER') {
+    // already paid by a ledger entry of THIS contract (an earlier operation): the session is reduced by everything that was paid
+    return { ...base, openBefore: ZERO, deduction: addAmounts(charged, paid.greaterThan(chargedTotal) ? splitThreeWays(paid.minus(chargedTotal), p.rates) : NO_AMOUNTS()) };
+  }
+  if (row.status !== 'OPEN') {
+    return refuse('LATE_OPEN_NEEDS_RECONCILIATION', `the late-arrival obligation is ${row.status}: a person must reconcile it before this session can be settled`);
+  }
+  const openPayments = await ops.tx.contractUnpaidObligationPayment.count({ where: { obligationId: row.id, status: { in: ['APPROVED', 'EVIDENCE_SUBMITTED'] } } });
+  if (openPayments > 0 || verifiedPaid.greaterThan(0)) {
+    return refuse('LATE_OPEN_NEEDS_RECONCILIATION', 'an outside-the-ledger payment is open or verified for the late-arrival obligation: a person must reconcile it first');
+  }
+  if (unpaid.lessThanOrEqualTo(0)) return { ...base, openBefore: ZERO, deduction: charged };
+  // B-1 release gate: a release / no-show of a session that was NOT held by the ending cannot reach the ledger after the ending is recorded with an OPEN L to pay: its
+  // money is gone (drained at the ending). A resolution of a HELD session is the one step allowed after the ending (it spends the held value).
+  if (!p.afterEndingOk && (await contractEndingRecorded(ops, p.transactionId))) {
+    return refuse('LATE_OPEN_NEEDS_RECONCILIATION', 'the contract has already ended and this session was not held by the ending: its late-arrival obligation stays OPEN for a person to reconcile');
+  }
+  if (!p.flag) {
+    return refuse('LATE_OPEN_FLAG_REQUIRED', 'the late-arrival obligation is OPEN but the caller did not confirm the late arrival is verified (settleLateOpen)');
+  }
+  // HARD BOUNDARY (the only place past which OPEN L money moves): `settleLateOpen: true` is a body boolean any caller of the internal routes can send, so the ledger
+  // also asks its own fail-closed switch (late-open-settlement-flag.ts). Same code as above, so the callers park the step exactly as they do for a missing flag.
+  if (!lateOpenSettlementEnabled()) {
+    return refuse('LATE_OPEN_FLAG_REQUIRED', 'settlement of an OPEN late-arrival obligation out of the session is disabled (DISPUTE_CASE_LATE_OPEN_RECONCILIATION_ENABLED is not effective); the obligation stays OPEN for a person to reconcile');
+  }
+
+  const want = Prisma.Decimal.min(unpaid, Prisma.Decimal.max(p.sessionLimit.minus(chargedTotal), ZERO));
+  const share = splitThreeWays(want, p.rates);
+  const paidNow = NO_AMOUNTS();
+  const walletOf = { pt: p.wallets.ptId, gym: p.wallets.gymId, platform: p.wallets.revenueId } as const;
+  for (const key of ['pt', 'gym', 'platform'] as const) {
+    const walletId = walletOf[key];
+    if (!walletId || share[key].lessThanOrEqualTo(0)) continue;
+    const own = (await ownPending(ops, walletId, p.transactionId)).minus(p.reserve[key]);
+    const room = own.greaterThan(0) ? own : ZERO;
+    const take = room.lessThan(share[key]) ? room : share[key];
+    if (take.greaterThan(0)) {
+      await ops.debit(walletId, take, `${p.label} — late-arrival compensation paid from the session's own money`, 'PENDING');
+      paidNow[key] = take;
+    }
+  }
+  const paidNowTotal = sumAmounts(paidNow);
+  const stillOwed = unpaid.minus(paidNowTotal);
+  const fromStatus = row.status;
+  let toStatus = fromStatus;
+  if (paidNowTotal.greaterThan(0)) {
+    await ops.credit(p.wallets.clientId, paidNowTotal, `${p.label} — compensation for the PT's late arrival (obligation settled from the session)`);
+    toStatus = stillOwed.lessThanOrEqualTo(0) ? 'PAID_VIA_LEDGER' : 'OPEN';
+    await ops.tx.contractUnpaidObligation.update({
+      where: { id: row.id },
+      data: {
+        paid: paid.plus(paidNowTotal),
+        unpaid: stillOwed,
+        ...(toStatus === 'PAID_VIA_LEDGER' ? { status: 'PAID_VIA_LEDGER', resolvedAt: new Date(), resolvedBy: p.opKey, resolvedNote: 'Paid to the client by a ledger entry inside the settlement of the session' } : {}),
+      },
+    });
+    await ops.tx.contractUnpaidObligationEvent.create({
+      data: {
+        obligationId: row.id,
+        action: 'SETTLE_VIA_LEDGER',
+        note: `Paid ${paidNowTotal.toFixed(2)} to the client from the session's own pending inside ${p.opKey}`,
+        actor: p.opKey,
+        approvalRef: p.opKey,
+        idempotencyKey: `SETTLE_VIA_LEDGER:${p.opKey}`,
+        fromStatus: fromStatus as any,
+        toStatus: toStatus as any,
+        unpaid,
+        paidAmount: paidNowTotal,
+        unpaidAfter: stillOwed,
+      },
+    });
+  }
+  return {
+    ...base,
+    openBefore: unpaid,
+    paidNow,
+    paidNowTotal,
+    deduction: addAmounts(addAmounts(charged, paidNow), stillOwed.greaterThan(0) ? splitThreeWays(stillOwed, p.rates) : NO_AMOUNTS()),
+    info: { amount: paidNowTotal.toFixed(2), obligationId: row.id, fromStatus, toStatus },
+  };
 }
 
 /**
@@ -232,28 +444,49 @@ export async function loadLateArrivalDeductions(
   db: LedgerOpReader,
   transactionId: string,
   unresolvedCount: number,
+  /**
+   * D77 final (Q4): the ids of the sessions the ending holds, when the caller knows them. Then a late-arrival compensation is attributed to a HELD session
+   * only if its session id is in this list. Without it the old "first N compensations without a settlement" attribution is the fallback (a count cannot tell
+   * a held session from, say, a cancelled one that had a late arrival).
+   */
+  unresolvedSessionIds?: readonly string[],
 ): Promise<{ settled: PartyAmounts; open: PartyAmounts }> {
   const settled = NO_AMOUNTS();
   const open = NO_AMOUNTS();
   const lateOps = await db.ledgerOperation.findMany({ where: { transactionId, kind: 'LATE_ARRIVAL' }, orderBy: { createdAt: 'asc' } });
+  const heldIds = unresolvedSessionIds ? new Set(unresolvedSessionIds) : null;
   let openTaken = 0;
   for (const late of lateOps) {
     const charged = chargedOf(late.result);
     if (!charged) continue;
-    // A compensation that charged nothing (record-only obligation, or one whose contract money was already spent) deducts nothing from
-    // anyone: it must not take the place of a real one in the "first N open" attribution below.
-    if (charged.pt.plus(charged.gym).plus(charged.platform).lessThanOrEqualTo(0)) continue;
     const suffix = late.key.startsWith(LATE_ARRIVAL_KEY_PREFIX) ? late.key.slice(LATE_ARRIVAL_KEY_PREFIX.length) : null;
     if (suffix === null) continue;
+    // Q4: a session settled by a PT no-show is DONE: its late arrival lies inside the no-show's V (already out of the parties' pot as compensationCash) and
+    // is attributed to nobody - in particular not to another, held session.
+    const noShow = await db.ledgerOperation.findUnique({ where: { key: `PT_NO_SHOW:${suffix}` } });
+    if (noShow && noShow.kind === 'NO_SHOW' && noShow.transactionId === transactionId) continue;
     const done =
       (await db.ledgerOperation.findUnique({ where: { key: `SESSION_RELEASE:${suffix}` } })) ??
       (await db.ledgerOperation.findUnique({ where: { key: `UNRESOLVED_SESSION:${suffix}` } }));
-    const target = done ? ((done.result as { lateArrivalDeducted?: unknown } | null)?.lateArrivalDeducted ? settled : null) : openTaken < unresolvedCount ? open : null;
-    if (!done && target) openTaken++;
-    if (!target) continue;
-    target.pt = target.pt.plus(charged.pt);
-    target.gym = target.gym.plus(charged.gym);
-    target.platform = target.platform.plus(charged.platform);
+    if (done) {
+      // A settled session: what its release / resolution REALLY deducted - also when the late arrival charged nothing (an obligation paid from the session
+      // or still owed). A session settled before D77 (no `lateArrivalDeducted`) deducted nothing: left alone.
+      const deducted = deductedOf(done.result);
+      if (deducted) {
+        settled.pt = settled.pt.plus(deducted.pt);
+        settled.gym = settled.gym.plus(deducted.gym);
+        settled.platform = settled.platform.plus(deducted.platform);
+      }
+      continue;
+    }
+    // A session still to be settled (held at the ending): only what was ALREADY charged to the client leaves its value. A late arrival that charged nothing
+    // leaves the whole value held - it is paid from that value when the session is resolved.
+    if (sumAmounts(charged).lessThanOrEqualTo(0)) continue;
+    if (heldIds ? !heldIds.has(suffix) : openTaken >= unresolvedCount) continue;
+    openTaken++;
+    open.pt = open.pt.plus(charged.pt);
+    open.gym = open.gym.plus(charged.gym);
+    open.platform = open.platform.plus(charged.platform);
   }
   return { settled, open };
 }
@@ -336,6 +569,46 @@ async function recordHoldbackSnapshot(ops: LedgerOps, transactionId: string, rat
 export async function contractEndingRecorded(ops: LedgerOps, transactionId: string): Promise<boolean> {
   const row = await ops.tx.ledgerOperation.findFirst({ where: { transactionId, kind: 'TERMINATE' }, select: { id: true } });
   return row !== null;
+}
+
+/**
+ * Final safety gate (D77 OPEN reconciliation) - READ-ONLY view of ONE late-arrival obligation for a person who must decide whether it can be settled out of its session.
+ * It reports what the ledger holds (obligation row, whether an ending is recorded, the contract's OWN pending per party); it writes nothing, takes no lock and decides nothing:
+ * the money is still computed by settleLateOpen inside the session's operation. `ownPending` is an observation (the same per-transaction sum settleLateOpen uses), not a balance.
+ */
+export async function readLateOpenState(params: {
+  transactionId: string;
+  lateKey: string;
+  parties: ContractParties;
+}): Promise<{
+  contractEnded: boolean;
+  lateOperation: { exists: boolean; chargedTotal: string | null };
+  obligation: null | { id: string; key: string; kind: string; status: string; owed: string; paid: string; unpaid: string; verifiedPaid: string; externallyPaid: string; openPayments: number };
+  ownPending: { pt: string; gym: string | null; platform: string };
+}> {
+  const { transactionId, lateKey, parties } = params;
+  const ended = (await prisma.ledgerOperation.findFirst({ where: { transactionId, kind: 'TERMINATE' }, select: { id: true } })) !== null;
+  const lateOp = await prisma.ledgerOperation.findUnique({ where: { key: lateKey } });
+  const lateOk = !!lateOp && lateOp.kind === 'LATE_ARRIVAL' && lateOp.transactionId === transactionId;
+  const charged = lateOk ? chargedOf(lateOp!.result) : null;
+  const row = await prisma.contractUnpaidObligation.findUnique({ where: { key: lateKey } });
+  const own = async (ownerType: 'PT' | 'GYM' | 'PLATFORM', ownerId: string): Promise<string> => {
+    const w = await prisma.wallet.findUnique({ where: { ownerType_ownerId: { ownerType, ownerId } }, select: { id: true } });
+    if (!w) return '0.00';
+    const entries = await prisma.walletLedgerEntry.findMany({ where: { walletId: w.id, transactionId, bucket: 'PENDING' }, select: { entryType: true, amount: true } });
+    const sum = entries.reduce((a, e) => (e.entryType === 'CREDIT' ? a.plus(e.amount) : a.minus(e.amount)), ZERO);
+    return (sum.lessThan(0) ? ZERO : sum).toFixed(2);
+  };
+  const openPayments = row ? await prisma.contractUnpaidObligationPayment.count({ where: { obligationId: row.id, status: { in: ['APPROVED', 'EVIDENCE_SUBMITTED'] } } }) : 0;
+  return {
+    contractEnded: ended,
+    lateOperation: { exists: lateOk, chargedTotal: charged ? sumAmounts(charged).toFixed(2) : null },
+    obligation:
+      row && row.transactionId === transactionId
+        ? { id: row.id, key: row.key, kind: row.kind, status: row.status, owed: row.owed.toFixed(2), paid: row.paid.toFixed(2), unpaid: row.unpaid.toFixed(2), verifiedPaid: row.verifiedPaid.toFixed(2), externallyPaid: row.externallyPaid.toFixed(2), openPayments }
+        : null,
+    ownPending: { pt: await own('PT', parties.ptUserId), gym: parties.gymId ? await own('GYM', parties.gymId) : null, platform: await own('PLATFORM', 'REVENUE') },
+  };
 }
 
 /** States in which the client has NOT been verifiably paid: open, under review, approved for payment, waiting for a second person to verify the evidence, and the legacy unverified "paid externally". */
@@ -713,6 +986,8 @@ export async function releaseSession(params: {
   idempotencyKey: string;
   /** The holdback rate frozen onto THIS contract (0..1). Absent or 0: no holdback. */
   ptHoldbackRate?: Prisma.Decimal;
+  /** D77 final: the caller confirms the late arrival of this session is verified (see settleLateOpen). */
+  settleLateOpen?: boolean;
 }): Promise<ReleaseResult> {
   const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey, ptHoldbackRate } = params;
   assertHoldbackRateValid(ptHoldbackRate);
@@ -729,7 +1004,9 @@ export async function releaseSession(params: {
       // not spend their reserve — only resolveUnresolvedSession may.
       const reserve = await unresolvedReserve(ops, wallets.revenueId, transactionId, rel);
       // D77: this session's own late-arrival compensation was already paid to the client out of its value.
-      const lateDeduction = await lateDeductionFor(ops, transactionId, idempotencyKey);
+      // D77 final: an OPEN late-arrival obligation of this session is paid to the client HERE, from this session's own pending, before the parties are paid.
+      const lateOpen = await settleLateOpen(ops, { transactionId, wallets, rates, opKey: idempotencyKey, lateKey: lateArrivalKeyFor(idempotencyKey), flag: !!params.settleLateOpen, sessionLimit: rel.unit, reserve, label });
+      const lateDeduction = lateOpen.deduction;
       const dueOf = (full: Prisma.Decimal, key: 'pt' | 'gym' | 'platform') =>
         lateDeduction ? Prisma.Decimal.max(full.minus(lateDeduction[key]), ZERO) : full;
       // Decided once, under the wallet locks: a contract whose ending is already recorded never raises its hold.
@@ -803,6 +1080,7 @@ export async function releaseSession(params: {
         released: { pt: moved.pt.toFixed(2), gym: moved.gym.toFixed(2), platform: moved.platform.toFixed(2) },
         ...(ptHoldback ? { ptHoldback } : {}),
         ...(lateDeduction ? { lateArrivalDeducted: amountsToStrings(lateDeduction) } : {}),
+        ...(lateOpen.info ? { lateOpenSettled: lateOpen.info } : {}),
       };
     }),
   );
@@ -825,6 +1103,13 @@ export interface NoShowResult {
   paid: string;
   unpaid: string;
   obligationId?: string;
+  /** D77 final: present when this step paid (part of) the session's OPEN late-arrival obligation to the client from the session's own pending. */
+  lateOpenSettled?: { amount: string; obligationId: string; fromStatus: string; toStatus: string };
+  /**
+   * I5/A. Present only when the session ALSO had a D77 late-arrival compensation: the session's total obligation to the client is V (L lies INSIDE V),
+   * so a no-show step only adds V - (L paid + L still owed). `sessionValue` = V, `lateArrival*` = what L already covers, `additional` = what this step owes.
+   */
+  d77?: { sessionValue: string; lateArrivalPaid: string; lateArrivalOpen: string; additional: string; coveredByNoShow?: true; arrivedAfterRelease?: true };
 }
 
 /**
@@ -935,6 +1220,8 @@ export async function compensateNoShow(params: {
   /** Business key `PT_NO_SHOW:<sessionId>` — a retry with the same key replays the first
    * call's result instead of compensating the client a second time (plan 1.1). */
   idempotencyKey: string;
+  /** D77 final: the caller confirms the late arrival of this session is verified (see settleLateOpen). */
+  settleLateOpen?: boolean;
 }): Promise<NoShowResult> {
   const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey } = params;
   const opMeta = contractOpMeta('NO_SHOW', { transactionId, price, totalSessions, rates, parties });
@@ -945,13 +1232,49 @@ export async function compensateNoShow(params: {
   const rel = computeSessionRelease(price, totalSessions, rates);
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
-    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, () =>
-      chargeCompensation(ops, {
-        wallets, transactionId, parties, label, idempotencyKey, kind: 'NO_SHOW', comp: c, rel,
+    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
+      // I5/A: a session that already had a D77 late-arrival compensation is owed V IN TOTAL (L inside V), never V + L.
+      // D77 final: the OPEN part of L is paid FIRST, in this very operation, from this session's own pending; the rest of V (V - L) follows.
+      const sessionId = sessionIdOfKey(idempotencyKey, 'PT_NO_SHOW:');
+      const reserve = await unresolvedReserve(ops, wallets.revenueId, transactionId, rel);
+      const lateOpen = await settleLateOpen(ops, {
+        transactionId, wallets, rates, opKey: idempotencyKey, lateKey: sessionId ? LATE_ARRIVAL_KEY_PREFIX + sessionId : null, flag: !!params.settleLateOpen,
+        sessionLimit: c.compensation, reserve, label,
+      });
+      const covered = lateOpen.hasL ? lateOpen.chargedTotal.plus(lateOpen.openBefore) : ZERO;
+      const additional = lateOpen.hasL ? Prisma.Decimal.max(c.compensation.minus(covered), ZERO) : c.compensation;
+      const comp = lateOpen.hasL ? { compensation: additional, ...splitThreeWays(additional, rates) } : c;
+      const result = await chargeCompensation(ops, {
+        wallets, transactionId, parties, label, idempotencyKey, kind: 'NO_SHOW', comp, rel,
         chargeWording: 'PT no-show charge',
         creditWording: 'compensation for a missed session',
-      }),
-    ),
+      });
+      if (!lateOpen.hasL) return result;
+      // The figures of this step include what it paid of L (so the refund-state view and the caller's bookkeeping see the whole session).
+      const stillOwedL = lateOpen.openBefore.minus(lateOpen.paidNowTotal);
+      const owedAll = additional.plus(lateOpen.openBefore);
+      const paidAll = new Prisma.Decimal(result.paid).plus(lateOpen.paidNowTotal);
+      return {
+        ...result,
+        compensation: paidAll.toFixed(2),
+        charged: {
+          pt: new Prisma.Decimal(result.charged.pt).plus(lateOpen.paidNow.pt).toFixed(2),
+          gym: new Prisma.Decimal(result.charged.gym).plus(lateOpen.paidNow.gym).toFixed(2),
+          platform: new Prisma.Decimal(result.charged.platform).plus(lateOpen.paidNow.platform).toFixed(2),
+        },
+        owed: owedAll.toFixed(2),
+        paid: paidAll.toFixed(2),
+        unpaid: owedAll.minus(paidAll).toFixed(2),
+        shortfall: owedAll.minus(paidAll).toFixed(2),
+        ...(lateOpen.info ? { lateOpenSettled: lateOpen.info } : {}),
+        d77: {
+          sessionValue: c.compensation.toFixed(2),
+          lateArrivalPaid: lateOpen.chargedTotal.plus(lateOpen.paidNowTotal).toFixed(2),
+          lateArrivalOpen: stillOwedL.toFixed(2),
+          additional: additional.toFixed(2),
+        },
+      };
+    }),
   );
 }
 
@@ -980,14 +1303,59 @@ export async function compensateLateArrival(params: {
   const rel = computeSessionRelease(price, totalSessions, rates);
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
-    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, () =>
-      chargeCompensation(ops, {
+    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
+      // I5/C1: L is paid out of the session's OWN money, before it is paid out. Once the session is settled some other way, taking L
+      // from the contract's pending would take another session's money, so nothing is charged and the fact is recorded instead.
+      const sessionId = sessionIdOfKey(idempotencyKey, LATE_ARRIVAL_KEY_PREFIX);
+      const prior = sessionId ? await sessionMoneyOps(ops, transactionId, sessionId) : null;
+      const noShowRan = !!prior?.noShow;
+      const notDelivered = (prior?.resolved?.result as { outcome?: string } | null)?.outcome === 'NOT_DELIVERED';
+      if (prior && (noShowRan || notDelivered)) {
+        // The client was (or is) owed the WHOLE session value V by the no-show / not-delivered step, and L lies inside V: nothing more is owed.
+        return coveredLateArrivalResult(c.compensation);
+      }
+      if (prior && (prior.released || prior.resolved)) {
+        // The session was already paid out in full (DELIVERED) before D77 reached the ledger: L cannot come out of the session any more and must not come
+        // out of another session. It is written down as an OPEN obligation to the client; no money moves.
+        const obligationId = await recordObligation(ops, {
+          key: idempotencyKey,
+          transactionId,
+          contractRef: label,
+          kind: 'LATE_ARRIVAL',
+          party: 'CLIENT',
+          owed: c.compensation,
+          paid: ZERO,
+          reason: 'D77: the late-arrival compensation reached the ledger after the session had been paid out in full; recorded only, nothing taken from other sessions',
+        });
+        return {
+          ...coveredLateArrivalResult(ZERO),
+          shortfall: c.compensation.toFixed(2),
+          owed: c.compensation.toFixed(2),
+          unpaid: c.compensation.toFixed(2),
+          obligationId,
+          d77: { sessionValue: '0.00', lateArrivalPaid: '0.00', lateArrivalOpen: c.compensation.toFixed(2), additional: '0.00', arrivedAfterRelease: true as const },
+        };
+      }
+      return chargeCompensation(ops, {
         wallets, transactionId, parties, label, idempotencyKey, kind: 'LATE_ARRIVAL', comp: c, rel,
         chargeWording: 'PT late-arrival charge',
         creditWording: "compensation for the PT's late arrival",
-      }),
-    ),
+      });
+    }),
   );
+}
+
+/** The result of a late-arrival step that owes the client nothing because the session's no-show / not-delivered step already owes (or paid) V. */
+function coveredLateArrivalResult(_lateValue: Prisma.Decimal): NoShowResult {
+  return {
+    compensation: ZERO.toFixed(2),
+    charged: { pt: ZERO.toFixed(2), gym: ZERO.toFixed(2), platform: ZERO.toFixed(2) },
+    shortfall: ZERO.toFixed(2),
+    owed: ZERO.toFixed(2),
+    paid: ZERO.toFixed(2),
+    unpaid: ZERO.toFixed(2),
+    d77: { sessionValue: '0.00', lateArrivalPaid: '0.00', lateArrivalOpen: '0.00', additional: '0.00', coveredByNoShow: true as const },
+  };
 }
 
 /**
@@ -1046,10 +1414,21 @@ async function recordCompensationObligation(
   const opMeta = contractOpMeta(kind, { transactionId, price, totalSessions, rates, parties });
   await assertRequestMatchesTransaction({ idempotencyKey, transactionId, price, rates, parties, meta: opMeta });
   const wallets = await resolveWallets(parties);
-  const owed = (kind === 'NO_SHOW' ? computeNoShowCompensation(price, totalSessions, rates) : computeLateArrivalCompensation(price, totalSessions, rates)).compensation;
+  const fullOwed = (kind === 'NO_SHOW' ? computeNoShowCompensation(price, totalSessions, rates) : computeLateArrivalCompensation(price, totalSessions, rates)).compensation;
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
+      // I5/A: L lies INSIDE the session value V. A record-only no-show only records V - (L paid + L still owed); a record-only late arrival of a session
+      // whose no-show / not-delivered step already owes V records nothing more.
+      let owed = fullOwed;
+      const sessionId = sessionIdOfKey(idempotencyKey, prefix);
+      if (sessionId && kind === 'NO_SHOW') {
+        const cover = await lateCoverage(ops, transactionId, LATE_ARRIVAL_KEY_PREFIX + sessionId, rates);
+        if (cover) owed = Prisma.Decimal.max(fullOwed.minus(cover.chargedTotal).minus(cover.openTotal), ZERO);
+      } else if (sessionId && kind === 'LATE_ARRIVAL') {
+        const prior = await sessionMoneyOps(ops, transactionId, sessionId);
+        if (prior.noShow || (prior.resolved?.result as { outcome?: string } | null)?.outcome === 'NOT_DELIVERED') owed = ZERO;
+      }
       let obligationId: string | undefined;
       if (owed.greaterThan(0)) {
         obligationId = await recordObligation(ops, {
@@ -1151,6 +1530,68 @@ export interface TerminationLedgerResult {
   };
 }
 
+/**
+ * B-1 release gate (race, P0). The caller's snapshot of the contract (what it has already released, how many sessions it counts as compensated) is OLDER than what
+ * the ledger holds: a session step (release / no-show) reached the ledger after the caller took its numbers. Terminating on a stale snapshot would price the ending
+ * on money that has already moved (the 01/11 reproduction: the ending threw "splitThreeWays needs a non-negative total" and left the contract half-ended; before the
+ * D77 work the same race produced a REFUND_SHORT). Refused 409 TERMINATE_SNAPSHOT_STALE BEFORE anything is written: the caller must take a fresh snapshot (park / reconcile).
+ */
+/**
+ * Final safety gate (P0). A payment transaction is terminated ONCE. A terminate that arrives under a DIFFERENT idempotency key after a TERMINATE operation exists for the
+ * transaction (a stray caller, a second code path) used to succeed with refund 0 and record a phantom REFUND_SHORT of the whole price (measured 01/11). It is refused 409
+ * CONTRACT_ALREADY_TERMINATED before anything is written. The SAME key still replays the first answer (withIdempotentLedgerOp answers it before this check runs).
+ */
+export class ContractAlreadyTerminatedError extends Error {
+  readonly status = 409;
+  readonly code = 'CONTRACT_ALREADY_TERMINATED';
+  constructor(message: string, readonly details: Record<string, unknown>) {
+    super(message);
+  }
+}
+
+export class TerminateSnapshotStaleError extends Error {
+  readonly status = 409;
+  readonly code = 'TERMINATE_SNAPSHOT_STALE';
+  constructor(message: string, readonly details: Record<string, unknown>) {
+    super(message);
+  }
+}
+
+/**
+ * Called UNDER the wallet locks (so no release / no-show can commit while it runs) and AFTER the idempotent replay check (a replay is never refused).
+ * The ledger only ever sees MORE than the caller on a race: a release the caller does not know of (sum of RELEASE_SESSION answers > caller's alreadyReleased) or a
+ * real (not record-only) no-show the caller has not counted. A caller that knows MORE than the ledger (a contract older than ledger_operations) is left alone.
+ */
+async function assertTerminateSnapshotCurrent(
+  ops: LedgerOps,
+  transactionId: string,
+  caller: { alreadyReleased: PartyAmounts; compensatedSessions: number },
+): Promise<void> {
+  const releases = await ops.tx.ledgerOperation.findMany({ where: { transactionId, kind: 'RELEASE_SESSION' }, select: { key: true, result: true } });
+  const seen = NO_AMOUNTS();
+  for (const r of releases) {
+    const rel = (r.result as { released?: Record<string, string> } | null)?.released;
+    if (!rel) continue;
+    seen.pt = seen.pt.plus(rel.pt ?? 0);
+    seen.gym = seen.gym.plus(rel.gym ?? 0);
+    seen.platform = seen.platform.plus(rel.platform ?? 0);
+  }
+  const noShows = await ops.tx.ledgerOperation.findMany({ where: { transactionId, kind: 'NO_SHOW' }, select: { key: true, result: true } });
+  // only a no-show that MOVED money counts (an unfunded one, paid 0, changed no balance: the caller not counting it cannot misprice anything)
+  const realNoShows = noShows.filter((n) => {
+    const r = n.result as { recordedOnly?: boolean; paid?: string } | null;
+    return r?.recordedOnly !== true && Number(r?.paid ?? 0) > 0;
+  }).length;
+  const stale: string[] = [];
+  for (const k of ['pt', 'gym', 'platform'] as const) {
+    if (seen[k].greaterThan(caller.alreadyReleased[k].plus(0.5))) stale.push(`released to ${k}: ledger ${seen[k].toFixed(2)} > caller ${caller.alreadyReleased[k].toFixed(2)}`);
+  }
+  if (realNoShows > caller.compensatedSessions) stale.push(`no-show compensations: ledger ${realNoShows} > caller ${caller.compensatedSessions}`);
+  if (stale.length > 0) {
+    throw new TerminateSnapshotStaleError(`the termination was priced on a stale snapshot (${stale.join('; ')}); nothing was written`, { stale });
+  }
+}
+
 /** Wording of the client-facing ledger row, per PT-fault reason. Always contains
  * "compensation": withdrawal.repository#sumRefundSourcedCredits matches on that word. */
 export const PT_FAULT_WORDING: Partial<Record<TerminationReason, string>> = {
@@ -1225,6 +1666,8 @@ export async function terminateContract(params: {
    * anything else throws before money moves. 0 or absent: every posting is what it always was.
    */
   unresolvedSessions?: number;
+  /** D77 final (Q4): the ids of the held sessions, when the caller knows them (see loadLateArrivalDeductions). */
+  unresolvedSessionIds?: string[];
   rates: RateTable;
   reason: TerminationReason;
   /** Already moved to each party's available bucket, session by session. */
@@ -1243,7 +1686,7 @@ export async function terminateContract(params: {
    */
   ptHoldbackRate?: Prisma.Decimal;
 }): Promise<TerminationLedgerResult> {
-  const { transactionId, price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey, ptHoldbackRate } = params;
+  const { transactionId, price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, unresolvedSessionIds, rates, reason, alreadyReleased, parties, label, idempotencyKey, ptHoldbackRate } = params;
 
   const outcome = computeTermination(
     { price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, ptHoldbackRate },
@@ -1260,9 +1703,15 @@ export async function terminateContract(params: {
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
+    // Final safety gate: one ending per transaction, whatever the key (under the wallet locks, after the replay check).
+    if (await contractEndingRecorded(ops, transactionId)) {
+      throw new ContractAlreadyTerminatedError('this payment transaction has already been terminated under another idempotency key; nothing was written', { transactionId, idempotencyKey });
+    }
+    // B-1 release gate: the caller's numbers must not be older than the ledger (checked under the wallet locks, after the replay check).
+    await assertTerminateSnapshotCurrent(ops, transactionId, { alreadyReleased, compensatedSessions: compensatedSessions ?? 0 });
     // D77: the late-arrival compensations of this contract come from the ledger, read under the wallet locks, so the
     // figures below (and the preview, which reads the same facts) account for them.
-    const lateArrival = await loadLateArrivalDeductions(ops.tx, transactionId, unresolvedCount);
+    const lateArrival = await loadLateArrivalDeductions(ops.tx, transactionId, unresolvedCount, unresolvedSessionIds);
     const outcome = computeTermination(
       { price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, ptHoldbackRate, lateArrival },
       reason,
@@ -1769,6 +2218,8 @@ export async function resolveUnresolvedSession(params: {
   outcome: 'DELIVERED' | 'NOT_DELIVERED';
   /** Validated only — see DELIVERED above. */
   ptHoldbackRate?: Prisma.Decimal;
+  /** D77 final: the caller confirms the late arrival of this session is verified (see settleLateOpen). */
+  settleLateOpen?: boolean;
 }): Promise<ResolveUnresolvedResult> {
   const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey, outcome, ptHoldbackRate } = params;
   if (outcome !== 'DELIVERED' && outcome !== 'NOT_DELIVERED') throw new Error(`unknown outcome ${String(outcome)}`);
@@ -1799,7 +2250,9 @@ export async function resolveUnresolvedSession(params: {
 
       const moved = { pt: ZERO, gym: ZERO, platform: ZERO };
       // D77: the held value of a session that had a late-arrival compensation is (share - the party's portion of it).
-      const lateDeduction = await lateDeductionFor(ops, transactionId, idempotencyKey);
+      // D77 final: an OPEN late-arrival obligation of this session is paid to the client HERE, out of the value held for it, before the rest is resolved.
+      const lateOpen = await settleLateOpen(ops, { transactionId, wallets, rates, opKey: idempotencyKey, lateKey: lateArrivalKeyFor(idempotencyKey), flag: !!params.settleLateOpen, sessionLimit: rel.unit, reserve: NO_AMOUNTS(), label, afterEndingOk: true });
+      const lateDeduction = lateOpen.deduction;
       const dueOf = (full: Prisma.Decimal, key: 'pt' | 'gym' | 'platform') =>
         lateDeduction ? Prisma.Decimal.max(full.minus(lateDeduction[key]), ZERO) : full;
       const parts: Array<{
@@ -1844,10 +2297,11 @@ export async function resolveUnresolvedSession(params: {
           pt: moved.pt.toFixed(2),
           gym: moved.gym.toFixed(2),
           platform: moved.platform.toFixed(2),
-          client: toClient.toFixed(2),
+          client: toClient.plus(lateOpen.paidNowTotal).toFixed(2),
         },
         shortfall: dueOf(rel.pt, 'pt').plus(dueOf(rel.gym, 'gym')).plus(dueOf(rel.platform, 'platform')).minus(movedTotal).toFixed(2),
         ...(lateDeduction ? { lateArrivalDeducted: amountsToStrings(lateDeduction) } : {}),
+        ...(lateOpen.info ? { lateOpenSettled: lateOpen.info } : {}),
       };
     }),
   );

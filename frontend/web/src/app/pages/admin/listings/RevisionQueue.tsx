@@ -13,6 +13,7 @@ import { Input } from "../../../components/ui/input";
 import { listingErrorMessage } from "../../../utils/listingErrors";
 import { QUEUE_STATUS_OPTIONS, buildQueueParams, queueItemTitle, revisionSourceLabel, revisionStatusView } from "../../../utils/adminListing";
 import { queueKey, type ListingKind } from "./adminListingShared";
+import { onTablistKeyDown, tabProps } from "../shared/tablistKeys";
 
 interface BrandRow { id: string; name: string; approvedName?: string | null }
 interface GymRow { id: string; name: string; approvedName?: string | null; brandId?: string | null }
@@ -70,12 +71,11 @@ export function RevisionQueue({ kind, onOpen }: { kind: ListingKind; onOpen: (ri
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist" aria-label="Lọc theo trạng thái">
+      <div className="flex flex-wrap gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Lọc theo trạng thái">
         {QUEUE_STATUS_OPTIONS.map((o) => (
           <button
             key={o.value}
-            role="tab"
-            aria-selected={status === o.value}
+            {...tabProps(status === o.value)}
             onClick={() => {
               setStatus(o.value);
               resetPage();

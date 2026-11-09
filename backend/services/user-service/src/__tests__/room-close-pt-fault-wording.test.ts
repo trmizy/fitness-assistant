@@ -75,7 +75,9 @@ test("older payment-service (no paid fields) or a failed/duplicate step: neutral
     const client = h.notices.find((n) => n.userId === "client-1")!.text;
     assert.doesNotMatch(client, /Đã hoàn/);
     assert.doesNotMatch(client, /\d+\.\d{3}đ/);
-    assert.match(client, /được hoàn vào ví/);
+    // final safety gate: with no confirmed ledger answer nothing is claimed to be in the wallet (it used to say "được hoàn vào ví", a promise the ledger had not kept)
+    assert.match(client, /Khoản hoàn đang được đối soát, chưa ghi nhận vào ví/);
+    assert.doesNotMatch(client, /được hoàn vào ví/);
     assert.match(client, /vẫn tính vào số buổi đã dùng/);
   }
 });

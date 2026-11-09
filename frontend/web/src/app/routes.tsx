@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
 import { AppShell } from "./components/layout/AppShell";
+import { AdminShell } from "./components/layout/admin/AdminShell";
+import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 
 /**
@@ -118,13 +120,24 @@ const AdminCatalogQuality = lazy(() => import("./pages/admin/AdminCatalogQuality
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring").then((m) => ({ default: m.SystemMonitoring })));
 const AdminAIObservability = lazy(() => import("./pages/admin/AdminAIObservability").then((m) => ({ default: m.AdminAIObservability })));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes").then((m) => ({ default: m.AdminDisputes })));
+const AdminDisputeCasePage = lazy(() => import("./pages/admin/disputes/workspace/AdminDisputeCasePage").then((m) => ({ default: m.AdminDisputeCasePage })));
+const MyDisputesPage = lazy(() => import("./pages/disputes/MyDisputesPage").then((m) => ({ default: m.MyDisputesPage })));
+const DisputeCasePartyPage = lazy(() => import("./pages/disputes/DisputeCasePartyPage").then((m) => ({ default: m.DisputeCasePartyPage })));
 const AdminGymModeration = lazy(() => import("./pages/admin/AdminGymModeration").then((m) => ({ default: m.AdminGymModeration })));
 const AdminPartnersPage = lazy(() => import("./pages/admin/AdminPartnersPage").then((m) => ({ default: m.AdminPartnersPage })));
 const AdminGymManagementOverview = lazy(() =>
   import("./pages/admin/AdminGymManagementOverview").then((m) => ({ default: m.AdminGymManagementOverview })),
 );
 const AdminComplaintsPage = lazy(() => import("./pages/admin/AdminComplaintsPage").then((m) => ({ default: m.AdminComplaintsPage })));
+const AdminComplaintCasePage = lazy(() => import("./pages/admin/complaints/AdminComplaintCasePage").then((m) => ({ default: m.AdminComplaintCasePage })));
+const MyGymComplaintCasesPage = lazy(() => import("./pages/complaints/MyGymComplaintCasesPage").then((m) => ({ default: m.MyGymComplaintCasesPage })));
+const MyGymComplaintCasePage = lazy(() => import("./pages/complaints/MyGymComplaintCasesPage").then((m) => ({ default: m.MyGymComplaintCasePage })));
 const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
+// Finance level-2 tabs (each a route; rendered inside AdminFinancePage's <Outlet/>).
+const AdminFinanceOverviewTab = lazy(() => import("./pages/admin/AdminFinanceOverviewTab").then((m) => ({ default: m.AdminFinanceOverviewTab })));
+const AdminReconciliationPanel = lazy(() => import("./pages/admin/AdminReconciliationPanel").then((m) => ({ default: m.AdminReconciliationPanel })));
+const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals").then((m) => ({ default: m.AdminWithdrawals })));
+const PTServiceRefunds = lazy(() => import("./pages/admin/PTServiceRefunds").then((m) => ({ default: m.PTServiceRefunds })));
 // Listing Management D1 - PT + branch listing revisions, amenity catalogue and proposals.
 const AdminListingsPage = lazy(() => import("./pages/admin/AdminListingsPage").then((m) => ({ default: m.AdminListingsPage })));
 
@@ -280,6 +293,30 @@ export const router = createBrowserRouter([
         ],
       },
 
+      // ── Khiếu nại của tôi (M12): hồ sơ tranh chấp buổi tập mà khách / PT là một bên. Cùng vỏ AppShell và cùng cổng vai trò với /client,
+      //    nhưng KHÔNG qua cổng thiết lập hồ sơ tập luyện (INT-11, Ngài duyệt 05/11): một bên của vụ việc phải xem được hồ sơ của mình ngay. ──
+      {
+        path: "disputes",
+        element: (
+          <RequireRole allow={["client", "pt"]}>
+            <AppShell />
+          </RequireRole>
+        ),
+        children: [
+          { index: true, Component: MyDisputesPage },
+          { path: ":caseId", Component: DisputeCasePartyPage },
+        ],
+      },
+      {
+        path: "complaint-cases",
+        // Same as /disputes: a member reads their complaint case without the training-profile setup gate (INT-11).
+        element: <RequireRole allow={["client", "pt"]}><AppShell /></RequireRole>,
+        children: [
+          { index: true, Component: MyGymComplaintCasesPage },
+          { path: ":caseId", Component: MyGymComplaintCasePage },
+        ],
+      },
+
       // ── PT workspace ─────────────────────────────────────────────────────
       {
         path: "pt",
@@ -337,7 +374,7 @@ export const router = createBrowserRouter([
         path: "admin",
         element: (
           <RequireRole allow={["admin"]}>
-            <AppShell />
+            <AdminShell />
           </RequireRole>
         ),
         children: [
@@ -348,18 +385,33 @@ export const router = createBrowserRouter([
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "exercise-review", Component: AdminExerciseReview },
           { path: "catalog-quality", Component: AdminCatalogQuality },
-          { path: "finance", Component: AdminFinancePage },
-          // Gom vào "Tài chính" — giữ lại 2 đường dẫn cũ dưới dạng redirect để không vỡ
-          // bookmark/liên kết cũ, thay vì để 404.
-          { path: "pt-service-refunds", element: <Navigate to="/admin/finance?tab=refunds" replace /> },
-          { path: "withdrawals", element: <Navigate to="/admin/finance?tab=withdrawals" replace /> },
+          // Tài chính: mỗi tab cấp 2 là một route. `?tab=` cũ được AdminFinancePage chuyển hướng
+          // (giữ query khác) — xem components/layout/admin/adminRedirects.ts.
+          {
+            path: "finance",
+            Component: AdminFinancePage,
+            children: [
+              { index: true, Component: AdminFinanceOverviewTab },
+              { path: "reconciliation", Component: AdminReconciliationPanel },
+              { path: "withdrawals", Component: AdminWithdrawals },
+              { path: "refunds", Component: PTServiceRefunds },
+              // Đường dẫn con không tồn tại (vd. /transactions — chưa có API) → Tổng quan, không 404.
+              { path: "*", element: <Navigate to="/admin/finance" replace /> },
+            ],
+          },
+          // Giữ 2 đường dẫn cũ (đã gom vào Tài chính) dưới dạng redirect, giữ query + hash,
+          // để không vỡ bookmark/liên kết cũ.
+          { path: "pt-service-refunds", Component: LegacyAdminRedirect },
+          { path: "withdrawals", Component: LegacyAdminRedirect },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
+          { path: "disputes/:caseId", Component: AdminDisputeCasePage },
           { path: "gym-management", Component: AdminGymManagementOverview },
           { path: "gyms", Component: AdminGymModeration },
           { path: "partners", Component: AdminPartnersPage },
           { path: "listings", Component: AdminListingsPage },
           { path: "complaints", Component: AdminComplaintsPage },
+          { path: "complaints/cases/:caseId", Component: AdminComplaintCasePage },
           { path: "ai-observability", Component: AdminAIObservability },
         ],
       },

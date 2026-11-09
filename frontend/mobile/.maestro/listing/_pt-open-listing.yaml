@@ -1,0 +1,21 @@
+# Subflow: after login -> PT workspace (switching from the client workspace if needed) -> Hồ sơ -> Tin đăng.
+appId: vn.fitnessassistant.app
+---
+- extendedWaitUntil:
+    visible: "Trang chủ|Tổng quan"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Trang chủ"
+    commands:
+      - tapOn: "Cá nhân"
+      - scrollUntilVisible:
+          element: "Vào không gian Huấn luyện viên"
+      - tapOn: "Vào không gian Huấn luyện viên"
+- tapOn: "Hồ sơ"
+- scrollUntilVisible:
+    element: "Tin đăng"
+- tapOn: "Tin đăng"
+- extendedWaitUntil:
+    visible: "Trạng thái tin đăng"
+    timeout: 20000

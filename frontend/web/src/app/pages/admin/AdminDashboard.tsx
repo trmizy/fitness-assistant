@@ -1,528 +1,178 @@
-import { useNavigate } from "react-router";
-import { UsersIcon as Users, UserCheckIcon as UserCheck, FileTextIcon as FileText, CalendarIcon as Calendar, PulseIcon as Activity, WarningIcon as AlertTriangle, TrendUpIcon as TrendingUp, DatabaseIcon as Server, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, WalletIcon, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, ArrowUpRightIcon, CheckCircleIcon, ClockIcon, CpuIcon, FlagIcon, IdentificationCardIcon, LockKeyIcon, PulseIcon, ScalesIcon, UsersIcon, WarningIcon } from "@phosphor-icons/react";
+import { AdminLink } from "../../components/layout/admin/AdminLink";
+import { AttentionList } from "./shared/AttentionList";
+import { RecentQueueList } from "./shared/RecentQueueList";
+import { StatTile } from "./shared/StatTile";
+import { ageMinutes, ageText, formatVnTime } from "./adminFinanceOverview.utils";
+import { CompactStat } from "./today/CompactStat";
+import { ROUTES } from "./today/todayModel";
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { adminService } from "../../services/api";
-import { getAdminDashboard } from "../../services/adminAggregates";
-import { formatVND } from "../../utils/currency";
-import { adminRoleVi, adminShortDateVi, adminStatusVi } from "../../utils/adminLabels";
+  BALANCE_SCOPE_TEXT,
+  RECENT_SOURCE_NOTE,
+  RECENT_TITLE,
+  balanceTile,
+  buildAttentionItems,
+  buildRecent,
+  disputesStat,
+  moneyActionTile,
+  pendingWithdrawalTile,
+  reviewTile,
+  servicesStat,
+  usersNewStat,
+  usersTotalStat,
+} from "./today/todayView";
+import { useTodayData } from "./today/useTodayData";
 
-// Gateway trả thông báo hệ thống bằng tiếng Anh — dịch các câu đã biết, câu lạ giữ nguyên.
-function viAlertText(text: string | undefined): string {
-  if (!text) return "";
-  const t = text.trim();
-  const pending = /^(\d+) PT verification requests? pending admin review$/i.exec(t);
-  if (pending) return `${pending[1]} yêu cầu xác minh PT đang chờ admin duyệt`;
-  const known: Record<string, string> = {
-    "Unable to fetch user list for dashboard. Showing partial data.": "Không lấy được danh sách người dùng cho dashboard. Đang hiển thị dữ liệu một phần.",
-    "Unable to fetch PT profiles for dashboard. Showing partial data.": "Không lấy được hồ sơ PT cho dashboard. Đang hiển thị dữ liệu một phần.",
-    "Unable to fetch admin stats for dashboard. Showing partial data.": "Không lấy được số liệu quản trị cho dashboard. Đang hiển thị dữ liệu một phần.",
-    "Unknown issue": "Sự cố chưa rõ nguyên nhân",
-  };
-  return known[t] ?? t;
-}
+/**
+ * "Hôm nay" (`/admin/dashboard`, B3b). Action-first: what needs a decision today, money first, then how the books stand.
+ *
+ *  1. four tiles — Cần xử lý về tiền · Rút tiền chờ duyệt · Hồ sơ chờ duyệt · Cân đối sổ ví (ESCROW = Σ quyền đòi)
+ *  2. four compact stats — người dùng · mới 7 ngày · dịch vụ đang chạy · tranh chấp đang mở
+ *  3. panels — "Việc cần xử lý" (each row links to its queue) | "Mục mới tạo gần nhất trong các hàng đợi" (not an activity feed)
+ *
+ * Every number comes from its own query (`today/useTodayData.ts`); a source that is loading or failed shows "—" and says why,
+ * the others still render — nothing is ever shown as 0 because it is unknown. The old charts / OCR block / "Đăng ký gần
+ * đây" table / membership-refund card moved or were dropped on purpose: see docs/admin-redesign/review/b3b/CHECKS.md.
+ */
 
-function viAlertService(name: string | undefined): string {
-  const known: Record<string, string> = {
-    "Auth Service": "Dịch vụ xác thực",
-    "User Service": "Dịch vụ người dùng",
-    "PT Management": "Quản lý PT",
-  };
-  return (name && known[name]) || name || "";
-}
+/** Skeleton height of the four money tiles at xl (loaded ≈ 226-276 px) so their data arriving does not push the page down. */
+const MONEY_TILE_LOADING = "xl:min-h-[250px]";
 
-const REFUND_REASONS: { value: "GYM_VIOLATION_SUSPENDED" | "GYM_CLOSED" | "TRANSACTION_ERROR"; label: string }[] = [
-  { value: "GYM_VIOLATION_SUSPENDED", label: "Phòng tập vi phạm và bị khóa" },
-  { value: "GYM_CLOSED", label: "Phòng tập ngừng hoạt động / đóng cửa" },
-  { value: "TRANSACTION_ERROR", label: "Lỗi giao dịch" },
-];
-
-const COLORS = ["#22c55e", "#60a5fa", "#a855f7", "#f59e0b"];
+const BTN =
+  "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-adm-border bg-adm-surface px-3 text-xs font-semibold text-adm-text transition-colors hover:bg-adm-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)] disabled:opacity-60 motion-reduce:transition-none lg:min-h-9";
+const LINK = "font-semibold text-adm-text underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
 
 export function AdminDashboard() {
-  const navigate = useNavigate();
-  const today = new Date().toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const d = useTodayData();
+  const { nowMs } = d;
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-dashboard"],
-    queryFn: getAdminDashboard,
-  });
-
-  // Exceptional gym-membership refund (money-flow §2.4) — the route has existed since the
-  // redesign with no admin-facing caller anywhere. No membership-browsing endpoint exists
-  // yet either, so this takes the id directly rather than pretending to offer a picker.
-  const [refundMembershipId, setRefundMembershipId] = useState("");
-  const [refundReason, setRefundReason] = useState<typeof REFUND_REASONS[number]["value"] | "">("");
-  const refundMutation = useMutation({
-    mutationFn: () => adminService.refundGymMembership(refundMembershipId.trim(), refundReason as any),
-    onSuccess: (result: any) => {
-      const amount = Number(result?.data?.refundAmount ?? result?.refundAmount ?? 0);
-      toast.success(amount > 0 ? `Đã hoàn ${formatVND(amount)} cho khách` : "Đã hoàn tiền");
-      setRefundMembershipId("");
-      setRefundReason("");
-    },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || err?.response?.data?.error?.code || "Hoàn tiền thất bại"),
-  });
-
-  if (isLoading) {
+  if (d.allForbidden) {
     return (
-      <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
-        <p className="text-zinc-500 animate-pulse">Đang tải dữ liệu tổng quan...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 text-center">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-10 max-w-md mx-auto">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-zinc-100 font-bold text-xl mb-2">
-            Lỗi tải tổng quan
-          </h2>
-          <p className="text-zinc-500 mb-6">
-            Không tải được số liệu hệ thống. Vui lòng kiểm tra các dịch vụ có đang chạy không.
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="px-6 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-400 transition-all"
-          >
-            Thử lại ngay
-          </button>
+      <div className="mx-auto max-w-7xl p-4 md:p-6">
+        <div data-testid="today-forbidden" role="alert" className="flex flex-col items-center gap-2 rounded-xl border border-adm-border bg-adm-surface px-4 py-12 text-center shadow-adm-card">
+          <LockKeyIcon className="size-8 text-adm-text-2" aria-hidden />
+          <h1 className="text-lg font-bold text-adm-text">Không có quyền xem trang Hôm nay</h1>
+          <p className="max-w-md text-sm text-adm-text-2">Tài khoản này không có quyền xem dữ liệu quản trị, hoặc phiên đăng nhập đã hết hạn. Hãy đăng nhập lại bằng tài khoản quản trị.</p>
         </div>
       </div>
     );
   }
 
-  const kpis = [
-    {
-      label: "Tổng người dùng",
-      value: data?.kpis?.totalUsers || 0,
-      change: "+0 tháng này",
-      icon: Users,
-      color: "text-green-400",
-      bg: "bg-green-500/10",
-      iconBg: "bg-green-500/15",
-      border: "border-green-500/20",
-    },
-    {
-      label: "PT đã xác minh",
-      value: data?.kpis?.verifiedPTs || 0,
-      change: `${data?.kpis?.pendingPT || 0} chờ duyệt`,
-      icon: UserCheck,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      iconBg: "bg-blue-500/15",
-      border: "border-blue-500/20",
-    },
-    {
-      label: "Hợp đồng đang hiệu lực",
-      value: data?.kpis?.activeContracts || 0,
-      change: "Toàn hệ thống",
-      icon: FileText,
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
-      iconBg: "bg-violet-500/15",
-      border: "border-violet-500/20",
-    },
-    {
-      label: "Buổi tập hôm nay",
-      value: data?.kpis?.sessionsToday || 0,
-      change: "Hoạt động hôm nay",
-      icon: Calendar,
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      iconBg: "bg-emerald-500/15",
-      border: "border-emerald-500/20",
-    },
-  ];
+  const money = moneyActionTile(d);
+  const pending = pendingWithdrawalTile(d);
+  const review = reviewTile(d);
+  const bal = balanceTile(d);
+  const recent = buildRecent(d, nowMs);
+  const dimmed = d.stale.stale;
 
-  const userGrowth = data?.userGrowth || [];
-  const roleData = data?.roleData || [];
-  const systemAlerts = data?.systemAlerts || [];
-  const recentUsers = data?.recentUsers || [];
+  const BalanceIcon = bal.balanced === false ? WarningIcon : bal.balanced ? CheckCircleIcon : ScalesIcon;
+  const balanceNote =
+    bal.status === "ready" ? (
+      <span className="flex flex-col gap-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span
+            data-testid="today-balance-chip"
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+              bal.balanced ? "border-st-success-border bg-st-success-bg text-st-success" : "border-st-danger-border bg-st-danger-bg text-st-danger"
+            }`}
+          >
+            {bal.balanced ? <CheckCircleIcon className="size-3.5" aria-hidden /> : <WarningIcon className="size-3.5" aria-hidden />}
+            {bal.balanced ? "Cân bằng" : "Lệch sổ"}
+          </span>
+          {bal.direction && <span>{bal.direction}</span>}
+        </span>
+        {bal.conflict && <span>Máy chủ báo lệch bằng mã 409 kèm số liệu — đây là cảnh báo về sổ, không phải lỗi tải.</span>}
+        <span data-testid="today-balance-scope">{BALANCE_SCOPE_TEXT}</span>
+        <span>
+          Tính đến {formatVnTime(d.balanceUpdatedAt)} ·{" "}
+          <AdminLink to={ROUTES.balance} data-testid="today-balance-link" className={LINK}>
+            Xem đối soát
+          </AdminLink>
+        </span>
+      </span>
+    ) : undefined;
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-100">Tổng quan quản trị</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            {today} · Tổng quan hệ thống
-          </p>
+    <div data-testid="admin-today" className="mx-auto flex max-w-7xl flex-col gap-5 p-4 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <h1 data-testid="today-title" className="text-2xl font-bold text-adm-text sm:text-[28px]">
+            Hôm nay
+          </h1>
+          <p className="mt-0.5 text-sm text-adm-text-2">Những việc cần xử lý và tình trạng sổ sách tính đến lúc này.</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`}
-            />
+        <div className="flex items-center gap-3">
+          <span data-testid="today-updated" className="text-xs tabular-nums text-adm-text-2">
+            {d.updatedAt ? `Cập nhật lúc ${formatVnTime(d.updatedAt)}` : ""}
+          </span>
+          <button type="button" onClick={d.refresh} aria-busy={d.fetching} data-testid="today-refresh" className={BTN}>
+            <ArrowClockwiseIcon className={`size-3.5 ${d.fetching ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden /> Làm mới
           </button>
-          {typeof data?.monitor?.healthScore === "number" && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-              {data.monitor.healthScore === 100
-                ? "Mọi hệ thống hoạt động bình thường"
-                : `${data.monitor.healthScore}% hệ thống khỏe mạnh`}
-            </span>
-          )}
         </div>
       </div>
 
-      {/* Money — the first thing an admin needs to know: how much is on the platform, and
-          does it reconcile. Full breakdown lives on Giám sát hệ thống; this is the headline. */}
-      {data?.money && (
+      {d.stale.stale && (
         <div
-          className={`rounded-xl p-4 border flex flex-wrap items-center gap-x-8 gap-y-2 ${
-            data.money.balanced
-              ? "bg-green-500/5 border-green-500/20"
-              : "bg-red-500/5 border-red-500/20"
-          }`}
+          role="status"
+          data-testid="today-stale"
+          className="inline-flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-st-pending-border bg-st-pending-bg px-2.5 py-1.5 text-xs font-medium text-st-pending"
         >
-          <div className="flex items-center gap-3">
-            <WalletIcon className="w-5 h-5 text-green-400" />
-            <div>
-              <div className="text-xs text-zinc-400">Tổng tiền giữ hộ (ESCROW)</div>
-              <div className="text-lg font-bold text-zinc-100">{formatVND(Number(data.money.escrow))}</div>
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-400">Doanh thu nền tảng</div>
-            <div className="text-lg font-bold text-zinc-100">{formatVND(Number(data.money.platformRevenue))}</div>
-          </div>
-          <div className="flex items-center gap-1.5 ml-auto">
-            {data.money.balanced ? (
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-400">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Sổ sách cân bằng
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
-                <XCircle className="w-3.5 h-3.5" /> Có lệch — xem Giám sát hệ thống
-              </span>
-            )}
-          </div>
+          <ClockIcon className="size-4 shrink-0" aria-hidden />
+          <span>
+            Dữ liệu lúc {formatVnTime(d.stale.updatedAt)} — đã cũ {ageText(ageMinutes(d.stale.updatedAt, nowMs))}
+            {d.stale.reason === "REFETCH_FAILED" ? " (lần cập nhật gần nhất không thành công)" : ""}. Bấm “Làm mới” để đọc lại.
+          </span>
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className={`${k.bg} rounded-xl p-4 border ${k.border}`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className={`w-9 h-9 ${k.iconBg} rounded-lg flex items-center justify-center`}
-              >
-                <k.icon className={`w-4 h-4 ${k.color}`} />
-              </div>
-              <span
-                className={`text-xs font-bold ${k.color} bg-black/20 px-2 py-0.5 rounded-full`}
-              >
-                {k.change}
-              </span>
-            </div>
-            <div className="text-xl font-bold text-zinc-100">
-              {k.value.toLocaleString()}
-            </div>
-            <div className="text-xs text-zinc-500 mt-0.5">{k.label}</div>
-          </div>
-        ))}
-      </div>
+      <section aria-label="Việc cần quyết định" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile testId="today-tile-money" loadingClassName={MONEY_TILE_LOADING} label="Cần xử lý về tiền" icon={WarningIcon} tone="warning" status={money.status} value={money.value} note={money.note} errorText={money.errorText} dimmed={dimmed} />
+        <StatTile testId="today-tile-withdrawals" loadingClassName={MONEY_TILE_LOADING} label="Rút tiền chờ duyệt" icon={ArrowUpRightIcon} tone="info" status={pending.status} value={pending.value} note={pending.note} errorText={pending.errorText} dimmed={dimmed} />
+        <StatTile testId="today-tile-review" loadingClassName={MONEY_TILE_LOADING} label="Hồ sơ chờ duyệt" icon={IdentificationCardIcon} tone="neutral" status={review.status} value={review.value} note={review.note} errorText={review.errorText} dimmed={dimmed} />
+        <StatTile
+          testId="today-tile-balance"
+          loadingClassName={MONEY_TILE_LOADING}
+          label="Cân đối sổ ví (ESCROW = Σ quyền đòi)"
+          icon={BalanceIcon}
+          tone={bal.balanced === false ? "danger" : bal.balanced ? "success" : "neutral"}
+          danger={bal.balanced === false}
+          status={bal.status}
+          value={bal.value}
+          note={balanceNote}
+          errorText={bal.errorText}
+          dimmed={dimmed}
+        />
+      </section>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200 mb-3">Tăng trưởng người dùng</h4>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={userGrowth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11, fill: "#71717a" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "#71717a" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid #27272a",
-                  backgroundColor: "#111111",
-                  color: "#f4f4f5",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="users"
-                stroke="#22c55e"
-                strokeWidth={2.5}
-                dot={{ fill: "#22c55e", r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200 mb-1">Vai trò người dùng</h4>
-          <p className="text-xs text-zinc-500 mb-2">Phân bố trên nền tảng</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <PieChart>
-              <Pie
-                data={roleData}
-                cx="50%"
-                cy="50%"
-                innerRadius={30}
-                outerRadius={50}
-                dataKey="value"
-                paddingAngle={3}
-              >
-                {roleData.map((entry, i) => (
-                  <Cell
-                    key={`cell-${entry.name}`}
-                    fill={COLORS[i % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  fontSize: 11,
-                  borderRadius: 8,
-                  border: "1px solid #27272a",
-                  backgroundColor: "#111111",
-                  color: "#f4f4f5",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-1.5 mt-1">
-            {roleData.map((d, i) => (
-              <div
-                key={d.name}
-                className="flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                  />
-                  <span className="text-zinc-500">{adminRoleVi(d.name)}</span>
-                </div>
-                <span className="font-bold text-zinc-300">
-                  {d.value.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <section aria-label="Chỉ số nền tảng" className="order-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:order-none xl:grid-cols-4">
+        <CompactStat testId="today-stat-users" label="Người dùng" icon={UsersIcon} tone="neutral" dimmed={dimmed} {...usersTotalStat(d)} />
+        <CompactStat testId="today-stat-new" label="Mới 7 ngày" icon={PulseIcon} tone="info" dimmed={dimmed} {...usersNewStat(d)} />
+        <CompactStat testId="today-stat-services" label="Dịch vụ đang chạy" icon={CpuIcon} tone="success" dimmed={dimmed} {...servicesStat(d)} />
+        <CompactStat testId="today-stat-disputes" label="Tranh chấp đang mở" icon={FlagIcon} tone="warning" dimmed={dimmed} {...disputesStat(d)} />
+      </section>
 
-      {/* OCR stats + alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200 mb-3">
-            Thống kê quét InBody OCR (7 ngày)
-          </h4>
-          <div className="grid grid-cols-2 gap-4 h-[140px]">
-            <div className="flex flex-col items-center justify-center border-r border-zinc-800/40">
-              <span className="text-3xl font-bold text-zinc-100">
-                {data?.ocrStats?.extracted || 0}
-              </span>
-              <span className="text-xs text-green-500 font-bold mt-1">
-                AI đọc được
-              </span>
-            </div>
-            <div className="flex flex-col justify-center gap-2 pl-4">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-500">Tổng lượt quét</span>
-                <span className="text-zinc-200 font-bold">
-                  {data?.ocrStats?.total || 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-500">Nhập tay</span>
-                <span className="text-zinc-200 font-bold">
-                  {data?.ocrStats?.manual || 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-500">Chờ AI xử lý</span>
-                <span className="text-zinc-200 font-bold">
-                  {data?.ocrStats?.pending || 0}
-                </span>
-              </div>
-            </div>
-          </div>
+      <div className="order-2 grid grid-cols-1 items-start gap-5 lg:order-none lg:grid-cols-2">
+        <div className="space-y-2">
+          <AttentionList testId="today-attention" headingId="today-attention-h" title="Việc cần xử lý" description="Sắp theo độ khẩn · mục tiền đứng trước" items={buildAttentionItems(d, nowMs)} />
+          <p className="px-1 text-xs text-adm-text-2">
+            Hoàn tiền gói hội viên (ngoại lệ) không có hàng đợi — nhập mã tại{" "}
+            <AdminLink to={ROUTES.membershipRefund} data-testid="today-membership-refund-link" className={LINK}>
+              Tài chính › Hoàn tiền › Gói hội viên
+            </AdminLink>
+            .
+          </p>
         </div>
-
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60 bg-zinc-800/20">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <h4 className="text-sm font-bold text-zinc-200">Cảnh báo hệ thống</h4>
-          </div>
-          <div className="divide-y divide-zinc-800/40 max-h-[140px] overflow-y-auto">
-            {systemAlerts.length > 0 ? (
-              systemAlerts.map((a: any, i: number) => (
-                <div
-                  key={i}
-                  className={`px-4 py-3 ${a.level === "error" || a.level === "critical" ? "bg-red-500/5" : a.level === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                      {viAlertService(a.service)}: {viAlertText(a.message)}
-                    </p>
-                    <span className="text-[10px] text-zinc-600 whitespace-nowrap">
-                      {a.time}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="px-4 py-8 text-center text-xs text-zinc-600">
-                Không có cảnh báo hệ thống nào
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent users */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200">
-            Đăng ký gần đây
-          </h4>
-          <button
-            onClick={() => navigate("/admin/users")}
-            className="text-xs text-green-400 hover:text-green-300 transition-colors font-bold"
-          >
-            Xem tất cả
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[500px]">
-            <thead>
-              <tr className="text-left text-xs text-zinc-600 bg-zinc-800/30 border-b border-zinc-800/60 uppercase tracking-wider">
-                <th className="px-4 py-2.5 font-bold">Tên</th>
-                <th className="px-4 py-2.5 font-bold">Email</th>
-                <th className="px-4 py-2.5 font-bold">Vai trò</th>
-                <th className="px-4 py-2.5 font-bold">Ngày tham gia</th>
-                <th className="px-4 py-2.5 font-bold">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentUsers.length > 0 ? (
-                recentUsers.map((u: any, i: number) => (
-                  <tr
-                    key={i}
-                    className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold text-zinc-200">
-                      {u.name}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-500">
-                      {u.email}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${u.role === "PT" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-zinc-700/50 text-zinc-400 border-zinc-700"}`}
-                      >
-                        {adminRoleVi(u.role)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">
-                      {adminShortDateVi(u.joined)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${u.status === "Active" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}
-                      >
-                        {adminStatusVi(u.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-10 text-center text-sm text-zinc-600"
-                  >
-                    Chưa có đăng ký gần đây
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Exceptional gym-membership refund — money-flow §2.4 */}
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
-        <h3 className="text-zinc-100 font-bold flex items-center gap-2 mb-1">
-          Hoàn tiền gói hội viên (ngoại lệ)
-        </h3>
-        <p className="text-xs text-zinc-500 mb-4">
-          Chỉ dùng khi phòng tập vi phạm/đóng cửa hoặc lỗi giao dịch — khách tự hủy không được
-          hoàn tiền và không đi qua form này.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={refundMembershipId}
-            onChange={(e) => setRefundMembershipId(e.target.value)}
-            placeholder="ID gói hội viên (UUID)"
-            className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 font-mono"
-          />
-          <select
-            value={refundReason}
-            onChange={(e) => setRefundReason(e.target.value as any)}
-            className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-red-500/50"
-          >
-            <option value="">-- Chọn lý do --</option>
-            {REFUND_REASONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => refundMutation.mutate()}
-            disabled={!refundMembershipId.trim() || !refundReason || refundMutation.isPending}
-            className="flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
-          >
-            {refundMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            Hoàn tiền
-          </button>
-        </div>
+        <RecentQueueList
+          testId="today-recent"
+          headingId="today-recent-h"
+          title={RECENT_TITLE}
+          description="Mỗi hàng đợi một mục mới nhất · không phải toàn bộ hoạt động"
+          items={recent.items}
+          loadingCount={recent.loading}
+          failedQueues={recent.failed}
+          allEmpty={recent.allEmpty}
+          sourceNote={RECENT_SOURCE_NOTE}
+        />
       </div>
     </div>
   );

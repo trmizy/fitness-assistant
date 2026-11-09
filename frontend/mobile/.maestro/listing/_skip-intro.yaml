@@ -1,0 +1,11 @@
+# Fresh install (after pm clear): skip the intro carousel if shown.
+appId: vn.fitnessassistant.app
+---
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

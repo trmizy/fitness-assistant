@@ -1,0 +1,9 @@
+# Subflow: log in with EMAIL / PASSWORD (from -e). Expects the login screen.
+# Fields must be empty on entry (eraseText is unreliable on ROG: it deletes before a mid-field cursor).
+appId: vn.fitnessassistant.app
+---
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Mật khẩu"
+- inputText: ${PASSWORD}
+- tapOn: "Đăng nhập"

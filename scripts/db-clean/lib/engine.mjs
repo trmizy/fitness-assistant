@@ -12,8 +12,11 @@ import { fingerprintOf, sortTuples, hasDuplicateTuples, sha256Hex } from './util
 import { loadSchema, normExpr, q, qt, deleteOrder } from './schema.mjs';
 import { POLICY, makeKeep, volatileColumns } from './policy.mjs';
 
-const GUARD = '($1::text[] IS NOT NULL AND $2::text[] IS NOT NULL AND $3::text[] IS NOT NULL)';
-export const paramList = (p) => [p.userIds, p.emails, p.keptGymIds];
+export const GUARD = '($1::text[] IS NOT NULL AND $2::text[] IS NOT NULL AND $3::text[] IS NOT NULL AND $4::text[] IS NOT NULL AND $5::text[] IS NOT NULL AND $6::text[] IS NOT NULL AND $7::text[] IS NOT NULL)';
+/** $1 userIds, $2 emails, $3 surviving gym ids, $4..$7 the --deny-file lists (gyms, amenities, amenity proposals, packages). */
+export const NO_DENY = Object.freeze({ gymIds: [], amenityIds: [], proposalIds: [], packageIds: [] });
+export const paramList = (p) => [p.userIds, p.emails, p.keptGymIds, ...denyLists(p.deny)];
+export const denyLists = (d) => [d?.gymIds ?? [], d?.amenityIds ?? [], d?.proposalIds ?? [], d?.packageIds ?? []];
 
 export function rulesFor(svc, policyOverride) {
   const src = policyOverride || POLICY;
@@ -109,7 +112,7 @@ export async function analyzeDb(db, svc, params, opts = {}) {
     out.tables.push(entry);
     if (entry.keepCount > 0) {
       const rows = await db.json(
-        `SELECT COALESCE(json_agg(json_build_array(${pkExprs(t)}, encode(sha256(convert_to((to_jsonb(t) - $4::text[])::text, 'UTF8')), 'hex'))), '[]'::json)
+        `SELECT COALESCE(json_agg(json_build_array(${pkExprs(t)}, encode(sha256(convert_to((to_jsonb(t) - $8::text[])::text, 'UTF8')), 'hex'))), '[]'::json)
            FROM ${qt('public', name)} t WHERE COALESCE(${keep}, FALSE) AND ${GUARD}`,
         [...P, entry.volatile],
       );

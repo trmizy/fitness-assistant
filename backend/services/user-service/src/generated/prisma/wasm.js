@@ -357,6 +357,8 @@ exports.Prisma.SessionScalarFieldEnum = {
   resolvedBy: 'resolvedBy',
   resolutionNote: 'resolutionNote',
   resolvedAt: 'resolvedAt',
+  resolvedByCaseDecisionId: 'resolvedByCaseDecisionId',
+  noShowQuotaBookedAt: 'noShowQuotaBookedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -725,6 +727,444 @@ exports.Prisma.PtTermsAcceptanceScalarFieldEnum = {
   legalHoldUntil: 'legalHoldUntil'
 };
 
+exports.Prisma.DisputeCaseScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  type: 'type',
+  status: 'status',
+  escalated: 'escalated',
+  investigatorId: 'investigatorId',
+  execStatus: 'execStatus',
+  execDecisionId: 'execDecisionId',
+  closeReason: 'closeReason',
+  previousCaseId: 'previousCaseId',
+  execLeaseOwner: 'execLeaseOwner',
+  execLeaseUntil: 'execLeaseUntil',
+  version: 'version',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DisputePolicyReviewEventScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  contractId: 'contractId',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  action: 'action',
+  note: 'note',
+  idempotencyKey: 'idempotencyKey',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCasePolicyEligibilityReviewScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  contractId: 'contractId',
+  result: 'result',
+  evidenceIds: 'evidenceIds',
+  evidenceRefs: 'evidenceRefs',
+  reasoning: 'reasoning',
+  proposedBy: 'proposedBy',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  supersedesId: 'supersedesId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseIssueScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  kind: 'kind',
+  finding: 'finding',
+  note: 'note',
+  recordedBy: 'recordedBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseClaimScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  claimantRole: 'claimantRole',
+  text: 'text',
+  moves: 'moves',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseEvidenceScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  provenanceType: 'provenanceType',
+  source: 'source',
+  subject: 'subject',
+  scopeSessionId: 'scopeSessionId',
+  scopeContractId: 'scopeContractId',
+  eventAt: 'eventAt',
+  capturedAt: 'capturedAt',
+  submittedBy: 'submittedBy',
+  submittedRole: 'submittedRole',
+  captureStatus: 'captureStatus',
+  snapshotVersion: 'snapshotVersion',
+  contentHash: 'contentHash',
+  payload: 'payload',
+  sensitivity: 'sensitivity',
+  verificationStatus: 'verificationStatus',
+  supersedesId: 'supersedesId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseStatementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  partyRole: 'partyRole',
+  authorUserId: 'authorUserId',
+  version: 'version',
+  source: 'source',
+  text: 'text',
+  supplementReason: 'supplementReason',
+  supersedesId: 'supersedesId',
+  contentHash: 'contentHash',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseShareScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  evidenceId: 'evidenceId',
+  statementId: 'statementId',
+  sharedWithRole: 'sharedWithRole',
+  sharedBy: 'sharedBy',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAssessmentScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  claimId: 'claimId',
+  assessorId: 'assessorId',
+  directEvidenceIds: 'directEvidenceIds',
+  indirectEvidenceIds: 'indirectEvidenceIds',
+  rebuttalEvidenceIds: 'rebuttalEvidenceIds',
+  relevanceNote: 'relevanceNote',
+  verifiabilityNote: 'verifiabilityNote',
+  consistencyNote: 'consistencyNote',
+  result: 'result',
+  reasoning: 'reasoning',
+  evidenceSnapshot: 'evidenceSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseFindingScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  finding: 'finding',
+  reasoning: 'reasoning',
+  recordedBy: 'recordedBy',
+  supersedesId: 'supersedesId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseProposalScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  findingId: 'findingId',
+  outcome: 'outcome',
+  proposerId: 'proposerId',
+  executionBlockedReason: 'executionBlockedReason',
+  evidenceSnapshot: 'evidenceSnapshot',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseApprovalScalarFieldEnum = {
+  id: 'id',
+  proposalId: 'proposalId',
+  approverId: 'approverId',
+  result: 'result',
+  reason: 'reason',
+  conflictOfInterestDeclaredNone: 'conflictOfInterestDeclaredNone',
+  evidenceChangeAcknowledged: 'evidenceChangeAcknowledged',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseEventScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  action: 'action',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  note: 'note',
+  idempotencyKey: 'idempotencyKey',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAccessLogScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  viewerUserId: 'viewerUserId',
+  viewerRole: 'viewerRole',
+  evidenceId: 'evidenceId',
+  action: 'action',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseExecutionScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  decisionId: 'decisionId',
+  sessionId: 'sessionId',
+  outcome: 'outcome',
+  actorUserId: 'actorUserId',
+  idempotencyKey: 'idempotencyKey',
+  attempt: 'attempt',
+  state: 'state',
+  blockedReason: 'blockedReason',
+  response: 'response',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LateOpenReconciliationScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  settlementRowId: 'settlementRowId',
+  stepKind: 'stepKind',
+  lateKey: 'lateKey',
+  assignee: 'assignee',
+  reason: 'reason',
+  verificationNote: 'verificationNote',
+  evidenceRefs: 'evidenceRefs',
+  policyBasis: 'policyBasis',
+  proposedBy: 'proposedBy',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  outcome: 'outcome',
+  outcomeAt: 'outcomeAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LateOpenReconciliationEventScalarFieldEnum = {
+  id: 'id',
+  settlementRowId: 'settlementRowId',
+  reconciliationId: 'reconciliationId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  action: 'action',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  note: 'note',
+  payload: 'payload',
+  idempotencyKey: 'idempotencyKey',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LateOpenRecoveryScalarFieldEnum = {
+  id: 'id',
+  reconciliationId: 'reconciliationId',
+  settlementRowId: 'settlementRowId',
+  openedBy: 'openedBy',
+  reason: 'reason',
+  classification: 'classification',
+  haltCode: 'haltCode',
+  observation: 'observation',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  outcome: 'outcome',
+  outcomeAt: 'outcomeAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.D65bResolutionScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  settlementRowId: 'settlementRowId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  reason: 'reason',
+  evidenceRefs: 'evidenceRefs',
+  proposedBy: 'proposedBy',
+  ledgerBefore: 'ledgerBefore',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  outcome: 'outcome',
+  outcomeAt: 'outcomeAt',
+  ledgerAfter: 'ledgerAfter',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
+};
+
+exports.Prisma.D65bResolutionEventScalarFieldEnum = {
+  id: 'id',
+  resolutionId: 'resolutionId',
+  settlementRowId: 'settlementRowId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  action: 'action',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  note: 'note',
+  payload: 'payload',
+  idempotencyKey: 'idempotencyKey',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCasePartyNoticeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  sessionId: 'sessionId',
+  userId: 'userId',
+  partyRole: 'partyRole',
+  kind: 'kind',
+  notificationId: 'notificationId',
+  recordedAt: 'recordedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseDeadlineScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  sessionId: 'sessionId',
+  userId: 'userId',
+  partyRole: 'partyRole',
+  kind: 'kind',
+  hours: 'hours',
+  startedAt: 'startedAt',
+  pausedAt: 'pausedAt',
+  pausedSeconds: 'pausedSeconds',
+  status: 'status',
+  satisfiedAt: 'satisfiedAt',
+  expiredAt: 'expiredAt',
+  noticeId: 'noticeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DisputeCaseAgreementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  outcome: 'outcome',
+  contentHash: 'contentHash',
+  note: 'note',
+  proposedBy: 'proposedBy',
+  status: 'status',
+  agreedAt: 'agreedAt',
+  findingId: 'findingId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAgreementConfirmationScalarFieldEnum = {
+  id: 'id',
+  agreementId: 'agreementId',
+  partyRole: 'partyRole',
+  userId: 'userId',
+  confirmedHash: 'confirmedHash',
+  confirmedAt: 'confirmedAt'
+};
+
+exports.Prisma.DisputeCaseAppealScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  partyRole: 'partyRole',
+  requestedBy: 'requestedBy',
+  reason: 'reason',
+  noticeRecordedAt: 'noticeRecordedAt',
+  status: 'status',
+  reviewerId: 'reviewerId',
+  reviewerAssignedBy: 'reviewerAssignedBy',
+  result: 'result',
+  reasoning: 'reasoning',
+  previousFindingId: 'previousFindingId',
+  newFindingId: 'newFindingId',
+  decidedAt: 'decidedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeCaseAppealConsequenceScalarFieldEnum = {
+  id: 'id',
+  appealId: 'appealId',
+  caseId: 'caseId',
+  kind: 'kind',
+  status: 'status',
+  detail: 'detail',
+  note: 'note',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy'
+};
+
+exports.Prisma.DisputeCaseQuotaCorrectionScalarFieldEnum = {
+  id: 'id',
+  consequenceId: 'consequenceId',
+  caseId: 'caseId',
+  contractId: 'contractId',
+  delta: 'delta',
+  reason: 'reason',
+  proposedBy: 'proposedBy',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  appliedAt: 'appliedAt',
+  usedBefore: 'usedBefore',
+  usedAfter: 'usedAfter',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeHeldMoneyReviewScalarFieldEnum = {
+  id: 'id',
+  settlementRowId: 'settlementRowId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  firstSeenAt: 'firstSeenAt',
+  nextReviewDueAt: 'nextReviewDueAt',
+  ownerEscalatedAt: 'ownerEscalatedAt',
+  closedAt: 'closedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeHeldMoneyDecisionScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  decision: 'decision',
+  reason: 'reason',
+  exitRef: 'exitRef',
+  decidedBy: 'decidedBy',
+  decidedAt: 'decidedAt'
+};
+
+exports.Prisma.DisputeCaseDecisionReplacementScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  oldApprovalId: 'oldApprovalId',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  proposedBy: 'proposedBy',
+  reason: 'reason',
+  checksAtProposal: 'checksAtProposal',
+  createdAt: 'createdAt',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  approvalReason: 'approvalReason',
+  checksAtApproval: 'checksAtApproval',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  rejectionReason: 'rejectionReason'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -909,7 +1349,8 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   GYM_LISTING_INVALIDATED: 'GYM_LISTING_INVALIDATED',
   GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
   PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED',
-  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED'
+  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED',
+  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -924,7 +1365,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   PT_APPLICATION: 'PT_APPLICATION',
   PT_LISTING: 'PT_LISTING',
   PAYMENT: 'PAYMENT',
-  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION'
+  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
+  DISPUTE_CASE: 'DISPUTE_CASE'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {
@@ -1033,6 +1475,144 @@ exports.PtMediaUploadIntentStatus = exports.$Enums.PtMediaUploadIntentStatus = {
   REJECTED: 'REJECTED'
 };
 
+exports.DisputeCaseType = exports.$Enums.DisputeCaseType = {
+  PT_DELIVERY: 'PT_DELIVERY',
+  PT_CLIENT_NO_SHOW_CLAIM: 'PT_CLIENT_NO_SHOW_CLAIM',
+  PT_NO_SHOW_CLAIM: 'PT_NO_SHOW_CLAIM',
+  LEGACY_UNCLASSIFIED: 'LEGACY_UNCLASSIFIED'
+};
+
+exports.DisputeCaseStatus = exports.$Enums.DisputeCaseStatus = {
+  INTAKE: 'INTAKE',
+  COLLECTING: 'COLLECTING',
+  AWAITING_PARTIES: 'AWAITING_PARTIES',
+  ASSESSING: 'ASSESSING',
+  TECH_RECONCILIATION: 'TECH_RECONCILIATION',
+  FINDING_RECORDED: 'FINDING_RECORDED',
+  POLICY_PENDING: 'POLICY_PENDING',
+  PROPOSED: 'PROPOSED',
+  AWAITING_APPROVAL: 'AWAITING_APPROVAL',
+  DECISION_APPROVED: 'DECISION_APPROVED',
+  REJECTED_INTAKE: 'REJECTED_INTAKE',
+  CLOSED: 'CLOSED'
+};
+
+exports.DisputeCaseExecStatus = exports.$Enums.DisputeCaseExecStatus = {
+  NOT_STARTED: 'NOT_STARTED',
+  EXECUTING: 'EXECUTING',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  EXEC_BLOCKED: 'EXEC_BLOCKED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+exports.DisputeCasePolicyEligibilityResult = exports.$Enums.DisputeCasePolicyEligibilityResult = {
+  ELIGIBLE_CURRENT_POLICY: 'ELIGIBLE_CURRENT_POLICY',
+  EXCEPTION_APPLIES: 'EXCEPTION_APPLIES'
+};
+
+exports.DisputeCaseIssueKind = exports.$Enums.DisputeCaseIssueKind = {
+  PT_LATE: 'PT_LATE'
+};
+
+exports.DisputeCaseIssueFinding = exports.$Enums.DisputeCaseIssueFinding = {
+  LATE_CONFIRMED_BY_ROOM_DATA: 'LATE_CONFIRMED_BY_ROOM_DATA',
+  LATE_CONTESTED: 'LATE_CONTESTED',
+  NOT_LATE: 'NOT_LATE',
+  UNDETERMINED: 'UNDETERMINED'
+};
+
+exports.DisputeCaseClaimantRole = exports.$Enums.DisputeCaseClaimantRole = {
+  CLIENT: 'CLIENT',
+  PT: 'PT',
+  SYSTEM: 'SYSTEM'
+};
+
+exports.DisputeCaseProvenance = exports.$Enums.DisputeCaseProvenance = {
+  SERVER_OBSERVED: 'SERVER_OBSERVED',
+  USER_REPORTED_STORED: 'USER_REPORTED_STORED',
+  DERIVED: 'DERIVED',
+  EXTERNAL_DOCUMENT: 'EXTERNAL_DOCUMENT',
+  TECH_GAP: 'TECH_GAP',
+  NOT_APPLICABLE: 'NOT_APPLICABLE',
+  ADMIN_RECEIVED_ON_BEHALF: 'ADMIN_RECEIVED_ON_BEHALF',
+  LEGACY_FIELD: 'LEGACY_FIELD',
+  SELF_REPORTED_SERVER_RECORDED: 'SELF_REPORTED_SERVER_RECORDED',
+  STAFF_ATTESTED_SERVER_RECORDED: 'STAFF_ATTESTED_SERVER_RECORDED'
+};
+
+exports.DisputeCaseCaptureStatus = exports.$Enums.DisputeCaseCaptureStatus = {
+  OK: 'OK',
+  UNAVAILABLE: 'UNAVAILABLE',
+  NOT_APPLICABLE: 'NOT_APPLICABLE',
+  TECH_GAP_SUSPECTED: 'TECH_GAP_SUSPECTED'
+};
+
+exports.DisputeCaseSensitivity = exports.$Enums.DisputeCaseSensitivity = {
+  NORMAL: 'NORMAL',
+  SENSITIVE: 'SENSITIVE',
+  RESTRICTED: 'RESTRICTED'
+};
+
+exports.DisputeCaseVerificationStatus = exports.$Enums.DisputeCaseVerificationStatus = {
+  CLIENT_CLAIMED_UNVERIFIED: 'CLIENT_CLAIMED_UNVERIFIED',
+  SERVER_VERIFIED: 'SERVER_VERIFIED',
+  NOT_APPLICABLE: 'NOT_APPLICABLE'
+};
+
+exports.DisputeCasePartyRole = exports.$Enums.DisputeCasePartyRole = {
+  CLIENT: 'CLIENT',
+  PT: 'PT',
+  ADMIN_ON_BEHALF: 'ADMIN_ON_BEHALF'
+};
+
+exports.DisputeCaseShareRole = exports.$Enums.DisputeCaseShareRole = {
+  CLIENT: 'CLIENT',
+  PT: 'PT'
+};
+
+exports.DisputeCaseAssessmentResult = exports.$Enums.DisputeCaseAssessmentResult = {
+  ESTABLISHED: 'ESTABLISHED',
+  NOT_ESTABLISHED: 'NOT_ESTABLISHED',
+  REFUTED: 'REFUTED'
+};
+
+exports.DisputeCaseFindingKind = exports.$Enums.DisputeCaseFindingKind = {
+  VERIFIED_DELIVERED: 'VERIFIED_DELIVERED',
+  VERIFIED_CLIENT_ABSENT: 'VERIFIED_CLIENT_ABSENT',
+  VERIFIED_PT_ABSENT: 'VERIFIED_PT_ABSENT',
+  VERIFIED_NOT_DELIVERED_NO_FAULT: 'VERIFIED_NOT_DELIVERED_NO_FAULT',
+  INSUFFICIENT_EVIDENCE: 'INSUFFICIENT_EVIDENCE',
+  NOT_A_DISPUTE: 'NOT_A_DISPUTE'
+};
+
+exports.DisputeCaseOutcome = exports.$Enums.DisputeCaseOutcome = {
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  PT_NO_SHOW_CONFIRMED: 'PT_NO_SHOW_CONFIRMED'
+};
+
+exports.DisputeCaseApprovalResult = exports.$Enums.DisputeCaseApprovalResult = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.DisputeCaseAccessAction = exports.$Enums.DisputeCaseAccessAction = {
+  VIEW_CASE: 'VIEW_CASE',
+  VIEW_EVIDENCE: 'VIEW_EVIDENCE'
+};
+
+exports.DisputeCaseExecutionState = exports.$Enums.DisputeCaseExecutionState = {
+  STARTED: 'STARTED',
+  BUSINESS_DONE: 'BUSINESS_DONE',
+  BLOCKED: 'BLOCKED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN'
+};
+
+exports.LateOpenReconciliationOutcome = exports.$Enums.LateOpenReconciliationOutcome = {
+  EXECUTED: 'EXECUTED',
+  REJECTED: 'REJECTED'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -1064,7 +1644,37 @@ exports.Prisma.ModelName = {
   PtPhysiquePhoto: 'PtPhysiquePhoto',
   PtMediaUploadIntent: 'PtMediaUploadIntent',
   ClientCompatEvent: 'ClientCompatEvent',
-  PtTermsAcceptance: 'PtTermsAcceptance'
+  PtTermsAcceptance: 'PtTermsAcceptance',
+  DisputeCase: 'DisputeCase',
+  DisputePolicyReviewEvent: 'DisputePolicyReviewEvent',
+  DisputeCasePolicyEligibilityReview: 'DisputeCasePolicyEligibilityReview',
+  DisputeCaseIssue: 'DisputeCaseIssue',
+  DisputeCaseClaim: 'DisputeCaseClaim',
+  DisputeCaseEvidence: 'DisputeCaseEvidence',
+  DisputeCaseStatement: 'DisputeCaseStatement',
+  DisputeCaseShare: 'DisputeCaseShare',
+  DisputeCaseAssessment: 'DisputeCaseAssessment',
+  DisputeCaseFinding: 'DisputeCaseFinding',
+  DisputeCaseProposal: 'DisputeCaseProposal',
+  DisputeCaseApproval: 'DisputeCaseApproval',
+  DisputeCaseEvent: 'DisputeCaseEvent',
+  DisputeCaseAccessLog: 'DisputeCaseAccessLog',
+  DisputeCaseExecution: 'DisputeCaseExecution',
+  LateOpenReconciliation: 'LateOpenReconciliation',
+  LateOpenReconciliationEvent: 'LateOpenReconciliationEvent',
+  LateOpenRecovery: 'LateOpenRecovery',
+  D65bResolution: 'D65bResolution',
+  D65bResolutionEvent: 'D65bResolutionEvent',
+  DisputeCasePartyNotice: 'DisputeCasePartyNotice',
+  DisputeCaseDeadline: 'DisputeCaseDeadline',
+  DisputeCaseAgreement: 'DisputeCaseAgreement',
+  DisputeCaseAgreementConfirmation: 'DisputeCaseAgreementConfirmation',
+  DisputeCaseAppeal: 'DisputeCaseAppeal',
+  DisputeCaseAppealConsequence: 'DisputeCaseAppealConsequence',
+  DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
+  DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
+  DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision',
+  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
 };
 
 /**

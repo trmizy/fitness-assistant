@@ -24,6 +24,7 @@ import { InlineAmenityPicker, type InlineProposal } from "../gymListing/InlineAm
 import { useServerSeededState } from "../../hooks/useServerSeededState";
 import { AmenityBadgeGroups } from "../gymListing/AmenityWidgets";
 import { shareLocalFile } from "../../services/files";
+import { pickErrorMessage } from "../../lib/pickError";
 import { pickApplicationFile, pickImages } from "../../lib/pickFile";
 import { formatVND } from "../../utils/currency";
 import { toDateInputValue } from "../../utils/date";
@@ -502,8 +503,14 @@ export function PhotosSection({ uid, gymId, status }: { uid: string; gymId: stri
   const add = async () => {
     const room = MAX_PHOTOS - photos.length;
     if (room <= 0) return toast.show(`Tối đa ${MAX_PHOTOS} ảnh cho mỗi chi nhánh`, "danger");
+    let files: Awaited<ReturnType<typeof pickImages>>;
     try {
-      const files = await pickImages(room, 8 * 1024 * 1024);
+      files = await pickImages(room, 8 * 1024 * 1024);
+    } catch (e) {
+      // the picker's own failure (undecodable file, size cap, permission) - never its raw English text
+      return toast.show(pickErrorMessage(e), "danger");
+    }
+    try {
       for (let i = 0; i < files.length; i++) {
         setUploading(`${i + 1}/${files.length}`);
         await uploadGymListingPhoto(gymId, files[i]);

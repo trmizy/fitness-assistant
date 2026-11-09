@@ -60,26 +60,27 @@ export const PT_FAULT_SESSION_CLOSED =
 
 /** The wallet statement for a refund of the session value. */
 export function refundMoneySentence(money: PtFaultMoney | null): string {
-  if (!money) return "Giá trị buổi tập được hoàn vào ví của bạn; số tiền cụ thể xem trong lịch sử ví.";
+  // Final safety gate: with no confirmed ledger answer (queued, retrying, parked for a person, refused) NOTHING is said to be in the wallet.
+  if (!money) return "Khoản hoàn đang được đối soát, chưa ghi nhận vào ví.";
   const paid = Number(money.paid);
   const unpaid = Number(money.unpaid);
   if (unpaid > 0) {
     return paid > 0
       ? `Đã hoàn ${formatVnd(money.paid)}đ vào ví; ${formatVnd(money.unpaid)}đ còn lại đang được đối soát.`
-      : `Chưa hoàn được vào ví ngay; ${formatVnd(money.unpaid)}đ đang được đối soát.`;
+      : `Chưa hoàn được vào ví ngay; ${formatVnd(money.unpaid)}đ đang được đối soát. Khoản này vẫn còn phải thanh toán cho bạn.`;
   }
   return paid > 0 ? `Đã hoàn ${formatVnd(money.paid)}đ vào ví.` : refundMoneySentence(null);
 }
 
 /** The wallet statement for a part-compensation (late arrival: the session itself still happens). */
 export function compensationMoneySentence(money: PtFaultMoney | null): string {
-  if (!money) return "Khoản bồi thường một phần đang được xử lý vào ví của bạn; số tiền cụ thể xem trong lịch sử ví.";
+  if (!money) return "Khoản bồi thường một phần đang được đối soát, chưa ghi nhận vào ví.";
   const paid = Number(money.paid);
   const unpaid = Number(money.unpaid);
   if (unpaid > 0) {
     return paid > 0
       ? `Đã bồi thường ${formatVnd(money.paid)}đ vào ví; ${formatVnd(money.unpaid)}đ còn lại đang được đối soát.`
-      : `Chưa bồi thường được vào ví ngay; ${formatVnd(money.unpaid)}đ đang được đối soát.`;
+      : `Chưa bồi thường được vào ví ngay; ${formatVnd(money.unpaid)}đ đang được đối soát. Khoản này vẫn còn phải thanh toán cho bạn.`;
   }
   return paid > 0 ? `Đã bồi thường ${formatVnd(money.paid)}đ vào ví.` : compensationMoneySentence(null);
 }

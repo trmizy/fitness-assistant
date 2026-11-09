@@ -43,7 +43,7 @@ const LOOKUP_CHUNK = 100;
 export function deriveRefundInfo(money: PtFaultMoney, obligationStatus?: string | null): SessionRefundInfo {
   const paid = Number(money.paid);
   const unpaid = Number(money.unpaid);
-  if (obligationStatus === "RESOLVED" || unpaid <= 0) {
+  if (obligationStatus === "RESOLVED" || obligationStatus === "PAID_VIA_LEDGER" || unpaid <= 0) {
     return { refundState: "FULL", refundedAmount: fmt(paid), refundPendingAmount: "0.00" };
   }
   if (obligationStatus === "WAIVED") {

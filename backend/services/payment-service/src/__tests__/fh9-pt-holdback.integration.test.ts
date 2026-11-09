@@ -47,9 +47,11 @@ async function load(): Promise<Mods> {
       reconcile: await import('../services/reconcile.service'),
       wallet: (await import('../services/wallet.service')).walletService,
       withdrawals: (await import('../services/withdrawal.service')).withdrawalService,
-      review: await import('../services/holdback-review.service'),
+      review: await import('../services/holdback-review.service'), // E6 / F3: the two network guards of a holdback decision are stubbed here; fh9-holdback-guards.integration.test.ts covers them for real
     };
   }
+  mods.review.holdbackGuards.verifyAdmin = async () => {};
+  mods.review.holdbackGuards.assertNoOpenCase = async () => {};
   return mods;
 }
 test.after(async () => {

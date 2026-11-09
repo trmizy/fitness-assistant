@@ -18,6 +18,7 @@ import { listingErrorMessage, readApproveBlock, type ApproveBlock } from "../../
 import { handleAdminError, previewKey, refreshAdminListings, revisionKey, type ListingKind } from "./adminListingShared";
 import { RevisionHistory } from "./RevisionHistory";
 import { DirectEditDialog, gymSourceFromRevision, ptSourceFromRevision } from "./DirectEditDialog";
+import { onTablistKeyDown, tabProps } from "../shared/tablistKeys";
 
 type View = "changes" | "preview" | "history";
 const VIEWS: { key: View; label: string }[] = [
@@ -235,12 +236,11 @@ export function RevisionDetail({ kind, rid, onBack, onOpenProposals }: { kind: L
         )}
       </header>
 
-      <div className="flex gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist">
+      <div className="flex gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist" onKeyDown={onTablistKeyDown}>
         {VIEWS.map((v) => (
           <button
             key={v.key}
-            role="tab"
-            aria-selected={view === v.key}
+            {...tabProps(view === v.key)}
             onClick={() => setView(v.key)}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${view === v.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
           >

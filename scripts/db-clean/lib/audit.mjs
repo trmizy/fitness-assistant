@@ -6,11 +6,13 @@
  */
 import os from 'node:os';
 import { CLEAN_ORDER, PARTNER_OWNED, SERVICES, MAINT_ROLE } from './config.mjs';
-import { analyzeDb, compareWithManifest, rulesFor, paramList } from './engine.mjs';
+import { analyzeDb, compareWithManifest, rulesFor, paramList, GUARD, NO_DENY } from './engine.mjs';
 import { makeKeep } from './policy.mjs';
 import { readHba, readAclAndRoles } from './schema.mjs';
 import { computeScriptVersion } from './manifest.mjs';
 import { nowIso } from './util.mjs';
+import { emptyPatterns, expandDeny, denyParams, denyProblems, computeGuards } from './deny.mjs';
+import { guardTriggerLiveProblems } from './triggers.mjs';
 
 export function cleanDbsFor(partnerDbs) {
   return CLEAN_ORDER.filter((s) => partnerDbs === 'include' || !PARTNER_OWNED.includes(s));
@@ -32,22 +34,23 @@ export async function computeKeptGymIds(gymDb, policy, params, cleanGym) {
   if (!cleanGym) return gymDb.json(`SELECT COALESCE(json_agg(id ORDER BY id), '[]'::json) FROM gyms`);
   const K = makeKeep(rules);
   return gymDb.json(
-    `SELECT COALESCE(json_agg(t."id" ORDER BY t."id"), '[]'::json) FROM "gyms" t WHERE COALESCE(${K('gyms', 't')}, FALSE) AND ($1::text[] IS NOT NULL AND $2::text[] IS NOT NULL AND $3::text[] IS NOT NULL)`,
+    `SELECT COALESCE(json_agg(t."id" ORDER BY t."id"), '[]'::json) FROM "gyms" t WHERE COALESCE(${K('gyms', 't')}, FALSE) AND ${GUARD}`,
     paramList({ ...params, keptGymIds: [] }),
   );
 }
 
 /** Evaluate the whole plan. dbs: { svc: Db } for every service. */
-export async function computePlan(ctx, { emails, cleanDbs, stats = false }) {
+export async function computePlan(ctx, { emails, cleanDbs, stats = false, denyPatterns }) {
   const { users, missing, emails: lower } = await resolveUsers(ctx.dbs.auth, emails);
   const userIds = users.map((u) => u.userId).sort();
-  const params = { userIds, emails: lower, keptGymIds: [] };
+  const deny = await expandDeny(ctx.dbs, denyPatterns || emptyPatterns());
+  const params = { userIds, emails: lower, keptGymIds: [], deny: denyParams(deny) };
   params.keptGymIds = await computeKeptGymIds(ctx.dbs.gym, ctx.policy, params, cleanDbs.includes('gym'));
   const analyses = {};
   for (const svc of SERVICES) {
     analyses[svc] = await analyzeDb(ctx.dbs[svc], svc, params, { policy: ctx.policy, mode: cleanDbs.includes(svc) ? 'full' : 'count', stats });
   }
-  return { users, missing, params, analyses };
+  return { users, missing, params, analyses, deny };
 }
 
 export async function environmentSnapshot(ctx) {
@@ -86,7 +89,7 @@ export async function pgStat(db) {
   );
 }
 
-export function buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan }) {
+export function buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan, guardBlockers = {}, guardTriggers = [] }) {
   const dbName = (svc) => snap.environment.dbs.find((d) => d.svc === svc).datname;
   const tables = [];
   const preservedRows = [];
@@ -108,6 +111,7 @@ export function buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan 
   }
   tables.sort((x, y) => (`${x.db}.${x.table}` < `${y.db}.${y.table}` ? -1 : 1));
   preservedRows.sort((x, y) => (`${x.db}.${x.table}` < `${y.db}.${y.table}` ? -1 : 1));
+  Object.assign(blockers, guardBlockers);
   const compact = Object.fromEntries(Object.entries(blockers).filter(([, v]) => (Array.isArray(v) ? v.length : Object.keys(v).length)));
   return {
     environment: snap.environment,
@@ -123,6 +127,8 @@ export function buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan 
       preservedRows,
       excludedVolatileColumns,
     },
+    deny: plan.deny,
+    guardTriggers,
     blockers: compact,
     tables,
   };
@@ -135,7 +141,14 @@ export function buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan 
 export async function recheck(ctx, manifest, { checkSnapshots = true } = {}) {
   const problems = [];
   const cleanDbs = manifest.parameters.cleanDbs;
-  const plan = await computePlan(ctx, { emails: manifest.allowlist.emails, cleanDbs });
+  const plan = await computePlan(ctx, { emails: manifest.allowlist.emails, cleanDbs, denyPatterns: manifest.deny?.patterns });
+  problems.push(...denyProblems(ctx, manifest.deny, plan.deny));
+  {
+    const g = await computeGuards(ctx, plan, cleanDbs);
+    for (const [k, list] of Object.entries(g.blockers)) if (k !== 'triggerGuards') for (const e of list) problems.push(`[${e.db}] blocker ${k}: ${JSON.stringify(e)}`);
+    // guard triggers: the live preflight must give exactly the pairs the manifest lists, and no unlisted armed trigger (each problem carries its "[datname]")
+    for (const svc of cleanDbs) problems.push(...guardTriggerLiveProblems(ctx.profile.dbName(svc), manifest.guardTriggers || [], g.triggers));
+  }
   // users / cross references
   const mu = JSON.stringify(manifest.allowlist.users.map((u) => [u.email, u.userId]));
   const au = JSON.stringify(plan.users.map((u) => [u.email, u.userId]));

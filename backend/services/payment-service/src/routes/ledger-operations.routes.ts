@@ -52,7 +52,8 @@ type Row = {
   requestFingerprint: string | null;
 };
 
-type ObligationView = { id: string; status: string; owed: string; paid: string; unpaid: string };
+/** R-13: `resolvedNote` / `resolvedAt` are READ-ONLY copies of contract_unpaid_obligations.resolved_note / resolved_at (the reason an obligation was waived / resolved another way). Null while unresolved. */
+type ObligationView = { id: string; status: string; owed: string; paid: string; unpaid: string; resolvedNote: string | null; resolvedAt: string | null };
 
 function present(r: Row, obligations?: Map<string, ObligationView>) {
   const prefix = r.key.split(':')[0];
@@ -77,7 +78,7 @@ async function obligationsOf(tx: ReadTx, rows: Row[]): Promise<Map<string, Oblig
   if (ids.length === 0) return new Map();
   const found = await tx.contractUnpaidObligation.findMany({ where: { id: { in: ids } } });
   return new Map(
-    found.map((o) => [o.id, { id: o.id, status: o.status, owed: o.owed.toFixed(2), paid: o.paid.toFixed(2), unpaid: o.unpaid.toFixed(2) }]),
+    found.map((o) => [o.id, { id: o.id, status: o.status, owed: o.owed.toFixed(2), paid: o.paid.toFixed(2), unpaid: o.unpaid.toFixed(2), resolvedNote: o.resolvedNote ?? null, resolvedAt: o.resolvedAt ? o.resolvedAt.toISOString() : null }]),
   );
 }
 
