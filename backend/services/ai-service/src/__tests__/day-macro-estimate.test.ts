@@ -72,3 +72,8 @@ test("the ask itself is not a food item", () => {
   for (const t of ["phở bò", "cơm tấm", "chả giò", "chuối", "giò lụa", "trứng"]) assert.equal(isRequestPhrase(t), false, t);
   assert.deepEqual(fallbackExtract("trưa 2 chén cơm và 150g ức gà, tính macro giúp").map((i) => i.food), ["cơm", "ức gà"]);
 });
+
+test("an amount written after the food is parsed ('cơm 120g'), not kept in the food name (live check 2026-11-09)", () => {
+  assert.deepEqual(fallbackExtract("cơm 120g").map((i) => [i.food, i.quantity, i.unit]), [["cơm", 120, "g"]]);
+  assert.deepEqual(fallbackExtract("sáng ăn cơm 120g, 1 trứng ốp la").map((i) => [i.food, i.quantity, i.unit, i.meal]), [["cơm", 120, "g", "breakfast"], ["trứng ốp la", 1, null, "breakfast"]]);
+});

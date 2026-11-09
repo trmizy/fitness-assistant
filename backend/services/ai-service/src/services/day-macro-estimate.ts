@@ -62,7 +62,7 @@ Chỉ trả về JSON.`;
   if (!out?.items?.length) return fallbackExtract(text);
   const named = mealsNamedIn(text);
   // the model sometimes keeps "chuối và 1 hộp sữa chua" as ONE item: split joined items deterministically
-  return out.items.map((it): Extracted[number] => ({ ...it, food: it.food.normalize("NFC"), meal: it.meal && named.has(it.meal) ? it.meal : null })).flatMap((it): Extracted => (/\s(và|với|\+)\s/u.test(it.food)
+  return out.items.map((it): Extracted[number] => ({ ...it, food: it.food.normalize("NFC"), meal: it.meal && named.has(it.meal) ? it.meal : null })).flatMap((it): Extracted => (/\s(và|với|\+)\s/u.test(it.food) || /\d/.test(it.food) /* "cơm 120g" kept as the food name (live check 2026-11-09) */
     ? fallbackExtract(it.food).map((p, k) => ({ ...p, quantity: k === 0 ? it.quantity ?? p.quantity : p.quantity, unit: k === 0 ? it.unit ?? p.unit : p.unit, meal: it.meal ?? p.meal }))
     : [it])).filter((i) => !isRequestPhrase(i.food)).slice(0, 30);
 }
@@ -102,7 +102,10 @@ export function fallbackExtract(text: string): Extracted {
     part = part.replace(/^(bữa\s+)?(sáng|trưa|tối|chiều|ăn vặt|bữa phụ)\s*(nay)?\s*(tôi|mình|em)?\s*(ăn|uống)?\s*/iu, "").replace(/^(hôm nay|hôm qua)\s*/iu, "").replace(/^(tôi|mình|em)\s+(đã\s+)?(ăn|uống)\s+/iu, "").trim();
     if (!part) continue;
     const q = part.match(/^(\d+(?:[.,]\d+)?)\s*(g|gr|gram|ml|kg|chén|bát|tô|đĩa|quả|trái|ổ|lát|miếng|hộp|ly|cốc|muỗng|thìa|cái|con|củ|lạng)?\s+(.+)$/iu);
+    // the amount after the food ("cơm 120g", "ức gà 150 gram")
+    const t = q ? null : part.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|gr|gram|ml|kg|chén|bát|tô|đĩa|quả|trái|ổ|lát|miếng|hộp|ly|cốc|lạng)$/iu);
     if (q) out.push({ food: q[3].trim(), quantity: Number(q[1].replace(",", ".")), unit: q[2] ?? null, meal });
+    else if (t) out.push({ food: t[1].trim(), quantity: Number(t[2].replace(",", ".")), unit: t[3], meal });
     else out.push({ food: part, quantity: null, unit: null, meal });
   }
   return out.filter((i) => fold(i.food).length >= 2 && !isRequestPhrase(i.food)).slice(0, 30);
@@ -229,7 +232,9 @@ async function matchFood(identity: AgentIdentity, mention: string, curated: Cata
   }
   try {
     const found = await fitnessAgentTools.searchFood(identity, mention);
-    if (found) return { food: { id: found.id, name: found.name, displayName: found.name, per100g: per100(found) }, match: "search" };
+    // The user's own words are the title; the USDA row behind the numbers stays visible as `name` (English USDA names as the title
+    // read as a wrong food to users — 2026-11-09).
+    if (found) return { food: { id: found.id, name: found.name, displayName: mention.trim().charAt(0).toLocaleUpperCase("vi") + mention.trim().slice(1), per100g: per100(found) }, match: "search" };
   } catch { /* unmatched */ }
   return { food: null, match: "none" };
 }

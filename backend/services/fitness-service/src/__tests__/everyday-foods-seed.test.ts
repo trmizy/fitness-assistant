@@ -4,9 +4,9 @@ import { everydayFoodsCatalog, seedEverydayFoods } from "../services/everyday-fo
 import { runFitnessServiceJob } from "../jobs-lambda";
 
 // The catalog ships inside dist/ (src/data) so the jobs Lambda — the only path into Aurora — can load it (2026-11-09).
-test("everyday-food catalog: 74 foods, unique fdcIds, every entry has a Vietnamese name and a group", () => {
+test("everyday-food catalog: 75 foods, unique fdcIds, every entry has a Vietnamese name and a group", () => {
   const foods = everydayFoodsCatalog();
-  assert.equal(foods.length, 74);
+  assert.equal(foods.length, 75);
   assert.equal(new Set(foods.map((f) => f.fdcId)).size, foods.length);
   for (const f of foods) {
     assert.ok(f.vi.trim().length > 0 && Number.isInteger(f.fdcId) && f.group, JSON.stringify(f));

@@ -31,9 +31,27 @@ export async function estimateDayMacros(text: string): Promise<DayEstimate> {
   return data?.data as DayEstimate;
 }
 
-/** Nutrition page box: describe what you ate in plain words → the editable estimate above (self-contained state). */
-export function DayMacroQuickEstimate({ dateStr }: { dateStr?: string }) {
-  const [open, setOpen] = useState(false);
+const EXAMPLES = [
+  "sáng 1 tô phở bò, trưa 2 chén cơm + 150g ức gà + canh cải",
+  "sáng 2 quả trứng luộc và 1 ổ bánh mì, tối 1 đĩa cơm tấm",
+  "trưa 1 tô bún bò, chiều 1 hộp sữa chua, tối 200g cá hồi",
+];
+
+/** How the numbers are produced — shown to the user (2026-11-09: "không biết đang dùng AI hay thuật toán"). */
+export function DayMacroMethodNote() {
+  return <p className="text-[11px] leading-relaxed text-zinc-500">
+    <span className="font-semibold text-zinc-400">Cách tính:</span> AI chỉ tách món, số lượng và bữa từ câu bạn viết. Calo và macro
+    lấy từ dữ liệu thực phẩm (danh mục món Việt + USDA) nhân theo số gram — không do AI tự đoán. Lượng theo chén/tô/quả là ước tính,
+    bạn sửa được trước khi lưu.
+  </p>;
+}
+
+/**
+ * "Hôm nay bạn đã ăn gì?" — the prominent quick-estimate card (Nutrition page, and the Dashboard in its compact form).
+ * Describe what you ate in plain words → the editable estimate below (self-contained state; nothing saved until confirmed).
+ */
+export function DayMacroQuickEstimate({ dateStr, variant = "page" }: { dateStr?: string; variant?: "page" | "compact" }) {
+  const [open, setOpen] = useState(true);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DayEstimate | null>(null);
@@ -48,24 +66,35 @@ export function DayMacroQuickEstimate({ dateStr }: { dateStr?: string }) {
       setLoading(false);
     }
   }
-  return <section className="rounded-xl border border-zinc-700/60 bg-zinc-900/40 p-3">
-    <button type="button" onClick={() => setOpen((o) => !o)} className="flex min-h-11 w-full items-center justify-between text-left" aria-expanded={open}>
-      <span className="text-sm font-semibold text-zinc-100">Tính nhanh macro từ mô tả</span>
-      <span className="text-xs text-zinc-500">{open ? "Thu gọn" : "Mở"}</span>
-    </button>
-    {open && <div className="mt-2 space-y-2">
-      <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500}
+  const compact = variant === "compact";
+  return <section data-testid="day-macro-quick-estimate"
+    className="rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-zinc-900/60 to-zinc-900/40 p-4 shadow-lg shadow-orange-500/5">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className={`font-bold text-zinc-100 ${compact ? "text-base" : "text-lg"}`}>🍽️ Hôm nay bạn đã ăn gì?</h2>
+        <p className="mt-0.5 text-xs text-zinc-400">Gõ như đang kể chuyện — mình tính calo, đạm, tinh bột, chất béo và so với mục tiêu của bạn.</p>
+      </div>
+      {!compact && <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        className="min-h-9 shrink-0 rounded-md px-2 text-xs text-zinc-500 hover:text-zinc-300">{open ? "Thu gọn" : "Mở"}</button>}
+    </div>
+    {open && <div className="mt-3 space-y-2.5">
+      <textarea rows={compact ? 2 : 3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500}
         placeholder="Ví dụ: sáng 1 tô phở bò, trưa 2 chén cơm + 150g ức gà + 1 bát canh cải, tối 1 quả chuối và 1 hộp sữa chua"
-        className="w-full resize-none rounded-lg border border-zinc-700/60 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-orange-500/50" />
+        className="w-full resize-none rounded-xl border border-zinc-700/60 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-orange-500/60" />
+      {!text && <div className="flex flex-wrap gap-1.5" aria-label="Câu mẫu">
+        {EXAMPLES.slice(0, compact ? 2 : 3).map((ex) => <button key={ex} type="button" onClick={() => setText(ex)}
+          className="min-h-9 max-w-full truncate rounded-full border border-zinc-700 px-3 text-xs text-zinc-400 hover:border-orange-500/50 hover:text-zinc-200">{ex}</button>)}
+      </div>}
       <button type="button" disabled={loading || text.trim().length < 3} onClick={() => void run()}
-        className="min-h-11 rounded-lg bg-orange-500 px-4 text-sm font-bold text-black hover:bg-orange-400 disabled:opacity-50">{loading ? "Đang tính…" : "Tính macro"}</button>
+        className="min-h-11 w-full rounded-xl bg-orange-500 px-4 text-sm font-bold text-black hover:bg-orange-400 disabled:opacity-50 sm:w-auto">{loading ? "Đang tính…" : "Tính macro"}</button>
       {result && <DayMacroEstimate key={JSON.stringify(result.items.map((i) => i.mention))} estimate={result} dateStr={dateStr} />}
+      <DayMacroMethodNote />
     </div>}
   </section>;
 }
 
 const MEALS: Array<[MealType, string]> =[["breakfast", "Sáng"], ["lunch", "Trưa"], ["dinner", "Tối"], ["snack", "Phụ"]];
-const MATCH_NOTE: Record<string, string> = { dish: "món ghép — số liệu trung bình USDA", search: "khớp gần đúng theo tên" };
+const MATCH_NOTE: Record<string, string> = { dish: "món ghép — số liệu trung bình USDA", curated: "danh mục món Việt — số liệu USDA", search: "khớp theo tên, số liệu lấy từ USDA" };
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const todayVN = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 
@@ -103,15 +132,6 @@ export function DayMacroEstimate({ estimate, dateStr }: { estimate: DayEstimate;
   }
 
   const goal = estimate.goal;
-  const bar = (label: string, v: number, target: number | undefined, unit: string) => {
-    const pct = target ? Math.min(100, Math.round((v / target) * 100)) : 0;
-    const diff = target ? r1(v - target) : null;
-    return <div key={label} className="space-y-1">
-      <div className="flex justify-between text-xs"><span className="text-zinc-400">{label}</span>
-        <span className="text-zinc-200">{v}{unit}{target ? <span className="text-zinc-500"> / {target}{unit} · {diff! >= 0 ? `dư ${diff}` : `thiếu ${-diff!}`}</span> : null}</span></div>
-      {target ? <div className="h-1.5 rounded-full bg-zinc-800"><div className={`h-1.5 rounded-full ${diff! > target * 0.1 ? "bg-amber-400" : "bg-orange-500"}`} style={{ width: `${pct}%` }} /></div> : null}
-    </div>;
-  };
 
   return <div className="space-y-3 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
     {computed.length === 0 && <p className="text-zinc-300">Chưa tìm được món nào trong dữ liệu để tính.</p>}
@@ -136,17 +156,51 @@ export function DayMacroEstimate({ estimate, dateStr }: { estimate: DayEstimate;
         </div>
       </li>)}
     </ul>}
-    {estimate.unmatched.length > 0 && <p className="text-xs text-zinc-400">Chưa tìm thấy trong dữ liệu: {estimate.unmatched.join(", ")} — có thể thêm thủ công bằng “Thêm món ăn”.</p>}
-    <div className="space-y-2 rounded-lg border border-zinc-800 p-2">
-      <p className="text-xs font-semibold text-zinc-300">Tổng {goal ? `so với mục tiêu ${goal.source === "ACTIVE_GOAL" ? "đang áp dụng" : "ước tính"}` : ""}</p>
-      {bar("Calo", totals.calories, goal?.calories, " kcal")}
-      {bar("Đạm", totals.protein, goal?.protein, " g")}
-      {bar("Carb", totals.carbs, goal?.carbs, " g")}
-      {bar("Béo", totals.fat, goal?.fat, " g")}
+    {estimate.unmatched.length > 0 && <p className="text-xs text-zinc-400">Chưa có số liệu cho: <span className="text-zinc-200">{estimate.unmatched.join(", ")}</span>. Món ghép nhiều thành phần (cơm tấm, bún bò…) bạn ghi rõ từng phần — ví dụ “cơm 200g, sườn nướng 100g” — để tính chính xác, hoặc thêm thủ công bằng “Thêm món ăn”.</p>}
+    <div className="space-y-2 rounded-xl border border-zinc-800 p-3">
+      <p className="text-xs font-semibold text-zinc-300">Tổng hôm nay {goal ? `so với mục tiêu ${goal.source === "ACTIVE_GOAL" ? "đang áp dụng" : "ước tính"}` : ""}</p>
+      <MacroRings totals={totals} goal={goal} />
     </div>
     {estimate.notes.map((n, i) => <p key={i} className="text-xs text-zinc-500">{n}</p>)}
     <button type="button" disabled={saving || saved || kept.length === 0} onClick={() => void save()}
       className="min-h-11 w-full rounded-lg bg-orange-500 px-3 text-sm font-bold text-black hover:bg-orange-400 disabled:opacity-50">
       {saved ? "Đã lưu vào nhật ký" : saving ? "Đang lưu…" : `Lưu ${kept.length} món vào nhật ký`}</button>
+  </div>;
+}
+
+/** Four progress rings (eaten vs goal) — the colours are the macro colours of the Nutrition goal modal. */
+const RINGS: Array<{ key: "calories" | "protein" | "carbs" | "fat"; label: string; unit: string; stroke: string; text: string }> = [
+  { key: "calories", label: "Calo", unit: "kcal", stroke: "stroke-orange-400", text: "text-orange-400" },
+  { key: "protein", label: "Đạm", unit: "g", stroke: "stroke-green-400", text: "text-green-400" },
+  { key: "carbs", label: "Tinh bột", unit: "g", stroke: "stroke-blue-400", text: "text-blue-400" },
+  { key: "fat", label: "Chất béo", unit: "g", stroke: "stroke-amber-400", text: "text-amber-400" },
+];
+
+export function MacroRings({ totals, goal }: { totals: { calories: number; protein: number; carbs: number; fat: number }; goal: DayEstimate["goal"] }) {
+  const R = 30, C = 2 * Math.PI * R;
+  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="macro-rings">
+    {RINGS.map((ring) => {
+      const value = totals[ring.key], target = goal ? goal[ring.key] : 0;
+      const ratio = target ? value / target : 0;
+      const over = target > 0 && ratio > 1.1;
+      const diff = target ? Math.round((value - target) * 10) / 10 : null;
+      return <div key={ring.key} className="flex flex-col items-center text-center">
+        <div className="relative h-[84px] w-[84px]">
+          <svg viewBox="0 0 72 72" className="h-full w-full -rotate-90" aria-hidden="true">
+            <circle cx="36" cy="36" r={R} fill="none" strokeWidth="7" className="stroke-zinc-800" />
+            {target > 0 && <circle cx="36" cy="36" r={R} fill="none" strokeWidth="7" strokeLinecap="round"
+              className={`${over ? "stroke-red-400" : ring.stroke} transition-[stroke-dashoffset] duration-700`}
+              strokeDasharray={C} strokeDashoffset={C * (1 - Math.min(1, ratio))} />}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={`text-base font-bold leading-none ${ring.text}`}>{ring.key === "calories" ? Math.round(value) : value}</span>
+            <span className="mt-0.5 text-[10px] text-zinc-500">{target ? `/ ${Math.round(target)}` : ring.unit}</span>
+          </div>
+        </div>
+        <span className="mt-1 text-xs font-semibold text-zinc-300">{ring.label}{target ? ` (${ring.unit})` : ""}</span>
+        {diff !== null && <span className={`text-[11px] ${over ? "text-red-400" : diff >= 0 ? "text-zinc-400" : "text-zinc-500"}`}>
+          {diff >= 0 ? `dư ${diff}` : `còn ${-diff}`}</span>}
+      </div>;
+    })}
   </div>;
 }

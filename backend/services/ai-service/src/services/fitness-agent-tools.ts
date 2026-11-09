@@ -250,8 +250,14 @@ export const fitnessAgentTools = {
       // ("tenders, breaded, uncooked" for a plain "ức gà luộc" query — a
       // raw breaded cutlet is a materially different food from boiled
       // chicken breast). Prefer "NS as to cooking method" when present.
-      const unspecified = foods.find(f => /ns as to cooking method/i.test(f.name));
-      return unspecified ?? [...foods].sort((a, b) => a.name.length - b.name.length)[0];
+      // A plain ingredient must not resolve to a prepared/composite product: "cà chua" picked "Soup, tomato" (user test on AWS,
+      // 2026-11-09) because it is the shortest name. Composite rows are kept only when the user's own words ask for that kind of dish.
+      const COMPOSITE = /\b(soup|sauce|juice|drink|beverage|pie|cake|cookie|candy|pudding|dressing|dip|chips|baby food|babyfood|frozen|dinner|sandwich|pizza|casserole|salad|cereal|bar|spread|paste|ketchup|puree|smoothie|shake)\b/i;
+      const WANTS_COMPOSITE = /(canh|súp|soup|nước|sốt|xốt|bánh|kẹo|kem|sinh tố|salad|gỏi|pizza|sandwich|ngũ cốc|mứt|tương)/i;
+      const plain = WANTS_COMPOSITE.test(term) ? foods : foods.filter(f => !COMPOSITE.test(f.name));
+      const pool = plain.length ? plain : foods;
+      const unspecified = pool.find(f => /ns as to cooking method/i.test(f.name));
+      return unspecified ?? [...pool].sort((a, b) => a.name.length - b.name.length)[0];
     };
     const trimmed = name.trim();
     let foods = await search(trimmed);
