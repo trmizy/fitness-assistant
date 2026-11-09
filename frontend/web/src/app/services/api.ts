@@ -7,7 +7,7 @@ export interface PlanExplanationResponse {
 import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
-import { apiBaseUrl } from "../config/serverUrl";
+import { aiStreamUrl, apiBaseUrl } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
@@ -3710,7 +3710,7 @@ export const coachService = {
     (async () => {
       try {
         const sendStreamRequest = (token: string | null) =>
-          fetch(`${API_URL}/ai/ask/stream`, {
+          fetch(aiStreamUrl(), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

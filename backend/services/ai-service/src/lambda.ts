@@ -27,36 +27,20 @@
  * InvokeMode=RESPONSE_STREAM, which is a separate integration from the
  * existing "fitness-assistant-dev-api" API Gateway and is out of scope for
  * this pass (no new AWS resources created here).
+ *
+ * Because this transport buffers, the controller's typing-effect pacing would
+ * only add latency against the ~29 s budget, so it is switched off here
+ * (config/stream-pacing.ts) and the answer goes out as one token event.
  */
 import serverlessHttp from "serverless-http";
 import {
   ensureDatabaseUrlConfigured,
   validateRequiredRuntimeConfig,
 } from "./config/lambda-runtime";
+import { markResponseTransportBuffered } from "./config/stream-pacing";
+import { ensureVectorStoreChecked } from "./config/lambda-vector-store-check";
 
-// Lambda execution environments are frozen/thawed between invocations, so
-// this runs at most once per cold start (module-level code), not per
-// request — same intent as server.ts's startup check, adapted to not block
-// the very first request on it. A cold start pays this once; a warm
-// container reuses the cached result via vector availability module state in
-// app.ts (checked lazily below, not on a fixed interval — Lambda has no
-// long-lived process to run setInterval against).
-let vectorStoreCheckedAt = 0;
-const VECTOR_STORE_RECHECK_MS = 60_000;
-
-async function ensureVectorStoreChecked(): Promise<void> {
-  const now = Date.now();
-  if (now - vectorStoreCheckedAt < VECTOR_STORE_RECHECK_MS) return;
-  vectorStoreCheckedAt = now;
-  const { setQdrantAvailable } = await import("./app");
-  const { getVectorStore } = await import("./vector-store/provider");
-  try {
-    await getVectorStore().healthCheck();
-    setQdrantAvailable(true);
-  } catch {
-    setQdrantAvailable(false);
-  }
-}
+markResponseTransportBuffered();
 
 let cachedHandler: ReturnType<typeof serverlessHttp> | null = null;
 

@@ -127,6 +127,21 @@ export function apiBaseUrl(): string {
 }
 
 /**
+ * Full URL of the AI Coach SSE endpoint (POST /ai/ask/stream).
+ *
+ * On AWS, API Gateway buffers the whole Lambda response, so the stream is served by a
+ * separate response-streaming Lambda behind the frontend CloudFront distribution and
+ * VITE_AI_STREAM_URL points there. A runtime server override (LAN/tunnel gateway) still
+ * wins, because that gateway serves the stream route itself; without either, the stream
+ * goes to the same base URL as every other request.
+ */
+export function aiStreamUrl(): string {
+  const override = getServerOverride();
+  if (override) return `${override}/ai/ask/stream`;
+  return env("VITE_AI_STREAM_URL") || `${apiBaseUrl()}/ai/ask/stream`;
+}
+
+/**
  * Phase 2 AWS deploy serves the frontend as static files from S3/CloudFront.
  * Realtime backends are not deployed there yet, so production defaults to off
  * unless explicitly enabled. Local Vite development keeps the old behavior.
