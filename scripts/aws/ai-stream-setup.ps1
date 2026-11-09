@@ -46,6 +46,8 @@ param(
   [string]$DistributionId = "E2MHD79JFC1700",
   [int]$TimeoutSeconds = 90,
   [string[]]$CorsOrigins = @(
+    "https://gymini.vn",
+    "https://www.gymini.vn",
     "https://d1ub83a48p566t.cloudfront.net",
     "http://fitness-assistant-frontend-dev-191798898985.s3-website-ap-southeast-1.amazonaws.com"
   ),

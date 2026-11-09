@@ -20,9 +20,9 @@
     "aws-dev": {
       "extends": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://id1iz7upbl.execute-api.ap-southeast-1.amazonaws.com",
-        "EXPO_PUBLIC_AI_STREAM_URL": "https://d1ub83a48p566t.cloudfront.net/ai/ask/stream",
-        "EXPO_PUBLIC_CHAT_WS_URL": "https://d1ub83a48p566t.cloudfront.net",
+        "EXPO_PUBLIC_API_URL": "https://api.gymini.vn",
+        "EXPO_PUBLIC_AI_STREAM_URL": "https://gymini.vn/ai/ask/stream",
+        "EXPO_PUBLIC_CHAT_WS_URL": "https://gymini.vn",
         "EXPO_PUBLIC_ENABLE_REALTIME": "false",
         "EXPO_PUBLIC_ENABLE_CHAT": "true",
         "EXPO_PUBLIC_ENABLE_CHAT_WS": "true"
