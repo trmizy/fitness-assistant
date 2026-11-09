@@ -306,6 +306,9 @@ if ($desired.SecretsImpliedBy.Count -gt 0 -and -not $currentStack.Secrets) {
 if ($desired.NetworkImpliedByBackend) {
     Write-Host "Auto-enabling NAT (Network): Backend needs it - Lambdas verify tokens by invoking the auth Lambda over the public Lambda API, and send email / call Bedrock / payment providers over the internet." -ForegroundColor Yellow
 }
+if ($desired.AiImpliedByBackend) {
+    Write-Host "Auto-enabling the OpenSearch VPC endpoint (Ai): Backend needs it - the vector collection only admits that endpoint, so without it the AI Coach answers without its knowledge base." -ForegroundColor Yellow
+}
 
 $enableNat = if ($desired.Network) { "true" } else { "false" }
 $enableChat = if ($desired.Chat) { "true" } else { "false" }
@@ -347,7 +350,7 @@ if (-not $Execute) {
         Write-Host "   # aws ecs update-service --cluster $EcsCluster --service $EcsService --load-balancers `"containerName=$EcsContainerName,containerPort=$EcsContainerPort,targetGroupArn=<ChatTargetGroupArn output>`" --region $ExpectedRegion"
         Write-Host "5) API Gateway reconnect, 6) Frontend runtime-config.json reconnect"
     }
-    if ($Ai) {
+    if ($desired.Ai) {
         Write-Host ""
         Write-Host "7) Re-point OpenSearch Serverless network policy at the new VPC endpoint ID"
     }

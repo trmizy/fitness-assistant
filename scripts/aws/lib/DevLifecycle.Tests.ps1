@@ -14,7 +14,7 @@ function AllOff { @{ Network = $false; Chat = $false; Ai = $false; Secrets = $fa
 
 Describe "Resolve-DesiredStartState (Phase 12A Case 1, 2, 5)" {
 
-    It "Case 1: frozen + start Backend -> Backend/Secrets/Network(NAT) ON, Chat/Ai OFF" {
+    It "Case 1: frozen + start Backend -> Backend/Secrets/Network(NAT)/Ai(OpenSearch VPCE) ON, Chat OFF" {
         $current = AllOff
         $requested = @{ Backend = $true; Network = $false; Chat = $false; Ai = $false; Secrets = $false }
         $desired = Resolve-DesiredStartState -Current $current -Requested $requested
@@ -23,7 +23,9 @@ Describe "Resolve-DesiredStartState (Phase 12A Case 1, 2, 5)" {
         # 2026-11-09: a Backend without NAT hangs every authenticated request (Lambda->Lambda auth invoke has no route)
         $desired.Network | Should Be $true
         $desired.NetworkImpliedByBackend | Should Be $true
-        $desired.Ai | Should Be $false
+        # 2026-11-09: without the OpenSearch VPCE every vector search is 401 network-policy-deny (RAG silently off)
+        $desired.Ai | Should Be $true
+        $desired.AiImpliedByBackend | Should Be $true
         $desired.Chat | Should Be $false
         ($desired.SecretsImpliedBy -contains "Backend") | Should Be $true
     }
@@ -54,6 +56,24 @@ Describe "Resolve-DesiredStartState (Phase 12A Case 1, 2, 5)" {
 
         $desired.Ai | Should Be $true
         $desired.Secrets | Should Be $true
+    }
+
+    It "start Backend with Ai already ON -> Ai stays ON and is not reported as implied" {
+        $current = @{ Network = $true; Chat = $false; Ai = $true; Secrets = $true }
+        $requested = @{ Backend = $true; Network = $false; Chat = $false; Ai = $false; Secrets = $false }
+        $desired = Resolve-DesiredStartState -Current $current -Requested $requested
+
+        $desired.Ai | Should Be $true
+        $desired.AiImpliedByBackend | Should Be $false
+    }
+
+    It "start Chat alone does NOT turn on Ai (only Backend implies it)" {
+        $current = AllOff
+        $requested = @{ Backend = $false; Network = $false; Chat = $true; Ai = $false; Secrets = $false }
+        $desired = Resolve-DesiredStartState -Current $current -Requested $requested
+
+        $desired.Ai | Should Be $false
+        $desired.AiImpliedByBackend | Should Be $false
     }
 
     It "start with no flags at all preserves current state exactly (no-op)" {

@@ -191,10 +191,14 @@ function Resolve-DesiredStartState {
     # Lambda API (no Lambda VPC endpoint), and email/Bedrock/payment providers are internet calls too. A Backend start
     # without NAT is never a working backend.
     $networkImplied = ($Requested.ContainsKey('Backend') -and [bool]$Requested.Backend -and -not [bool]$Current.Network -and -not [bool]$Requested.Network)
+    # Backend also implies Ai (the OpenSearch Serverless VPC endpoint), 2026-11-09: the collection's network policy only
+    # admits that endpoint (AllowFromPublic=false), so a Backend start without it leaves every AI Lambda's vector search
+    # answering 401 network-policy-deny - the AI Coach still answers, silently without its knowledge base.
+    $aiImplied = ($Requested.ContainsKey('Backend') -and [bool]$Requested.Backend -and -not [bool]$Current.Ai -and -not [bool]$Requested.Ai)
     $desired = @{
         Network = [bool]$Current.Network -or [bool]$Requested.Network -or $networkImplied
         Chat    = [bool]$Current.Chat    -or [bool]$Requested.Chat
-        Ai      = [bool]$Current.Ai      -or [bool]$Requested.Ai
+        Ai      = [bool]$Current.Ai      -or [bool]$Requested.Ai      -or $aiImplied
     }
 
     $impliedBy = @()
@@ -210,6 +214,7 @@ function Resolve-DesiredStartState {
         Secrets         = $desired.Secrets
         SecretsImpliedBy = $impliedBy
         NetworkImpliedByBackend = $networkImplied
+        AiImpliedByBackend = $aiImplied
     }
 }
 
