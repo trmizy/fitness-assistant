@@ -59,6 +59,18 @@ export function formatDriftCents(cents: bigint): string {
   return VND_EXACT.format(Number(cents) / 100);
 }
 
+/**
+ * Chuỗi Decimal → số tiền ĐÚNG như server trả, KHÔNG làm tròn: "300.000 ₫" khi tròn đồng, "299.999,84 ₫" khi có phần lẻ; "—" khi không đọc được.
+ * Dùng cho mọi số tiền thật của một hồ sơ (báo giá hoàn, số đã ghi vào ví, số còn thiếu) — backend 09/11: frontend không tự làm tròn.
+ */
+export function formatMoneyExact(value: unknown): string {
+  const cents = parseCents(value);
+  if (cents === null) return "—";
+  if (cents % 100n === 0n) return formatDong(cents / 100n);
+  return VND_CENTS.format(Number(cents) / 100);
+}
+const VND_CENTS = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 /** Chuỗi Decimal → "590.800.000 ₫" hoặc "—". */
 export function formatMoneyString(value: unknown): string {
   return formatDong(parseMoney(value));

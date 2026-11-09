@@ -3,7 +3,7 @@
  * `GET /admin/complaints/:complaintId/membership-options` (gym-service). Pure helpers only: labels and the option builder.
  * The server decides money later; a non-refundable membership stays selectable and is only labelled.
  */
-import { formatMoneyString } from "../adminFinanceOverview.utils";
+import { formatMoneyExact } from "../adminFinanceOverview.utils";
 import { formatDateSafe } from "./gymFormat";
 
 export type MembershipNotRefundableReason = "STATUS_NOT_REFUNDABLE" | "NO_PAYMENT" | "PAYOUT_ALREADY_RELEASED";
@@ -41,7 +41,7 @@ export const membershipNotRefundableLabel = (r: string | null | undefined): stri
 
 /** "<plan> · <status> · <dd/mm/yyyy>–<dd/mm/yyyy> · <price>" plus " · không hoàn được: <reason>" when the membership can not be refunded. */
 export function membershipOptionLabel(o: MembershipOption): string {
-  const base = [o.planName || "Gói hội viên", membershipOptionStatusLabel(o.status), `${formatDateSafe(o.startDate)}–${formatDateSafe(o.endDate)}`, formatMoneyString(o.price)].join(" · ");
+  const base = [o.planName || "Gói hội viên", membershipOptionStatusLabel(o.status), `${formatDateSafe(o.startDate)}–${formatDateSafe(o.endDate)}`, formatMoneyExact(o.price)].join(" · ");
   return o.refundable === false ? `${base} · không hoàn được: ${membershipNotRefundableLabel(o.reasonNotRefundable)}` : base;
 }
 

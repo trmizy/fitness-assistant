@@ -39,3 +39,19 @@ describe("held review of a session whose D65-B already EXECUTED waits for the sw
     assert.equal(heldAlreadyResolved(null, "s1"), false);
   });
 });
+
+import { formatMoneyExact } from "../adminFinanceOverview.utils";
+describe("gym money shows the server's exact amount, never rounded (backend 09/11)", () => {
+  it("round amounts stay whole, fractional ones keep two decimals", () => {
+    assert.match(formatMoneyExact("300000.00"), /^300\.000\s₫$/u);
+    assert.match(formatMoneyExact("299999.84"), /^299\.999,84\s₫$/u);
+    assert.match(formatMoneyExact("299999.80"), /^299\.999,80\s₫$/u);
+    assert.equal(formatMoneyExact(null), "—");
+  });
+  it("the money view and its sentence carry 299.999,84, not 300.000", () => {
+    const m = describeMoney({ derived: true, state: "LEDGER_POSTED_FULL", label: "Đã ghi vào ví Gymini: 299999.84", postedToMemberWallet: "299999.84", memberShortfall: null, referralClawbackShortfall: null } as never);
+    assert.match(m.posted ?? "", /299\.999,84/);
+    assert.match(m.sentence, /299\.999,84/);
+    assert.doesNotMatch(`${m.posted} ${m.sentence}`, /300\.000/);
+  });
+});

@@ -10,7 +10,7 @@ import { gymCaseApi } from "../gymCaseApi";
 import { execBlockedText } from "../gymCaseErrors";
 import { EXECUTE_CONFIRM_NOTICE, EXECUTE_WALLET_NOTE, gymOutcomeLabel } from "../gymCaseLabels";
 import { executeResultText } from "../gymCaseModel";
-import { formatMoneyString } from "../../adminFinanceOverview.utils";
+import { formatMoneyExact } from "../../adminFinanceOverview.utils";
 import type { GymExecuteResult, GymReconcileResult } from "../gymCaseTypes";
 import { ActionButton, ButtonRow, Check, ConfirmModal, ErrorBox, FormCard, ResultNote, useCloseOnResult, useGymWrite } from "../gymCaseKit";
 import type { FormProps } from "./formTypes";
@@ -78,7 +78,7 @@ export function ExecuteCard({ detail, onChanged, push }: FormProps) {
                 {
                   label: "Số tiền",
                   value: detail.refundQuote
-                    ? `${formatMoneyString(detail.refundQuote.amount)}: mức hoàn đã chốt theo ngày khiếu nại. Máy chủ kiểm lại khi thực thi; số tiền thực ghi vào ví hiện sau khi thực thi.`
+                    ? `${formatMoneyExact(detail.refundQuote.amount)}: mức hoàn đã chốt theo ngày khiếu nại. Máy chủ kiểm lại khi thực thi; số tiền thực ghi vào ví hiện sau khi thực thi.`
                     : "Do máy chủ tính theo phần chưa dùng của gói, hiện sau khi thực thi",
                 },
                 { label: "Nơi nhận", value: "Ví Gymini của hội viên (không chuyển về ngân hàng)" },

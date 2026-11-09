@@ -5,7 +5,7 @@ import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatus
 import { DeadlinesTable } from "../../disputes/workspace/DeadlinesTable";
 import { COMPLAINTS_PATH, gatesOf, investigatorText, reporterText } from "../gymCaseModel";
 import { formatDateSafe, formatDateTimeSafe } from "../gymFormat";
-import { formatMoneyString } from "../../adminFinanceOverview.utils";
+import { formatMoneyExact } from "../../adminFinanceOverview.utils";
 import type { GymCaseDetail } from "../gymCaseTypes";
 import { AssignCard, RecollectCard, RejectIntakeCard, RequestMoreCard, TransitionCard } from "../forms/InvestigationForms";
 import type { FormProps } from "../forms/formTypes";
@@ -101,8 +101,8 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
         <Section title="Định giá hoàn tiền" testId="d6-refund-quote">
           <Facts
             items={[
-              { label: "Số tiền hoàn cố định", value: formatMoneyString(detail.refundQuote.amount) },
-              { label: "Giá gốc", value: formatMoneyString(detail.refundQuote.pricePaid) },
+              { label: "Số tiền hoàn cố định", value: formatMoneyExact(detail.refundQuote.amount) },
+              { label: "Giá gốc", value: formatMoneyExact(detail.refundQuote.pricePaid) },
               { label: "Chốt tại thời điểm", value: formatDateTimeSafe(detail.refundQuote.quotedAt) },
             ]}
           />
