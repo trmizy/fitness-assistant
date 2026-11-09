@@ -1,3 +1,12 @@
+// babel-preset-expo is a dependency of `expo`, not of this app. Under pnpm's strict layout it is
+// therefore not resolvable from this directory, and Babel resolves a bare preset name relative to
+// this config — the EAS cloud build failed with "Cannot find module 'babel-preset-expo'" in
+// :app:createBundleReleaseJsAndAssets. Resolving it through `expo` uses exactly the copy expo
+// itself depends on, with no new dependency and no lockfile change.
+const babelPresetExpo = require.resolve("babel-preset-expo", {
+  paths: [require.resolve("expo/package.json")],
+});
+
 module.exports = function (api) {
   api.cache(true);
   return {
@@ -9,7 +18,7 @@ module.exports = function (api) {
     // installed. metro.config.js now forces a single copy (MOBILE_PLATFORM_ADAPTERS.md §16), and
     // NativeWind boots cleanly.
     presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      [babelPresetExpo, { jsxImportSource: "nativewind" }],
       "nativewind/babel",
     ],
     // react-native-reanimated 4.x moved its worklet-transform Babel plugin out to the separate
