@@ -24238,7 +24238,7 @@ export namespace Prisma {
       reopenedAt: Date | null
       /**
        * Listing Management (B1) — phiên bản tin đăng CÔNG KHAI (0 = chưa từng công khai). `listingPublishedAt` NULL
-       * cho dữ liệu cũ ("công khai trước khi có hệ thống tin đăng"); chỉ việc áp bản sửa mới đặt nó.
+       * cho dữ liệu cũ ("công khai trước khi có h�� thống tin đăng"); chỉ việc áp bản sửa mới đặt nó.
        */
       listingVersion: number
       listingPublishedAt: Date | null

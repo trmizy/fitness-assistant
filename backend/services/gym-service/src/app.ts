@@ -17,6 +17,17 @@ import { legacyCompatRefusalGuard } from './services/legacy-compat.service';
 
 const app = express();
 
+// On AWS every API Gateway route is ANY, so CORS preflight (OPTIONS) reaches this Lambda, where router-level auth
+// (e.g. /admin) answers 401 — browsers reject a non-2xx preflight and the page shows "Network Error". API Gateway's own
+// CORS config supplies the Access-Control-* headers; this only has to answer 2xx before any auth runs.
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 // Listing Management B3: a refused old-client request on a compat route leaves a REJECTED_OTHER event BEFORE the response goes out.
 // Mounted ahead of the body parser so a malformed JSON body (400) is seen too.
 app.use(legacyCompatRefusalGuard);
