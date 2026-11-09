@@ -238,7 +238,7 @@ test('Q31 four eyes: a user linked to the gym / brand (linkedUserIds) is refused
   assert.equal((checkApprover({ ...base, approverId: 'brand-owner', linkedUserIds: ['staff-1', 'brand-owner'] }) as any).code, 'CONFLICT_OF_INTEREST');
 });
 
-test('E1 pure: unused value on the complaint date - hand-computed 300,000 x 20/30 = 200,000.00; 0 after the term; never above the price; the executor date does not matter', async () => {
+test('E1 pure: unused value on the complaint date - hand-computed 300,000 x 20/30 = 200,000; 0 after the term; never above the price; the executor date does not matter', async () => {
   const { unusedValueAt } = await import('../services/complaint-case/rules');
   const C = new Date('2026-11-01T00:00:00Z');
   const day = 86_400_000;
@@ -247,7 +247,7 @@ test('E1 pure: unused value on the complaint date - hand-computed 300,000 x 20/3
   assert.equal(unusedValueAt(300_000, 30, end, new Date(C.getTime() + 20 * day)), 0, 'on the last day nothing is left');
   assert.equal(unusedValueAt(300_000, 30, end, new Date(C.getTime() + 25 * day)), 0, 'after the term');
   assert.equal(unusedValueAt(300_000, 30, new Date(C.getTime() + 45 * day), C), 300_000, 'never above the price paid');
-  assert.equal(unusedValueAt(100_000, 30, new Date(C.getTime() + 10 * day), C), 33_333.33, 'rounded to 2 decimals');
+  assert.equal(unusedValueAt(100_000, 30, new Date(C.getTime() + 10 * day), C), 33_000, 'rounded DOWN to the nearest 1,000 VND (was 33,333.33 under the old 2-decimal rounding)');
 });
 
 test('formatVnd and the no-decision money label by case class', () => {

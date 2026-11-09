@@ -283,9 +283,22 @@ export function changeAcknowledged(g: ChangeCheckResult, approverTicked: boolean
 // ── E1: the refund amount is fixed as of the complaint date ──────────────────────────────────────────────────────
 
 /**
- * The prorated UNUSED value of a membership on a given day: price x (days left on that day / total days), rounded to 2 decimals, never above the price. Pure. This is the
- * SAME formula membershipService.quoteRefund has always used (which passes "now"); a case passes the day the member filed the complaint instead (E1).
- * Hand example: price 300,000, 30-day plan, complaint filed with 20 days left -> 300,000 x 20/30 = 200,000.00 (and still 200,000.00 when the case is executed after the term ended).
+ * The ONE prorated-refund rounding rule (Ngài, 09/11/2026): the refund is rounded DOWN to the nearest 1,000 VND.
+ * raw = price x fraction is first rounded to 2 decimals (so floating error such as 199999.99999 cannot drop a whole thousand), then floored to the thousand.
+ * Never above the price. When the whole term is unused (fraction 1) the member gets the full price back, even when the price is not a multiple of 1,000.
+ * Examples: 299,999.84 -> 299,000; 200,000.00 -> 200,000; 166,666.67 -> 166,000. Pure. Both unusedValueAt and membershipService.quoteRefund use this.
+ */
+export function proratedRefundAmount(price: number, fraction: number): number {
+  if (!(price > 0) || !(fraction > 0)) return 0;
+  if (fraction >= 1) return price;
+  const raw = Math.round(price * fraction * 100) / 100;
+  return Math.min(price, Math.floor(raw / 1000) * 1000);
+}
+
+/**
+ * The prorated UNUSED value of a membership on a given day: price x (days left on that day / total days), rounded DOWN to the nearest 1,000 VND (see proratedRefundAmount),
+ * never above the price. Pure. This is the SAME formula membershipService.quoteRefund uses (which passes "now"); a case passes the day the member filed the complaint instead (E1).
+ * Hand example: price 300,000, 30-day plan, complaint filed with 20 days left -> 300,000 x 20/30 = 200,000 (and still 200,000 when the case is executed after the term ended).
  */
 export function unusedValueAt(price: number, durationDays: number, endDate: Date | null, at: Date): number {
   const dayMs = 24 * 60 * 60 * 1000;
@@ -293,7 +306,7 @@ export function unusedValueAt(price: number, durationDays: number, endDate: Date
   const end = endDate ? endDate.getTime() : at.getTime();
   const remainingMs = Math.max(0, end - at.getTime());
   const fraction = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0;
-  return Math.min(price, Math.round(price * fraction * 100) / 100);
+  return proratedRefundAmount(price, fraction);
 }
 
 // ── Money axis (§1.2.3), DERIVED from what payment-service returned ───────────────────────────────────────────────

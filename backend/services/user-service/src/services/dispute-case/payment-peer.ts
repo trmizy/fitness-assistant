@@ -1,5 +1,5 @@
 /**
- * E2E-isolated mode only: user-service must not run the CaseDecision executor, late-open reconciliation or D65-B unless payment-service - the other side of every
+ * E2E-isolated and dev-shared modes only: user-service must not run the CaseDecision executor, late-open reconciliation or D65-B unless payment-service - the other side of every
  * money step - evaluates the SAME runtime gate to the SAME verdict. payment-service answers GET /internal/dispute-runtime-verdict (service secret); this module asks at
  * startup and then every PEER_REFRESH_MS. "Unknown", "unreachable", "stale" (older than PEER_MAX_AGE_MS) and "different" all mean OFF. In test mode (NODE_ENV=test)
  * nothing is asked and nothing changes (the outbound guard of the tests would refuse the call anyway).
@@ -55,10 +55,10 @@ function logPeer() {
   console.log(`[dispute-runtime-gate] user-service peer(payment)=${state.status === "checked" ? verdictSignature(state.payment as any) : state.status} ours=${verdictSignature(ours)} agrees=${a.agrees}${a.why ? ` (${a.why})` : ""}`);
 }
 
-/** Starts the monitor ONLY in e2e-isolated mode with an open gate; returns the stop function. */
+/** Starts the monitor ONLY in e2e-isolated or dev-shared mode with an open gate; returns the stop function. */
 export function startPeerVerdictMonitor(env: NodeJS.ProcessEnv = process.env): () => void {
   const ours = evaluateRuntimeGate(env, env.DB_ISOLATION === "accepted");
-  if (ours.mode !== "e2e-isolated" || !ours.open) return () => undefined;
+  if ((ours.mode !== "e2e-isolated" && ours.mode !== "dev-shared") || !ours.open) return () => undefined;
   void refreshPeerVerdict(env);
   timer = setInterval(() => void refreshPeerVerdict(env), PEER_REFRESH_MS);
   timer.unref();

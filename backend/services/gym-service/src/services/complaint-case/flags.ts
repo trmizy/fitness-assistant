@@ -25,7 +25,7 @@ export interface FlagVerdict {
   refusedBecause?: GateRefusal;
 }
 
-/** The runtime gate (see runtime-gate.ts): NODE_ENV=test + accepted isolated DB, OR the explicitly named isolated e2e environment. GYM_COMPLAINT_CASE is permitted in both. */
+/** The runtime gate (see runtime-gate.ts): NODE_ENV=test + accepted isolated DB, OR the explicitly named isolated e2e environment, OR the dev-shared stack (dispute-dev override). GYM_COMPLAINT_CASE is permitted in all three. */
 export const gateVerdict = (env: NodeJS.ProcessEnv = process.env): GateVerdict => evaluateRuntimeGate(env, env.DB_ISOLATION === 'accepted');
 
 export function flagVerdict(env: NodeJS.ProcessEnv = process.env): FlagVerdict {
@@ -42,11 +42,11 @@ function warn(why: GateRefusal): FlagVerdict {
     console.warn(
       `[gym-complaint-case] ${GYM_COMPLAINT_CASE_FLAG}=true IGNORED (flag stays OFF): ${
         why === 'NOT_TEST_ENV'
-          ? "NODE_ENV is not 'test' and the e2e-isolated runtime mode is not requested"
+          ? "NODE_ENV is not 'test' and neither the e2e-isolated nor the dev-shared runtime mode is requested"
           : why === 'DB_ISOLATION_NOT_ACCEPTED'
             ? "no isolated *_test database was accepted by the test preload (DB_ISOLATION !== 'accepted')"
             : why
-      }. This flag only works inside the isolated test / e2e environment.`,
+      }. This flag only works inside the isolated test / e2e environment or the dev-shared stack started with docker-compose.dispute-dev.yml.`,
     );
   }
   return { effective: false, refusedBecause: why };

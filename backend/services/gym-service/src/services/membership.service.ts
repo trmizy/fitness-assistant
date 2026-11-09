@@ -10,6 +10,7 @@ import { gymService } from './gym.service';
 import { collaborationService } from './collaboration.service';
 import { paymentClient } from '../clients/payment.client';
 import { assertRefundNotBypassingCase } from './complaint-case/refund-guard';
+import { proratedRefundAmount } from './complaint-case/rules';
 import { isPlanOnSale } from './plan.service';
 import { partnerGuard } from './partner-guard.service';
 import { commissionRateService } from './commission-rate.service';
@@ -257,14 +258,15 @@ export const membershipService = {
     return after;
   },
 
-  /** Compute the prorated refund (by remaining days) for an ACTIVE membership, without mutating. */
+  /** Compute the prorated refund (by remaining days, rounded down to the nearest 1,000 VND) for an ACTIVE membership, without mutating. */
   quoteRefund(contract: { priceAtPurchase: any; durationDaysSnapshot: number; startDate: Date | null; endDate: Date | null }, at: Date = new Date()) {
     const now = at.getTime();
     const totalMs = contract.durationDaysSnapshot * 24 * 60 * 60 * 1000;
     const end = contract.endDate ? contract.endDate.getTime() : now;
     const remainingMs = Math.max(0, end - now);
     const fraction = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0;
-    const refundAmount = Math.round(Number(contract.priceAtPurchase) * fraction * 100) / 100;
+    // Same rule as unusedValueAt (complaint-case/rules.ts): rounded DOWN to the nearest 1,000 VND, full price when the whole term is unused.
+    const refundAmount = proratedRefundAmount(Number(contract.priceAtPurchase), fraction);
     const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
     return { refundAmount, remainingDays, fraction };
   },
