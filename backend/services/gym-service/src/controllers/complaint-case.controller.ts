@@ -107,6 +107,9 @@ export const complaintCaseController = {
         },
       };
     }),
+  /** INT-15: read-only, admin-only. Memberships of the complaint's reporter at the complaint's gym; `refundable` comes from the case path's own predicate. */
+  membershipOptions: (req: Request, res: Response) =>
+    run(req, res, 'membershipOptions', async (a) => ({ data: await complaintCaseService.membershipOptions(a, idParam(req)) })),
   list: (req: Request, res: Response) => run(req, res, 'list', async (a) => ({ data: await complaintCaseService.list(a, parse(listQuery, req.query)) })),
   detail: (req: Request, res: Response) => run(req, res, 'detail', async (a) => ({ data: await complaintCaseService.getForAdmin(a, idParam(req)) })),
   history: (req: Request, res: Response) => run(req, res, 'history', async (a) => ({ data: await complaintCaseService.history(a, idParam(req), parse(historyQuery, req.query)) })),
