@@ -51,6 +51,11 @@
 .PARAMETER Execute
   Without this switch, the script only prints what it would do. Requires at
   least one of -Network / -Chat / -Ai / -Backend / -Secrets.
+
+.PARAMETER FromAutoStop
+  Set only by dev-auto-stop.ps1 (the scheduled auto-stop). Without it, a
+  successful manual stop that leaves nothing on-demand on also cancels the
+  pending Gymini-DEV-AutoStop task armed by dev-start.ps1.
 #>
 [CmdletBinding()]
 param(
@@ -59,12 +64,14 @@ param(
     [switch]$Ai,
     [switch]$Backend,
     [switch]$Secrets,
-    [switch]$Execute
+    [switch]$Execute,
+    [switch]$FromAutoStop
 )
 
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path $PSScriptRoot "lib/DevLifecycle.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "lib/DevAutoStop.psm1") -Force
 
 $ExpectedAccount = "191798898985"
 $ExpectedRegion  = "ap-southeast-1"
@@ -346,7 +353,10 @@ $stackExists = $currentStack.StackExists
 
 if (-not $stackExists) {
     Write-Host "   Stack does not exist - nothing to tear down on the CloudFormation side." -ForegroundColor Yellow
-    if (-not ($Network -or $Chat -or $Ai -or $Secrets)) { exit 0 }
+    if (-not ($Network -or $Chat -or $Ai -or $Secrets)) {
+        if (-not $FromAutoStop) { Clear-DevAutoStopIfIdle -StackName $StackName -ClusterId $AuroraClusterId -Region $ExpectedRegion }
+        exit 0
+    }
 } else {
 
 $curAi = if ($currentStack.Ai) { "true" } else { "false" }
@@ -467,6 +477,7 @@ Write-Host "6) Run the cost leak check separately: ./scripts/aws/dev-cost-leak-c
 
 Write-Host ""
 Write-Host "Real execution complete." -ForegroundColor Green
+if (-not $FromAutoStop) { Clear-DevAutoStopIfIdle -StackName $StackName -ClusterId $AuroraClusterId -Region $ExpectedRegion }
 if ($Backend) {
     Write-Host "Reminder: Aurora auto-restarts itself after 7 days of being stopped." -ForegroundColor Yellow
 }

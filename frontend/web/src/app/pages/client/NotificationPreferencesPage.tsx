@@ -113,8 +113,9 @@ export function NotificationPreferencesPage() {
                   local[t.key] ? "bg-emerald-500" : "bg-zinc-700"
                 }`}
               >
+                {/* same fix as settings ToggleRow: left-0 keeps the thumb inside the track, bg-switch-thumb stays white in both themes */}
                 <span
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                  className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-switch-thumb shadow transition-transform ${
                     local[t.key] ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />

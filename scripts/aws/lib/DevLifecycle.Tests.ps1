@@ -14,13 +14,15 @@ function AllOff { @{ Network = $false; Chat = $false; Ai = $false; Secrets = $fa
 
 Describe "Resolve-DesiredStartState (Phase 12A Case 1, 2, 5)" {
 
-    It "Case 1: frozen + start Backend -> Backend/Secrets ON, everything else OFF" {
+    It "Case 1: frozen + start Backend -> Backend/Secrets/Network(NAT) ON, Chat/Ai OFF" {
         $current = AllOff
         $requested = @{ Backend = $true; Network = $false; Chat = $false; Ai = $false; Secrets = $false }
         $desired = Resolve-DesiredStartState -Current $current -Requested $requested
 
         $desired.Secrets | Should Be $true
-        $desired.Network | Should Be $false
+        # 2026-11-09: a Backend without NAT hangs every authenticated request (Lambda->Lambda auth invoke has no route)
+        $desired.Network | Should Be $true
+        $desired.NetworkImpliedByBackend | Should Be $true
         $desired.Ai | Should Be $false
         $desired.Chat | Should Be $false
         ($desired.SecretsImpliedBy -contains "Backend") | Should Be $true

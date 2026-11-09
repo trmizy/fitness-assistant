@@ -146,7 +146,7 @@ export function NutritionSection() {
       />
       <p className="text-xs text-zinc-600">
         Mục tiêu calo/macro do hệ thống tính không thể chỉnh trong Cài đặt — vào
-        trang Dinh dưỡng để đặt mục tiêu tùy chỉnh (goalMode: CUSTOM) nếu cần.
+        trang Dinh dưỡng, chọn "Tự nhập" nếu bạn muốn đặt mục tiêu riêng.
       </p>
       <p className="text-xs text-zinc-600">
         Nhắc bữa ăn / nhắc uống nước: chưa được hỗ trợ trong phiên bản này.

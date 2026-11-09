@@ -45,7 +45,8 @@
 
 .PARAMETER Backend
   Switch. Starts Aurora and restores paused EventBridge schedules. Implies
-  -Secrets.
+  -Secrets AND -Network (NAT, since 2026-11-09: without it every authenticated
+  request hangs - see Resolve-DesiredStartState).
 
 .PARAMETER Secrets
   Switch. Enables the Secrets Manager VPC endpoint on its own
@@ -54,6 +55,14 @@
 
 .PARAMETER Execute
   Without this switch, the script only prints what it would do.
+
+.PARAMETER AutoStopHours
+  With -Execute, arms the Gymini-DEV-AutoStop scheduled task to turn off
+  EVERYTHING still on-demand-on this many hours from now (default 6) via
+  dev-auto-stop.ps1 -> dev-stop.ps1 -Execute. It is armed BEFORE any resource
+  is created, so a start that fails half-way is still cleaned up. Every
+  dev-start re-arms it from "now"; a manual dev-stop that leaves nothing on
+  cancels it. 0 = do not arm (prints a warning). See lib/DevAutoStop.psm1.
 #>
 [CmdletBinding()]
 param(
@@ -62,12 +71,14 @@ param(
     [switch]$Ai,
     [switch]$Backend,
     [switch]$Secrets,
-    [switch]$Execute
+    [switch]$Execute,
+    [ValidateRange(0, 24)] [double]$AutoStopHours = 6
 )
 
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path $PSScriptRoot "lib/DevLifecycle.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "lib/DevAutoStop.psm1") -Force
 Import-Module (Join-Path $PSScriptRoot "api-gateway/lib/ChatIntegrationSync.psm1") -Force
 
 # -- Safety guards --------------------------------------------------------
@@ -92,18 +103,32 @@ $DevPausableSchedules = Get-DevPausableSchedules
 
 # Re-reads the CURRENT network policy immediately before updating (never a
 # blind overwrite from a stale local copy - AOSS's policyVersion is an
-# optimistic-concurrency token that changes on every update). Removes
-# $OldVpceId if present, adds $NewVpceId if given, and leaves every other
-# field (Rules, AllowFromPublic, any other SourceVPCEs entry) untouched.
+# optimistic-concurrency token that changes on every update), then REPLACES
+# SourceVPCEs with exactly [$NewVpceId] - never a filter-one-out-append-one
+# against a hardcoded "old" id.
+#
+# 2026-10-23 real incident: the previous version took an explicit $OldVpceId
+# to remove and appended $NewVpceId, but every call site passed a literal,
+# never-updated id string. The whole VPC (and every VPC endpoint in it,
+# including this one) is destroyed and recreated by CloudFormation on every
+# stop/start cycle, so a VPCE id is NEVER valid across cycles - the "removal"
+# never matched anything, real and dead ids silently accumulated in
+# SourceVPCEs release after release (8 found live), and
+# opensearchserverless:UpdateSecurityPolicy eventually rejected the write
+# outright ("SourceVPCEs: the items in the array must be unique") the next
+# time a collision happened to land, leaving dev-start.ps1 HARD STOPped
+# before it ever reached Start-AuroraCluster/Restore-DevSchedules below.
+# Since no previous entry can ever be valid again, a full reset to exactly
+# the id just created is both simpler and correct - there is no "old" id
+# worth preserving.
 #
 # AWS schema constraint (confirmed empirically 2026-10-01, not assumed): a
 # network policy rule-group requires SourceVPCEs to have >= 1 entry UNLESS
-# AllowFromPublic=true - there is no valid "neither" state. So removing
-# $OldVpceId WITHOUT a $NewVpceId replacement is deliberately a no-op.
+# AllowFromPublic=true - there is no valid "neither" state. So this is only
+# ever called with a real $NewVpceId; a $null/empty one is a deliberate no-op.
 function Set-AossNetworkPolicyVpce {
     param(
         [string]$PolicyName,
-        [string]$OldVpceId,
         [string]$NewVpceId,
         [string]$Region
     )
@@ -115,9 +140,14 @@ function Set-AossNetworkPolicyVpce {
     if ($LASTEXITCODE -ne 0) { return $LASTEXITCODE }
     $policyVersion = $current.securityPolicyDetail.policyVersion
     $policyDoc = $current.securityPolicyDetail.policy
-    $sourceList = @($policyDoc[0].SourceVPCEs | Where-Object { $_ -and $_ -ne $OldVpceId })
-    $sourceList += $NewVpceId
-    $policyDoc[0].SourceVPCEs = @($sourceList)
+    # Already exactly [$NewVpceId] (e.g. a re-run): UpdateSecurityPolicy rejects a no-op with
+    # "No changes detected", which is success here, not a failure.
+    $existing = @($policyDoc[0].SourceVPCEs)
+    if ($existing.Count -eq 1 -and $existing[0] -eq $NewVpceId) {
+        Write-Host "   Network policy already references only $NewVpceId - nothing to update." -ForegroundColor Green
+        return 0
+    }
+    $policyDoc[0].SourceVPCEs = @($NewVpceId)
     $policyJsonPath = Join-Path $env:TEMP "gymini-aoss-network-policy.json"
     # IMPORTANT: piping a 1-element array to ConvertTo-Json unwraps it back
     # to a bare object - pass via -InputObject instead (confirmed empirically).
@@ -273,6 +303,9 @@ $desired = Resolve-DesiredStartState -Current $currentStack -Requested $requeste
 if ($desired.SecretsImpliedBy.Count -gt 0 -and -not $currentStack.Secrets) {
     Write-Host "Auto-enabling Secrets Manager connectivity: $($desired.SecretsImpliedBy -join '/') need it." -ForegroundColor Yellow
 }
+if ($desired.NetworkImpliedByBackend) {
+    Write-Host "Auto-enabling NAT (Network): Backend needs it - Lambdas verify tokens by invoking the auth Lambda over the public Lambda API, and send email / call Bedrock / payment providers over the internet." -ForegroundColor Yellow
+}
 
 $enableNat = if ($desired.Network) { "true" } else { "false" }
 $enableChat = if ($desired.Chat) { "true" } else { "false" }
@@ -323,8 +356,32 @@ if (-not $Execute) {
         Write-Host "8) Start Aurora, wait available, then restore schedules from $SchedulerStateFile"
     }
     Write-Host ""
+    if ($AutoStopHours -gt 0) {
+        Write-Host "0) Auto-stop: with -Execute, would arm scheduled task '$(Get-DevAutoStopTaskName)' for $((Get-Date).AddHours($AutoStopHours).ToString('yyyy-MM-dd HH:mm')) ($AutoStopHours h) -> dev-stop.ps1 -Execute for everything still on at that time."
+    } else {
+        Write-Host "0) Auto-stop: DISABLED (-AutoStopHours 0) - services would stay on until dev-stop.ps1 is run." -ForegroundColor Yellow
+    }
+    Write-Host ""
     Write-Host "Nothing was executed against AWS by this script." -ForegroundColor Green
     exit 0
+}
+
+# -- Auto-stop safety net (armed BEFORE anything is created) ---------------
+Write-Host ""
+if ($AutoStopHours -gt 0) {
+    Write-Host "0) Arming auto-stop ($AutoStopHours h)..."
+    try {
+        $autoStopSpec = New-DevAutoStopTaskSpec -RepoRoot (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path -Hours $AutoStopHours `
+            -Now (Get-Date) -PowerShellExe (Get-Process -Id $PID).Path -AwsProfile $env:AWS_PROFILE
+        $autoStopInfo = Register-DevAutoStop -Spec $autoStopSpec
+    } catch {
+        Write-Host "HARD STOP: could not arm the auto-stop scheduled task ($($_.Exception.Message)). Nothing was started. Fix it, or re-run with -AutoStopHours 0 to start without the safety net." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "   Auto-stop armed: task '$($autoStopInfo.TaskName)' runs at $($autoStopInfo.NextRunTime) and turns off everything still on." -ForegroundColor Green
+    Write-Host "   (Runs on this PC: wakes it from sleep; if the PC is off/logged out it runs at the next logon. Log: .dev/aws/auto-stop-*.log)"
+} else {
+    Write-Host "0) Auto-stop DISABLED (-AutoStopHours 0): services stay on until you run dev-stop.ps1." -ForegroundColor Yellow
 }
 
 # -- Real execution --------------------------------------------------------
@@ -461,7 +518,7 @@ if ($enableAi -eq "true" -and $newVpceId) {
 
     Write-Host ""
     Write-Host "10) Re-pointing network policy '$AossNetworkPolicyName' at the new VPCE ID..."
-    $policyExit = Set-AossNetworkPolicyVpce -PolicyName $AossNetworkPolicyName -OldVpceId "vpce-067d43742cdb6b4d4" -NewVpceId $newVpceId -Region $ExpectedRegion
+    $policyExit = Set-AossNetworkPolicyVpce -PolicyName $AossNetworkPolicyName -NewVpceId $newVpceId -Region $ExpectedRegion
     if ($policyExit -ne 0) {
         Write-Host "HARD STOP: network policy update failed (exit $policyExit)." -ForegroundColor Red
         exit 1
@@ -493,3 +550,6 @@ if ($Backend) {
 
 Write-Host ""
 Write-Host "Real execution complete." -ForegroundColor Green
+if ($AutoStopHours -gt 0) {
+    Write-Host "Auto-stop: everything still on will be turned off at $($autoStopInfo.NextRunTime). Run dev-start again to push it back, or dev-stop to stop now." -ForegroundColor Yellow
+}

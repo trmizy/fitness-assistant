@@ -90,7 +90,21 @@ function Get-CurrentStackState {
         [Parameter(Mandatory)] [string]$StackName,
         [Parameter(Mandatory)] [string]$Region
     )
-    $raw = aws cloudformation describe-stacks --stack-name $StackName --region $Region --output json 2>&1
+    # 2026-10-23: callers set $ErrorActionPreference = "Stop", under which
+    # PowerShell 5.1 turns a native command's stderr output into a
+    # terminating NativeCommandError even with 2>&1 redirecting it to a
+    # variable (confirmed live: this exact line threw instead of falling
+    # through to the $LASTEXITCODE check below, the first time this ran
+    # against a stack dev-stop.ps1 had fully deleted rather than merely
+    # updated). try/catch so "stack does not exist" is handled the way this
+    # function's own doc comment already says it is, instead of crashing
+    # the caller before it ever reaches its own HARD STOP checks.
+    try {
+        $raw = aws cloudformation describe-stacks --stack-name $StackName --region $Region --output json 2>&1
+    } catch {
+        $raw = $null
+        $global:LASTEXITCODE = 1
+    }
     if ($LASTEXITCODE -ne 0) {
         # Covers "stack does not exist" (the common case) - anything else
         # that also fails here (credentials, region) will already have been
@@ -172,8 +186,13 @@ function Resolve-DesiredStartState {
         [Parameter(Mandatory)] [hashtable]$Current,
         [Parameter(Mandatory)] [hashtable]$Requested
     )
+    # Backend also implies Network (NAT), 2026-11-09: with only the Secrets endpoint every authenticated request hung 30 s
+    # and the web app showed a black screen - each Lambda verifies the token by invoking the auth Lambda through the public
+    # Lambda API (no Lambda VPC endpoint), and email/Bedrock/payment providers are internet calls too. A Backend start
+    # without NAT is never a working backend.
+    $networkImplied = ($Requested.ContainsKey('Backend') -and [bool]$Requested.Backend -and -not [bool]$Current.Network -and -not [bool]$Requested.Network)
     $desired = @{
-        Network = [bool]$Current.Network -or [bool]$Requested.Network
+        Network = [bool]$Current.Network -or [bool]$Requested.Network -or $networkImplied
         Chat    = [bool]$Current.Chat    -or [bool]$Requested.Chat
         Ai      = [bool]$Current.Ai      -or [bool]$Requested.Ai
     }
@@ -190,6 +209,7 @@ function Resolve-DesiredStartState {
         Ai              = $desired.Ai
         Secrets         = $desired.Secrets
         SecretsImpliedBy = $impliedBy
+        NetworkImpliedByBackend = $networkImplied
     }
 }
 

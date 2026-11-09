@@ -41,8 +41,10 @@ export function ToggleRow({
           checked ? "bg-emerald-500" : "bg-zinc-700"
         }`}
       >
+        {/* left-0: without it the absolute thumb sat at its static (centred) position and translate-x-5 pushed it out of the
+            track; bg-switch-thumb (theme token, white in both themes): .bg-white is remapped in dark, the zinc palette is inverted in light. 2026-11-09 */}
         <span
-          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+          className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-switch-thumb shadow transition-transform ${
             checked ? "translate-x-5" : "translate-x-0.5"
           }`}
         />

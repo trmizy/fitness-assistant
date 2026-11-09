@@ -39,6 +39,8 @@
   --input: #1f1f1f;
   --input-background: #1f1f1f;
   --switch-background: #3f3f46;
+  /* toggle thumb: light in BOTH themes (the zinc palette is inverted per theme and .bg-white is remapped in dark) */
+  --switch-thumb: #ffffff;
   --font-weight-medium: 600;
   --font-weight-normal: 400;
   --ring: #22c55e;
@@ -95,6 +97,7 @@
   --input: #ffffff;
   --input-background: #ffffff;
   --switch-background: #94a3b8;
+  --switch-thumb: #ffffff;
   --ring: #059669;
   --sidebar: #ffffff;
   --sidebar-foreground: #111827;
@@ -212,6 +215,7 @@
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-switch-background: var(--switch-background);
+  --color-switch-thumb: var(--switch-thumb);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
