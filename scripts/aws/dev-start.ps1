@@ -451,7 +451,14 @@ if ($enableSecrets -eq "true" -and $newSecretsVpceId) {
 if ($enableChat -eq "true" -and $newTgArn) {
     Write-Host ""
     Write-Host "5) ECS reconnect - pointing $EcsService at the new target group..."
-    aws ecs update-service --cluster $EcsCluster --service $EcsService --load-balancers "containerName=$EcsContainerName,containerPort=$EcsContainerPort,targetGroupArn=$newTgArn" --region $ExpectedRegion --output json | Out-Null
+    # dev-stop -Chat leaves the service at desiredCount 0, so chat must be switched back ON here: keep an already-higher
+    # count, but never start (or leave) the service at 0. Done in the same call so there is a single deployment.
+    $ecsDesiredNow = 0
+    $ecsDesiredRaw = aws ecs describe-services --cluster $EcsCluster --services $EcsService --region $ExpectedRegion --query "services[0].desiredCount" --output text
+    if ($LASTEXITCODE -eq 0 -and $ecsDesiredRaw -match '^\d+$') { $ecsDesiredNow = [int]$ecsDesiredRaw }
+    $ecsDesiredTarget = [Math]::Max(1, $ecsDesiredNow)
+    Write-Host "   ECS desiredCount: $ecsDesiredNow -> $ecsDesiredTarget"
+    aws ecs update-service --cluster $EcsCluster --service $EcsService --desired-count $ecsDesiredTarget --load-balancers "containerName=$EcsContainerName,containerPort=$EcsContainerPort,targetGroupArn=$newTgArn" --region $ExpectedRegion --output json | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "HARD STOP: ecs update-service failed (exit $LASTEXITCODE)." -ForegroundColor Red
         exit 1
@@ -462,6 +469,18 @@ if ($enableChat -eq "true" -and $newTgArn) {
         exit 1
     }
     Write-Host "   Verified: ECS service loadBalancers[0].targetGroupArn == $actualTgArn" -ForegroundColor Green
+
+    # Wait for the chat task to actually run (warning-only: the rest of the start must not be aborted by a slow task).
+    $ecsUpDeadline = (Get-Date).AddSeconds(240)
+    $ecsUp = $false
+    while ((Get-Date) -lt $ecsUpDeadline) {
+        $svcUp = aws ecs describe-services --cluster $EcsCluster --services $EcsService --region $ExpectedRegion --query "services[0].{d:desiredCount,r:runningCount,p:pendingCount}" --output json | ConvertFrom-Json
+        Write-Host "   ECS desired=$($svcUp.d) running=$($svcUp.r) pending=$($svcUp.p)"
+        if ($svcUp.r -ge 1) { $ecsUp = $true; break }
+        Start-Sleep -Seconds 10
+    }
+    if ($ecsUp) { Write-Host "   Chat ECS task is running." -ForegroundColor Green }
+    else { Write-Host "   WARNING: Chat ECS task not running after 240s - check the ECS console; chat stays unavailable until it is." -ForegroundColor Yellow }
 
     Write-Host ""
     Write-Host "6) API Gateway reconnect - CloudFormation-owned sync of ChatAlbDnsName -> $newAlbDns..."

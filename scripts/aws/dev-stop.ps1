@@ -33,7 +33,10 @@
   Switch. Targets the NAT on-demand resources (EnableNatGateway -> false).
 
 .PARAMETER Chat
-  Switch. Targets the Chat on-demand resources (EnableChat -> false).
+  Switch. Turns chat off: tells the frontend chat is disabled, scales the Chat
+  ECS service to 0 (waits until it has drained), then removes the Chat
+  on-demand resources (EnableChat -> false). Without -Chat, a still-running
+  Chat ECS blocks the stop (nothing else is stopped out from under it).
 
 .PARAMETER Ai
   Switch. Targets the OpenSearch on-demand VPC endpoint
@@ -244,10 +247,18 @@ try {
 } catch {}
 Write-Host "   Chat ECS desiredCount=$ecsDesired runningCount=$ecsRunning"
 if ($ecsDesired -ne 0 -or $ecsRunning -ne 0) {
-    Write-Host "HARD STOP: Chat ECS is not fully at 0/0 - refusing to tear down out from under a running task." -ForegroundColor Red
-    exit 1
+    if ($Chat) {
+        # -Chat means "turn chat off": the ECS service is scaled to 0 for you at step 2b, AFTER the frontend has been told
+        # chat is disabled and BEFORE Aurora/the stack are touched. (Used to be a manual pre-step, which also made the
+        # scheduled auto-stop refuse and leave Aurora/NAT/ALB billing.)
+        Write-Host "   Chat is being turned off: ECS will be scaled to 0 automatically at step 2b." -ForegroundColor Yellow
+    } else {
+        Write-Host "HARD STOP: Chat ECS is still running ($ecsRunning task(s)) and -Chat was not requested - refusing to stop other resources out from under it. Add -Chat to turn chat off as well." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "   OK: desiredCount=0 and runningCount=0."
 }
-Write-Host "   OK: desiredCount=0 and runningCount=0."
 
 if ($Backend) {
     Write-Host ""
@@ -299,6 +310,7 @@ if (-not $Execute) {
     Write-Host ""
     if ($Chat) {
         Write-Host "2) Push graceful-disable runtime-config.json BEFORE any teardown"
+        Write-Host "2b-ii) Scale Chat ECS service ($EcsService) to 0 and wait (up to 300s) for it to drain"
     }
     Write-Host ""
     Write-Host "3) Apply resolved target state to the stack (only the requested flag(s) change, everything else preserved)"
@@ -335,6 +347,29 @@ if ($Chat) {
         exit 1
     }
     Write-Host "   Uploaded: $runtimeConfig" -ForegroundColor Green
+
+    Write-Host ""
+    Write-Host "2b-ii) Scaling Chat ECS service to 0 and waiting for the task(s) to drain..."
+    if ($ecsDesired -ne 0) {
+        aws ecs update-service --cluster $EcsCluster --service $EcsService --desired-count 0 --region $ExpectedRegion --output json | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "HARD STOP: ecs update-service --desired-count 0 failed (exit $LASTEXITCODE)." -ForegroundColor Red
+            exit 1
+        }
+    }
+    $ecsDrainDeadline = (Get-Date).AddSeconds(300)
+    $ecsDrained = $false
+    while ((Get-Date) -lt $ecsDrainDeadline) {
+        $svcNow = aws ecs describe-services --cluster $EcsCluster --services $EcsService --region $ExpectedRegion --query "services[0].{d:desiredCount,r:runningCount,p:pendingCount}" --output json | ConvertFrom-Json
+        Write-Host "   ECS desired=$($svcNow.d) running=$($svcNow.r) pending=$($svcNow.p)"
+        if ($svcNow.d -eq 0 -and $svcNow.r -eq 0 -and $svcNow.p -eq 0) { $ecsDrained = $true; break }
+        Start-Sleep -Seconds 10
+    }
+    if (-not $ecsDrained) {
+        Write-Host "HARD STOP: Chat ECS did not drain to 0 within 300s - nothing else was touched. Re-run dev-stop.ps1 -Chat -Execute." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "   Chat ECS is at 0/0." -ForegroundColor Green
 }
 
 if ($Backend) {
