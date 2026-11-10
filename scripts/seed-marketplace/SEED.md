@@ -86,6 +86,51 @@ node scripts/seed-marketplace/index.mjs --target dev --tier all --gateway http:/
 node scripts/seed-marketplace/verify-integrity.mjs --target dev
 ```
 
+### Môi trường scale (`gymini-scale`)
+
+Môi trường cách ly cho benchmark và seed quy mô lớn (10.000 PT / 2.500 gym), dùng project Compose riêng `gymini-scale`, Postgres riêng, Redis riêng, MinIO riêng và không nối chung mạng/volume với `dev` hay `gymini-e2e-dispute`.
+
+* **Luôn truyền đủ `-p gymini-scale -f infra/compose/docker-compose.scale.yml`** trong mọi lệnh Docker:
+
+```powershell
+# Kiểm tra cấu hình compose
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml config
+
+# Build và khởi động stack scale (nền)
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml up -d --build
+
+# Xem trạng thái / log
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml ps
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml logs --tail 100
+
+# Tắt stack (GIỮ NGUYÊN dữ liệu Postgres, Redis và ảnh MinIO)
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml down
+```
+
+> **Cảnh báo:** KHÔNG dùng `docker compose ... down -v` trừ khi bạn chủ ý muốn xóa toàn bộ volume dữ liệu DB (`gymini-scale_pgdata`), Redis (`gymini-scale_redis_data`) và ảnh MinIO (`gymini-scale_minio_data`) của môi trường scale.
+
+* **Bảng cổng (chỉ bind `127.0.0.1`):**
+
+| Thành phần | Container | Cổng host | Ghi chú |
+|---|---|---|---|
+| `api-gateway` | `gymcoach-gateway-scale` | `127.0.0.1:59100` | Proxy API + `/gymini-partner-private` + `/gymini-user-media` |
+| `auth-service` | `gymcoach-auth-scale` | `127.0.0.1:59101` | `PARTNER_APPLICATION_DEV_ECHO=false`, `SMTP_*` rỗng |
+| `user-service` | `gymcoach-user-scale` | `127.0.0.1:59104` | Tự nạp `vietnam_provinces`/`vietnam_wards` lần đầu; không FCM/e-sign |
+| `chat-service` | `gymcoach-chat-scale` | `127.0.0.1:59105` | |
+| `gym-service` | `gymcoach-gym-scale` | `127.0.0.1:59106` | `PARTNER_APPLICATION_DEV_ECHO=false` |
+| `payment-service` | `gymcoach-payment-scale` | `127.0.0.1:59107` | `VNPAY_SIMULATE=false`, các cổng ngoài trỏ cổng chết `127.0.0.1:9` |
+| `postgres-scale` | `gymcoach-postgres-scale` | `127.0.0.1:55440` | 7 DB: `gymcoach_{auth,user,fitness,ai,chat,payment,gym}_scale` |
+| `redis-scale` | `gymcoach-redis-scale` | `127.0.0.1:59379` | Rate limit gateway |
+| `minio-scale` | `gymcoach-minio-scale` | `127.0.0.1:59000` (API) / `59001` (UI) | Bucket riêng tư `gymini-partner-private`, `gymini-user-media` |
+
+* **Guard `--target scale` (`lib/guard.mjs`):**
+  * Chỉ cho phép `localhost:55440` (hoặc `gymcoach-postgres-scale:5432` trong mạng compose), bắt buộc đủ 7 DB `gymcoach_<svc>_scale` và `SEED_MARKETPLACE_CONFIRM=scale`.
+
+```powershell
+$env:SEED_MARKETPLACE_CONFIRM = "scale"
+node scripts/seed-marketplace/index.mjs --target scale --counts
+```
+
 ### Guards (`lib/guard.mjs`, unit-tested in `guard.test.mjs`)
 
 * Always refused: `NODE_ENV=production`; a database name containing `prod` / `staging` / `live`; any name outside `gymcoach_<svc>[_...]_test` / `gymcoach_<svc>`; a service/name mismatch; a non-local host.
