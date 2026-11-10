@@ -10,8 +10,8 @@
  *  - 5 groups, always expanded (level 1). Level 2 (tabs) exists ONLY under "Tài chính".
  *  - Every pre-redesign admin URL still resolves (see `adminRedirects.ts` for the ones that
  *    became redirects). Nothing here is a 404.
- *  - "Giao dịch" (finance transactions) is intentionally absent: it needs backend APIs
- *    (G-04/G-05) that do not exist yet.
+ *  - "Giao dịch" (finance transactions, B7) sits between "Đối soát" and "Rút tiền"; it is read-only
+ *    (backend G-04/G-05). It reuses the finance overview icon key (no new icon key = no change to adminNavIcons).
  */
 
 export type AdminIconKey =
@@ -85,6 +85,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { id: "finance-overview", label: "Tổng quan tài chính", crumb: "Tổng quan", to: ADMIN_FINANCE_PATH, iconKey: "financeOverview", end: true },
       { id: "finance-reconciliation", label: "Đối soát", to: `${ADMIN_FINANCE_PATH}/reconciliation`, iconKey: "reconciliation", badge: "reconciliation" },
+      { id: "finance-transactions", label: "Giao dịch", to: `${ADMIN_FINANCE_PATH}/transactions`, iconKey: "financeOverview" },
       { id: "finance-withdrawals", label: "Rút tiền", to: `${ADMIN_FINANCE_PATH}/withdrawals`, iconKey: "withdrawals", badge: "withdrawals" },
       { id: "finance-refunds", label: "Hoàn tiền", to: `${ADMIN_FINANCE_PATH}/refunds`, iconKey: "refunds", badge: "serviceRefunds" },
     ],
@@ -127,7 +128,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV.flatMap((g) => g.items)
 
 /** Tabs of the only level-2 surface (Tài chính). Keys double as the legacy `?tab=` values. */
 export interface AdminFinanceTab {
-  key: "overview" | "reconciliation" | "withdrawals" | "refunds";
+  key: "overview" | "reconciliation" | "transactions" | "withdrawals" | "refunds";
   label: string;
   to: string;
   end?: boolean;
@@ -136,6 +137,7 @@ export interface AdminFinanceTab {
 export const ADMIN_FINANCE_TABS: AdminFinanceTab[] = [
   { key: "overview", label: "Tổng quan", to: ADMIN_FINANCE_PATH, end: true },
   { key: "reconciliation", label: "Đối soát", to: `${ADMIN_FINANCE_PATH}/reconciliation` },
+  { key: "transactions", label: "Giao dịch", to: `${ADMIN_FINANCE_PATH}/transactions` },
   { key: "withdrawals", label: "Rút tiền", to: `${ADMIN_FINANCE_PATH}/withdrawals` },
   { key: "refunds", label: "Hoàn tiền", to: `${ADMIN_FINANCE_PATH}/refunds` },
 ];

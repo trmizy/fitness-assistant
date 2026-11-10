@@ -57,7 +57,8 @@ describe("legacy standalone pages", () => {
     for (const target of [...Object.values(LEGACY_ADMIN_PATHS), ...Object.values(LEGACY_FINANCE_TAB_PATHS)]) {
       assert.ok(tabPaths.has(target), `${target} is not a finance tab route`);
     }
-    assert.deepEqual(Object.keys(LEGACY_FINANCE_TAB_PATHS).sort(), ADMIN_FINANCE_TABS.map((t) => t.key).sort());
+    // "transactions" is new (B7): there was never an old `?tab=transactions` URL, so it has no legacy entry.
+    assert.deepEqual(Object.keys(LEGACY_FINANCE_TAB_PATHS).sort(), ADMIN_FINANCE_TABS.map((t) => t.key).filter((k) => k !== "transactions").sort());
   });
 
   it("other admin URLs are never redirected", () => {

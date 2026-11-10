@@ -438,6 +438,7 @@ describe("B4 finance header", () => {
   const TABS = [
     { key: "overview" as const, to: "/admin/finance", end: true },
     { key: "reconciliation" as const, to: "/admin/finance/reconciliation" },
+    { key: "transactions" as const, to: "/admin/finance/transactions" },
     { key: "withdrawals" as const, to: "/admin/finance/withdrawals" },
     { key: "refunds" as const, to: "/admin/finance/refunds" },
   ];
@@ -451,10 +452,11 @@ describe("B4 finance header", () => {
     assert.equal(t("/admin/finance/refunds"), "Hoàn tiền");
     assert.equal(t("/admin/finance/refunds/"), "Hoàn tiền");
     assert.equal(t("/admin/elsewhere"), "Tài chính");
-    assert.equal(Object.keys(FINANCE_TITLE).length, 4);
+    assert.equal(Object.keys(FINANCE_TITLE).length, 5);
+    assert.equal(t("/admin/finance/transactions"), "Giao dịch");
   });
 
-  it("the real tab list in adminNav matches (4 tabs, same keys)", () => {
+  it("the real tab list in adminNav matches (5 tabs, same keys)", () => {
     const nav = here("..", "..", "components", "layout", "admin", "adminNav.ts");
     for (const t of TABS) assert.ok(nav.includes(`key: "${t.key}"`), t.key);
   });
@@ -484,7 +486,7 @@ describe("B4 finance header", () => {
     assert.ok(!matches("refunds", wd) && !matches("refunds", rec));
 
     assert.deepEqual(financeRefreshKeys(null), []);
-    assert.equal(Object.keys(FINANCE_REFRESH_KEYS).length, 4);
+    assert.equal(Object.keys(FINANCE_REFRESH_KEYS).length, 5);
   });
 
   it("prefix matching is by whole segments", () => {
