@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { OrangeSliceIcon as Apple, BookOpenIcon as BookOpen, BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, PersonSimpleIcon as PersonStanding, MagnifyingGlassIcon as Search } from "@phosphor-icons/react";
+import { bodyRegionLabel, equipmentLabel, muscleCodeLabel } from "../../../utils/labels.vi";
 import { foodService, workoutService } from "../../../services/api";
 import type { FoodCatalogItem } from "../../../services/api";
 import { NUTRITION_ARTICLES } from "./nutritionKnowledge";
@@ -130,7 +131,7 @@ export function GlobalSearchPage() {
               <ResultItem
                 key={exercise.id}
                 title={exercise.exerciseName}
-                subtitle={[exercise.bodyPart, exercise.typeOfEquipment].filter(Boolean).join(" / ")}
+                subtitle={[bodyRegionLabel(exercise.bodyPart), equipmentLabel(exercise.typeOfEquipment)].filter(Boolean).join(" / ")}
                 onClick={() => navigate(`/client/exercises/${exercise.id}`)}
                 media={
                   <ExerciseMediaPreview
@@ -186,7 +187,7 @@ export function GlobalSearchPage() {
               <ResultItem
                 key={muscle.code}
                 title={muscle.nameVi}
-                subtitle={[muscle.nameEn, muscle.anatomyRegion].filter(Boolean).join(" / ")}
+                subtitle={[muscle.nameEn ?? muscleCodeLabel(muscle.code), bodyRegionLabel(muscle.anatomyRegion)].filter(Boolean).join(" / ")}
                 onClick={() => navigate(`/client/muscles/${muscle.code}`)}
               />
             ))}

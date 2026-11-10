@@ -472,9 +472,21 @@ export function PTContractsPage() {
                 key={c.id}
                 className={`bg-zinc-900 rounded-xl border overflow-hidden ${c.status === "PENDING_REVIEW" ? "border-amber-500/30" : "border-zinc-800/60"}`}
               >
-                <button
+                {/* div[role=button] (not <button>): the row holds the quick Accept/Reject buttons, and a
+                    button nested in a button is invalid DOM (React validateDOMNesting). */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
                   onClick={() => setExpanded(isExpanded ? null : c.id)}
-                  className="w-full text-left p-4 hover:bg-zinc-800/30 transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpanded(isExpanded ? null : c.id);
+                    }
+                  }}
+                  className="w-full text-left p-4 hover:bg-zinc-800/30 transition-colors cursor-pointer"
                 >
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-3 sm:gap-4">
                     <div
@@ -563,7 +575,7 @@ export function PTContractsPage() {
                       <ChevronDown className="w-4 h-4 shrink-0 text-zinc-600" />
                     )}
                   </div>
-                </button>
+                </div>
 
                 {isExpanded && (
                   <div className="border-t border-zinc-800/60 p-4 space-y-4">
