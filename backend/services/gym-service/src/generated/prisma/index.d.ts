@@ -770,6 +770,14 @@ export const GymMembershipContractStatus: {
 export type GymMembershipContractStatus = (typeof GymMembershipContractStatus)[keyof typeof GymMembershipContractStatus]
 
 
+export const DataOrigin: {
+  REAL: 'REAL',
+  SYNTHETIC: 'SYNTHETIC'
+};
+
+export type DataOrigin = (typeof DataOrigin)[keyof typeof DataOrigin]
+
+
 export const AffiliationStatus: {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
@@ -1192,6 +1200,10 @@ export const GymMembershipPlanStatus: typeof $Enums.GymMembershipPlanStatus
 export type GymMembershipContractStatus = $Enums.GymMembershipContractStatus
 
 export const GymMembershipContractStatus: typeof $Enums.GymMembershipContractStatus
+
+export type DataOrigin = $Enums.DataOrigin
+
+export const DataOrigin: typeof $Enums.DataOrigin
 
 export type AffiliationStatus = $Enums.AffiliationStatus
 
@@ -28319,6 +28331,7 @@ export namespace Prisma {
     planId: string | null
     clientId: string | null
     status: $Enums.GymMembershipContractStatus | null
+    dataOrigin: $Enums.DataOrigin | null
     paymentTxnId: string | null
     startDate: Date | null
     endDate: Date | null
@@ -28340,6 +28353,7 @@ export namespace Prisma {
     planId: string | null
     clientId: string | null
     status: $Enums.GymMembershipContractStatus | null
+    dataOrigin: $Enums.DataOrigin | null
     paymentTxnId: string | null
     startDate: Date | null
     endDate: Date | null
@@ -28361,6 +28375,7 @@ export namespace Prisma {
     planId: number
     clientId: number
     status: number
+    dataOrigin: number
     paymentTxnId: number
     startDate: number
     endDate: number
@@ -28398,6 +28413,7 @@ export namespace Prisma {
     planId?: true
     clientId?: true
     status?: true
+    dataOrigin?: true
     paymentTxnId?: true
     startDate?: true
     endDate?: true
@@ -28419,6 +28435,7 @@ export namespace Prisma {
     planId?: true
     clientId?: true
     status?: true
+    dataOrigin?: true
     paymentTxnId?: true
     startDate?: true
     endDate?: true
@@ -28440,6 +28457,7 @@ export namespace Prisma {
     planId?: true
     clientId?: true
     status?: true
+    dataOrigin?: true
     paymentTxnId?: true
     startDate?: true
     endDate?: true
@@ -28548,6 +28566,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status: $Enums.GymMembershipContractStatus
+    dataOrigin: $Enums.DataOrigin
     paymentTxnId: string | null
     startDate: Date | null
     endDate: Date | null
@@ -28588,6 +28607,7 @@ export namespace Prisma {
     planId?: boolean
     clientId?: boolean
     status?: boolean
+    dataOrigin?: boolean
     paymentTxnId?: boolean
     startDate?: boolean
     endDate?: boolean
@@ -28614,6 +28634,7 @@ export namespace Prisma {
     planId?: boolean
     clientId?: boolean
     status?: boolean
+    dataOrigin?: boolean
     paymentTxnId?: boolean
     startDate?: boolean
     endDate?: boolean
@@ -28637,6 +28658,7 @@ export namespace Prisma {
     planId?: boolean
     clientId?: boolean
     status?: boolean
+    dataOrigin?: boolean
     paymentTxnId?: boolean
     startDate?: boolean
     endDate?: boolean
@@ -28678,6 +28700,7 @@ export namespace Prisma {
       planId: string
       clientId: string
       status: $Enums.GymMembershipContractStatus
+      dataOrigin: $Enums.DataOrigin
       paymentTxnId: string | null
       startDate: Date | null
       endDate: Date | null
@@ -29119,6 +29142,7 @@ export namespace Prisma {
     readonly planId: FieldRef<"GymMembershipContract", 'String'>
     readonly clientId: FieldRef<"GymMembershipContract", 'String'>
     readonly status: FieldRef<"GymMembershipContract", 'GymMembershipContractStatus'>
+    readonly dataOrigin: FieldRef<"GymMembershipContract", 'DataOrigin'>
     readonly paymentTxnId: FieldRef<"GymMembershipContract", 'String'>
     readonly startDate: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly endDate: FieldRef<"GymMembershipContract", 'DateTime'>
@@ -31537,6 +31561,7 @@ export namespace Prisma {
     clientId: string | null
     rating: number | null
     comment: string | null
+    dataOrigin: $Enums.DataOrigin | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -31547,6 +31572,7 @@ export namespace Prisma {
     clientId: string | null
     rating: number | null
     comment: string | null
+    dataOrigin: $Enums.DataOrigin | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -31557,6 +31583,7 @@ export namespace Prisma {
     clientId: number
     rating: number
     comment: number
+    dataOrigin: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -31577,6 +31604,7 @@ export namespace Prisma {
     clientId?: true
     rating?: true
     comment?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -31587,6 +31615,7 @@ export namespace Prisma {
     clientId?: true
     rating?: true
     comment?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -31597,6 +31626,7 @@ export namespace Prisma {
     clientId?: true
     rating?: true
     comment?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -31694,6 +31724,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment: string | null
+    dataOrigin: $Enums.DataOrigin
     createdAt: Date
     updatedAt: Date
     _count: GymReviewCountAggregateOutputType | null
@@ -31723,6 +31754,7 @@ export namespace Prisma {
     clientId?: boolean
     rating?: boolean
     comment?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -31734,6 +31766,7 @@ export namespace Prisma {
     clientId?: boolean
     rating?: boolean
     comment?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -31745,6 +31778,7 @@ export namespace Prisma {
     clientId?: boolean
     rating?: boolean
     comment?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -31767,6 +31801,7 @@ export namespace Prisma {
       clientId: string
       rating: number
       comment: string | null
+      dataOrigin: $Enums.DataOrigin
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymReview"]>
@@ -32168,6 +32203,7 @@ export namespace Prisma {
     readonly clientId: FieldRef<"GymReview", 'String'>
     readonly rating: FieldRef<"GymReview", 'Int'>
     readonly comment: FieldRef<"GymReview", 'String'>
+    readonly dataOrigin: FieldRef<"GymReview", 'DataOrigin'>
     readonly createdAt: FieldRef<"GymReview", 'DateTime'>
     readonly updatedAt: FieldRef<"GymReview", 'DateTime'>
   }
@@ -66957,6 +66993,7 @@ export namespace Prisma {
     planId: 'planId',
     clientId: 'clientId',
     status: 'status',
+    dataOrigin: 'dataOrigin',
     paymentTxnId: 'paymentTxnId',
     startDate: 'startDate',
     endDate: 'endDate',
@@ -67012,6 +67049,7 @@ export namespace Prisma {
     clientId: 'clientId',
     rating: 'rating',
     comment: 'comment',
+    dataOrigin: 'dataOrigin',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -68171,6 +68209,20 @@ export namespace Prisma {
    * Reference to a field of type 'GymMembershipContractStatus[]'
    */
   export type ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymMembershipContractStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DataOrigin'
+   */
+  export type EnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin'>
+    
+
+
+  /**
+   * Reference to a field of type 'DataOrigin[]'
+   */
+  export type ListEnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin[]'>
     
 
 
@@ -70571,6 +70623,7 @@ export namespace Prisma {
     planId?: StringFilter<"GymMembershipContract"> | string
     clientId?: StringFilter<"GymMembershipContract"> | string
     status?: EnumGymMembershipContractStatusFilter<"GymMembershipContract"> | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFilter<"GymMembershipContract"> | $Enums.DataOrigin
     paymentTxnId?: StringNullableFilter<"GymMembershipContract"> | string | null
     startDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
@@ -70596,6 +70649,7 @@ export namespace Prisma {
     planId?: SortOrder
     clientId?: SortOrder
     status?: SortOrder
+    dataOrigin?: SortOrder
     paymentTxnId?: SortOrderInput | SortOrder
     startDate?: SortOrderInput | SortOrder
     endDate?: SortOrderInput | SortOrder
@@ -70624,6 +70678,7 @@ export namespace Prisma {
     planId?: StringFilter<"GymMembershipContract"> | string
     clientId?: StringFilter<"GymMembershipContract"> | string
     status?: EnumGymMembershipContractStatusFilter<"GymMembershipContract"> | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFilter<"GymMembershipContract"> | $Enums.DataOrigin
     paymentTxnId?: StringNullableFilter<"GymMembershipContract"> | string | null
     startDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
@@ -70649,6 +70704,7 @@ export namespace Prisma {
     planId?: SortOrder
     clientId?: SortOrder
     status?: SortOrder
+    dataOrigin?: SortOrder
     paymentTxnId?: SortOrderInput | SortOrder
     startDate?: SortOrderInput | SortOrder
     endDate?: SortOrderInput | SortOrder
@@ -70678,6 +70734,7 @@ export namespace Prisma {
     planId?: StringWithAggregatesFilter<"GymMembershipContract"> | string
     clientId?: StringWithAggregatesFilter<"GymMembershipContract"> | string
     status?: EnumGymMembershipContractStatusWithAggregatesFilter<"GymMembershipContract"> | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginWithAggregatesFilter<"GymMembershipContract"> | $Enums.DataOrigin
     paymentTxnId?: StringNullableWithAggregatesFilter<"GymMembershipContract"> | string | null
     startDate?: DateTimeNullableWithAggregatesFilter<"GymMembershipContract"> | Date | string | null
     endDate?: DateTimeNullableWithAggregatesFilter<"GymMembershipContract"> | Date | string | null
@@ -70860,6 +70917,7 @@ export namespace Prisma {
     clientId?: StringFilter<"GymReview"> | string
     rating?: IntFilter<"GymReview"> | number
     comment?: StringNullableFilter<"GymReview"> | string | null
+    dataOrigin?: EnumDataOriginFilter<"GymReview"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"GymReview"> | Date | string
     updatedAt?: DateTimeFilter<"GymReview"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -70871,6 +70929,7 @@ export namespace Prisma {
     clientId?: SortOrder
     rating?: SortOrder
     comment?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
@@ -70886,6 +70945,7 @@ export namespace Prisma {
     clientId?: StringFilter<"GymReview"> | string
     rating?: IntFilter<"GymReview"> | number
     comment?: StringNullableFilter<"GymReview"> | string | null
+    dataOrigin?: EnumDataOriginFilter<"GymReview"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"GymReview"> | Date | string
     updatedAt?: DateTimeFilter<"GymReview"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -70897,6 +70957,7 @@ export namespace Prisma {
     clientId?: SortOrder
     rating?: SortOrder
     comment?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymReviewCountOrderByAggregateInput
@@ -70915,6 +70976,7 @@ export namespace Prisma {
     clientId?: StringWithAggregatesFilter<"GymReview"> | string
     rating?: IntWithAggregatesFilter<"GymReview"> | number
     comment?: StringNullableWithAggregatesFilter<"GymReview"> | string | null
+    dataOrigin?: EnumDataOriginWithAggregatesFilter<"GymReview"> | $Enums.DataOrigin
     createdAt?: DateTimeWithAggregatesFilter<"GymReview"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymReview"> | Date | string
   }
@@ -76187,6 +76249,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -76212,6 +76275,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -76233,6 +76297,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76258,6 +76323,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76281,6 +76347,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -76300,6 +76367,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76321,6 +76389,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76514,6 +76583,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutReviewsInput
@@ -76525,6 +76595,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -76534,6 +76605,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutReviewsNestedInput
@@ -76545,6 +76617,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -76555,6 +76628,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -76564,6 +76638,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -76574,6 +76649,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -82148,6 +82224,13 @@ export namespace Prisma {
     not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
   }
 
+  export type EnumDataOriginFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
+  }
+
   export type GymMembershipPlanRelationFilter = {
     is?: GymMembershipPlanWhereInput
     isNot?: GymMembershipPlanWhereInput
@@ -82174,6 +82257,7 @@ export namespace Prisma {
     planId?: SortOrder
     clientId?: SortOrder
     status?: SortOrder
+    dataOrigin?: SortOrder
     paymentTxnId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
@@ -82202,6 +82286,7 @@ export namespace Prisma {
     planId?: SortOrder
     clientId?: SortOrder
     status?: SortOrder
+    dataOrigin?: SortOrder
     paymentTxnId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
@@ -82223,6 +82308,7 @@ export namespace Prisma {
     planId?: SortOrder
     clientId?: SortOrder
     status?: SortOrder
+    dataOrigin?: SortOrder
     paymentTxnId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
@@ -82253,6 +82339,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
+  }
+
+  export type EnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDataOriginFilter<$PrismaModel>
+    _max?: NestedEnumDataOriginFilter<$PrismaModel>
   }
 
   export type EnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -82427,6 +82523,7 @@ export namespace Prisma {
     clientId?: SortOrder
     rating?: SortOrder
     comment?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -82441,6 +82538,7 @@ export namespace Prisma {
     clientId?: SortOrder
     rating?: SortOrder
     comment?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -82451,6 +82549,7 @@ export namespace Prisma {
     clientId?: SortOrder
     rating?: SortOrder
     comment?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -86372,6 +86471,10 @@ export namespace Prisma {
     set?: $Enums.GymMembershipContractStatus
   }
 
+  export type EnumDataOriginFieldUpdateOperationsInput = {
+    set?: $Enums.DataOrigin
+  }
+
   export type GymUpdateOneRequiredWithoutMembershipsNestedInput = {
     create?: XOR<GymCreateWithoutMembershipsInput, GymUncheckedCreateWithoutMembershipsInput>
     connectOrCreate?: GymCreateOrConnectWithoutMembershipsInput
@@ -88989,6 +89092,13 @@ export namespace Prisma {
     not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
   }
 
+  export type NestedEnumDataOriginFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
+  }
+
   export type NestedEnumGymMembershipContractStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
     in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
@@ -88997,6 +89107,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDataOriginFilter<$PrismaModel>
+    _max?: NestedEnumDataOriginFilter<$PrismaModel>
   }
 
   export type NestedEnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -93815,6 +93935,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -93838,6 +93959,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -93906,6 +94028,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -93915,6 +94038,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -94355,6 +94479,7 @@ export namespace Prisma {
     planId?: StringFilter<"GymMembershipContract"> | string
     clientId?: StringFilter<"GymMembershipContract"> | string
     status?: EnumGymMembershipContractStatusFilter<"GymMembershipContract"> | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFilter<"GymMembershipContract"> | $Enums.DataOrigin
     paymentTxnId?: StringNullableFilter<"GymMembershipContract"> | string | null
     startDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
@@ -94428,6 +94553,7 @@ export namespace Prisma {
     clientId?: StringFilter<"GymReview"> | string
     rating?: IntFilter<"GymReview"> | number
     comment?: StringNullableFilter<"GymReview"> | string | null
+    dataOrigin?: EnumDataOriginFilter<"GymReview"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"GymReview"> | Date | string
     updatedAt?: DateTimeFilter<"GymReview"> | Date | string
   }
@@ -94788,6 +94914,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -94811,6 +94938,7 @@ export namespace Prisma {
     gymId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -95559,6 +95687,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -95583,6 +95712,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -95619,6 +95749,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -95643,6 +95774,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -96627,6 +96759,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -96651,6 +96784,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -96687,6 +96821,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -96711,6 +96846,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -102651,6 +102787,7 @@ export namespace Prisma {
     planId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -102684,6 +102821,7 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -102821,6 +102959,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -102844,6 +102983,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -102866,6 +103006,7 @@ export namespace Prisma {
     planId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -102925,6 +103066,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -102934,6 +103076,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -102943,6 +103086,7 @@ export namespace Prisma {
     clientId?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -103343,6 +103487,7 @@ export namespace Prisma {
     gymId: string
     clientId: string
     status?: $Enums.GymMembershipContractStatus
+    dataOrigin?: $Enums.DataOrigin
     paymentTxnId?: string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
@@ -103362,6 +103507,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -103385,6 +103531,7 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -103407,6 +103554,7 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

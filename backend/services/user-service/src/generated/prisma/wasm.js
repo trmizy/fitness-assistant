@@ -167,6 +167,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   searchCity: 'searchCity',
   searchDistrict: 'searchDistrict',
   searchWard: 'searchWard',
+  searchProvinceCode: 'searchProvinceCode',
+  searchWardCode: 'searchWardCode',
   gymId: 'gymId',
   specialties: 'specialties',
   createdAt: 'createdAt',
@@ -457,6 +459,19 @@ exports.Prisma.VietnamWardScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.VietnamWardGeoScalarFieldEnum = {
+  wardCode: 'wardCode',
+  provinceCode: 'provinceCode',
+  centroidLat: 'centroidLat',
+  centroidLng: 'centroidLng',
+  minLat: 'minLat',
+  maxLat: 'maxLat',
+  minLng: 'minLng',
+  maxLng: 'maxLng',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   id: 'id',
   ptUserId: 'ptUserId',
@@ -467,6 +482,8 @@ exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   addressLine: 'addressLine',
   legacyDistrictName: 'legacyDistrictName',
   gymId: 'gymId',
+  latitude: 'latitude',
+  longitude: 'longitude',
   isPrimary: 'isPrimary',
   isActive: 'isActive',
   note: 'note',
@@ -1165,6 +1182,30 @@ exports.Prisma.DisputeCaseDecisionReplacementScalarFieldEnum = {
   rejectionReason: 'rejectionReason'
 };
 
+exports.Prisma.PtDiscoveryEpochScalarFieldEnum = {
+  epoch: 'epoch',
+  status: 'status',
+  isCurrent: 'isCurrent',
+  createdAt: 'createdAt',
+  readyAt: 'readyAt'
+};
+
+exports.Prisma.PtDiscoveryStatScalarFieldEnum = {
+  epoch: 'epoch',
+  ptUserId: 'ptUserId',
+  ratingAvg: 'ratingAvg',
+  ratingCount: 'ratingCount',
+  bayesRating: 'bayesRating',
+  completeness: 'completeness',
+  availableHours7d: 'availableHours7d',
+  accepting: 'accepting',
+  approvedAt: 'approvedAt',
+  fromPriceOverall: 'fromPriceOverall',
+  fromPriceOnline: 'fromPriceOnline',
+  fromPriceOffline: 'fromPriceOffline',
+  quality: 'quality'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1620,6 +1661,11 @@ exports.LateOpenReconciliationOutcome = exports.$Enums.LateOpenReconciliationOut
   REJECTED: 'REJECTED'
 };
 
+exports.PtDiscoveryEpochStatus = exports.$Enums.PtDiscoveryEpochStatus = {
+  BUILDING: 'BUILDING',
+  READY: 'READY'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -1636,6 +1682,7 @@ exports.Prisma.ModelName = {
   PTScheduleException: 'PTScheduleException',
   VietnamProvince: 'VietnamProvince',
   VietnamWard: 'VietnamWard',
+  VietnamWardGeo: 'VietnamWardGeo',
   PTTrainingLocation: 'PTTrainingLocation',
   PTServicePackage: 'PTServicePackage',
   SessionRescheduleRequest: 'SessionRescheduleRequest',
@@ -1681,7 +1728,9 @@ exports.Prisma.ModelName = {
   DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
   DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
   DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision',
-  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
+  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement',
+  PtDiscoveryEpoch: 'PtDiscoveryEpoch',
+  PtDiscoveryStat: 'PtDiscoveryStat'
 };
 
 /**

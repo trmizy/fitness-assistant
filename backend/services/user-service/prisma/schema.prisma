@@ -199,6 +199,8 @@ model UserProfile {
   searchCity                 String?  @map("search_city")
   searchDistrict             String?  @map("search_district")
   searchWard                 String?  @map("search_ward")
+  searchProvinceCode         Int?     @map("search_province_code")
+  searchWardCode             Int?     @map("search_ward_code")
   gymId                      String?  @map("gym_id")
   specialties                String[] @map("specialties")
 
@@ -216,7 +218,12 @@ model UserProfile {
   servicePackages    PTServicePackage[]
   physiquePhotos     PtPhysiquePhoto[]
   mediaUploadIntents PtMediaUploadIntent[]
+  discoveryStats     PtDiscoveryStat[]
 
+  @@index([specialties], type: Gin, map: "user_profiles_specialties_gin_idx")
+  // Partial index that lives ONLY in migration SQL (the schema DSL cannot express a WHERE predicate):
+  // user_profiles_active_pt_idx ("is_accepting_clients" DESC, "createdAt" DESC, "userId")
+  // WHERE "isPT" = true AND "pt_suspended" = false  (migration 20261111100000_pt_discovery_geo_and_stats).
   @@map("user_profiles")
 }
 
@@ -325,6 +332,7 @@ model PTApplication {
 
   userProfile          UserProfile          @relation(fields: [userProfileId], references: [id])
 
+  @@index([status, serviceMode])
   @@map("pt_applications")
 }
 
@@ -998,6 +1006,7 @@ model VietnamProvince {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   wards             VietnamWard[]
+  wardGeos          VietnamWardGeo[]
   trainingLocations PTTrainingLocation[]
 
   @@index([name])
@@ -1018,6 +1027,7 @@ model VietnamWard {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   province          VietnamProvince      @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+  geo               VietnamWardGeo?
   trainingLocations PTTrainingLocation[]
 
   @@index([provinceCode])
@@ -1025,6 +1035,25 @@ model VietnamWard {
   @@index([nameNormalized])
   @@index([codename])
   @@map("vietnam_wards")
+}
+
+model VietnamWardGeo {
+  wardCode     Int      @id @map("ward_code")
+  provinceCode Int      @map("province_code")
+  centroidLat  Float    @map("centroid_lat")
+  centroidLng  Float    @map("centroid_lng")
+  minLat       Float    @map("min_lat")
+  maxLat       Float    @map("max_lat")
+  minLng       Float    @map("min_lng")
+  maxLng       Float    @map("max_lng")
+  source       String   @default("vietnamese-provinces-db-v5.2.0")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ward     VietnamWard     @relation(fields: [wardCode], references: [code], onDelete: Cascade)
+  province VietnamProvince @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+
+  @@index([provinceCode])
+  @@map("vietnam_ward_geo")
 }
 
 // ─── PT Training Locations ────────────────────────────────────────
@@ -1043,6 +1072,8 @@ model PTTrainingLocation {
   // FK to gym-service Gym.id — nullable because many gyms are not on the platform yet.
   // When present, used to prioritise PTs who work at the same gym as the client.
   gymId              String?  @map("gym_id")
+  latitude           Float?
+  longitude          Float?
   isPrimary          Boolean  @default(false) @map("is_primary")
   isActive           Boolean  @default(true) @map("is_active")
   note               String?
@@ -1058,6 +1089,8 @@ model PTTrainingLocation {
   @@index([wardCode])
   @@index([isActive])
   @@index([gymId])
+  @@index([latitude, longitude])
+  @@index([provinceCode, wardCode, isActive])
   @@map("pt_training_locations")
 }
 
@@ -1093,6 +1126,7 @@ model PTServicePackage {
   ptProfile              UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
 
   @@index([ptUserId, isActive])
+  @@index([ptUserId, sessionMode, isActive])
   @@map("pt_service_packages")
 }
 
@@ -2530,4 +2564,55 @@ model DisputeCaseDecisionReplacement {
 
   @@index([caseId, createdAt])
   @@map("dispute_case_decision_replacements")
+}
+
+// ─── PT Discovery Stats by Epoch (D0b / D1) ───────────────────────────────────
+
+enum PtDiscoveryEpochStatus {
+  BUILDING
+  READY
+}
+
+model PtDiscoveryEpoch {
+  epoch     Int                    @id @default(autoincrement())
+  status    PtDiscoveryEpochStatus @default(BUILDING)
+  isCurrent Boolean                @default(false) @map("is_current")
+  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  readyAt   DateTime?              @map("ready_at") @db.Timestamptz(3)
+
+  stats PtDiscoveryStat[]
+
+  // Partial unique index that lives ONLY in migration SQL:
+  // pt_discovery_epochs_one_current_key UNIQUE ("is_current") WHERE "is_current" = true
+  @@index([isCurrent, status, createdAt])
+  @@map("pt_discovery_epochs")
+}
+
+model PtDiscoveryStat {
+  epoch            Int       @map("epoch")
+  ptUserId         String    @map("pt_user_id")
+  ratingAvg        Float?    @map("rating_avg")
+  ratingCount      Int       @default(0) @map("rating_count")
+  bayesRating      Float     @map("bayes_rating")
+  completeness     Float
+  availableHours7d Float     @default(0) @map("available_hours_7d")
+  accepting        Boolean   @default(true)
+  approvedAt       DateTime? @map("approved_at") @db.Timestamptz(3)
+  fromPriceOverall Decimal?  @map("from_price_overall") @db.Decimal(14, 2)
+  fromPriceOnline  Decimal?  @map("from_price_online")  @db.Decimal(14, 2)
+  fromPriceOffline Decimal?  @map("from_price_offline") @db.Decimal(14, 2)
+  quality          Float
+
+  epochRef  PtDiscoveryEpoch @relation(fields: [epoch], references: [epoch], onDelete: Cascade)
+  ptProfile UserProfile      @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@id([epoch, ptUserId])
+  @@index([epoch, quality(sort: Desc), ptUserId])
+  @@index([epoch, bayesRating(sort: Desc), ptUserId])
+  @@index([epoch, fromPriceOverall, ptUserId])
+  @@index([epoch, fromPriceOnline, ptUserId])
+  @@index([epoch, fromPriceOffline, ptUserId])
+  // Additional sort index in migration SQL (DESC NULLS LAST cannot be expressed in Prisma DSL):
+  // pt_discovery_stats_epoch_rating_desc_idx ("epoch", "rating_avg" DESC NULLS LAST, "pt_user_id" ASC)
+  @@map("pt_discovery_stats")
 }

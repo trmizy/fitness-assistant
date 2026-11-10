@@ -445,6 +445,7 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   planId: 'planId',
   clientId: 'clientId',
   status: 'status',
+  dataOrigin: 'dataOrigin',
   paymentTxnId: 'paymentTxnId',
   startDate: 'startDate',
   endDate: 'endDate',
@@ -491,6 +492,7 @@ exports.Prisma.GymReviewScalarFieldEnum = {
   clientId: 'clientId',
   rating: 'rating',
   comment: 'comment',
+  dataOrigin: 'dataOrigin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1268,6 +1270,11 @@ exports.GymMembershipContractStatus = exports.$Enums.GymMembershipContractStatus
   EXPIRED: 'EXPIRED',
   CANCELLED: 'CANCELLED',
   PENDING_ISSUE: 'PENDING_ISSUE'
+};
+
+exports.DataOrigin = exports.$Enums.DataOrigin = {
+  REAL: 'REAL',
+  SYNTHETIC: 'SYNTHETIC'
 };
 
 exports.AffiliationStatus = exports.$Enums.AffiliationStatus = {
