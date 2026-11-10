@@ -4,6 +4,7 @@ import webhookRoutes from './routes/webhook.routes';
 import vnpayReturnRoutes from './routes/vnpay-return.routes';
 import paymentRoutes from './routes/payment.routes';
 import adminRoutes from './routes/admin.routes';
+import adminGatewayReconciliationRoutes from './routes/admin-gateway-reconciliation.routes';
 import internalRoutes from './routes/internal.routes';
 import walletRoutes from './routes/wallet.routes';
 
@@ -31,6 +32,8 @@ app.get('/metrics', async (_req, res) => {
 
 app.use('/me/payments', paymentRoutes);
 app.use('/me', walletRoutes);
+// B8 (L2) read-only gateway reconciliation: before the generic admin router so no '/:id/...' route can shadow it.
+app.use('/admin/payments/gateway-reconciliation', adminGatewayReconciliationRoutes);
 app.use('/admin/payments', adminRoutes);
 app.use('/internal', internalRoutes);
 

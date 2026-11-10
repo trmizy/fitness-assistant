@@ -22,26 +22,28 @@ import { countAttention, type ObligationsReport, type SessionsReconciliationRepo
 /**
  * `balance` / `exceptions` are the B4 chips. D7 adds the two money-exception views of Dispute V2.1 INSIDE the same surface (no new route):
  * `held-no-show` = "Khoản giữ của buổi PT vắng" (D65-B) and `late-open` = "Khoản bồi thường đến muộn còn mở".
+ * B8 adds `gateway` = "Đối chiếu cổng ↔ Gymini" at level L2 (what the gateways sent back and Gymini stored; NOT an independent L3 report).
  */
-export type ReconView = "balance" | "exceptions" | "held-no-show" | "late-open";
-export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions", "held-no-show", "late-open"];
+export type ReconView = "balance" | "exceptions" | "gateway" | "held-no-show" | "late-open";
+export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions", "gateway", "held-no-show", "late-open"];
 export const RECON_VIEW_LABEL: Record<ReconView, string> = {
   balance: "Cân đối sổ",
   exceptions: "Ngoại lệ",
+  gateway: "Đối chiếu cổng ↔ Gymini",
   "held-no-show": "Khoản giữ buổi PT vắng",
   "late-open": "Bồi thường đến muộn",
 };
-/** All chips are L1: figures come from Gymini's own ledger / contracts. */
-export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1", "held-no-show": "L1", "late-open": "L1" };
+/** L1 chips: figures come from Gymini's own ledger / contracts. The gateway chip is L2: gateway callbacks Gymini stored (B8). */
+export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1", gateway: "L2", "held-no-show": "L1", "late-open": "L1" };
 
 /**
  * `?view=` → chip. Missing or unknown → balance. Two values are kept working from the earlier plan / prototype:
- * `ledger` = the balance chip, `gateway` = the (disabled, L3 BLOCKED) gateway chip → falls back to balance.
+ * `ledger` = the balance chip. (`gateway` used to fall back to balance while the L3 chip was disabled; since B8 it is the L2 gateway chip.)
  */
 export function parseReconView(raw: string | null | undefined): ReconView {
   const v = (raw ?? "").trim().toLowerCase();
-  if (v === "exceptions" || v === "held-no-show" || v === "late-open") return v;
-  return "balance"; // "balance", "ledger", "gateway", "", anything else
+  if (v === "exceptions" || v === "gateway" || v === "held-no-show" || v === "late-open") return v;
+  return "balance"; // "balance", "ledger", "", anything else
 }
 
 /** Next query string for a chip click: keeps every other param, sets `view`. */
@@ -54,10 +56,14 @@ export function withReconView(prev: URLSearchParams, view: ReconView): URLSearch
 /** The ids the D7 views keep in the URL (`row` = late-open row, `session` = D65-B preview, `resolution` = a D65-B proposal, `status` = late-open filter). */
 export const MONEY_VIEW_PARAMS = ["row", "session", "resolution", "status"] as const;
 
+/** The day range of the gateway view (B8): `?from&to`, both `YYYY-MM-DD`. */
+export const GATEWAY_VIEW_PARAMS = ["from", "to"] as const;
+
 /** A chip click: like `withReconView` but a selection of the previous view never leaks into the next one. */
 export function switchReconView(prev: URLSearchParams, view: ReconView): URLSearchParams {
   const next = withReconView(prev, view);
   for (const k of MONEY_VIEW_PARAMS) next.delete(k);
+  for (const k of GATEWAY_VIEW_PARAMS) next.delete(k);
   return next;
 }
 
@@ -74,6 +80,7 @@ export const LEVEL_EXPLAIN: Record<ReconLevel, string> = {
   L3: "Báo cáo quyết toán độc lập từ cổng thanh toán / ngân hàng — chưa có nguồn nên chưa làm được (BLOCKED).",
 };
 export const GATEWAY_CHIP_LABEL = "Đối chiếu cổng ↔ Gymini";
+/** What is still missing behind the L2 gateway chip: an independent settlement report (shown as a note inside the gateway view). */
 export const GATEWAY_CHIP_REASON = "L3 — chưa có nguồn độc lập (BLOCKED)";
 export const NO_PROCEDURE_TEXT = "chưa có quy trình (G-15)";
 
