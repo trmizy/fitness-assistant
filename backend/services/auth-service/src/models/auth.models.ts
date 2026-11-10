@@ -8,6 +8,24 @@ import { z } from "zod";
 // would reject existing users' real passwords that predate this rule.
 const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 
+/**
+ * N-A-07 — THE password policy: >= 8 chars with an uppercase letter, a lowercase letter and a digit.
+ * Registration, self-service change, reset-by-token and invite-accept all use this one definition
+ * (reset/change/invite used to check only `length >= 8`, so "alllowercase1" got in through them).
+ */
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_POLICY_MESSAGE_VI =
+  "Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và chữ số";
+export const passwordPolicySchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH)
+  .regex(PASSWORD_COMPLEXITY, "Password must contain an uppercase letter, a lowercase letter, and a number");
+
+/** Vietnamese message when `password` breaks the policy, otherwise null. */
+export function passwordPolicyViolation(password: unknown): string | null {
+  return passwordPolicySchema.safeParse(password).success ? null : PASSWORD_POLICY_MESSAGE_VI;
+}
+
 // C4-01 / C1-01 — emails are case-insensitive in practice (phone keyboards capitalise the first
 // letter), so every new write/lookup path normalises trim + lowercase, the same way
 // partnerApplicationStartSchema does. Registration used to keep the typed case, which let
@@ -16,10 +34,7 @@ const normalizedEmail = z.string().trim().toLowerCase().email().max(254);
 
 export const registerSchema = z.object({
   email: normalizedEmail,
-  password: z
-    .string()
-    .min(8)
-    .regex(PASSWORD_COMPLEXITY, "Password must contain an uppercase letter, a lowercase letter, and a number"),
+  password: passwordPolicySchema,
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });
@@ -63,7 +78,7 @@ export const updateMeSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  newPassword: passwordPolicySchema,
 });
 
 // Money-flow plan 5.1: GYM_STAFF removed — see schema.prisma's Role enum comment.

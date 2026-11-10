@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, WarningIcon as AlertTriangle, HandshakeIcon as Handshake } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
+import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../utils/passwordPolicy";
 
 const ROLE_LABEL: Record<string, string> = { OWNER: "Chủ sở hữu", MANAGER: "Quản lý chi nhánh" };
 
@@ -67,7 +68,7 @@ export function PartnerInviteAcceptPage() {
 
   const invite = previewQuery.data;
   const passwordsMatch = password.length > 0 && password === confirmPassword;
-  const canSubmit = firstName.trim().length > 0 && password.length >= 8 && passwordsMatch;
+  const canSubmit = firstName.trim().length > 0 && isPasswordPolicyMet(password) && passwordsMatch;
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
@@ -102,13 +103,14 @@ export function PartnerInviteAcceptPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-zinc-500 mb-1.5 block">Đặt mật khẩu * (tối thiểu 8 ký tự)</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Đặt mật khẩu *</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
             />
+            <p className={`text-[11px] mt-1 ${password.length > 0 && !isPasswordPolicyMet(password) ? "text-amber-300" : "text-zinc-500"}`}>{PASSWORD_POLICY_HINT}</p>
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1.5 block">Nhập lại mật khẩu *</label>

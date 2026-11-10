@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { logger } from "@gym-coach/shared";
 import { authRepository } from "../repositories/auth.repository";
 import type { Role } from "../generated/prisma";
+import { passwordPolicyViolation } from "../models/auth.models";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
   ChangePasswordDto,
@@ -141,7 +142,8 @@ export const authService = {
       if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
         throw {
           status: 429,
-          message: `OTP recently sent. Please wait ${Math.ceil(
+          code: "OTP_RECENTLY_SENT",
+          message: `Mã vừa được gửi. Vui lòng đợi ${Math.ceil(
             OTP_RESEND_SECONDS - secondsSinceLastSend,
           )}s`,
         };
@@ -272,6 +274,7 @@ export const authService = {
     if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
       throw {
         status: 429,
+        code: "OTP_RECENTLY_SENT",
         message: `Mã vừa được gửi. Vui lòng đợi ${Math.ceil(
           OTP_RESEND_SECONDS - secondsSinceLastSend,
         )}s`,
@@ -682,9 +685,8 @@ export const authService = {
    */
   async resetPasswordWithToken(rawToken: string, newPassword: string) {
     if (!rawToken) throw { status: 400, message: "Thiếu mã đặt lại" };
-    if (!newPassword || newPassword.length < 8) {
-      throw { status: 400, message: "Mật khẩu mới phải có ít nhất 8 ký tự" };
-    }
+    const weak = passwordPolicyViolation(newPassword);
+    if (weak) throw { status: 400, message: weak, code: "WEAK_PASSWORD" };
 
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
     const record = await authRepository.findPasswordResetByHash(tokenHash);
@@ -730,9 +732,8 @@ export const authService = {
     const email = data.email.trim().toLowerCase();
     const existing = await authRepository.findUserByEmail(email);
     if (existing) throw { status: 409, message: "Email đã được sử dụng" };
-    if (!data.password || data.password.length < 8) {
-      throw { status: 400, message: "Mật khẩu phải có ít nhất 8 ký tự" };
-    }
+    const weak = passwordPolicyViolation(data.password);
+    if (weak) throw { status: 400, message: weak, code: "WEAK_PASSWORD" };
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await authRepository.createUser({

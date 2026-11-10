@@ -47,6 +47,7 @@ import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, as
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
 import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
+import { enrichProfilesWithAuthNames } from "./profile.service";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -1540,7 +1541,14 @@ export const bookingService = {
       ),
     ];
     const profiles = await profileRepository.findByUserIds(otherIds);
-    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const profileMap = new Map<string, any>(profiles.map((p) => [p.userId, p as any]));
+    // NE-05: a user who skipped onboarding has no user-service UserProfile row (or one without a name) while the
+    // name they registered with lives in auth-service - the card then fell back to the generic "Học viên". Same lookup
+    // the contract lists use (enrichProfilesWithAuthNames); nothing is written back to the profile.
+    for (const id of otherIds) {
+      if (!profileMap.has(id)) profileMap.set(id, { userId: id, firstName: null, lastName: null, email: null });
+    }
+    await enrichProfilesWithAuthNames([...profileMap.values()]);
 
     return sessions.map((s) => {
       const otherId = s.ptUserId === userId ? s.clientUserId : s.ptUserId;

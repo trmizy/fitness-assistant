@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { authService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { AppLogo } from "../brand/AppLogo";
+import { PASSWORD_POLICY_HINT, passwordPolicyError } from "../../utils/passwordPolicy";
 
 /**
  * Blocks the entire app behind this screen for an account still on its admin-issued random
@@ -40,8 +41,9 @@ export function ForceChangePasswordScreen() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (newPassword.length < 6) {
-      setError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+    const weak = passwordPolicyError(newPassword);
+    if (weak) {
+      setError(weak);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -97,7 +99,7 @@ export function ForceChangePasswordScreen() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-4 py-2.5 pr-10 border border-zinc-700/60 rounded-xl text-sm bg-zinc-800/60 text-zinc-200 placeholder-zinc-600 outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50"
-                placeholder="Ít nhất 6 ký tự"
+                placeholder={PASSWORD_POLICY_HINT}
                 required
               />
               <button

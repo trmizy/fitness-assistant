@@ -6,6 +6,7 @@ import { UserIcon, CheckIcon as Check, KeyIcon as KeyRound, SignOutIcon as LogOu
 import { useApp } from "../../../context/AppContext";
 import { authService } from "../../../services/api";
 import { SectionCard } from "./components/SectionCard";
+import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../../utils/passwordPolicy";
 
 const inputClass =
   "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
@@ -59,7 +60,7 @@ export function AccountSection() {
 
   const canChangePassword =
     currentPassword.length > 0 &&
-    newPassword.length >= 8 &&
+    isPasswordPolicyMet(newPassword) &&
     newPassword === confirmPassword &&
     !passwordMutation.isPending;
 
@@ -184,9 +185,10 @@ export function AccountSection() {
             />
           </label>
         </div>
-        {newPassword.length > 0 && newPassword.length < 8 ? (
+        {newPassword.length > 0 && !isPasswordPolicyMet(newPassword) ? (
           <p className="text-[11px] text-amber-300">
-            Mật khẩu mới cần ít nhất 8 ký tự.
+            Mật khẩu mới cần: {PASSWORD_POLICY_HINT.charAt(0).toLowerCase()}
+            {PASSWORD_POLICY_HINT.slice(1)}.
           </p>
         ) : null}
         {confirmPassword.length > 0 && newPassword !== confirmPassword ? (

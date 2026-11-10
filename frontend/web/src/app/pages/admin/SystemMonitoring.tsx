@@ -22,6 +22,8 @@ import { describeAdminError, errorStateKind, type AdminErrorView } from "./share
 type ServiceProbe = {
   key: string;
   name: string;
+  /** Vietnamese display name from the gateway (N-A-10 / ND-05); `name` is the English identifier. */
+  label?: string;
   status: "healthy" | "degraded" | "down";
   statusCode: number;
   latencyMs: number;
@@ -145,7 +147,7 @@ export function SystemMonitoring() {
   const latencyData = services
     .filter((s) => s.latencyMs > 0)
     .map((s) => ({
-      name: s.name.replace(" Service", "").replace("API ", ""),
+      name: (s.label ?? s.name).replace("Dịch vụ ", ""),
       latency: s.latencyMs,
     }));
 
@@ -304,7 +306,7 @@ export function SystemMonitoring() {
                 </span>
               </div>
               <div className="text-xs font-semibold text-zinc-200 truncate">
-                {s.name}
+                {s.label ?? s.name}
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5">
                 Độ trễ: {s.latencyMs}ms
@@ -385,7 +387,7 @@ export function SystemMonitoring() {
                 return (
                   <div key={s.key} className="flex items-center gap-3">
                     <div className="w-24 text-xs text-zinc-400 truncate">
-                      {s.name.replace(" Service", "")}
+                      {(s.label ?? s.name).replace("Dịch vụ ", "")}
                     </div>
                     <div className="flex-1 bg-zinc-800 rounded-full h-2 overflow-hidden">
                       <div
