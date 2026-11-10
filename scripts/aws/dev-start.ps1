@@ -92,6 +92,13 @@ $EcsService      = "fitness-assistant-dev-chat-service"
 $EcsContainerName = "chat-service"
 $EcsContainerPort = 3005
 $FrontendBucket  = "fitness-assistant-frontend-dev-191798898985"
+# CloudFront (gymini.vn) fronts the chat ALB for /socket.io/*. The ALB DNS name changes on every start, so the
+# distribution's chat origin must be re-pointed too (step 6b) - otherwise realtime chat returns 502 from gymini.vn.
+$CloudFrontDistributionId = "E2MHD79JFC1700"
+$CloudFrontChatOriginId   = "chat-alb-origin"
+# Browsers on https://gymini.vn must open the socket over https/wss (a http://ALB URL is blocked as mixed content),
+# so the socket goes through CloudFront, not straight to the ALB.
+$ChatPublicUrl = "https://gymini.vn"
 $AossNetworkPolicyName = "auto-fitness-assistant-dev-ai-ve"
 $AuroraClusterId = "fitness-assistant-dev-aurora"
 $SchedulerStateFile = ".dev/aws/scheduler-state.json"
@@ -490,9 +497,39 @@ if ($enableChat -eq "true" -and $newTgArn) {
     Write-Host "   Verified: integration $ChatIntegrationId IntegrationUri == $actualUri" -ForegroundColor Green
 
     Write-Host ""
+    Write-Host "6b) CloudFront reconnect - pointing origin '$CloudFrontChatOriginId' of $CloudFrontDistributionId at $newAlbDns..."
+    # Warning-only (not a HARD STOP): a failure here must not abort the start of the rest of the stack; it only
+    # means realtime chat on gymini.vn stays degraded (REST chat via API Gateway is unaffected).
+    try {
+        $cfTmp = Join-Path $env:TEMP "gymini-cf"
+        New-Item -ItemType Directory -Force -Path $cfTmp | Out-Null
+        $cfGet = Join-Path $cfTmp "get.json"
+        $cfOut = Join-Path $cfTmp "config.json"
+        Remove-Item $cfOut -ErrorAction SilentlyContinue
+        $cfRaw = (aws cloudfront get-distribution-config --id $CloudFrontDistributionId --output json --region us-east-1) -join "`n"
+        if ($LASTEXITCODE -ne 0 -or -not $cfRaw) { throw "get-distribution-config failed (exit $LASTEXITCODE)" }
+        # UTF-8 without BOM so no character in the distribution config is altered on the round trip.
+        [System.IO.File]::WriteAllText($cfGet, $cfRaw, (New-Object System.Text.UTF8Encoding($false)))
+        $cfEtag = ($cfRaw | ConvertFrom-Json).ETag
+        if (-not $cfEtag) { throw "could not read the distribution ETag" }
+        $patchJson = node (Join-Path $PSScriptRoot "lib/cloudfront-chat-origin.cjs") $cfGet $cfOut $newAlbDns $CloudFrontChatOriginId
+        if ($LASTEXITCODE -ne 0) { throw "origin patch refused (exit $LASTEXITCODE)" }
+        $patch = $patchJson | ConvertFrom-Json
+        if (-not $patch.changed) {
+            Write-Host "   CloudFront origin already points at the current ALB - nothing to do." -ForegroundColor Green
+        } else {
+            aws cloudfront update-distribution --id $CloudFrontDistributionId --if-match $cfEtag --distribution-config "file://$($cfOut -replace '\\','/')" --region us-east-1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "update-distribution failed (exit $LASTEXITCODE)" }
+            Write-Host "   Origin updated ($($patch.from) -> $($patch.to)). CloudFront needs a few minutes to finish deploying; /socket.io via gymini.vn recovers when it does." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "   WARNING: CloudFront chat origin was NOT synced: $($_.Exception.Message). Realtime chat on gymini.vn may return 502 until the distribution origin is pointed at $newAlbDns." -ForegroundColor Yellow
+    }
+
+    Write-Host ""
     Write-Host "7) Frontend reconnect - writing + uploading runtime-config.json..."
     $runtimeConfigPath = Join-Path $env:TEMP "gymini-runtime-config.json"
-    $runtimeConfig = @{ chatWsUrl = "http://$newAlbDns"; chatEnabled = $true } | ConvertTo-Json -Compress
+    $runtimeConfig = @{ chatWsUrl = $ChatPublicUrl; chatEnabled = $true } | ConvertTo-Json -Compress
     Set-Content -Path $runtimeConfigPath -Value $runtimeConfig -Encoding ASCII
     aws s3 cp $runtimeConfigPath "s3://$FrontendBucket/runtime-config.json" --cache-control "no-cache" --content-type "application/json" --region $ExpectedRegion
     if ($LASTEXITCODE -ne 0) {
