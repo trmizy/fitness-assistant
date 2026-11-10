@@ -6,7 +6,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen } from "../push/pushRouting";
+import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen, staleCallNoticeIds } from "../push/pushRouting";
 
 const push = (over: Record<string, unknown> = {}) =>
   readPushData({ notificationId: "n1", userId: "u1", link: "", entityType: "SESSION", eventType: "SESSION_CONFIRMED", ...over });
@@ -86,5 +86,34 @@ describe("E2/E3 — push cuộc gọi / tin nhắn từ chat-service", () => {
     assert.equal(showsWhileOpen(call({ kind: "CHAT" })), false);
     assert.equal(showsWhileOpen(push()), true);
     assert.equal(readPushData({ kind: "SOMETHING" }).kind, null);
+  });
+});
+
+describe("staleCallNoticeIds (NE-08)", () => {
+  const ringing = (id: string, sid: string) => ({ identifier: id, body: "Đang gọi thoại cho bạn…", data: { kind: "CALL", callSessionId: sid } });
+  const missed = (id: string, sid: string) => ({ identifier: id, body: "Cuộc gọi thoại nhỡ", data: { kind: "CALL", callSessionId: sid } });
+  const chat = { identifier: "c1", body: "Xin chào", data: { kind: "CHAT" } };
+  const other = { identifier: "o1", body: "Hợp đồng mới", data: { eventType: "CONTRACT_REQUESTED" } };
+
+  it("a call that ended / was answered / rejected clears only its own ringing notice", () => {
+    const shown = [ringing("a", "s1"), ringing("b", "s2"), chat, other];
+    assert.deepEqual(staleCallNoticeIds(shown, { endedCallSessionId: "s1" }), ["a"]);
+  });
+
+  it("on foreground every call notice but the live one goes (6 stacked ones, NE-08)", () => {
+    const shown = [1, 2, 3, 4, 5, 6].map((n) => ringing(`n${n}`, `s${n}`));
+    assert.equal(staleCallNoticeIds(shown, { activeCallSessionId: null }).length, 6);
+    assert.deepEqual(staleCallNoticeIds(shown, { activeCallSessionId: "s3" }).includes("n3"), false);
+    assert.equal(staleCallNoticeIds(shown, { activeCallSessionId: "s3" }).length, 5);
+  });
+
+  it("never touches the missed-call record, chat messages or other notices", () => {
+    const shown = [missed("m", "s1"), chat, other];
+    assert.deepEqual(staleCallNoticeIds(shown, { endedCallSessionId: "s1" }), []);
+    assert.deepEqual(staleCallNoticeIds(shown, { activeCallSessionId: null }), []);
+  });
+
+  it("a call push without a session id is left alone", () => {
+    assert.deepEqual(staleCallNoticeIds([{ identifier: "x", body: "Đang gọi", data: { kind: "CALL" } }], { activeCallSessionId: null }), []);
   });
 });

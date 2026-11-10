@@ -18,6 +18,7 @@ import { ONBOARDING_PATH } from "../../src/config/landing";
 import { designTokens } from "../../src/theme/colors";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
+import { serverMessage } from "../../src/lib/serverMessage";
 
 /**
  * Registration: account details, then the emailed 6-digit code. Two steps, not the five web once
@@ -71,7 +72,7 @@ function AccountStep({ onSent }: { onSent: (email: string) => void }) {
       toast.show("Mã xác nhận đã được gửi đến email của bạn");
       onSent(normalizeEmail(email));
     } catch (error: any) {
-      const message = error?.response?.data?.error || "";
+      const message = serverMessage(error);
       if (message === "Email already registered") {
         toast.show("Email này đã được đăng ký — hãy đăng nhập.", "danger");
       } else if (!error?.response) {
@@ -255,7 +256,7 @@ function OtpStep({ email }: { email: string }) {
       if (!error?.response) {
         toast.show("Không kết nối được máy chủ.", "danger");
       } else {
-        toast.show(error.response.data?.error || "Không gửi lại được mã", "danger");
+        toast.show(serverMessage(error) || "Không gửi lại được mã", "danger");
       }
     } finally {
       setResending(false);
