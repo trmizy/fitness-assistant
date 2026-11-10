@@ -9,6 +9,7 @@ import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middl
 import { Prisma } from '../generated/prisma';
 import { buildReconciliationReport } from '../services/reconcile.service';
 import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-report.service';
+import { parseWithdrawalStatusFilter } from '../utils/withdrawal-status-filter';
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
@@ -61,14 +62,18 @@ router.get('/reconciliation', async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /admin/payments/finance-overview?groupBy=day|week|month|quarter&from=ISO&to=ISO
+ * GET /admin/payments/finance-overview?groupBy=day|week|month|quarter|year&from=ISO&to=ISO
  *
  * Admin "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo khoảng thời gian, gộp theo
  * ngày/tuần/tháng/quý. `from`/`to` default to the last 30 days when omitted so the tab has a
  * sensible chart on first load.
  */
 router.get('/finance-overview', async (req: Request, res: Response) => {
-  const groupBy = isFinanceGroupBy(req.query.groupBy) ? req.query.groupBy : 'day';
+  const rawGroupBy = req.query.groupBy;
+  if (rawGroupBy !== undefined && !isFinanceGroupBy(rawGroupBy)) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_GROUP_BY', message: 'groupBy không hợp lệ — chỉ nhận day, week, month, quarter hoặc year' } });
+  }
+  const groupBy = rawGroupBy === undefined ? 'day' : rawGroupBy;
   const to = req.query.to ? new Date(String(req.query.to)) : new Date();
   const from = req.query.from
     ? new Date(String(req.query.from))
@@ -108,9 +113,14 @@ router.patch('/commissions/:id/settle', (_req, res) => {
 // Money-flow plan 5.3 — admin side of the manual withdrawal flow. approve/reject are optional
 // review steps before the money actually moves; markPaid is the only one that touches the
 // ledger, and only after an admin confirms a real bank/e-wallet transfer already happened.
-router.get('/withdrawals', async (_req: Request, res: Response) => {
-  const list = await withdrawalService.listPending();
-  res.json({ success: true, data: list });
+router.get('/withdrawals', async (req: Request, res: Response) => {
+  const parsed = parseWithdrawalStatusFilter(req.query.status);
+  if (!parsed.ok) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS_FILTER', message: 'Trạng thái lọc không hợp lệ — chỉ nhận PENDING, APPROVED, PAID hoặc REJECTED' } });
+  }
+  // No status param keeps the original queue (PENDING + APPROVED).
+  const list = parsed.status ? await withdrawalService.listByStatus(parsed.status) : await withdrawalService.listPending();
+  return res.json({ success: true, data: list });
 });
 
 const reviewSchema = z.object({ reason: z.string().min(1).optional() });

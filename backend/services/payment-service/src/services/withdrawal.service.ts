@@ -1,5 +1,5 @@
 import { logger } from '@gym-coach/shared';
-import { Prisma, WalletOwnerType } from '../generated/prisma';
+import { Prisma, WalletOwnerType, WithdrawalRequestStatus } from '../generated/prisma';
 import { withdrawalRepository } from '../repositories/withdrawal.repository';
 import { walletRepository } from '../repositories/wallet.repository';
 import { prisma } from '../repositories/prisma';
@@ -159,6 +159,10 @@ export const withdrawalService = {
 
   async listPending() {
     return withdrawalRepository.listPending();
+  },
+
+  async listByStatus(status: WithdrawalRequestStatus) {
+    return withdrawalRepository.listByStatus(status);
   },
 
   /**
