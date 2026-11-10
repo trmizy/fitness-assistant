@@ -9,6 +9,17 @@ import walletRoutes from './routes/wallet.routes';
 
 const app = express();
 
+// On AWS every API Gateway route is ANY, so CORS preflight (OPTIONS) reaches this Lambda, where router-level auth
+// (e.g. /admin) answers 401 — browsers reject a non-2xx preflight and the page shows "Network Error". API Gateway's own
+// CORS config supplies the Access-Control-* headers; this only has to answer 2xx before any auth runs.
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 // Webhook MUST be mounted before express.json() so raw body is preserved for
 // HMAC signature verification (MoMo, VNPay require the original bytes).
 app.use('/payments/webhook', express.raw({ type: '*/*' }), webhookRoutes);
