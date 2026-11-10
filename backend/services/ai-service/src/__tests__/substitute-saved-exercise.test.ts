@@ -96,3 +96,15 @@ test("findOccurrencesByName: an exact match wins over a looser substring match e
     assert.equal(result.occurrences[0].exerciseName, "Squat");
   }
 });
+
+// Regression (2026-11-10, eval B1-06): "bụng đói" strips to "doi" (= "đổi") and "buổi sáng" supplied "sang", so a plain
+// nutrition/training question was answered with "Mình không thấy bài "buoi" trong lịch tập".
+test("a question about training on an empty stomach in the morning is not a swap request", () => {
+  assert.equal(parseSubstituteSavedExerciseRequest("Chạy bộ lúc bụng đói buổi sáng có đốt mỡ nhiều hơn không?"), null);
+  assert.equal(parseSubstituteSavedExerciseRequest("chay bo luc bung doi buoi sang co dot mo nhieu hon khong"), null);
+});
+
+test("real swaps without accents still parse (the guard keys on the accented đói only)", () => {
+  assert.deepEqual(parseSubstituteSavedExerciseRequest("doi squat thanh deadlift"), { oldKeyword: "squat", newKeyword: "deadlift" });
+  assert.deepEqual(parseSubstituteSavedExerciseRequest("đổi squat sang leg press"), { oldKeyword: "squat", newKeyword: "leg press" });
+});

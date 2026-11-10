@@ -29,6 +29,7 @@ import {
   hasCriticalStructureMismatch,
 } from "./answer_validator";
 import { responseFormatter } from "./response_formatter";
+import { appendMedicalReferralNote } from "./medical-referral";
 import {
   isDirectNutritionQuestion,
   formatDirectNutritionAnswer,
@@ -1199,6 +1200,8 @@ async function runInner(
 
     // The model sometimes copies the prompt's "[...]" format-instruction lines verbatim; never show those.
     if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = stripTemplateArtifacts(llmAnswer);
+    // A user who says they have a chronic condition always gets a doctor referral, even if the model forgot it (eval B1-45).
+    if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = appendMedicalReferralNote(question, llmAnswer, language.responseLanguage);
 
     const validation = await timeAsync(timing, "validationMs", async () =>
       answerValidator.validate(

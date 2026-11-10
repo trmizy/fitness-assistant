@@ -74,3 +74,23 @@ describe("workout schedule intent detection", () => {
     assert.equal(intent.parsedDayOfWeek, 5);
   });
 });
+
+// Regression (2026-11-10, eval B1-14 / B1-20 / B1-46): coaching questions that merely contain "tập gì"/"tuần này" were
+// answered with the user's saved schedule instead of by the coach.
+describe("workout schedule intent: advice questions are not lookups", () => {
+  it("does not treat advice questions as a saved-schedule lookup", () => {
+    for (const q of [
+      "Tuần này tôi bận quá, chỉ tập được 2 buổi thì nên tập gì?",
+      "Tôi chưa hít xà được cái nào, tập gì để làm được?",
+      "Tôi hay bỏ tập giữa chừng sau vài tuần, làm sao để duy trì thói quen tập?",
+    ]) {
+      assert.equal(detectWorkoutScheduleIntent(q).enabled, false, q);
+    }
+  });
+
+  it("still looks up the schedule for genuine schedule questions", () => {
+    for (const q of ["hôm nay tôi tập gì", "tuần này tôi tập gì", "ngày mai tập gì", "lịch tập thứ 4 của tôi"]) {
+      assert.equal(detectWorkoutScheduleIntent(q).enabled, true, q);
+    }
+  });
+});

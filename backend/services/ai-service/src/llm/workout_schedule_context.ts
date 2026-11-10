@@ -237,9 +237,23 @@ function isWorkoutSafetyQuestion(q: string): boolean {
 }
 
 function asksStoredWorkoutDetails(q: string): boolean {
-  return /(lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|what should i train)/.test(
+  // `tap gi` needs a word boundary: "bỏ tập giữa chừng" normalises to "bo tap giua chung", which contains "tap gi" as a
+  // substring and used to be answered with the user's saved schedule instead of by the coach (eval B1-46, 2026-11-10).
+  return /(lich tap|lich cua toi|toi tap gi\b|tap gi\b|workout schedule|what should i train)/.test(
     q,
   );
+}
+
+/**
+ * An ADVICE question that happens to contain schedule words ("chỉ tập được 2 buổi thì nên tập gì?", "chưa hít xà được thì
+ * tập gì để làm được?"). The user wants coaching, not a read-out of the saved schedule, so it must reach the coach. A hard
+ * anchor (today / tomorrow / a date or weekday / "lịch tập" / "lịch của tôi") keeps it a lookup.
+ */
+function isAdviceNotLookup(q: string, hasDateOrDay: boolean): boolean {
+  const hasHardAnchor =
+    hasDateOrDay || /(hom nay|ngay mai|today|tomorrow|lich tap|lich cua toi|workout schedule)/.test(q);
+  if (hasHardAnchor) return false;
+  return /\btap gi de\b|\bchi (tap|co) duoc\b|\bban qua\b|lam sao|lam the nao|tai sao|\bnen thay doi\b/.test(q);
 }
 
 function hasScheduleFollowUpSignal(q: string): boolean {
@@ -313,9 +327,20 @@ export function detectWorkoutScheduleIntent(
   }
 
   const scheduleSignals =
-    /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
+    /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi\b|tap gi\b|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
   const hasDateOrDay =
     parsedDate !== undefined || parsedDayOfWeek !== undefined;
+  if (isAdviceNotLookup(q, hasDateOrDay)) {
+    return {
+      enabled: false,
+      target: "current_schedule",
+      rawMessage: question,
+      normalizedMessage: q,
+      inheritedIntent,
+      parsedDate,
+      parsedDayOfWeek,
+    };
+  }
   const hasDirectScheduleSignal =
     scheduleSignals.test(q) || asksForWeeklySchedule(q);
   const inheritedFollowUp =

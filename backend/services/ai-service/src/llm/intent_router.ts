@@ -77,6 +77,18 @@ function isUnsafeWeightLoss(question: string): boolean {
   return hasRapidLoss || hasExtremePhrase || hasOneWeekTarget;
 }
 
+export function isTrainingAdviceQuestion(q: string): boolean {
+  const lower = q.toLowerCase();
+  const asksComparison = /c[aá]i n[aà]o|n[aà]o (?:t[oố]t|hi[eệ]u qu[aả]|hay) h[oơ]n|t[oố]t h[oơ]n/.test(lower);
+  const asksDiagnosis =
+    /(?:c[oơ]|c[aâ]n|s[uứ]c m[aạ]nh|ti[eế]n b[oộ]).{0,15}kh[oô]ng (?:l[eê]n|t[aă]ng|ti[eế]n|gi[aả]m)|n[eê]n thay [dđ][oổ]i|thay [dđ][oổ]i g[iì]|\bplateau\b/.test(lower);
+  if (!asksComparison && !asksDiagnosis) return false;
+  const asksCreation =
+    /l[eê]n (?:gi[uúp]+|cho|l[iị]ch|m[oộ]t|1|k[eế] ho[aạ]ch)|(?:^|\s)(?:t[aạ]o|l[aậ]p|thi[eế]t k[eế]|x[aâ]y d[uự]ng|g[oợ]i [yý]|[dđ][eề] xu[aấ]t)\s/.test(lower);
+  const isNutrition = /calo|calories|protein|macro|th[uự]c [dđ][oơ]n|[aă]n u[oố]ng|b[uữ]a [aă]n/.test(lower);
+  return !asksCreation && !isNutrition;
+}
+
 function inferIntent(question: string): RoutedIntentType {
   const q = question.toLowerCase();
 
@@ -89,6 +101,13 @@ function inferIntent(question: string): RoutedIntentType {
   ) {
     return "profile_completion_request";
   }
+
+  // Training ADVICE / comparison / diagnosis questions are coaching questions, not requests for a template workout:
+  // "full body 3 buổi hay chia nhóm 5 buổi thì cái nào tăng cơ tốt hơn?", "tập PPL 6 tháng mà cơ không lên nữa, nên
+  // thay đổi gì?". Their words ("3 buổi/tuần", "legs", "tập") used to send them to the deterministic plan template, which
+  // answered with a default schedule and no reasoning (eval B1-01 / B1-15, 2026-11-10). They go to the model instead.
+  // An explicit creation request ("lên giúp tôi lịch tập…", "tạo…", "gợi ý…") is never treated as advice.
+  if (isTrainingAdviceQuestion(q)) return "general_fitness_knowledge";
 
   // frequency_change_request: "N buổi 1 tuần", "N buổi/tuần", "N sessions per week"
   // Check BEFORE schedule_specific_day to prevent misfire on "5 buổi 1 tuần"
