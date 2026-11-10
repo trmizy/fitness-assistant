@@ -12,8 +12,9 @@ import {
   ptReviewRepository,
   attachPtRatings,
 } from "../repositories/ptReview.repository";
-import { enrichForDiscovery } from "../services/pt-discovery.service";
-import { computeFromPricesByMode, toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
+import { enrichForDiscovery, viewerGymIds } from "../services/pt-discovery.service";
+import { PT_DISCOVERY_DEFAULT_LIMIT, PT_DISCOVERY_MAX_LIMIT } from "../services/pt-discovery.query";
+import { toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
 import { auditService, auditMeta } from "../services/audit.service";
 import { profileNameFields } from "../utils/profileName.util";
 import { AuditEntityType } from "../generated/prisma";
@@ -145,32 +146,75 @@ export const profileController = {
 
   async listPTs(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const q = req.query.q as string | undefined;
-      const sessionMode = req.query.sessionMode as string | undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const page = req.query.page
-        ? parseInt(req.query.page as string, 10)
-        : undefined;
-      const limit = req.query.limit
-        ? parseInt(req.query.limit as string, 10)
-        : undefined;
+      const parseStrictInt = (raw: unknown): number | null => {
+        if (typeof raw !== "string") return null;
+        const trimmed = raw.trim();
+        if (!/^-?\d+$/.test(trimmed)) return null;
+        const n = Number(trimmed);
+        return Number.isSafeInteger(n) && Math.abs(n) <= 2_147_483_647 ? n : null;
+      };
+
+      const q = typeof req.query.q === "string" ? req.query.q : undefined;
+      const sessionMode = typeof req.query.sessionMode === "string" ? req.query.sessionMode : undefined;
+      const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy.trim() || undefined : undefined;
+
+      let page = 1;
+      if (req.query.page !== undefined) {
+        const parsedPage = parseStrictInt(req.query.page);
+        if (parsedPage === null || parsedPage < 1) {
+          res.status(400).json({ error: "page phải là số nguyên >= 1" });
+          return;
+        }
+        page = parsedPage;
+      }
+
+      let limit = PT_DISCOVERY_DEFAULT_LIMIT;
+      if (req.query.limit !== undefined) {
+        if (typeof req.query.limit !== "string") {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        const trimmedLimit = req.query.limit.trim();
+        if (!/^-?\d+$/.test(trimmedLimit)) {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        const parsedLimit = Number(trimmedLimit);
+        if (!Number.isSafeInteger(parsedLimit) || parsedLimit < 1) {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        limit = Math.min(parsedLimit, PT_DISCOVERY_MAX_LIMIT);
+      }
 
       // Parse and validate numeric filters
       let minPrice: number | undefined;
       let maxPrice: number | undefined;
       let provinceCode: number | undefined;
       let wardCode: number | undefined;
+      let areaProvince: number | undefined;
+      let areaWard: number | undefined;
 
       if (req.query.minPrice !== undefined) {
         minPrice = Number(req.query.minPrice);
-        if (isNaN(minPrice) || minPrice < 0) {
+        if (
+          typeof req.query.minPrice !== "string" ||
+          req.query.minPrice.trim() === "" ||
+          !Number.isFinite(minPrice) ||
+          minPrice < 0
+        ) {
           res.status(400).json({ error: "minPrice phải là số không âm" });
           return;
         }
       }
       if (req.query.maxPrice !== undefined) {
         maxPrice = Number(req.query.maxPrice);
-        if (isNaN(maxPrice) || maxPrice < 0) {
+        if (
+          typeof req.query.maxPrice !== "string" ||
+          req.query.maxPrice.trim() === "" ||
+          !Number.isFinite(maxPrice) ||
+          maxPrice < 0
+        ) {
           res.status(400).json({ error: "maxPrice phải là số không âm" });
           return;
         }
@@ -184,18 +228,20 @@ export const profileController = {
         return;
       }
       if (req.query.provinceCode !== undefined) {
-        provinceCode = Number(req.query.provinceCode);
-        if (isNaN(provinceCode)) {
+        const parsed = parseStrictInt(req.query.provinceCode);
+        if (parsed === null) {
           res.status(400).json({ error: "provinceCode phải là số nguyên" });
           return;
         }
+        provinceCode = parsed;
       }
       if (req.query.wardCode !== undefined) {
-        wardCode = Number(req.query.wardCode);
-        if (isNaN(wardCode)) {
+        const parsed = parseStrictInt(req.query.wardCode);
+        if (parsed === null) {
           res.status(400).json({ error: "wardCode phải là số nguyên" });
           return;
         }
+        wardCode = parsed;
         // A ward code is only meaningful inside a province — the same number is reused
         // across provinces, so filtering on it alone quietly matches wards the caller never
         // meant. The search form already pairs the two; enforcing it only there leaves the
@@ -207,30 +253,47 @@ export const profileController = {
           return;
         }
       }
-
-      const searchCity = req.query.searchCity as string | undefined;
-      const searchDistrict = req.query.searchDistrict as string | undefined;
-      const gymId = req.query.gymId as string | undefined;
-      let specialties: string[] | undefined;
-      if (req.query.specialties) {
-        if (Array.isArray(req.query.specialties)) {
-          specialties = req.query.specialties as string[];
-        } else {
-          specialties = (req.query.specialties as string).split(",");
+      if (req.query.areaProvince !== undefined) {
+        const parsed = parseStrictInt(req.query.areaProvince);
+        if (parsed === null) {
+          res.status(400).json({ error: "areaProvince phải là số nguyên" });
+          return;
+        }
+        areaProvince = parsed;
+      }
+      if (req.query.areaWard !== undefined) {
+        const parsed = parseStrictInt(req.query.areaWard);
+        if (parsed === null) {
+          res.status(400).json({ error: "areaWard phải là số nguyên" });
+          return;
+        }
+        areaWard = parsed;
+        if (areaProvince === undefined) {
+          res
+            .status(400)
+            .json({ error: "areaWard phải đi kèm areaProvince" });
+          return;
         }
       }
 
-      // Rating order can't be expressed in findPTs' orderBy (the score is aggregated from
-      // session_reviews, not a column), so for that one mode we page in memory: fetch the
-      // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
-      // sorting afterwards would only order each page against itself.
-      // Price order is the same story: the per-session price is DERIVED from the packages for sale (it is not a
-      // column), so price sorts are done in memory too.
-      const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
-      const sortByPrice = sortBy === "priceAsc" || sortBy === "priceDesc";
-      const sortInMemory = sortByRating || sortByPrice;
+      const searchCity = typeof req.query.searchCity === "string" ? req.query.searchCity : undefined;
+      const searchDistrict = typeof req.query.searchDistrict === "string" ? req.query.searchDistrict : undefined;
+      const gymId = typeof req.query.gymId === "string" ? req.query.gymId : undefined;
+      let specialties: string[] | undefined;
+      if (req.query.specialties !== undefined) {
+        const rawSpecialties = Array.isArray(req.query.specialties)
+          ? req.query.specialties.flatMap((v) => String(v).split(","))
+          : String(req.query.specialties).split(",");
+        const cleaned = rawSpecialties.map((s) => s.trim()).filter(Boolean);
+        if (cleaned.length > 0) specialties = cleaned;
+      }
 
-      const profiles = await profileRepository.findPTs({
+      // Fetch viewer's active gyms once before the query so default-order SQL can prioritize
+      // SAME_GYM globally and enrichForDiscovery reuses the exact same set for matchReason.
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
+
+      // Global SQL filtering, sorting, and pagination (no limit:1000 JS sort).
+      const { pts: profiles, hasMore } = await profileRepository.findPTsPaged({
         q: q?.trim() || undefined,
         minPrice,
         maxPrice,
@@ -241,79 +304,36 @@ export const profileController = {
         searchDistrict,
         gymId,
         specialties,
-        sortBy: sortInMemory ? undefined : sortBy,
-        page: sortInMemory ? undefined : page,
-        limit: sortInMemory ? 1000 : limit,
+        sortBy,
+        viewerGymIds: activeViewerGymIds.size > 0 ? [...activeViewerGymIds] : undefined,
+        page,
+        limit,
       });
 
-      // B10b. Ưu tiên gymId: Nếu có gymId, đưa các PT có cùng gymId lên đầu danh sách
-      if (gymId) {
-        profiles.sort((a, b) => {
-          if (a.gymId === gymId && b.gymId !== gymId) return -1;
-          if (b.gymId === gymId && a.gymId !== gymId) return 1;
-          return 0;
-        });
-      }
       // Trainers approved before names were copied at approval time still have empty name
-      // columns, so `q` cannot find them. Whatever auth-service fills in below is written back
-      // (only into still-empty columns) — the list heals itself the first time it is loaded.
-      // Only the nameless rows go to auth-service (the helper would otherwise also fetch every row's email, which
-      // the public DTO never emits). Whatever it adds beyond names is dropped by toPublicPtDto's allowlist.
-      const nameless = (profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId);
-      await enrichProfilesWithAuthNames((profiles as any[]).filter((p) => nameless.includes(p.userId)));
-      if (nameless.length > 0) {
-        const healed = (profiles as any[]).filter((p) => nameless.includes(p.userId));
+      // columns, so `q` cannot find them. Only the current page's nameless rows go to auth-service.
+      const nameless = new Set((profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId));
+      if (nameless.size > 0) {
+        const namelessProfiles = (profiles as any[]).filter((p) => nameless.has(p.userId));
+        await enrichProfilesWithAuthNames(namelessProfiles);
         void Promise.all(
-          healed.map((p) => {
+          namelessProfiles.map((p) => {
             const names = profileNameFields(p.firstName, p.lastName);
             return names ? profileRepository.backfillNames(p.userId, names) : null;
           }),
         ).catch(() => undefined);
       }
 
-      // One grouped query for the whole list, never one per PT.
-      let rated = await attachPtRatings(profiles as any[]);
+      // One grouped query for the current page only, preserving the SQL sort order.
+      const rated = await attachPtRatings(profiles as any[]);
 
-      if (sortInMemory) {
-        if (sortByRating) {
-          const dir = sortBy === "ratingAsc" ? 1 : -1;
-          // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
-          rated.sort((a, b) => {
-            if (a.avgRating === null && b.avgRating === null) return 0;
-            if (a.avgRating === null) return 1;
-            if (b.avgRating === null) return -1;
-            return (a.avgRating - b.avgRating) * dir;
-          });
-        } else {
-          const dir = sortBy === "priceAsc" ? 1 : -1;
-          // With a mode filter the price that matters is that mode's; otherwise the cheapest of all. A trainer
-          // with nothing for sale has no price and sinks to the bottom either way.
-          const priceOf = (row: any): number | null => {
-            const byMode = computeFromPricesByMode(row.servicePackages ?? []);
-            const picked =
-              sessionMode === "ONLINE" ? byMode.online : sessionMode === "OFFLINE" ? byMode.offline : byMode.overall;
-            return picked.fromPricePerSession;
-          };
-          rated.sort((a, b) => {
-            const pa = priceOf(a);
-            const pb = priceOf(b);
-            if (pa === null && pb === null) return 0;
-            if (pa === null) return 1;
-            if (pb === null) return -1;
-            return (pa - pb) * dir;
-          });
-        }
-        const take = limit ?? 50;
-        const skip = page ? (page - 1) * take : 0;
-        rated = rated.slice(skip, skip + take);
-      }
-
-      // Phase 1 layer 2 + Phase 2 VĐ6: the two fields the buying UI needs. Both are computed
-      // for the whole page at once — one grouped slot query and one membership lookup — so
-      // the query count does not grow with the number of trainers returned.
-      // The viewer comes from the verified token, never from a query parameter — otherwise
-      // anyone could ask "rank this list as if I were that user" and read their gym membership.
-      const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
+      // Phase 1 layer 2 + Phase 2 VĐ6: slots + matchReason for the current page, without re-sorting.
+      const enriched = await enrichForDiscovery(
+        rated,
+        req.user?.id,
+        { areaProvince, areaWard },
+        activeViewerGymIds,
+      );
       // Everything below this line is the public allowlist: rows came from the public finder (visibility rule
       // applied), and only the fields toPublicPtDto names are emitted.
       const signed = await Promise.all(
@@ -329,7 +349,7 @@ export const profileController = {
         ),
       );
 
-      res.json({ pts: signed });
+      res.json({ pts: signed, hasMore });
     } catch (error) {
       logger.error(error, "List PTs error");
       res.status(500).json({ error: "Internal server error" });

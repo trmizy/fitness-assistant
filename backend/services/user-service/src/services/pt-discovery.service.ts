@@ -1,7 +1,6 @@
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import { availabilityService } from "./availability.service";
-import { prisma } from "../repositories/profile.repository";
 
 /**
  * The two fields the PT-discovery UI needs beyond the profile itself:
@@ -22,6 +21,11 @@ const INTERNAL_SERVICE_SECRET =
 
 export type MatchReason = "SAME_GYM" | "SAME_WARD" | "SAME_PROVINCE" | null;
 
+export interface ViewerArea {
+  areaProvince?: number;
+  areaWard?: number;
+}
+
 /**
  * Gyms the viewer currently holds a live membership at.
  *
@@ -29,7 +33,7 @@ export type MatchReason = "SAME_GYM" | "SAME_WARD" | "SAME_PROVINCE" | null;
  * wrong here is a missing badge, not a wrong badge — so an empty set on error is safe, unlike
  * the contract-rate lookup where a wrong answer would misallocate money.
  */
-async function viewerGymIds(viewerUserId?: string): Promise<Set<string>> {
+export async function viewerGymIds(viewerUserId?: string): Promise<Set<string>> {
   if (!viewerUserId) return new Set();
   try {
     const { data } = await axios.get(
@@ -47,55 +51,55 @@ async function viewerGymIds(viewerUserId?: string): Promise<Set<string>> {
   }
 }
 
-/** The viewer's own province/ward, used for the weaker two ranking tiers. */
-async function viewerLocation(viewerUserId?: string) {
-  if (!viewerUserId) return null;
-  // Read the whole row rather than a select list: the residence columns live on the PT
-  // application in some deployments and on the profile in others, and a select that names a
-  // column the generated client does not know about is a compile error, not a null.
-  const p: any = await prisma.userProfile.findUnique({ where: { userId: viewerUserId } });
-  if (!p) return null;
+/** The viewer's selected province/ward from query parameters, used for matchReason badges. */
+function viewerLocation(area?: ViewerArea): { areaProvince: number | null; areaWard: number | null } | null {
+  if (area?.areaProvince === undefined && area?.areaWard === undefined) return null;
   return {
-    residenceProvinceCode: p.residenceProvinceCode ?? null,
-    residenceWardCode: p.residenceWardCode ?? null,
+    areaProvince: area.areaProvince ?? null,
+    areaWard: area.areaWard ?? null,
   };
 }
 
 function reasonFor(
   pt: any,
   gymIds: Set<string>,
-  viewer: { residenceProvinceCode: number | null; residenceWardCode: number | null } | null,
+  viewer: { areaProvince: number | null; areaWard: number | null } | null,
 ): MatchReason {
   const locations: any[] = pt.trainingLocations ?? [];
   if (gymIds.size > 0 && locations.some((l) => l.gymId && gymIds.has(l.gymId))) {
     return "SAME_GYM";
   }
-  if (viewer?.residenceWardCode != null && locations.some((l) => l.wardCode === viewer.residenceWardCode)) {
+  if (
+    viewer?.areaWard != null &&
+    locations.some(
+      (l) =>
+        l.wardCode === viewer.areaWard &&
+        (viewer.areaProvince == null || l.provinceCode === viewer.areaProvince),
+    )
+  ) {
     return "SAME_WARD";
   }
-  if (viewer?.residenceProvinceCode != null && locations.some((l) => l.provinceCode === viewer.residenceProvinceCode)) {
+  if (viewer?.areaProvince != null && locations.some((l) => l.provinceCode === viewer.areaProvince)) {
     return "SAME_PROVINCE";
   }
   return null;
 }
 
-const TIER: Record<string, number> = { SAME_GYM: 0, SAME_WARD: 1, SAME_PROVINCE: 2 };
-const tierOf = (r: MatchReason) => (r ? TIER[r] : 3);
-
 /**
- * Attach both fields, and apply the VĐ6 ranking when the caller did not ask for a specific
- * order. A trainer who has switched off new clients always sinks to the bottom regardless of
- * tier — they are still worth reading about, just not worth ranking first.
+ * Attach availableSlotsNext28Days and matchReason for the current page without altering
+ * the global SQL ordering. Accepts pre-fetched viewerGymIds so gym-service is queried at most once.
  */
 export async function enrichForDiscovery(
   profiles: any[],
   viewerUserId?: string,
-  applyRanking = true,
+  viewerArea?: ViewerArea,
+  prefetchedGymIds?: Set<string>,
 ): Promise<any[]> {
   if (profiles.length === 0) return profiles;
 
   const ptIds = profiles.map((p) => p.userId);
-  const [slots, gymIds, viewer] = await Promise.all([
+  const viewer = viewerLocation(viewerArea);
+  const [slots, gymIds] = await Promise.all([
     availabilityService
       .countAvailableSlotsForPTs(
         ptIds,
@@ -107,28 +111,14 @@ export async function enrichForDiscovery(
         logger.warn({ message: (e as Error).message }, "[PTDiscovery] đếm slot thất bại");
         return new Map<string, number>();
       }),
-    viewerGymIds(viewerUserId),
-    viewerLocation(viewerUserId),
+    prefetchedGymIds !== undefined ? Promise.resolve(prefetchedGymIds) : viewerGymIds(viewerUserId),
   ]);
 
-  const out = profiles.map((p) => ({
+  return profiles.map((p) => ({
     ...p,
     // Always present, never undefined: the UI branches on the number, and an absent field
     // would silently read as "no warning needed".
     availableSlotsNext28Days: Number((slots as any).get?.(p.userId) ?? (slots as any)[p.userId] ?? 0),
     matchReason: reasonFor(p, gymIds, viewer),
   }));
-
-  if (!applyRanking) return out;
-
-  return out.sort((a, b) => {
-    const accepting = (x: any) => (x.isAcceptingClients === false ? 1 : 0);
-    if (accepting(a) !== accepting(b)) return accepting(a) - accepting(b);
-    const t = tierOf(a.matchReason) - tierOf(b.matchReason);
-    if (t !== 0) return t;
-    // Within a tier: better rated first, unrated last — "no rating yet", not "worst".
-    const ra = a.avgRating ?? -1;
-    const rb = b.avgRating ?? -1;
-    return rb - ra;
-  });
 }

@@ -1,14 +1,17 @@
-import { Prisma, PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "../generated/prisma";
 import { computeStartingWeightPatch } from "./profile-starting-weight.util";
-// Circular on purpose: pt-public-dto.ts needs `prisma` from here, this file needs the public-visibility rule from
-// there. Both only use the other's exports inside functions (never at module load), so the cycle is safe.
+// Circular on purpose: pt-public-dto.ts and pt-discovery.query.ts need `prisma` from here,
+// this file uses their functions at call time (never at module load), so the cycle is safe.
 import {
   PT_PUBLIC_PROFILE_SELECT,
   asPublishedPtSource,
-  findPtUserIdsWithSessionPriceIn,
   ptPublicWhere,
   type PublishedPtSource,
 } from "../services/pt-public-dto";
+import {
+  findDiscoveryPtPageIds,
+  type PtDiscoveryQueryFilters,
+} from "../services/pt-discovery.query";
 
 export const prisma = new PrismaClient();
 
@@ -94,110 +97,33 @@ export const profileRepository = {
 
   /**
    * List the PUBLICLY VISIBLE trainers (isPT + APPROVED application + not suspended + no ACCOUNT-scope
-   * restriction - see ptPublicWhere) with optional filters.
+   * restriction - see ptPublicWhere) with global SQL filtering, global SQL sorting, and pagination.
    *
    * Reads through `select`, never `include`: only the columns in PT_PUBLIC_PROFILE_SELECT leave the
    * database, so a column added to UserProfile later cannot leak into discovery by accident. The rows are
    * `PublishedPtSource` - the only input toPublicPtDto accepts.
-   *
-   * The price filter is over the PER-SESSION price of the packages for sale (price / sessionCount): a trainer
-   * matches when at least one package lies in the range (of the requested mode, when one is given). The legacy
-   * ptApplication.*PricePerSession columns are registration history and play no part any more.
    */
-  findPTs: async (
-    filters: {
-      q?: string;
-      minPrice?: number;
-      maxPrice?: number;
-      sessionMode?: string;
-      provinceCode?: number;
-      wardCode?: number;
-      searchCity?: string;
-      searchDistrict?: string;
-      gymId?: string;
-      specialties?: string[];
-      sortBy?: string;
-      page?: number;
-      limit?: number;
-    } = {},
-  ): Promise<PublishedPtSource[]> => {
-    const and: Prisma.UserProfileWhereInput[] = [await ptPublicWhere()];
-
-    // sessionMode filter: the trainer's declared service mode (HYBRID trainers serve both).
-    if (filters.sessionMode === "OFFLINE") {
-      and.push({ ptApplication: { is: { serviceMode: { in: ["OFFLINE", "HYBRID"] } } } });
-    } else if (filters.sessionMode === "ONLINE") {
-      and.push({ ptApplication: { is: { serviceMode: { in: ["ONLINE", "HYBRID"] } } } });
-    } else if (filters.sessionMode === "HYBRID") {
-      and.push({ ptApplication: { is: { serviceMode: "HYBRID" } } });
-    }
-
-    // Price filter: >= 1 package for sale with a per-session price in range. Nobody without packages matches.
-    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      const ids = await findPtUserIdsWithSessionPriceIn({
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        sessionMode: filters.sessionMode,
-      });
-      and.push({ userId: { in: ids } });
-    }
-
-    // q matches in either of two ways (OR):
-    //  1. the WHOLE string, exactly as before: the gym name / address the trainer works at (accent-insensitive,
-    //     findPtUserIdsMatchingText) or a first/last name containing it. Specialty is left to the chips.
-    //  2. TOKENS: q split on whitespace, EVERY token must be contained (case-insensitive, accent-sensitive like
-    //     before) in the trainer's own firstName OR lastName, so "Lý Thành Đạt" (first="Lý", last="Thành Đạt")
-    //     matches although no single column holds the whole string. Tokens never match gym name / address.
-    const q = (filters.q ?? "").trim();
-    if (q) {
-      const nameMatch = (text: string): Prisma.UserProfileWhereInput[] => [
-        { firstName: { contains: text, mode: "insensitive" as const } },
-        { lastName: { contains: text, mode: "insensitive" as const } },
-        { firstNameNormalized: { contains: text, mode: "insensitive" as const } },
-        { lastNameNormalized: { contains: text, mode: "insensitive" as const } },
-      ];
-      const textMatchIds = await findPtUserIdsMatchingText(q);
-      const tokens = q.split(/\s+/).filter(Boolean);
-      and.push({
-        OR: [
-          ...(textMatchIds.length > 0 ? [{ userId: { in: textMatchIds } }] : []),
-          ...nameMatch(q),
-          ...(tokens.length > 1 ? [{ AND: tokens.map((t) => ({ OR: nameMatch(t) })) }] : []),
-        ],
-      });
-    }
-
-    if (filters.searchCity) and.push({ searchCity: filters.searchCity });
-    if (filters.searchDistrict) and.push({ searchDistrict: filters.searchDistrict });
-    if (filters.gymId) and.push({ gymId: filters.gymId });
-    if (filters.specialties && filters.specialties.length > 0) {
-      and.push({ specialties: { hasSome: filters.specialties } });
-    }
-
-    // Location filter via trainingLocations relation
-    if (filters.provinceCode || filters.wardCode) {
-      const locWhere: Prisma.PTTrainingLocationWhereInput = { isActive: true };
-      if (filters.provinceCode) locWhere.provinceCode = filters.provinceCode;
-      if (filters.wardCode) locWhere.wardCode = filters.wardCode;
-      and.push({ trainingLocations: { some: locWhere } });
-    }
-
-    // Sorting. Price and rating order cannot be expressed here (price is derived from the packages, the
-    // rating is aggregated from session_reviews), so the controller sorts those in memory.
-    const orderBy: Prisma.UserProfileOrderByWithRelationInput =
-      filters.sortBy === "nameAsc" ? { firstName: "asc" } : { createdAt: "desc" };
-
-    const take = filters.limit ?? 50;
-    const skip = filters.page ? (filters.page - 1) * take : 0;
+  findPTsPaged: async (
+    filters: PtDiscoveryQueryFilters = {},
+  ): Promise<{ pts: PublishedPtSource[]; hasMore: boolean }> => {
+    const { userIds, hasMore } = await findDiscoveryPtPageIds(filters);
+    if (userIds.length === 0) return { pts: [], hasMore: false };
 
     const rows = await prisma.userProfile.findMany({
-      where: { AND: and },
-      orderBy,
-      take,
-      skip,
+      where: { userId: { in: userIds } },
       select: PT_PUBLIC_PROFILE_SELECT,
     });
-    return rows.map(asPublishedPtSource);
+    const byUserId = new Map(rows.map((r) => [r.userId, asPublishedPtSource(r)]));
+    const pts = userIds
+      .map((id) => byUserId.get(id))
+      .filter((r): r is PublishedPtSource => r !== undefined);
+
+    return { pts, hasMore };
+  },
+
+  findPTs: async (filters: PtDiscoveryQueryFilters = {}): Promise<PublishedPtSource[]> => {
+    const { pts } = await profileRepository.findPTsPaged(filters);
+    return pts;
   },
 
   /** One publicly visible trainer, or null when the id is unknown OR the trainer is not visible (same rule as the list). */
