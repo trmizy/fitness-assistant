@@ -51,6 +51,10 @@ export const ADMIN_ERROR_CODES: Record<string, CodeEntry> = {
   NOT_FOUND: { message: "Không tìm thấy yêu cầu này (có thể đã bị xoá). Danh sách đã được tải lại.", stale: true },
   INVALID_STATUS: { message: "Yêu cầu không còn ở trạng thái này — đã được xử lý ở nơi khác. Danh sách đã được tải lại.", stale: true },
   ALREADY_PAID: { message: "Yêu cầu này đã được chi trả nên không thể thay đổi nữa. Danh sách đã được tải lại.", stale: true },
+  FOUR_EYES_REQUIRED: {
+    message: "Khoản rút lớn cần một quản trị viên khác với người đã duyệt xác nhận đã chi. Danh sách đã được tải lại.",
+    stale: true,
+  },
   REASON_REQUIRED: { message: "Cần nhập lý do." },
   BANK_REFERENCE_REQUIRED: { message: "Cần nhập mã tham chiếu chuyển khoản." },
   // ai-service personalized-service refund (A3)

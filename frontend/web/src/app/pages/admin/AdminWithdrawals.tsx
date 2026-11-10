@@ -291,7 +291,7 @@ export function AdminWithdrawals() {
             </div>
           ) : (
             <p data-testid="admin-withdrawals-process-note" className="text-xs text-adm-text-2">
-              “Duyệt” chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc chuyển khoản sẽ mất thời gian — chuyển được ngay thì bấm thẳng “Đã chi trả”. Tiền
+              “Duyệt” chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc chuyển khoản sẽ mất thời gian — chuyển được ngay thì bấm thẳng “Đã chi trả”. Riêng khoản từ 5.000.000 ₫ trở lên bắt buộc phải “Duyệt” trước, rồi một quản trị viên khác bấm “Đã chi trả”. Tiền
               chỉ thực sự bị trừ khỏi ví ở bước “Đã chi trả”.
             </p>
           )}
