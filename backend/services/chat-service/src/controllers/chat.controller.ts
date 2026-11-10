@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
-import { chatService } from "../services/chat.service";
+import { chatService, NOT_PARTICIPANT_MESSAGE } from "../services/chat.service";
 import { chatRepository } from "../repositories/chat.repository";
 import {
   createDirectConversationSchema,
@@ -31,13 +31,16 @@ export const chatController = {
       if (error instanceof z.ZodError) {
         res
           .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+          .json({
+            error: error.errors[0]?.message || "Dữ liệu không hợp lệ",
+            details: error.errors,
+          });
         return;
       }
       logger.error(error, "Create conversation error");
       res
         .status(error.statusCode || 500)
-        .json({ error: error.message || "Internal server error" });
+        .json({ error: error.message || "Lỗi máy chủ, vui lòng thử lại" });
     }
   },
 
@@ -47,31 +50,32 @@ export const chatController = {
       res.json(result);
     } catch (error: any) {
       logger.error(error, "List conversations error");
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: "Lỗi máy chủ, vui lòng thử lại" });
     }
   },
 
   async getMessages(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { page, limit } = paginationSchema.parse(req.query);
+      const { page, limit, before } = paginationSchema.parse(req.query);
       const result = await chatService.getMessages(
         req.params.id,
         req.user!.id,
         page,
         limit,
+        before,
       );
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         res
           .status(400)
-          .json({ error: "Invalid query params", details: error.errors });
+          .json({ error: "Tham số phân trang không hợp lệ", details: error.errors });
         return;
       }
       logger.error(error, "Get messages error");
       res
         .status(error.statusCode || 500)
-        .json({ error: error.message || "Internal server error" });
+        .json({ error: error.message || "Lỗi máy chủ, vui lòng thử lại" });
     }
   },
 
@@ -88,13 +92,16 @@ export const chatController = {
       if (error instanceof z.ZodError) {
         res
           .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+          .json({
+            error: error.errors[0]?.message || "Dữ liệu không hợp lệ",
+            details: error.errors,
+          });
         return;
       }
       logger.error(error, "Send message error");
       res
         .status(error.statusCode || 500)
-        .json({ error: error.message || "Internal server error" });
+        .json({ error: error.message || "Lỗi máy chủ, vui lòng thử lại" });
     }
   },
 
@@ -103,7 +110,7 @@ export const chatController = {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
+        res.status(401).json({ error: "Phiên đăng nhập không hợp lệ" });
         return;
       }
       const conversationId = req.params.id;
@@ -114,7 +121,7 @@ export const chatController = {
       if (!allowed) {
         res
           .status(403)
-          .json({ error: "Not a participant of this conversation" });
+          .json({ error: NOT_PARTICIPANT_MESSAGE });
         return;
       }
       const updated = await chatRepository.markConversationRead(
@@ -124,7 +131,7 @@ export const chatController = {
       res.json({ updated });
     } catch (error: any) {
       logger.error(error, "Mark-read error");
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: "Lỗi máy chủ, vui lòng thử lại" });
     }
   },
 };

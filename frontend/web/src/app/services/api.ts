@@ -3803,9 +3803,10 @@ export const chatService = {
     return data;
   },
 
-  getMessages: async (conversationId: string, page = 1, limit = 30) => {
+  // Page 1 is the NEWEST `limit` messages (oldest-first). `beforeId` loads the `limit` messages older than that one.
+  getMessages: async (conversationId: string, page = 1, limit = 30, beforeId?: string) => {
     const { data } = await api.get(
-      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
+      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}${beforeId ? `&before=${encodeURIComponent(beforeId)}` : ""}`,
     );
     return data;
   },

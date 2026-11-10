@@ -70,6 +70,21 @@ export function getSocketServer(): Server | null {
   return io;
 }
 
+/**
+ * Cuts every live gateway socket of one user (all tabs/devices). Used when an admin locks the account:
+ * a socket authenticates only at the handshake, so without this the locked user's already-open
+ * connection would keep receiving chat messages and notifications. A reconnect re-runs the handshake,
+ * which auth-service now refuses. Returns whether a socket server was there to ask.
+ */
+export function disconnectUserSockets(
+  server: Pick<Server, "in"> | null,
+  userId: string,
+): boolean {
+  if (!server) return false;
+  server.in(userRoom(userId)).disconnectSockets(true);
+  return true;
+}
+
 export function emitToUser<TPayload>(
   userId: string,
   event: string,

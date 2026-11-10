@@ -190,6 +190,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // Open-room sessions: what startSessionPreview acquired media for, waiting on a click on
   // the preview screen (confirmJoinFromPreview) to actually signal anything.
   const pendingJoinRef = useRef<PendingSessionJoin | null>(null);
+  // ND-08: a CHAT call this side started and gave up on before the server's call:initiated (the id) came
+  // back. cancelCall had no id to send, so the call stayed ringing on the server; each entry is answered
+  // with a cancel as soon as that id shows up.
+  const orphanedOutgoingRef = useRef<number[]>([]);
+  // Watchdog for "Đang gọi..." that the server never confirmed (see initiateCall).
+  const initiateWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearInitiateWatchdog = useCallback(() => {
+    if (initiateWatchdogRef.current) {
+      clearTimeout(initiateWatchdogRef.current);
+      initiateWatchdogRef.current = null;
+    }
+  }, []);
   const chatWsEnabled = isChatWsEnabled();
 
   const showRealtimeDisabled = useCallback(() => {
@@ -242,7 +254,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             reason: "ice_failed",
           });
         }
-        toast.error("Connection failed");
+        toast.error("Kết nối cuộc gọi thất bại");
         doCleanup();
       }
     },
@@ -254,13 +266,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   webrtcRef.current = webrtc;
 
   const doCleanup = useCallback(() => {
+    clearInitiateWatchdog();
     webrtcRef.current.cleanup();
     if (durationRef.current) {
       clearInterval(durationRef.current);
       durationRef.current = null;
     }
     dispatch({ type: "SET_IDLE" });
-  }, []);
+  }, [clearInitiateWatchdog]);
 
   // ── Socket listeners (registered once) ─────────────────────
   useEffect(() => {
@@ -287,6 +300,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onInitiated = (data: any) => {
+      clearInitiateWatchdog();
+      // The user already hung up on this call before its id arrived: end it on the server now, otherwise it
+      // keeps ringing the other person and keeps this account "busy" until the 30 s ring timeout.
+      const stillOrphaned = orphanedOutgoingRef.current.filter((at) => Date.now() - at < 40_000);
+      orphanedOutgoingRef.current = stillOrphaned;
+      if (stillOrphaned.length > 0 && data?.callSessionId) {
+        orphanedOutgoingRef.current = stillOrphaned.slice(1);
+        socket.emit("call:cancel", { callSessionId: data.callSessionId });
+        return;
+      }
       iceServersRef.current = data.iceServers || [];
       isCallerRef.current = data.isCaller ?? true;
       dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: data.callSessionId });
@@ -322,7 +345,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Failed to create offer:", err);
         giveUp(callSessionId, "webrtc_error");
-        toast.error("Failed to establish connection");
+        toast.error("Không thiết lập được kết nối cuộc gọi");
       }
     };
 
@@ -362,7 +385,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Failed to create answer:", err);
         giveUp(data.callSessionId, "webrtc_error");
-        toast.error("Failed to establish connection");
+        toast.error("Không thiết lập được kết nối cuộc gọi");
       }
     };
 
@@ -477,12 +500,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onError = (data: CallErrorData) => {
+      clearInitiateWatchdog();
+      // The server answered the abandoned call:initiate with a refusal, so there is nothing left to cancel.
+      orphanedOutgoingRef.current = [];
       const isTokenError =
         data.message?.includes("token") || data.message?.includes("join");
       toast.error(
         isTokenError
           ? "Phiên tham gia không hợp lệ hoặc đã hết hạn. Vui lòng bấm tham gia lại."
-          : data.message || "Lỗi cuộc gọi",
+          : data.message || "Cuộc gọi gặp lỗi, vui lòng thử lại",
       );
       doCleanup();
     };
@@ -507,7 +533,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     socket.on("call:media_toggled", onMediaToggled);
     socket.on("call:error", onError);
 
+    // A call that rang while this socket was down (or before its listeners existed) is still "ringing" on
+    // the server for 30 s; ask for it on every (re)connect, and once now if the socket is already up.
+    const onConnect = () => socket.emit("call:sync");
+    socket.on("connect", onConnect);
+    if (socket.connected) onConnect();
+
     return () => {
+      socket.off("connect", onConnect);
       socket.off("call:incoming", onIncoming);
       socket.off("call:initiated", onInitiated);
       socket.off("call:accepted", onAccepted);
@@ -528,7 +561,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       socket.off("call:media_toggled", onMediaToggled);
       socket.off("call:error", onError);
     };
-  }, [isAuthenticated, chatWsEnabled, doCleanup]);
+  }, [isAuthenticated, chatWsEnabled, doCleanup, clearInitiateWatchdog]);
 
   // ── Actions (acquire media in click context, THEN signal) ──
 
@@ -542,7 +575,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
       // 1. Acquire media FIRST (user gesture context = click)
       if (!navigator.mediaDevices?.getUserMedia) {
-        toast.error("getUserMedia not supported — use HTTPS or localhost");
+        toast.error("Trình duyệt không hỗ trợ micro/camera hoặc cần chạy trên HTTPS/localhost");
+        return;
+      }
+      // ND-08: an emit on a socket that is not connected is only queued. The caller used to see "Đang gọi..."
+      // for the whole ring time while the callee was never asked. Say so up front and reconnect instead.
+      const readySocket = connectSocket();
+      if (!readySocket.connected) {
+        toast.error("Chưa kết nối được máy chủ cuộc gọi. Vui lòng thử lại sau vài giây.");
         return;
       }
       try {
@@ -550,9 +590,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         warnIfVideoUnavailable(stream, callType);
       } catch (err: any) {
         console.error("getUserMedia failed:", err?.name, err?.message, err);
-        toast.error(
-          `Mic/camera error: ${err?.name || "Unknown"} — ${err?.message || ""}`,
-        );
+        toast.error("Không truy cập được micro/camera. Vui lòng kiểm tra quyền của trình duyệt.");
         return;
       }
 
@@ -578,8 +616,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
         conversationId,
         origin: "CHAT",
       });
+
+      // The server confirms with call:initiated (or refuses with call:error) within moments. No answer in
+      // 10 s means the request never got through: stop pretending to ring, and cancel it if it turns up late.
+      clearInitiateWatchdog();
+      initiateWatchdogRef.current = setTimeout(() => {
+        initiateWatchdogRef.current = null;
+        const s = stateRef.current;
+        if (s.uiState === "outgoing" && !s.callInfo?.callSessionId) {
+          orphanedOutgoingRef.current = [...orphanedOutgoingRef.current, Date.now()];
+          toast.error("Không bắt đầu được cuộc gọi. Kiểm tra kết nối rồi thử lại.");
+          doCleanup();
+        }
+      }, 10_000);
     },
-    [chatWsEnabled, showRealtimeDisabled],
+    [chatWsEnabled, showRealtimeDisabled, clearInitiateWatchdog, doCleanup],
   );
 
   // Open-room sessions: acquire media for a live self-view and show the mic/cam preview
@@ -663,7 +714,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     // 1. Acquire media FIRST (user gesture context = click)
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("getUserMedia not supported — use HTTPS or localhost");
+      toast.error("Trình duyệt không hỗ trợ micro/camera hoặc cần chạy trên HTTPS/localhost");
       doCleanup();
       return;
     }
@@ -673,9 +724,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       warnIfVideoUnavailable(stream, callType);
     } catch (err: any) {
       console.error("getUserMedia failed:", err?.name, err?.message, err);
-      toast.error(
-        `Mic/camera error: ${err?.name || "Unknown"} — ${err?.message || ""}`,
-      );
+      toast.error("Không truy cập được micro/camera. Vui lòng kiểm tra quyền của trình duyệt.");
 
       // Reject the call since we can't take it
       const socket = connectSocket();
@@ -711,6 +760,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (s.callInfo?.callSessionId) {
       const socket = connectSocket();
       socket.emit("call:cancel", { callSessionId: s.callInfo.callSessionId });
+    } else if (s.uiState === "outgoing" && s.callInfo?.origin === "CHAT") {
+      // Hung up before the server said which call this is: cancel it the moment call:initiated names it.
+      orphanedOutgoingRef.current = [...orphanedOutgoingRef.current, Date.now()];
     }
     doCleanup();
   }, [chatWsEnabled, doCleanup]);

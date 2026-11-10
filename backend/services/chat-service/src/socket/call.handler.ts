@@ -8,6 +8,7 @@ import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
 import { chatRepository } from "../repositories/chat.repository";
 import { callRepository } from "../repositories/call.repository";
+import { callErrorText, VALID_CALL_TYPES } from "../utils/callErrors";
 import { CALL_RING_SECONDS, displayName, pushIncomingCall, pushMissedCall } from "../services/push-relay";
 
 // Track ring timeouts: callSessionId → timeout handle
@@ -185,8 +186,16 @@ export function registerCallHandlers(
         } = payload;
 
         const isSessionCall = origin === "SESSION" && coachingSessionId;
+        if (
+          typeof callType === "string" &&
+          callType &&
+          !(VALID_CALL_TYPES as readonly string[]).includes(callType)
+        ) {
+          socket.emit("call:error", { message: callErrorText("Invalid call type") });
+          return;
+        }
         if (!calleeId || !callType || (!conversationId && !isSessionCall)) {
-          socket.emit("call:error", { message: "Missing required fields" });
+          socket.emit("call:error", { message: callErrorText("Missing required fields") });
           return;
         }
 
@@ -247,9 +256,7 @@ export function registerCallHandlers(
             authToken,
           );
           if (!perm.allowed) {
-            socket.emit("call:error", {
-              message: perm.reason || "Not allowed",
-            });
+            socket.emit("call:error", { message: callErrorText(perm.reason || "Not allowed") });
             return;
           }
         }
@@ -274,7 +281,7 @@ export function registerCallHandlers(
         });
 
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -367,7 +374,7 @@ export function registerCallHandlers(
         );
       } catch (error) {
         logger.error(error, "call:initiate error");
-        socket.emit("call:error", { message: "Failed to initiate call" });
+        socket.emit("call:error", { message: callErrorText("Failed to initiate call") });
       }
     },
   );
@@ -383,7 +390,7 @@ export function registerCallHandlers(
             // Multi-tab: this tab lost the race
             socket.emit("call:accepted_elsewhere", { callSessionId });
           } else {
-            socket.emit("call:error", { message: result.error });
+            socket.emit("call:error", { message: callErrorText(result.error) });
           }
           return;
         }
@@ -411,7 +418,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, acceptedBy: user.id }, "Call accepted");
       } catch (error) {
         logger.error(error, "call:accept error");
-        socket.emit("call:error", { message: "Failed to accept call" });
+        socket.emit("call:error", { message: callErrorText("Failed to accept call") });
       }
     },
   );
@@ -423,7 +430,7 @@ export function registerCallHandlers(
       try {
         const result = await callService.rejectCall(callSessionId, user.id);
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -436,7 +443,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, rejectedBy: user.id }, "Call rejected");
       } catch (error) {
         logger.error(error, "call:reject error");
-        socket.emit("call:error", { message: "Failed to reject call" });
+        socket.emit("call:error", { message: callErrorText("Failed to reject call") });
       }
     },
   );
@@ -448,7 +455,7 @@ export function registerCallHandlers(
       try {
         const result = await callService.cancelCall(callSessionId, user.id);
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -468,7 +475,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, cancelledBy: user.id }, "Call cancelled");
       } catch (error) {
         logger.error(error, "call:cancel error");
-        socket.emit("call:error", { message: "Failed to cancel call" });
+        socket.emit("call:error", { message: callErrorText("Failed to cancel call") });
       }
     },
   );
@@ -593,7 +600,7 @@ export function registerCallHandlers(
           reason,
         );
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -610,7 +617,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, endedBy: user.id, reason }, "Call ended");
       } catch (error) {
         logger.error(error, "call:end error");
-        socket.emit("call:error", { message: "Failed to end call" });
+        socket.emit("call:error", { message: callErrorText("Failed to end call") });
       }
     },
   );
@@ -698,9 +705,7 @@ export function registerCallHandlers(
             });
           }
         } else {
-          socket.emit("call:error", {
-            message: "No active grace period for this call",
-          });
+          socket.emit("call:error", { message: callErrorText("No active grace period for this call") });
         }
       } catch (error) {
         logger.error(error, "call:rejoin error");

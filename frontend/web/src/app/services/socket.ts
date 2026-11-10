@@ -25,7 +25,13 @@ export function getSocket(): Socket {
       // Same reasoning as the gateway socket: refresh first, so a reconnect after a long
       // pause does not hand chat-service an expired token and then keep retrying with it.
       auth: async (cb) => {
-        await ensureFreshAccessToken();
+        // A failed refresh must still answer the handshake (with whatever token there is): a callback that
+        // is never called leaves the socket "connecting" forever and no later attempt is ever made.
+        try {
+          await ensureFreshAccessToken();
+        } catch {
+          /* fall through with the stored token; the server decides */
+        }
         // Vòng 4 / Phase D3 — tokenStore is fresh right after the await above.
         cb({ token: tokenStore.get() });
       },
@@ -33,7 +39,9 @@ export function getSocket(): Socket {
       // Voice/video call signaling still runs on chat-service until the call
       // service is moved behind the gateway socket.
       transports: ["websocket"],
-      reconnectionAttempts: 5,
+      // Never give up: after 5 failed attempts the socket used to stay dead until a page reload, and a dead
+      // call socket means "B calls A and A never rings" (ND-08). The default back-off caps at 5 s.
+      reconnectionAttempts: Infinity,
       timeout: 5000,
     });
   }

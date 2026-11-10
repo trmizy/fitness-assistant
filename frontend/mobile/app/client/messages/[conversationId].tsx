@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,16 +15,23 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { darkColors } from "../../../src/theme/colors";
 import { REALTIME_EVENTS } from "../../../src/realtime/events";
 import {
+  CHAT_PAGE_SIZE,
+  canLoadOlder,
   canSend,
+  chatErrorText,
   dayDivider,
   isSystemMessage,
   systemMessageText,
   MAX_MESSAGE_LENGTH,
+  mergeMessageLists,
   messageTime,
   normalizeConversations,
   normalizeMessages,
+  olderCursor,
   peerName,
   peerRoleLabel,
+  sendFailureText,
+  type ChatMessage,
 } from "../../../src/features/chat/chat";
 import { conversationsKey, messagesKey, useRealtimeChat } from "../../../src/features/chat/useRealtimeChat";
 
@@ -55,16 +62,50 @@ export default function ConversationScreen() {
   const conv = useMemo(() => normalizeConversations(convQuery.data).find((c) => c.id === id) ?? null, [convQuery.data, id]);
   const msgQuery = useQuery({
     queryKey: messagesKey(userId, id),
-    queryFn: async () => normalizeMessages(await chatService.getMessages(id)),
+    queryFn: async () => normalizeMessages(await chatService.getMessages(id, 1, CHAT_PAGE_SIZE)),
     enabled: !!id && !!user?.id,
   });
-  const messages = msgQuery.data ?? [];
+  // Older pages ("Xem tin cũ hơn") live beside the query so a refetch never drops history already loaded.
+  const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
+  const [noMoreOlder, setNoMoreOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderError, setOlderError] = useState<string | null>(null);
+  const latest = msgQuery.data;
+  const messages = useMemo(() => mergeMessageLists(olderMessages, latest), [olderMessages, latest]);
+  const showOlder = canLoadOlder(latest?.length ?? 0, olderMessages.length, noMoreOlder);
+  const prependRef = useRef<{ height: number; y: number } | null>(null);
+  const metrics = useRef({ height: 0, y: 0 });
+
+  useEffect(() => {
+    setOlderMessages([]);
+    setNoMoreOlder(false);
+    setOlderError(null);
+  }, [id, userId]);
+
+  const loadOlder = useCallback(async () => {
+    const before = olderCursor(messages);
+    if (!id || !before || loadingOlder) return;
+    prependRef.current = { ...metrics.current };
+    setLoadingOlder(true);
+    setOlderError(null);
+    try {
+      const rows = normalizeMessages(await chatService.getMessages(id, 1, CHAT_PAGE_SIZE, before));
+      if (rows.length < CHAT_PAGE_SIZE) setNoMoreOlder(true);
+      if (rows.length === 0) prependRef.current = null;
+      setOlderMessages((cur) => mergeMessageLists(rows, cur));
+    } catch {
+      prependRef.current = null;
+      setOlderError("Không tải được tin cũ hơn. Thử lại nhé.");
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [id, messages, loadingOlder]);
   const { typingIn, sendMessage, sendTyping } = useRealtimeChat(id ? [id] : [], id);
   const typing = typingIn[id] === true;
 
   useEffect(() => {
     if (!socket) return;
-    const onError = (p: { message?: string }) => toast.show(p?.message === "Failed to send message" ? "Không gửi được tin nhắn." : "Có lỗi trò chuyện, thử lại sau.", "danger");
+    const onError = (p: { message?: string; detail?: string }) => toast.show(chatErrorText(p), "danger");
     socket.on(REALTIME_EVENTS.chatError, onError);
     return () => {
       socket.off(REALTIME_EVENTS.chatError, onError);
@@ -72,9 +113,11 @@ export default function ConversationScreen() {
   }, [socket, toast]);
 
   useEffect(() => {
+    // Prepending older rows must not yank the thread to the bottom (onContentSizeChange restores position).
+    if (prependRef.current) return;
     const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
     return () => clearTimeout(t);
-  }, [messages.length, typing]);
+  }, [messages[messages.length - 1]?.id, typing]);
 
   // Tell the peer we stopped typing when leaving the screen.
   useEffect(
@@ -103,8 +146,9 @@ export default function ConversationScreen() {
         typingSent.current = false;
         sendTyping(id, false);
       }
-    } catch {
-      toast.show("Không gửi được tin nhắn.", "danger");
+    } catch (err) {
+      // The typed text stays in the box: it is cleared only after the server stored the message.
+      toast.show(sendFailureText(err), "danger");
     } finally {
       setSending(false);
     }
@@ -158,7 +202,36 @@ export default function ConversationScreen() {
         </View>
       </View>
 
-      <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1, justifyContent: "flex-end" }}>
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1"
+        scrollEventThrottle={64}
+        onScroll={(e) => {
+          metrics.current.y = e.nativeEvent.contentOffset.y;
+        }}
+        onContentSizeChange={(_w, h) => {
+          const p = prependRef.current;
+          if (p && h > p.height) {
+            scrollRef.current?.scrollTo({ y: p.y + (h - p.height), animated: false });
+            prependRef.current = null;
+          }
+          metrics.current.height = h;
+        }}
+        contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1, justifyContent: "flex-end" }}
+      >
+        {showOlder && !msgQuery.isLoading ? (
+          <View className="items-center gap-1">
+            <Pressable
+              accessibilityRole="button"
+              disabled={loadingOlder}
+              onPress={() => void loadOlder()}
+              className={`rounded-full border border-border bg-card px-3.5 py-1.5 ${loadingOlder ? "opacity-60" : ""}`}
+            >
+              <Text className="font-body text-xs text-foreground">{loadingOlder ? "Đang tải..." : "Xem tin cũ hơn"}</Text>
+            </Pressable>
+            {olderError ? <Text className="font-body text-xs text-destructive">{olderError}</Text> : null}
+          </View>
+        ) : null}
         {msgQuery.isLoading ? (
           <ActivityIndicator color={accent.primary} />
         ) : messages.length === 0 ? (
