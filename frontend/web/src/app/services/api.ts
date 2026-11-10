@@ -3365,6 +3365,58 @@ export const planService = {
     return extractExplanation(data);
   },
 
+  /**
+   * The explain button's callback-style entry point (AIPlansPage). It used to be called but was NEVER defined, so the button threw and
+   * the page sat on "AI đang giải thích kế hoạch… / Đang chạy" forever (user screenshot, 2026-11-10).
+   * The backend answers in one piece (API Gateway HTTP APIs cannot stream), always written by the AI model: this adapter exposes the
+   * page's callbacks without faking typing — the whole text arrives in a single onToken, then onDone. Returns an abort function.
+   */
+  explainPlanStream: (
+    planId: string,
+    handlers: {
+      onStatus?: (status: string) => void;
+      onToken: (token: string) => void;
+      onDone: (meta: { source: "llm" | "fallback"; warnings: string[] }) => void;
+      onError: (message: string) => void;
+    },
+    options: { lang?: string } = {},
+  ): (() => void) => {
+    const controller = new AbortController();
+    let finished = false;
+    handlers.onStatus?.("AI đang giải thích kế hoạch...");
+    api
+      .post(
+        `/plans/explain?lang=${encodeURIComponent(options.lang ?? "vi")}`,
+        { planId },
+        { timeout: 33000, signal: controller.signal },
+      )
+      .then(({ data }) => {
+        if (finished) return;
+        finished = true;
+        const result = extractExplanation(data);
+        if (!result.explanation.trim()) {
+          handlers.onError("AI chưa giải thích kịp lúc này. Bạn bấm “Giải thích kế hoạch” lại sau vài giây nhé.");
+          return;
+        }
+        handlers.onToken(result.explanation);
+        handlers.onDone({ source: result.source, warnings: result.warnings });
+      })
+      .catch((error: unknown) => {
+        if (finished || controller.signal.aborted) return;
+        finished = true;
+        const serverMessage = (error as { response?: { data?: { error?: { message?: unknown } } } })?.response?.data?.error?.message;
+        handlers.onError(
+          typeof serverMessage === "string" && serverMessage.trim()
+            ? serverMessage
+            : "Không thể giải thích kế hoạch lúc này. Vui lòng thử lại.",
+        );
+      });
+    return () => {
+      finished = true;
+      controller.abort();
+    };
+  },
+
   archivePlan: async (planId: string) => {
     const { data } = await api.delete(`/plans/${planId}`);
     return unwrapApiPayload<unknown>(data);
