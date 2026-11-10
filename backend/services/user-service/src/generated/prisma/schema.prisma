@@ -551,6 +551,14 @@ enum NotificationEventType {
   GYM_PARTNER_APPLICATION_REJECTED
   // Dispute Case lifecycle notices (backend completion, track core): told to the two parties and the assigned admin. Direct consequence of a case the recipient is part of, so no opt-out entry.
   DISPUTE_CASE_UPDATED
+  // Gym complaint CASE layer (gym-service complaint-case): in-app notices sent through POST /internal/notifications with entity GYM_COMPLAINT_CASE.
+  // Direct consequences of a case the recipient is part of (and the notice row is what starts response deadlines / the appeal window), so no opt-out entry.
+  GYM_COMPLAINT_CASE_OPENED
+  GYM_COMPLAINT_CASE_MORE_INFO
+  GYM_COMPLAINT_CASE_SLA_WARNING
+  GYM_COMPLAINT_CASE_SLA_OVERDUE
+  GYM_COMPLAINT_CASE_APPEAL_FILED
+  GYM_COMPLAINT_CASE_RESOLVED
 }
 
 enum NotificationEntityType {
@@ -585,6 +593,8 @@ enum NotificationEntityType {
   GYM_PARTNER_APPLICATION
   // DISPUTE_CASE_UPDATED's entityId = dispute_cases.id (this service's own table).
   DISPUTE_CASE
+  // GYM_COMPLAINT_CASE_*'s entityId = gym-service's GymComplaintCase.id (cross-service reference by convention).
+  GYM_COMPLAINT_CASE
 }
 
 enum RescheduleStatus {

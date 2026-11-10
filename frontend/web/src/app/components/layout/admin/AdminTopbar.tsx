@@ -124,7 +124,12 @@ function AdminNotificationBell() {
                 data-testid={`notification-item-${n.eventType}`}
                 onClick={() => {
                   if (n.unread) markRead.mutate(n.id);
-                  const caseLink = n.entityType === "DISPUTE_CASE" && n.entityId ? `/admin/disputes/${encodeURIComponent(n.entityId)}` : null;
+                  const caseLink =
+                    n.entityType === "DISPUTE_CASE" && n.entityId
+                      ? `/admin/disputes/${encodeURIComponent(n.entityId)}`
+                      : n.entityType === "GYM_COMPLAINT_CASE" && n.entityId
+                        ? `/admin/complaints/cases/${encodeURIComponent(n.entityId)}`
+                        : null;
                   if (caseLink || n.link) {
                     navigate(caseLink ?? n.link!);
                     setOpen(false);

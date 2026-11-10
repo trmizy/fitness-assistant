@@ -8,6 +8,9 @@ function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
 }
 
+/** N09C-03: a review comment is a short opinion, not a document (the web form shows the same cap). */
+export const REVIEW_COMMENT_MAX = 1000;
+
 /** At most this many authors are looked up per request (one auth-service call each); the rest read "Hội viên". */
 const NAME_LOOKUP_LIMIT = 50;
 
@@ -49,6 +52,10 @@ export const reviewService = {
    */
   async submit(gymId: string, clientId: string, rating: number, comment?: string) {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw err('Số sao phải là số nguyên từ 1 đến 5', 400, 'INVALID_RATING');
+    if (comment !== undefined && comment !== null && typeof comment !== 'string') throw err('Nhận xét phải là văn bản', 400, 'INVALID_COMMENT');
+    if (typeof comment === 'string' && comment.trim().length > REVIEW_COMMENT_MAX) {
+      throw err(`Nhận xét tối đa ${REVIEW_COMMENT_MAX} ký tự`, 400, 'COMMENT_TOO_LONG');
+    }
 
     // B46: a review is written about a branch that is open to the public - APPROVED and operationally OPEN (and whose
     // partner is not hidden). A suspended / closed / unapproved branch refuses it.

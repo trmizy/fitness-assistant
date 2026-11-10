@@ -109,6 +109,8 @@ const GymCollaborationsPage = lazy(() => import("./pages/gym-owner/GymCollaborat
 const ManageManagersPage = lazy(() => import("./pages/gym-owner/ManageManagersPage").then((m) => ({ default: m.ManageManagersPage })));
 const FrontDeskPage = lazy(() => import("./pages/gym-owner/FrontDeskPage").then((m) => ({ default: m.FrontDeskPage })));
 const GymFinancePage = lazy(() => import("./pages/gym-owner/GymFinancePage").then((m) => ({ default: m.GymFinancePage })));
+const GymComplaintCasesPage = lazy(() => import("./pages/gym-owner/GymComplaintCasesPage").then((m) => ({ default: m.GymComplaintCasesPage })));
+const GymComplaintCasePage = lazy(() => import("./pages/gym-owner/GymComplaintCasesPage").then((m) => ({ default: m.GymComplaintCasePage })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
@@ -365,6 +367,9 @@ export const router = createBrowserRouter([
           { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
           { path: "front-desk", element: <RequireStaffFeature feature="frontDesk"><FrontDeskPage /></RequireStaffFeature> },
           { path: "finance", element: <RequireStaffFeature feature="finance"><GymFinancePage /></RequireStaffFeature> },
+          // ND-07: hồ sơ khiếu nại về chi nhánh — chủ và quản lý (đúng chi nhánh được giao) giải trình + gửi bằng chứng.
+          { path: "complaint-cases", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasesPage /></RequireStaffFeature> },
+          { path: "complaint-cases/:caseId", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasePage /></RequireStaffFeature> },
           { path: "profile", element: <RequireStaffFeature feature="profile"><GymOwnerProfilePage /></RequireStaffFeature> },
         ],
       },

@@ -17,7 +17,7 @@ export const affiliationController = {
       const affiliation = await affiliationService.invite(req.params.gymId, ownerId, ptId, rest);
       res.status(201).json({ success: true, data: affiliation });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(e.status && typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 

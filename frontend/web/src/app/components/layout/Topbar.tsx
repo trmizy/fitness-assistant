@@ -24,6 +24,12 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   CONTRACT_PAUSED_PT_SUSPENDED: "Hợp đồng tạm dừng",
   CONTRACT_RESUMED_PT_REINSTATED: "Hợp đồng hoạt động trở lại",
   DISPUTE_CASE_UPDATED: "Cập nhật hồ sơ khiếu nại",
+  GYM_COMPLAINT_CASE_OPENED: "Báo cáo đã được tiếp nhận",
+  GYM_COMPLAINT_CASE_MORE_INFO: "Cần bổ sung thông tin",
+  GYM_COMPLAINT_CASE_SLA_WARNING: "Hồ sơ sắp đến hạn xử lý",
+  GYM_COMPLAINT_CASE_SLA_OVERDUE: "Hồ sơ đã quá hạn xử lý",
+  GYM_COMPLAINT_CASE_APPEAL_FILED: "Kháng nghị đã được tiếp nhận",
+  GYM_COMPLAINT_CASE_RESOLVED: "Hồ sơ đã có kết luận",
 };
 import { useSocket } from "../../hooks/useSocket";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
@@ -314,7 +320,13 @@ export function Topbar() {
                       data-testid={`notification-item-${n.eventType}`}
                       onClick={() => {
                         if (n.unread) markReadMutation.mutate(n.id);
-                        const caseLink = n.entityType === "DISPUTE_CASE" && n.entityId ? `${isAdmin ? "/admin/disputes" : "/disputes"}/${encodeURIComponent(n.entityId)}` : null;
+                        // Gym complaint case notices: admin, member (client/PT) and gym owner each have their own case page (ND-07).
+                        const caseLink =
+                          n.entityType === "DISPUTE_CASE" && n.entityId
+                            ? `${isAdmin ? "/admin/disputes" : "/disputes"}/${encodeURIComponent(n.entityId)}`
+                            : n.entityType === "GYM_COMPLAINT_CASE" && n.entityId && (isAdmin || role === "client" || role === "pt" || role === "gym_owner")
+                              ? `${isAdmin ? "/admin/complaints/cases" : role === "gym_owner" ? "/gym-owner/complaint-cases" : "/complaint-cases"}/${encodeURIComponent(n.entityId)}`
+                              : null;
                         if (caseLink || n.link) {
                           navigate(caseLink ?? n.link!);
                           setNotifOpen(false);

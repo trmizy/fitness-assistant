@@ -37,6 +37,8 @@ import type {
   GymTransitionResult,
   MemberCaseDetail,
   MemberCaseList,
+  OwnerCaseDetail,
+  OwnerCaseList,
   GymCapabilities,
   GymReplacementResult,
   GymAppealReviewerResult,
@@ -142,6 +144,7 @@ export function createGymCaseApi(client: GymHttpClient) {
 
   const A = "/admin/complaint-cases";
   const M = "/me/complaint-cases";
+  const O = "/owner/complaint-cases";
 
   return {
     /**
@@ -245,6 +248,13 @@ export function createGymCaseApi(client: GymHttpClient) {
       postData<GymStatementResult>(`${M}/${enc(caseId)}/statements`, compact({ text: input.text, supplementReason: input.supplementReason }), key),
     submitEvidence: (caseId: string, input: DocumentInput, key: string) =>
       postData<GymCreatedId>(`${M}/${enc(caseId)}/evidence`, compact({ description: input.description, sha256: input.sha256, title: input.title, fileName: input.fileName }), key),
+    // ── gym owner / manager side (C10: reads what it is entitled to; gives an explanation and declares evidence; nothing else) ──
+    listOwner: () => get<OwnerCaseList>(O),
+    getOwner: (caseId: string) => get<OwnerCaseDetail>(`${O}/${enc(caseId)}`),
+    submitOwnerExplanation: (caseId: string, input: StatementInput, key: string) =>
+      postData<GymStatementResult>(`${O}/${enc(caseId)}/explanations`, compact({ text: input.text, supplementReason: input.supplementReason }), key),
+    submitOwnerEvidence: (caseId: string, input: DocumentInput, key: string) =>
+      postData<GymCreatedId>(`${O}/${enc(caseId)}/evidence`, compact({ description: input.description, sha256: input.sha256, title: input.title, fileName: input.fileName }), key),
     submitMemberAppeal: (caseId: string, input: { reason: string }, key: string) =>
       postData<{ appealId?: string; status?: string }>(`${M}/${enc(caseId)}/appeal`, { reason: input.reason }, key),
   };

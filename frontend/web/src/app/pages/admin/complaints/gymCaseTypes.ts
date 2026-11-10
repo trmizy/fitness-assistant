@@ -396,6 +396,47 @@ export interface MemberCaseDetail {
   appeal?: { canFile?: boolean; closesAt?: string | null; used?: boolean; progress?: string } | null;
 }
 
+// ── gym (owner / manager) side: GET/POST /owner/complaint-cases (C10: evidence + explanation only, never the member's identity) ──
+export interface OwnerCaseListItem {
+  id: string;
+  gymId: string;
+  issueType: string;
+  /** Vietnamese progress sentence from the server; never an internal status */
+  progress: string;
+  canSubmit: boolean;
+  /** the open response deadline of the Gym, or null when no clock is running */
+  respondBy: string | null;
+  createdAt: string;
+}
+export interface OwnerCaseList {
+  items: OwnerCaseListItem[];
+}
+export interface OwnerEvidenceRow {
+  id: string;
+  source: string;
+  subject: string;
+  capturedAt: string;
+  payload: unknown;
+  verificationStatus: string;
+  verificationLabel: string;
+  mine: boolean;
+}
+export interface OwnerStatementRow {
+  id: string;
+  partyRole: string;
+  version: number;
+  text: string;
+  supplementReason: string | null;
+  createdAt: string;
+  mine: boolean;
+}
+export interface OwnerCaseDetail {
+  case: { id: string; gymId: string; progress: string; createdAt: string; canSubmit: boolean; respondBy: string | null };
+  complaint: { issueType: string; description: string };
+  evidence: OwnerEvidenceRow[];
+  statements: OwnerStatementRow[];
+}
+
 /** The old complaint list (H1) with the R-18 paging meta. */
 export interface ComplaintPageMeta {
   total: number;

@@ -301,7 +301,7 @@ export type NotificationEventType =
   | "PT_FEEDBACK_RECEIVED"
   | "DISPUTE_CASE_UPDATED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE";
 
 export interface AppNotification {
   id: string;

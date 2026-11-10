@@ -21,6 +21,7 @@ import { SectionCard } from "../client/settings/components/SectionCard";
 import { SOCIALS, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BrandLogoUpload } from "../partner-application/uploaders";
+import { canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
 
 const inputCls =
   "w-full px-3 py-2.5 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 disabled:opacity-60 transition-all";
@@ -65,7 +66,12 @@ export function GymOwnerProfilePage() {
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const { data: brands = [] } = useQuery<GymBrand[]>({ queryKey: ["owned-brands"], queryFn: () => gymService.listOwnedBrands() });
+  // ND-02: lễ tân không có quyền brand.view — chỉ gọi khi đã biết vai trò và vai trò đó được xem thương hiệu (tránh 403 lặng).
+  const { data: brands = [] } = useQuery<GymBrand[]>({
+    queryKey: ["owned-brands"],
+    queryFn: () => gymService.listOwnedBrands(),
+    enabled: canViewBrands(normalizePartnerRole(status?.role)),
+  });
   const { data: gyms = [] } = useQuery<Gym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const brand = brands[0];
   const isOwner = (status?.role ?? "OWNER") === "OWNER"; // quản lý/lễ tân/kế toán không thấy phần nhận tiền

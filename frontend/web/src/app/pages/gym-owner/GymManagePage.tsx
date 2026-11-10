@@ -17,6 +17,7 @@ import { RequestChangesPanel } from "../../components/gym-management/RequestChan
 import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeningHours";
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
+import { canViewWallet, normalizePartnerRole } from "../../utils/gymStaffRole";
 
 const ALL_WEEK_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 function defaultHours(gymId: string): GymOperatingHoursDay[] {
@@ -78,6 +79,8 @@ export function GymManagePage() {
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const isManagerAccount = partnerStatus?.role === "MANAGER";
+  // ND-01: ví và yêu cầu rút tiền chỉ chủ/kế toán đọc được (finance.wallet.view) — quản lý không gọi để khỏi nhận 403.
+  const canSeeWallet = canViewWallet(normalizePartnerRole(partnerStatus?.role));
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -177,7 +180,7 @@ export function GymManagePage() {
   const { data: wallet } = useQuery<Wallet>({
     queryKey: ["owned-gym-wallet", id],
     queryFn: () => gymService.getOwnedWallet(id!),
-    enabled: !!id,
+    enabled: !!id && canSeeWallet,
   });
 
   const { data: memberships = [] } = useQuery<GymMembershipContract[]>({
@@ -198,7 +201,7 @@ export function GymManagePage() {
   const { data: gymWithdrawals = [] } = useQuery<any[]>({
     queryKey: ["owned-gym-withdrawals", id],
     queryFn: () => gymService.listGymWithdrawals(id!),
-    enabled: !!id,
+    enabled: !!id && canSeeWallet,
   });
 
   const { data: onboarding } = useQuery<{ payout?: { bankName: string | null; accountNumber: string | null; accountHolder: string | null } | null }>({
@@ -599,6 +602,7 @@ export function GymManagePage() {
       )}
 
       {/* Wallet */}
+      {canSeeWallet && (
       <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">
           <WalletIcon className="w-5 h-5 text-green-400" />
@@ -666,6 +670,7 @@ export function GymManagePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />

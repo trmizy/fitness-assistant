@@ -17,7 +17,11 @@ export function validateBody(schema: ZodSchema) {
       const firstIssue = parsed.error.issues[0];
       return res.status(400).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: firstIssue?.message ?? 'Dữ liệu không hợp lệ' },
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: firstIssue?.message ?? 'Dữ liệu không hợp lệ',
+          fields: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+        },
       });
     }
     req.body = parsed.data;

@@ -29,6 +29,7 @@ import { brandCreateSchema, brandUpdateSchema } from '../schemas/brand.schemas';
 import { gymQuickCreateSchema, gymUpdateSchema, gymOperationalStatusSchema, gymDraftUpdateSchema } from '../schemas/gym.schemas';
 import { sendUploadRouteRetired } from '../services/client-compat.service';
 import { planCreateSchema, planUpdateSchema } from '../schemas/plan.schemas';
+import { affiliationInviteSchema } from '../schemas/affiliation.schemas';
 import { onboardingController } from '../controllers/onboarding.controller';
 import { ownerPartnerController } from '../controllers/owner-partner.controller';
 import { ownerAmenityRouter, ownerListingRouter } from './owner-listing.routes';
@@ -198,7 +199,7 @@ router.post('/gyms/:gymId/front-desk/exceptions/:exceptionId/reject', frontDeskN
 
 // Mời PT về đầu quân cho chi nhánh là việc "người" → chỉ chủ sở hữu, cùng nhóm với đàm
 // phán cộng tác PT bên dưới.
-router.post('/gyms/:gymId/trainers', requirePartnerOwner, asyncHandler(affiliationController.invite));
+router.post('/gyms/:gymId/trainers', requirePartnerOwner, validateBody(affiliationInviteSchema), asyncHandler(affiliationController.invite));
 
 // Gym-owner-initiated side of a revenue-share negotiation (plan §1.2/F3). Note this router
 // is mounted at /owner, so `POST /owner/gyms/:gymId/collaborations` and

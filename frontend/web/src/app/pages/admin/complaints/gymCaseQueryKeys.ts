@@ -30,6 +30,8 @@ export function gymQueryKeys(userId: string) {
     membershipOptions: (complaintId: string) => [...base, "membership-options", complaintId] as const,
     myList: () => [...base, "my-list"] as const,
     myDetail: (caseId: string) => [...base, "my-detail", caseId] as const,
+    ownerList: () => [...base, "owner-list"] as const,
+    ownerDetail: (caseId: string) => [...base, "owner-detail", caseId] as const,
   };
 }
 export type GymQueryKeys = ReturnType<typeof gymQueryKeys>;

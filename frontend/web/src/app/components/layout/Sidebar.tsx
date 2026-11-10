@@ -90,6 +90,8 @@ const gymOwnerNavFull = [
   { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
   { label: "Tin đăng & tiện ích", icon: GyminiGymIcon, to: "/gym-owner/listings", ownerOnly: true },
   { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations", ownerOnly: true },
+  // ND-07: chủ và quản lý (đúng chi nhánh được giao) cùng giải trình hồ sơ khiếu nại — không ownerOnly.
+  { label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "/gym-owner/complaint-cases" },
   { label: "Nhân sự", icon: GyminiUsersIcon, to: "/gym-owner/managers", ownerOnly: true },
 ];
 
