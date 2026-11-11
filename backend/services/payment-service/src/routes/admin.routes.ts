@@ -14,6 +14,7 @@ import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
 import { assertRefundNotBypassingCase, RefundGuardError } from '../services/refund-case-guard';
+import { sendAdminWriteError } from '../utils/admin-error';
 import { adminTransactionsQuerySchema, adminTransactionsService, isUuid } from '../services/admin-transactions.service';
 
 const INTERNAL_SERVICE_SECRET =
@@ -205,8 +206,7 @@ router.post('/withdrawals/:id/approve', async (req: Request, res: Response) => {
     const updated = await withdrawalService.approve(req.params.id, req.user!.userId);
     res.json({ success: true, data: updated });
   } catch (e) {
-    const err = e as { status?: number; code?: string; message?: string };
-    res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+    sendAdminWriteError(res, e, 'withdrawal.approve');
   }
 });
 
@@ -219,8 +219,7 @@ router.post('/withdrawals/:id/reject', async (req: Request, res: Response) => {
     const updated = await withdrawalService.reject(req.params.id, req.user!.userId, parsed.data.reason);
     return res.json({ success: true, data: updated });
   } catch (e) {
-    const err = e as { status?: number; code?: string; message?: string };
-    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+    return sendAdminWriteError(res, e, 'withdrawal.reject');
   }
 });
 
@@ -233,8 +232,7 @@ router.post('/withdrawals/:id/mark-paid', async (req: Request, res: Response) =>
     const updated = await withdrawalService.markPaid(req.params.id, req.user!.userId, parsed.data.bankReference);
     return res.json({ success: true, data: updated });
   } catch (e) {
-    const err = e as { status?: number; code?: string; message?: string };
-    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+    return sendAdminWriteError(res, e, 'withdrawal.mark-paid');
   }
 });
 

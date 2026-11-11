@@ -268,7 +268,7 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status !== 'PENDING') {
-      throw err(`Không thể duyệt yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
+      throw err(`Không thể duyệt yêu cầu ở trạng thái ${request.status}`, 409, 'INVALID_STATUS');
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
@@ -277,7 +277,7 @@ export const withdrawalService = {
       // preflight snapshot may predate a rejection or a payout.
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'APPROVED') return current;
-      if (current.status !== 'PENDING') throw err(`Không thể duyệt yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+      if (current.status !== 'PENDING') throw err(`Không thể duyệt yêu cầu ở trạng thái ${current.status}`, 409, 'INVALID_STATUS');
       return withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
         await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
         await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
@@ -298,13 +298,13 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status === 'PAID') {
-      throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
+      throw err('Không thể từ chối một yêu cầu đã chi trả', 409, 'ALREADY_PAID');
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
     return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
-      if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
+      if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 409, 'ALREADY_PAID');
       if (current.status === 'REJECTED') return current;
       if (current.status === 'APPROVED') {
         await withIdempotentLedgerOp(ops, `WITHDRAWAL_UNLOCK:${request.id}`, async () => {
@@ -336,7 +336,7 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status !== 'PENDING' && request.status !== 'APPROVED') {
-      throw err(`Không thể chi trả một yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
+      throw err(`Không thể chi trả một yêu cầu ở trạng thái ${request.status}`, 409, 'INVALID_STATUS');
     }
     // BE-2 fast path: refuse BEFORE the payout PaymentTransaction row is created, so a refused
     // attempt writes nothing. Only a snapshot read — the authoritative check re-runs below inside
@@ -357,7 +357,7 @@ export const withdrawalService = {
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'PAID') return current;
       if (current.status !== 'PENDING' && current.status !== 'APPROVED') {
-        throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+        throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 409, 'INVALID_STATUS');
       }
       // BE-2 authoritative four-eyes check: same wallet lock + same transaction as the status
       // change, on the freshly re-read row, so a concurrent approve/pay cannot slip past it. A
