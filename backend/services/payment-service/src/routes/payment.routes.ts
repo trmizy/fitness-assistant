@@ -3,6 +3,8 @@ import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { pollAndSettle } from '../services/webhook.service';
+import { failureMessage } from '../utils/safe-error';
+import { logger } from '@gym-coach/shared';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -97,7 +99,8 @@ router.post('/:id/sync', async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
-    res.status(e.status || 500).json({ success: false, error: { code: 'SYNC_FAILED', message: e.message } });
+    logger.error({ err: e?.message, transactionId: txn.id }, '[payment-service] payment sync failed');
+    res.status(e.status || 500).json({ success: false, error: { code: 'SYNC_FAILED', message: failureMessage('SYNC_FAILED') } });
   }
 });
 
