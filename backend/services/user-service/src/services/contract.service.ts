@@ -1384,9 +1384,13 @@ export const contractService = {
       return this.cancelContract(id, userId, "Status changed to cancelled");
     }
 
-    // PT or admin can mark expired
-    if (newStatus === "EXPIRED" && (contract.ptUserId === userId || isAdmin)) {
-      return contractRepository.updateStatus(id, ContractStatus.EXPIRED);
+    // Bỏ đặt EXPIRED thủ công (quyết định 11/11): hết hạn do hệ thống tự xử lý khi qua
+    // ngày kết thúc (kèm quyết toán); kết thúc sớm phải đi qua luồng chấm dứt hợp đồng.
+    if (typeof newStatus === "string" && newStatus.trim().toUpperCase() === "EXPIRED") {
+      throw err(
+        "Không thể đặt trạng thái hết hạn thủ công — hết hạn do hệ thống tự xử lý khi qua ngày kết thúc; muốn kết thúc sớm vui lòng dùng chức năng chấm dứt hợp đồng.",
+        400,
+      );
     }
 
     throw err(
