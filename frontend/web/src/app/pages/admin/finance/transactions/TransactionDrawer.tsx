@@ -74,7 +74,12 @@ function LedgerTable({ entries, paid }: { entries: LedgerEntryDto[]; paid: boole
             <tr key={e.id} className="border-t border-adm-border-soft align-top">
               <td className="px-3 py-2">
                 <div className="text-adm-text">{ownerLabel(e.walletOwnerType)}</div>
-                <ShortIdCopy id={e.walletOwnerId} label="mã chủ ví" />
+                {/* platform wallets use fixed internal ids (payment-service wallet.service: ESCROW / REVENUE), never show them as a user id */}
+                {e.walletOwnerType === "PLATFORM" ? (
+                  <div className="text-xs text-adm-text-2">{PLATFORM_WALLET_LABEL[e.walletOwnerId] ?? "Ví nội bộ"}</div>
+                ) : (
+                  <ShortIdCopy id={e.walletOwnerId} label="mã chủ ví" />
+                )}
               </td>
               <td className="px-3 py-2 whitespace-nowrap text-adm-text">{entryTypeLabel(e.entryType)}</td>
               <td className="px-3 py-2 whitespace-nowrap text-adm-text">{bucketLabel(e.bucket)}</td>
@@ -144,6 +149,8 @@ function Summary({ t }: { t: TxnSummary }) {
  * Right-hand drawer (full screen on a phone) opened by `?id=`. Read only: it shows what the server returned and has no
  * write control. `useModalA11y` moves focus in, traps Tab, closes on Esc and gives focus back to what opened it.
  */
+const PLATFORM_WALLET_LABEL: Record<string, string> = { ESCROW: "Ví giữ hộ (tiền chưa chi cho đối tác)", REVENUE: "Ví doanh thu nền tảng" };
+
 export function TransactionDrawer({ id, onClose, onOpenTransaction }: { id: string; onClose: () => void; onOpenTransaction: (id: string) => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
