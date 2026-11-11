@@ -41,6 +41,7 @@ const DEFAULT_GATEWAY_URL = "http://10.0.2.2:3000";
  */
 const ENV_READERS: Record<string, () => string | undefined> = {
   EXPO_PUBLIC_API_URL: () => process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_AI_STREAM_URL: () => process.env.EXPO_PUBLIC_AI_STREAM_URL,
   EXPO_PUBLIC_SOCKET_URL: () => process.env.EXPO_PUBLIC_SOCKET_URL,
   EXPO_PUBLIC_CHAT_WS_URL: () => process.env.EXPO_PUBLIC_CHAT_WS_URL,
   EXPO_PUBLIC_ENABLE_REALTIME: () => process.env.EXPO_PUBLIC_ENABLE_REALTIME,
@@ -158,6 +159,18 @@ export async function clearServerOverride(): Promise<void> {
 /** Base URL for REST calls (axios baseURL). */
 export function apiBaseUrl(): string {
   return getServerOverride() || env("EXPO_PUBLIC_API_URL") || DEFAULT_GATEWAY_URL;
+}
+
+/**
+ * Full URL of the AI Coach SSE endpoint (POST /ai/ask/stream). Same rule as web: on AWS,
+ * API Gateway buffers the Lambda response, so EXPO_PUBLIC_AI_STREAM_URL points at the
+ * response-streaming Lambda behind CloudFront. A stored server override (LAN/tunnel gateway)
+ * wins, since that gateway serves the stream route itself. Read at call time, like API_URL.
+ */
+export function aiStreamUrl(): string {
+  const override = getServerOverride();
+  if (override) return `${override}/ai/ask/stream`;
+  return env("EXPO_PUBLIC_AI_STREAM_URL") || `${apiBaseUrl()}/ai/ask/stream`;
 }
 
 /**

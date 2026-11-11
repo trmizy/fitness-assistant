@@ -6,6 +6,7 @@ import {
   type CoachStreamDonePayload,
   type AiSessionMessage,
 } from "../services/api";
+import { describeChatRequest, findRetryable, newChatRequestFields, recoverInterrupted } from "./chat-request-identity";
 
 export type PendingAiTaskKind = "plan-generate" | "plan-adjust" | "chat-ask";
 export type PendingAiTaskStatus =
@@ -30,6 +31,12 @@ export interface PendingAiTask {
   daysPerWeek?: number;
   durationWeeks?: number;
   error?: string | null;
+  // Durable identity of a chat send (see chat-request-identity.ts): created once per deliberate action, persisted BEFORE the
+  // request is sent, reused by every retry of that action, scoped to userId.
+  clientRequestId?: string | null;
+  question?: string | null;
+  sessionKey?: string | null;
+  uncertain?: boolean;
 }
 
 export interface AiChatMessage {
@@ -57,6 +64,7 @@ export interface AiCoachSessionState {
 
 const TASK_STORAGE_PREFIX = "ai_pending_tasks_v1";
 const COACH_STORAGE_PREFIX = "ai_coach_session_v1";
+const LAST_ACTIVE_COACH_SESSION_PREFIX = "ai_coach_last_active_session_v1";
 // Sentinel sessionKey prefix for a thread that hasn't been adopted by the
 // server yet (no real ChatSession row exists until the first message lands).
 const DRAFT_SESSION_PREFIX = "draft:";
@@ -93,6 +101,10 @@ function coachKey(userId: string, sessionKey: string): string {
 
 function coachStorageKey(userId: string, sessionKey: string): string {
   return `${COACH_STORAGE_PREFIX}:${userId}:${sessionKey}`;
+}
+
+function lastActiveCoachSessionKey(userId: string): string {
+  return `${LAST_ACTIVE_COACH_SESSION_PREFIX}:${userId}`;
 }
 
 function emit(): void {
@@ -391,6 +403,25 @@ export function newDraftSessionKey(): string {
   return `${DRAFT_SESSION_PREFIX}${safeUuid()}`;
 }
 
+export function getLastActiveCoachSessionId(userId?: string): string | null {
+  if (!userId || !isBrowser()) return null;
+  try {
+    return localStorage.getItem(lastActiveCoachSessionKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export function setLastActiveCoachSessionId(userId: string | undefined, sessionId: string | null): void {
+  if (!userId || !isBrowser()) return;
+  try {
+    if (sessionId) localStorage.setItem(lastActiveCoachSessionKey(userId), sessionId);
+    else localStorage.removeItem(lastActiveCoachSessionKey(userId));
+  } catch {
+    // Ignore storage quota failures.
+  }
+}
+
 function isDraftSessionKey(sessionKey: string): boolean {
   return sessionKey.startsWith(DRAFT_SESSION_PREFIX);
 }
@@ -462,6 +493,32 @@ export function appendImageChatExchange(
   setCoachSession(userId, reply.sessionId, { ...current, messages: [...current.messages, userMessage, aiMessage], updatedAt: nowIso() });
 }
 
+/** Task ids of chat requests that currently have a live request object in THIS page lifetime. */
+const liveChatTasks = new Set<string>();
+
+/**
+ * After a reload an interrupted send has no live request: mark it FAILED + uncertain (it keeps its id) so the user can
+ * retry it faithfully, and reflect that in the thread. Never replays automatically.
+ */
+function recoverInterruptedChats(userId: string, sessionKey: string): void {
+  const tasks = getUserTasks(userId);
+  const recovered = recoverInterrupted(tasks, userId, liveChatTasks);
+  if (recovered.some((t, i) => t !== tasks[i])) setUserTasks(userId, recovered);
+  const session = getCoachSession(userId, sessionKey);
+  if (session.status === "processing" && !coachRequests.has(coachKey(userId, sessionKey))) {
+    const view = describeChatRequest({ id: "", userId, kind: "chat-ask", status: "FAILED", uncertain: true, clientRequestId: "x", question: "x" });
+    const lastAi = [...session.messages].reverse().find((m) => m.from === "ai");
+    setCoachSession(userId, sessionKey, {
+      ...session,
+      messages: session.messages.map((m) => (lastAi && m.id === lastAi.id ? { ...m, text: `⚠️ ${view.label}` } : m)),
+      status: "failed",
+      activeTaskId: null,
+      lastError: view.label,
+      updatedAt: nowIso(),
+    });
+  }
+}
+
 export function useAiCoachSession(userId?: string, sessionKey?: string) {
   const key = sessionKey ?? "";
   const session = useSyncExternalStore(
@@ -487,8 +544,13 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
   const sendQuestion = (
     question: string,
     onSessionAdopted?: (sessionId: string) => void,
+    opts?: { retryOfTaskId?: string },
   ): string | null => {
-    if (!userId || !key || !question.trim()) return null;
+    // An explicit retry re-sends the stored question of THIS user's failed request under its ORIGINAL clientRequestId.
+    const retry = opts?.retryOfTaskId ? findRetryable(getUserTasks(userId), userId, key) : null;
+    if (opts?.retryOfTaskId && (!retry || retry.id !== opts.retryOfTaskId)) return null;
+    if (!userId || !key || (!retry && !question.trim())) return null;
+    if (retry) question = retry.question as string;
 
     const current = getCoachSession(userId, key);
     if (current.status === "processing") return null;
@@ -497,19 +559,25 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
     // backend as a sessionId, let the server auto-create one.
     const outgoingSessionId = isDraftSessionKey(key) ? undefined : key;
 
-    const taskId = safeUuid();
+    // One identity per deliberate action, generated once and persisted (with the question) before anything is sent.
+    const fresh = retry ? null : newChatRequestFields(userId, key, question, safeUuid);
+    const taskId = retry ? retry.id : (fresh as { id: string }).id;
+    const clientRequestId = retry ? (retry.clientRequestId as string) : (fresh as { clientRequestId: string }).clientRequestId;
     const userMessage: AiChatMessage = {
       id: Date.now(),
       from: "user",
       text: question.trim(),
       time: "Bây giờ",
     };
-    const placeholderMessage: AiChatMessage = {
-      id: `ai-${taskId}`,
-      from: "ai",
-      text: "AI đang trả lời...",
-      time: "Bây giờ",
-    };
+    const failedPlaceholder = retry ? [...current.messages].reverse().find((m) => m.from === "ai") : undefined;
+    const placeholderMessage: AiChatMessage = failedPlaceholder
+      ? { ...failedPlaceholder, text: "AI đang trả lời..." }
+      : {
+          id: `ai-${taskId}`,
+          from: "ai",
+          text: "AI đang trả lời...",
+          time: "Bây giờ",
+        };
     const nextTask: PendingAiTask = upsertTask(userId, {
       id: taskId,
       kind: "chat-ask",
@@ -518,10 +586,18 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
       link: "/client/ai-coach",
       conversationId: null,
       error: null,
+      clientRequestId,
+      question: question.trim(),
+      sessionKey: key,
+      uncertain: false,
+      ...(retry ? { createdAt: retry.createdAt } : {}),
     });
+    liveChatTasks.add(taskId);
 
     setCoachSession(userId, key, {
-      messages: [...current.messages, userMessage, placeholderMessage],
+      messages: retry
+        ? current.messages.map((m) => (failedPlaceholder && m.id === failedPlaceholder.id ? placeholderMessage : m))
+        : [...current.messages, userMessage, placeholderMessage],
       status: "processing",
       activeTaskId: taskId,
       lastError: null,
@@ -554,6 +630,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
       error?: string | null,
       patch: Partial<PendingAiTask> = {},
     ) => {
+      if (status !== "PROCESSING") liveChatTasks.delete(taskId);
       updateTask(userId, taskId, {
         ...patch,
         status,
@@ -580,7 +657,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
       typeof window !== "undefined" && "ReadableStream" in window;
     if (!streamAvailable) {
       void coachService
-        .chat(question.trim(), outgoingSessionId)
+        .chat(question.trim(), outgoingSessionId, clientRequestId)
         .then((result) => {
           const replyText =
             result?.answer ||
@@ -616,7 +693,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
           );
         })
         .catch(() => {
-          const errorText = "AI trả lời thất bại, vui lòng thử lại.";
+          const errorText = describeChatRequest({ id: taskId, userId, kind: "chat-ask", status: "FAILED", uncertain: true, clientRequestId, question }).label;
           applyIfCurrent((sessionState) => ({
             ...sessionState,
             messages: sessionState.messages.map((message) =>
@@ -629,7 +706,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
             lastError: errorText,
             updatedAt: nowIso(),
           }));
-          updateTaskState("FAILED", errorText);
+          updateTaskState("FAILED", errorText, { uncertain: true });
         })
         .finally(() => {
           coachRequests.delete(bucketKey);
@@ -698,7 +775,8 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
           adoptSessionIfNeeded(payload.sessionId);
         },
         onError: (message) => {
-          const errorText = message || "AI trả lời thất bại, vui lòng thử lại.";
+          const errorText = describeChatRequest({ id: taskId, userId, kind: "chat-ask", status: "FAILED", uncertain: true, clientRequestId, question }).label;
+          void message;
           applyIfCurrent((sessionState) => ({
             ...sessionState,
             messages: sessionState.messages.map((item) =>
@@ -711,11 +789,12 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
             lastError: errorText,
             updatedAt: nowIso(),
           }));
-          updateTaskState("FAILED", errorText);
+          updateTaskState("FAILED", errorText, { uncertain: true });
           coachRequests.delete(bucketKey);
         },
       },
       outgoingSessionId,
+      clientRequestId,
     );
 
     coachRequests.set(bucketKey, {
@@ -725,6 +804,18 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
 
     return nextTask.id;
   };
+
+  /** Re-sends this thread's newest failed/uncertain question under its ORIGINAL request id (the server never creates a second generation for it). */
+  const retryQuestion = (onSessionAdopted?: (sessionId: string) => void): string | null => {
+    if (!userId || !key) return null;
+    const r = findRetryable(getUserTasks(userId), userId, key);
+    return r ? sendQuestion("", onSessionAdopted, { retryOfTaskId: r.id }) : null;
+  };
+  const retryable = !!userId && !!key && !!findRetryable(getUserTasks(userId), userId, key);
+
+  useEffect(() => {
+    if (userId && key) recoverInterruptedChats(userId, key);
+  }, [userId, key]);
 
   /** Cancels any in-flight request and drops this thread's local cache
    * (memory + localStorage) — e.g. after the thread has been archived. */
@@ -741,6 +832,8 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
     session,
     setInitialMessage,
     sendQuestion,
+    retryQuestion,
+    retryable,
     resetSession,
   };
 }

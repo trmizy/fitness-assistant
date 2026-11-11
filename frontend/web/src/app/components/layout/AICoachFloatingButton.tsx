@@ -10,7 +10,7 @@ import { GyminiMonkeyMark } from "../icons/gymini/mascot";
  * existing on /client/chat.
  */
 export function AICoachFloatingButton() {
-  const { isAuthenticated, role, activeView, isAiCoachOpen, openAiCoach } = useApp();
+  const { isAuthenticated, role, isAiCoachOpen, openAiCoach } = useApp();
 
   // AI Coach is a client-side feature only (AICoachPage lives under
   // /client/...). AppShell is shared by client, pt, gym_owner AND admin
@@ -19,7 +19,8 @@ export function AICoachFloatingButton() {
   // it would have wrongly shown this to roles that have no client
   // workspace at all. Show only for an actual client, or a PT currently
   // viewing their own client-style workspace.
-  const inClientContext = role === "client" || (role === "pt" && activeView === "client");
+  // A PT also gets it in their own workspace: the PT Copilot (roster overview, drafted client proposals) is the same chat.
+  const inClientContext = role === "client" || role === "pt";
   if (!isAuthenticated || !inClientContext || isAiCoachOpen) return null;
 
   return (

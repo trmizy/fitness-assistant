@@ -7,7 +7,7 @@ export interface PlanExplanationResponse {
 import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
-import { apiBaseUrl } from "../config/serverUrl";
+import { aiStreamUrl, apiBaseUrl } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
@@ -443,10 +443,26 @@ export const profileService = {
 
   uploadPhoto: async (file: File) => {
     const contentType = profilePhotoContentType(file);
-    const { data: target } = await api.post<PresignedUploadTarget>(
-      "/profile/me/photo/presign",
-      { contentType },
-    );
+    let target: PresignedUploadTarget;
+    try {
+      const res = await api.post<PresignedUploadTarget>(
+        "/profile/me/photo/presign",
+        { contentType },
+      );
+      target = res.data;
+    } catch (e: any) {
+      // Local dev stack has no upload bucket ("USER_UPLOAD_BUCKET is not configured");
+      // the legacy multipart route is the only one that works there. AWS/Lambda
+      // never hits this branch (presign succeeds, or fails with a different error).
+      const msg = String(e?.response?.data?.error ?? "");
+      if (!/not configured/i.test(msg)) throw e;
+      const form = new FormData();
+      form.append("photo", file);
+      const { data } = await api.post("/profile/me/photo", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data as { photoUrl: string };
+    }
     await uploadFileToPresignedUrl(target, file, contentType);
     const { data } = await api.post("/profile/me/photo/confirm", {
       key: target.key,
@@ -2502,6 +2518,14 @@ export const marketplaceService = {
     }>(`/admin/ai/marketplace/plans/${id}/review/${action}`, { note });
     return data.data;
   },
+
+  adminDeleteApprovedPlan: async (id: string) => {
+    const { data } = await api.delete<{
+      success: boolean;
+      data: { id: string; title: string; deleted: boolean };
+    }>(`/admin/ai/marketplace/plans/${id}`);
+    return data.data;
+  },
 };
 
 export interface TrainingPackage {
@@ -3341,6 +3365,58 @@ export const planService = {
     return extractExplanation(data);
   },
 
+  /**
+   * The explain button's callback-style entry point (AIPlansPage). It used to be called but was NEVER defined, so the button threw and
+   * the page sat on "AI đang giải thích kế hoạch… / Đang chạy" forever (user screenshot, 2026-11-10).
+   * The backend answers in one piece (API Gateway HTTP APIs cannot stream), always written by the AI model: this adapter exposes the
+   * page's callbacks without faking typing — the whole text arrives in a single onToken, then onDone. Returns an abort function.
+   */
+  explainPlanStream: (
+    planId: string,
+    handlers: {
+      onStatus?: (status: string) => void;
+      onToken: (token: string) => void;
+      onDone: (meta: { source: "llm" | "fallback"; warnings: string[] }) => void;
+      onError: (message: string) => void;
+    },
+    options: { lang?: string } = {},
+  ): (() => void) => {
+    const controller = new AbortController();
+    let finished = false;
+    handlers.onStatus?.("AI đang giải thích kế hoạch...");
+    api
+      .post(
+        `/plans/explain?lang=${encodeURIComponent(options.lang ?? "vi")}`,
+        { planId },
+        { timeout: 33000, signal: controller.signal },
+      )
+      .then(({ data }) => {
+        if (finished) return;
+        finished = true;
+        const result = extractExplanation(data);
+        if (!result.explanation.trim()) {
+          handlers.onError("AI chưa giải thích kịp lúc này. Bạn bấm “Giải thích kế hoạch” lại sau vài giây nhé.");
+          return;
+        }
+        handlers.onToken(result.explanation);
+        handlers.onDone({ source: result.source, warnings: result.warnings });
+      })
+      .catch((error: unknown) => {
+        if (finished || controller.signal.aborted) return;
+        finished = true;
+        const serverMessage = (error as { response?: { data?: { error?: { message?: unknown } } } })?.response?.data?.error?.message;
+        handlers.onError(
+          typeof serverMessage === "string" && serverMessage.trim()
+            ? serverMessage
+            : "Không thể giải thích kế hoạch lúc này. Vui lòng thử lại.",
+        );
+      });
+    return () => {
+      finished = true;
+      controller.abort();
+    };
+  },
+
   archivePlan: async (planId: string) => {
     const { data } = await api.delete(`/plans/${planId}`);
     return unwrapApiPayload<unknown>(data);
@@ -3454,6 +3530,8 @@ export const planService = {
     dailyCaloriesTarget?: number;
     dietPreference?: string;
     budgetLevel?: string;
+    cuisineCountry?: string;
+    vietnameseRegion?: "BAC" | "TRUNG" | "NAM";
     restrictions?: string[];
     notes?: string;
     weightKg?: number;
@@ -3572,6 +3650,13 @@ export const planService = {
 };
 
 function aiFriendlyErrorMessage(status?: number): string {
+  // 401 falls through to here only after api.ts's interceptor already attempted a silent
+  // refresh-and-retry and either the session is genuinely over or /auth/refresh itself could
+  // not be reached — either way "Không thể kết nối AI Coach" (the old fallback) told the user
+  // nothing actionable. See AIPlansPage.tsx's summarizeApiError for the same 401 case.
+  if (status === 401) {
+    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  }
   if (status === 408 || status === 504) {
     return "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
   }
@@ -3587,12 +3672,23 @@ function aiFriendlyErrorMessage(status?: number): string {
   return "Không thể kết nối AI Coach. Vui lòng thử lại.";
 }
 
+/**
+ * One id per intentional user action (a chat send). Retries of that same send (the 401 refresh-and-resend below, or a
+ * caller that passes the id back in) reuse it so the server can recognise them as the same request and not start a
+ * second paid generation. A NEW user command must get a new id (the default).
+ */
+function newClientRequestId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export const coachService = {
-  chat: async (message: string, sessionId?: string) => {
+  chat: async (message: string, sessionId?: string, clientRequestId: string = newClientRequestId()) => {
     try {
       const { data } = await api.post(
         "/ai/ask",
-        { question: message, ...(sessionId ? { sessionId } : {}) },
+        { question: message, clientRequestId, ...(sessionId ? { sessionId } : {}) },
         {
           // API Gateway/Lambda HTTP integrations are bounded around 30s.
           timeout: 30000,
@@ -3641,6 +3737,7 @@ export const coachService = {
       onError: (message: string) => void;
     },
     sessionId?: string,
+    clientRequestId: string = newClientRequestId(),
   ): () => void {
     const generation = sessionGuard.current();
     let cancelled = false;
@@ -3660,12 +3757,12 @@ export const coachService = {
     }, 10000);
     const timeoutTimer = window.setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 180000);
 
     (async () => {
       try {
         const sendStreamRequest = (token: string | null) =>
-          fetch(`${API_URL}/ai/ask/stream`, {
+          fetch(aiStreamUrl(), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -3675,6 +3772,7 @@ export const coachService = {
             },
             body: JSON.stringify({
               question: message,
+              clientRequestId, // same id on the 401 refresh-and-resend below
               ...(sessionId ? { sessionId } : {}),
             }),
             signal: controller.signal,
@@ -3905,11 +4003,12 @@ export const adminService = {
    * khác và từng gây ra hai nút "đình chỉ" mang hai nghĩa khác nhau.
    */
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
-    const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
+    // Straight to auth-service: the old `/admin/users/:id/...` path was a gateway-only alias.
+    const { data } = await api.patch(`/auth/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
   },
   updateGymOwnerName: async (userId: string, payload: { firstName?: string; lastName?: string }) => {
-    const { data } = await api.patch(`/admin/users/${userId}/name`, payload);
+    const { data } = await api.patch(`/auth/users/${userId}/name`, payload);
     return data?.data ?? data;
   },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
@@ -4618,6 +4717,40 @@ export const nutritionService = {
       goalMode?: "RECOMMENDED" | "CUSTOM";
     };
   },
+  getTargetPreview: async (fresh = false) => {
+    const { data } = await api.get("/nutrition/target-preview", {
+      params: fresh ? { fresh: "true" } : undefined,
+    });
+    return data as
+      | {
+          status: "ACTIVE_GOAL";
+          goalId: string;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        }
+      | {
+          status: "COMPUTED";
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          waterMl?: number;
+          professionalReviewRequired: boolean;
+          goalTargetConflict?: { goal: string; currentWeight: number; targetWeight: number };
+          // ESTIMATED breakdown (fitness-service NutritionTargetEstimate): BMR × activity factor = maintenance ± adjustment.
+          estimate?: {
+            bmr: number;
+            bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+            activityLevel: string;
+            activityFactor: number;
+            maintenanceCalories: number;
+            adjustmentKcal: number;
+          };
+        }
+      | { status: "insufficient_data"; missingFields: string[] };
+  },
   upsertGoal: async (goal: {
     calories: number;
     protein: number;
@@ -4928,10 +5061,13 @@ export interface CoachClientSummary {
   // the fields the client's own Journey UI already reads. Never a new
   // decision engine, never raw chain-of-thought.
   latestAssessment?: {
+    id: string;
     decision: string | null;
     aiSummary: string | null;
     reasonCodes: string[] | null;
     confidenceScore: number | null;
+    userDecision: string;
+    reviewedAt: string | null;
   } | null;
   // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
   nutrition?: {
@@ -4993,6 +5129,15 @@ export const ptCoachService = {
     const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
+  getClientWorkoutSchedules: async (
+    clientId: string,
+    params?: { limit?: number; startDate?: string; endDate?: string },
+  ) => {
+    const { data } = await api.get<WorkoutScheduleRecord[]>(`/coach/clients/${clientId}/workout-schedules`, {
+      params,
+    });
+    return data;
+  },
   createAndAssignPlan: async (
     clientId: string,
     input: {
@@ -5032,6 +5177,21 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  approveTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/reject`,
+      { assessmentId },
+    );
     return data;
   },
 

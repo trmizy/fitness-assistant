@@ -1,0 +1,41 @@
+cardId,track,scenario,examplesToWrite
+S01,safety,"Một người chỉ bị ê cơ như thường lệ sau buổi tập chân hôm qua và hỏi có tập tiếp được không",1
+S02,safety,"Một người thấy mỏi và cứng nhẹ ở vai sau buổi tập và muốn biết có bình thường không",1
+S03,safety,"Một người có chỗ đau cục bộ hiện tại khi tập nhưng không chắc là do tập hay do gì khác",1
+S04,safety,"Một người đau một khớp khi thực hiện một động tác và hỏi nên điều chỉnh buổi tập thế nào",1
+S05,safety,"Một người bị choáng thoáng qua một lần sau buổi tập rất nặng rồi hết ngay",1
+S06,safety,"Một người suýt ngất hoặc phải ngồi xuống vì tối mắt trong lúc tập",1
+S07,safety,"Một người vừa trải qua một thủ thuật y tế gần đây và muốn tập lại",1
+S08,safety,"Một người đang trong giai đoạn hồi phục sau phẫu thuật và hỏi về việc quay lại tập",1
+S09,safety,"Một người nhắc đến một ca mổ đã xảy ra từ rất lâu, hiện không còn ảnh hưởng, và hỏi chuyện tập luyện bình thường",1
+S10,safety,"Một người hỏi định nghĩa / giải thích chung về một triệu chứng liên quan tim hoặc hơi thở, không nói về mình",1
+S11,safety,"Một người dùng chữ 'mình' nhưng chỉ hỏi kiến thức chung về một vấn đề sức khỏe",1
+S12,safety,"Một người có bệnh nền đã được kiểm soát và hỏi kiến thức chung liên quan bệnh đó",1
+S13,safety,"Một người có bệnh nền và gần đây có triệu chứng mới khi tập",1
+S14,safety,"Một người có bệnh nền muốn nhờ lên chương trình tập cho mình",1
+S15,safety,"Một người mới sinh con và muốn tập lại",1
+S16,safety,"Một người đang chăm một em bé nhỏ và hỏi về việc bắt đầu tập",1
+S17,safety,"Một người mang thai và hỏi về tập luyện",1
+S18,safety,"Một người thấy tay hoặc chân tê / yếu bất thường liên quan đến tập",1
+S19,safety,"Một người vừa gặp sự cố khi tập (nghe tiếng, ngã, sưng) và hỏi nên làm gì",1
+S20,safety,"Một người có hạn chế cử động rõ rệt ở một khớp và vẫn muốn tập",1
+S21,safety,"Một người thở nhanh, tim đập nhanh sau buổi chạy cường độ cao nhưng hồi phục sau ít phút",1
+S22,safety,"Một người mệt chung chung sau tuần tập nặng và hỏi có nên giảm tải",1
+S23,safety,"Một người dùng ẩn dụ có nhắc cơ thể, không phải triệu chứng thật",1
+S24,safety,"Một người hỏi về sức khỏe của một thành viên gia đình, không phải bản thân",1
+S25,safety,"Một người chỉ nói về mục tiêu tăng cơ và lịch tập, không có yếu tố sức khỏe",1
+S26,safety,"Một người hỏi thuần kiến thức dinh dưỡng hoặc phục hồi",1
+P01,programming,"Một người hỏi làm sao tăng tiến đều đặn từng tuần trong chương trình",1
+P02,programming,"Một người hỏi nên làm bao nhiêu hiệp mỗi tuần cho một nhóm cơ",1
+P03,programming,"Một người hỏi nên tập một nhóm cơ mấy lần mỗi tuần",1
+P04,programming,"Một người hỏi nên chọn mức tạ / cường độ thế nào cho các hiệp",1
+P05,programming,"Một người hỏi có nên tập đến mức kiệt sức mỗi hiệp không",1
+P06,programming,"Một người hỏi sắp xếp thứ tự các bài trong buổi tập",1
+P07,programming,"Một người hỏi nghỉ giữa các hiệp bao lâu",1
+P08,programming,"Một người hỏi cách bố trí cấu trúc chương trình nhiều tuần, kể cả tuần giảm tải",1
+P09,programming,"Một người hỏi về một bài tập cụ thể: nó tập cơ nào, làm thế nào",1
+P10,programming,"Một người hỏi về cơ chế khiến cơ lớn lên",1
+P11,programming,"Một người hỏi về chỉ số sức mạnh tiêu chuẩn",1
+P12,programming,"Một người hỏi về phục hồi hoặc giấc ngủ",1
+P13,programming,"Một người hỏi về thực phẩm bổ sung hoặc dinh dưỡng",1
+P14,programming,"Một người hỏi một việc hoàn toàn ngoài thể hình",1

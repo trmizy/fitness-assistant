@@ -1,7 +1,9 @@
+import { assertGenerationLeaseHeld, StaleLeaseError } from "./generation-lease-context";
+import { withGenerationOperation, acknowledgeAutoSave } from "./generation-operations";
 import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { llmService } from "./llm.service";
 import {
   conversationRepository,
@@ -10,7 +12,9 @@ import {
 import type { NutritionPlanContent } from "../schemas/nutrition-plan.schemas";
 import { safeParseJsonCandidate } from "../utils/json";
 import { validateNutritionPlanInvariants } from "./nutrition-plan-invariant.service";
+import { repairNutritionPlanQuantities } from "./nutrition-plan-repair";
 import { filterFoodsByExclusions, findExclusionViolations, isKnownExclusionKey } from "./nutrition-food-constraints";
+import { catalogTiers, withVietnameseDisplayNames } from "./nutrition-everyday-foods";
 
 type AiFood = {
   id: string;
@@ -26,6 +30,9 @@ type AiFood = {
   // guess.
   foodForm?: string | null;
   realisticServingMaxG?: number | null;
+  // curated everyday food (fitness-service prisma/seed_everyday_foods.ts) and its Vietnamese display name
+  curated?: boolean;
+  viName?: string | null;
 };
 
 type NutritionTemplate = {
@@ -37,6 +44,156 @@ type NutritionTemplate = {
   nutritionNotes?: string[];
 };
 
+type VietnameseRegion = "BAC" | "TRUNG" | "NAM";
+
+const CUISINE_LABELS: Record<string, string> = {
+  VN: "Việt Nam",
+  VIETNAM: "Việt Nam",
+  JP: "Nhật Bản",
+  JAPAN: "Nhật Bản",
+  KR: "Hàn Quốc",
+  KOREA: "Hàn Quốc",
+  TH: "Thái Lan",
+  THAILAND: "Thái Lan",
+  CN: "Trung Quốc",
+  CHINA: "Trung Quốc",
+  US: "Mỹ",
+  USA: "Mỹ",
+  MEDITERRANEAN: "Địa Trung Hải",
+  IT: "Ý",
+  ITALY: "Ý",
+};
+
+const CUISINE_KEYWORDS: Record<string, string[]> = {
+  VN: ["rice", "rice noodles", "fish sauce", "shrimp", "pork", "tofu", "catfish", "tilapia", "cucumber", "cilantro", "bean sprouts", "lime"],
+  VIETNAM: ["rice", "rice noodles", "fish sauce", "shrimp", "pork", "tofu", "catfish", "tilapia", "cucumber", "cilantro", "bean sprouts", "lime"],
+  JP: ["rice", "salmon", "tuna", "tofu", "soy", "miso", "seaweed", "egg", "shrimp"],
+  JAPAN: ["rice", "salmon", "tuna", "tofu", "soy", "miso", "seaweed", "egg", "shrimp"],
+  KR: ["rice", "beef", "pork", "chicken", "tofu", "cabbage", "spinach", "egg", "soy"],
+  KOREA: ["rice", "beef", "pork", "chicken", "tofu", "cabbage", "spinach", "egg", "soy"],
+  TH: ["rice", "rice noodles", "shrimp", "fish", "chicken", "lime", "coconut", "peanut"],
+  THAILAND: ["rice", "rice noodles", "shrimp", "fish", "chicken", "lime", "coconut", "peanut"],
+  CN: ["rice", "noodles", "pork", "chicken", "beef", "tofu", "soy", "bok choy", "egg"],
+  CHINA: ["rice", "noodles", "pork", "chicken", "beef", "tofu", "soy", "bok choy", "egg"],
+  US: ["chicken", "beef", "turkey", "potato", "bread", "oat", "milk", "yogurt", "cheese", "apple"],
+  USA: ["chicken", "beef", "turkey", "potato", "bread", "oat", "milk", "yogurt", "cheese", "apple"],
+  MEDITERRANEAN: ["fish", "salmon", "tuna", "yogurt", "cheese", "beans", "chickpea", "lentils", "tomato", "cucumber", "pasta"],
+  IT: ["pasta", "tomato", "cheese", "chicken", "fish", "beans", "bread"],
+  ITALY: ["pasta", "tomato", "cheese", "chicken", "fish", "beans", "bread"],
+};
+
+function normalizeCuisine(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toUpperCase();
+  if (/\b(VN|VIET|VIETNAM|VIET NAM)\b/.test(normalized)) return "VN";
+  if (/\b(JP|JAPAN|NHAT|NHAT BAN)\b/.test(normalized)) return "JP";
+  if (/\b(KR|KOREA|HAN|HAN QUOC)\b/.test(normalized)) return "KR";
+  if (/\b(TH|THAI|THAI LAN|THAILAND)\b/.test(normalized)) return "TH";
+  if (/\b(CN|CHINA|TRUNG QUOC|TRUNG)\b/.test(normalized)) return "CN";
+  if (/\b(US|USA|AMERICAN|MY)\b/.test(normalized)) return "US";
+  if (/\b(MEDITERRANEAN|DIA TRUNG HAI)\b/.test(normalized)) return "MEDITERRANEAN";
+  if (/\b(IT|ITALY|Y|ITALIAN)\b/.test(normalized)) return "IT";
+  return raw.slice(0, 80);
+}
+
+function cuisineLabel(value?: string | null): string | null {
+  const key = normalizeCuisine(value);
+  if (!key) return null;
+  return CUISINE_LABELS[key] ?? key;
+}
+
+const VIETNAMESE_REGION_LABELS: Record<VietnameseRegion, string> = {
+  BAC: "Miền Bắc",
+  TRUNG: "Miền Trung",
+  NAM: "Miền Nam",
+};
+
+const VIETNAMESE_REGION_PREP_STYLE: Record<VietnameseRegion, string> = {
+  BAC: "ưu tiên vị thanh, ít ngọt, món luộc/hấp/canh, nước mắm dùng vừa phải",
+  TRUNG: "ưu tiên vị đậm hơn, có thể cay nhẹ, món kho/canh/chế biến gọn",
+  NAM: "ưu tiên vị mềm, dễ ăn, có thể hơi ngọt nhẹ, nhiều rau thơm/canh/chua ngọt vừa phải",
+};
+
+const VIETNAMESE_REGION_KEYWORDS: Record<VietnameseRegion, string[]> = {
+  BAC: ["rice", "fish sauce", "tofu", "egg", "tilapia", "chicken", "lean pork", "greens", "cabbage"],
+  TRUNG: ["rice", "fish sauce", "mackerel", "shrimp", "lean pork", "chicken", "egg", "tofu", "chili"],
+  NAM: ["rice", "fish sauce", "catfish", "basa", "shrimp", "tofu", "chicken", "pineapple", "cucumber"],
+};
+
+function normalizeVietnameseRegion(value?: string | null): VietnameseRegion | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toUpperCase();
+  if (/\b(BAC|MIEN BAC|NORTH|NORTHERN)\b/.test(normalized)) return "BAC";
+  if (/\b(TRUNG|MIEN TRUNG|CENTRAL)\b/.test(normalized)) return "TRUNG";
+  if (/\b(NAM|MIEN NAM|SOUTH|SOUTHERN)\b/.test(normalized)) return "NAM";
+  return null;
+}
+
+function shouldApplyVietnameseRegion(cuisineCountry?: string | null): boolean {
+  const cuisine = normalizeCuisine(cuisineCountry);
+  return !cuisine || cuisine === "VN";
+}
+
+function vietnameseRegionPromptLine(region?: string | null, cuisineCountry?: string | null): string {
+  const key = shouldApplyVietnameseRegion(cuisineCountry)
+    ? normalizeVietnameseRegion(region)
+    : null;
+  if (!key) return "";
+  return `Vùng miền món Việt ưu tiên: ${VIETNAMESE_REGION_LABELS[key]}; gợi ý chế biến: ${VIETNAMESE_REGION_PREP_STYLE[key]}. Đây là định hướng khẩu vị, không được làm lệch calorie/macro và vẫn chỉ dùng foodId thật trong danh sách.`;
+}
+
+function prioritizeFoodsForCuisine(foods: AiFood[], cuisineCountry?: string): AiFood[] {
+  const key = normalizeCuisine(cuisineCountry);
+  const keywords = key ? CUISINE_KEYWORDS[key] : undefined;
+  if (!keywords?.length) return foods;
+  const score = (food: AiFood) => {
+    const name = food.name.toLowerCase();
+    return keywords.reduce((total, keyword, index) => total + (name.includes(keyword) ? keywords.length - index : 0), 0);
+  };
+  return [...foods].sort((a, b) => score(b) - score(a));
+}
+
+function prioritizeFoodsForVietnameseRegion(
+  foods: AiFood[],
+  region?: string | null,
+  cuisineCountry?: string | null,
+): AiFood[] {
+  if (!shouldApplyVietnameseRegion(cuisineCountry)) return foods;
+  const key = normalizeVietnameseRegion(region);
+  const keywords = key ? VIETNAMESE_REGION_KEYWORDS[key] : undefined;
+  if (!keywords?.length) return foods;
+  const score = (food: AiFood) => {
+    const name = food.name.toLowerCase();
+    return keywords.reduce(
+      (total, keyword, index) => total + (name.includes(keyword) ? keywords.length - index : 0),
+      0,
+    );
+  };
+  return [...foods].sort((a, b) => score(b) - score(a));
+}
+
+export function describeVietnameseRegionPreference(
+  region?: string | null,
+  cuisineCountry?: string | null,
+): string | null {
+  const key = shouldApplyVietnameseRegion(cuisineCountry)
+    ? normalizeVietnameseRegion(region)
+    : null;
+  return key ? VIETNAMESE_REGION_LABELS[key] : null;
+}
+
 const NutritionPlanJobDataSchema = z.object({
   planId: z.string().uuid(),
   userId: z.string().min(1),
@@ -46,6 +203,8 @@ const NutritionPlanJobDataSchema = z.object({
   dailyCaloriesTarget: z.number().int().optional(),
   dietPreference: z.string().optional(),
   budgetLevel: z.string().optional(),
+  cuisineCountry: z.string().optional(),
+  vietnameseRegion: z.enum(["BAC", "TRUNG", "NAM"]).optional(),
   restrictions: z.array(z.string()).optional(),
   // Canonical, ENFORCED food exclusions (nutrition-food-constraints.ts) —
   // unlike `restrictions` (free text, prompt-only), these filter the food
@@ -82,7 +241,12 @@ const NutritionPlanJobDataSchema = z.object({
   autoSaveOnComplete: z.boolean().optional(),
 });
 
-export async function processNutritionPlanJob(job: Job) {
+/** Entry point: claims the durable generation operation (duplicate delivery / stale attempt protection) before the model runs. */
+export async function processNutritionPlanJob(job: Job): Promise<void> {
+  return withGenerationOperation(job, () => processNutritionPlanJobInner(job));
+}
+
+async function processNutritionPlanJobInner(job: Job): Promise<void> {
   // 1. Validate job data
   const dataResult = NutritionPlanJobDataSchema.safeParse(job.data);
   if (!dataResult.success) {
@@ -98,6 +262,8 @@ export async function processNutritionPlanJob(job: Job) {
     dailyCaloriesTarget,
     dietPreference,
     budgetLevel,
+    cuisineCountry,
+    vietnameseRegion,
     restrictions,
     excludedFoodKeys = [],
     proteinTargetG,
@@ -119,22 +285,20 @@ export async function processNutritionPlanJob(job: Job) {
     );
 
     // 3. Fetch allowed foods from fitness-service
-    const fitnessServiceUrl =
-      process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
+    // Same transport as every other ai-service -> fitness-service call: a direct Lambda invoke when FITNESS_LAMBDA_NAME is set (the
+    // AWS deployment has no FITNESS_SERVICE_URL, so a bare HTTP call fell back to localhost:3002 and every nutrition plan failed with
+    // "no food data"), plain HTTP to FITNESS_SERVICE_URL otherwise (local dev / docker, unchanged).
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
     let allowedFoods: any[] = [];
     try {
-      const resp = await axios.get(
-        `${fitnessServiceUrl}/internal/foods/for-ai-nutrition`,
-        {
-          timeout: 10000,
-          headers: {
-            "x-internal-token": internalSecret,
-            "x-user-id": userId,
-          },
-        },
-      );
+      const resp = await requestService<any>({
+        service: "fitness",
+        method: "GET",
+        path: "/internal/foods/for-ai-nutrition",
+        timeoutMs: 10000,
+        headers: serviceHeaders(userId, internalSecret),
+      });
       if (resp?.data?.success && Array.isArray(resp.data.data?.foods)) {
         allowedFoods = resp.data.data.foods;
       }
@@ -162,6 +326,13 @@ export async function processNutritionPlanJob(job: Job) {
     // list, deterministic protein/carb/fat pools, name lookup, invariant
     // allowedFoodIds) sees only permitted foods, so nothing can re-add one.
     allowedFoods = filterFoodsByExclusions(allowedFoods, excludedFoodKeys);
+    // Catalog tiers (nutrition-everyday-foods.ts): curated Vietnamese everyday foods → everyday screen → full list, so the
+    // LLM list and the role pools see real meal foods first instead of "dehydrated apples / Wagyu seam fat / pudding dry
+    // mix". The LLM drafts from the first tier's list; the tier actually used is chosen by a dry run right before the build,
+    // and the exclusion-filtered full list stays the last resort, so a thin catalog is never worse than before.
+    const exclusionFilteredFoods = allowedFoods;
+    const catalogTierList = catalogTiers(allowedFoods);
+    allowedFoods = catalogTierList[0].foods;
 
     if (allowedFoods.length === 0) {
       await conversationRepository.updateNutritionPlanFailed(
@@ -175,6 +346,7 @@ export async function processNutritionPlanJob(job: Job) {
     let resolvedWeightKg: number | undefined;
     let resolvedBodyFatPct: number | undefined;
     let resolvedBmr: number | undefined;
+    let profileVietnameseRegion: string | undefined;
     let userContextNote = "";
     try {
       const { fetchWorkerUserContext, formatWorkerContextForPrompt } =
@@ -185,6 +357,7 @@ export async function processNutritionPlanJob(job: Job) {
         resolvedBodyFatPct = ctx.latestInBody.bodyFatPct;
         resolvedBmr = ctx.latestInBody.bmr;
       }
+      profileVietnameseRegion = ctx.profile?.region;
       userContextNote = formatWorkerContextForPrompt(ctx);
       logger.info(
         {
@@ -205,6 +378,14 @@ export async function processNutritionPlanJob(job: Job) {
     const effectiveWeightKg = resolvedWeightKg ?? dataResult.data.weightKg;
     const effectiveBodyFatPct =
       resolvedBodyFatPct ?? dataResult.data.bodyFatPct;
+    const effectiveVietnameseRegion = vietnameseRegion ?? profileVietnameseRegion;
+
+    allowedFoods = prioritizeFoodsForCuisine(allowedFoods, cuisineCountry);
+    allowedFoods = prioritizeFoodsForVietnameseRegion(
+      allowedFoods,
+      effectiveVietnameseRegion,
+      cuisineCountry,
+    );
 
     // 4. Ask the LLM for a compact one-day meal template, then expand it with DB foods.
     // Small local models are unreliable when asked to emit 7 full days of nested JSON.
@@ -214,6 +395,8 @@ export async function processNutritionPlanJob(job: Job) {
       dailyCaloriesTarget,
       dietPreference,
       budgetLevel,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
       restrictions: [
         ...(restrictions ?? []),
         // Inject InBody-derived note as a soft constraint
@@ -277,12 +460,37 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       return;
     }
 
+    const buildParams = {
+      goal,
+      mealsPerDay,
+      dailyCaloriesTarget,
+      template: templateResult.template,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
+      proteinTargetG,
+      carbTargetG,
+      fatTargetG,
+    };
+    // First tier whose dry run (build + quantity repair) passes the invariants; the full list is never dry-run (it is the
+    // previous behaviour and keeps its own fail-closed checks below). e.g. a vegan catalog may need a later tier.
+    const dryRuns: Array<{ tier: string; ok: boolean; codes: string[] }> = [];
+    let catalogTier = catalogTierList[catalogTierList.length - 1];
+    for (const tier of catalogTierList) {
+      if (tier.label === "full") break;
+      const r = catalogMeetsTargets({ ...buildParams, allowedFoods: tier.foods }, mealsPerDay);
+      dryRuns.push({ tier: tier.label, ok: r.ok, codes: r.codes });
+      if (r.ok) { catalogTier = tier; break; }
+    }
+    allowedFoods = catalogTier.foods;
+    logger.info({ jobId: job.id, planId, catalogTier: catalogTier.label, foods: allowedFoods.length, of: exclusionFilteredFoods.length, dryRuns }, "[nutrition-foods] catalog tier chosen");
     const content = buildNutritionPlanFromTemplate({
       goal,
       mealsPerDay,
       dailyCaloriesTarget,
       template: templateResult.template,
       allowedFoods,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
       proteinTargetG,
       carbTargetG,
       fatTargetG,
@@ -354,11 +562,46 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       );
       return;
     }
-    const nutritionInvariant = validateNutritionPlanInvariants({
+    let finalContent = content;
+    let nutritionInvariant = validateNutritionPlanInvariants({
       content,
       mealsPerDay,
       allowedFoodIds,
     });
+    if (!nutritionInvariant.ok) {
+      // Deterministic numeric repair (no LLM): re-size ONLY the gram quantities of the foods the plan already
+      // contains so the authoritative kcal/macro targets are met. Invariants, tolerances and exclusions are
+      // unchanged: the repaired plan must pass the SAME checks below, otherwise the plan still fails closed.
+      const foodById = new Map(allowedFoods.map((f) => [String(f.id), f]));
+      const repair = repairNutritionPlanQuantities(content, {
+        foodById,
+        capG: (f) => realisticServingCapG(f.name, f.realisticServingMaxG),
+      });
+      const repairedInvariant = repair.report.changed
+        ? validateNutritionPlanInvariants({ content: repair.content, mealsPerDay, allowedFoodIds })
+        : nutritionInvariant;
+      const repairedExclusions = repair.report.changed ? findExclusionViolations(repair.content, excludedFoodKeys) : [];
+      const repairOk = repairedInvariant.ok && repairedExclusions.length === 0;
+      logger.info(
+        {
+          jobId: job.id,
+          planId,
+          repairInvoked: true,
+          repairSucceeded: repairOk,
+          repairedDays: repair.report.repairedDays.length,
+          failedDays: repair.report.failedDays.length,
+          violationsBefore: [...new Set(nutritionInvariant.violations.map((v) => v.code))],
+          before: repair.report.before,
+          after: repair.report.after,
+          repairMs: repair.report.ms,
+        },
+        "[nutrition-repair] deterministic quantity repair after invariant failure",
+      );
+      if (repairOk) {
+        finalContent = repair.content;
+        nutritionInvariant = repairedInvariant;
+      }
+    }
     if (!nutritionInvariant.ok) {
       logger.error(
         { jobId: job.id, planId, violations: nutritionInvariant.violations },
@@ -370,8 +613,11 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       );
       return;
     }
-    // 7. Complete plan
-    await conversationRepository.updateNutritionPlanCompletion(planId, content);
+    // 7. Complete plan — Vietnamese display names for curated foods only now, after every name-based check above.
+    finalContent = withVietnameseDisplayNames(finalContent, exclusionFilteredFoods);
+    // the exclusions this plan was built under travel with it (an "Điều chỉnh" of this plan must keep them)
+    if (excludedFoodKeys.length) finalContent = { ...finalContent, excludedFoodKeys: [...new Set(excludedFoodKeys)] };
+    await conversationRepository.updateNutritionPlanCompletion(planId, finalContent);
     logger.info(
       { jobId: job.id, planId, userId },
       "Nutrition plan generation completed successfully",
@@ -383,9 +629,19 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     // succeeds, and the user's deterministic NutritionGoal already makes
     // Nutrition usable even if this fails (spec §LI fallback rule).
     if (autoSaveOnComplete) {
-      await autoSaveCompletedNutritionPlan(planId, userId, goal, content, fitnessServiceUrl, internalSecret);
+      // Cross-service side effect: it cannot join the database transaction, so this is a best-effort ownership probe
+      // (not an atomic fence). A stale attempt is stopped here instead of pushing stale content to fitness-service.
+      await assertGenerationLeaseHeld();
+      const saved = await autoSaveCompletedNutritionPlan(planId, userId, goal, finalContent, internalSecret);
+      // Durable intent (R222-04): the operation row records that the save is acknowledged. If this attempt dies or the
+      // call fails, the operation stays COMPLETED-without-ack and recovery replays the save idempotently
+      // (fitness-service answers alreadyExists for a (user, sourcePlanId) it already holds).
+      if (saved) await acknowledgeAutoSave();
     }
   } catch (err: any) {
+    // A lapsed/taken-over lease (raised by the lease probe before the auto-save, or by a fenced write) means a NEWER attempt owns this
+    // execution: this attempt must not touch the plan at all — in particular it must never flip an already COMPLETED plan to FAILED.
+    if (err instanceof StaleLeaseError) throw err;
     logger.error(
       { err, jobId: job.id, planId },
       "Nutrition plan generation failed unexpectedly",
@@ -396,6 +652,11 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     );
     throw err;
   }
+}
+
+/** Identity headers for an internal call. With no secret configured the token header is OMITTED (not sent empty), as the old axios call did. */
+function serviceHeaders(userId: string, internalSecret: string | undefined): Record<string, string> {
+  return { ...(internalSecret ? { "x-internal-token": internalSecret } : {}), "x-user-id": userId };
 }
 
 function toDateOnlyString(date: Date): string {
@@ -425,18 +686,22 @@ async function autoSaveCompletedNutritionPlan(
   userId: string,
   goal: string,
   content: NutritionPlanContent,
-  fitnessServiceUrl: string,
   internalSecret: string | undefined,
-): Promise<void> {
+  baseDate: Date = new Date(),
+): Promise<boolean> {
   try {
-    const startDate = toDateOnlyString(new Date());
-    const endDateObj = new Date();
+    const startDate = toDateOnlyString(baseDate);
+    const endDateObj = new Date(baseDate);
     endDateObj.setDate(endDateObj.getDate() + 6);
     const endDate = toDateOnlyString(endDateObj);
 
-    await axios.post(
-      `${fitnessServiceUrl}/nutrition/from-ai-plan`,
-      {
+    await requestService({
+      service: "fitness",
+      method: "POST",
+      path: "/nutrition/from-ai-plan",
+      timeoutMs: 20000,
+      headers: serviceHeaders(userId, internalSecret),
+      body: {
         sourcePlanId: planId,
         sourcePlanName: `Ke hoach dinh duong - ${goal}`,
         goal: content.goal,
@@ -452,21 +717,61 @@ async function autoSaveCompletedNutritionPlan(
         carbTargetGrams: content.carbTargetGrams,
         fatTargetGrams: content.fatTargetGrams,
       },
-      {
-        timeout: 20000,
-        headers: {
-          "x-internal-token": internalSecret,
-          "x-user-id": userId,
-        },
-      },
-    );
+    });
     logger.info({ planId, userId }, "[nutrition-bootstrap] auto-saved AI plan to NutritionProgram");
+    return true;
   } catch (err) {
     logger.warn(
       { err: (err as Error).message, planId, userId },
       "[nutrition-bootstrap] auto-save of completed nutrition plan failed (non-blocking)",
     );
+    return false;
   }
+}
+
+/**
+ * Recovery replay of a missed/failed auto-save for an operation that already COMPLETED (R222-04, durable intent).
+ * Only the operation's own epoch target plan is ever replayed, and only when that plan is COMPLETED and owned by the
+ * operation's verified actor, so a stale execution can never push anything but its own committed content. The save is
+ * idempotent downstream: UNIQUE (user_id, source_plan_id) + alreadyExists. Returns true when the save is acknowledged.
+ */
+export async function replayCompletedNutritionAutoSave(op: {
+  actorUserId: string;
+  targetId: string | null;
+}): Promise<boolean> {
+  if (!op.targetId) return false;
+  const plan: any = await conversationRepository.findNutritionPlanById(op.targetId);
+  if (!plan || plan.status !== "COMPLETED" || plan.userId !== op.actorUserId) return false;
+  const content = plan.plan as NutritionPlanContent;
+  if (!content || !Array.isArray((content as any).weeklySchedule) || (content as any).weeklySchedule.length === 0) return false;
+  return autoSaveCompletedNutritionPlan(
+    plan.id,
+    plan.userId,
+    plan.goal,
+    content,
+    process.env.INTERNAL_SERVICE_SECRET,
+  );
+}
+
+/** Dry run of the deterministic build (+ quantity repair) on a candidate catalog: true when the plan would pass the invariants. */
+function catalogMeetsTargets(params: Parameters<typeof buildNutritionPlanFromTemplate>[0], mealsPerDay: number): { ok: boolean; codes: string[] } {
+  const content = buildNutritionPlanFromTemplate({ ...params, template: structuredClone(params.template) });
+  const allowedFoodIds = new Set(params.allowedFoods.map((f) => String(f.id)));
+  // Same name -> id resolution the real path applies before its invariant check (items the builder emits by name only).
+  const foodByName = new Map(params.allowedFoods.map((f) => [normalizeFoodName(f.name), f]));
+  for (const day of content.weeklySchedule) for (const meal of day.meals) for (const item of meal.items) {
+    if (item.foodId && allowedFoodIds.has(String(item.foodId))) continue;
+    const matched = foodByName.get(normalizeFoodName(item.name));
+    if (matched) { item.foodId = matched.id; item.name = matched.name; }
+  }
+  const first = validateNutritionPlanInvariants({ content, mealsPerDay, allowedFoodIds });
+  if (first.ok) return { ok: true, codes: [] };
+  const repair = repairNutritionPlanQuantities(content, {
+    foodById: new Map(params.allowedFoods.map((f) => [String(f.id), f])),
+    capG: (f) => realisticServingCapG(f.name, f.realisticServingMaxG),
+  });
+  const after = repair.report.changed ? validateNutritionPlanInvariants({ content: repair.content, mealsPerDay, allowedFoodIds }) : first;
+  return { ok: after.ok, codes: [...new Set(after.violations.map((v) => v.code))] };
 }
 
 function normalizeFoodName(value: string): string {
@@ -485,6 +790,8 @@ function buildCompactNutritionTemplatePrompt(params: {
   dailyCaloriesTarget?: number;
   dietPreference?: string;
   budgetLevel?: string;
+  cuisineCountry?: string;
+  vietnameseRegion?: string;
   restrictions?: string[];
   allowedFoods: AiFood[];
   weightKg?: number;
@@ -496,6 +803,8 @@ function buildCompactNutritionTemplatePrompt(params: {
     dailyCaloriesTarget,
     dietPreference,
     budgetLevel,
+    cuisineCountry,
+    vietnameseRegion,
     restrictions,
     allowedFoods,
     weightKg,
@@ -523,6 +832,8 @@ function buildCompactNutritionTemplatePrompt(params: {
   );
   const userCtxBlock =
     userContextNotes.length > 0 ? userContextNotes.join("\n") : "";
+  const cuisine = cuisineLabel(cuisineCountry);
+  const regionLine = vietnameseRegionPromptLine(vietnameseRegion, cuisineCountry);
 
   return `Bạn là chuyên gia dinh dưỡng. Hãy tạo MẪU 1 NGÀY ăn uống cho mục tiêu "${goal}".
 
@@ -532,6 +843,8 @@ ${userCtxBlock}
 Mục tiêu calo/ngày: ${dailyCaloriesTarget ?? 2200}.
 Số bữa trong ngày: ${mealsPerDay}.
 Sở thích/chế độ: ${dietPreference || "không có"}.
+Quốc gia/phong cách ẩm thực ưu tiên: ${cuisine || "không có"}. Nếu có, ưu tiên tên bữa và phối món theo phong cách này nhưng chỉ dùng foodId thật trong danh sách.
+${regionLine}
 Ngân sách: ${budgetLevel || "bình thường"}.
 Hạn chế: ${realRestrictions.join("; ") || "không có"}.
 
@@ -559,7 +872,7 @@ JSON:
 }`;
 }
 
-function parseNutritionTemplate(
+export function parseNutritionTemplate(
   raw: string,
 ): { ok: true; template: NutritionTemplate } | { ok: false; reason: string } {
   const parsed = safeParseJsonCandidate(raw);
@@ -658,6 +971,8 @@ export function buildNutritionPlanFromTemplate(params: {
   dailyCaloriesTarget?: number;
   template: NutritionTemplate;
   allowedFoods: AiFood[];
+  cuisineCountry?: string;
+  vietnameseRegion?: string;
   proteinTargetG?: number;
   carbTargetG?: number;
   fatTargetG?: number;
@@ -668,10 +983,17 @@ export function buildNutritionPlanFromTemplate(params: {
     dailyCaloriesTarget,
     template,
     allowedFoods,
+    cuisineCountry,
+    vietnameseRegion,
     proteinTargetG,
     carbTargetG,
     fatTargetG,
   } = params;
+  const cuisine = cuisineLabel(cuisineCountry);
+  const regionLabel = describeVietnameseRegionPreference(vietnameseRegion, cuisineCountry);
+  const regionNote = regionLabel
+    ? `Ưu tiên khẩu vị món Việt theo vùng miền: ${regionLabel}.`
+    : null;
   const targetCalories = dailyCaloriesTarget ?? 2200;
   const allowedById = new Map(allowedFoods.map((food) => [food.id, food]));
   // realisticServingCapG()-aware selection helpers, defined up front so
@@ -746,7 +1068,14 @@ export function buildNutritionPlanFromTemplate(params: {
         b.carbs / Math.max(1, b.calories) -
         a.carbs / Math.max(1, a.calories),
     );
+  // Curated staples that can actually deliver this meal's carbs within their realistic portion come first (rice at 350 g ≈
+  // 99 g carbs; a banana capped at 200 g cannot) — without it a 2370 kcal / 3-meal day picked banana + potato by density,
+  // stayed ~11% short on carbs and fell back to the non-curated catalog (test/ai-quality-eval, 2026-11-08). Only applies
+  // when curated foods are present, so other catalogs keep the previous ordering.
+  const carbNeedPerMeal = carbTargetG && mealsPerDay > 0 ? carbTargetG / mealsPerDay : undefined;
   const carbFoods = preferredPool(carbFoodsAll, [
+    (f) => !!f.curated && carbNeedPerMeal !== undefined && f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G
+      && (f.carbs * realisticServingCapG(f.name, f.realisticServingMaxG)) / 100 >= 0.85 * carbNeedPerMeal,
     (f) => f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G && isCapFriendly(f),
     (f) => f.protein < LOW_PROTEIN_THRESHOLD_G_PER_100G,
     isCapFriendly,
@@ -764,6 +1093,10 @@ export function buildNutritionPlanFromTemplate(params: {
     isCapFriendly,
   ]);
   const fallbackFoods = allowedFoods.length > 0 ? allowedFoods : proteinFoods;
+  // Curated vegetables (low-energy, low-fat; fruit excluded by name) for the lunch/dinner side below.
+  const VEGETABLE_SIDE_G = 150, VEG_ROTATION = 8;
+  const vegetableFoods = allowedFoods.filter((f) => f.curated && f.calories <= 45 && (f.fat ?? f.fats ?? 0) < 1 && f.protein < 4.5 && f.carbs <= 9
+    && !/\b(watermelon|pummelo|papaya|orange|apple|mango|grape|pineapple|banana|guava|melon|berr)/i.test(f.name));
 
   // Root-cause fix: quantities used to be sized from FIXED calorie-role
   // percentages (primary=5%, secondary=70%, tertiary=25% of meal
@@ -873,10 +1206,20 @@ export function buildNutritionPlanFromTemplate(params: {
       // same flawed raw-quantity accounting, and both the overshoot and
       // this undershoot are direct consequences of crediting a serving
       // that never makes it to the plate.
+      // A vegetable side at lunch/dinner from the curated everyday foods (test/ai-quality-eval 2026-11-08: plans had no
+      // vegetables at all). Its carbs/protein are taken off this meal's targets BEFORE the other roles are sized, so the
+      // day totals still land on target. No curated vegetables in the catalog -> no side (previous behaviour).
+      const mealTypeHere = normalizeMealType(templateMeal?.mealType, mealIndex);
+      const vegetable = (mealTypeHere === "LUNCH" || mealTypeHere === "DINNER") && vegetableFoods.length
+        ? vegetableFoods[(dayIndex * mealsPerDay + mealIndex) % Math.min(VEG_ROTATION, vegetableFoods.length)]
+        : undefined;
+      const vegetableQuantity = vegetable ? Math.min(VEGETABLE_SIDE_G, realisticServingCapG(vegetable.name, vegetable.realisticServingMaxG)) : 0;
+      const vegCarbs = vegetable ? (vegetableQuantity / 100) * vegetable.carbs : 0;
+      const vegProtein = vegetable ? (vegetableQuantity / 100) * vegetable.protein : 0;
       const rawSecondaryQuantity =
         secondary.id === primary.id
           ? 0
-          : macroTargetQuantity(secondary, carbPerMeal, "carbs");
+          : macroTargetQuantity(secondary, Math.max(0, carbPerMeal - vegCarbs), "carbs");
       const rawTertiaryQuantity =
         tertiary.id === primary.id || tertiary.id === secondary.id
           ? 0
@@ -897,7 +1240,8 @@ export function buildNutritionPlanFromTemplate(params: {
           : applyServingBounds(rawTertiaryQuantity, tertiary, 10);
       const incidentalProteinFromOtherRoles =
         (secondaryQuantity / 100) * secondary.protein +
-        (tertiaryQuantity / 100) * tertiary.protein;
+        (tertiaryQuantity / 100) * tertiary.protein +
+        vegProtein;
       const remainingProteinTarget = Math.max(
         0,
         proteinPerMeal - incidentalProteinFromOtherRoles,
@@ -932,6 +1276,7 @@ export function buildNutritionPlanFromTemplate(params: {
               ),
             ]
           : []),
+        ...(vegetable && vegetableQuantity > 0 ? [buildMealItem(vegetable, vegetableQuantity, "Rau xanh — chất xơ và vi chất")] : []),
       ];
 
       const totals = sumItems(items);
@@ -968,8 +1313,14 @@ export function buildNutritionPlanFromTemplate(params: {
     fatTargetGrams: finalFatTargetGrams,
     weeklySchedule,
     generalNotes: template.nutritionNotes?.length
-      ? template.nutritionNotes
+      ? [
+          ...template.nutritionNotes,
+          ...(regionNote ? [regionNote] : []),
+          ...(cuisine ? [`Ưu tiên phong cách ẩm thực: ${cuisine}.`] : []),
+        ]
       : [
+          ...(regionNote ? [regionNote] : []),
+          ...(cuisine ? [`Ưu tiên phong cách ẩm thực: ${cuisine}.`] : []),
           "Ưu tiên đủ protein, chia đều năng lượng trong ngày và điều chỉnh khẩu phần theo tiến độ thực tế.",
         ],
   };

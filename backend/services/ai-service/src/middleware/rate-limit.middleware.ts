@@ -42,73 +42,68 @@ export interface RateLimitOptions {
   windowSeconds: number;
 }
 
+/**
+ * The limiter core as a throwing function, so a DOMAIN COMMAND (e.g. the queue*Generation commands)
+ * can admit a billable operation with the same bucket, key (`<name>:<verifiedUserId>`), fixed-window
+ * semantics and fail-closed behavior as the route middleware below. Throws RateLimitedError (429),
+ * RateLimitUnavailableError (503) or ApiError 401; resolves when the operation is admitted.
+ * `userId` must come from req.context / a verified identity, never a request body.
+ */
+export async function consumeRateLimit(
+  options: RateLimitOptions,
+  userId: string | undefined,
+): Promise<void> {
+  const provider = resolveRateLimitProvider();
+  if (provider === "off") return;
+
+  if (!userId) {
+    // Refusing outright (rather than silently allowing) keeps a future routing mistake from ever
+    // granting an unmetered, unlimited quota.
+    throw new ApiError("UNAUTHORIZED", "Rate limiting requires an authenticated identity", 401);
+  }
+
+  const limiter = getRateLimiter(provider);
+  if (!limiter) return;
+
+  try {
+    const result = await limiter.consume({
+      key: `${options.name}:${userId}`,
+      max: options.max,
+      windowSeconds: options.windowSeconds,
+    });
+    if (!result.allowed) {
+      const retryAfterSeconds = Math.max(1, result.retryAfterSeconds);
+      throw new RateLimitedError(`Too many requests. Try again in ${retryAfterSeconds}s.`, retryAfterSeconds);
+    }
+  } catch (err) {
+    if (err instanceof RateLimitInfrastructureError) {
+      logger.error(
+        { err: err.message, name: options.name, userId },
+        "[rate-limit] limiter unavailable — failing closed for a Bedrock-calling route",
+      );
+      // Deliberately RateLimitUnavailableError, not the underlying err — its message never reaches
+      // the client (no DynamoDB table name, region, or AWS error text in the response body).
+      throw new RateLimitUnavailableError();
+    }
+    throw err;
+  }
+}
+
 export function createRateLimiter(options: RateLimitOptions): RequestHandler {
   return async function rateLimitMiddleware(
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> {
-    const provider = resolveRateLimitProvider();
-    if (provider === "off") {
-      next();
-      return;
-    }
-
-    const userId = req.context?.userId;
-    if (!userId) {
-      // Should be unreachable in practice — this middleware is only ever
-      // wired in after requireAuth. Refusing outright (rather than silently
-      // allowing) keeps a future routing mistake from ever granting an
-      // unmetered, unlimited quota.
-      next(
-        new ApiError(
-          "UNAUTHORIZED",
-          "Rate limiting requires an authenticated identity",
-          401,
-        ),
-      );
-      return;
-    }
-
-    const limiter = getRateLimiter(provider);
-    if (!limiter) {
-      next();
-      return;
-    }
-
     try {
-      const result = await limiter.consume({
-        key: `${options.name}:${userId}`,
-        max: options.max,
-        windowSeconds: options.windowSeconds,
-      });
-
-      if (!result.allowed) {
-        const retryAfterSeconds = Math.max(1, result.retryAfterSeconds);
-        res.setHeader("Retry-After", String(retryAfterSeconds));
-        next(
-          new RateLimitedError(
-            `Too many requests. Try again in ${retryAfterSeconds}s.`,
-            retryAfterSeconds,
-          ),
-        );
-        return;
-      }
-
-      next();
+      await consumeRateLimit(options, req.context?.userId);
     } catch (err) {
-      if (err instanceof RateLimitInfrastructureError) {
-        logger.error(
-          { err: err.message, name: options.name, userId },
-          "[rate-limit] limiter unavailable — failing closed for a Bedrock-calling route",
-        );
-        // Deliberately RateLimitUnavailableError, not the underlying err —
-        // its message never reaches the client (no DynamoDB table name,
-        // region, or AWS error text in the response body).
-        next(new RateLimitUnavailableError());
-        return;
+      if (err instanceof RateLimitedError) {
+        res.setHeader("Retry-After", String(err.retryAfterSeconds));
       }
       next(err);
+      return;
     }
+    next();
   };
 }

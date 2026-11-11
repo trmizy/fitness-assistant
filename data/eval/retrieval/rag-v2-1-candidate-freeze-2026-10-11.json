@@ -1,0 +1,47 @@
+{
+ "candidate": "RAG_V2_1_CANDIDATE",
+ "frozenAt": "2026-10-11T02:42:51.546Z",
+ "files": {
+  "backend/services/ai-service/src/llm/retrieval-v2.ts": "85be2db3ccf7ba8f8d61744395307063c1a80ee133bc9b5827e04de34d4b6e7d",
+  "backend/services/ai-service/src/llm/fitness-concepts.ts": "e71d264e2ce550145f0523dae61a0f495ead99ee554b5fbd5c32614149494bf8",
+  "backend/services/ai-service/src/llm/knowledge-source.ts": "b33bb5d9a47fcf5f04988c594fa1706b05e5752f29414a24804c6cbfb50839f7"
+ },
+ "qdrant": {
+  "fitness_evidence": {
+   "points": 187,
+   "idSetHash": "d1e74aaad31d0543",
+   "contentSetHash": "b4b61def7d35f077"
+  },
+  "fitness_knowledge": {
+   "points": 7072,
+   "idSetHash": "29a9d4b061f50bca",
+   "contentSetHash": "5f750300d23fe298"
+  },
+  "fitness_faq": {
+   "points": 5946,
+   "idSetHash": "39f3933f84db0149",
+   "contentSetHash": "d38ca93b8e199a11"
+  },
+  "exercises": {
+   "points": 207,
+   "idSetHash": "7c5e4349570e19f7",
+   "contentSetHash": "e87beac9ba16ddde"
+  }
+ },
+ "note": "No tuning of ranking, floors, lexical weights, concept lexicon, topic/OOD guards, source priority, dedup policy or Qdrant content after this record. Fresh held-out V2 is created AFTER this file. The evaluator-only gate module (rag-gate.ts: safeAbstention + domain floors) was extended after the freeze and BEFORE held-out V2 was written; retrieval behaviour files are byte-identical to the frozen hashes.",
+ "configHash": "bf19b694a57648913ff9bf2ff36eb78da4d74f41ce030b93eb62d5fb379e12f2",
+ "evaluatorFiles": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "4af377d92d0399606b73c8de76cf4bcf103311a5ede12999c97d859ce50375cf",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "a5a958c4c6e459b89547d9e4d46cbf17d501ec370e20c09965b8fe812458b828"
+ },
+ "heldoutV2": {
+  "file": "data/eval/retrieval/rag-grounding-heldout-v2.json",
+  "sha256BeforeExecution": "62475422a39cda94af6907b699f4cfd4387cdee611c66d90aa3528e249b31093",
+  "recordedAt": "2026-10-11T02:44:34.605Z",
+  "executedAt": "2026-10-11T02:46:06.659Z",
+  "executions": 1,
+  "resultsFile": "data/eval/retrieval/rag-grounding-heldout-v2-results-2026-10-11.json",
+  "resultsSha256": "a770fea50d58c528f80c7fa4c69fc617f9e354c0c83b1570ee6a29022d76b02a",
+  "sha256AtExecutionEqualsBefore": true
+ }
+}

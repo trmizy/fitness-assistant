@@ -5,6 +5,7 @@
  */
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import { invokeHttpLambda, throwForLambdaHttpError } from "./lambda-http.client";
 
 // Resolved per-call (not frozen at import time) so a real running process
 // always reflects the current env var — behaviorally identical in
@@ -28,6 +29,37 @@ function internalHeaders(userId: string) {
   };
 }
 
+/**
+ * POSTs to ai-service. On AWS Lambda there is no ai-service host: when
+ * AI_LAMBDA_NAME is set the request is delivered by direct Lambda invoke
+ * (same pattern as USER_LAMBDA_NAME / AUTH_LAMBDA_NAME in this folder);
+ * otherwise it is a plain HTTP call to AI_SERVICE_URL as before. The return
+ * value mirrors axios (`{ data }`) so callers are unchanged.
+ */
+async function postAi(
+  userId: string,
+  path: string,
+  payload: unknown,
+  timeout: number,
+): Promise<{ data: any }> {
+  const functionName = process.env.AI_LAMBDA_NAME;
+  if (functionName) {
+    const result = await invokeHttpLambda({
+      functionName,
+      method: "POST",
+      path,
+      headers: internalHeaders(userId),
+      body: payload,
+    });
+    throwForLambdaHttpError(result);
+    return { data: result.body };
+  }
+  return axios.post(`${resolveAiServiceUrl()}${path}`, payload, {
+    headers: internalHeaders(userId),
+    timeout,
+  });
+}
+
 export interface AnalyzeCycleResult {
   decision: "KEEP" | "ADJUST" | "NEW_PLAN";
   cycleReview: {
@@ -47,14 +79,7 @@ export async function analyzeCycle(
   userId: string,
   payload: Record<string, unknown>,
 ): Promise<AnalyzeCycleResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/analyze-cycle`,
-    payload,
-    {
-      headers: internalHeaders(userId),
-      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
-    },
-  );
+  const res = await postAi(userId, "/ai/analyze-cycle", payload, Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000));
   return res.data.data as AnalyzeCycleResult;
 }
 
@@ -108,14 +133,7 @@ export async function assessCycle(
   userId: string,
   payload: Record<string, unknown>,
 ): Promise<AssessCycleResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/assess-cycle`,
-    payload,
-    {
-      headers: internalHeaders(userId),
-      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
-    },
-  );
+  const res = await postAi(userId, "/ai/assess-cycle", payload, Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000));
   return res.data.data as AssessCycleResult;
 }
 
@@ -181,14 +199,7 @@ export async function explainExerciseProgression(
   userId: string,
   payload: ExplainExerciseProgressionPayload,
 ): Promise<ExplainExerciseProgressionResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/explain-exercise-progression`,
-    payload,
-    {
-      headers: internalHeaders(userId),
-      timeout: Number(process.env.EXERCISE_PROGRESSION_EXPLANATION_TIMEOUT_MS ?? 30_000),
-    },
-  );
+  const res = await postAi(userId, "/ai/explain-exercise-progression", payload, Number(process.env.EXERCISE_PROGRESSION_EXPLANATION_TIMEOUT_MS ?? 30_000));
   return res.data.data as ExplainExerciseProgressionResult;
 }
 
@@ -237,14 +248,7 @@ export async function analyzeFeedback(
   userId: string,
   payload: Record<string, unknown>,
 ): Promise<AnalyzeFeedbackResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/analyze-feedback`,
-    payload,
-    {
-      headers: internalHeaders(userId),
-      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
-    },
-  );
+  const res = await postAi(userId, "/ai/analyze-feedback", payload, Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000));
   return res.data.data as AnalyzeFeedbackResult;
 }
 
@@ -281,14 +285,7 @@ export async function generateClientPlanDraft(
   ptUserId: string,
   payload: Record<string, unknown>,
 ): Promise<GenerateClientPlanDraftResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/generate-client-plan-draft`,
-    payload,
-    {
-      headers: internalHeaders(ptUserId),
-      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
-    },
-  );
+  const res = await postAi(ptUserId, "/ai/generate-client-plan-draft", payload, Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000));
   return res.data.data as GenerateClientPlanDraftResult;
 }
 
@@ -330,14 +327,7 @@ export async function generateRoadmapDraft(
   userId: string,
   payload: Record<string, unknown>,
 ): Promise<GenerateRoadmapDraftResult> {
-  const res = await axios.post(
-    `${resolveAiServiceUrl()}/ai/generate-roadmap-draft`,
-    payload,
-    {
-      headers: internalHeaders(userId),
-      timeout: Number(process.env.ROADMAP_DRAFT_TIMEOUT_MS ?? 90_000),
-    },
-  );
+  const res = await postAi(userId, "/ai/generate-roadmap-draft", payload, Number(process.env.ROADMAP_DRAFT_TIMEOUT_MS ?? 90_000));
   return res.data.data as GenerateRoadmapDraftResult;
 }
 
@@ -385,14 +375,7 @@ export async function queueInitialNutritionPlanSafe(
   payload: Record<string, unknown>,
 ): Promise<QueueNutritionPlanResult | null> {
   try {
-    const res = await axios.post(
-      `${resolveAiServiceUrl()}/plans/nutrition/generate`,
-      { ...payload, autoSaveOnComplete: true },
-      {
-        headers: internalHeaders(userId),
-        timeout: Number(process.env.NUTRITION_BOOTSTRAP_QUEUE_TIMEOUT_MS ?? 15_000),
-      },
-    );
+    const res = await postAi(userId, "/plans/nutrition/generate", { ...payload, autoSaveOnComplete: true }, Number(process.env.NUTRITION_BOOTSTRAP_QUEUE_TIMEOUT_MS ?? 15_000));
     const data = res.data?.success ? (res.data.data ?? res.data) : res.data;
     return { planId: data.planId, jobId: data.jobId, status: data.status };
   } catch (error) {

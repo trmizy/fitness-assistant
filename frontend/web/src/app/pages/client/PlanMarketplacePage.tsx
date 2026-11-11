@@ -99,10 +99,12 @@ function ListingCard({
   listing,
   selected,
   onClick,
+  sort,
 }: {
   listing: PublishedPlanListing;
   selected: boolean;
   onClick: () => void;
+  sort?: "recommended" | "recent" | "rating" | "quality";
 }) {
   const minPrice = lowestPackagePrice(listing);
   const isPaid = minPrice != null;
@@ -132,6 +134,16 @@ function ListingCard({
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
+        {sort === "recommended" && (
+          <span className="inline-flex rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+            Goi y rule-based
+          </span>
+        )}
+        {listing.sourcePlan && (
+          <span className="inline-flex rounded-full border border-zinc-700/60 bg-zinc-800/60 px-2 py-0.5 text-[10px] text-zinc-400">
+            {listing.sourcePlan.daysPerWeek} buoi/tuan
+          </span>
+        )}
         <span
           className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${
             isPaid
@@ -404,7 +416,7 @@ function AdoptPlanModal({
   );
 }
 
-function DetailPanel({ id }: { id: string }) {
+function DetailPanel({ id, onClose }: { id: string; onClose: () => void }) {
   const { user } = useApp();
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(5);
@@ -443,7 +455,7 @@ function DetailPanel({ id }: { id: string }) {
     setComplaintTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   if (detailQuery.isLoading) {
     return (
@@ -475,6 +487,13 @@ function DetailPanel({ id }: { id: string }) {
             <p className="mt-0.5 text-sm text-zinc-500">{listing.goal}</p>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="mb-1 rounded-lg border border-zinc-700/60 px-2 py-1 text-[11px] font-semibold text-zinc-400 transition-colors hover:text-zinc-100"
+            >
+              Dong
+            </button>
             <div className="flex items-center gap-1 text-sm font-bold text-amber-400">
               <Star className="h-4 w-4 fill-amber-400" />
               {listing.avgRating.toFixed(1)}
@@ -510,7 +529,7 @@ function DetailPanel({ id }: { id: string }) {
           Xem trước lịch tập ({listing.sourcePlan?.plan?.weeklySchedule?.length ?? 0} buổi)
         </button>
         {showPreview && (
-          <div className="mt-2 space-y-2 max-h-72 overflow-y-auto rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
+          <div className="mt-2 space-y-3 max-h-[70vh] overflow-y-auto rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
             {(listing.sourcePlan?.plan?.weeklySchedule ?? []).map((day, i) => (
               <div key={i}>
                 <p className="text-xs font-semibold text-zinc-300">{day.day}{day.goal ? ` — ${day.goal}` : ""}</p>
@@ -690,7 +709,7 @@ function DetailPanel({ id }: { id: string }) {
 }
 
 const SORT_OPTIONS: Array<{ value: "recommended" | "recent" | "rating" | "quality"; label: string }> = [
-  { value: "recommended", label: "Gợi ý cho bạn" },
+  { value: "recommended", label: "Goi y rule-based" },
   { value: "recent", label: "Mới nhất" },
   { value: "rating", label: "Đánh giá cao" },
   { value: "quality", label: "Điểm chất lượng" },
@@ -763,13 +782,14 @@ function BrowseTab() {
                 key={listing.id}
                 listing={listing}
                 selected={selectedId === listing.id}
+                sort={sort}
                 onClick={() =>
                   setSelectedId(selectedId === listing.id ? null : listing.id)
                 }
               />
             ))}
           </div>
-          {selectedId && <DetailPanel id={selectedId} />}
+          {selectedId && <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />}
         </div>
       ) : (
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 py-20 text-center">
@@ -783,7 +803,13 @@ function BrowseTab() {
   );
 }
 
-function PublishForm({ onDone }: { onDone: () => void }) {
+function PublishForm({
+  existingListings,
+  onDone,
+}: {
+  existingListings: PublishedPlanListing[];
+  onDone: () => void;
+}) {
   const queryClient = useQueryClient();
   const [sourcePlanId, setSourcePlanId] = useState("");
   const [title, setTitle] = useState("");
@@ -794,8 +820,13 @@ function PublishForm({ onDone }: { onDone: () => void }) {
     queryFn: () => planService.getCurrentPlans(),
   });
 
+  const activePublishedPlanIds = new Set(
+    existingListings
+      .filter((listing) => ["DRAFT", "SUBMITTED", "APPROVED"].includes(listing.moderationStatus))
+      .map((listing) => listing.sourcePlanId),
+  );
   const completedPlans = (plansQuery.data ?? []).filter(
-    (p: any) => p.status === "COMPLETED",
+    (p: any) => p.status === "COMPLETED" && !activePublishedPlanIds.has(p.id),
   );
 
   const publishMutation = useMutation({
@@ -807,9 +838,16 @@ function PublishForm({ onDone }: { onDone: () => void }) {
       onDone();
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.error?.message ?? "Không thể đăng kế hoạch",
-      );
+      const message = error?.response?.data?.error?.message;
+      if (typeof message === "string" && message.includes("complete a training cycle")) {
+        toast.error("Bạn cần hoàn thành một chu kỳ tập với kế hoạch này trước khi đăng lên chợ.");
+        return;
+      }
+      if (typeof message === "string" && message.includes("already been published")) {
+        toast.error("Kế hoạch này đã được đăng hoặc đang chờ duyệt.");
+        return;
+      }
+      toast.error(message ?? "Không thể đăng kế hoạch");
     },
   });
 
@@ -830,6 +868,11 @@ function PublishForm({ onDone }: { onDone: () => void }) {
           </option>
         ))}
       </select>
+      {completedPlans.length === 0 && !plansQuery.isLoading && (
+        <p className="text-xs text-zinc-500">
+          Không có kế hoạch hoàn thành nào khả dụng để đăng mới. Kế hoạch đã đăng hoặc đang chờ duyệt sẽ không hiện ở đây.
+        </p>
+      )}
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -978,7 +1021,10 @@ function MineTab() {
   return (
     <div className="space-y-4">
       {showPublishForm ? (
-        <PublishForm onDone={() => setShowPublishForm(false)} />
+        <PublishForm
+          existingListings={mineQuery.data ?? []}
+          onDone={() => setShowPublishForm(false)}
+        />
       ) : (
         <button
           type="button"

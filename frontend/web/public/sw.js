@@ -1,7 +1,9 @@
 // Vòng 4 / Phase D1 — bumped: bg-gym.jpg (6MB) -> bg-gym.webp (136KB) in PRECACHE_URLS below.
 // A new version forces old installed service workers to drop their stale cache (still
 // pointing at the removed .jpg) and precache-fetch the new URL list on next activate.
-const APP_VERSION = "pwa-20260902-1";
+// 2026-11-09 — bumped to purge runtime caches that may hold index.html stored under a .js URL
+// (see isCacheableAssetResponse below).
+const APP_VERSION = "pwa-20261109-1";
 const STATIC_CACHE = `fitness-ai-static-${APP_VERSION}`;
 const RUNTIME_CACHE = `fitness-ai-runtime-${APP_VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -89,13 +91,26 @@ async function networkFirstNavigation(request) {
   }
 }
 
+// CloudFront answers a missing file with the SPA's index.html and status 200 (its 403/404 ->
+// /index.html rule). After a deploy removes an old hashed chunk, that HTML would otherwise be
+// cached under the .js URL and served forever, so a reload could never recover. Only a
+// response whose type fits the request is cached.
+function isCacheableAssetResponse(request, response) {
+  if (!response.ok) return false;
+  const type = (response.headers.get("content-type") || "").toLowerCase();
+  if (type.includes("text/html")) return false;
+  if (request.destination === "script" && !type.includes("javascript")) return false;
+  if (request.destination === "style" && !type.includes("css")) return false;
+  return true;
+}
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(request);
 
   const network = fetch(request)
     .then((response) => {
-      if (response.ok) {
+      if (isCacheableAssetResponse(request, response)) {
         cache.put(request, response.clone());
       }
       return response;

@@ -1,0 +1,21 @@
+{
+    "securityPolicyDetail": {
+        "type": "encryption",
+        "name": "auto-fitness-assistant-dev-ai-ve",
+        "policyVersion": "MTc4OTQ2MTQxNTcwNF8x",
+        "description": "fitness-assistant-dev-ai-vectors",
+        "policy": {
+            "Rules": [
+                {
+                    "Resource": [
+                        "collection/fitness-assistant-dev-ai-vectors"
+                    ],
+                    "ResourceType": "collection"
+                }
+            ],
+            "AWSOwnedKey": true
+        },
+        "createdDate": 1789461415704,
+        "lastModifiedDate": 1789461415704
+    }
+}

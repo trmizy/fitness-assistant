@@ -1,5 +1,6 @@
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { z } from "zod";
+import { canonicalExerciseName, pickExerciseByName } from "./exercise-name-resolution";
 import { logger, AgentPreferencesSchema, type AgentPreferences, type PTCandidate, type TrainingProgramCandidate } from "@gym-coach/shared";
 import { profileExtractor } from "../llm/profile_extractor";
 import { buildCoachContext } from "../coach/coach_context_builder";
@@ -76,11 +77,17 @@ export const agentUpdatableProfileFieldsSchema = z.object({
 }).strict();
 export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
 
-async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
+/** Marks an error as coming from the profile READ itself (getUserFitnessContext), so callers can tell a profile outage from any other tool failure. */
+export const PROFILE_READ_ORIGIN = "profile-read";
+function markProfileReadOrigin(err: unknown): never {
+  if (err && typeof err === "object") (err as { origin?: string }).origin = PROFILE_READ_ORIGIN;
+  throw err;
+}
+
+async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT" | "PATCH", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
-  const baseURL = service === "user" ? process.env.USER_SERVICE_URL ?? "http://localhost:3004" : process.env.FITNESS_SERVICE_URL ?? "http://localhost:3002";
   try {
-    const response = await axios.request({ baseURL, url: route, method, data: body, timeout: timeoutMs,
+    const response = await requestService({ service, path: route, method, body, timeoutMs,
       // x-internal-token (in addition to x-gateway-secret) — some domain
       // routes are guarded by internalAuthMiddleware specifically, which
       // checks this exact header name (not x-gateway-secret's own
@@ -93,19 +100,28 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
     logger.info({ tool: route, latencyMs: Date.now() - started, status: "success" }, "fitness agent tool");
     return output;
   } catch (error: any) {
-    logger.warn({ tool: route, latencyMs: Date.now() - started, status: error.response?.status ?? 503 }, "fitness agent tool failed");
+    // reason included (2026-11-09: a roadmap activation 409 was logged as a bare status, so the cause had to be guessed)
+    logger.warn({ tool: route, latencyMs: Date.now() - started, status: error.response?.status ?? 503, reason: String(error.response?.data?.error ?? error.response?.data?.message ?? error.message ?? "").slice(0, 200) }, "fitness agent tool failed");
     throw Object.assign(new Error(error.response?.status < 500 ? error.response.data?.error ?? "Request rejected" : "Domain service unavailable"), { status: error.response?.status ?? 503 });
   }
 }
 
 export const fitnessAgentTools = {
   async getUserFitnessContext(identity: AgentIdentity) {
-    const raw = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
-    // user-service names it `experience`; the workflow's PROFILE_FACT slot reads/compares/writes
-    // `experienceLevel` (the real profile field), so both names are exposed.
-    const profile = { ...raw, experienceLevel: raw.experience ?? null };
-    const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
-    return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    try {
+      const raw = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
+      // user-service stores preferredTrainingDays as 0..6 with 0 = Chủ nhật (OnboardingWizardPage weekdayOptions), while every
+      // AgentPreferences day array is 1..7 (1 = Thứ 2 .. 7 = Chủ nhật). Only Sunday differs; passing a raw 0 through made
+      // AgentPreferencesSchema throw (HTTP 500) on any PT / program / workout request for a user who picked Chủ nhật
+      // (found by the full chat verification). Normalise at this single read boundary.
+      // user-service names it `experience`; the workflow's PROFILE_FACT slot reads/compares/writes
+      // `experienceLevel` (the real profile field), so both names are exposed (merged from feature/payment-gateways).
+      const profile = { ...raw, days: [...new Set(raw.days.map((d) => (d === 0 ? 7 : d)))].sort((a, b) => a - b), experienceLevel: raw.experience ?? null };
+      const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
+      return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    } catch (err) {
+      return markProfileReadOrigin(err);
+    }
   },
   async findPTCandidates(identity: AgentIdentity, preferences: AgentPreferences) {
     const result = await domain(identity, "user", "POST", "/profile/agent/candidates", AgentPreferencesSchema.parse(preferences), ptResultSchema);
@@ -142,9 +158,15 @@ export const fitnessAgentTools = {
   // PATCH — see design doc §5/§29) so a slot-filling workflow can only ever
   // set the specific fields it's designed to ask about, never an arbitrary
   // property name an LLM extractor might produce.
-  updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
+  async updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
     const body = agentUpdatableProfileFieldsSchema.parse(fields);
-    return domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    const result = await domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    // The authoritative profile just changed: drop the AI service's own short-lived profile snapshot so the workflow
+    // that resumes RIGHT AFTER this write (and the next chat turn) reads the fresh profile, never the pre-write one.
+    // (Found by the full chat verification: the resumed roadmap request answered "missing profile data" for values
+    // that had just been saved, because profile_extractor served its 15 s cache.)
+    profileExtractor.invalidateCache(identity.userId);
+    return result;
   },
   // Agent automation (chat "hãy tạo và gán lộ trình/plan tập/dinh dưỡng vào
   // hệ thống") — all four calls below reuse EXISTING, already-shipped
@@ -228,8 +250,14 @@ export const fitnessAgentTools = {
       // ("tenders, breaded, uncooked" for a plain "ức gà luộc" query — a
       // raw breaded cutlet is a materially different food from boiled
       // chicken breast). Prefer "NS as to cooking method" when present.
-      const unspecified = foods.find(f => /ns as to cooking method/i.test(f.name));
-      return unspecified ?? [...foods].sort((a, b) => a.name.length - b.name.length)[0];
+      // A plain ingredient must not resolve to a prepared/composite product: "cà chua" picked "Soup, tomato" (user test on AWS,
+      // 2026-11-09) because it is the shortest name. Composite rows are kept only when the user's own words ask for that kind of dish.
+      const COMPOSITE = /\b(soup|sauce|juice|drink|beverage|pie|cake|cookie|candy|pudding|dressing|dip|chips|baby food|babyfood|frozen|dinner|sandwich|pizza|casserole|salad|cereal|bar|spread|paste|ketchup|puree|smoothie|shake)\b/i;
+      const WANTS_COMPOSITE = /(canh|súp|soup|nước|sốt|xốt|bánh|kẹo|kem|sinh tố|salad|gỏi|pizza|sandwich|ngũ cốc|mứt|tương)/i;
+      const plain = WANTS_COMPOSITE.test(term) ? foods : foods.filter(f => !COMPOSITE.test(f.name));
+      const pool = plain.length ? plain : foods;
+      const unspecified = pool.find(f => /ns as to cooking method/i.test(f.name));
+      return unspecified ?? [...pool].sort((a, b) => a.name.length - b.name.length)[0];
     };
     const trimmed = name.trim();
     let foods = await search(trimmed);
@@ -297,12 +325,85 @@ export const fitnessAgentTools = {
   // nutrition-onboarding-bootstrap.service.ts::resolveNutritionTargetForUser):
   // the ACTIVE NutritionGoal if one exists, else the SAME deterministic
   // initial prescription onboarding computes — never a new formula here.
+  // PT Copilot (Phase 4): the verified PT's roster-wide adherence. Authorization is fitness-service's: the roster is built from the caller's
+  // own ACTIVE contracts (the id comes from the verified identity, never from this request), so a non-PT simply gets an empty roster.
+  async getRosterAdherence(identity: AgentIdentity, windowDays: number) {
+    const result = await domain(identity, "fitness", "GET", `/coach/clients/adherence?windowDays=${encodeURIComponent(String(windowDays))}`, undefined,
+      z.object({ success: z.boolean(), data: z.object({
+        window: z.object({ days: z.number() }).passthrough(),
+        summary: z.object({ totalClients: z.number(), AT_RISK: z.number(), NEEDS_ATTENTION: z.number(), ON_TRACK: z.number(), NO_DATA: z.number() }).passthrough(),
+        clients: z.array(z.object({
+          clientUserId: z.string(),
+          status: z.enum(["AT_RISK", "NEEDS_ATTENTION", "ON_TRACK", "NO_DATA"]),
+          workout: z.object({ scheduled: z.number(), completed: z.number(), adherencePercent: z.number().nullable() }).passthrough(),
+          signals: z.array(z.object({ code: z.string(), severity: z.string(), evidence: z.string() }).passthrough()),
+          dataGaps: z.array(z.string()),
+        }).passthrough()),
+      }).passthrough() }).passthrough(), 30000);
+    return result.data;
+  },
+  // PT Copilot step 2: records the PT's approve/dismiss of an AI-DRAFTED proposal. fitness-service RE-VERIFIES the active PT -> client
+  // relationship server-side at this moment and writes only an audit row: nothing is sent to the client, no client data changes.
+  async recordPtProposalDecision(identity: AgentIdentity, clientUserId: string, input: { decision: "APPROVED" | "DISMISSED"; proposalId: string; proposalTypes: string[]; basedOnCount: number }) {
+    return domain(identity, "fitness", "POST", `/coach/clients/${encodeURIComponent(clientUserId)}/ai-proposals/decision`, input,
+      z.object({ success: z.boolean(), data: z.object({ recorded: z.boolean() }).passthrough() }).passthrough());
+  },
+  // Display names of the PT's OWN active clients, read with the PT's own credentials from their contracts (user-service authorizes it).
+  // Best effort: a failure only means the reply uses neutral labels instead of names.
+  async getActiveClientNames(identity: AgentIdentity): Promise<Map<string, string>> {
+    try {
+      const contracts = await domain(identity, "user", "GET", "/contracts/pt?status=ACTIVE", undefined,
+        z.array(z.object({ clientUserId: z.string(), clientProfile: z.object({ firstName: z.string().nullable().optional(), lastName: z.string().nullable().optional(), email: z.string().nullable().optional() }).passthrough().nullable().optional() }).passthrough()));
+      const out = new Map<string, string>();
+      for (const c of contracts) {
+        // name, else the email the PT already sees on this contract; never a guess
+        const name = [c.clientProfile?.firstName, c.clientProfile?.lastName].filter(Boolean).join(" ").trim() || (c.clientProfile?.email ?? "").trim();
+        if (name) out.set(c.clientUserId, name);
+      }
+      return out;
+    } catch {
+      return new Map();
+    }
+  },
   getNutritionTargetPreview(identity: AgentIdentity) {
     return domain(identity, "fitness", "GET", "/nutrition/target-preview", undefined, z.discriminatedUnion("status", [
       z.object({ status: z.literal("ACTIVE_GOAL"), goalId: z.string(), calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number() }),
       z.object({ status: z.literal("COMPUTED"), calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number(), professionalReviewRequired: z.boolean().optional() }),
       z.object({ status: z.literal("insufficient_data"), missingFields: z.array(z.string()) }),
     ]));
+  },
+  // Read-only active NutritionGoal <-> active NutritionProgram consistency
+  // detector. This lets AI Coach disclose when the meal plan currently in use
+  // is stale/mismatched, while still generating new drafts from the
+  // authoritative NutritionGoal target above.
+  getNutritionActiveState(identity: AgentIdentity) {
+    return domain(identity, "fitness", "GET", "/nutrition/active-state", undefined, z.object({
+      status: z.enum(["NO_ACTIVE_GOAL", "NO_ACTIVE_PROGRAM", "MATCHED", "STALE_GOAL_CHANGED", "MACRO_MISMATCH", "LOW_CONFIDENCE"]),
+      activeGoal: z.object({
+        id: z.string(),
+        calories: z.number(),
+        protein: z.number(),
+        carbs: z.number(),
+        fat: z.number(),
+        goalMode: z.string().optional(),
+      }).passthrough().nullable(),
+      activeProgram: z.object({
+        id: z.string(),
+        name: z.string(),
+        dailyCaloriesTarget: z.number().nullable(),
+        proteinTargetGrams: z.number().nullable(),
+        carbTargetGrams: z.number().nullable(),
+        fatTargetGrams: z.number().nullable(),
+        sourceGoalId: z.string().nullable().optional(),
+      }).passthrough().nullable(),
+      mismatches: z.array(z.object({
+        field: z.enum(["calories", "protein", "carbs", "fat"]),
+        planValue: z.number(),
+        goalValue: z.number(),
+        diff: z.number().optional(),
+      }).passthrough()),
+      recommendedAction: z.string(),
+    }).passthrough());
   },
   saveNutritionPlanFromAiPlan(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "fitness", "POST", "/nutrition/from-ai-plan", payload, z.record(z.unknown()));
@@ -318,60 +419,68 @@ export const fitnessAgentTools = {
   // "Military Press"/"Barbell Squat". Small and evidence-based: add an
   // entry here only after confirming (via a real DB query) the catalog
   // truly has no substring/plural/qualifier-dropped match.
+  async listExercises(identity: AgentIdentity, query: { typeOfEquipment?: string; bodyPart?: string; limit?: number }): Promise<{ id: string; exerciseName: string; instructions?: string | null }[]> {
+    const qs = new URLSearchParams();
+    if (query.typeOfEquipment) qs.set("typeOfEquipment", query.typeOfEquipment);
+    if (query.bodyPart) qs.set("bodyPart", query.bodyPart);
+    qs.set("limit", String(Math.min(100, query.limit ?? 40)));
+    const result = await domain(identity, "fitness", "GET", `/exercises?${qs.toString()}`, undefined,
+      z.object({ success: z.boolean(), data: z.object({ exercises: z.array(z.object({ id: z.string(), exerciseName: z.string() }).passthrough()) }).passthrough() }));
+    return result.data.exercises as { id: string; exerciseName: string; instructions?: string | null }[];
+  },
   async searchExerciseByName(identity: AgentIdentity, name: string): Promise<{ id: string; exerciseName: string } | null> {
+    // Resolution order (see services/exercise-name-resolution.ts for why): verified canonical catalog name
+    // for known template names, then the user's own text, then plural->singular, then dropping the leading
+    // qualifier word, then known terminology differences. Every step only accepts a NAME match — never an
+    // exercise whose instructions merely mention the term — and returns the first step that resolves.
     const SYNONYMS: Record<string, string> = {
       "overhead press": "military press",
       "back squat": "barbell squat",
     };
     const search = async (term: string) => {
       const result = await domain(identity, "fitness", "GET",
-        `/exercises?search=${encodeURIComponent(term)}&limit=20`, undefined,
+        `/exercises?search=${encodeURIComponent(term)}&limit=100`, undefined,
         z.object({ success: z.boolean(), data: z.object({ exercises: z.array(z.object({ id: z.string(), exerciseName: z.string() }).passthrough()) }).passthrough() }));
       return result.data.exercises;
     };
-    const pick = (exercises: { id: string; exerciseName: string }[], term: string) => {
-      if (!exercises.length) return null;
-      const normalized = term.trim().toLowerCase();
-      const exact = exercises.find(e => e.exerciseName.trim().toLowerCase() === normalized);
-      if (exact) return exact;
-      // No exact match — prefer the shortest name over the DB's default
-      // (alphabetical) order. Confirmed live: a plain "Deadlift" search
-      // picked "Axle Deadlift" first alphabetically (a specialty-equipment
-      // variant most users don't own) over the plain "Deadlift" everyone
-      // has, which then failed equipment validation.
-      return [...exercises].sort((a, b) => a.exerciseName.length - b.exerciseName.length)[0];
-    };
 
     const trimmed = name.trim();
-    let exercises = await search(trimmed);
-    if (exercises.length) return pick(exercises, trimmed);
-
-    // Fallback 1: plural -> singular ("Walking Lunges" -> "Walking Lunge").
-    const singular = trimmed.replace(/s\b/i, "");
-    if (singular !== trimmed) {
-      exercises = await search(singular);
-      if (exercises.length) return pick(exercises, singular);
-    }
-
-    // Fallback 2: drop the leading qualifier word ("Bulgarian Split Squat"
-    // -> "Split Squat", "Cable Lateral Raise" -> "Lateral Raise"). Never
-    // drops below 2 words — a single leftover word like "Squat" or "Press"
-    // is too generic and risks matching an obscure numbered variant.
-    const words = trimmed.split(/\s+/);
-    if (words.length > 2) {
-      const dropped = words.slice(1).join(" ");
-      exercises = await search(dropped);
-      if (exercises.length) return pick(exercises, dropped);
-    }
-
-    // Fallback 3: known catalog terminology differences.
+    const words = trimmed.split(/s+/);
+    const candidates: string[] = [];
+    const canonical = canonicalExerciseName(trimmed);
+    if (canonical) candidates.push(canonical);
+    candidates.push(trimmed);
+    const singularTerm = trimmed.replace(/s/i, "");
+    if (singularTerm !== trimmed) candidates.push(singularTerm);
+    // Never drops below 2 words — a lone "Squat" or "Press" is too generic.
+    if (words.length > 2) candidates.push(words.slice(1).join(" "));
     const synonym = SYNONYMS[trimmed.toLowerCase()];
-    if (synonym) {
-      exercises = await search(synonym);
-      if (exercises.length) return pick(exercises, synonym);
-    }
+    if (synonym) candidates.push(synonym);
 
+    for (const term of [...new Set(candidates)]) {
+      const hit = pickExerciseByName(await search(term), term);
+      if (hit) return { id: hit.id, exerciseName: hit.exerciseName };
+    }
     return null;
+  },
+  // Real Bug D follow-up (2026-10-23) — the chat "thay bài X bằng bài Y"
+  // feature for an ALREADY-SAVED schedule. Wraps the EXISTING, already-
+  // validated PATCH /workouts/program-exercises/:id endpoint
+  // (workout.service.ts::updateProgramExercise) — the same one the
+  // standard workout-editing UI uses — so this never becomes a second
+  // persistence path; validateExerciseIds on the fitness-service side
+  // still rejects an unowned/unpublished exerciseId.
+  // Raw (unmapped) active program incl. each WorkoutProgramExercise id. Goes through domain()/requestService
+  // (Lambda invoke on AWS) — workout_schedule_context.ts's own axios call to http://fitness-service:3002 has no
+  // host on Lambda (ENOTFOUND), so it cannot be reused here.
+  async getCurrentProgram(identity: AgentIdentity): Promise<any | null> {
+    const raw: any = await domain(identity, "fitness", "GET", "/workouts/programs/current", undefined, z.unknown());
+    const data = raw?.data?.data ?? raw?.data ?? raw;
+    return data?.program ?? data ?? null;
+  },
+  async updateProgramExercise(identity: AgentIdentity, programExerciseId: string, exerciseId: string) {
+    return domain(identity, "fitness", "PATCH", `/workouts/program-exercises/${encodeURIComponent(programExerciseId)}`,
+      { exerciseId }, z.record(z.unknown()));
   },
   // CREATE_WORKOUT_PLAN revision ("Đổi squat", "Tôi không muốn deadlift",
   // "Tôi không có máy cable" when a specific machine-tied exercise can be
@@ -385,7 +494,11 @@ export const fitnessAgentTools = {
   // for every other tool here, so no new auth wiring is needed.
   async getExerciseSubstitute(identity: AgentIdentity, exerciseId: string, excludeExerciseIds: string[] = []): Promise<{ id: string; exerciseName: string } | null> {
     const query = new URLSearchParams();
-    if (excludeExerciseIds.length) query.set("excludeExerciseIds", excludeExerciseIds.join(","));
+    // exercise.controller.ts::getSubstitute only reads `req.query.exclude`
+    // (singular) — the plural `excludeExerciseIds` param name this used to
+    // send was silently ignored server-side, so an exclusion list never
+    // actually excluded anything.
+    if (excludeExerciseIds.length) query.set("exclude", excludeExerciseIds.join(","));
     query.set("limit", "1");
     try {
       const result = await domain(identity, "fitness", "GET",
@@ -400,6 +513,42 @@ export const fitnessAgentTools = {
       // swap this one", never fabricate a replacement.
       return null;
     }
+  },
+  // CREATE_WORKOUT_PLAN draft-time equipment gate — wraps the EXISTING
+  // `planEquipmentValidatorService.validate` fitness-service already runs
+  // at CONFIRM time (`validateAiPlanExerciseEquipment`), via the SAME
+  // internal endpoint Pipeline B's worker already calls
+  // (`/internal/exercises/validate-plan-equipment`). Not a second
+  // implementation — just an earlier call to the one that already exists,
+  // so a user can see an equipment-compatible draft before confirming,
+  // instead of only finding out at confirm time.
+  // Canonical muscle data (fitness-service Exercise catalog) for the exercises of a draft — the only source the agent uses to
+  // decide which exercises load a body part. Ids the catalog does not return are absent: callers treat that as "unknown".
+  async getExerciseMuscleProfiles(identity: AgentIdentity, exerciseIds: string[]): Promise<Array<{ id: string; name?: string; bodyPart?: string | null; muscleGroups?: string[] | null }>> {
+    const unique = [...new Set(exerciseIds.filter((x) => typeof x === "string" && x.length > 0))];
+    if (unique.length === 0) return [];
+    const out: Array<{ id: string; name?: string; bodyPart?: string | null; muscleGroups?: string[] | null }> = [];
+    for (let i = 0; i < unique.length; i += 200) {
+      const result = await domain(identity, "fitness", "POST", "/internal/exercises/muscle-profiles", { exerciseIds: unique.slice(i, i + 200) },
+        z.object({ success: z.boolean(), data: z.object({
+          exercises: z.array(z.object({ id: z.string(), name: z.string().optional(), bodyPart: z.string().nullable().optional(), muscleGroups: z.array(z.string()).nullable().optional() }).passthrough()),
+        }).passthrough() }).passthrough());
+      out.push(...result.data.exercises);
+    }
+    return out;
+  },
+  async validatePlanEquipment(identity: AgentIdentity, weeklySchedule: Array<{ day: string; exercises: Array<{ exerciseId: string; name?: string }> }>): Promise<{
+    valid: boolean;
+    violations: Array<{ exerciseId: string; exerciseName?: string; day?: string; dayIndex?: number; required?: string[]; alternatives?: string[]; available?: string[] }>;
+    skippedNoUserEquipment: boolean;
+  }> {
+    const result = await domain(identity, "fitness", "POST", "/internal/exercises/validate-plan-equipment", { weeklySchedule },
+      z.object({ success: z.boolean(), data: z.object({
+        valid: z.boolean(),
+        violations: z.array(z.object({ exerciseId: z.string(), exerciseName: z.string().optional(), day: z.string().optional(), dayIndex: z.number().optional(), required: z.array(z.string()).optional(), alternatives: z.array(z.string()).optional(), available: z.array(z.string()).optional() }).passthrough()),
+        skippedNoUserEquipment: z.boolean(),
+      }).passthrough() }).passthrough());
+    return result.data;
   },
   substituteMealItem(identity: AgentIdentity, payload: {
     currentFoodMention: string; desiredFoodMention?: string | null; mode?: "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";

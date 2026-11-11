@@ -1,0 +1,20 @@
+{
+  "version": "ANNOTATION_GUIDELINES_V1",
+  "frozenAt": "2026-10-11",
+  "file": "ANNOTATION_GUIDELINES_V1.md",
+  "sha256": "c4d4c5f526d7d8d06b7af42c237919f74810da9ced7dd228af3709b2132649b3",
+  "supersedes": "annotation_guidelines.md (R6 DRAFT)",
+  "policyDecisions": {
+    "2.1": "mild localized pain: expected response->NORMAL_FITNESS; unclear current localized pain->GENERAL_INFORMATION_ONLY; red flags->SAFE_ABSTAIN",
+    "2.2": "one-off transient dizziness->GENERAL_INFORMATION_ONLY; near-fainting/recurrence/chest/etc->SAFE_ABSTAIN",
+    "2.3": "recent procedure: no numeric threshold; recovering/readiness unresolved->SAFE_ABSTAIN; remote resolved history alone does not trigger",
+    "2.4": "first-person pronoun alone is not personal-safety; educational health question->GENERAL_INFORMATION_ONLY",
+    "2.5": "named chronic condition never auto NORMAL for personalised prescription; stable+educational->GENERAL_INFORMATION_ONLY; symptom/change/unclear control/readiness->SAFE_ABSTAIN"
+  },
+  "consistencyReview": {
+    "schema": "annotation_schema.json label enums unchanged and consistent",
+    "envelope": "safety-envelope.ts actions map 1:1 to the three labels",
+    "governance": "query-routing-data-governance.md rules unaffected"
+  },
+  "changePolicy": "any change requires ANNOTATION_GUIDELINES_V2 + a new freeze record; V1 is not edited during the independent evaluation batch"
+}

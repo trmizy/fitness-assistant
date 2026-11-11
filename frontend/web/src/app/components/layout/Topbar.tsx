@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ListIcon as Menu, BellIcon as Bell, CaretDownIcon as ChevronDown, UserIcon as User, GearSixIcon as Settings, SignOutIcon as LogOut, LightningIcon as Zap, ShieldIcon as Shield, ArrowsLeftRightIcon as ArrowLeftRight, ChecksIcon as CheckCheck } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
+import { UserAvatar } from "./UserAvatar";
 import { notificationService } from "../../services/api";
 import type { AppNotification } from "../../types";
 import { usePendingAiTasks } from "../../stores/pendingAiTasks";
@@ -368,11 +369,10 @@ export function Topbar() {
               setNotifOpen(false);
             }}
           >
-            <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black ${avatarBg}`}
-            >
-              {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
-            </div>
+            <UserAvatar
+              className="w-7 h-7"
+              fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
+            />
             <ChevronDown className="w-3.5 h-3.5 text-zinc-500 hidden sm:block" />
           </button>
 
@@ -386,13 +386,10 @@ export function Topbar() {
                 {/* User info */}
                 <div className="px-4 py-3 border-b border-zinc-800">
                   <div className="flex items-center gap-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-black ${avatarBg} shadow-md`}
-                    >
-                      {user?.firstName?.[0] ||
-                        user?.email?.[0]?.toUpperCase() ||
-                        "U"}
-                    </div>
+                    <UserAvatar
+                      className="w-9 h-9 shadow-md"
+                      fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
+                    />
                     <div>
                       <p className="text-sm font-semibold text-zinc-100">
                         {user

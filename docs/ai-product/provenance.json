@@ -1,0 +1,18 @@
+{
+  "annotatorId": "A01",
+  "human": true,
+  "independent": true,
+  "usedLLMForLabels": false,
+  "sawOtherAnnotatorLabels": false,
+  "sawClassifierPredictions": false,
+  "sawGoldLabels": false,
+  "annotationGuidelineVersion": "ANNOTATION_GUIDELINES_V1",
+  "annotationGuidelineHash": "<c4d4c5f526d7d8d06b7af42c237919f74810da9ced7dd228af3709b2132649b3>",
+  "batchHash": "<canonical batch hash printed by: human-intake / see ../pilot_batch.csv manifest>",
+  "annotationTimestampRange": {
+    "start": "2026-10-12T16:30:00+07:00",
+    "end": "2026-10-12T21:12:00+07:00"
+  },
+  "authority": "INDEPENDENT_HUMAN_LABELS_ON_SYNTHETIC_UTTERANCES",
+  "notes": ""
+}

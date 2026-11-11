@@ -15,6 +15,7 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import crypto from 'crypto';
+import { assertLocalDbHost } from './lib/assert-local-target.mjs';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -28,7 +29,7 @@ dotenv.config({ path: resolve(__dirname, '../.env') });
 
 // ── DB pool factory ────────────────────────────────────────────────────────────
 const PG_BASE = {
-  host: process.env.POSTGRES_HOST || 'localhost',
+  host: assertLocalDbHost(process.env.POSTGRES_HOST || 'localhost'), // writes test users: local DBs only
   port: parseInt(process.env.POSTGRES_PORT || '5433', 10),
   user: process.env.POSTGRES_USER || 'gymcoach',
   password: process.env.POSTGRES_PASSWORD || 'gymcoach_password',

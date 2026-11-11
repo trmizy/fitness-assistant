@@ -1,0 +1,40 @@
+{
+  "$comment": "Gymini CI/CD change-impact map (Phase 16A, DRAFT - nothing consumes this in production yet). Consumed by scripts/ci/CiHelpers.psm1 Get-CiImpact. Matching is deterministic: every changed file is matched against ignoreSuffixes first, then every rule; the union of rule targets is the impact. A file matching NO rule is UNCLASSIFIED -> validate everything, deploy nothing (fail-safe, never guess). Verified against package.json workspace deps on 2026-10-09: every backend service depends on @gym-coach/shared via workspace:* and on nothing else in-workspace.",
+  "schema": 1,
+  "repository": "trmizy/fitness-assistant",
+  "awsAccountId": "191798898985",
+  "region": "ap-southeast-1",
+  "protectedApiId": "id1iz7upbl",
+  "ignoreSuffixes": [".md"],
+  "services": {
+    "auth":    { "kind": "lambda", "path": "backend/services/auth-service",    "pnpmFilter": "@gym-coach/auth-service",    "artifact": "auth-lambda.zip",    "functions": ["fitness-assistant-dev-auth"], "migrateFunction": null },
+    "user":    { "kind": "lambda", "path": "backend/services/user-service",    "pnpmFilter": "@gym-coach/user-service",    "artifact": "user-lambda.zip",    "functions": ["fitness-assistant-dev-user", "fitness-assistant-dev-user-jobs"], "migrateFunction": null },
+    "fitness": { "kind": "lambda", "path": "backend/services/fitness-service", "pnpmFilter": "@gym-coach/fitness-service", "artifact": "fitness-lambda.zip", "functions": ["fitness-assistant-dev-fitness", "fitness-assistant-dev-fitness-jobs"], "migrateFunction": null },
+    "gym":     { "kind": "lambda", "path": "backend/services/gym-service",     "pnpmFilter": "@gym-coach/gym-service",     "artifact": "gym-lambda.zip",     "functions": ["fitness-assistant-dev-gym", "fitness-assistant-dev-gym-jobs"], "migrateFunction": "fitness-assistant-dev-gym-migrate" },
+    "payment": { "kind": "lambda", "path": "backend/services/payment-service", "pnpmFilter": "@gym-coach/payment-service", "artifact": "payment-lambda.zip", "functions": ["fitness-assistant-dev-payment", "fitness-assistant-dev-payment-jobs"], "migrateFunction": "fitness-assistant-dev-payment-migrate" },
+    "ai":      { "kind": "lambda", "path": "backend/services/ai-service",      "pnpmFilter": "@gym-coach/ai-service",      "artifact": "ai-lambda.zip",      "functions": ["fitness-assistant-dev-ai", "fitness-assistant-dev-ai-jobs", "fitness-assistant-dev-ai-worker"], "migrateFunction": "fitness-assistant-dev-ai-migrate", "bedrockRuntimeTests": "BEDROCK_BLOCKED_POSSIBLE" },
+    "chat":    { "kind": "ecs",    "path": "backend/services/chat-service",    "pnpmFilter": "@gym-coach/chat-service",    "ecrRepository": "fitness-assistant-dev-chat", "cluster": "fitness-assistant-dev-cluster", "service": "fitness-assistant-dev-chat-service", "taskFamily": "fitness-assistant-dev-chat", "container": "chat-service", "migrateFunction": "fitness-assistant-dev-chat-migrate" },
+    "gateway": { "kind": "validate-only", "path": "backend/gateway", "pnpmFilter": "@gym-coach/api-gateway", "note": "Express gateway used by docker-compose/local dev only. AWS uses the API Gateway HTTP API id1iz7upbl. Built + tested in PR validation, never deployed to AWS." },
+    "frontend-web": { "kind": "validate-only", "path": "frontend/web", "pnpmFilter": "web", "note": "Frontend S3/CloudFront deploy is NOT part of Phase 16A scope." }
+  },
+  "rules": [
+    { "id": "shared",           "prefixes": ["backend/shared/"], "propagateTo": ["auth", "user", "fitness", "gym", "payment", "ai", "chat", "gateway"], "reason": "every backend service depends on @gym-coach/shared via workspace:*" },
+    { "id": "workspace-global", "exact": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.base.json"], "prefixes": ["patches/"], "propagateTo": ["auth", "user", "fitness", "gym", "payment", "ai", "chat", "gateway", "frontend-web"], "reason": "lockfile/toolchain change can alter any dependency tree" },
+    { "id": "auth",     "prefixes": ["backend/services/auth-service/"],    "propagateTo": ["auth"] },
+    { "id": "user",     "prefixes": ["backend/services/user-service/"],    "propagateTo": ["user"] },
+    { "id": "fitness",  "prefixes": ["backend/services/fitness-service/"], "propagateTo": ["fitness"] },
+    { "id": "gym",      "prefixes": ["backend/services/gym-service/"],     "propagateTo": ["gym"] },
+    { "id": "payment",  "prefixes": ["backend/services/payment-service/"], "propagateTo": ["payment"] },
+    { "id": "ai",       "prefixes": ["backend/services/ai-service/"],      "propagateTo": ["ai"] },
+    { "id": "chat",     "prefixes": ["backend/services/chat-service/"],    "propagateTo": ["chat"] },
+    { "id": "gateway",  "prefixes": ["backend/gateway/"],                  "propagateTo": ["gateway"] },
+    { "id": "frontend", "prefixes": ["frontend/"],                         "propagateTo": ["frontend-web"] },
+    { "id": "infra-apigw", "prefixes": ["scripts/aws/api-gateway/"], "exact": ["infra/cloudformation/api-gateway-baseline.yaml", "infra/cloudformation/api-gateway-additions.yaml", "docs/deployment/generated/api-source-routes.json"], "infra": ["apiGateway"], "reason": "API Gateway CloudFormation + route parity inputs -> infra plan pipeline only; Lambdas are NOT redeployed" },
+    { "id": "infra-lifecycle", "prefixes": ["scripts/aws/lib/"], "exact": ["infra/cloudformation/dev-on-demand.yaml"], "infra": ["lifecycle"], "reason": "owned by dev-start/dev-stop; CI validates the template but NEVER applies it" },
+    { "id": "infra-oidc", "exact": ["infra/cloudformation/ci-cd-oidc.yaml"], "infra": ["oidc"], "reason": "CI IAM template; validate only, apply is a manual human step" },
+    { "id": "ci-meta", "prefixes": ["ci/", "scripts/ci/", ".github/workflows/"], "validateOnly": ["ci"], "reason": "CI definition changes are validated (helper tests) but deploy nothing" },
+    { "id": "ignored-paths", "prefixes": ["docs/", "reports/", "results/", "output/", "artifacts/", "db_snapshots/", "backups/", "tmp/", ".dev/"], "ignore": true, "reason": "documentation / local evidence / state snapshots" }
+  ],
+  "migrationPathPattern": "^backend/services/([a-z]+)-service/prisma/migrations/",
+  "migrationRule": "A change under any prisma/migrations/ path adds the owning service to migrationReview. Migrations are never applied by the application deploy."
+}

@@ -601,7 +601,7 @@
       "summary": "A partial unique index on agent_workflow_sessions(user_id, session_id) WHERE status NOT IN (...) is present in migration 20260916090000_agent_workflow_session_active_unique, enforced at the database level.",
       "observed": {
         "model": "AgentWorkflowSession",
-        "migrationsDir": "C:\\D_Backup\\project_personal\\fitness-assistant\\backend\\services\\ai-service\\prisma\\migrations",
+        "migrationsDir": "backend/services/ai-service/prisma/migrations",
         "matchedFile": "20260916090000_agent_workflow_session_active_unique"
       }
     },

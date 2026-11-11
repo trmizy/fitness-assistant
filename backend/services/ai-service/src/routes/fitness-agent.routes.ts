@@ -1,7 +1,7 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { GoalIntentSchema, logger } from "@gym-coach/shared";
-import { createRateLimiter } from "../middleware/rate-limit.middleware";
+import { expensiveRateLimiter } from "../middleware/ai-rate-limiters";
 import { fitnessAgent, type AgentBlock } from "../services/fitness-agent.service";
 import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { analyzeGoalImage, GoalImageSchema } from "../services/fitness-goal-vision.service";
@@ -12,20 +12,11 @@ import { prisma } from "../repositories/conversation.repository";
 const router = Router();
 const uuid = z.string().uuid();
 
-// Same tier and same "ai-expensive" bucket as POST /ai/generate-workout (see
-// ai.routes.ts) — a direct, synchronous vision call to Bedrock is at least as
-// costly per request, and sharing one bucket keeps a user from working
-// around the workout-generation limit by hitting these instead. Mounted
-// after /ai's own requireAuth (this router is mounted at /ai/agent), so
-// req.context.userId is already trustworthy here.
-const expensiveRateLimiter = createRateLimiter({
-  name: "ai-expensive",
-  max: Number.parseInt(process.env.AI_EXPENSIVE_RATE_LIMIT_MAX || "10", 10),
-  windowSeconds: Number.parseInt(
-    process.env.AI_EXPENSIVE_RATE_LIMIT_WINDOW_SECONDS || "60",
-    10,
-  ),
-});
+// expensiveRateLimiter is the same "ai-expensive" bucket as POST /ai/generate-workout and the
+// /plans/* routes (middleware/ai-rate-limiters.ts) — a direct, synchronous vision call to Bedrock is
+// at least as costly per request, and one shared bucket keeps a user from working around the
+// generation limit by hitting these instead. This router is mounted at /ai/agent behind /ai's own
+// requireAuth, so req.context.userId is already trustworthy here.
 async function sessionFor(req: Request, supplied?: string, title = "Mục tiêu hình thể") {
   if (!supplied) return prisma.chatSession.create({ data: { userId: req.context.userId, title } });
   const session = await prisma.chatSession.findFirst({ where: { id: supplied, userId: req.context.userId, archivedAt: null } });

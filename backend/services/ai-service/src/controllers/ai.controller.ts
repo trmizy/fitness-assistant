@@ -5,6 +5,7 @@ import {
   aiCoachQueryDuration,
 } from "@gym-coach/shared";
 import { ragService } from "../services/rag.service";
+import { streamPacing } from "../config/stream-pacing";
 import { conversationService } from "../services/conversation.service";
 import {
   ApiError,
@@ -92,14 +93,31 @@ export const aiController = {
       }
     };
 
+    // SSE comment heartbeat while the answer is prepared, so a proxy with an idle
+    // timeout (CloudFront in front of stream-lambda.ts) never sees a silent origin
+    // during the model call. Live transports only — see config/stream-pacing.ts.
+    const pacing = streamPacing();
+    const heartbeat = pacing
+      ? setInterval(() => {
+          if (!clientDisconnected && !res.writableEnded && !res.destroyed) {
+            res.write(": ping\n\n");
+          }
+        }, pacing.heartbeatMs)
+      : undefined;
+
     try {
-      const result = await ragService.rag(
-        question,
-        userId,
-        authorizationHeader,
-        sessionId,
-        (message) => sendEvent("status", { message }),
-      );
+      let result: Awaited<ReturnType<typeof ragService.rag>>;
+      try {
+        result = await ragService.rag(
+          question,
+          userId,
+          authorizationHeader,
+          sessionId,
+          (message) => sendEvent("status", { message }),
+        );
+      } finally {
+        if (heartbeat) clearInterval(heartbeat);
+      }
 
       aiCoachQueriesTotal.inc({ status: "success" });
       aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
@@ -107,16 +125,20 @@ export const aiController = {
       // Stream the answer in small chunks to create a typing effect in the browser.
       // This is intentional UX pacing — the LLM returns the full answer at once, so
       // chunking with a short interval prevents React from receiving everything in
-      // one batch and rendering the final text without animation.
+      // one batch and rendering the final text without animation. Behind a
+      // buffering transport (Lambda + API Gateway) the pacing is skipped: the
+      // client gets the response in one piece anyway — see config/stream-pacing.ts.
       const answer = result.answer;
-      const CHUNK_SIZE = 4;
-      const TOKEN_INTERVAL_MS = 18;
-      const tokenTick = (ms: number): Promise<void> =>
-        new Promise((r) => setTimeout(r, ms));
-      for (let i = 0; i < answer.length; i += CHUNK_SIZE) {
-        if (clientDisconnected) break;
-        sendEvent("token", { content: answer.slice(i, i + CHUNK_SIZE) });
-        await tokenTick(TOKEN_INTERVAL_MS);
+      if (!pacing) {
+        if (answer) sendEvent("token", { content: answer });
+      } else {
+        const tokenTick = (ms: number): Promise<void> =>
+          new Promise((r) => setTimeout(r, ms));
+        for (let i = 0; i < answer.length; i += pacing.chunkSize) {
+          if (clientDisconnected) break;
+          sendEvent("token", { content: answer.slice(i, i + pacing.chunkSize) });
+          await tokenTick(pacing.intervalMs);
+        }
       }
 
       sendEvent("done", {

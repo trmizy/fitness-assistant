@@ -1,0 +1,12 @@
+{
+    "securityPolicySummaries": [
+        {
+            "type": "network",
+            "name": "auto-fitness-assistant-dev-ai-ve",
+            "policyVersion": "MTc4OTQ2MTQxNTcyNF8x",
+            "description": "fitness-assistant-dev-ai-vectors",
+            "createdDate": 1789461415724,
+            "lastModifiedDate": 1789461415724
+        }
+    ]
+}

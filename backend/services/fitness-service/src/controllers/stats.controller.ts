@@ -1,9 +1,52 @@
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { statsService } from "../services/stats.service";
+import { getBodyGoalState, normalizeBodyLookbackDays } from "../services/body-goal-state.service";
+import {
+  getTrainingAnalyticsWindow,
+  normalizeWindowDays,
+} from "../services/training-analytics-window.service";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
 export const statsController = {
+  // Phase 4.4 — observed body state + goal gap/trajectory. Read-only; identity from the authenticated request only.
+  async getBodyGoalState(req: AuthRequest, res: Response): Promise<void> {
+    let lookbackDays: number;
+    try {
+      const raw = req.query.lookbackDays;
+      lookbackDays = normalizeBodyLookbackDays(raw === undefined ? undefined : Number(raw));
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+    try {
+      res.json(await getBodyGoalState(req.user!.id, { lookbackDays }));
+    } catch (error) {
+      // An upstream (user-service) failure is reported as such — never as an empty body state.
+      logger.error("Error fetching body/goal state:", error);
+      res.status(502).json({ error: "Failed to read body/goal state" });
+    }
+  },
+
+  // Phase 4.1 — rolling-window training analytics. Read-only; identity comes
+  // from the authenticated request only (no userId parameter exists).
+  async getTrainingWindow(req: AuthRequest, res: Response): Promise<void> {
+    let days: number;
+    try {
+      const raw = req.query.days;
+      days = normalizeWindowDays(raw === undefined ? undefined : Number(raw));
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+    try {
+      res.json(await getTrainingAnalyticsWindow(req.user!.id, { days }));
+    } catch (error) {
+      logger.error("Error fetching training analytics window:", error);
+      res.status(500).json({ error: "Failed to fetch training analytics" });
+    }
+  },
+
   async getWorkoutStats(req: AuthRequest, res: Response): Promise<void> {
     try {
       const days = parseInt((req.query.days as string) || "30");

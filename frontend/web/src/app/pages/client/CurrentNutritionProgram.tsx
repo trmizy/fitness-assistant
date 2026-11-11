@@ -62,6 +62,8 @@ const DEFAULT_GENERATE_FORM = {
   dailyCaloriesTarget: "" as string | number,
   dietPreference: "Không",
   budgetLevel: "normal",
+  cuisineCountry: "",
+  vietnameseRegion: "",
   weightKg: "" as string | number,
   heightCm: "" as string | number,
   age: "" as string | number,
@@ -98,6 +100,8 @@ function buildGenerateNutritionPayload(form: typeof DEFAULT_GENERATE_FORM) {
     mealsPerDay: optionalNumber(form.mealsPerDay) ?? 3,
     dietPreference: form.dietPreference,
     budgetLevel: form.budgetLevel,
+    cuisineCountry: form.cuisineCountry || undefined,
+    vietnameseRegion: form.vietnameseRegion || undefined,
     restrictions: [
       ...form.restrictions,
       ...(form.customRestriction.trim() ? [form.customRestriction.trim()] : []),
@@ -306,6 +310,17 @@ export function CurrentNutritionProgram() {
     queryKey: ["nutrition-current-program"],
     queryFn: () => nutritionService.getCurrentProgram(),
   });
+
+  const { data: goalPlanConsistency } = useQuery({
+    queryKey: ["nutrition-active-state"],
+    queryFn: () => nutritionService.getActiveState(),
+  });
+
+  const activeProgramTarget = goalPlanConsistency?.activeProgram;
+  const activeGoalTarget = goalPlanConsistency?.activeGoal;
+  const hasGoalPlanMismatch =
+    goalPlanConsistency?.status === "MACRO_MISMATCH" ||
+    goalPlanConsistency?.status === "STALE_GOAL_CHANGED";
 
   const { data: aiPlansData } = useQuery({
     queryKey: ["nutrition-ai-plans"],
@@ -772,6 +787,19 @@ export function CurrentNutritionProgram() {
               </div>
             ))}
           </div>
+          <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-400">
+            <p>
+              Cac so tren la muc tieu duoc dong bang trong thuc don dang ap dung
+              {activeProgramTarget?.sourceGoalId ? " khi ban luu AI plan." : "."}
+            </p>
+            {hasGoalPlanMismatch && activeGoalTarget && (
+              <p className="mt-1 text-amber-300">
+                Muc tieu dinh duong hien tai da doi: {activeGoalTarget.calories} kcal,
+                P{Math.round(activeGoalTarget.protein)} C{Math.round(activeGoalTarget.carbs)} F{Math.round(activeGoalTarget.fat)}.
+                Hay tao/luu lai thuc don moi neu muon dong bo voi muc tieu nay.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -956,6 +984,61 @@ export function CurrentNutritionProgram() {
                       <option value="high">Cao</option>
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 font-semibold mb-1 block">
+                    Quốc gia / phong cách món ăn
+                  </label>
+                  <select
+                    value={generateForm.cuisineCountry}
+                    onChange={(e) =>
+                      setGenerateForm({
+                        ...generateForm,
+                        cuisineCountry: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50"
+                  >
+                    <option value="">Không ưu tiên</option>
+                    <option value="VN">Việt Nam</option>
+                    <option value="JP">Nhật Bản</option>
+                    <option value="KR">Hàn Quốc</option>
+                    <option value="TH">Thái Lan</option>
+                    <option value="CN">Trung Quốc</option>
+                    <option value="MEDITERRANEAN">Địa Trung Hải</option>
+                    <option value="IT">Ý</option>
+                    <option value="US">Mỹ</option>
+                  </select>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    Vẫn giữ calo/macro mục tiêu; lựa chọn này chỉ định hướng món và nguyên liệu.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 font-semibold mb-1 block">
+                    Vùng miền món Việt
+                  </label>
+                  <select
+                    value={generateForm.vietnameseRegion}
+                    onChange={(e) =>
+                      setGenerateForm({
+                        ...generateForm,
+                        vietnameseRegion: e.target.value,
+                        cuisineCountry:
+                          e.target.value && !generateForm.cuisineCountry
+                            ? "VN"
+                            : generateForm.cuisineCountry,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50"
+                  >
+                    <option value="">Không ưu tiên</option>
+                    <option value="BAC">Miền Bắc</option>
+                    <option value="TRUNG">Miền Trung</option>
+                    <option value="NAM">Miền Nam</option>
+                  </select>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    Chỉ áp dụng khi tạo món Việt; không thay đổi chỉ số calo/macro.
+                  </p>
                 </div>
               </div>
 

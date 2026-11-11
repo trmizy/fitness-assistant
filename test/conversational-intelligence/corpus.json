@@ -1,0 +1,1971 @@
+[
+ {
+  "id": "UNI-001",
+  "cat": "unit-extraction",
+  "text": "tôi cao 1m73",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73",
+    "TARGET_WEIGHT_KG=73",
+    "WEIGHT_UNLABELED=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-002",
+  "cat": "unit-extraction",
+  "text": "cao 1m 73",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73",
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-003",
+  "cat": "unit-extraction",
+  "text": "chiều cao 1.73m",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-004",
+  "cat": "unit-extraction",
+  "text": "173cm",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-005",
+  "cat": "unit-extraction",
+  "text": "173 cm",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-006",
+  "cat": "unit-extraction",
+  "text": "cao 173",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-007",
+  "cat": "unit-extraction",
+  "text": "mình cao 1m8",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=180"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-008",
+  "cat": "unit-extraction",
+  "text": "cao 1,75m",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=175"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-009",
+  "cat": "unit-extraction",
+  "text": "cao 1m65 nặng 58kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=165",
+    "WEIGHT_KG=58"
+   ],
+   "forbid": [
+    "WEIGHT_KG=65",
+    "TARGET_WEIGHT_KG=65"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-010",
+  "cat": "unit-extraction",
+  "text": "nặng 80kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-011",
+  "cat": "unit-extraction",
+  "text": "cân nặng hiện tại 82 ký",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=82"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-012",
+  "cat": "unit-extraction",
+  "text": "tôi nặng 65.5kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=65.5"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-013",
+  "cat": "unit-extraction",
+  "text": "1m73 80kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73",
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-014",
+  "cat": "unit-extraction",
+  "text": "80",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80"
+   ]
+  },
+  "ctx": {
+   "slot": "currentWeightKg"
+  }
+ },
+ {
+  "id": "UNI-015",
+  "cat": "unit-extraction",
+  "text": "72kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "UNI-016",
+  "cat": "unit-extraction",
+  "text": "khoảng 75 kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "UNI-017",
+  "cat": "unit-extraction",
+  "text": "tôi 22 tuổi",
+  "exp": {
+   "ents": [
+    "AGE=22"
+   ],
+   "forbid": [
+    "WEIGHT_KG=22",
+    "TARGET_WEIGHT_KG=22"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-018",
+  "cat": "unit-extraction",
+  "text": "28 tuổi, nữ",
+  "exp": {
+   "ents": [
+    "AGE=28",
+    "GENDER=FEMALE"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-019",
+  "cat": "unit-extraction",
+  "text": "tôi là nam giới",
+  "exp": {
+   "ents": [
+    "GENDER=MALE"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-020",
+  "cat": "unit-extraction",
+  "text": "mình là nữ",
+  "exp": {
+   "ents": [
+    "GENDER=FEMALE"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-021",
+  "cat": "unit-extraction",
+  "text": "tôi tập được 3 năm rồi",
+  "exp": {
+   "forbid": [
+    "GENDER=MALE",
+    "AGE=3",
+    "WEIGHT_KG=3"
+   ],
+   "noEnt": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-022",
+  "cat": "unit-extraction",
+  "text": "cao 1m73, nặng 80kg, 22 tuổi, nam",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "AGE=22",
+    "GENDER=MALE"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-023",
+  "cat": "unit-extraction",
+  "text": "60 phút mỗi buổi",
+  "exp": {
+   "ents": [
+    "SESSION_MINUTES=60"
+   ],
+   "forbid": [
+    "WEIGHT_KG=60",
+    "TARGET_WEIGHT_KG=60"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-024",
+  "cat": "unit-extraction",
+  "text": "1 tiếng rưỡi mỗi buổi thì hơi dài",
+  "exp": {
+   "forbid": [
+    "WEIGHT_KG=1"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-025",
+  "cat": "unit-extraction",
+  "text": "tập 4 buổi một tuần",
+  "exp": {
+   "ents": [
+    "SESSIONS_PER_WEEK=4"
+   ],
+   "forbid": [
+    "WEIGHT_KG=4"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-026",
+  "cat": "unit-extraction",
+  "text": "5 buổi/tuần",
+  "exp": {
+   "ents": [
+    "SESSIONS_PER_WEEK=5"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-027",
+  "cat": "unit-extraction",
+  "text": "ăn 4 bữa mỗi ngày",
+  "exp": {
+   "ents": [
+    "MEALS_PER_DAY=4"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-028",
+  "cat": "unit-extraction",
+  "text": "ngân sách 2 triệu",
+  "exp": {
+   "ents": [
+    "BUDGET_VND=2000000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-029",
+  "cat": "unit-extraction",
+  "text": "khoảng 1.5tr",
+  "exp": {
+   "ents": [
+    "BUDGET_VND=1500000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "UNI-030",
+  "cat": "unit-extraction",
+  "text": "500k một buổi",
+  "exp": {
+   "ents": [
+    "BUDGET_VND=500000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-031",
+  "cat": "target-weight",
+  "text": "mục tiêu 70kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=70"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-032",
+  "cat": "target-weight",
+  "text": "tôi muốn xuống 72kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-033",
+  "cat": "target-weight",
+  "text": "xuống 72 ký",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-034",
+  "cat": "target-weight",
+  "text": "mục tiêu 72 cân",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-035",
+  "cat": "target-weight",
+  "text": "muốn giảm còn 68kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=68"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-036",
+  "cat": "target-weight",
+  "text": "muốn lên 75kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-037",
+  "cat": "target-weight",
+  "text": "nặng 80kg, mục tiêu 72kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-038",
+  "cat": "target-weight",
+  "text": "hiện 80kg muốn xuống 72kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-039",
+  "cat": "target-weight",
+  "text": "toi 80kg cao 1m73 muon xuong 72",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-040",
+  "cat": "target-weight",
+  "text": "80 là cân hiện tại, 72 mới là mục tiêu",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-041",
+  "cat": "target-weight",
+  "text": "1m73 là chiều cao chứ không phải cân nặng",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73",
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-042",
+  "cat": "target-weight",
+  "text": "với chiều cao 1m73 thì 80kg là đang khá mập rồi tôi muốn xuống 72kg là đẹp",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=73",
+    "WEIGHT_KG=73",
+    "WEIGHT_UNLABELED=73"
+   ],
+   "goal": [
+    "WEIGHT_LOSS:I"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "TAR-043",
+  "cat": "target-weight",
+  "text": "74kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=74"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "TAR-044",
+  "cat": "target-weight",
+  "text": "70",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=70"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "TAR-045",
+  "cat": "target-weight",
+  "text": "mục tiêu 72",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "TAR-046",
+  "cat": "target-weight",
+  "text": "mục tiêu 72",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "amb": false
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "TAR-047",
+  "cat": "target-weight",
+  "text": "mục tiêu 72",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "amb": false
+  },
+  "ctx": {
+   "cw": 80
+  }
+ },
+ {
+  "id": "TAR-048",
+  "cat": "target-weight",
+  "text": "tôi muốn còn 65",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=65"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "TAR-049",
+  "cat": "target-weight",
+  "text": "nặng 80 muốn xuống 72",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-050",
+  "cat": "goal-signals",
+  "text": "tôi muốn giảm mỡ",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-051",
+  "cat": "goal-signals",
+  "text": "tôi muốn tăng cơ",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-052",
+  "cat": "goal-signals",
+  "text": "muốn duy trì vóc dáng",
+  "exp": {
+   "goal": [
+    "MAINTENANCE:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-053",
+  "cat": "goal-signals",
+  "text": "tôi muốn xuống cân",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-054",
+  "cat": "goal-signals",
+  "text": "muốn gọn hơn",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-055",
+  "cat": "goal-signals",
+  "text": "tôi đang khá mập",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:I"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-056",
+  "cat": "goal-signals",
+  "text": "muốn giảm mỡ nhưng giữ cơ",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-057",
+  "cat": "goal-signals",
+  "text": "t muốn lose fat nhưng giữ muscle",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-058",
+  "cat": "goal-signals",
+  "text": "muốn cut mấy tháng tới",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-059",
+  "cat": "goal-signals",
+  "text": "muốn bulk",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-060",
+  "cat": "goal-signals",
+  "text": "không cần tăng cân",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN-"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-061",
+  "cat": "goal-signals",
+  "text": "tôi muốn cải thiện hiệu suất chạy bộ",
+  "exp": {
+   "goal": [
+    "ATHLETIC_PERFORMANCE:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-062",
+  "cat": "goal-signals",
+  "text": "giảm mỡ bụng",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-063",
+  "cat": "goal-signals",
+  "text": "muon giam mo",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-064",
+  "cat": "goal-signals",
+  "text": "muon tang co",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GOA-065",
+  "cat": "goal-signals",
+  "text": "tôi thấy mình quá nặng",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:I"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-066",
+  "cat": "corrections",
+  "text": "không phải 74, là 72",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "TARGET_WEIGHT_KG>72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=74"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "COR-067",
+  "cat": "corrections",
+  "text": "à không, tôi tập 5 buổi",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "SESSIONS_PER_WEEK>5"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-068",
+  "cat": "corrections",
+  "text": "ngân sách lúc nãy sai, 2 triệu thôi",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "BUDGET_VND>2000000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-069",
+  "cat": "corrections",
+  "text": "không tăng cơ nữa, tôi muốn giảm mỡ",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "GOAL>WEIGHT_LOSS"
+   ],
+   "goal": [
+    "MUSCLE_GAIN-",
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-070",
+  "cat": "corrections",
+  "text": "thay vì 74 thì 72",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "TARGET_WEIGHT_KG>72"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "COR-071",
+  "cat": "corrections",
+  "text": "à không, cân nặng của tôi là 78kg",
+  "exp": {
+   "corr": [
+    "WEIGHT_KG>78"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-072",
+  "cat": "corrections",
+  "text": "lúc nãy tôi nói sai, tôi cao 1m75",
+  "exp": {
+   "corr": [
+    "HEIGHT_CM>175"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-073",
+  "cat": "corrections",
+  "text": "tôi đổi ý, muốn giảm mỡ",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "GOAL>WEIGHT_LOSS"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-074",
+  "cat": "corrections",
+  "text": "khoan, ăn 3 bữa thôi",
+  "exp": {
+   "corr": [
+    "MEALS_PER_DAY>3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-075",
+  "cat": "corrections",
+  "text": "ý tôi là 60 phút mỗi buổi",
+  "exp": {
+   "corr": [
+    "SESSION_MINUTES>60"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-076",
+  "cat": "corrections",
+  "text": "nhầm rồi, tôi 25 tuổi",
+  "exp": {
+   "corr": [
+    "AGE>25"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-077",
+  "cat": "corrections",
+  "text": "thực ra tôi nặng 79kg",
+  "exp": {
+   "corr": [
+    "WEIGHT_KG>79"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-078",
+  "cat": "corrections",
+  "text": "sửa lại: mục tiêu 70kg",
+  "exp": {
+   "corr": [
+    "TARGET_WEIGHT_KG>70"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "COR-079",
+  "cat": "corrections",
+  "text": "à không, tôi muốn tăng cơ chứ không giảm mỡ",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "GOAL>MUSCLE_GAIN"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-080",
+  "cat": "contradiction-vs-correction",
+  "text": "tôi nặng 80kg nhưng mục tiêu là 72kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "intent": "PROVIDE_INFORMATION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-081",
+  "cat": "contradiction-vs-correction",
+  "text": "tôi nói 80 nhưng thật ra là 78",
+  "exp": {
+   "intent": "CORRECT_INFORMATION",
+   "corr": [
+    "WEIGHT_KG>78"
+   ]
+  },
+  "ctx": {
+   "slot": "currentWeightKg"
+  }
+ },
+ {
+  "id": "CON-082",
+  "cat": "contradiction-vs-correction",
+  "text": "trước tôi muốn tăng cơ, giờ muốn giảm mỡ",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-083",
+  "cat": "contradiction-vs-correction",
+  "text": "80kg nhưng mong muốn 72kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {
+   "cw": 80
+  }
+ },
+ {
+  "id": "ASK-084",
+  "cat": "ask-recommendation",
+  "text": "ok hãy đề xuất cho tôi",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true,
+   "noEnt": true
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "ASK-085",
+  "cat": "ask-recommendation",
+  "text": "bạn chọn giúp tôi",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-086",
+  "cat": "ask-recommendation",
+  "text": "mức nào hợp lý?",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-087",
+  "cat": "ask-recommendation",
+  "text": "theo bạn nên bao nhiêu?",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-088",
+  "cat": "ask-recommendation",
+  "text": "tôi không biết nên đặt bao nhiêu",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-089",
+  "cat": "ask-recommendation",
+  "text": "bạn tự đề xuất đi",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-090",
+  "cat": "ask-recommendation",
+  "text": "ok đề xuất đi",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-091",
+  "cat": "ask-recommendation",
+  "text": "bạn thấy mục tiêu nào hợp với tôi?",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-092",
+  "cat": "ask-recommendation",
+  "text": "theo tình trạng của tôi thì nên cut hay bulk?",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-093",
+  "cat": "ask-recommendation",
+  "text": "tôi không biết nên tập mấy buổi",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-094",
+  "cat": "ask-recommendation",
+  "text": "bao nhiêu thì hợp lý",
+  "exp": {
+   "intent": "ASK_RECOMMENDATION",
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-095",
+  "cat": "ask-recommendation",
+  "text": "gợi ý giúp mình mức cân nặng mục tiêu",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-096",
+  "cat": "ask-recommendation",
+  "text": "hãy tính giúp tôi",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-097",
+  "cat": "ask-recommendation",
+  "text": "bạn quyết giúp tôi đi",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "ASK-098",
+  "cat": "ask-recommendation",
+  "text": "tôi muốn xuống 72kg, bạn thấy có hợp lý không?",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-099",
+  "cat": "multi-slot",
+  "text": "Tôi cao 1m73, nặng 80kg, muốn xuống 72kg, tập 4 buổi một tuần, chỉ rảnh tối.",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72",
+    "SESSIONS_PER_WEEK=4"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-100",
+  "cat": "multi-slot",
+  "text": "tôi 22 tuổi, cao 1m73, nặng 80kg, tôi là nam giới, mục tiêu của tôi là 70kg",
+  "exp": {
+   "ents": [
+    "AGE=22",
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "GENDER=MALE",
+    "TARGET_WEIGHT_KG=70"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-101",
+  "cat": "multi-slot",
+  "text": "nữ, 30 tuổi, 1m60, 55kg, muốn xuống 52kg",
+  "exp": {
+   "ents": [
+    "GENDER=FEMALE",
+    "AGE=30",
+    "HEIGHT_CM=160",
+    "WEIGHT_KG=55",
+    "TARGET_WEIGHT_KG=52"
+   ],
+   "forbid": [
+    "WEIGHT_KG=60"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-102",
+  "cat": "multi-slot",
+  "text": "45 phút mỗi buổi, 3 buổi một tuần",
+  "exp": {
+   "ents": [
+    "SESSION_MINUTES=45",
+    "SESSIONS_PER_WEEK=3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-103",
+  "cat": "multi-slot",
+  "text": "4 bữa mỗi ngày, ngân sách 2 triệu",
+  "exp": {
+   "ents": [
+    "MEALS_PER_DAY=4",
+    "BUDGET_VND=2000000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-104",
+  "cat": "multi-slot",
+  "text": "cao 170 nặng 65 kg 25 tuổi",
+  "exp": {
+   "ents": [
+    "AGE=25",
+    "WEIGHT_KG=65"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "MUL-105",
+  "cat": "multi-slot",
+  "text": "1m73 80kg 22 tuổi nam muốn xuống 72kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "AGE=22",
+    "TARGET_WEIGHT_KG=72",
+    "GENDER=MALE"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "AMB-106",
+  "cat": "ambiguity",
+  "text": "72",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "AMB-107",
+  "cat": "ambiguity",
+  "text": "80 và 72",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "AMB-108",
+  "cat": "ambiguity",
+  "text": "mục tiêu 72",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "AMB-109",
+  "cat": "ambiguity",
+  "text": "khoảng 70 gì đó",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-110",
+  "cat": "references",
+  "text": "mức đó",
+  "exp": {
+   "ref": "ACCEPT_PROPOSAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-111",
+  "cat": "references",
+  "text": "dùng mức bạn đề xuất",
+  "exp": {
+   "ref": "ACCEPT_PROPOSAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-112",
+  "cat": "references",
+  "text": "72 đó",
+  "exp": {
+   "ref": "ACCEPT_PROPOSAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-113",
+  "cat": "references",
+  "text": "lấy mức thấp hơn",
+  "exp": {
+   "ref": "LOWER_OPTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-114",
+  "cat": "references",
+  "text": "lấy mức cao hơn",
+  "exp": {
+   "ref": "HIGHER_OPTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-115",
+  "cat": "references",
+  "text": "mức giữa",
+  "exp": {
+   "ref": "MIDDLE_OPTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-116",
+  "cat": "references",
+  "text": "chọn PT đầu tiên",
+  "exp": {
+   "ref": "FIRST_ITEM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-117",
+  "cat": "references",
+  "text": "thuê người đó",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-118",
+  "cat": "references",
+  "text": "lưu plan này",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-119",
+  "cat": "references",
+  "text": "PT này",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-120",
+  "cat": "references",
+  "text": "giữ cái cũ",
+  "exp": {
+   "amb": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-121",
+  "cat": "references",
+  "text": "đổi cái vừa rồi còn 3 bữa",
+  "exp": {
+   "ref": "PREVIOUS_STATE",
+   "ents": [
+    "MEALS_PER_DAY=3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "REF-122",
+  "cat": "references",
+  "text": "dùng mức bạn đề xuất",
+  "exp": {
+   "ref": "ACCEPT_PROPOSAL"
+  },
+  "ctx": {
+   "proposal": {
+    "field": "targetWeight",
+    "recommendedKg": 72,
+    "lowKg": 72,
+    "highKg": 76
+   }
+  }
+ },
+ {
+  "id": "NEG-123",
+  "cat": "negation",
+  "text": "tôi không muốn xuống 70",
+  "exp": {
+   "neg": [
+    "WEIGHT_UNLABELED=70"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=70"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NEG-124",
+  "cat": "negation",
+  "text": "không phải 72",
+  "exp": {
+   "neg": [
+    "WEIGHT_UNLABELED=72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NEG-125",
+  "cat": "negation",
+  "text": "đừng đổi mục tiêu",
+  "exp": {
+   "neg": [
+    "GOAL"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NEG-126",
+  "cat": "negation",
+  "text": "không cần PT",
+  "exp": {
+   "neg": [
+    "ACTION"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NEG-127",
+  "cat": "negation",
+  "text": "không lưu",
+  "exp": {
+   "neg": [
+    "ACTION"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NEG-128",
+  "cat": "negation",
+  "text": "không phải 74 mà là 72",
+  "exp": {
+   "corr": [
+    "TARGET_WEIGHT_KG>72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=74"
+   ]
+  },
+  "ctx": {
+   "slot": "targetWeight"
+  }
+ },
+ {
+  "id": "NEG-129",
+  "cat": "negation",
+  "text": "không tăng cơ nữa",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN-"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-130",
+  "cat": "workflow-start",
+  "text": "Tạo lộ trình giảm mỡ cho tôi",
+  "exp": {
+   "wf": "CREATE_ROADMAP",
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-131",
+  "cat": "workflow-start",
+  "text": "hãy tạo lộ trình cho tôi",
+  "exp": {
+   "wf": "CREATE_ROADMAP"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-132",
+  "cat": "workflow-start",
+  "text": "Tạo lịch tập cho tôi",
+  "exp": {
+   "wf": "CREATE_WORKOUT_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-133",
+  "cat": "workflow-start",
+  "text": "Tạo thực đơn cho tôi",
+  "exp": {
+   "wf": "CREATE_NUTRITION_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-134",
+  "cat": "workflow-start",
+  "text": "Tìm PT phù hợp với tôi",
+  "exp": {
+   "wf": "FIND_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-135",
+  "cat": "workflow-start",
+  "text": "Tìm chương trình tập phù hợp",
+  "exp": {
+   "wf": "FIND_TRAINING_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-136",
+  "cat": "workflow-start",
+  "text": "Tạo lộ trình tăng cơ",
+  "exp": {
+   "wf": "CREATE_ROADMAP",
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WOR-137",
+  "cat": "workflow-start",
+  "text": "tạo lộ trình, tôi cao 1m73 nặng 80kg muốn xuống 72kg",
+  "exp": {
+   "wf": "CREATE_ROADMAP",
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-138",
+  "cat": "general-qa",
+  "text": "Progressive overload là gì?",
+  "exp": {
+   "intent": "ANSWER_QUESTION",
+   "noEnt": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-139",
+  "cat": "general-qa",
+  "text": "Protein có vai trò gì?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-140",
+  "cat": "general-qa",
+  "text": "Squat có hại đầu gối không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-141",
+  "cat": "general-qa",
+  "text": "Một ngày nên ăn bao nhiêu protein?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-142",
+  "cat": "general-qa",
+  "text": "Tập cardio trước hay sau tạ?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-143",
+  "cat": "general-qa",
+  "text": "Whey có bắt buộc không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-144",
+  "cat": "general-qa",
+  "text": "Creatine có an toàn không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-145",
+  "cat": "general-qa",
+  "text": "Nghỉ giữa các set bao lâu?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-146",
+  "cat": "general-qa",
+  "text": "Kế hoạch giảm cân trong 1 tuần có được không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GEN-147",
+  "cat": "general-qa",
+  "text": "Sao tập xong lại đau cơ?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-148",
+  "cat": "natural-vietnamese",
+  "text": "toi cao 1m73 nang 80kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-149",
+  "cat": "natural-vietnamese",
+  "text": "m cao 1m73 nặng 80 muốn cut",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173",
+    "WEIGHT_KG=80"
+   ],
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-150",
+  "cat": "natural-vietnamese",
+  "text": "tạo plan cho t 4 buổi, gym full máy",
+  "exp": {
+   "ents": [
+    "SESSIONS_PER_WEEK=4"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-151",
+  "cat": "natural-vietnamese",
+  "text": "đổi còn 3 bữa thôi",
+  "exp": {
+   "ents": [
+    "MEALS_PER_DAY=3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-152",
+  "cat": "natural-vietnamese",
+  "text": "toi 22 tuoi nam cao 1m73",
+  "exp": {
+   "ents": [
+    "AGE=22",
+    "GENDER=MALE",
+    "HEIGHT_CM=173"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-153",
+  "cat": "natural-vietnamese",
+  "text": "muon xuong 72kg thoi",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-154",
+  "cat": "natural-vietnamese",
+  "text": "nặng 80 ký muốn còn 72 ký",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80",
+    "TARGET_WEIGHT_KG=72"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-155",
+  "cat": "natural-vietnamese",
+  "text": "hôm nay tôi 80kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=80"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-156",
+  "cat": "natural-vietnamese",
+  "text": "tui cao 1m7 nặng 68kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=170",
+    "WEIGHT_KG=68"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-157",
+  "cat": "natural-vietnamese",
+  "text": "mình muốn lên cân, tăng cơ",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-158",
+  "cat": "natural-vietnamese",
+  "text": "tập 3 buổi 1 tuần thôi nhé",
+  "exp": {
+   "ents": [
+    "SESSIONS_PER_WEEK=3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "NAT-159",
+  "cat": "natural-vietnamese",
+  "text": "budget 3tr",
+  "exp": {
+   "ents": [
+    "BUDGET_VND=3000000"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-160",
+  "cat": "confirmation-dismissal",
+  "text": "xác nhận",
+  "exp": {
+   "intent": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-161",
+  "cat": "confirmation-dismissal",
+  "text": "đồng ý",
+  "exp": {
+   "intent": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-162",
+  "cat": "confirmation-dismissal",
+  "text": "bỏ qua bản này",
+  "exp": {
+   "intent": "DISMISS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "CON-163",
+  "cat": "confirmation-dismissal",
+  "text": "không lưu",
+  "exp": {
+   "neg": [
+    "ACTION"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WHY-164",
+  "cat": "why",
+  "text": "vì sao bạn đề xuất 72?",
+  "exp": {
+   "why": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WHY-165",
+  "cat": "why",
+  "text": "tại sao lại là mức đó?",
+  "exp": {
+   "why": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WHY-166",
+  "cat": "why",
+  "text": "sao phải đổi mục tiêu?",
+  "exp": {
+   "why": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "WHY-167",
+  "cat": "why",
+  "text": "tại sao bạn nghĩ tôi nên giảm mỡ? nếu hợp lý thì đổi mục tiêu giúp tôi",
+  "exp": {
+   "why": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "INT-168",
+  "cat": "interruption",
+  "text": "Thôi tôi thấy mình đang quá nặng, đổi sang giảm mỡ đi.",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "INT-169",
+  "cat": "interruption",
+  "text": "khoan, cho tôi hỏi protein là gì?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "INT-170",
+  "cat": "interruption",
+  "text": "hôm nay tôi nên ăn tối đa bao nhiêu calo?",
+  "exp": {
+   "intent": "ANSWER_QUESTION",
+   "noEnt": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "INT-171",
+  "cat": "interruption",
+  "text": "Squat là gì? à mà tôi cao 1m73",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=173"
+   ],
+   "forbid": [
+    "WEIGHT_KG=73"
+   ]
+  },
+  "ctx": {}
+ }
+]

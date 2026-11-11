@@ -34,6 +34,7 @@ import {
   usePendingAiTasks,
 } from "../../stores/pendingAiTasks";
 import { CurrentNutritionProgram as NutritionAiPlansPanel } from "./CurrentNutritionProgram";
+import { formatPlanWarnings } from "./planWarnings";
 
 const QUERY_GOAL_LABELS: Record<string, string> = {
   WEIGHT_LOSS: "Giảm mỡ",
@@ -226,6 +227,22 @@ function asExplanationText(value: string | UnknownRecord): string {
 }
 
 function summarizeApiError(error: unknown, fallback: string): string {
+  // Live bug (2026-09-30): this used to surface raw backend text verbatim — "Invalid or
+  // expired token", "Service Unavailable" — straight from error.response.data.error/message.
+  // Both are true statements about the HTTP response but misleading or alarming as user-facing
+  // copy, and a 401 in particular means the axios interceptor's silent refresh-and-retry
+  // (api.ts) already tried and either couldn't reach /auth/refresh or the session is genuinely
+  // over — the user needs "log in again", not a raw protocol string. Handled before the
+  // generic body-text fallback below so every plan-related error box gets this, not just one.
+  if (isRecord(error) && isRecord(error.response)) {
+    const status = error.response.status;
+    if (status === 401) {
+      return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    }
+    if (status === 503 || status === 502) {
+      return "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau ít phút.";
+    }
+  }
   if (
     isRecord(error) &&
     isRecord(error.response) &&
@@ -300,15 +317,8 @@ function extractPlanWarnings(planContent: PlanContent | null): string[] {
     ._metadata;
   if (!isRecord(metadata)) return [];
 
-  const warnings = (metadata as UnknownRecord).aiWarnings;
-  if (!Array.isArray(warnings)) return [];
-
-  return warnings
-    .map((warning) =>
-      typeof warning === "string" ? warning : JSON.stringify(warning),
-    )
-    .map((warning) => warning.trim())
-    .filter(Boolean);
+  // aiWarnings mixes strings and structured objects (see planWarnings.ts): never print raw JSON to the user.
+  return formatPlanWarnings((metadata as UnknownRecord).aiWarnings);
 }
 
 function formatExplanationText(
@@ -921,19 +931,19 @@ export function AIPlansPage() {
       return;
     }
     if (
-      !Number.isFinite(durationWeeks) ||
+      !Number.isInteger(durationWeeks) ||
       durationWeeks < 1 ||
       durationWeeks > 52
     ) {
       toast.error("durationWeeks phải trong khoảng 1-52");
       return;
     }
-    if (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+    if (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
       toast.error("daysPerWeek phải trong khoảng 1-7");
       return;
     }
     if (
-      !Number.isFinite(exercisesPerDay) ||
+      !Number.isInteger(exercisesPerDay) ||
       exercisesPerDay < 1 ||
       exercisesPerDay > 8
     ) {
@@ -1003,11 +1013,13 @@ export function AIPlansPage() {
           setIsExplanationStreaming(false);
           setExplanationStatus(null);
           explanationAbortRef.current = null;
+          // The explanation must come from the AI. On failure show the error and let the user press the button again — no second
+          // hidden request and no empty "AI" box left behind.
+          setExplanationResult(null);
           toast.error(
             message ||
               "Không thể giải thích kế hoạch lúc này. Vui lòng thử lại.",
           );
-          explainMutation.mutate(currentPlan.id);
         },
       },
       { lang: "vi" },
@@ -1034,6 +1046,10 @@ export function AIPlansPage() {
     setDaysPerWeek(plan.daysPerWeek);
     const retryExercisesPerDay =
       toPlanContent(plan.plan)?.exercisesPerDay ?? exercisesPerDay;
+    if (!Number.isInteger(retryExercisesPerDay) || retryExercisesPerDay < 1 || retryExercisesPerDay > 8) {
+      toast.error("Vui lòng nhập số bài mỗi buổi từ 1 đến 8 trước khi tạo lại");
+      return;
+    }
     setExercisesPerDay(retryExercisesPerDay);
     setPlanFilter("all");
     generateMutation.mutate({
@@ -1316,8 +1332,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={52}
-                  value={durationWeeks}
-                  onChange={(e) => setDurationWeeks(Number(e.target.value))}
+                  value={Number.isFinite(durationWeeks) ? durationWeeks : ""}
+                  onChange={(e) => setDurationWeeks(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(durationWeeks)) e.currentTarget.value = String(durationWeeks); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>
@@ -1330,8 +1347,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={7}
-                  value={daysPerWeek}
-                  onChange={(e) => setDaysPerWeek(Number(e.target.value))}
+                  value={Number.isFinite(daysPerWeek) ? daysPerWeek : ""}
+                  onChange={(e) => setDaysPerWeek(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(daysPerWeek)) e.currentTarget.value = String(daysPerWeek); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>
@@ -1344,8 +1362,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={8}
-                  value={exercisesPerDay}
-                  onChange={(e) => setExercisesPerDay(Number(e.target.value))}
+                  value={Number.isFinite(exercisesPerDay) ? exercisesPerDay : ""}
+                  onChange={(e) => setExercisesPerDay(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(exercisesPerDay)) e.currentTarget.value = String(exercisesPerDay); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>

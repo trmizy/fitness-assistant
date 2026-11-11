@@ -5,47 +5,10 @@ import type {
   ValidationResult,
 } from "./types";
 
-// `(?:${keyword})` — a bare `${keyword}` before `[^\d]{0,20}(...)` mis-groups
-// any "a|b" keyword alternation (e.g. "carb|carbs") as
-// `(a)|(b[^\d]{0,20}(\d+))`, so a lone "carb" match with no number nearby
-// still "matches" but with capture group 1 undefined. The non-capturing
-// group makes the alternation apply to the keyword only, as intended.
-//
-// `\d{1,5}` (not `\d{2,5}`) — real bug found via E2E persona testing
-// (24-ai-nutrition-persona-b-c.spec.ts): a lazy/small local LLM answer that
-// literally writes "Đạm 0g" for a 125g target has a single-digit
-// placeholder. The old 2-5-digit-only regex could never capture "0" (or any
-// single digit).
-function buildNearKeywordRegex(keyword: string): RegExp {
-  return new RegExp(`(?:${keyword})[^\\d]{0,20}(\\d{1,5})`, "gi");
-}
-
-/**
- * Returns every number found near `keyword` in `text`, not just the first.
- *
- * Real bug found via E2E persona testing: a "meal" answer can legitimately
- * echo the correct deterministic target once (e.g. a pre-injected "Mục tiêu
- * ngày: ... Đạm: 125g" header) and THEN have the LLM's own free-text body
- * restate the same field wrong ("Đạm 0g" in its own table further down). A
- * first-match-only extractor finds the correct echo and stops, silently
- * missing the LLM's own later error. Scanning every occurrence and flagging
- * on the worst one matches this validator's own stated philosophy
- * elsewhere in this file ("the engine's number wins regardless of what the
- * model chose to say") — erring toward catching too much is the safe
- * direction here, since a false positive only costs a fallback to the
- * already-correct deterministic answer, never a wrong answer reaching the
- * user.
- */
-function extractAllNumbersNearKeyword(text: string, keyword: string): number[] {
-  const regex = buildNearKeywordRegex(keyword);
-  const values: number[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    const value = Number(match[1]);
-    if (Number.isFinite(value)) values.push(value);
-  }
-  return values;
-}
+// History: numbers were once taken as "the next number after the keyword" (buildNearKeywordRegex /
+// extractAllNumbersNearKeyword, which also fixed the a|b alternation grouping, single-digit "Đạm 0g" capture and
+// first-match-only bugs). Those guarantees are kept by extractDailyKcal / extractDailyMacroGrams below (every
+// occurrence is still scanned and the worst one wins); the unit-blind matching that discarded correct answers is gone.
 
 function worstDiffRatio(found: number[], expected: number): number {
   let worst = 0;
@@ -56,14 +19,92 @@ function worstDiffRatio(found: number[], expected: number): number {
   return worst;
 }
 
+// Real bug found by the nutrition quality evaluation (test/ai-quality-eval, 2026-11-08, REAL HTTP/API with Nova Pro):
+// `keyword[^\d]{0,20}(\d+)` took the NEXT number after the keyword whatever its unit, so a correct answer such as
+// "| Calo | 2370 kcal | Đạm: 145g" yielded calories [2370, 145], per-food grams ("Gà nướng 150g (35g protein)") and
+// per-meal figures were compared with the DAILY target, and 52% of answers were discarded for a deterministic template
+// that did not answer the question. A number now counts only when its own unit is attached (kcal for energy, g for a
+// macro), and figures that are per-item / per-meal / per-kg / a threshold or a deficit are not daily-target claims.
+// The worst-case-over-all-remaining-occurrences rule is kept (a wrong restatement anywhere is still caught).
+const normalizeThousands = (text: string) => text.replace(/(\d)[.,](\d{3})(?!\d)/g, "$1$2");
+const NOT_A_DAILY_TARGET_BEFORE =
+  /(dưới|trên|thấp hơn|cao hơn|ít hơn|nhiều hơn|tối thiểu|tối đa|ít nhất|không dưới|không quá|giảm|tăng|bớt|thêm|thâm hụt|thặng dư|thiếu hụt|chênh|below|under|above|at least|at most|minimum|maximum|deficit|surplus|reduce|increase)[^.\n]{0,14}$/i;
+const PER_MEAL_LINE = /bữa|meal|breakfast|lunch|dinner|snack|món|khẩu phần|serving/i;
+const OTHER_MACRO = "protein|đạm|carb|carbs|tinh bột|chất béo|béo|fat|fats|calo|kcal";
+const PER_ITEM_BEFORE =
+  /(chứa|cung cấp|trong\s+(một|1)|(một|1)\s+(quả|lát|hộp|muỗng|thìa|cốc|ly|chén|miếng|lạng|phần|bát|tô|gói|hũ|scoop|serving)|100\s*g)[^.\n]{0,30}$/i;
+
+function lineOf(text: string, index: number): string {
+  const start = text.lastIndexOf("\n", index) + 1;
+  const end = text.indexOf("\n", index);
+  return text.slice(start, end === -1 ? text.length : end);
+}
+
+// In a DIRECT answer the daily target is stated with a daily marker ("mỗi ngày", "mục tiêu", "bạn cần"); a line without
+// one is an example (food list "ức gà 100 g ~31 g protein", "1 quả trứng 6 g protein") and is not compared with it.
+const DAILY_CONTEXT_LINE = /ngày|daily|per day|a day|mục tiêu|target|bạn cần|cần khoảng|nên ăn|tổng cộng|mỗi hôm/i;
+
+/** Daily energy figures: a number directly followed by an energy unit, excluding thresholds/deltas/per-meal lines. */
+function extractDailyKcal(raw: string, allowPerMealLines: boolean, dailyContextOnly = false): number[] {
+  const text = normalizeThousands(raw);
+  const out: number[] = [];
+  for (const m of text.matchAll(/(\d{3,5})\s*(?:kcal|calo(?:ries)?|calories|cal)\b/gi)) {
+    const value = Number(m[1]);
+    const index = m.index ?? 0;
+    if (dailyContextOnly && !DAILY_CONTEXT_LINE.test(lineOf(text, index))) continue;
+    if (NOT_A_DAILY_TARGET_BEFORE.test(text.slice(Math.max(0, index - 30), index))) continue;
+    if (!allowPerMealLines && PER_MEAL_LINE.test(lineOf(text, index))) continue;
+    // per-meal / per-food energy is usually well below a daily target; a value < 800 is only a daily claim when it says so
+    if (value < 800 && !/^\s*(kcal|calo\w*|cal)\s*(\/\s*ngày|mỗi ngày|một ngày|\/\s*day|per day|a day)/i.test(text.slice(index + m[1].length, index + m[1].length + 24))) continue;
+    out.push(value);
+  }
+  return out;
+}
+
+/** Daily macro grams: "<kw> … 145g" or "145g (of) <kw>", unit attached; skips g/kg, per-item "(35g protein)" and per-meal lines. */
+function extractDailyMacroGrams(raw: string, keyword: string, dailyContextOnly = false): number[] {
+  const text = normalizeThousands(raw);
+  const out: number[] = [];
+  const consider = (value: number, index: number, tail: string) => {
+    if (dailyContextOnly && !DAILY_CONTEXT_LINE.test(lineOf(text, index))) return;
+    if (/^\s*(\/\s*kg|mỗi\s*kg|per\s*kg|\/\s*kilogram)/i.test(tail)) return;
+    if (PER_MEAL_LINE.test(lineOf(text, index))) return;
+    if (NOT_A_DAILY_TARGET_BEFORE.test(text.slice(Math.max(0, index - 30), index))) return;
+    out.push(value);
+  };
+  for (const m of text.matchAll(new RegExp(`(?:${keyword})([^\\d\\n]{0,20}?)(\\d{1,4})\\s*(?:g|gr|gram)\\b`, "gi"))) {
+    // "145 g protein, 299 g carb": after a list separator / "và" the next number belongs to the next macro, and a number
+    // immediately followed by another macro's name ("299 g carb") is that macro's figure, not this one's.
+    if (/[,;·]|\svà\s|\sand\s/i.test(m[1])) continue;
+    const after = text.slice((m.index ?? 0) + m[0].length);
+    if (new RegExp(`^\\s*\\**\\s*(?:${OTHER_MACRO})`, "i").test(after) && !new RegExp(`^\\s*\\**\\s*(?:${keyword})`, "i").test(after)) continue;
+    const numIndex = (m.index ?? 0) + m[0].lastIndexOf(m[2]);
+    consider(Number(m[2]), numIndex, after);
+  }
+  for (const m of text.matchAll(new RegExp(`(\\d{1,4})\\s*(?:g|gr|gram)\\s+(?:of\\s+)?(?:${keyword})`, "gi"))) {
+    const index = m.index ?? 0;
+    if (/\(\s*$/.test(text.slice(Math.max(0, index - 3), index))) continue; // "(35g protein)" annotates one food item
+    if (Number(m[1]) <= 1) continue; // "1 gram chất béo = 9 kcal" defines a unit, it is not an intake target
+    if (PER_ITEM_BEFORE.test(text.slice(Math.max(0, index - 40), index))) continue; // "1 quả trứng chứa ~6 g protein"
+    consider(Number(m[1]), index, "");
+  }
+  return out;
+}
+
 function validateCalories(
   text: string,
   expected: number,
-  keyword: string = "calories|kcal",
+  _keyword: string = "calories|kcal",
+  allowedReferences: number[] = [],
+  allowPerMealLines = false,
+  dailyContextOnly = false,
 ): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
-  const found = extractAllNumbersNearKeyword(text, keyword);
+  // the estimated maintenance (TDEE) may legitimately be quoted next to the target
+  const found = extractDailyKcal(text, allowPerMealLines, dailyContextOnly).filter(
+    (v) => !allowedReferences.some((ref) => ref && Math.abs(v - ref) / ref <= 0.05),
+  );
   if (found.length === 0) return warnings;
 
   const diffRatio = worstDiffRatio(found, expected);
@@ -80,10 +121,11 @@ function validateMacro(
   text: string,
   label: string,
   expected: number,
+  dailyContextOnly = false,
 ): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
-  const found = extractAllNumbersNearKeyword(text, label);
+  const found = extractDailyMacroGrams(text, label, dailyContextOnly);
   if (found.length === 0) return warnings;
 
   const diffRatio = worstDiffRatio(found, expected);
@@ -353,10 +395,17 @@ function validateNutritionConsistency(
 function validatePersonalization(
   answer: string,
   profile: UserProfile | undefined,
+  recommendation?: RecommendationResult,
 ): string[] {
   if (!profile) return [];
 
   const requiredSignals: string[] = [];
+  // Stating the user's own computed targets IS personalization (they are derived from the profile / the saved
+  // NutritionGoal) — a correct "bạn cần 2370 kcal, 145 g protein" answer was flagged before because it did not also
+  // repeat the user's weight or height back.
+  const n = recommendation?.nutrition;
+  if (n?.targetCalories) requiredSignals.push(String(n.targetCalories));
+  if (n?.proteinGrams) requiredSignals.push(`${n.proteinGrams}g`, `${n.proteinGrams} g`);
   if (profile.currentWeightKg || profile.inBody?.weightKg)
     requiredSignals.push(
       String(profile.currentWeightKg || profile.inBody?.weightKg),
@@ -369,7 +418,7 @@ function validatePersonalization(
     requiredSignals.push("thiết bị");
 
   if (requiredSignals.length < 2) return [];
-  const answerNorm = answer.toLowerCase();
+  const answerNorm = normalizeThousands(answer.toLowerCase());
   const hitCount = requiredSignals.filter((s) =>
     answerNorm.includes(s.toLowerCase()),
   ).length;
@@ -428,6 +477,7 @@ export const answerValidator = {
     recommendation: RecommendationResult,
     language: ResponseLanguage = "en",
     profile?: UserProfile,
+    options?: { nutritionAnswerMode?: "direct" | "plan" | "meal"; personalQuestion?: boolean },
   ): ValidationResult {
     const warnings: string[] = [];
     const nutrition = recommendation.nutrition;
@@ -454,21 +504,36 @@ export const answerValidator = {
       const fatKeyword =
         language === "vi" ? "fat|fats|béo|chất béo" : "fat|fats";
 
-      warnings.push(
-        ...validateCalories(answer, nutrition.targetCalories || 0, caloriesKeyword),
-      );
-      warnings.push(
-        ...validateMacro(answer, proteinKeyword, nutrition.proteinGrams || 0),
-      );
-      warnings.push(
-        ...validateMacro(answer, carbKeyword, nutrition.carbsGrams || 0),
-      );
-      warnings.push(
-        ...validateMacro(answer, fatKeyword, nutrition.fatGrams || 0),
-      );
-      warnings.push(...validateRequiredSections(answer, recommendation));
+      // Answer mode (nutrition_answer_mode.ts; absent = "plan", the historical behaviour for every other intent):
+      //   plan   — full-day plan: daily targets checked on every line, meal sections + personalization required.
+      //   direct — direct question: only lines stating a DAILY figure are compared; no meal sections; no
+      //            personalization requirement (its fallback is a numbers-only answer, so discarding a correct
+      //            food-source / knowledge answer for not restating the profile made answers worse, not safer).
+      //   meal   — ONE meal ("một bữa trưa 600 kcal"): its figures are per-meal, never compared with daily targets.
+      const mode = options?.nutritionAnswerMode ?? "plan";
+      if (mode !== "meal") {
+        const dailyOnly = mode === "direct";
+        warnings.push(
+          ...validateCalories(
+            answer,
+            nutrition.targetCalories || 0,
+            caloriesKeyword,
+            [nutrition.maintenanceCalories || 0],
+            false,
+            dailyOnly,
+          ),
+        );
+        warnings.push(...validateMacro(answer, proteinKeyword, nutrition.proteinGrams || 0, dailyOnly));
+        warnings.push(...validateMacro(answer, carbKeyword, nutrition.carbsGrams || 0, dailyOnly));
+        warnings.push(...validateMacro(answer, fatKeyword, nutrition.fatGrams || 0, dailyOnly));
+      }
+      if (mode !== "direct") {
+        warnings.push(...validateRequiredSections(answer, recommendation));
+      }
       warnings.push(...validateNutritionConsistency(recommendation));
-      warnings.push(...validatePersonalization(answer, profile));
+      if (mode === "plan") {
+        warnings.push(...validatePersonalization(answer, profile, recommendation));
+      }
     } else {
       warnings.push(...validateGeneralFitnessAdvice(answer));
     }

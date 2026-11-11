@@ -1,0 +1,44 @@
+{
+    "accessPolicyDetail": {
+        "type": "data",
+        "name": "fitness-dev-ai-vector-access",
+        "policyVersion": "MTc4OTQ2MTQxNTcwM18x",
+        "description": "Gymini AI Lambda access to vector indexes",
+        "policy": [
+            {
+                "Rules": [
+                    {
+                        "Resource": [
+                            "collection/fitness-assistant-dev-ai-vectors"
+                        ],
+                        "Permission": [
+                            "aoss:DescribeCollectionItems"
+                        ],
+                        "ResourceType": "collection"
+                    },
+                    {
+                        "Resource": [
+                            "index/fitness-assistant-dev-ai-vectors/*"
+                        ],
+                        "Permission": [
+                            "aoss:CreateIndex",
+                            "aoss:DescribeIndex",
+                            "aoss:UpdateIndex",
+                            "aoss:ReadDocument",
+                            "aoss:WriteDocument"
+                        ],
+                        "ResourceType": "index"
+                    }
+                ],
+                "Principal": [
+                    "arn:aws:iam::191798898985:role/fitness-assistant-dev-ai-lambda-role",
+                    "arn:aws:iam::191798898985:role/fitness-assistant-dev-ai-worker-role",
+                    "arn:aws:iam::191798898985:role/fitness-assistant-dev-ai-jobs-role"
+                ],
+                "Description": "Fitness Assistant AI vector data access"
+            }
+        ],
+        "createdDate": 1789461415703,
+        "lastModifiedDate": 1789461415703
+    }
+}

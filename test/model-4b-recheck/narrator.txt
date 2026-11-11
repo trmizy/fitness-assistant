@@ -1,0 +1,74 @@
+{
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "provider": "ollama",
+  "scenarios": 4,
+  "totalCandidates": 5,
+  "totalNarrated": 5,
+  "fallbackRate": 0,
+  "totalLatencyMs": 120216,
+  "avgLatencyMsPerScenario": 30054,
+  "results": [
+    {
+      "scenario": "cold-start single candidate (no cohort)",
+      "candidateCount": 1,
+      "narratedCount": 1,
+      "usedFallback": false,
+      "latencyMs": 37214,
+      "narrations": [
+        {
+          "candidateId": "cold-1",
+          "summary": "Mức phù hợp tổng thể theo hệ thống tính là 68%.",
+          "scientificEvidenceSummary": "Resistance training 2-3x/week improves body composition."
+        }
+      ]
+    },
+    {
+      "scenario": "real strong cohort single candidate",
+      "candidateCount": 1,
+      "narratedCount": 1,
+      "usedFallback": false,
+      "latencyMs": 21125,
+      "narrations": [
+        {
+          "candidateId": "real-1",
+          "summary": "Mức phù hợp tổng thể theo hệ thống tính là 82%.",
+          "scientificEvidenceSummary": "Resistance training 2-3x/week improves body composition."
+        }
+      ]
+    },
+    {
+      "scenario": "synthetic cohort single candidate (must never be framed as real-world proof)",
+      "candidateCount": 1,
+      "narratedCount": 1,
+      "usedFallback": false,
+      "latencyMs": 19770,
+      "narrations": [
+        {
+          "candidateId": "syn-1",
+          "summary": "Mức phù hợp tổng thể theo hệ thống tính là 75%.",
+          "scientificEvidenceSummary": "Resistance training 2-3x/week improves body composition."
+        }
+      ]
+    },
+    {
+      "scenario": "multiple candidates (mixed cohort + cold-start together)",
+      "candidateCount": 2,
+      "narratedCount": 2,
+      "usedFallback": false,
+      "latencyMs": 42107,
+      "narrations": [
+        {
+          "candidateId": "multi-1",
+          "summary": "Mức phù hợp tổng thể theo hệ thống tính là 79%.",
+          "scientificEvidenceSummary": "Resistance training 2-3x/week improves body composition."
+        },
+        {
+          "candidateId": "multi-2",
+          "summary": "Đây là một lựa chọn đáng cân nhắc. Mức phù hợp tổng thể theo hệ thống tính là 61%.",
+          "scientificEvidenceSummary": "Resistance training 2-3x/week improves body composition."
+        }
+      ]
+    }
+  ]
+}
+

@@ -80,6 +80,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "trmizy",
+    "extra": {
+      "eas": {
+        "projectId": "99b39cc1-57f6-4ed2-9f76-55fda54d979a"
+      }
     }
   }
 }

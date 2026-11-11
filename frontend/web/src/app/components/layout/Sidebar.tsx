@@ -6,6 +6,7 @@ import { UserIcon as User, ShieldIcon as Shield, XIcon as X, SignOutIcon as LogO
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
 import { AppLogo } from "../brand/AppLogo";
+import { UserAvatar } from "./UserAvatar";
 import {
   GyminiAdminIcon,
   GyminiCatalogIcon,
@@ -402,9 +403,10 @@ export function Sidebar() {
       {/* ── Bottom: user info + logout ── */}
       <div className="p-3 border-t border-zinc-800/60">
         <div className="flex items-center gap-2.5 px-3 py-2.5 bg-zinc-900/40 rounded-xl border border-zinc-700/50 mb-2">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-black flex-shrink-0 shadow-md shadow-green-500/20">
-            {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
-          </div>
+          <UserAvatar
+            className="w-8 h-8 shadow-md shadow-green-500/20"
+            fallbackClassName="bg-green-500 text-xs font-bold text-black"
+          />
           <div className="flex-1 min-w-0">
             <div className="text-xs text-zinc-100 font-semibold truncate">
               {user

@@ -1,0 +1,88 @@
+{
+    "Changes": [
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "ChatIntegration",
+                "PhysicalResourceId": "ebe69nj",
+                "ResourceType": "AWS::ApiGatewayV2::Integration",
+                "Replacement": "False",
+                "Scope": [
+                    "Properties"
+                ],
+                "Details": [
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "IntegrationUri",
+                            "RequiresRecreation": "Never"
+                        },
+                        "Evaluation": "Static",
+                        "ChangeSource": "DirectModification"
+                    }
+                ]
+            }
+        }
+    ],
+    "ChangeSetName": "chat-alb-sync-20261012155131",
+    "ChangeSetId": "arn:aws:cloudformation:ap-southeast-1:191798898985:changeSet/chat-alb-sync-20261012155131/10554b2d-5344-4b4a-bfab-5976097a5a5c",
+    "StackId": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/1ba058b0-c3bb-11f1-97a6-06ffe6971553",
+    "StackName": "fitness-assistant-dev-api-gateway",
+    "Description": null,
+    "Parameters": [
+        {
+            "ParameterKey": "ChatAlbDnsName",
+            "ParameterValue": "dev-chat-alb-1490360997.ap-southeast-1.elb.amazonaws.com"
+        },
+        {
+            "ParameterKey": "AuthLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth"
+        },
+        {
+            "ParameterKey": "AiLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+        },
+        {
+            "ParameterKey": "UserLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user"
+        },
+        {
+            "ParameterKey": "HttpApiId",
+            "ParameterValue": "id1iz7upbl"
+        },
+        {
+            "ParameterKey": "PaymentLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment"
+        },
+        {
+            "ParameterKey": "GymLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym"
+        },
+        {
+            "ParameterKey": "FitnessLambdaArn",
+            "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness"
+        }
+    ],
+    "CreationTime": "2026-10-12T08:51:35.991000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+        "CAPABILITY_AUTO_EXPAND"
+    ],
+    "Tags": null,
+    "ParentChangeSetId": null,
+    "IncludeNestedStacks": false,
+    "RootChangeSetId": null,
+    "OnStackFailure": null,
+    "ImportExistingResources": null,
+    "StackDriftStatus": null,
+    "DeploymentMode": null,
+    "DeploymentConfig": {
+        "Mode": "STANDARD",
+        "DisableRollback": false
+    }
+}

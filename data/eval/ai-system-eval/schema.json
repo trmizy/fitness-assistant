@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "group", "turns"],
+    "properties": {
+      "id": { "type": "string" },
+      "group": { "enum": ["intent", "context", "workout", "nutrition", "roadmap", "health", "pt_copilot", "operations"] },
+      "author": { "type": "string" },
+      "persona": { "enum": ["client", "pt"], "default": "client" },
+      "turns": {
+        "type": "array", "minItems": 1,
+        "items": {
+          "type": "object", "required": ["say"],
+          "properties": {
+            "say": { "type": "string" },
+            "confirm": { "type": "boolean", "description": "after this turn, confirm the returned ACTION_CONFIRMATION" },
+            "routing": { "type": "object", "properties": { "blockKinds": { "type": "array", "items": { "type": "string" } }, "noBlock": { "type": "boolean" } } },
+            "business": { "type": "object", "properties": { "answerMatches": { "type": "array", "items": { "type": "string" } } } },
+            "safety": { "type": "object", "properties": { "answerForbids": { "type": "array", "items": { "type": "string" } }, "mustEmergency": { "type": "boolean" } } },
+            "sideEffect": { "type": "object", "required": ["db", "query", "equals"], "properties": { "db": { "enum": ["ai", "fitness", "user"] }, "query": { "type": "string" }, "equals": { "type": "string" } } }
+          }
+        }
+      }
+    }
+  }
+}

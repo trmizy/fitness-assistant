@@ -1,0 +1,57 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ReadAiDatabaseSecret",
+            "Effect": "Allow",
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": "arn:aws:secretsmanager:ap-southeast-1:191798898985:secret:fitness-assistant/dev/ai-database*"
+        },
+        {
+            "Sid": "SendAiTasksToSqs",
+            "Effect": "Allow",
+            "Action": ["sqs:SendMessage", "sqs:GetQueueAttributes"],
+            "Resource": "arn:aws:sqs:ap-southeast-1:191798898985:fitness-assistant-dev-ai-tasks"
+        },
+        {
+            "Sid": "InvokeInternalServices",
+            "Effect": "Allow",
+            "Action": "lambda:InvokeFunction",
+            "Resource": [
+                "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+                "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+                "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+                "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment"
+            ]
+        },
+        {
+            "Sid": "InvokeNovaProApacInferenceProfile",
+            "Effect": "Allow",
+            "Action": "bedrock:InvokeModel",
+            "Resource": [
+                "arn:aws:bedrock:ap-southeast-1:191798898985:inference-profile/apac.amazon.nova-pro-v1:0"
+            ]
+        },
+        {
+            "Sid": "InvokeNovaProOnlyThroughApacProfile",
+            "Effect": "Allow",
+            "Action": "bedrock:InvokeModel",
+            "Resource": [
+                "arn:aws:bedrock:*::foundation-model/amazon.nova-pro-v1:0"
+            ],
+            "Condition": {
+                "StringLike": {
+                    "bedrock:InferenceProfileArn": "arn:aws:bedrock:ap-southeast-1:191798898985:inference-profile/apac.amazon.nova-pro-v1:0"
+                }
+            }
+        },
+        {
+            "Sid": "InvokeCohereEmbedMultilingualV3",
+            "Effect": "Allow",
+            "Action": "bedrock:InvokeModel",
+            "Resource": [
+                "arn:aws:bedrock:ap-southeast-1::foundation-model/cohere.embed-multilingual-v3"
+            ]
+        }
+    ]
+}

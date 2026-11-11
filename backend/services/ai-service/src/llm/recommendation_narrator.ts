@@ -2,7 +2,8 @@ import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import type { PTCandidate, AgentEvidence, CompatibilityScore, HistoricalSummary } from "@gym-coach/shared";
 import type { RecommendationNarration } from "@gym-coach/shared";
-import { callLlmJson } from "./json_llm_call.util";
+import { callLlmJson, NARRATION_BUDGET } from "./json_llm_call.util";
+import { LLM_MODEL } from "../services/llm.service";
 import { buildClaimCatalog, buildDefaultSelection, renderNarrationFromClaims, type GroundedClaim } from "./recommendation_claims";
 
 /**
@@ -578,13 +579,17 @@ export async function narrateRecommendations(
 
   const catalogsByCandidate = new Map(candidates.map((c) => [c.candidate.id, buildClaimCatalog(c, evidence)]));
   const prompt = buildClaimSelectionPrompt(candidates, catalogsByCandidate, opts.goalIntent);
+  const narrationStarted = Date.now();
   const result = await callLlmJson(prompt, ClaimSelectionBatchSchema, {
     userId: opts.userId,
     phase: "recommendation_claim_selection",
     numPredict: 800,
-    attempts: 2,
+    attempts: NARRATION_BUDGET.attempts,
+    timeoutMs: NARRATION_BUDGET.timeoutMs,
     logPrefix: "[recommendation-narrator]",
+    purpose: "RECOMMENDATION_NARRATION",
   });
+  const narrationOutcome = result ? "ok" : "failed";
   const selectionByCandidate = new Map((result?.selections ?? []).map((s) => [s.candidateId, s]));
 
   const narrations: RecommendationNarration[] = [];
@@ -608,5 +613,7 @@ export async function narrateRecommendations(
     });
     narrations.push(rendered);
   }
+  // R1.1 telemetry: no prompt, no answer text, no user data. Purpose, budget, timing and whether the deterministic renderer was used.
+  logger.info({ callPurpose: "RECOMMENDATION_NARRATION", kind: "pt", model: LLM_MODEL, timeoutMs: NARRATION_BUDGET.timeoutMs, attempts: NARRATION_BUDGET.attempts, latencyMs: Date.now() - narrationStarted, outcome: narrationOutcome, fallbackUsed: usedFallback, candidateCount: candidates.length }, "narration_result");
   return { narrations, usedFallback };
 }

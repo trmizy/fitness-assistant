@@ -6,7 +6,10 @@ import {
 
 export type FitnessServiceJobName =
   | "workout-upcoming-reminder"
-  | "workout-unfinished-reminder";
+  | "workout-unfinished-reminder"
+  // One-off / on-demand (never scheduled): load the curated Vietnamese everyday-food catalog into this database. The
+  // jobs Lambda is the only path into Aurora inside the VPC; idempotent, so re-running after a catalog change is safe.
+  | "seed-everyday-foods";
 
 export interface FitnessServiceJobEvent {
   job?: FitnessServiceJobName | string;
@@ -21,6 +24,13 @@ export async function runFitnessServiceJob(event: FitnessServiceJobEvent) {
     case "workout-unfinished-reminder": {
       const { runUnfinishedReminderSweep } = await import("./services/workout-reminder.service");
       return runUnfinishedReminderSweep();
+    }
+    case "seed-everyday-foods": {
+      const { seedEverydayFoods } = await import("./services/everyday-foods-seed.service");
+      const { prisma } = await import("./repositories/prisma");
+      const result = await seedEverydayFoods(prisma);
+      logger.info(result, "Everyday-food catalog seeded");
+      return result;
     }
     default:
       throw Object.assign(new Error(`Unknown fitness-service job: ${event.job ?? ""}`), {

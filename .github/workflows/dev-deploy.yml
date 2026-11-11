@@ -94,6 +94,7 @@ jobs:
         run: pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -Identity -Mode Mutate -Context CI
 
       - name: Snapshot scheduler state (must be identical afterwards)
+        id: scheduler_snapshot
         if: ${{ !inputs.dry_run }}
         run: aws scheduler list-schedules --query "Schedules[].[Name,State]" --output text | sort > schedules.before
 
@@ -143,12 +144,15 @@ jobs:
             if ($e.channel -eq 'lambda-invoke') {
               '{"version":"2.0","routeKey":"GET /health","rawPath":"/health","rawQueryString":"","headers":{},"requestContext":{"http":{"method":"GET","path":"/health","sourceIp":"127.0.0.1"}},"isBase64Encoded":false}' | Set-Content ev.json
               $o = aws lambda invoke --function-name $e.function --cli-binary-format raw-in-base64-out --payload file://ev.json out.json --query "{S:StatusCode,E:FunctionError}" --output json | ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0) { throw "SMOKE_LAMBDA_INVOKE_FAILED $($e.service)" }
               $body = (Get-Content out.json -Raw | ConvertFrom-Json)
               if ($o.E -or $body.statusCode -ne $e.expectedStatus) { Write-Error "SMOKE_FAIL $($e.service)"; exit 1 }
               "$($e.service): $($body.statusCode)"
             }
             elseif ($e.channel -eq 'http') {
               $api = aws apigatewayv2 get-api --api-id id1iz7upbl --query ApiEndpoint --output text
+              if ($LASTEXITCODE -ne 0) { throw "SMOKE_API_ENDPOINT_LOOKUP_FAILED $($e.service)" }
+              if ($api -notmatch '^https://[^/\s]+$') { throw "SMOKE_API_ENDPOINT_INVALID $($e.service)" }
               $code = (Invoke-WebRequest "$api$($e.path)" -UseBasicParsing -Method $e.method).StatusCode
               if ($code -ne $e.expectedStatus) { Write-Error "SMOKE_FAIL $($e.service)"; exit 1 }
               "$($e.service): $code"
@@ -156,7 +160,7 @@ jobs:
           }
 
       - name: Scheduler state must be unchanged
-        if: ${{ !inputs.dry_run }}
+        if: ${{ always() && !inputs.dry_run && steps.scheduler_snapshot.outcome == 'success' }}
         run: |
           aws scheduler list-schedules --query "Schedules[].[Name,State]" --output text | sort > schedules.after
           diff schedules.before schedules.after && echo "scheduler state preserved"

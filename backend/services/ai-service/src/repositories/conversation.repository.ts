@@ -1,5 +1,6 @@
-import { PrismaClient, PlanStatus } from "../generated/prisma";
+import { PrismaClient, PlanStatus, Prisma } from "../generated/prisma";
 import type { PlanContent } from "../schemas/plan.schemas";
+import { runFenced, expectOneRowInWorker } from "../services/generation-lease-context";
 
 export { PlanStatus };
 export const prisma = new PrismaClient();
@@ -27,6 +28,7 @@ export type CreateConversationInput = {
   responseLanguage?: string;
   routeIntent?: string;
   warningCount?: number;
+  clientRequestId?: string | null;
 };
 
 // ── Admin observability types ─────────────────────────────────────────────────
@@ -48,6 +50,11 @@ export type AdminRequestsQuery = {
 export const conversationRepository = {
   create(data: CreateConversationInput) {
     return prisma.conversation.create({ data });
+  },
+
+  /** The persisted turn of one deliberate user action (unique per user); null when none exists yet. */
+  findByClientRequestId(userId: string, clientRequestId: string) {
+    return prisma.conversation.findUnique({ where: { userId_clientRequestId: { userId, clientRequestId } } });
   },
 
   findMany(
@@ -98,6 +105,16 @@ export const conversationRepository = {
 
   findSessionById(sessionId: string) {
     return prisma.chatSession.findUnique({ where: { id: sessionId } });
+  },
+
+  /** Removes a session ONLY if it has no turn at all (the leftover of an attempt that lost a same-action race). Best effort, never throws. */
+  async deleteSessionIfEmpty(sessionId: string): Promise<void> {
+    try {
+      const turns = await prisma.conversation.count({ where: { sessionId } });
+      if (turns === 0) await prisma.chatSession.deleteMany({ where: { id: sessionId } });
+    } catch {
+      /* an orphan empty session is harmless */
+    }
   },
 
   findSessionsByUser(userId: string, limit = 50) {
@@ -179,8 +196,12 @@ export const conversationRepository = {
    * Aggregate stats for the overview card: totals, averages, distributions.
    * Uses two raw queries (for AVG and distribution) plus standard count calls.
    */
-  async adminGetOverviewStats() {
+  async adminGetOverviewStats(excludeUserIds: string[] | null = null) {
     const now = new Date();
+    // Test/seed/eval accounts left out on the server (2026-11-08). Anonymous rows (user_id NULL) are kept.
+    const ex = excludeUserIds ?? [];
+    const cw: Prisma.ConversationWhereInput = ex.length ? { OR: [{ userId: null }, { userId: { notIn: ex } }] } : {};
+    const rawNot = ex.length ? Prisma.sql` AND ("user_id" IS NULL OR NOT ("user_id" = ANY(${ex})))` : Prisma.empty;
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -196,25 +217,25 @@ export const conversationRepository = {
       langRows,
       planStats,
     ] = await Promise.all([
-      prisma.conversation.count(),
-      prisma.conversation.count({ where: { createdAt: { gte: since24h } } }),
-      prisma.conversation.count({ where: { usedFallback: true } }),
-      prisma.conversation.count({ where: { usedDeterministicFallback: true } }),
-      prisma.conversation.count({ where: { warningCount: { gt: 0 } } }),
+      prisma.conversation.count({ where: cw }),
+      prisma.conversation.count({ where: { createdAt: { gte: since24h }, ...cw } }),
+      prisma.conversation.count({ where: { usedFallback: true, ...cw } }),
+      prisma.conversation.count({ where: { usedDeterministicFallback: true, ...cw } }),
+      prisma.conversation.count({ where: { warningCount: { gt: 0 }, ...cw } }),
       prisma.$queryRaw<Array<{ avg: number | null; p95: number | null }>>`
         SELECT
           AVG("response_time")                                                                   AS avg,
           PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY "response_time")                         AS p95
         FROM "conversations"
-        WHERE "created_at" >= ${since7d}
+        WHERE "created_at" >= ${since7d}${rawNot}
       `,
       prisma.conversation.count({
-        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d } },
+        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d }, ...cw },
       }),
       prisma.$queryRaw<Array<{ route_intent: string | null; cnt: bigint }>>`
         SELECT "route_intent", COUNT(*) AS cnt
         FROM "conversations"
-        WHERE "created_at" >= ${since7d} AND "route_intent" IS NOT NULL
+        WHERE "created_at" >= ${since7d} AND "route_intent" IS NOT NULL${rawNot}
         GROUP BY "route_intent"
         ORDER BY cnt DESC
         LIMIT 10
@@ -224,10 +245,10 @@ export const conversationRepository = {
       >`
         SELECT "response_language", COUNT(*) AS cnt
         FROM "conversations"
-        WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL
+        WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL${rawNot}
         GROUP BY "response_language"
       `,
-      prisma.workoutPlan.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.workoutPlan.groupBy({ by: ["status"], ...(ex.length ? { where: { userId: { notIn: ex } } } : {}), _count: { _all: true } }),
     ]);
 
     const avgLatency = avgResult[0]?.avg ?? null;
@@ -266,6 +287,8 @@ export const conversationRepository = {
           p95Latency !== null ? Number(Number(p95Latency).toFixed(3)) : null,
         slowCount,
       },
+      /** test accounts left out (null = no filter: local stack, or auth-service unreadable) */
+      excludedTestAccounts: excludeUserIds ? excludeUserIds.length : null,
       intents: intentDistribution,
       languages: languageDistribution,
       plans: {
@@ -430,6 +453,8 @@ export const conversationRepository = {
   // ── WorkoutPlan ─────────────────────────────────────────────────────────────
 
   createWorkoutPlan(data: {
+    id?: string;
+    jobId?: string;
     userId: string;
     name: string;
     description: string;
@@ -458,41 +483,54 @@ export const conversationRepository = {
     });
   },
 
+  // The six worker-facing plan writers below run through runFenced: inside a claimed generation attempt each is ONE
+  // short transaction that takes the operation row lock with the ownership predicate first (see
+  // generation-lease-context.ts), so a stale attempt can neither pass a check and write later nor overwrite a newer
+  // attempt's committed result. Outside a worker they behave exactly as before.
   updatePlanStatus(planId: string, status: PlanStatus) {
-    return prisma.workoutPlan.updateMany({
-      where: { id: planId },
-      data: {
-        status,
-        ...(status !== PlanStatus.FAILED ? { failReason: null } : {}),
-      },
+    return runFenced(prisma, planId, async (db) => {
+      const r = await db.workoutPlan.updateMany({
+        where: { id: planId },
+        data: {
+          status,
+          ...(status !== PlanStatus.FAILED ? { failReason: null } : {}),
+        },
+      });
+      expectOneRowInWorker(r.count, "workout status");
+      return r;
     });
   },
 
-  async updatePlanCompletion(planId: string, content: PlanContent) {
-    // Read ptUserId first — worker reads from DB, not job data, to prevent job-data tampering.
-    // MVP: 2 queries acceptable because BullMQ worker processes plans sequentially.
-    const existing = await prisma.workoutPlan.findUnique({
-      where: { id: planId },
-      select: { ptUserId: true },
-    });
-    return prisma.workoutPlan.update({
-      where: { id: planId },
-      data: {
-        status: PlanStatus.COMPLETED,
-        failReason: null,
-        // PlanContent is a plain JS object — cast via unknown to satisfy Prisma's JsonValue
-        plan: content as unknown as Parameters<
-          (typeof prisma.workoutPlan)["update"]
-        >[0]["data"]["plan"],
-        ...(existing?.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW" } : {}),
-      },
+  updatePlanCompletion(planId: string, content: PlanContent) {
+    return runFenced(prisma, planId, async (db) => {
+      // Read ptUserId first — worker reads from DB, not job data, to prevent job-data tampering.
+      const existing = await db.workoutPlan.findUnique({
+        where: { id: planId },
+        select: { ptUserId: true },
+      });
+      return db.workoutPlan.update({
+        where: { id: planId },
+        data: {
+          status: PlanStatus.COMPLETED,
+          failReason: null,
+          // PlanContent is a plain JS object — cast via unknown to satisfy Prisma's JsonValue
+          plan: content as unknown as Parameters<
+            (typeof prisma.workoutPlan)["update"]
+          >[0]["data"]["plan"],
+          ...(existing?.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW" } : {}),
+        },
+      });
     });
   },
 
   updatePlanFailed(planId: string, reason: string) {
-    return prisma.workoutPlan.updateMany({
-      where: { id: planId },
-      data: { status: PlanStatus.FAILED, failReason: reason },
+    return runFenced(prisma, planId, async (db) => {
+      const r = await db.workoutPlan.updateMany({
+        where: { id: planId },
+        data: { status: PlanStatus.FAILED, failReason: reason },
+      });
+      expectOneRowInWorker(r.count, "workout failed");
+      return r;
     });
   },
 
@@ -532,11 +570,13 @@ export const conversationRepository = {
   },
 
   findPlanByJobId(jobId: string) {
-    return prisma.workoutPlan.findFirst({ where: { jobId } });
+    return prisma.workoutPlan.findFirst({ where: { jobId }, orderBy: { createdAt: "desc" } });
   },
 
   /** Create a v2+ plan for the adjust flow. */
   createAdjustedPlan(data: {
+    id?: string;
+    jobId?: string;
     userId: string;
     originalPlanId: string;
     goal: string;
@@ -547,6 +587,8 @@ export const conversationRepository = {
   }) {
     return prisma.workoutPlan.create({
       data: {
+        ...(data.id ? { id: data.id } : {}),
+        ...(data.jobId ? { jobId: data.jobId } : {}),
         userId: data.userId,
         name: `${data.goal} Plan (v${data.version})`,
         description: `Adjusted from plan ${data.originalPlanId}: ${data.adjustments}`,
@@ -563,6 +605,8 @@ export const conversationRepository = {
   // ── NutritionPlan ────────────────────────────────────────────────────────────
 
   createNutritionPlan(data: {
+    id?: string;
+    jobId?: string;
     userId: string;
     name: string;
     goal: string;
@@ -582,28 +626,38 @@ export const conversationRepository = {
   },
 
   updateNutritionPlanStatus(planId: string, status: PlanStatus) {
-    return prisma.nutritionPlan.updateMany({
-      where: { id: planId },
-      data: { status },
+    return runFenced(prisma, planId, async (db) => {
+      const r = await db.nutritionPlan.updateMany({
+        where: { id: planId },
+        data: { status },
+      });
+      expectOneRowInWorker(r.count, "nutrition status");
+      return r;
     });
   },
 
   updateNutritionPlanCompletion(planId: string, content: unknown) {
-    return prisma.nutritionPlan.update({
-      where: { id: planId },
-      data: {
-        status: PlanStatus.COMPLETED,
-        plan: content as Parameters<
-          (typeof prisma.nutritionPlan)["update"]
-        >[0]["data"]["plan"],
-      },
-    });
+    return runFenced(prisma, planId, (db) =>
+      db.nutritionPlan.update({
+        where: { id: planId },
+        data: {
+          status: PlanStatus.COMPLETED,
+          plan: content as Parameters<
+            (typeof prisma.nutritionPlan)["update"]
+          >[0]["data"]["plan"],
+        },
+      }),
+    );
   },
 
   updateNutritionPlanFailed(planId: string, reason: string) {
-    return prisma.nutritionPlan.updateMany({
-      where: { id: planId },
-      data: { status: PlanStatus.FAILED, failReason: reason },
+    return runFenced(prisma, planId, async (db) => {
+      const r = await db.nutritionPlan.updateMany({
+        where: { id: planId },
+        data: { status: PlanStatus.FAILED, failReason: reason },
+      });
+      expectOneRowInWorker(r.count, "nutrition failed");
+      return r;
     });
   },
 
@@ -631,6 +685,6 @@ export const conversationRepository = {
   },
 
   findNutritionPlanByJobId(jobId: string) {
-    return prisma.nutritionPlan.findFirst({ where: { jobId } });
+    return prisma.nutritionPlan.findFirst({ where: { jobId }, orderBy: { createdAt: "desc" } });
   },
 };

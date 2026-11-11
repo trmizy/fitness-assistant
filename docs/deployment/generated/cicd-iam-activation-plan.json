@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "phase": "16B.1A",
+    "purpose": "Exact activation manifest for the still-future Phase 16B.1B. Lists every IAM resource this plan would create, with a cryptographic hash of its trust and permission policy content as resolved from infra/cloudformation/ci-cd-oidc.yaml's real Parameter defaults on 2026-10-12. AWS_IAM_MUTATIONS=0 for Phase 16B.1A - nothing in this file has been applied.",
+    "generatedAt": "2026-10-12",
+    "sourceTemplate": "infra/cloudformation/ci-cd-oidc.yaml",
+    "sourceTemplateSha256": "91ba592374184025146d234d3cc12dd6d2b4bb1dc7268a5143983e5727d193dc",
+    "resolverScript": "scripts/ci/cfn-iam-policy-extract.mjs",
+    "resolvedPolicyFixture": "scripts/ci/__fixtures__/ci-cd-oidc-resolved-policies.json",
+    "accessAnalyzerStatus": "PASS - 0 ERROR findings across all 5 trust policies (RESOURCE_POLICY) and all 5 permission policies (IDENTITY_POLICY) after the apigateway:TagResource fix. Non-blocking MISSING_RESOURCE (trust policies, structural false-positive - IAM role trust policies never need a Resource field) and CONFIRM_AUDIENCE_CLAIM_TYPE (SUGGESTION, already correctly handled) findings accepted and documented, not chased."
+  },
+  "activationItems": [
+    {
+      "resourceType": "AWS::IAM::Role",
+      "logicalId": "CiReadRole",
+      "name": "GyminiDevCiReadRole",
+      "purpose": "PR validation workflow identity. Read-only: template validation, stack/API read, route-parity checks. No mutation capability of any kind.",
+      "iacOwner": "CloudFormation (infra/cloudformation/ci-cd-oidc.yaml, not yet applied)",
+      "trustPolicySha256": "c8bd0631149c3eeb979ffa84544dd782f8ababa752bd3b14fda19b4a0e3bb4e2",
+      "permissionPolicySha256": "ca5338ee23637fc0e4bd749464f3acbc0d9e16d0a305d429f05cfa641bbcd04f",
+      "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevCiReadRole",
+      "action": "CREATE",
+      "trustSubject": "repo:trmizy/fitness-assistant:pull_request",
+      "usedByWorkflow": "ci.yml PR validation job (draft, not yet activated)"
+    },
+    {
+      "resourceType": "AWS::IAM::Role",
+      "logicalId": "AppDeployRole",
+      "name": "GyminiDevAppDeployRole",
+      "purpose": "Lambda code deploy (12 non-migrate functions) + Chat ECR push + Chat ECS service update. Environment dev only.",
+      "iacOwner": "CloudFormation (infra/cloudformation/ci-cd-oidc.yaml, not yet applied)",
+      "trustPolicySha256": "06db4f97a3c7368c24f624a260911b999c5b52ebdf818cccfac9f6797d184d35",
+      "permissionPolicySha256": "afe61d589caa2d281ed5bf1fdad49af7126720394ebfd1965cd11298d4f0b3a2",
+      "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevAppDeployRole",
+      "action": "CREATE",
+      "trustSubject": "repo:trmizy/fitness-assistant:environment:dev",
+      "usedByWorkflow": "app-deploy.yml (draft, not yet activated)"
+    },
+    {
+      "resourceType": "AWS::IAM::Role",
+      "logicalId": "InfraPlanRole",
+      "name": "GyminiDevInfraPlanRole",
+      "purpose": "Creates/inspects CloudFormation change sets against the protected API Gateway stack only. Explicitly denied ExecuteChangeSet/CreateStack/UpdateStack/DeleteStack.",
+      "iacOwner": "CloudFormation (infra/cloudformation/ci-cd-oidc.yaml, not yet applied)",
+      "trustPolicySha256": "f6455d5301a74774d925d6e65eca8bb5b79b98cc8e141334a9e3943815f658d0",
+      "permissionPolicySha256": "abd355fbe344633c1bffabab6cc60f96721a05959efa2243ef3e871c2237b6bc",
+      "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevInfraPlanRole",
+      "action": "CREATE",
+      "trustSubject": "repo:trmizy/fitness-assistant:environment:dev-infra-plan",
+      "usedByWorkflow": "ci/drafts/github-actions/infra-plan.yml (draft, not yet activated)"
+    },
+    {
+      "resourceType": "AWS::IAM::Role",
+      "logicalId": "InfraApplyRole",
+      "name": "GyminiDevInfraApplyRole",
+      "purpose": "Executes an already-reviewed, digest-bound change set against the protected API Gateway stack only. Cannot create change sets or write API Gateway directly.",
+      "iacOwner": "CloudFormation (infra/cloudformation/ci-cd-oidc.yaml, not yet applied)",
+      "trustPolicySha256": "ced28712a37506b7b8e7d44494e2ad026f279e8394dd3d4853486cce3556f325",
+      "permissionPolicySha256": "4c5dc87349a60b8fae181b6a3291e274e36238d6087f3455b0a0e60440577028",
+      "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevInfraApplyRole",
+      "action": "CREATE",
+      "trustSubject": "repo:trmizy/fitness-assistant:environment:dev-infra",
+      "usedByWorkflow": "ci/drafts/github-actions/infra-deploy.yml (draft, not yet activated)",
+      "requiresHumanReviewerEnvironment": true
+    },
+    {
+      "resourceType": "AWS::IAM::Role",
+      "logicalId": "CfnExecutionRole",
+      "name": "GyminiDevCfnExecutionRole",
+      "purpose": "The CloudFormation service role - sole writer of the protected API Gateway's routes/integrations/tags. Assumed by cloudformation.amazonaws.com only, never by GitHub OIDC directly.",
+      "iacOwner": "CloudFormation (infra/cloudformation/ci-cd-oidc.yaml, not yet applied)",
+      "trustPolicySha256": "df17b6918a6600e4e8c3a026b5ead41f737e7f6143ea0ebb4b0dcacd015db1af",
+      "permissionPolicySha256": "445cf515fb30fd8bb6f1409605a916b9e3a400d76802e666362d0265a7ea1b09",
+      "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole",
+      "action": "CREATE",
+      "trustSubject": "N/A - AWS service principal (cloudformation.amazonaws.com), condition aws:SourceAccount=191798898985",
+      "usedByWorkflow": "passed via iam:PassRole from InfraPlanRole/InfraApplyRole into cloudformation:CreateChangeSet/ExecuteChangeSet --role-arn"
+    }
+  ],
+  "unchangedResources": [
+    {
+      "resourceType": "AWS::IAM::OpenIDConnectProvider",
+      "name": "token.actions.githubusercontent.com",
+      "arn": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com",
+      "iacOwner": "Terraform (infra/terraform/modules/iam/main.tf: aws_iam_openid_connect_provider.github)",
+      "action": "LEAVE_UNCHANGED",
+      "reason": "Already exists, already Terraform-managed. This plan references it by ARN parameter and never creates a duplicate."
+    },
+    {
+      "resourceType": "AWS::IAM::Role",
+      "name": "fitness-assistant-github-actions-ci",
+      "arn": "arn:aws:iam::191798898985:role/fitness-assistant-github-actions-ci",
+      "iacOwner": "Terraform (infra/terraform/modules/iam/main.tf: aws_iam_role.github_actions_ci)",
+      "action": "LEAVE_UNCHANGED",
+      "reason": "Legacy CI role, read-only + Terraform-state-bucket-only permissions. Retained as-is; the 5 new roles replace its role going forward for mutation-capable CI, not by modifying it."
+    }
+  ]
+}

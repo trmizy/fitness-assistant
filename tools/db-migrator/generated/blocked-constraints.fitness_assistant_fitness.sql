@@ -1,0 +1,1 @@
+-- [fitness_assistant_fitness] blocked / manual statements — NOT safe to execute as-is

@@ -1,0 +1,36 @@
+| Case | Input | Expected | Legacy parser | New semantic layer |
+|---|---|---|---|---|
+| HO-001 | cao 1m68, nặng 62 ký | HEIGHT_CM=168 | 168 ✅ | ✅ |
+| HO-001 | cao 1m68, nặng 62 ký | WEIGHT_KG=62 | 62 ✅ | ✅ |
+| HO-002 | mình 1m85 nặng 90kg | HEIGHT_CM=185 | 185 ✅ | ✅ |
+| HO-002 | mình 1m85 nặng 90kg | WEIGHT_KG=90 | 90 ✅ | ✅ |
+| HO-003 | cao 1.68 m | HEIGHT_CM=168 | — ❌ | ✅ |
+| HO-004 | chiều cao 165cm cân nặng 58kg | HEIGHT_CM=165 | 165 ✅ | ✅ |
+| HO-004 | chiều cao 165cm cân nặng 58kg | WEIGHT_KG=58 | 58 ✅ | ✅ |
+| HO-005 | tôi 30 tuổi cao 1m82 | AGE=30 | 30 ✅ | ✅ |
+| HO-005 | tôi 30 tuổi cao 1m82 | HEIGHT_CM=182 | 182 ✅ | ✅ |
+| HO-006 | nặng 72kg cao 1m70 | WEIGHT_KG=72 | 72 ✅ | ✅ |
+| HO-006 | nặng 72kg cao 1m70 | HEIGHT_CM=170 | 170 ✅ | ✅ |
+| HO-007 | 1m60 45kg | HEIGHT_CM=160 | 160 ✅ | ✅ |
+| HO-008 | 175cm 70kg | HEIGHT_CM=175 | 175 ✅ | ✅ |
+| HO-009 | cân nặng 68 ký cao 172 | WEIGHT_KG=68 | 68 ✅ | ✅ |
+| HO-009 | cân nặng 68 ký cao 172 | HEIGHT_CM=172 | — ❌ | ✅ |
+| HO-010 | tầm 1m7 thôi | HEIGHT_CM=170 | — ❌ | ✅ |
+| HO-011 | mong muốn còn 65kg | TARGET_WEIGHT_KG=65 | — ❌ | ✅ |
+| HO-012 | tôi định giảm xuống 70 ký | TARGET_WEIGHT_KG=70 | — ❌ | ✅ |
+| HO-013 | muốn đạt 75kg | TARGET_WEIGHT_KG=75 | — ❌ | ✅ |
+| HO-014 | mục tiêu của em là 60kg | TARGET_WEIGHT_KG=60 | 60 ✅ | ✅ |
+| HO-015 | hiện tại 90kg, muốn xuống 80kg | WEIGHT_KG=90 | 90 ✅ | ✅ |
+| HO-015 | hiện tại 90kg, muốn xuống 80kg | TARGET_WEIGHT_KG=80 | 80 ✅ | ✅ |
+| HO-016 | nặng 85 muốn xuống còn 75 | WEIGHT_KG=85 | 85 ✅ | ✅ |
+| HO-016 | nặng 85 muốn xuống còn 75 | TARGET_WEIGHT_KG=75 | 75 ✅ | ✅ |
+| HO-017 | đặt mục tiêu 68kg | TARGET_WEIGHT_KG=68 | 68 ✅ | ✅ |
+| HO-042 | nam 27 tuổi 1m75 78kg muốn xuống 70kg | GENDER=MALE | — ❌ | ✅ |
+| HO-042 | nam 27 tuổi 1m75 78kg muốn xuống 70kg | AGE=27 | 27 ✅ | ✅ |
+| HO-042 | nam 27 tuổi 1m75 78kg muốn xuống 70kg | HEIGHT_CM=175 | 175 ✅ | ✅ |
+| HO-042 | nam 27 tuổi 1m75 78kg muốn xuống 70kg | WEIGHT_KG=78 | 78 ✅ | ✅ |
+| HO-042 | nam 27 tuổi 1m75 78kg muốn xuống 70kg | TARGET_WEIGHT_KG=70 | 70 ✅ | ✅ |
+| HO-043 | tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần | GENDER=FEMALE | — ❌ | ✅ |
+| HO-043 | tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần | HEIGHT_CM=158 | 158 ✅ | ✅ |
+| HO-043 | tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần | WEIGHT_KG=52 | — ❌ | ❌ |
+| HO-045 | năm nay tôi 25 tuổi | AGE=25 | 25 ✅ | ✅ |

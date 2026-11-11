@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useApp } from "../../context/AppContext";
+import { DayMacroQuickEstimate } from "../../components/nutrition/DayMacroEstimate";
 import {
   profileService,
   inbodyService,
@@ -398,6 +399,9 @@ export function ClientDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Quick "what did you eat today" macro estimate (same component as the Nutrition page; nothing saved until confirmed) */}
+      <DayMacroQuickEstimate variant="compact" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div className="glass-panel rounded-xl p-4">

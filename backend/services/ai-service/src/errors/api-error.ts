@@ -1,6 +1,8 @@
 export type ApiErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
+  | "IDEMPOTENCY_KEY_CONFLICT"
+  | "OPERATION_IN_PROGRESS"
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
   | "LLM_UNAVAILABLE"
@@ -36,6 +38,7 @@ export type ApiErrorCode =
   | "PERSONALIZED_SERVICE_CONTRACT_CHECK_UNAVAILABLE"
   | "RATE_LIMITED"
   | "RATE_LIMIT_UNAVAILABLE"
+  | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export class ApiError extends Error {

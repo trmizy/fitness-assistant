@@ -146,6 +146,11 @@ training/data/raw/
 # Vendored upstream clone used only for GGUF conversion tooling (own .git,
 # ~200MB) — see training/scripts/merge_lora_unsloth.py's deployment flow.
 training/llama.cpp/
+# Semantic-understanding QLoRA fine-tune (Qwen3 4B) — same policy as the
+# coach pipeline above: adapters/checkpoints/eval outputs are local
+# artifacts, never committed; the dataset/config/scripts themselves are.
+training/semantic-qwen3-4b/outputs/
+training/semantic-qwen3-4b/optuna/
 backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf
@@ -172,3 +177,25 @@ infra/compose/runtime/*
 secret/
 secrets/
 *-firebase-adminsdk-*.json
+
+# Ảnh InBody cá nhân (dữ liệu cơ thể thật của người dùng) — không commit
+test/inbody_duy/
+
+# dev-start auto-stop run logs (scripts/aws/dev-auto-stop.ps1)
+.dev/aws/auto-stop-*
+
+# ── Test data never goes to GitHub (2026-11-08) ─────────────────────────────────────────────────────────────
+# Run outputs, rater sheets, screenshots, archives and personal photos stay on the machine that produced them.
+# The pre-commit check (scripts/git/check-staged-test-artifacts.mjs, enabled via `git config core.hooksPath .githooks`)
+# also refuses these paths when they are already tracked.
+/results/
+test/**/results/
+test/**/human-review/
+test/**/screenshots/
+test/**/screenshots-*/
+test/*.jpg
+test/*.jpeg
+test/*.png
+test/InBody*/
+test/**/*.rar
+test/**/*.zip

@@ -5,8 +5,10 @@ import type {
   RetrievalResult,
   UserProfile,
 } from "./types";
+import { buildKnowledgeContext, renderKnowledgeContext } from "./knowledge-source";
 import type { PersonalizationContext } from "./profile_extractor";
 import { evaluateProteinIntake, evaluateCalorieSurplus } from "./nutrition_engine";
+import { nutritionAnswerMode, directNutritionPromptLines, singleMealPromptLines } from "./nutrition_answer_mode";
 
 function compactProfile(profile: UserProfile): string {
   const lines: string[] = [
@@ -326,9 +328,22 @@ function formatHistorySections(
   return sections;
 }
 
-function compactRetrieval(result: RetrievalResult): string {
+export function compactRetrieval(result: RetrievalResult): string {
   if (result.isEmpty || result.documents.length === 0) {
     return "- No relevant context retrieved. Use conservative recommendations.";
+  }
+
+  // Phase 4.6: documents produced by retrieval V2 carry a typed knowledgeSource — render them with explicit source classes.
+  // Documents without it (flag OFF) take the unchanged legacy path below.
+  if (result.documents.some((d) => (d.metadata as any)?.knowledgeSource)) {
+    const items = buildKnowledgeContext(result.documents as any);
+    const conflict = (result.documents.find((d) => (d.metadata as any)?.conflictNote)?.metadata as any)?.conflictNote ?? null;
+    let rendered = renderKnowledgeContext(items, conflict);
+    // Phase 4.7R: figures whose scope differs (per meal vs per day, body weight vs fat-free mass) are not a conflict — say so, neutrally
+    if (!conflict && result.documents.some((d) => (d.metadata as any)?.conflictScopeUncertain)) {
+      rendered += "\n\n[Lưu ý: các nguồn nêu số liệu theo phạm vi khác nhau (ví dụ theo bữa hay theo ngày, theo cân nặng hay khối lượng nạc) — không so sánh trực tiếp các con số với nhau.]";
+    }
+    if (rendered) return rendered;
   }
 
   // Separate evidence docs from exercise/knowledge docs
@@ -442,6 +457,8 @@ export const promptBuilder = {
       "- Không dịch tên bài tập sang tiếng Việt, kể cả khi nguồn RAG đang dùng tên tiếng Việt hoặc alias.",
       "- Nếu thấy tên bài tập tiếng Việt trong context, tự map sang tên tiếng Anh chuẩn trước khi trả lời.",
       "- KHÔNG lộ nhãn nội bộ: recomposition, confidence, omnivorous, moderate_volume, strength_retention.",
+      // Human review 2026-11-08 (rater comment on H12): beginners do not know what "P/C/F" means.
+      "- Khi nêu macro, viết rõ 'đạm (protein)', 'tinh bột (carb)', 'chất béo (fat)' — KHÔNG viết tắt P/C/F.",
       "- Khi mô tả chỉ số cơ/mỡ theo vùng cơ thể (tay, chân) từ dữ liệu InBody, LUÔN dùng đúng cặp 'trái'/'phải' (left/right) theo dữ liệu gốc. TUYỆT ĐỐI KHÔNG dùng 'trước'/'sau' — đó không phải là cách InBody phân vùng tay/chân.",
       '- SAI (không được viết): "Tay trước (biceps): 3.37kg (trái), 3.35kg (phải)" hay "Chân trước (quadriceps): ...". ĐÚNG: "Tay trái: 3.37kg, Tay phải: 3.35kg".',
       "",
@@ -698,8 +715,20 @@ export const promptBuilder = {
             ];
           }
 
+          // A direct nutrition question routed to meal_plan_request ("tôi cần bao nhiêu calo/protein?") gets a direct-
+          // answer format instead of the meal-plan scaffold (see nutrition_answer_mode.ts).
+          if (isMeal && nutritionAnswerMode(inputQuestion) === "direct") {
+            return directNutritionPromptLines(
+              recommendation,
+              context.profile.currentWeightKg ?? context.profile.inBody?.weightKg,
+              context.profile.nutritionGoal,
+              responseLanguage === "vi" ? "vi" : "en",
+            );
+          }
+
           if (isMeal) {
             return [
+              ...(nutritionAnswerMode(inputQuestion) === "meal" ? singleMealPromptLines(inputQuestion, context.profile.nutritionGoal) : []),
               "ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (chỉ về dinh dưỡng, viết bằng tiếng Việt):",
               "⛔ TUYỆT ĐỐI KHÔNG đưa lịch tập, bảng bài tập, kế hoạch workout, hay bất kỳ nội dung training nào vào câu trả lời này. Chỉ dinh dưỡng.",
               "",

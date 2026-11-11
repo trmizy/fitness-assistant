@@ -628,6 +628,9 @@ export const fitnessRoadmapService = {
         plannedStartAt: start.toISOString(),
         plannedEndAt: end.toISOString(),
         objective: phase.objectiveMaxCycles ? { maxCycles: phase.objectiveMaxCycles } : undefined,
+        // Display-only "why this phase" for the confirmation card (2026-11-09: users could not see what a roadmap contained before
+        // confirming). Not persisted — createRoadmapPhaseSchema is not strict, so accept simply drops it.
+        ...(typeof phase.reason === "string" && phase.reason.trim() ? { reason: phase.reason.trim() } : {}),
       };
     });
 

@@ -112,7 +112,15 @@ function explainMatch(sameMovementPattern: boolean, sameMuscle: boolean, sameMec
 async function candidatePool(target: SubstitutionCandidate, excludeIds: Set<string>) {
   const or: any[] = [{ bodyPart: target.bodyPart }];
   if (target.movementPattern) or.push({ movementPattern: target.movementPattern });
-  const where: any = { id: { notIn: Array.from(excludeIds) }, OR: or };
+  // Phase 3 R2 (H1 live-HTTP finding) — without this, a STAGING exercise
+  // could be ranked and returned as a "substitute", which the AI draft then
+  // carries all the way to confirm, where /workouts/from-ai-plan's own
+  // exercise-master mapping correctly rejects it ("not_found" — it only
+  // maps PUBLISHED rows) and the whole confirm permanently fails for that
+  // draft with a confusing error. Same invariant as everywhere else a
+  // generated/substituted exercise is offered to a user (gymini-ai-workout-
+  // grounding: never a non-PUBLISHED exercise into a real plan).
+  const where: any = { id: { notIn: Array.from(excludeIds) }, OR: or, status: "PUBLISHED" };
   return prisma.exercise.findMany({
     where,
     select: SELECT_FIELDS,

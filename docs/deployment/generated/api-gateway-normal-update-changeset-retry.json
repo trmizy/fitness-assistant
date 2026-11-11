@@ -1,0 +1,20 @@
+{
+  "note": "Phase 16A.2-RETRY: genuine CloudFormation NO-CHANGE result. create-change-set (ChangeSetType=UPDATE, name phase-16a2-normal-update-certification-retry) returned Status=FAILED, StatusReason='No updates are to be performed.' - AWS's own documented genuine-no-op semantic, confirmed distinct from AccessDenied/ValidationError/bad-parameter/missing-capability/resource-conflict/template-syntax-error. The change set therefore never reached CREATE_COMPLETE and has no Changes content to report - Changes is genuinely empty here, not omitted. Deleted immediately after this evidence was recorded (CERTIFICATION_CHANGE_SET_CLEANED_UP=YES). Parameters below are the real, authoritative values read from the live stack via describe-stacks immediately before this change-set was created.",
+  "ChangeSetName": "phase-16a2-normal-update-certification-retry",
+  "Status": "FAILED",
+  "StatusReason": "No updates are to be performed.",
+  "ExecutionStatus": "UNAVAILABLE",
+  "StackId": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/1ba058b0-c3bb-11f1-97a6-06ffe6971553",
+  "Capabilities": ["CAPABILITY_AUTO_EXPAND"],
+  "Changes": [],
+  "Parameters": [
+    { "ParameterKey": "ChatAlbDnsName", "ParameterValue": "dev-chat-alb-1490360997.ap-southeast-1.elb.amazonaws.com" },
+    { "ParameterKey": "AuthLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth" },
+    { "ParameterKey": "AiLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai" },
+    { "ParameterKey": "UserLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user" },
+    { "ParameterKey": "HttpApiId", "ParameterValue": "id1iz7upbl" },
+    { "ParameterKey": "PaymentLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment" },
+    { "ParameterKey": "GymLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym" },
+    { "ParameterKey": "FitnessLambdaArn", "ParameterValue": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness" }
+  ]
+}

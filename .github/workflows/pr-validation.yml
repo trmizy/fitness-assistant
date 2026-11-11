@@ -1,0 +1,237 @@
+# Phase 16B.2 - activated from ci/drafts/github-actions/pr-validation.yml.
+#
+# PR validation: NO AWS access of any kind (no OIDC, no secrets), NO mutation.
+# It complements - does not replace - the existing .github/workflows/docker-test.yml,
+# which already owns the Postgres-backed "Critical DB Integration" job and the
+# docker fast-test. Keep that workflow as the required check for DB-backed suites.
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [master, aws-deploy]
+    paths-ignore: ["docs/**", "**/*.md"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true          # safe: validation only, nothing is mutated
+
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda: ${{ steps.i.outputs.lambda }}
+      ecs: ${{ steps.i.outputs.ecs }}
+      infra: ${{ steps.i.outputs.infra }}
+      validate_all: ${{ steps.i.outputs.validate_all }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - id: i
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $r = ./scripts/ci/Get-ChangedServices.ps1 -Base $env:BASE_SHA -Head $env:HEAD_SHA | ConvertFrom-Json
+          "lambda=$(ConvertTo-Json -InputObject @($r.LambdaServices) -Compress)"  >> $env:GITHUB_OUTPUT
+          "ecs=$(ConvertTo-Json -InputObject @($r.EcsServices) -Compress)"        >> $env:GITHUB_OUTPUT
+          "infra=$(ConvertTo-Json -InputObject @($r.Infra) -Compress)"            >> $env:GITHUB_OUTPUT
+          "validate_all=$($r.ValidateAll.ToString().ToLower())"                   >> $env:GITHUB_OUTPUT
+          $r | ConvertTo-Json -Depth 4 >> $env:GITHUB_STEP_SUMMARY
+
+  # 1-4: install (lockfile frozen), lint/hygiene, typecheck+build.
+  # `pnpm run build` is `tsc` per package - it is the repo's typecheck.
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      # pnpm/action-setup MUST run before actions/setup-node's `cache: pnpm` -
+      # setup-node shells out to `pnpm` itself to resolve the cache key, so if
+      # pnpm isn't on PATH yet that step fails with "Unable to locate
+      # executable file: pnpm" (confirmed via a real failing run, 2026-10-16).
+      # `corepack enable` alone is not a reliable fix: it depends on exactly
+      # which Node the runner's default (pre-setup-node) PATH resolves to.
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 } # matches package.json's "packageManager"
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - name: Install (lockfile must be up to date)
+        run: pnpm install --frozen-lockfile
+      - name: Repo hygiene lint
+        run: pnpm run lint
+      - name: Prisma generate (required before tsc in 6 services)
+        run: pnpm run prisma:generate
+      - name: Typecheck + build
+        run: pnpm run build
+
+  # 5: unit tests, per impacted service. UNIT only: suites that need local
+  # Postgres are INTEGRATION_LOCAL and run in docker-test.yml's db-integration job.
+  # A missing-DB failure is classified, not reported as a code failure.
+  unit:
+    timeout-minutes: 20
+    needs: [impact, quality]
+    if: needs.impact.outputs.lambda != '[]' || needs.impact.outputs.validate_all == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, user, fitness, gym, payment, ai]
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run prisma:generate
+      # @gym-coach/shared's package.json points "main" at dist/index.js (a
+      # built artifact, gitignored) - every service imports it at runtime,
+      # so skipping this step crashes every single test with "Cannot find
+      # module '.../@gym-coach/shared/dist/index.js'". Confirmed via a real
+      # failing CI run (2026-10-16) and reproduced + fixed locally before
+      # writing this step - not guessed.
+      - name: Build @gym-coach/shared (every service imports its dist/ output at runtime)
+        run: pnpm --filter "@gym-coach/shared" build
+      - name: Run unit tests (skipped when service not impacted)
+        shell: pwsh
+        env:
+          NODE_ENV: test
+          LLM_PROVIDER: mock
+          FITNESS_DISABLE_REDIS: "true"
+          SERVICE: ${{ matrix.service }}
+          IMPACTED: ${{ needs.impact.outputs.lambda }}
+          VALIDATE_ALL: ${{ needs.impact.outputs.validate_all }}
+        run: |
+          if ($env:VALIDATE_ALL -ne 'true' -and (@(ConvertFrom-Json $env:IMPACTED) -notcontains $env:SERVICE)) { "not impacted: skip"; exit 0 }
+          # PowerShell does not expand globs for native commands (Node 20 treats them literally).
+          $testFiles = @(Get-ChildItem "backend/services/$($env:SERVICE)-service/src/__tests__/*.test.ts" | ForEach-Object FullName)
+          if ($env:SERVICE -eq 'payment') {
+            $testFiles = @($testFiles | Where-Object { (Split-Path $_ -Leaf) -in @('auth-header-spoofing.test.ts', 'contract-money.test.ts') })
+          }
+          if ($testFiles.Count -eq 0) { throw "No tests found for $env:SERVICE" }
+          pnpm --filter "@gym-coach/$($env:SERVICE)-service" exec tsx --test --test-force-exit @testFiles *> test.log
+          $code = $LASTEXITCODE
+          Get-Content test.log -Tail 60
+          if ($code -ne 0) {
+            Import-Module ./scripts/ci/CiHelpers.psm1 -Force
+            $f = Get-CiFailureClass -Stage unit -Message (Get-Content test.log -Raw)
+            "### $($env:SERVICE): $($f.Class) ($($f.Status))" >> $env:GITHUB_STEP_SUMMARY
+            if ($f.Blocking) { exit $code }       # NOT_RUN / BLOCKED classes do not fail the PR
+            # Without this, $LASTEXITCODE is still pnpm's stale non-zero value
+            # from above - pwsh.exe propagates that as the STEP's own exit
+            # code even though no `exit` statement in this branch ever runs,
+            # so a correctly-classified non-blocking failure still failed the
+            # job anyway. Confirmed via a real failing CI run + exact local
+            # reproduction (2026-10-16), not assumed.
+            exit 0
+          }
+
+  # 7-9: IaC + manifest validation, still offline.
+  iac:
+    needs: impact
+    if: needs.impact.outputs.infra != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      # NEW TOOLING (Phase 16A draft decision, adopted in 16B.2): cfn-lint,
+      # AWS's own official static CFN linter. Offline, no AWS credentials.
+      #
+      # cfn-lint's exit code is a bitmask (0=clean, 2=errors, 4=warnings,
+      # 8=parse/processing failure - combinable, e.g. 6=errors+warnings).
+      # Confirmed via a real run (2026-10-16): this repo's templates exit 4
+      # (warnings only, no errors) - a naive `run: cfn-lint ...` fails the
+      # whole job on warnings alone, which is too strict for a PR check.
+      # Block only on real errors or a crash (bits 2/8); surface warnings
+      # (bit 4) without failing.
+      - name: cfn-lint
+        run: |
+          pip install cfn-lint
+          set +e
+          cfn-lint infra/cloudformation/ci-cd-oidc.yaml infra/cloudformation/api-gateway-additions.yaml infra/cloudformation/api-gateway-baseline.yaml
+          code=$?
+          set -e
+          echo "cfn-lint exit code: $code"
+          if [ $((code & 2)) -ne 0 ] || [ $((code & 8)) -ne 0 ]; then
+            echo "::error::cfn-lint found blocking errors or a processing failure (exit $code)"
+            exit 1
+          fi
+          if [ $((code & 4)) -ne 0 ]; then
+            echo "::warning::cfn-lint found warnings only (exit $code) - not blocking, see the step output above"
+          fi
+      - name: Source-route manifest is valid JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('docs/deployment/generated/api-source-routes.json','utf8'))"
+      # GAP (documented in the report): a static manifest-vs-template route parity
+      # check does not exist yet. Test-ApiRouteParity.ps1 reads the LIVE API, so it
+      # is a post-deploy check, not a PR check.
+
+  # 6/10: Docker build validation for Chat (build only, never push).
+  chat-image:
+    needs: impact
+    if: needs.impact.outputs.ecs != '[]' || needs.impact.outputs.validate_all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      # KNOWN, ACCEPTED LIMITATION (2026-10-16) - do not re-attempt a swap-space
+      # fix without new evidence. This build crashes deep inside
+      # `pnpm install --frozen-lockfile` (Dockerfile step, chat-service) with a
+      # low-level Node/corepack file-read error, while the identical build
+      # succeeds 100% locally (587MB image, every layer clean). Working
+      # hypothesis: the runner's 7GB RAM is exhausted resolving this repo's
+      # full 17,914-line pnpm-lock.yaml inside the Docker build sandbox - but
+      # two independent real attempts to add swap space both failed before
+      # ever reaching the Docker build at all (fallocate: incompatible with
+      # this runner image's filesystem; dd: also failed, reason unconfirmed -
+      # full logs are sign-in-gated and unavailable to this session). Real
+      # fixes that were NOT attempted here (out of scope for CI activation):
+      # a GitHub-hosted larger runner (paid), or restructuring the Dockerfile
+      # around `pnpm deploy` to avoid resolving the full monorepo lockfile.
+      - run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:pr-validation .
+
+  # CI helper logic. This repo's own machine ships Windows PowerShell 5.1
+  # with Pester 3.4.0, and every *.Tests.ps1 file is written for that
+  # version's `Should Be`/`Should Not Match` operator syntax. GitHub's
+  # windows-latest hosted runner now ALSO pre-installs a newer Pester (5.x)
+  # alongside the built-in one, and its legacy-compatibility shim for the
+  # old `-Path ... -PassThru -Quiet` call style does not reliably run 3.x-style
+  # assertions - confirmed via a real failing CI run (2026-10-16): all 191
+  # tests reported "Passed=0 Failed=191" despite being correct, verified-passing
+  # tests locally. Explicitly pin 3.4.0 so the exact same Pester version runs
+  # in CI as on every contributor's own machine.
+  # Phase 16B.2: added TemplateSemanticGuard.Tests.ps1 (16A.3), IamPolicyGuard.Tests.ps1
+  # (16B.1A) and WorkflowSecurityGuard.Tests.ps1 (16B.2 itself) - all pure/offline, no
+  # AWS calls. TemplateSemanticGuard/IamPolicyGuard shell out to a Node helper that
+  # needs js-yaml from node_modules, so `pnpm install` must run before Invoke-Pester.
+  ci-helper-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # Pester 3.4.0 is not available from PSGallery (HTTP 404).
+      # Load the upstream release at an immutable commit instead.
+      - name: Fetch Pester 3.4.0
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          repository: pester/Pester
+          ref: d656dc7a5f737f9e217161f9d0c6fcfab4ab3f2e
+          path: .ci-tools/Pester
+      - shell: powershell
+        run: |
+          Remove-Module -Name Pester -ErrorAction SilentlyContinue
+          Import-Module ./.ci-tools/Pester/Pester.psd1 -Force
+          $r = Invoke-Pester scripts/ci/CiHelpers.Tests.ps1, scripts/ci/TemplateSemanticGuard.Tests.ps1, scripts/ci/IamPolicyGuard.Tests.ps1, scripts/ci/WorkflowSecurityGuard.Tests.ps1, scripts/aws/api-gateway/lib/ApiRouteParity.Tests.ps1, scripts/aws/lib/DevLifecycle.Tests.ps1 -PassThru -Quiet
+          "Passed=$($r.PassedCount) Failed=$($r.FailedCount)"
+          if ($r.FailedCount -gt 0) { exit 1 }

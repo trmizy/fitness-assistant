@@ -17,6 +17,10 @@ const reviewNutritionRecommendationSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+const reviewTrainingRecommendationSchema = z.object({
+  assessmentId: z.string().min(1).optional(),
+});
+
 const triggerDietBreakSchema = z.object({
   note: z.string().max(1000).optional(),
 });
@@ -53,7 +57,44 @@ function handleServiceError(res: Response, error: any, fallbackMessage: string):
   res.status(500).json({ error: fallbackMessage });
 }
 
+const aiProposalDecisionSchema = z.object({
+  decision: z.enum(["APPROVED", "DISMISSED"]),
+  proposalId: z.string().min(1).max(64),
+  proposalTypes: z.array(z.enum(["MESSAGE_DRAFT", "PLAN_REVIEW_SUGGESTION", "CHECKIN_QUESTION", "ASSIGN_PLAN_SUGGESTION"])).min(1).max(6),
+  basedOnCount: z.number().int().min(0).max(50),
+});
+
+const rosterAdherenceQuerySchema = z.object({ windowDays: z.coerce.number().int().refine((n) => [7, 14, 28].includes(n), "windowDays must be 7, 14 or 28").optional() });
+
 export const coachController = {
+  /** POST /coach/clients/:clientId/ai-proposals/decision — audit of a PT's approve/dismiss of an AI-drafted proposal (writes no client data). */
+  async recordAiProposalDecision(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = aiProposalDecisionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid body" });
+        return;
+      }
+      res.json({ success: true, data: await coachService.recordAiProposalDecision(req.user!.id, req.params.clientId, parsed.data) });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to record the proposal decision");
+    }
+  },
+
+  /** GET /coach/clients/adherence — roster-wide adherence for the verified PT's ACTIVE clients (the PT id is the token's, never a parameter). */
+  async getRosterAdherence(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = rosterAdherenceQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid query" });
+        return;
+      }
+      res.json({ success: true, data: await coachService.getRosterAdherence(req.user!.id, parsed.data.windowDays ?? 14) });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to load roster adherence");
+    }
+  },
+
   // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md
   async getClientSummary(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -73,6 +114,21 @@ export const coachController = {
     }
   },
 
+  async getClientWorkoutSchedules(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const { startDate, endDate } = req.query as Record<string, string | undefined>;
+      const result = await coachService.getClientWorkoutSchedules(req.user!.id, req.params.clientId, {
+        limit,
+        startDate,
+        endDate,
+      });
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch client workout schedules");
+    }
+  },
+
   async createAndAssignPlan(req: AuthRequest, res: Response): Promise<void> {
     try {
       const input = createManualProgramSchema.parse(req.body);
@@ -84,6 +140,44 @@ export const coachController = {
         return;
       }
       handleServiceError(res, error, "Failed to create and assign plan");
+    }
+  },
+
+  async approveTrainingRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { assessmentId } = reviewTrainingRecommendationSchema.parse(req.body ?? {});
+      const result = await coachService.approveTrainingRecommendation(
+        req.user!.id,
+        req.params.clientId,
+        req.params.cycleId,
+        assessmentId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid input" });
+        return;
+      }
+      handleServiceError(res, error, "Failed to approve training recommendation");
+    }
+  },
+
+  async rejectTrainingRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { assessmentId } = reviewTrainingRecommendationSchema.parse(req.body ?? {});
+      const result = await coachService.rejectTrainingRecommendation(
+        req.user!.id,
+        req.params.clientId,
+        req.params.cycleId,
+        assessmentId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid input" });
+        return;
+      }
+      handleServiceError(res, error, "Failed to reject training recommendation");
     }
   },
 

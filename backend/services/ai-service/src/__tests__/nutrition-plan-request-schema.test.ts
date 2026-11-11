@@ -20,11 +20,15 @@ describe("GenerateNutritionPlanRequestSchema", () => {
       proteinTargetG: "150",
       carbTargetG: "260",
       fatTargetG: "75",
+      cuisineCountry: "VN",
+      vietnameseRegion: "NAM",
     });
 
     assert.equal(result.dailyCaloriesTarget, 2600);
     assert.equal(result.bodyFatPct, 17);
     assert.equal(result.trainingDaysPerWeek, 5);
+    assert.equal(result.cuisineCountry, "VN");
+    assert.equal(result.vietnameseRegion, "NAM");
     assert.equal(typeof result.bodyFatPct, "number");
   });
 

@@ -1,0 +1,17 @@
+{
+  "$comment": "Post-deploy smoke matrix (Phase 16A DRAFT). Only entries with safeForCi=true AND mutation=false are ever selected by Get-SmokePlan. Verified 2026-10-09 via apigatewayv2 get-routes: the only public health route in the live API is GET /health. Other services define a /health handler in src/app.ts but it is not routed through API Gateway, so they are smoked by a synthetic-event lambda:Invoke of GET /health (no body, no auth, no DB write). ASSUMPTION to confirm in the Phase 16B trial: each lambda.ts wraps app.ts so /health is reachable.",
+  "schema": 1,
+  "entries": [
+    { "service": "auth",    "channel": "http",              "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true },
+    { "service": "user",    "channel": "lambda-invoke",     "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true, "function": "fitness-assistant-dev-user" },
+    { "service": "fitness", "channel": "lambda-invoke",     "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true, "function": "fitness-assistant-dev-fitness" },
+    { "service": "gym",     "channel": "lambda-invoke",     "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true, "function": "fitness-assistant-dev-gym" },
+    { "service": "payment", "channel": "lambda-invoke",     "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true, "function": "fitness-assistant-dev-payment" },
+    { "service": "ai",      "channel": "lambda-invoke",     "method": "GET",  "path": "/health", "authNeeded": false, "expectedStatus": 200, "mutation": false, "safeForCi": true, "function": "fitness-assistant-dev-ai", "note": "/health only; NO Bedrock/LLM invocation" },
+    { "service": "chat",    "channel": "ecs-target-health", "method": "READ", "path": "elbv2:DescribeTargetHealth", "authNeeded": false, "expectedStatus": "healthy", "mutation": false, "safeForCi": true, "onlyIfRunning": true },
+    { "service": "payment", "channel": "http", "method": "POST", "path": "/payments/*", "authNeeded": true,  "expectedStatus": null, "mutation": true, "safeForCi": false, "note": "NEVER selected: no real purchase/escrow/webhook as deployment smoke" },
+    { "service": "auth",    "channel": "http", "method": "POST", "path": "/auth/password-reset/request", "authNeeded": false, "expectedStatus": null, "mutation": true, "safeForCi": false, "note": "NEVER selected: sends SMTP email" },
+    { "service": "auth",    "channel": "http", "method": "POST", "path": "/auth/register", "authNeeded": false, "expectedStatus": null, "mutation": true, "safeForCi": false, "note": "NEVER selected: creates a business fixture + verification email" },
+    { "service": "ai",      "channel": "http", "method": "POST", "path": "/ai/chat", "authNeeded": true, "expectedStatus": null, "mutation": true, "safeForCi": false, "externalProvider": "BEDROCK_BLOCKED_POSSIBLE", "note": "separate opt-in workflow only; BEDROCK_ACCOUNT_AUTHORIZATION is a BLOCKED/NOT_RUN class, never a deploy failure" }
+  ]
+}

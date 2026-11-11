@@ -656,7 +656,13 @@ async function main() {
       const row = await prisma.agentWorkflowSession.findFirst({ where: { userId: userExpiry } });
       await prisma.agentWorkflowSession.update({ where: { id: row!.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
       const r = await fitnessAgent.tryTurn("Xác nhận cập nhật", { userId: userExpiry } as any, sessionExpiry.id);
-      expiryOk = r === null && expiry.calls.updateProfileFields.length === 0;
+      const expired = await prisma.agentWorkflowSession.findUnique({ where: { id: row!.id } });
+      // The confirmation boundary now answers expired proposals explicitly instead
+      // of falling through to the model. Expiry must still prevent every write.
+      expiryOk = expired?.status === "EXPIRED"
+        && !!r && /đã hết hạn/.test(r.answer) && r.blocks.length === 0
+        && expiry.calls.updateProfileFields.length === 0
+        && expiry.calls.generateRoadmapDraft.length === 0;
     } finally {
       await cleanup(userExpiry, sessionExpiry.id);
     }

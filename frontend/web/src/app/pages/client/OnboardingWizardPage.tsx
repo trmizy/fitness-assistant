@@ -7,6 +7,7 @@ import { profileService, equipmentService, type EquipmentCatalogItem } from "../
 import { EquipmentPicker, TrainingLocationPresetRow } from "../../components/EquipmentPicker";
 import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../utils/units";
 import { toast } from "sonner";
+import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
 /**
  * First-run onboarding wizard — collects everything the Decision Engine and
@@ -58,13 +59,8 @@ const splitOptions = ["Full Body", "Upper/Lower", "Push/Pull/Legs", "Bro Split",
 
 // Same 5-value enum/label mapping already used in ProfilePage.tsx — kept in sync manually
 // (both are small, static, unlikely to drift) since ProfilePage's version isn't exported.
-const activityLevels = [
-  { key: "SEDENTARY", label: "Ít vận động", desc: "Công việc/sinh hoạt ít di chuyển" },
-  { key: "LIGHTLY_ACTIVE", label: "Vận động nhẹ", desc: "Đi lại, đứng nhiều nhưng không gắng sức" },
-  { key: "MODERATELY_ACTIVE", label: "Vận động vừa", desc: "Đi bộ/công việc chân tay mức trung bình" },
-  { key: "VERY_ACTIVE", label: "Năng động", desc: "Công việc/sinh hoạt đòi hỏi thể lực đều đặn" },
-  { key: "EXTREMELY_ACTIVE", label: "Cực kỳ năng động", desc: "Lao động chân tay nặng hoặc vận động viên" },
-];
+// Descriptions now come from the shared constants/activityLevels.ts (job + training counted together).
+const activityLevels = ACTIVITY_LEVELS.map((a) => ({ key: a.key, label: a.label, desc: a.hint }));
 
 // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.5. Deliberately
 // NOT a verbatim copy of PAR-Q/PAR-Q+ (a copyrighted clinical tool whose proper use requires a

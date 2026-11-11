@@ -422,6 +422,25 @@ export const authController = {
     }
   },
 
+  /**
+   * GET /auth/internal/test-account-ids — ids of accounts on reserved, never-deliverable test email domains
+   * (@gym-coach/shared isTestAccountEmail). payment/gym/ai-service use it to leave test data out of admin statistics
+   * on the server; only auth knows emails. Same x-service-secret gate as the other /internal routes.
+   */
+  async testAccountIdsInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      if (!INTERNAL_SERVICE_SECRET) { res.status(503).json({ error: "Internal endpoint disabled" }); return; }
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) { res.status(401).json({ error: "Invalid service secret" }); return; }
+      const ids = await authService.listTestAccountIds();
+      res.json({ ids, count: ids.length });
+    } catch (error: any) {
+      logger.error(error, "Test account ids internal error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   async batchGetUsersInternal(req: Request, res: Response): Promise<void> {
     try {
       const serviceSecret = req.headers["x-service-secret"];

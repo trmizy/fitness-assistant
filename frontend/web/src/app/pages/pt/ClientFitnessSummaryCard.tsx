@@ -198,6 +198,7 @@ export function ClientFitnessSummaryCard({
 
   const cycleId = data?.activeCycle?.id;
   const assessmentId = data?.nutrition?.latestNutritionDecision?.assessmentId ?? undefined;
+  const trainingAssessmentId = data?.latestAssessment?.id;
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["pt-client-fitness-summary", clientUserId] });
 
@@ -243,6 +244,29 @@ export function ClientFitnessSummaryCard({
   });
 
   const canPtAct = !!cycleId && data?.nutrition?.latestNutritionDecision?.canPtAct;
+  const canPtActOnTraining =
+    !!cycleId &&
+    !!trainingAssessmentId &&
+    data?.latestAssessment?.userDecision === "PENDING" &&
+    data?.latestAssessment?.decision !== "INSUFFICIENT_DATA";
+
+  const approveTrainingMutation = useMutation({
+    mutationFn: () => ptCoachService.approveTrainingRecommendation(clientUserId, cycleId!, trainingAssessmentId),
+    onSuccess: () => {
+      toast.success("Đã duyệt đề xuất tập luyện cho học viên");
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error ?? "Không thể duyệt đề xuất tập luyện"),
+  });
+
+  const rejectTrainingMutation = useMutation({
+    mutationFn: () => ptCoachService.rejectTrainingRecommendation(clientUserId, cycleId!, trainingAssessmentId),
+    onSuccess: () => {
+      toast.success("Đã từ chối đề xuất tập luyện");
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error ?? "Không thể từ chối đề xuất tập luyện"),
+  });
 
   return (
     <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
@@ -336,6 +360,31 @@ export function ClientFitnessSummaryCard({
               </div>
               {data.latestAssessment.aiSummary && (
                 <p className="text-[11px] text-zinc-400 mt-1">{data.latestAssessment.aiSummary}</p>
+              )}
+              <p className="text-[10px] text-zinc-600 mt-1">
+                Trạng thái:{" "}
+                {NUTRITION_USER_DECISION_LABEL[data.latestAssessment.userDecision] ??
+                  data.latestAssessment.userDecision}
+              </p>
+              {canPtActOnTraining && (
+                <div className="flex gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    disabled={approveTrainingMutation.isPending || rejectTrainingMutation.isPending}
+                    onClick={() => approveTrainingMutation.mutate()}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold disabled:opacity-50"
+                  >
+                    <Check className="w-3 h-3" /> Duyệt
+                  </button>
+                  <button
+                    type="button"
+                    disabled={approveTrainingMutation.isPending || rejectTrainingMutation.isPending}
+                    onClick={() => rejectTrainingMutation.mutate()}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[11px] font-semibold disabled:opacity-50"
+                  >
+                    <X className="w-3 h-3" /> Từ chối
+                  </button>
+                </div>
               )}
             </div>
           )}

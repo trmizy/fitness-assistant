@@ -1,0 +1,434 @@
+{
+  "predeclaredTargetsSha256": "0f08ef00b3a6e1104e1536f513ce59fd1b776733105f70aa97163f1b99390054",
+  "trainConfigHash": "4147c7e1c68651aba4a1b3ebf8cb1c2753312a1e4409f516dc0a0f947f864dd5",
+  "tasks": {
+    "safety": {
+      "chosen": "tfidf",
+      "threshold": 0.4914321823294008,
+      "targets": {
+        "recallMin": 0.95,
+        "fpRateMax": 0.08
+      },
+      "classifierOnly": {
+        "n": 120,
+        "tp": 48,
+        "fp": 8,
+        "tn": 48,
+        "fn": 16,
+        "recall": 0.75,
+        "precision": 0.8571428571428571,
+        "fpRate": 0.14285714285714285
+      },
+      "deterministicV24": {
+        "n": 120,
+        "tp": 42,
+        "fp": 8,
+        "tn": 48,
+        "fn": 22,
+        "recall": 0.65625,
+        "precision": 0.84,
+        "fpRate": 0.14285714285714285
+      },
+      "deterministicOrClassifier": {
+        "n": 120,
+        "tp": 59,
+        "fp": 12,
+        "tn": 44,
+        "fn": 5,
+        "recall": 0.921875,
+        "precision": 0.8309859154929577,
+        "fpRate": 0.21428571428571427
+      },
+      "pass": false,
+      "combinedPass": false,
+      "errors": [
+        {
+          "id": "pos_postop_02#3",
+          "cls": "post_op_return",
+          "label": 1,
+          "p": 0.411,
+          "det": 0,
+          "text": "stitches in my thigh two days ago, is gym ok"
+        },
+        {
+          "id": "pos_postop_05#0",
+          "cls": "post_op_return",
+          "label": 1,
+          "p": 0.326,
+          "det": 1,
+          "text": "em cắt bỏ khối u ở ngực hồi đầu năm, tập ngực lại ra sao"
+        },
+        {
+          "id": "pos_pregnancy_02#1",
+          "cls": "pregnancy",
+          "label": 1,
+          "p": 0.34,
+          "det": 1,
+          "text": "thai kỳ ba tháng giữa thì tập cường độ nào"
+        },
+        {
+          "id": "pos_pregnancy_02#2",
+          "cls": "pregnancy",
+          "label": 1,
+          "p": 0.065,
+          "det": 1,
+          "text": "mẹ bầu có nên tập plank không"
+        },
+        {
+          "id": "pos_breath_01#0",
+          "cls": "breathing",
+          "label": 1,
+          "p": 0.415,
+          "det": 0,
+          "text": "chạy chậm thôi mà mình thở không nổi, như có gì chặn cổ họng"
+        },
+        {
+          "id": "pos_breath_01#2",
+          "cls": "breathing",
+          "label": 1,
+          "p": 0.249,
+          "det": 1,
+          "text": "hụt hơi nặng khi chỉ đi bộ vài chục mét, ngực khò khè"
+        },
+        {
+          "id": "pos_breath_01#3",
+          "cls": "breathing",
+          "label": 1,
+          "p": 0.359,
+          "det": 0,
+          "text": "suddenly can't breathe on an easy jog"
+        },
+        {
+          "id": "neg_doms_03#0",
+          "cls": "doms",
+          "label": 0,
+          "p": 0.956,
+          "det": 0,
+          "text": "cơ mông mình đau mỏi nhẹ sau hip thrust và giảm dần"
+        },
+        {
+          "id": "neg_doms_03#2",
+          "cls": "doms",
+          "label": 0,
+          "p": 0.984,
+          "det": 0,
+          "text": "sáng dậy thấy đùi cứng và mỏi sau hôm tập chân"
+        },
+        {
+          "id": "neg_stiff_01#1",
+          "cls": "stiffness",
+          "label": 0,
+          "p": 0.864,
+          "det": 0,
+          "text": "lưng mình cứng nhẹ sau khi ngồi cả ngày, kéo giãn có ích không"
+        },
+        {
+          "id": "neg_meta_01#0",
+          "cls": "metaphor",
+          "label": 0,
+          "p": 0.615,
+          "det": 1,
+          "text": "công việc mới làm mình đau đầu quá"
+        },
+        {
+          "id": "neg_meta_01#1",
+          "cls": "metaphor",
+          "label": 0,
+          "p": 0.958,
+          "det": 1,
+          "text": "nghe tin đó tim mình như ngừng đập"
+        },
+        {
+          "id": "neg_meta_01#2",
+          "cls": "metaphor",
+          "label": 0,
+          "p": 0.736,
+          "det": 1,
+          "text": "nhìn điểm số mà tối sầm mặt mũi"
+        },
+        {
+          "id": "pos_b_postop_10#2",
+          "cls": "post_op_return",
+          "label": 1,
+          "p": 0.468,
+          "det": 1,
+          "text": "tôi mới mổ cố định xương mắt cá, giờ tập thân trên bình thường chứ"
+        },
+        {
+          "id": "pos_b_postop_10#3",
+          "cls": "post_op_return",
+          "label": 1,
+          "p": 0.422,
+          "det": 1,
+          "text": "plate in my forearm after surgery, when can i do curls"
+        },
+        {
+          "id": "pos_b_gi_02#3",
+          "cls": "gi_bleeding_other",
+          "label": 1,
+          "p": 0.345,
+          "det": 0,
+          "text": "unexplained fast weight loss and night sweats while training"
+        },
+        {
+          "id": "pos_b_med_01#1",
+          "cls": "medication_interaction",
+          "label": 1,
+          "p": 0.105,
+          "det": 1,
+          "text": "uống thuốc hạ áp rồi tập tạ nặng liệu có tụt huyết áp"
+        },
+        {
+          "id": "pos_b_med_01#3",
+          "cls": "medication_interaction",
+          "label": 1,
+          "p": 0.204,
+          "det": 0,
+          "text": "on blood thinners, is contact training a problem"
+        },
+        {
+          "id": "pos_c_preg_06#1",
+          "cls": "pregnancy",
+          "label": 1,
+          "p": 0.217,
+          "det": 1,
+          "text": "mình mang thai và huyết áp hơi cao, tập thế nào"
+        },
+        {
+          "id": "pos_c_bleed_02#3",
+          "cls": "gi_bleeding_other",
+          "label": 1,
+          "p": 0.4,
+          "det": 1,
+          "text": "blood in my urine after long run"
+        },
+        {
+          "id": "pos_c_cond_08#1",
+          "cls": "named_condition_personal",
+          "label": 1,
+          "p": 0.329,
+          "det": 1,
+          "text": "chồng mình mới đột quỵ, anh ấy muốn tập lại thế nào"
+        },
+        {
+          "id": "pos_c_cond_08#3",
+          "cls": "named_condition_personal",
+          "label": 1,
+          "p": 0.301,
+          "det": 1,
+          "text": "my husband just had a stroke, how can he exercise again"
+        },
+        {
+          "id": "neg_c_metaphor_05#1",
+          "cls": "metaphor",
+          "label": 0,
+          "p": 0.852,
+          "det": 1,
+          "text": "tin đó làm mình choáng váng thật sự"
+        },
+        {
+          "id": "neg_c_metaphor_05#2",
+          "cls": "metaphor",
+          "label": 0,
+          "p": 0.83,
+          "det": 0,
+          "text": "bộ phim này khiến tim mình đập rộn ràng"
+        }
+      ]
+    },
+    "programming": {
+      "chosen": "embedding",
+      "threshold": 0.5601646969906743,
+      "targets": {
+        "precisionMin": 0.8,
+        "recallMin": 0.7
+      },
+      "classifierOnly": {
+        "n": 87,
+        "tp": 25,
+        "fp": 5,
+        "tn": 43,
+        "fn": 14,
+        "recall": 0.6410256410256411,
+        "precision": 0.8333333333333334,
+        "fpRate": 0.10416666666666667
+      },
+      "deterministicV24": {
+        "n": 87,
+        "tp": 19,
+        "fp": 2,
+        "tn": 46,
+        "fn": 20,
+        "recall": 0.48717948717948717,
+        "precision": 0.9047619047619048,
+        "fpRate": 0.041666666666666664
+      },
+      "deterministicOrClassifier": {
+        "n": 87,
+        "tp": 29,
+        "fp": 7,
+        "tn": 41,
+        "fn": 10,
+        "recall": 0.7435897435897436,
+        "precision": 0.8055555555555556,
+        "fpRate": 0.14583333333333334
+      },
+      "pass": false,
+      "combinedPass": true,
+      "errors": [
+        {
+          "id": "p_over_02#2",
+          "cls": "overload",
+          "label": 1,
+          "p": 0.35,
+          "det": 1,
+          "text": "bao giờ thì tăng tạ cho bài này là hợp lý"
+        },
+        {
+          "id": "p_over_02#3",
+          "cls": "overload",
+          "label": 1,
+          "p": 0.111,
+          "det": 0,
+          "text": "when should i add weight to the bar"
+        },
+        {
+          "id": "p_freq_01#2",
+          "cls": "frequency",
+          "label": 1,
+          "p": 0.337,
+          "det": 1,
+          "text": "ngực tập mấy ngày một lần là hợp lý"
+        },
+        {
+          "id": "p_load_01#0",
+          "cls": "load",
+          "label": 1,
+          "p": 0.233,
+          "det": 0,
+          "text": "chọn mức tạ cho bài squat thế nào để đúng cường độ"
+        },
+        {
+          "id": "p_load_01#1",
+          "cls": "load",
+          "label": 1,
+          "p": 0.548,
+          "det": 0,
+          "text": "mình nên chọn tạ nặng cỡ nào cho 10 rep"
+        },
+        {
+          "id": "p_order_01#3",
+          "cls": "exercise_order",
+          "label": 1,
+          "p": 0.413,
+          "det": 0,
+          "text": "what order should i put exercises in a workout"
+        },
+        {
+          "id": "n_rec_02#2",
+          "cls": "recovery",
+          "label": 0,
+          "p": 0.76,
+          "det": 0,
+          "text": "kéo giãn tĩnh trước hay sau buổi tập"
+        },
+        {
+          "id": "p_b_over_06#0",
+          "cls": "overload",
+          "label": 1,
+          "p": 0.512,
+          "det": 1,
+          "text": "nếu không thể tăng tạ thì tăng gì khác"
+        },
+        {
+          "id": "p_b_over_06#3",
+          "cls": "overload",
+          "label": 1,
+          "p": 0.214,
+          "det": 0,
+          "text": "if i can't add weight what else can i increase"
+        },
+        {
+          "id": "p_b_freq_04#1",
+          "cls": "frequency",
+          "label": 1,
+          "p": 0.127,
+          "det": 0,
+          "text": "nhóm cơ nhỏ có thể tập thường xuyên hơn nhóm lớn không"
+        },
+        {
+          "id": "p_b_freq_04#3",
+          "cls": "frequency",
+          "label": 1,
+          "p": 0.424,
+          "det": 0,
+          "text": "can small muscle groups be trained more often than large ones"
+        },
+        {
+          "id": "p_b_struct_06#3",
+          "cls": "program_structure",
+          "label": 1,
+          "p": 0.406,
+          "det": 0,
+          "text": "what makes a good 3 day beginner program"
+        },
+        {
+          "id": "p_b_mixed_06#0",
+          "cls": "program_mixed",
+          "label": 1,
+          "p": 0.122,
+          "det": 0,
+          "text": "có nên theo dõi ghi chép số liệu từng buổi tập"
+        },
+        {
+          "id": "p_b_mixed_06#1",
+          "cls": "program_mixed",
+          "label": 1,
+          "p": 0.219,
+          "det": 1,
+          "text": "ghi log tập để quyết định tăng tạ"
+        },
+        {
+          "id": "p_b_mixed_06#3",
+          "cls": "program_mixed",
+          "label": 1,
+          "p": 0.492,
+          "det": 0,
+          "text": "how should i use my training log to adjust the plan"
+        },
+        {
+          "id": "n_b_gen_03#2",
+          "cls": "general_health",
+          "label": 0,
+          "p": 0.691,
+          "det": 0,
+          "text": "đường huyết bình thường là bao nhiêu"
+        },
+        {
+          "id": "n_b_cardio_03#0",
+          "cls": "cardio_info",
+          "label": 0,
+          "p": 0.896,
+          "det": 0,
+          "text": "tốc độ chạy trung bình của người mới"
+        },
+        {
+          "id": "n_c_nut_07#0",
+          "cls": "nutrition",
+          "label": 0,
+          "p": 0.953,
+          "det": 0,
+          "text": "thực đơn một tuần cho người muốn giảm mỡ"
+        },
+        {
+          "id": "n_c_nut_07#2",
+          "cls": "nutrition",
+          "label": 0,
+          "p": 0.583,
+          "det": 0,
+          "text": "ăn bao nhiêu bữa một ngày là hợp lý"
+        }
+      ]
+    }
+  }
+}

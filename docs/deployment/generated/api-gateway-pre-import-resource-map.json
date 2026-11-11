@@ -1,0 +1,2369 @@
+{
+  "generatedAt": "2026-10-09T08:20:01.960Z",
+  "note": "Phase 15B-B1: pre-import physical-ID snapshot, now cross-linked with the REAL logicalResourceId each physical resource maps to in infra/cloudformation/api-gateway-baseline.yaml (post Fn::ForEach &{Identifier} fix). See api-gateway-import-resources.json for the full 254-resource specification including the 117 Lambda::Permission entries (fetched via real aws lambda get-policy on all 6 functions) not duplicated in full here.",
+  "api": {
+    "logicalId": "N/A (referenced by parameter only, never a managed resource)",
+    "resourceType": "AWS::ApiGatewayV2::Api",
+    "physicalId": "id1iz7upbl",
+    "currentOwner": "NONE (no IaC)",
+    "importSupported": true,
+    "importRequired": false,
+    "referenceOnly": true,
+    "recreationRequired": false,
+    "logicalResourceId": "REFERENCE_ONLY (HttpApiId parameter - never a template-owned resource)"
+  },
+  "stage": {
+    "logicalId": "N/A (not modeled)",
+    "resourceType": "AWS::ApiGatewayV2::Stage",
+    "physicalId": "$default",
+    "currentOwner": "NONE (no IaC)",
+    "importSupported": true,
+    "importRequired": false,
+    "referenceOnly": true,
+    "recreationRequired": false,
+    "logicalResourceId": "REFERENCE_ONLY (no Stage resource in this template - $default/AutoDeploy left fully unmanaged this phase)"
+  },
+  "integrations": [
+    {
+      "integrationId": "tqe5r7h",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-user",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "tqe5r7h"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "UserIntegration"
+    },
+    {
+      "integrationId": "biirr1c",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-ai",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "biirr1c"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AiIntegration"
+    },
+    {
+      "integrationId": "045z1ul",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-gym",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "045z1ul"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "GymIntegration"
+    },
+    {
+      "integrationId": "w9fjro0",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-payment",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "w9fjro0"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "PaymentIntegration"
+    },
+    {
+      "integrationId": "1vnd68s",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1vnd68s"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthLoginIntegration"
+    },
+    {
+      "integrationId": "vq6v245",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "vq6v245"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthLogoutIntegration"
+    },
+    {
+      "integrationId": "mg2016a",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "mg2016a"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthMeIntegration"
+    },
+    {
+      "integrationId": "1m2k0ec",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1m2k0ec"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthRefreshIntegration"
+    },
+    {
+      "integrationId": "6l59zzc",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "6l59zzc"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthRegisterIntegration"
+    },
+    {
+      "integrationId": "4y4qfnr",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "4y4qfnr"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthRegisterVerifyIntegration"
+    },
+    {
+      "integrationId": "9ibcmaf",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9ibcmaf"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthUsersListIntegration"
+    },
+    {
+      "integrationId": "ai0sybi",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ai0sybi"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthUsersDisableIntegration"
+    },
+    {
+      "integrationId": "9291bod",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9291bod"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthUsersEnableIntegration"
+    },
+    {
+      "integrationId": "5z0d625",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "5z0d625"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "AuthUsersRoleIntegration"
+    },
+    {
+      "integrationId": "0dz9hk6",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "0dz9hk6"
+      },
+      "verifiedViaRealChangeSet": true,
+      "logicalResourceId": "AuthVerifyIntegration"
+    },
+    {
+      "integrationId": "ebe69nj",
+      "integrationType": "HTTP_PROXY",
+      "target": "http://dev-chat-alb-1795494241.ap-southeast-1.elb.amazonaws.com/chat/{proxy}",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ebe69nj"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "ChatIntegration"
+    },
+    {
+      "integrationId": "wv4c1bs",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-fitness",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "wv4c1bs"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "FitnessIntegration"
+    },
+    {
+      "integrationId": "uvqqpy4",
+      "integrationType": "AWS_PROXY",
+      "target": "fitness-assistant-dev-auth",
+      "resourceType": "AWS::ApiGatewayV2::Integration",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "uvqqpy4"
+      },
+      "verifiedViaRealChangeSet": "same-type, verified via 0dz9hk6 probe",
+      "logicalResourceId": "HealthIntegration"
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "mdpctvi",
+      "method": "ANY",
+      "path": "/admin",
+      "routeKey": "ANY /admin",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "mdpctvi"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UseradminBareRoute"
+    },
+    {
+      "routeId": "wfkvdlk",
+      "method": "ANY",
+      "path": "/admin/{proxy+}",
+      "routeKey": "ANY /admin/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wfkvdlk"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UseradminProxyRoute"
+    },
+    {
+      "routeId": "65xzyns",
+      "method": "ANY",
+      "path": "/admin/ai",
+      "routeKey": "ANY /admin/ai",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "65xzyns"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiadminaiBareRoute"
+    },
+    {
+      "routeId": "7zaeabq",
+      "method": "ANY",
+      "path": "/admin/ai/{proxy+}",
+      "routeKey": "ANY /admin/ai/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7zaeabq"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiadminaiProxyRoute"
+    },
+    {
+      "routeId": "esz25ge",
+      "method": "ANY",
+      "path": "/admin/branch-documents",
+      "routeKey": "ANY /admin/branch-documents",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "esz25ge"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminbranchdocumentsBareRoute"
+    },
+    {
+      "routeId": "xf9x9ua",
+      "method": "ANY",
+      "path": "/admin/branch-documents/{proxy+}",
+      "routeKey": "ANY /admin/branch-documents/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xf9x9ua"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminbranchdocumentsProxyRoute"
+    },
+    {
+      "routeId": "sdsqnz9",
+      "method": "ANY",
+      "path": "/admin/brands",
+      "routeKey": "ANY /admin/brands",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "sdsqnz9"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminbrandsBareRoute"
+    },
+    {
+      "routeId": "3xm8fwq",
+      "method": "ANY",
+      "path": "/admin/brands/{proxy+}",
+      "routeKey": "ANY /admin/brands/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3xm8fwq"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminbrandsProxyRoute"
+    },
+    {
+      "routeId": "lszd6nm",
+      "method": "ANY",
+      "path": "/admin/commission-rate",
+      "routeKey": "ANY /admin/commission-rate",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lszd6nm"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincommissionrateBareRoute"
+    },
+    {
+      "routeId": "i6e87zb",
+      "method": "ANY",
+      "path": "/admin/commission-rate/{proxy+}",
+      "routeKey": "ANY /admin/commission-rate/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "i6e87zb"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincommissionrateProxyRoute"
+    },
+    {
+      "routeId": "3ltqisf",
+      "method": "ANY",
+      "path": "/admin/complaint-photos",
+      "routeKey": "ANY /admin/complaint-photos",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3ltqisf"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincomplaintphotosBareRoute"
+    },
+    {
+      "routeId": "svsel22",
+      "method": "ANY",
+      "path": "/admin/complaint-photos/{proxy+}",
+      "routeKey": "ANY /admin/complaint-photos/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "svsel22"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincomplaintphotosProxyRoute"
+    },
+    {
+      "routeId": "j1zikb4",
+      "method": "ANY",
+      "path": "/admin/complaints",
+      "routeKey": "ANY /admin/complaints",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "j1zikb4"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincomplaintsBareRoute"
+    },
+    {
+      "routeId": "0fwxutq",
+      "method": "ANY",
+      "path": "/admin/complaints/{proxy+}",
+      "routeKey": "ANY /admin/complaints/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "0fwxutq"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmincomplaintsProxyRoute"
+    },
+    {
+      "routeId": "ol4bbq5",
+      "method": "ANY",
+      "path": "/admin/gym-memberships",
+      "routeKey": "ANY /admin/gym-memberships",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ol4bbq5"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmingymmembershipsBareRoute"
+    },
+    {
+      "routeId": "lf1r6ca",
+      "method": "ANY",
+      "path": "/admin/gym-memberships/{proxy+}",
+      "routeKey": "ANY /admin/gym-memberships/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lf1r6ca"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmingymmembershipsProxyRoute"
+    },
+    {
+      "routeId": "w0hu166",
+      "method": "ANY",
+      "path": "/admin/gyms",
+      "routeKey": "ANY /admin/gyms",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w0hu166"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmingymsBareRoute"
+    },
+    {
+      "routeId": "58us9ti",
+      "method": "ANY",
+      "path": "/admin/gyms/{proxy+}",
+      "routeKey": "ANY /admin/gyms/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "58us9ti"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadmingymsProxyRoute"
+    },
+    {
+      "routeId": "j6jnr1m",
+      "method": "ANY",
+      "path": "/admin/partner-accounts",
+      "routeKey": "ANY /admin/partner-accounts",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "j6jnr1m"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminpartneraccountsBareRoute"
+    },
+    {
+      "routeId": "famsfr2",
+      "method": "ANY",
+      "path": "/admin/partner-accounts/{proxy+}",
+      "routeKey": "ANY /admin/partner-accounts/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "famsfr2"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminpartneraccountsProxyRoute"
+    },
+    {
+      "routeId": "6nc986n",
+      "method": "ANY",
+      "path": "/admin/partners",
+      "routeKey": "ANY /admin/partners",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6nc986n"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminpartnersBareRoute"
+    },
+    {
+      "routeId": "w730nap",
+      "method": "ANY",
+      "path": "/admin/partners/{proxy+}",
+      "routeKey": "ANY /admin/partners/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w730nap"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymadminpartnersProxyRoute"
+    },
+    {
+      "routeId": "6xzii05",
+      "method": "ANY",
+      "path": "/admin/payments",
+      "routeKey": "ANY /admin/payments",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6xzii05"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentadminpaymentsBareRoute"
+    },
+    {
+      "routeId": "xem7w3d",
+      "method": "ANY",
+      "path": "/admin/payments/{proxy+}",
+      "routeKey": "ANY /admin/payments/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xem7w3d"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentadminpaymentsProxyRoute"
+    },
+    {
+      "routeId": "wiymnt4",
+      "method": "ANY",
+      "path": "/ai",
+      "routeKey": "ANY /ai",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wiymnt4"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiaiBareRoute"
+    },
+    {
+      "routeId": "bbga7ea",
+      "method": "ANY",
+      "path": "/ai/{proxy+}",
+      "routeKey": "ANY /ai/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bbga7ea"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiaiProxyRoute"
+    },
+    {
+      "routeId": "pdyttwa",
+      "method": "POST",
+      "path": "/auth/login",
+      "routeKey": "POST /auth/login",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "pdyttwa"
+      },
+      "integrationId": "1vnd68s",
+      "logicalResourceId": "AuthLoginRoute"
+    },
+    {
+      "routeId": "qzs0h76",
+      "method": "POST",
+      "path": "/auth/logout",
+      "routeKey": "POST /auth/logout",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "qzs0h76"
+      },
+      "integrationId": "vq6v245",
+      "logicalResourceId": "AuthLogoutRoute"
+    },
+    {
+      "routeId": "udx6zk8",
+      "method": "PATCH",
+      "path": "/auth/me",
+      "routeKey": "PATCH /auth/me",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "udx6zk8"
+      },
+      "integrationId": "mg2016a",
+      "logicalResourceId": "AuthMeRoute"
+    },
+    {
+      "routeId": "kglwdf4",
+      "method": "PATCH",
+      "path": "/auth/me/password",
+      "routeKey": "PATCH /auth/me/password",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "kglwdf4"
+      },
+      "integrationId": "mg2016a",
+      "logicalResourceId": "AuthMePasswordRoute"
+    },
+    {
+      "routeId": "b4qz92c",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "routeKey": "POST /auth/refresh",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b4qz92c"
+      },
+      "integrationId": "1m2k0ec",
+      "logicalResourceId": "AuthRefreshRoute"
+    },
+    {
+      "routeId": "v1ulrmi",
+      "method": "POST",
+      "path": "/auth/register",
+      "routeKey": "POST /auth/register",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "v1ulrmi"
+      },
+      "integrationId": "6l59zzc",
+      "logicalResourceId": "AuthRegisterRoute"
+    },
+    {
+      "routeId": "s6u0xlk",
+      "method": "POST",
+      "path": "/auth/register/verify",
+      "routeKey": "POST /auth/register/verify",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s6u0xlk"
+      },
+      "integrationId": "4y4qfnr",
+      "logicalResourceId": "AuthRegisterVerifyRoute"
+    },
+    {
+      "routeId": "t5rs0fv",
+      "method": "GET",
+      "path": "/auth/users",
+      "routeKey": "GET /auth/users",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "t5rs0fv"
+      },
+      "integrationId": "9ibcmaf",
+      "logicalResourceId": "AuthUsersListRoute"
+    },
+    {
+      "routeId": "b13kqj2",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/disable",
+      "routeKey": "PATCH /auth/users/{userId}/disable",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b13kqj2"
+      },
+      "integrationId": "ai0sybi",
+      "logicalResourceId": "AuthUsersDisableRoute"
+    },
+    {
+      "routeId": "inqm7z3",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/enable",
+      "routeKey": "PATCH /auth/users/{userId}/enable",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inqm7z3"
+      },
+      "integrationId": "9291bod",
+      "logicalResourceId": "AuthUsersEnableRoute"
+    },
+    {
+      "routeId": "od61vtj",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/role",
+      "routeKey": "PATCH /auth/users/{userId}/role",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "od61vtj"
+      },
+      "integrationId": "5z0d625",
+      "logicalResourceId": "AuthUsersRoleRoute"
+    },
+    {
+      "routeId": "bql2ffm",
+      "method": "POST",
+      "path": "/auth/verify",
+      "routeKey": "POST /auth/verify",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bql2ffm"
+      },
+      "integrationId": "0dz9hk6",
+      "logicalResourceId": "AuthVerifyRoute"
+    },
+    {
+      "routeId": "ozcusqo",
+      "method": "ANY",
+      "path": "/availability",
+      "routeKey": "ANY /availability",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ozcusqo"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UseravailabilityBareRoute"
+    },
+    {
+      "routeId": "w2a80m6",
+      "method": "ANY",
+      "path": "/availability/{proxy+}",
+      "routeKey": "ANY /availability/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w2a80m6"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UseravailabilityProxyRoute"
+    },
+    {
+      "routeId": "15ai11p",
+      "method": "ANY",
+      "path": "/chat/{proxy+}",
+      "routeKey": "ANY /chat/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "15ai11p"
+      },
+      "integrationId": "ebe69nj",
+      "logicalResourceId": "ChatProxyRoute"
+    },
+    {
+      "routeId": "4315hcn",
+      "method": "ANY",
+      "path": "/coach",
+      "routeKey": "ANY /coach",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "4315hcn"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesscoachBareRoute"
+    },
+    {
+      "routeId": "f40xejo",
+      "method": "ANY",
+      "path": "/coach/{proxy+}",
+      "routeKey": "ANY /coach/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "f40xejo"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesscoachProxyRoute"
+    },
+    {
+      "routeId": "wnat8l3",
+      "method": "ANY",
+      "path": "/collaborations",
+      "routeKey": "ANY /collaborations",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wnat8l3"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymcollaborationsBareRoute"
+    },
+    {
+      "routeId": "tj6cmlc",
+      "method": "ANY",
+      "path": "/collaborations/{proxy+}",
+      "routeKey": "ANY /collaborations/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "tj6cmlc"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymcollaborationsProxyRoute"
+    },
+    {
+      "routeId": "ls3te8j",
+      "method": "ANY",
+      "path": "/contracts",
+      "routeKey": "ANY /contracts",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ls3te8j"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsercontractsBareRoute"
+    },
+    {
+      "routeId": "yauy7z2",
+      "method": "ANY",
+      "path": "/contracts/{proxy+}",
+      "routeKey": "ANY /contracts/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "yauy7z2"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsercontractsProxyRoute"
+    },
+    {
+      "routeId": "vq11nk5",
+      "method": "ANY",
+      "path": "/equipment",
+      "routeKey": "ANY /equipment",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "vq11nk5"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessequipmentBareRoute"
+    },
+    {
+      "routeId": "inys2ec",
+      "method": "ANY",
+      "path": "/equipment/{proxy+}",
+      "routeKey": "ANY /equipment/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inys2ec"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessequipmentProxyRoute"
+    },
+    {
+      "routeId": "8ilg5k7",
+      "method": "ANY",
+      "path": "/exercises",
+      "routeKey": "ANY /exercises",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8ilg5k7"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessexercisesBareRoute"
+    },
+    {
+      "routeId": "5ofr8a5",
+      "method": "ANY",
+      "path": "/exercises/{proxy+}",
+      "routeKey": "ANY /exercises/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "5ofr8a5"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessexercisesProxyRoute"
+    },
+    {
+      "routeId": "bgcs0g8",
+      "method": "ANY",
+      "path": "/exports",
+      "routeKey": "ANY /exports",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bgcs0g8"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessexportsBareRoute"
+    },
+    {
+      "routeId": "2jtcryu",
+      "method": "ANY",
+      "path": "/exports/{proxy+}",
+      "routeKey": "ANY /exports/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "2jtcryu"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessexportsProxyRoute"
+    },
+    {
+      "routeId": "1qn9tii",
+      "method": "ANY",
+      "path": "/fitness-roadmaps",
+      "routeKey": "ANY /fitness-roadmaps",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1qn9tii"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessfitnessroadmapsBareRoute"
+    },
+    {
+      "routeId": "no4a9ym",
+      "method": "ANY",
+      "path": "/fitness-roadmaps/{proxy+}",
+      "routeKey": "ANY /fitness-roadmaps/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "no4a9ym"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessfitnessroadmapsProxyRoute"
+    },
+    {
+      "routeId": "dwkj034",
+      "method": "ANY",
+      "path": "/food",
+      "routeKey": "ANY /food",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "dwkj034"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessfoodBareRoute"
+    },
+    {
+      "routeId": "bdw3qc1",
+      "method": "ANY",
+      "path": "/food/{proxy+}",
+      "routeKey": "ANY /food/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bdw3qc1"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessfoodProxyRoute"
+    },
+    {
+      "routeId": "w7k9zoo",
+      "method": "ANY",
+      "path": "/gyms",
+      "routeKey": "ANY /gyms",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w7k9zoo"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymgymsBareRoute"
+    },
+    {
+      "routeId": "8bx6hwl",
+      "method": "ANY",
+      "path": "/gyms/{proxy+}",
+      "routeKey": "ANY /gyms/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8bx6hwl"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymgymsProxyRoute"
+    },
+    {
+      "routeId": "hu01bl2",
+      "method": "GET",
+      "path": "/health",
+      "routeKey": "GET /health",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hu01bl2"
+      },
+      "integrationId": "uvqqpy4",
+      "logicalResourceId": "HealthRoute"
+    },
+    {
+      "routeId": "wpmmzqc",
+      "method": "ANY",
+      "path": "/imports",
+      "routeKey": "ANY /imports",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wpmmzqc"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessimportsBareRoute"
+    },
+    {
+      "routeId": "hxj17fj",
+      "method": "ANY",
+      "path": "/imports/{proxy+}",
+      "routeKey": "ANY /imports/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hxj17fj"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessimportsProxyRoute"
+    },
+    {
+      "routeId": "eh0vod1",
+      "method": "ANY",
+      "path": "/inbody",
+      "routeKey": "ANY /inbody",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "eh0vod1"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserinbodyBareRoute"
+    },
+    {
+      "routeId": "ekjml8p",
+      "method": "ANY",
+      "path": "/inbody/{proxy+}",
+      "routeKey": "ANY /inbody/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ekjml8p"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserinbodyProxyRoute"
+    },
+    {
+      "routeId": "sti5ne2",
+      "method": "ANY",
+      "path": "/locations",
+      "routeKey": "ANY /locations",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "sti5ne2"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserlocationsBareRoute"
+    },
+    {
+      "routeId": "7ntf1qc",
+      "method": "ANY",
+      "path": "/locations/{proxy+}",
+      "routeKey": "ANY /locations/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7ntf1qc"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserlocationsProxyRoute"
+    },
+    {
+      "routeId": "z3abvev",
+      "method": "ANY",
+      "path": "/marketplace",
+      "routeKey": "ANY /marketplace",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "z3abvev"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AimarketplaceBareRoute"
+    },
+    {
+      "routeId": "xoh2fbn",
+      "method": "ANY",
+      "path": "/marketplace/{proxy+}",
+      "routeKey": "ANY /marketplace/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xoh2fbn"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AimarketplaceProxyRoute"
+    },
+    {
+      "routeId": "8zf6b99",
+      "method": "ANY",
+      "path": "/me",
+      "routeKey": "ANY /me",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8zf6b99"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsermeBareRoute"
+    },
+    {
+      "routeId": "9r1iooo",
+      "method": "ANY",
+      "path": "/me/{proxy+}",
+      "routeKey": "ANY /me/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "9r1iooo"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsermeProxyRoute"
+    },
+    {
+      "routeId": "3vkbwhg",
+      "method": "GET",
+      "path": "/me/complaints",
+      "routeKey": "GET /me/complaints",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3vkbwhg"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeComplaintsRoute"
+    },
+    {
+      "routeId": "7hyfj5o",
+      "method": "GET",
+      "path": "/me/gym-checkins",
+      "routeKey": "GET /me/gym-checkins",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7hyfj5o"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymCheckinsGetRoute"
+    },
+    {
+      "routeId": "cmq4gi6",
+      "method": "POST",
+      "path": "/me/gym-checkins",
+      "routeKey": "POST /me/gym-checkins",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "cmq4gi6"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymCheckinsPostRoute"
+    },
+    {
+      "routeId": "q30z6lt",
+      "method": "GET",
+      "path": "/me/gym-memberships",
+      "routeKey": "GET /me/gym-memberships",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q30z6lt"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymMembershipsRoute"
+    },
+    {
+      "routeId": "fx5ps3u",
+      "method": "GET",
+      "path": "/me/gym-memberships/{id}",
+      "routeKey": "GET /me/gym-memberships/{id}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fx5ps3u"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymMembershipsIdRoute"
+    },
+    {
+      "routeId": "h01w0lm",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/cancel",
+      "routeKey": "POST /me/gym-memberships/{id}/cancel",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "h01w0lm"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymMembershipsCancelRoute"
+    },
+    {
+      "routeId": "x33r8d2",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/cancel-membership",
+      "routeKey": "POST /me/gym-memberships/{id}/cancel-membership",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "x33r8d2"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymMembershipsCancelMembershipRoute"
+    },
+    {
+      "routeId": "ca6znwr",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/pay",
+      "routeKey": "POST /me/gym-memberships/{id}/pay",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ca6znwr"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymMeGymMembershipsPayRoute"
+    },
+    {
+      "routeId": "q2x73ci",
+      "method": "ANY",
+      "path": "/me/payments",
+      "routeKey": "ANY /me/payments",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q2x73ci"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmepaymentsBareRoute"
+    },
+    {
+      "routeId": "aexyi40",
+      "method": "ANY",
+      "path": "/me/payments/{proxy+}",
+      "routeKey": "ANY /me/payments/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "aexyi40"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmepaymentsProxyRoute"
+    },
+    {
+      "routeId": "ky8pdte",
+      "method": "ANY",
+      "path": "/me/pt-wallet",
+      "routeKey": "ANY /me/pt-wallet",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ky8pdte"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmeptwalletBareRoute"
+    },
+    {
+      "routeId": "fnw2xg2",
+      "method": "ANY",
+      "path": "/me/pt-wallet/{proxy+}",
+      "routeKey": "ANY /me/pt-wallet/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fnw2xg2"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmeptwalletProxyRoute"
+    },
+    {
+      "routeId": "wz6h20l",
+      "method": "ANY",
+      "path": "/me/wallet",
+      "routeKey": "ANY /me/wallet",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wz6h20l"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmewalletBareRoute"
+    },
+    {
+      "routeId": "18pp73s",
+      "method": "ANY",
+      "path": "/me/wallet/{proxy+}",
+      "routeKey": "ANY /me/wallet/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "18pp73s"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmewalletProxyRoute"
+    },
+    {
+      "routeId": "hccamfd",
+      "method": "ANY",
+      "path": "/me/withdrawals",
+      "routeKey": "ANY /me/withdrawals",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hccamfd"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmewithdrawalsBareRoute"
+    },
+    {
+      "routeId": "6sa0fv8",
+      "method": "ANY",
+      "path": "/me/withdrawals/{proxy+}",
+      "routeKey": "ANY /me/withdrawals/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6sa0fv8"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentmewithdrawalsProxyRoute"
+    },
+    {
+      "routeId": "uwtdhye",
+      "method": "ANY",
+      "path": "/notifications",
+      "routeKey": "ANY /notifications",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "uwtdhye"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsernotificationsBareRoute"
+    },
+    {
+      "routeId": "0bkv0mf",
+      "method": "ANY",
+      "path": "/notifications/{proxy+}",
+      "routeKey": "ANY /notifications/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "0bkv0mf"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsernotificationsProxyRoute"
+    },
+    {
+      "routeId": "iimte3l",
+      "method": "ANY",
+      "path": "/nutrition",
+      "routeKey": "ANY /nutrition",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "iimte3l"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessnutritionBareRoute"
+    },
+    {
+      "routeId": "ainvdjj",
+      "method": "ANY",
+      "path": "/nutrition/{proxy+}",
+      "routeKey": "ANY /nutrition/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ainvdjj"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessnutritionProxyRoute"
+    },
+    {
+      "routeId": "ipmsbj1",
+      "method": "ANY",
+      "path": "/owner",
+      "routeKey": "ANY /owner",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ipmsbj1"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymownerBareRoute"
+    },
+    {
+      "routeId": "s9eyv0o",
+      "method": "ANY",
+      "path": "/owner/{proxy+}",
+      "routeKey": "ANY /owner/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s9eyv0o"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymownerProxyRoute"
+    },
+    {
+      "routeId": "ggous3t",
+      "method": "ANY",
+      "path": "/payments",
+      "routeKey": "ANY /payments",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ggous3t"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentpaymentsBareRoute"
+    },
+    {
+      "routeId": "25k6vpo",
+      "method": "ANY",
+      "path": "/payments/{proxy+}",
+      "routeKey": "ANY /payments/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "25k6vpo"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentpaymentsProxyRoute"
+    },
+    {
+      "routeId": "1a39mw9",
+      "method": "ANY",
+      "path": "/payments/vnpay/return",
+      "routeKey": "ANY /payments/vnpay/return",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1a39mw9"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentVnpayReturnRoute"
+    },
+    {
+      "routeId": "gd8slzc",
+      "method": "ANY",
+      "path": "/payments/webhook/{provider}",
+      "routeKey": "ANY /payments/webhook/{provider}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "gd8slzc"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentWebhookProviderRoute"
+    },
+    {
+      "routeId": "lc4uib6",
+      "method": "ANY",
+      "path": "/payments/webhook/vnpay",
+      "routeKey": "ANY /payments/webhook/vnpay",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lc4uib6"
+      },
+      "integrationId": "w9fjro0",
+      "logicalResourceId": "PaymentWebhookVnpayRoute"
+    },
+    {
+      "routeId": "ncrmmot",
+      "method": "ANY",
+      "path": "/plans",
+      "routeKey": "ANY /plans",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ncrmmot"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiplansBareRoute"
+    },
+    {
+      "routeId": "9b2uho6",
+      "method": "ANY",
+      "path": "/plans/{proxy+}",
+      "routeKey": "ANY /plans/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "9b2uho6"
+      },
+      "integrationId": "biirr1c",
+      "logicalResourceId": "AiplansProxyRoute"
+    },
+    {
+      "routeId": "vy11qph",
+      "method": "ANY",
+      "path": "/profile",
+      "routeKey": "ANY /profile",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "vy11qph"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserprofileBareRoute"
+    },
+    {
+      "routeId": "3zu5nin",
+      "method": "ANY",
+      "path": "/profile/{proxy+}",
+      "routeKey": "ANY /profile/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3zu5nin"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserprofileProxyRoute"
+    },
+    {
+      "routeId": "4xyore1",
+      "method": "ANY",
+      "path": "/pt",
+      "routeKey": "ANY /pt",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "4xyore1"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserptBareRoute"
+    },
+    {
+      "routeId": "bwk10qr",
+      "method": "ANY",
+      "path": "/pt-applications",
+      "routeKey": "ANY /pt-applications",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bwk10qr"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserptapplicationsBareRoute"
+    },
+    {
+      "routeId": "2ekkgno",
+      "method": "ANY",
+      "path": "/pt-applications/{proxy+}",
+      "routeKey": "ANY /pt-applications/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "2ekkgno"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserptapplicationsProxyRoute"
+    },
+    {
+      "routeId": "85gmdtp",
+      "method": "ANY",
+      "path": "/pt/{proxy+}",
+      "routeKey": "ANY /pt/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "85gmdtp"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UserptProxyRoute"
+    },
+    {
+      "routeId": "atfo58e",
+      "method": "GET",
+      "path": "/pt/{ptUserId}/gyms",
+      "routeKey": "GET /pt/{ptUserId}/gyms",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "atfo58e"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymPtPtUserIdGymsRoute"
+    },
+    {
+      "routeId": "iz1o0hv",
+      "method": "GET",
+      "path": "/pt/gym-affiliations",
+      "routeKey": "GET /pt/gym-affiliations",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "iz1o0hv"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymPtGymAffiliationsRoute"
+    },
+    {
+      "routeId": "p1yjqic",
+      "method": "GET",
+      "path": "/pt/gym-invitations",
+      "routeKey": "GET /pt/gym-invitations",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "p1yjqic"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymPtGymInvitationsRoute"
+    },
+    {
+      "routeId": "56l7prf",
+      "method": "PATCH",
+      "path": "/pt/gym-invitations/{id}",
+      "routeKey": "PATCH /pt/gym-invitations/{id}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "56l7prf"
+      },
+      "integrationId": "045z1ul",
+      "logicalResourceId": "GymPtGymInvitationsIdRoute"
+    },
+    {
+      "routeId": "khx3zci",
+      "method": "ANY",
+      "path": "/sessions",
+      "routeKey": "ANY /sessions",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "khx3zci"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsersessionsBareRoute"
+    },
+    {
+      "routeId": "tfku6cv",
+      "method": "ANY",
+      "path": "/sessions/{proxy+}",
+      "routeKey": "ANY /sessions/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "tfku6cv"
+      },
+      "integrationId": "tqe5r7h",
+      "logicalResourceId": "UsersessionsProxyRoute"
+    },
+    {
+      "routeId": "3h9jawf",
+      "method": "ANY",
+      "path": "/stats",
+      "routeKey": "ANY /stats",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3h9jawf"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessstatsBareRoute"
+    },
+    {
+      "routeId": "94p8z9q",
+      "method": "ANY",
+      "path": "/stats/{proxy+}",
+      "routeKey": "ANY /stats/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "94p8z9q"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessstatsProxyRoute"
+    },
+    {
+      "routeId": "jj9zela",
+      "method": "ANY",
+      "path": "/templates",
+      "routeKey": "ANY /templates",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "jj9zela"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesstemplatesBareRoute"
+    },
+    {
+      "routeId": "hpk8kzj",
+      "method": "ANY",
+      "path": "/templates/{proxy+}",
+      "routeKey": "ANY /templates/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hpk8kzj"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesstemplatesProxyRoute"
+    },
+    {
+      "routeId": "5laesro",
+      "method": "ANY",
+      "path": "/training-cycles",
+      "routeKey": "ANY /training-cycles",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "5laesro"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesstrainingcyclesBareRoute"
+    },
+    {
+      "routeId": "51r7foc",
+      "method": "ANY",
+      "path": "/training-cycles/{proxy+}",
+      "routeKey": "ANY /training-cycles/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "51r7foc"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnesstrainingcyclesProxyRoute"
+    },
+    {
+      "routeId": "l6rxw2s",
+      "method": "ANY",
+      "path": "/workouts",
+      "routeKey": "ANY /workouts",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "l6rxw2s"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessworkoutsBareRoute"
+    },
+    {
+      "routeId": "nesngve",
+      "method": "ANY",
+      "path": "/workouts/{proxy+}",
+      "routeKey": "ANY /workouts/{proxy+}",
+      "resourceType": "AWS::ApiGatewayV2::Route",
+      "currentOwner": "NONE (no IaC)",
+      "importSupported": true,
+      "importRequired": true,
+      "recreationRequired": false,
+      "resourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "nesngve"
+      },
+      "integrationId": "wv4c1bs",
+      "logicalResourceId": "FitnessworkoutsProxyRoute"
+    }
+  ],
+  "lambdaPermissionsFound": 117,
+  "lambdaPermissionsSample": [
+    {
+      "key": "fitness-assistant-dev-auth::auth/register",
+      "sid": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19",
+      "functionName": "fitness-assistant-dev-auth"
+    },
+    {
+      "key": "fitness-assistant-dev-auth::auth/login",
+      "sid": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f",
+      "functionName": "fitness-assistant-dev-auth"
+    },
+    {
+      "key": "fitness-assistant-dev-auth::auth/refresh",
+      "sid": "4b688a74-fac9-55d1-9aea-f2991a612f30",
+      "functionName": "fitness-assistant-dev-auth"
+    },
+    {
+      "key": "fitness-assistant-dev-auth::auth/logout",
+      "sid": "76615900-0d3e-5b89-9d91-0bd373206d23",
+      "functionName": "fitness-assistant-dev-auth"
+    },
+    {
+      "key": "fitness-assistant-dev-auth::auth/verify",
+      "sid": "72afdf9d-7781-5b76-9d15-3934874f10d6",
+      "functionName": "fitness-assistant-dev-auth"
+    }
+  ]
+}

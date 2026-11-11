@@ -29,6 +29,11 @@ router.get(
   nutritionController.getFoodSuggestions as any,
 );
 router.get(
+  "/analytics/window",
+  authMiddleware,
+  nutritionController.getAnalyticsWindow as any,
+);
+router.get(
   "/daily-history",
   authMiddleware,
   nutritionController.getDailyConsumptionHistory as any,

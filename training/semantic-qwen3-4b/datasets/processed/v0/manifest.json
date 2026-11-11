@@ -1,0 +1,31 @@
+{
+  "datasetVersion": "v0",
+  "createdAt": "2026-10-09T15:04:33.415285+00:00",
+  "seed": 42,
+  "totalCases": 37,
+  "splitCounts": {
+    "train": 25,
+    "validation": 5,
+    "heldout": 7
+  },
+  "categoryCounts": {
+    "AMBIGUITY": 3,
+    "CORRECTION": 3,
+    "ENTITY": 4,
+    "FOLLOWUP_SLOT": 4,
+    "INTENT": 8,
+    "MULTI_INTENT": 2,
+    "REFERENCE": 4,
+    "REVISION": 3,
+    "SAFETY_NON_AUTHORITY": 2,
+    "SHORTHAND": 4
+  },
+  "sha256": {
+    "train.jsonl": "c9d29d66fcd165527e94faf17ece724fbbece81bd8ec8424000788f85b982426",
+    "validation.jsonl": "38f0f0af0a61af8a2572285bfb02f115be5f12af38822d6d919cad9a7cf79f45",
+    "heldout.jsonl": "d90476f22a300f00835bc2d6ca07405823133fdb7d9bd0ff4d4abfa1b10c0b72"
+  },
+  "schemaFile": "datasets/semantic_instruction_schema.json",
+  "schemaEnumsExportedAt": "2026-10-09T15:01:54.191Z",
+  "provenance": "Hand-written starter/smoke seed (gymini-semantic-smoke-v0), synthetic/product-reviewed phrasing only, no real user data. A pipeline-validation set, not production training volume - kept unmodified, used for evaluator/training smoke tests."
+}

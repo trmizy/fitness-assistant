@@ -1,0 +1,858 @@
+{
+  "generatedAt": "2026-10-09T00:00:00.000Z",
+  "note": "Hand-built from a direct source trace of router/controller registrations across all 6 HTTP-facing services (auth, user, fitness, gym, payment, ai) plus chat-service's public routes. Not derived from documentation. Services whose top-level resource prefix is already covered by a bare+{proxy+} route pair in the live API Gateway are listed at the prefix level (their internal leaf routes are not individually re-verified against the Gateway, since the Gateway forwards the whole prefix to one Lambda regardless of the leaf path). auth-service and the dropbox-sign webhook have NO catch-all proxy in the live Gateway, so every one of their routes is individually enumerated and individually checked.",
+  "deployTargets": {
+    "auth": "fitness-assistant-dev-auth",
+    "user": "fitness-assistant-dev-user",
+    "fitness": "fitness-assistant-dev-fitness",
+    "gym": "fitness-assistant-dev-gym",
+    "payment": "fitness-assistant-dev-payment",
+    "ai": "fitness-assistant-dev-ai",
+    "chat": {
+      "dynamic": "CLOUDFORMATION_PARAMETER",
+      "stackName": "fitness-assistant-dev-api-gateway",
+      "parameterKey": "ChatAlbDnsName",
+      "pathSuffix": "/chat/{proxy}",
+      "note": "Phase 16A.2R: was a frozen literal ALB DNS that went stale every time the on-demand ALB was torn down/recreated (CloudFormation is now authoritative for this value via the Sync-ChatApiGatewayIntegration lifecycle helper - see scripts/aws/api-gateway/lib/ChatIntegrationSync.psm1). Test-ApiRouteParity.ps1 resolves this dynamically from the live stack parameter instead of a hardcoded string."
+    }
+  },
+  "routes": [
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/register",
+      "authRequirement": "PUBLIC",
+      "handler": "authController.register",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/register/verify",
+      "authRequirement": "PUBLIC",
+      "handler": "authController.verifyRegistration",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/register/resend",
+      "authRequirement": "PUBLIC (rate-limited)",
+      "handler": "authController.resendRegistration",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/login",
+      "authRequirement": "PUBLIC (rate-limited)",
+      "handler": "authController.login",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "authRequirement": "PUBLIC (refresh token in body/cookie)",
+      "handler": "authController.refresh",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/logout",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "authController.logout",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/verify",
+      "authRequirement": "PUBLIC (token in body)",
+      "handler": "authController.verify",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/me",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "authController.updateMe",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/me/password",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "authController.changePassword",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH",
+      "note": "Manually added to API Gateway in Phase 13A; no IaC owns it today."
+    },
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/auth/users",
+      "authRequirement": "ADMIN",
+      "handler": "authController.listUsers",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/users/:userId/role",
+      "authRequirement": "ADMIN",
+      "handler": "authController.updateUserRole",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/users/:userId/disable",
+      "authRequirement": "ADMIN",
+      "handler": "authController.setUserActive",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/users/:userId/enable",
+      "authRequirement": "ADMIN",
+      "handler": "authController.setUserActive",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/users/:userId/name",
+      "authRequirement": "ADMIN",
+      "handler": "authController.updateUserName",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/password-reset",
+      "authRequirement": "PUBLIC (reset token in body, no login)",
+      "handler": "authController.resetPassword",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "Consumes the link sent by /auth/password-reset/request. Distinct route from /request."
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/password-reset/request",
+      "authRequirement": "PUBLIC (rate-limited)",
+      "handler": "authController.requestPasswordReset",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "The known gap this phase was asked to track (not deploy)."
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/partner-applications/start",
+      "authRequirement": "PUBLIC",
+      "handler": "partnerApplicationController.start",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "Self-service gym-partner onboarding; see GYM_PARTNER_SELF_ONBOARDING_SPEC.md."
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/partner-applications/verify",
+      "authRequirement": "PUBLIC",
+      "handler": "partnerApplicationController.verify",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/partner-applications/set-password",
+      "authRequirement": "PUBLIC",
+      "handler": "partnerApplicationController.setPassword",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "SOURCE_ONLY"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/internal/partner-auth/:op",
+      "authRequirement": "INTERNAL_SERVICE",
+      "handler": "authController.partnerAuthInternal",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "CORRECTLY_ABSENT",
+      "note": "Service-to-service only; correctly not exposed on the public Gateway."
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/internal/users/batch",
+      "authRequirement": "INTERNAL_SERVICE",
+      "handler": "authController.batchGetUsersInternal",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "CORRECTLY_ABSENT"
+    },
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/auth/internal/users/:userId",
+      "authRequirement": "INTERNAL_SERVICE",
+      "handler": "authController.getUserInternal",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "CORRECTLY_ABSENT"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/internal/send-email",
+      "authRequirement": "INTERNAL_SERVICE",
+      "handler": "authController.sendEmailInternal",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "CORRECTLY_ABSENT"
+    },
+    {
+      "service": "auth",
+      "method": "PATCH",
+      "path": "/auth/internal/users/:userId/role",
+      "authRequirement": "INTERNAL_SERVICE",
+      "handler": "authController.updateUserRoleInternal",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "CORRECTLY_ABSENT"
+    },
+    {
+      "service": "user",
+      "method": "POST",
+      "path": "/webhooks/dropbox-sign",
+      "authRequirement": "OTHER (external-provider API-key check, no user JWT)",
+      "handler": "dropboxSignWebhookController.handleDropboxSignWebhook",
+      "expectedDeployTarget": "user",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "Mounted only when REQUIRE_CONTRACT_ESIGN!=='false' (default true). No '/webhooks' prefix exists anywhere in the live Gateway - this callback from the e-signature provider is currently unreachable."
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/profile/{proxy+}",
+      "authRequirement": "AUTHENTICATED (per-route)",
+      "handler": "profileRoutes + agenticFitnessRoutes (mounted under /profile/agent)",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/inbody/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "inbodyRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/pt-applications/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "ptApplicationRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/contracts/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "contractRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/notifications/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "notificationRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/sessions/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "sessionRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/availability/{proxy+}",
+      "authRequirement": "AUTHENTICATED (PT-scoped) / mixed",
+      "handler": "availabilityRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/admin/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes (user-service's own, disputed sessions etc.)",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH",
+      "note": "Shares the live /admin prefix with several gym-service admin sub-paths - see Authorization Drift / routing-conflict note in the report."
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/locations/{proxy+}",
+      "authRequirement": "PUBLIC",
+      "handler": "locationRoutes",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/pt/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "trainingLocationRoutes (mounted at /pt/training-locations)",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH",
+      "note": "The live /pt/{proxy+} route sends ALL /pt/* traffic to user-service - see gym-service's own /pt/* routes below, which this shadows."
+    },
+    {
+      "service": "user",
+      "method": "ANY",
+      "path": "/me/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "ptServicePackageRoutes (mounted at /me/service-packages)",
+      "expectedDeployTarget": "user",
+      "liveStatus": "MATCH",
+      "note": "Live /me/{proxy+} integration points at user-service, but payment-service ALSO owns real sub-paths under /me (wallet, payments, pt-wallet, withdrawals) via their OWN separate, more-specific live routes (/me/payments, /me/wallet, /me/pt-wallet, /me/withdrawals) - those are correctly NOT shadowed because API Gateway HTTP API route resolution prefers the more specific path."
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/exercises/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "exerciseRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/workouts/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "workoutRoutes + agentProgramRoutes (mounted at /workouts/agent)",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/nutrition/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "nutritionRoutes + nutritionAgentRoutes (mounted at /nutrition/agent)",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/stats/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "statsRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/food/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "foodRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/training-cycles/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "trainingCycleRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/fitness-roadmaps/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "fitnessRoadmapRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/coach/{proxy+}",
+      "authRequirement": "AUTHENTICATED (PT-scoped)",
+      "handler": "coachRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/equipment/{proxy+}",
+      "authRequirement": "AUTHENTICATED / PUBLIC (mixed)",
+      "handler": "equipmentRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/imports/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "importRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/exports/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "exportRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "fitness",
+      "method": "ANY",
+      "path": "/templates/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "templateRoutes",
+      "expectedDeployTarget": "fitness",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/gyms/{proxy+}",
+      "authRequirement": "PUBLIC / AUTHENTICATED (mixed)",
+      "handler": "publicRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/collaborations/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "publicRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/owner/{proxy+}",
+      "authRequirement": "AUTHENTICATED (gym-owner-scoped)",
+      "handler": "ownerRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/branch-documents/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/brands/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/commission-rate/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/complaint-photos/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/complaints/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/gym-memberships/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/gyms/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/partner-accounts/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/admin/partners/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "gym-service's own adminRoutes (branch-documents, brands, commission-rate, complaint-photos, complaints, gym-memberships, gyms, partner-accounts, partners) are each individually, explicitly routed around the generic /admin/{proxy+} catch-all above (which belongs to user-service) - API Gateway HTTP API route resolution prefers the more specific path, so there is no actual conflict for these 9, unlike /pt/* and /me/* below."
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/complaint-photos/{token}",
+      "authRequirement": "AUTHENTICATED (requireAuth + requireRoles('CUSTOMER','PT') - re-verified Phase 15B-A, corrected from Phase 15A's incorrect 'PUBLIC' guess)",
+      "handler": "clientRoutes (complaint-photo.controller.ts: upload/serve)",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "Plain top-level '/complaint-photos' prefix, distinct from the already-covered '/admin/complaint-photos'. No matching live route of any kind."
+    },
+    {
+      "service": "gym",
+      "method": "ANY",
+      "path": "/partner-invitations/{token}",
+      "authRequirement": "PUBLIC (token-gated)",
+      "handler": "clientRoutes",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "SOURCE_ONLY",
+      "note": "No '/partner-invitations' prefix exists anywhere in the live Gateway."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/pt/gym-affiliations",
+      "authRequirement": "AUTHENTICATED (PT-scoped)",
+      "handler": "affiliationController.listAffiliations",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix (2026-10-09): added as its own exact live route (RouteId iz1o0hv), pointing at the existing Gym integration 045z1ul. Was previously MISMATCHED/shadowed by user-service's generic /pt/{proxy+}. Live-verified: real GET returns 403 FORBIDDEN from gym-service's own JSON error shape (role-gated, CUSTOMER test account), not a 404 - confirms correct routing."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/pt/gym-invitations",
+      "authRequirement": "AUTHENTICATED (PT-scoped)",
+      "handler": "affiliationController.listInvitations",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId p1yjqic."
+    },
+    {
+      "service": "gym",
+      "method": "PATCH",
+      "path": "/pt/gym-invitations/:id",
+      "authRequirement": "AUTHENTICATED (PT-scoped)",
+      "handler": "affiliationController.respond",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId 56l7prf. Mutation route - not live-smoke-tested, per this phase's own instruction to avoid exercising mutation endpoints just for routing proof."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/pt/:ptUserId/gyms",
+      "authRequirement": "PUBLIC (no auth gate)",
+      "handler": "collaborationController.listAcceptedGymsForPt",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId atfo58e."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/me/gym-memberships",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "membershipController.listForClient",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId q30z6lt. Live-verified real HTTP 200 {\"success\":true,\"data\":[]}, replacing the prior wrong-service 404."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/me/gym-memberships/:id",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "membershipController.getForClient",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId fx5ps3u."
+    },
+    {
+      "service": "gym",
+      "method": "POST",
+      "path": "/me/gym-memberships/:id/pay",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "membershipController.pay",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId ca6znwr. Mutation (payment) - not live-smoke-tested."
+    },
+    {
+      "service": "gym",
+      "method": "POST",
+      "path": "/me/gym-memberships/:id/cancel",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "membershipController.cancel",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId h01w0lm. Mutation - not live-smoke-tested."
+    },
+    {
+      "service": "gym",
+      "method": "POST",
+      "path": "/me/gym-memberships/:id/cancel-membership",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "membershipController.cancelActive",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId x33r8d2. Mutation - not live-smoke-tested."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/me/gym-checkins",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "checkinController.listForClient",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId 7hyfj5o. Live-verified real HTTP 200."
+    },
+    {
+      "service": "gym",
+      "method": "POST",
+      "path": "/me/gym-checkins",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "checkinController.checkInByScan",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId cmq4gi6. Mutation (checkin) - not live-smoke-tested."
+    },
+    {
+      "service": "gym",
+      "method": "GET",
+      "path": "/me/complaints",
+      "authRequirement": "AUTHENTICATED (CUSTOMER,PT)",
+      "handler": "complaintController.listMine",
+      "expectedDeployTarget": "gym",
+      "liveStatus": "MATCH",
+      "note": "Phase 15B-HF hotfix: RouteId 3vkbwhg. Live-verified real HTTP 200."
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/payments/webhook/{provider}",
+      "authRequirement": "OTHER (payment-provider signature, no user JWT)",
+      "handler": "webhookRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH",
+      "note": "Live models this as two literal routes (/payments/webhook/{provider} and /payments/webhook/vnpay), not a generic {proxy+} - both already explicit in webhookRoutes."
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/payments/webhook/vnpay",
+      "authRequirement": "OTHER (payment-provider signature, no user JWT)",
+      "handler": "webhookRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/payments/vnpay/return",
+      "authRequirement": "PUBLIC (vnpay redirect)",
+      "handler": "vnpayReturnRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH",
+      "note": "A more specific literal route than the already-matched /payments/{proxy+} - same integration target, just modeled with extra specificity live."
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/payments/{proxy+}",
+      "authRequirement": "PUBLIC (vnpay return redirect) / mixed",
+      "handler": "vnpayReturnRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/me/payments/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "paymentRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/me/wallet/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "walletRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/me/pt-wallet/{proxy+}",
+      "authRequirement": "AUTHENTICATED (PT-scoped)",
+      "handler": "walletRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/me/withdrawals/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "walletRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "payment",
+      "method": "ANY",
+      "path": "/admin/payments/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminRoutes",
+      "expectedDeployTarget": "payment",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "ai",
+      "method": "ANY",
+      "path": "/ai/{proxy+}",
+      "authRequirement": "AUTHENTICATED (mostly)",
+      "handler": "aiRoutes (incl. /ai/agent/goal-image, /ai/agent/image-chat)",
+      "expectedDeployTarget": "ai",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "ai",
+      "method": "ANY",
+      "path": "/plans/{proxy+}",
+      "authRequirement": "AUTHENTICATED",
+      "handler": "planRoutes",
+      "expectedDeployTarget": "ai",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "ai",
+      "method": "ANY",
+      "path": "/marketplace/{proxy+}",
+      "authRequirement": "AUTHENTICATED / PUBLIC (mixed)",
+      "handler": "marketplaceRoutes + personalizedServiceRoutes (both mounted at /marketplace)",
+      "expectedDeployTarget": "ai",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "ai",
+      "method": "ANY",
+      "path": "/admin/ai/{proxy+}",
+      "authRequirement": "ADMIN",
+      "handler": "adminAiRoutes + adminMarketplaceRoutes (mounted at /admin/ai/marketplace)",
+      "expectedDeployTarget": "ai",
+      "liveStatus": "MATCH"
+    },
+    {
+      "service": "chat",
+      "method": "ANY",
+      "path": "/chat/{proxy+}",
+      "noBareRoute": true,
+      "authRequirement": "AUTHENTICATED (per-route, Express authMiddleware inside chat-service)",
+      "handler": "chat.routes.ts + call.routes.ts (ECS, behind dev-chat-alb)",
+      "expectedDeployTarget": "chat",
+      "liveStatus": "MATCH",
+      "note": "No bare '/chat' route exists live or in source - correct, chat-service has no root-level chat resource. 'noBareRoute' tells the parity tool not to synthesize a bare-prefix comparison entry for this one (Phase 15B-A finding: doing so previously caused this single live route to be counted as 2 matched source objects, the sole reason MATCHING_ROUTES (108) exceeded LIVE_ROUTE_COUNT (107))."
+    },
+    {
+      "service": "gateway/health",
+      "method": "GET",
+      "path": "/health",
+      "authRequirement": "PUBLIC",
+      "handler": "auth-service's own /health (shared convention across all 7 services, only this one happens to be exposed live)",
+      "expectedDeployTarget": "auth",
+      "liveStatus": "MATCH"
+    }
+  ],
+  "summary": {
+    "totalSourceRoutesOrPrefixes": 57,
+    "match": 45,
+    "sourceOnly": 10,
+    "mismatched": 0,
+    "correctlyAbsentInternal": 5,
+    "note": "Updated Phase 15B-HF (2026-10-09): the 4 gym /pt* and /me/* MISMATCHED entries were resolved via an exact-route hotfix (12 new live routes added, reusing the existing Gym integration) and reclassified MATCH. mismatched is now 0."
+  }
+}

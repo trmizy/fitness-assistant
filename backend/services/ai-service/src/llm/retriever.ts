@@ -2,6 +2,7 @@ import { logger } from "@gym-coach/shared";
 import { llmService } from "../services/llm.service";
 import { getVectorStore } from "../vector-store/provider";
 import type { RetrievalDocument, RetrievalResult } from "./types";
+import { retrieveV2 } from "./retrieval-v2";
 
 // Chat may use semantic exercise data. AI Plan generation must not use the
 // Qdrant exercises collection for exercise selection; it receives exercises
@@ -17,6 +18,10 @@ export const RETRIEVER_COLLECTION_SCOPES = {
   chat: CHAT_COLLECTIONS,
   planEvidence: PLAN_EVIDENCE_COLLECTIONS,
 } as const;
+/** Injectable seam (tests / offline evaluation use a CPU-only embedder); production default is the shared llmService. */
+export const retrieverDeps = {
+  embed: (text: string, opts?: Parameters<typeof llmService.generateEmbedding>[1]) => llmService.generateEmbedding(text, opts),
+};
 const MIN_SCORE = Number(process.env.RAG_MIN_SCORE || "0.35");
 const TOP_K = Number(process.env.RAG_TOP_K || "5");
 const DEBUG_RAG = process.env.DEBUG_RAG === "true";
@@ -275,6 +280,27 @@ export function retrievalDocumentFromPayload(
   };
 }
 
+/** RAG_RETRIEVAL_V2=on enables Phase 4.6 retrieval. Read per call so tests/eval can toggle it. */
+export function ragRetrievalV2Enabled(): boolean {
+  return (process.env.RAG_RETRIEVAL_V2 ?? "off").toLowerCase() === "on";
+}
+
+async function retrieveForChatV2(question: string): Promise<RetrievalResult> {
+  const store = getVectorStore();
+  const out = await retrieveV2(question, {
+    embed: (text) => retrieverDeps.embed(text, { timeoutMs: RAG_EMBEDDING_TIMEOUT_MS, inputType: "search_query" }),
+    search: async (collection, vector, limit) => {
+      const status = await store.getIndexStatus(collection, vector.length).catch(() => null);
+      if (status?.kind === "mismatch") return [];
+      return store.search(collection, { vector, limit });
+    },
+    toDoc: (collection, payload, score, id) => retrievalDocumentFromPayload(collection, payload, score, id),
+  });
+  debugRag("RAG v2 retrieval", { domains: out.trace.domains, ...out.trace.dropped, returned: out.trace.returned });
+  const { trace: _trace, ...result } = out;
+  return result;
+}
+
 function dedupeAndSort(docs: RetrievalDocument[]): RetrievalDocument[] {
   const byId = new Map<string, RetrievalDocument>();
   for (const doc of docs) {
@@ -372,7 +398,7 @@ export const retriever = {
           queryPreview: safeQueryPreview(query),
           collections: [...PLAN_EVIDENCE_COLLECTIONS],
         });
-        const vector = await llmService.generateEmbedding(query, {
+        const vector = await retrieverDeps.embed(query, {
           timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
           inputType: "search_query",
         });
@@ -391,6 +417,8 @@ export const retriever = {
   },
 
   async retrieveForChat(question: string): Promise<RetrievalResult> {
+    // Phase 4.6 — evidence-first, per-collection retrieval. Default OFF: with the flag unset this method is byte-identical to before.
+    if (ragRetrievalV2Enabled()) return retrieveForChatV2(question);
     const queries = expandQueries(question);
     const homeOnly = detectHomeOnlyConstraint(question);
     const exercisesFilter = homeOnly
@@ -410,7 +438,7 @@ export const retriever = {
     // only runtime path allowed to use qdrant:exercises.
     const searchPromises = queries.map(async (query) => {
       try {
-        const vector = await llmService.generateEmbedding(query, {
+        const vector = await retrieverDeps.embed(query, {
           timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
           inputType: "search_query",
         });
@@ -469,7 +497,7 @@ export const retriever = {
     equipment?: string,
   ): Promise<RetrievalDocument[]> {
     try {
-      const vector = await llmService.generateEmbedding(query, {
+      const vector = await retrieverDeps.embed(query, {
         timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
         inputType: "search_query",
       });

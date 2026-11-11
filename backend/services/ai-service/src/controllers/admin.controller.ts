@@ -12,9 +12,10 @@
  *   GET /admin/ai/errors
  */
 import { Request, Response, NextFunction } from "express";
-import { logger } from "@gym-coach/shared";
+import { logger, testAccountsBlocked } from "@gym-coach/shared";
+import { fetchTestAccountIds } from "../clients/test-accounts.client";
 import { conversationRepository } from "../repositories/conversation.repository";
-import { aiQueue } from "../workers/ai.queue";
+import { getAiQueueStats } from "../workers/queue-provider";
 import {
   enqueueLocalEvidenceRefresh,
   enqueuePubMedRefresh,
@@ -90,32 +91,24 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const [dbStats, waiting, active, completed, failed, delayed] =
-        await Promise.all([
-          conversationRepository.adminGetOverviewStats(),
-          aiQueue.getWaitingCount().catch(() => null),
-          aiQueue.getActiveCount().catch(() => null),
-          aiQueue.getCompletedCount().catch(() => null),
-          aiQueue.getFailedCount().catch(() => null),
-          aiQueue.getDelayedCount().catch(() => null),
-        ]);
+      const [dbStats, queue] = await Promise.all([
+        // test/seed/eval accounts left out on the server only (2026-11-08)
+        (async () => conversationRepository.adminGetOverviewStats(testAccountsBlocked() ? await fetchTestAccountIds() : null))(),
+        getAiQueueStats(),
+      ]);
 
       res.json(
         formatSuccessResponse({
           generatedAt: new Date().toISOString(),
           conversations: dbStats.conversations,
+          excludedTestAccounts: dbStats.excludedTestAccounts,
           intents: dbStats.intents,
           languages: dbStats.languages,
           plans: {
             ...dbStats.plans,
-            // BullMQ live counts (may be null if Redis is down)
-            queue: {
-              waiting: waiting ?? null,
-              active: active ?? null,
-              completed: completed ?? null,
-              failed: failed ?? null,
-              delayed: delayed ?? null,
-            },
+            // Live queue counts (BullMQ or SQS depending on QUEUE_PROVIDER) — individual
+            // fields are null when that backend doesn't expose the count or is unreachable.
+            queue,
           },
         }),
       );
@@ -190,20 +183,15 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const [plans, waiting, active, completed, failed, delayed] =
-        await Promise.all([
-          conversationRepository.adminListPlans(30),
-          aiQueue.getWaitingCount().catch(() => null),
-          aiQueue.getActiveCount().catch(() => null),
-          aiQueue.getCompletedCount().catch(() => null),
-          aiQueue.getFailedCount().catch(() => null),
-          aiQueue.getDelayedCount().catch(() => null),
-        ]);
+      const [plans, queue] = await Promise.all([
+        conversationRepository.adminListPlans(30),
+        getAiQueueStats(),
+      ]);
 
       res.json(
         formatSuccessResponse({
           generatedAt: new Date().toISOString(),
-          queue: { waiting, active, completed, failed, delayed },
+          queue,
           plans,
         }),
       );
@@ -247,12 +235,23 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const queue = getKnowledgePipelineQueue();
+      // 2026-10-25 live incident: on AWS (QUEUE_PROVIDER=sqs) there is no Redis, and BullMQ
+      // pointed at the default localhost:6379 never answers — this handler hung until the
+      // 30s Lambda timeout, which made the whole AI Observability page fail ("timeout of
+      // 10000ms exceeded"). Skip BullMQ entirely when SQS is the provider, and bound every
+      // queue call otherwise so a dead Redis degrades to "unavailable" instead of a hang.
+      const bullmqAvailable = process.env.QUEUE_PROVIDER !== "sqs";
+      const bounded = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        Promise.race([
+          p.catch(() => fallback),
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), 2000)),
+        ]);
+      const queue = bullmqAvailable ? getKnowledgePipelineQueue() : null;
       const [runs, reviewItems, queueCounts, repeatable] = await Promise.all([
         knowledgeRepository.listPipelineRuns(10),
         knowledgeRepository.listReviewQueue(20),
-        updateKnowledgeQueueDepthMetrics().catch(() => null),
-        queue.getRepeatableJobs().catch(() => []),
+        queue ? bounded(updateKnowledgeQueueDepthMetrics(), null) : Promise.resolve(null),
+        queue ? bounded(queue.getRepeatableJobs(), [] as unknown[]) : Promise.resolve([] as unknown[]),
       ]);
 
       res.json(
@@ -261,7 +260,7 @@ export const adminController = {
           runs,
           reviewItems,
           queue: {
-            name: queue.name,
+            name: queue?.name ?? "knowledge-pipeline (SQS mode: BullMQ queue not used)",
             ...(queueCounts ?? {
               waiting: null,
               active: null,

@@ -64,7 +64,7 @@ function inferGoal(
 ): InputIntent["goalHint"] {
   const q = question.toLowerCase();
   if (
-    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
+    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|c[aắ]t m[oỡ]|cat mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
       q,
     )
   )
@@ -185,12 +185,23 @@ function computeMissingFields(
   return missing;
 }
 
+/** "khoảng 3200 kcal", "3.200 calo", "protein 180g", "180g đạm" — numbers the user explicitly asked for. */
+export function parseStatedNutritionTargets(q: string): { statedCalories?: number; statedProteinGrams?: number } {
+  const out: { statedCalories?: number; statedProteinGrams?: number } = {};
+  const kcal = q.match(/(\d{1,2}[.,]?\d{3}|\d{3,4})\s*(?:kcal|calo|calories|cal)\b/i);
+  if (kcal) out.statedCalories = Number(kcal[1].replace(/[.,]/g, ""));
+  const prot = q.match(/(?:protein|dam|đạm)\s*(?:khoang|tam|~)?\s*(\d{2,3})\s*g\b/i) || q.match(/(\d{2,3})\s*g\s*(?:protein|dam|đạm)\b/i);
+  if (prot) out.statedProteinGrams = Number(prot[1]);
+  return out;
+}
+
 export const inputParser = {
   parse(question: string, profile?: UserProfile): InputIntent {
     const normalizedQuestion = normalize(question);
     const routed = intentRouter.route(normalizedQuestion, profile);
     const intent = inferIntent(normalizedQuestion);
     const goalHint = inferGoal(normalizedQuestion, profile);
+    const goalStatedInQuestion = inferGoal(normalizedQuestion, undefined) !== undefined;
     const detailMode = detectDetailMode(normalizedQuestion);
     const parsedTrainingDays = parseTrainingDays(normalizedQuestion);
     const minimumExercisesPerDay =
@@ -214,6 +225,7 @@ export const inputParser = {
     const parsedMealsPerDay = mealsMatch
       ? Math.min(6, Math.max(1, Number(mealsMatch[1])))
       : undefined;
+    const stated = parseStatedNutritionTargets(normalizedQuestion);
     const missingFields = computeMissingFields(profile, intent);
 
     return {
@@ -228,6 +240,8 @@ export const inputParser = {
       parsedTrainingDays: routed.parsedTrainingDays ?? parsedTrainingDays,
       minimumExercisesPerDay,
       parsedMealsPerDay,
+      ...stated,
+      goalStatedInQuestion,
       mentionsInjury,
       requestsCardio,
       needsPersonalization:

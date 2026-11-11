@@ -1,9 +1,11 @@
 import { PrismaClient } from "../src/generated/prisma";
 import * as bcrypt from "bcryptjs";
+import { assertSeedAllowed } from "../src/scripts/seedGuard";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  assertSeedAllowed(process.env.DATABASE_URL, process.env.ALLOW_DEMO_SEED);
   console.log("🌱 Seeding auth database...");
 
   // Create demo users

@@ -1422,6 +1422,9 @@ export const nutritionService = {
     // goal (activeGoal stays null, sourceGoalId stays null on the program).
     const activeGoal = await nutritionRepository.findGoalByUserId(userId);
 
+    // Idempotent under concurrency: UNIQUE (user_id, source_plan_id) turns a lost check-then-create race (two simultaneous
+    // saves of the same AI plan, e.g. an in-flight worker and an ai-service recovery replay) into alreadyExists, not an error.
+    try {
     return await prisma.$transaction(async (tx) => {
       const existing = await tx.nutritionProgram.findFirst({
         where: { userId, sourcePlanId: payload.sourcePlanId },
@@ -1584,5 +1587,25 @@ export const nutritionService = {
         message: "Nutrition plan saved successfully.",
       };
     });
+    } catch (err: any) {
+      if (err?.code === "P2002" && payload.sourcePlanId) {
+        const winner = await prisma.nutritionProgram.findFirst({
+          where: { userId, sourcePlanId: payload.sourcePlanId },
+        });
+        if (winner) {
+          return {
+            createdNutritionPlanId: winner.id,
+            createdProgramId: winner.id,
+            existingNutritionPlanId: winner.id,
+            alreadyExists: true,
+            createdDayCount: 0,
+            createdMealCount: 0,
+            createdItemCount: 0,
+            message: "This plan was already saved.",
+          };
+        }
+      }
+      throw err;
+    }
   },
 };

@@ -114,7 +114,13 @@ jobs:
       - name: Post-apply invariants (read-only)
         run: |
           [ "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiId --output text)" = "$API_ID" ]
-          pwsh -NoProfile -File scripts/aws/api-gateway/Test-ApiRouteParity.ps1 -ApiId "$API_ID" -Region "$AWS_REGION"
+          # -AllowKnownSourceOnly: this gate checks for a regression THIS
+          # apply could have caused (a live route disagreeing with source).
+          # The 10 known SOURCE_ONLY routes are a separate, pre-existing
+          # product gap (never added to the Gateway, unrelated to any infra
+          # deploy) - without this flag, a correct, no-op apply still failed
+          # here every time, confirmed via a real run, 2026-10-21.
+          pwsh -NoProfile -File scripts/aws/api-gateway/Test-ApiRouteParity.ps1 -ApiId "$API_ID" -Region "$AWS_REGION" -AllowKnownSourceOnly
           code=$(curl -s -o /dev/null -w '%{http_code}' "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiEndpoint --output text)/health")
           [ "$code" = "200" ] || { echo "::error::SMOKE_FAIL /health=$code"; exit 1; }
           aws cloudformation detect-stack-drift --stack-name "$STACK" --query StackDriftDetectionId --output text

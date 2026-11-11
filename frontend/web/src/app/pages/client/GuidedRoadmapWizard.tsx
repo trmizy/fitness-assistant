@@ -25,6 +25,7 @@ import {
   type StrategyBucket,
 } from "../../services/api";
 import { fitnessAgentService } from "../../services/fitnessAgent";
+import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 import { focusLabels } from "../../components/agent/FitnessAgentBlocks";
 
 /**
@@ -44,13 +45,8 @@ type ActivityLevel = "SEDENTARY" | "LIGHTLY_ACTIVE" | "MODERATELY_ACTIVE" | "VER
 type BodyFatMethod = "manual" | "visual_reference" | "inbody";
 type GoalKey = "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE";
 
-const ACTIVITY_OPTIONS: Array<{ key: ActivityLevel; label: string; hint: string }> = [
-  { key: "SEDENTARY", label: "Ít vận động", hint: "Công việc bàn giấy, gần như không tập" },
-  { key: "LIGHTLY_ACTIVE", label: "Vận động nhẹ", hint: "Tập 1-3 buổi/tuần" },
-  { key: "MODERATELY_ACTIVE", label: "Vận động vừa", hint: "Tập 3-5 buổi/tuần" },
-  { key: "VERY_ACTIVE", label: "Năng động", hint: "Tập 6-7 buổi/tuần" },
-  { key: "EXTREMELY_ACTIVE", label: "Cực kỳ năng động", hint: "Vận động viên, lao động chân tay nặng" },
-];
+// Shared with onboarding/profile (constants/activityLevels.ts) so the same level is described the same way everywhere.
+const ACTIVITY_OPTIONS: Array<{ key: ActivityLevel; label: string; hint: string }> = ACTIVITY_LEVELS.map((a) => ({ key: a.key, label: a.label, hint: a.hint }));
 
 const GOAL_OPTIONS: Array<{ key: GoalKey; label: string; emoji: string; desc: string }> = [
   { key: "WEIGHT_LOSS", label: "Giảm mỡ", emoji: "🔥", desc: "Giảm tỷ lệ mỡ cơ thể, giữ khối cơ" },

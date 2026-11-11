@@ -1,0 +1,1787 @@
+{
+  "generatedAt": "2026-10-09T09:13:09.909Z",
+  "note": "Phase 15B-B2B1: full 254-resource map spanning Batch 1 (188, already stack-managed since Phase 15B-B2A) and Batch 2 (66, proposed import this phase, not yet executed). Lets a future Phase 15B-B2B2 prove: 188 old IDs unchanged, 66 imported IDs unchanged.",
+  "totalExpectedAfterBatch2": 254,
+  "batch1ManagedCount": 188,
+  "batch2ProposedCount": 66,
+  "resources": [
+    {
+      "LOGICAL_ID": "AiIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "biirr1c",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiadminaiBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "e652ddb3-df8d-5814-8c62-1789c12ed578",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiadminaiBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "65xzyns",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiadminaiProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "ade8dce3-b498-5795-b590-a5c8bc19dbe7",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiadminaiProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "7zaeabq",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiaiBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "febf8556-11f1-5a94-91f6-0bb3fa8589b4",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiaiBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "wiymnt4",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiaiProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "46eb2b78-210e-50e0-942d-9bd0dc85ba0a",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiaiProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "bbga7ea",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AimarketplaceBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "cd565a16-7434-550c-a5c9-5b32b760aa0f",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AimarketplaceBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "z3abvev",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AimarketplaceProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "491ae079-2e88-5a31-b7de-a1ea20d93e1d",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AimarketplaceProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "xoh2fbn",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiplansBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "ee8d1fc4-a824-504e-b708-46be62fc3f1c",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiplansBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ncrmmot",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiplansProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "1d610a37-44e3-5e38-a6c0-8b3181665828",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "AiplansProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "9b2uho6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "ChatIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "ebe69nj",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "ChatProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "15ai11p",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "wv4c1bs",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesscoachBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "79ea966d-71fd-5ba1-8e90-e5d52c951fc0",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesscoachBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "4315hcn",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesscoachProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "7a17ae1b-3053-5cf1-bcca-fdc11fede181",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesscoachProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "f40xejo",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessequipmentBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "b3c9c8e6-009b-546b-9198-66e88975a100",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessequipmentBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "vq11nk5",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessequipmentProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "fb82f827-cfdb-5e45-8f29-b57242613703",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessequipmentProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "inys2ec",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexercisesBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "75306dc2-4ff1-5220-bf86-7ce3886f937e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexercisesBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "8ilg5k7",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexercisesProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "871b03d7-8d66-5508-99e3-4d4338eddf34",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexercisesProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "5ofr8a5",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexportsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "92e42fb3-de6a-5eb6-a7dc-ae85c1d0098e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexportsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "bgcs0g8",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexportsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "50dd44f4-354b-53f4-856f-bad53112ee39",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessexportsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "2jtcryu",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfitnessroadmapsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "fitness-roadmaps-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfitnessroadmapsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "1qn9tii",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfitnessroadmapsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "fitness-roadmaps-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfitnessroadmapsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "no4a9ym",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfoodBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "429863bc-dd58-575f-b408-68728f38fdf6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfoodBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "dwkj034",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfoodProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "dd15253f-7124-5b5d-ae91-38386156dba6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessfoodProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "bdw3qc1",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessimportsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "c1a35265-ca60-57fe-88d8-138b5a37a55f",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessimportsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "wpmmzqc",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessimportsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "7742e2cd-819c-5934-ab04-a12cd54f13ba",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessimportsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "hxj17fj",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessnutritionBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "8434ff11-b479-53dc-853b-6492c490d710",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessnutritionBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "iimte3l",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessnutritionProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "e066964b-69e5-549c-b748-7c7339cbd4bb",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessnutritionProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ainvdjj",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessstatsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5ed80354-6c0d-564c-879f-7bba9bc4816d",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessstatsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "3h9jawf",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessstatsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "c8c0dda0-91b2-5032-bc35-02aee48cd059",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessstatsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "94p8z9q",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstemplatesBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5d25534c-870e-5730-92b3-1438c39d823e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstemplatesBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "jj9zela",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstemplatesProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "732d5141-d9af-58ea-a90d-9cda1359f78f",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstemplatesProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "hpk8kzj",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstrainingcyclesBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "61468eb6-99b6-5561-8fa9-fa5e4f3a9d91",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstrainingcyclesBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "5laesro",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstrainingcyclesProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "f46ab8fa-1b96-5f41-af1c-afd2afa4a8fd",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnesstrainingcyclesProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "51r7foc",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessworkoutsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5d2984a9-876d-5900-9f0a-80d86609194e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessworkoutsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "l6rxw2s",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessworkoutsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "057b52e0-42ee-55c3-91eb-e1e7241efa11",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "FitnessworkoutsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "nesngve",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "045z1ul",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeComplaintsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-complaints",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeComplaintsRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "3vkbwhg",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymCheckinsGetRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "7hyfj5o",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymCheckinsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-checkins",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymCheckinsPostRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "cmq4gi6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsCancelMembershipPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-memberships-id-cancel-membership",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsCancelMembershipRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "x33r8d2",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsCancelPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-memberships-id-cancel",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsCancelRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "h01w0lm",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsIdPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-memberships-id-",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsIdRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "fx5ps3u",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsPayPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-memberships-id-pay",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsPayRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ca6znwr",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-me-gym-memberships",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymMeGymMembershipsRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "q30z6lt",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymAffiliationsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-pt-gym-affiliations",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymAffiliationsRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "iz1o0hv",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymInvitationsIdPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-pt-gym-invitations-id-",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymInvitationsIdRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "56l7prf",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymInvitationsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-pt-gym-invitations",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtGymInvitationsRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "p1yjqic",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtPtUserIdGymsPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "hotfix-pt-ptUserId-gyms",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymPtPtUserIdGymsRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "atfo58e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbranchdocumentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-branch-documents-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbranchdocumentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "esz25ge",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbranchdocumentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-branch-documents-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbranchdocumentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "xf9x9ua",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbrandsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-brands-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbrandsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "sdsqnz9",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbrandsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-brands-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminbrandsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "3xm8fwq",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincommissionrateBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-commission-rate-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincommissionrateBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "lszd6nm",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincommissionrateProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-commission-rate-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincommissionrateProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "i6e87zb",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintphotosBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-complaint-photos-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintphotosBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "3ltqisf",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintphotosProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-complaint-photos-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintphotosProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "svsel22",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-complaints-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "j1zikb4",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-complaints-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmincomplaintsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "0fwxutq",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymmembershipsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-gym-memberships-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymmembershipsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ol4bbq5",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymmembershipsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-gym-memberships-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymmembershipsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "lf1r6ca",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-gyms-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "w0hu166",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-gyms-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadmingymsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "58us9ti",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartneraccountsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-partner-accounts-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartneraccountsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "j6jnr1m",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartneraccountsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-partner-accounts-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartneraccountsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "famsfr2",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartnersBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-partners-exact",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartnersBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "6nc986n",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartnersProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "admin-partners-proxy",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymadminpartnersProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "w730nap",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymcollaborationsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "1c88ad0a-99f4-5d68-8d8b-14e6ded1c656",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymcollaborationsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "wnat8l3",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymcollaborationsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "8a6f14ce-31b3-51b6-9383-4761b586adcd",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymcollaborationsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "tj6cmlc",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymgymsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5cd71c66-fa90-5c6e-a9a2-bee7a2a21c9a",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymgymsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "w7k9zoo",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymgymsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "a7498c96-e127-5465-ba5b-c3530615a03e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymgymsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "8bx6hwl",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymownerBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "318a56df-ec6b-53fb-8908-c41de005bc7c",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymownerBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ipmsbj1",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymownerProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "2e5400e9-30df-5e46-8103-dd3fad3eeb8a",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "GymownerProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "s9eyv0o",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "HealthIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "uvqqpy4",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "HealthPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "dbaa99cc-bf59-594b-92ed-f8499b7af824",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "HealthRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "hu01bl2",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "tqe5r7h",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseradminBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "d314abc8-f889-5736-96ba-f465152781ff",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseradminBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "mdpctvi",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseradminProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "d1f362de-2689-5936-b444-3cbf96d5c79c",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseradminProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "wfkvdlk",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseravailabilityBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "a334593b-5f28-544f-aece-582d0ad71e65",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseravailabilityBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ozcusqo",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseravailabilityProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "62b9ce82-3959-57fc-92f1-749b73b73246",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UseravailabilityProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "w2a80m6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsercontractsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "b9e8c60a-e0f9-59f6-9182-803b4173ac60",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsercontractsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ls3te8j",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsercontractsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "b8310c8a-d397-5aac-888a-f7264c012792",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsercontractsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "yauy7z2",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserinbodyBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5d80e063-3317-52ee-b3ba-6aa4d3130975",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserinbodyBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "eh0vod1",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserinbodyProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "a0190746-809a-5f87-9e03-f24f3e916306",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserinbodyProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ekjml8p",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserlocationsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "dfcb30c2-983d-58c6-b2bc-7c51b023768e",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserlocationsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "sti5ne2",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserlocationsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "76d82055-0fca-5ff4-8e85-436aae2c58a3",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserlocationsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "7ntf1qc",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsermeBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "9e8a21f5-17b7-590d-ad8c-4ff457ccb6b1",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsermeBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "8zf6b99",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsermeProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "40cb65b0-8fd2-5b2c-a56e-8d49d12ea6ab",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsermeProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "9r1iooo",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsernotificationsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "c023d055-6d9e-545b-af99-9d190633f734",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsernotificationsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "uwtdhye",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsernotificationsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "0b3662c1-5d7f-5cc2-b59e-2729dc3a55ee",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsernotificationsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "0bkv0mf",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserprofileBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "f2280175-f0d2-5cdf-9f27-9dd093081572",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserprofileBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "vy11qph",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserprofileProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "91cb048e-aa2b-5cbe-be6f-0aaeb6ab25af",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserprofileProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "3zu5nin",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "8b26a6ac-e8fe-5cae-abb7-c1a641a706ed",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "4xyore1",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "513b3c1f-89a1-5a5f-ba1e-9662f0fd4282",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "85gmdtp",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptapplicationsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "756b3887-694c-50ce-9320-1f8476f736b6",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptapplicationsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "bwk10qr",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptapplicationsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5605e27e-4979-5e2f-9257-7b1268021684",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UserptapplicationsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "2ekkgno",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsersessionsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "5265d51a-5c91-59fd-88d0-17721c10ff19",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsersessionsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "khx3zci",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsersessionsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "70d8ef34-2d41-5a2e-beb1-56726d79a10b",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "UsersessionsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "tfku6cv",
+      "STATUS": "STACK_MANAGED (Batch 1, imported Phase 15B-B2A)",
+      "RESOURCE_STATUS": "UPDATE_COMPLETE"
+    },
+    {
+      "LOGICAL_ID": "PaymentIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "w9fjro0",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "1vnd68s",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "vq6v245",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthMeIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "mg2016a",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "1m2k0ec",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "6l59zzc",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "4y4qfnr",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "9ibcmaf",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisableIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "ai0sybi",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnableIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "9291bod",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRoleIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "5z0d625",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "PHYSICAL_ID": "0dz9hk6",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "6xzii05",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "xem7w3d",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "pdyttwa",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "qzs0h76",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthMeRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "udx6zk8",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthMePasswordRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "kglwdf4",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "b4qz92c",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "v1ulrmi",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "s6u0xlk",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "t5rs0fv",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisableRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "b13kqj2",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnableRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "inqm7z3",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRoleRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "od61vtj",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "bql2ffm",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "q2x73ci",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "aexyi40",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ky8pdte",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "fnw2xg2",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "wz6h20l",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "18pp73s",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "hccamfd",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "6sa0fv8",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "ggous3t",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "25k6vpo",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentVnpayReturnRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "1a39mw9",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookProviderRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "gd8slzc",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookVnpayRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "PHYSICAL_ID": "lc4uib6",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "4b688a74-fac9-55d1-9aea-f2991a612f30 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "76615900-0d3e-5b89-9d91-0bd373206d23 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "72afdf9d-7781-5b76-9d15-3934874f10d6 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "f553221d-5393-559b-9674-fc44edd40b6e (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRolePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "0fcfe73c-7fa5-5e64-8663-61d76f2e6dba (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "ebf2f04e-95b9-5a57-ab25-72b54a7f9801 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisablePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "243bcfe0-270c-5634-9451-a7eff781cc8a (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnablePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "161e1a2d-183d-5ae7-bffb-29310adaf3ff (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthMePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "d320efbb-5b94-5605-a88e-0c84fa2299f9 (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "AuthMePasswordPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "apigw-auth-me-password (FunctionName=fitness-assistant-dev-auth)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "ad16c206-6bf8-56b2-b564-51afa40764ab (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "24e3e0fb-a876-505a-b857-d145ce1e9522 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "4ffd67f3-ba68-5082-9ed0-d9f4b059bbf7 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "bad0bcde-985e-59af-97a7-f7ca98de6902 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "c2627d1c-a232-5769-916b-e013479ed8ef (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "be3b441a-f86a-5910-a007-4d7a142096a5 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "d0955da6-ec61-52f8-9c44-2331da64ea0a (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "83e8c4bf-7d55-55b1-a0c3-03c1336e905d (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "27dfa253-38d1-553f-86cb-d33f459fbab8 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "cc4008ee-6c01-5247-85d0-2e4b294b882e (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "b3662570-3dfb-5270-ae0b-784ad916ab1c (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "544c730d-fe5c-50cd-ab97-e03aa7d383af (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentVnpayReturnPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "3f918279-e486-532f-8f24-9642831b81c8 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookProviderPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "9e68fb48-61a1-5de1-8098-dad2b49ee291 (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookVnpayPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "PHYSICAL_ID": "64dfbfa3-2b1c-5b9a-8ba3-c81114edae3b (FunctionName=fitness-assistant-dev-payment)",
+      "STATUS": "PROPOSED_IMPORT (Batch 2, this phase)",
+      "RESOURCE_STATUS": "NOT_YET_IMPORTED"
+    }
+  ]
+}

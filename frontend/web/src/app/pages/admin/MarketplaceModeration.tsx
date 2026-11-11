@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckIcon as Check, CaretDownIcon as ChevronDown, FileTextIcon as FileText, CircleNotchIcon as Loader2, ShieldWarningIcon as ShieldAlert, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store, XIcon as X } from "@phosphor-icons/react";
+import { CheckIcon as Check, CaretDownIcon as ChevronDown, FileTextIcon as FileText, CircleNotchIcon as Loader2, ShieldWarningIcon as ShieldAlert, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store, TrashIcon as Trash, XIcon as X } from "@phosphor-icons/react";
 import { marketplaceService } from "../../services/api";
 
 const FILTERS: Record<string, string> = {
@@ -30,6 +30,7 @@ export function MarketplaceModeration() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<keyof typeof FILTERS>("SUBMITTED");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
   const listQuery = useQuery({
@@ -59,6 +60,20 @@ export function MarketplaceModeration() {
     onError: (error: any) => {
       toast.error(
         error?.response?.data?.error?.message ?? "Không thể cập nhật",
+      );
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => marketplaceService.adminDeleteApprovedPlan(id),
+    onSuccess: () => {
+      toast.success("Đã xoá kế hoạch khỏi chợ");
+      setDeletingId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "marketplace"] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error?.message ?? "Không thể xoá kế hoạch",
       );
     },
   });
@@ -262,6 +277,47 @@ export function MarketplaceModeration() {
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/60 px-3 py-1.5 text-xs text-zinc-300 hover:border-red-500/40 hover:text-red-400 transition-colors"
                     >
                       <X className="h-3.5 w-3.5" /> Từ chối
+                    </button>
+                  </div>
+                ))}
+              {filter === "APPROVED" &&
+                (deletingId === listing.id ? (
+                  <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+                    <p className="text-xs text-red-200">
+                      Xoá kế hoạch đã duyệt khỏi chợ? Các gói bán, review và báo cáo duyệt liên quan sẽ bị xoá theo listing này.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => deleteMutation.mutate(listing.id)}
+                        disabled={deleteMutation.isPending}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-red-400 disabled:opacity-50"
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash className="h-3.5 w-3.5" />
+                        )}
+                        Xác nhận xoá
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingId(null)}
+                        disabled={deleteMutation.isPending}
+                        className="rounded-lg border border-zinc-700/60 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-50"
+                      >
+                        Huỷ
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setDeletingId(listing.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-bold text-red-400 transition-colors hover:border-red-400 hover:bg-red-500/10"
+                    >
+                      <Trash className="h-3.5 w-3.5" /> Xoá khỏi chợ
                     </button>
                   </div>
                 ))}

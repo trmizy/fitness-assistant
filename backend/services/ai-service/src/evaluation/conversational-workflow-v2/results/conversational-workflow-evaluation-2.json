@@ -1,6 +1,6 @@
 {
   "evaluator": "codex-conversational-ai-coach-evaluation-2",
-  "generatedAt": "2026-09-20T06:24:17.619Z",
+  "generatedAt": "2026-09-22T04:28:12.578Z",
   "decision": "GO_WITH_DOCUMENTED_LIMITATIONS",
   "summary": {
     "PASS": 30,
@@ -17,7 +17,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "0c3c2d6f-4d8a-472b-8048-5782f1e13c64",
+          "workflowId": "bbdea88b-330e-484a-bdd0-b2d8fc70d6d4",
           "allowUseOnce": false,
           "changes": [
             {
@@ -68,7 +68,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "0b8ca1c1-5ad3-4dae-9ba8-de1c9f2d2143",
+          "workflowId": "0273d5eb-b2fa-4c0f-8c11-2db1d693a1fa",
           "allowUseOnce": false,
           "changes": [
             {
@@ -119,7 +119,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "a951bb75-2a27-487f-9ecf-f85d4a0aa786",
+          "workflowId": "b422f008-5083-4ebe-bf7b-cd34c1a4fee6",
           "allowUseOnce": false,
           "changes": [
             {
@@ -170,7 +170,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "87d029c9-d6ad-4381-b4b9-937b54a4e080",
+          "workflowId": "a353cc4f-6e06-4f31-b893-ed3acfddf430",
           "allowUseOnce": false,
           "changes": [
             {
@@ -221,7 +221,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "daf91d71-0a0a-48bd-9daf-60f1e595030b",
+          "workflowId": "c4841d69-548c-47c7-8e25-834e6a2269df",
           "allowUseOnce": false,
           "changes": [
             {
@@ -272,7 +272,7 @@
       "observed": {
         "proposalBlock": {
           "type": "PROFILE_UPDATE_CONFIRMATION",
-          "workflowId": "f6de6c17-6730-4cf6-ac77-cbff3fabfd8e",
+          "workflowId": "d2bb7b8f-af64-4f37-a7fa-2e7f4755f16c",
           "allowUseOnce": false,
           "changes": [
             {
@@ -326,9 +326,9 @@
           "blocks": []
         },
         "row": {
-          "id": "b6c8b639-b0ba-4aad-a839-db85d707335f",
-          "userId": "v2-unsafe-known-8feaceb3-3801-4653-a4e8-e82e1f351776",
-          "sessionId": "c0ad7b8e-51a4-47e4-ad36-573d38057629",
+          "id": "7288b7b8-69d6-4042-abc2-8584491aca9b",
+          "userId": "v2-unsafe-known-732e9755-29ea-4939-a37e-5647756bc4c5",
+          "sessionId": "a282d3f5-4f43-4ee8-a527-2f2601d9f7d1",
           "workflowType": "CREATE_ROADMAP",
           "status": "COLLECTING_SLOTS",
           "expectedSlot": "targetWeight",
@@ -336,9 +336,9 @@
           "pendingProfileUpdate": null,
           "draftRef": null,
           "revision": 0,
-          "expiresAt": "2026-09-20T06:54:15.914Z",
-          "createdAt": "2026-09-20T06:24:15.915Z",
-          "updatedAt": "2026-09-20T06:24:15.919Z"
+          "expiresAt": "2026-09-22T04:58:10.813Z",
+          "createdAt": "2026-09-22T04:28:10.818Z",
+          "updatedAt": "2026-09-22T04:28:10.821Z"
         },
         "calls": {
           "updateProfileFields": [],
@@ -382,7 +382,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "593446a2-075d-4831-a35d-50fac29399be",
+              "workflowId": "cb4b3c40-35e0-4105-b5ed-f9cba136b310",
               "workflowType": "CREATE_ROADMAP",
               "known": [
                 {
@@ -417,7 +417,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "593446a2-075d-4831-a35d-50fac29399be",
+              "workflowId": "cb4b3c40-35e0-4105-b5ed-f9cba136b310",
               "workflowType": "CREATE_ROADMAP",
               "known": [
                 {
@@ -448,9 +448,9 @@
           ]
         },
         "row": {
-          "id": "593446a2-075d-4831-a35d-50fac29399be",
-          "userId": "v2-unsafe-deferred-e9f110f0-07ec-4258-a40c-7eb91b5f0c07",
-          "sessionId": "afc3b745-415b-4f4a-ac3a-f087dc6fd217",
+          "id": "cb4b3c40-35e0-4105-b5ed-f9cba136b310",
+          "userId": "v2-unsafe-deferred-4f0f868f-993a-4697-8335-fee717e52ad7",
+          "sessionId": "7dc875d0-0925-410d-b088-a694fcd81b15",
           "workflowType": "CREATE_ROADMAP",
           "status": "COLLECTING_SLOTS",
           "expectedSlot": "targetWeight",
@@ -463,9 +463,9 @@
           "pendingProfileUpdate": null,
           "draftRef": null,
           "revision": 0,
-          "expiresAt": "2026-09-20T06:54:15.983Z",
-          "createdAt": "2026-09-20T06:24:15.963Z",
-          "updatedAt": "2026-09-20T06:24:15.984Z"
+          "expiresAt": "2026-09-22T04:58:10.869Z",
+          "createdAt": "2026-09-22T04:28:10.856Z",
+          "updatedAt": "2026-09-22T04:28:10.874Z"
         },
         "calls": {
           "updateProfileFields": [],
@@ -519,7 +519,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "668a1de6-0c12-454f-9c99-507004690aed",
+              "workflowId": "df3cd526-77cf-4328-a221-364bafe4ec26",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -577,7 +577,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "60cdb63c-16eb-4f0b-9f71-f90c76af09d0",
+              "workflowId": "07812d46-8358-4fe6-826d-4e70dd47d304",
               "workflowType": "CREATE_ROADMAP",
               "known": [
                 {
@@ -620,7 +620,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "60cdb63c-16eb-4f0b-9f71-f90c76af09d0",
+              "workflowId": "07812d46-8358-4fe6-826d-4e70dd47d304",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -711,7 +711,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "f2d80a74-0d07-42f9-b9cc-fbe614ccd822",
+              "workflowId": "e74960bc-afc7-4ad3-b24d-235a5b919b9a",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -751,7 +751,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "0d72ceff-08bd-4af0-89d7-f904e912bc50",
+              "workflowId": "5c177d5b-85b8-4c78-ae31-159409957222",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -797,7 +797,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "0dfde627-e89f-41b4-a8f6-103e843bbacd",
+              "workflowId": "e3bf8562-9502-467e-b9d2-ad981879c1db",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -856,7 +856,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "5cfde2e9-6b40-4c9e-95e8-d0f5a8aeb1f2",
+              "workflowId": "d962f560-71bf-4483-a60c-147aa21de17b",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -915,7 +915,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "c7427a5c-367d-4244-98a9-74881252592b",
+              "workflowId": "dedecdf9-41d9-4f70-b1f9-49b4d99cd323",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -974,7 +974,7 @@
           "blocks": [
             {
               "type": "PROFILE_UPDATE_CONFIRMATION",
-              "workflowId": "694952b7-20d5-474f-bebc-38771e1cc838",
+              "workflowId": "a3ed77e7-4237-40fd-b306-77489fefc69f",
               "allowUseOnce": false,
               "changes": [
                 {
@@ -1081,9 +1081,9 @@
         "responseCount": 20,
         "activeRows": [
           {
-            "id": "1b1f8c67-ae91-4520-bf77-1a4b3e543f8a",
-            "userId": "v2-concurrent-start-d064390d-0d46-4757-ad5f-f1b1d096283c",
-            "sessionId": "5eca2289-6de7-4bcd-ba04-55eda49b94f3",
+            "id": "ec673a05-d70b-4722-8025-4ca8be12eecb",
+            "userId": "v2-concurrent-start-bd24b4ff-3230-438a-969e-ad921ed18266",
+            "sessionId": "442f56a5-a04c-47ae-ac86-46c01fc766c5",
             "workflowType": "CREATE_ROADMAP",
             "status": "COLLECTING_SLOTS",
             "expectedSlot": "targetWeight",
@@ -1091,9 +1091,9 @@
             "pendingProfileUpdate": null,
             "draftRef": null,
             "revision": 0,
-            "expiresAt": "2026-09-20T06:54:16.657Z",
-            "createdAt": "2026-09-20T06:24:16.658Z",
-            "updatedAt": "2026-09-20T06:24:16.676Z"
+            "expiresAt": "2026-09-22T04:58:11.434Z",
+            "createdAt": "2026-09-22T04:28:11.439Z",
+            "updatedAt": "2026-09-22T04:28:11.456Z"
           }
         ]
       }
@@ -1105,59 +1105,51 @@
       "summary": "Different workflow race invariant.",
       "observed": {
         "a": {
-          "answer": "Để xây lộ trình phù hợp, bạn muốn giảm xuống khoảng bao nhiêu kg?",
+          "answer": "Mình đang xử lý một yêu cầu khác cho cuộc trò chuyện này — bạn thử lại sau giây lát nhé.",
+          "blocks": []
+        },
+        "b": {
+          "answer": "Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng?",
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "892c1682-048e-4827-b84f-921ffd81f551",
-              "workflowType": "CREATE_ROADMAP",
+              "workflowId": "2dea8e68-ae30-4bcc-9804-6aa5cbed129a",
+              "workflowType": "FIND_PT",
               "known": [
                 {
-                  "label": "mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất)",
-                  "value": "Giảm mỡ"
+                  "label": "mục tiêu tập luyện",
+                  "value": "WEIGHT_LOSS"
                 },
                 {
-                  "label": "tuổi",
-                  "value": "30 tuổi"
+                  "label": "các ngày tập được",
+                  "value": "T2, T4, T6"
                 },
                 {
-                  "label": "chiều cao",
-                  "value": "170 cm"
-                },
-                {
-                  "label": "cân nặng hiện tại",
-                  "value": "80 kg"
-                },
-                {
-                  "label": "giới tính",
-                  "value": "Nam"
+                  "label": "thời lượng mỗi buổi",
+                  "value": "60 phút"
                 }
               ],
               "missing": [
-                "cân nặng mục tiêu"
+                "ngân sách cho PT"
               ]
             }
           ]
         },
-        "b": {
-          "answer": "Mình đang xử lý một yêu cầu khác cho cuộc trò chuyện này — bạn thử lại sau giây lát nhé.",
-          "blocks": []
-        },
         "activeRows": [
           {
-            "id": "892c1682-048e-4827-b84f-921ffd81f551",
-            "userId": "v2-concurrent-types-e338bb6a-3932-48b3-90e0-40b550fc21d5",
-            "sessionId": "f2448a6f-c24b-4422-b749-250367e52c68",
-            "workflowType": "CREATE_ROADMAP",
+            "id": "2dea8e68-ae30-4bcc-9804-6aa5cbed129a",
+            "userId": "v2-concurrent-types-47429282-259c-42f1-a7c4-fff546864021",
+            "sessionId": "0f9453ac-925f-4968-97ed-c1a65b3cb01c",
+            "workflowType": "FIND_PT",
             "status": "COLLECTING_SLOTS",
-            "expectedSlot": "targetWeight",
+            "expectedSlot": "budgetVnd",
             "slotsJson": {},
             "pendingProfileUpdate": null,
             "draftRef": null,
             "revision": 0,
-            "expiresAt": "2026-09-20T06:54:16.787Z",
-            "createdAt": "2026-09-20T06:24:16.788Z",
-            "updatedAt": "2026-09-20T06:24:16.793Z"
+            "expiresAt": "2026-09-22T04:58:11.670Z",
+            "createdAt": "2026-09-22T04:28:11.675Z",
+            "updatedAt": "2026-09-22T04:28:11.681Z"
           }
         ]
       }
@@ -1172,19 +1164,19 @@
         "bType": "PROFILE_UPDATE_CONFIRMATION",
         "rows": [
           {
-            "id": "a27b2c67-8ae4-42a0-965f-e84f15d3fe82",
-            "userId": "v2-concurrent-slots-daffc079-56ac-4086-b347-96a72ba1887b",
-            "sessionId": "a44cde32-8aba-451f-a906-a84102b502e1",
+            "id": "d0d255b6-f394-4ec0-9dc5-fc43a1e0b0b1",
+            "userId": "v2-concurrent-slots-405bea70-6555-4d24-8632-436c92a991a2",
+            "sessionId": "b8614b2c-ed3e-41a3-b1f0-b225c80ad15e",
             "workflowType": "CREATE_ROADMAP",
             "status": "AWAITING_SLOT_CONFIRMATION",
             "expectedSlot": null,
             "slotsJson": {
-              "targetWeight": 70
+              "targetWeight": 72
             },
             "pendingProfileUpdate": [
               {
                 "slotKey": "targetWeight",
-                "newValue": 70,
+                "newValue": 72,
                 "oldValue": null,
                 "profileField": "targetWeight",
                 "expectedCurrentValue": null
@@ -1192,15 +1184,15 @@
             ],
             "draftRef": null,
             "revision": 0,
-            "expiresAt": "2026-09-20T06:54:16.856Z",
-            "createdAt": "2026-09-20T06:24:16.840Z",
-            "updatedAt": "2026-09-20T06:24:16.857Z"
+            "expiresAt": "2026-09-22T04:58:11.734Z",
+            "createdAt": "2026-09-22T04:28:11.720Z",
+            "updatedAt": "2026-09-22T04:28:11.739Z"
           }
         ],
         "pending": [
           {
             "slotKey": "targetWeight",
-            "newValue": 70,
+            "newValue": 72,
             "oldValue": null,
             "profileField": "targetWeight",
             "expectedCurrentValue": null
@@ -1214,7 +1206,7 @@
       "severity": "INFO",
       "summary": "Concurrent confirm is write-claimed.",
       "observed": {
-        "aType": "ACTION_CONFIRMATION",
+        "bType": "ACTION_CONFIRMATION",
         "calls": {
           "updateProfileFields": [
             {
@@ -1317,7 +1309,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "0427d902-95d5-4e3e-a6b7-443660ae47ad",
+              "workflowId": "45a28917-0755-453a-8582-a3131825599b",
               "workflowType": "FIND_PT",
               "known": [
                 {
@@ -1384,7 +1376,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "1ee1909c-5a4a-4348-a190-a68c14e736a1",
+              "workflowId": "62592c2e-7f53-4372-8a66-5fef39196f77",
               "workflowType": "FIND_PT",
               "known": [
                 {
@@ -1450,7 +1442,7 @@
           "blocks": [
             {
               "type": "WORKFLOW_MISSING_DATA",
-              "workflowId": "a150b1e6-1af5-4394-93a5-5e0af679019a",
+              "workflowId": "9876dc8b-45fd-4be2-8207-6fbc0e37f035",
               "workflowType": "FIND_PT",
               "known": [
                 {
@@ -1513,7 +1505,7 @@
       "observed": {
         "selected": {
           "type": "ACTION_CONFIRMATION",
-          "actionId": "a67682df-d6e4-4824-8cf1-11f4970d6349",
+          "actionId": "8cb596b8-4b59-4ba1-a3cb-f654348e17f3",
           "kind": "CREATE_PT_CONTRACT_DRAFT",
           "risk": "HIGH",
           "title": "PT Codex",
@@ -1522,7 +1514,7 @@
             "price": 1500000,
             "sessions": 8
           },
-          "expiresAt": "2026-09-20T06:39:17.305Z",
+          "expiresAt": "2026-09-22T04:43:12.231Z",
           "note": "Tạo bản nháp; chưa thanh toán. PT vẫn phải duyệt yêu cầu qua quy trình hợp đồng hiện có."
         },
         "draft": {
@@ -1545,9 +1537,9 @@
               "budgetVnd": 1500000,
               "sessionMinutes": 60
             },
-            "actionId": "a67682df-d6e4-4824-8cf1-11f4970d6349"
+            "actionId": "8cb596b8-4b59-4ba1-a3cb-f654348e17f3"
           },
-          "expiresAt": "2026-09-20T06:39:17.335Z",
+          "expiresAt": "2026-09-22T04:43:12.262Z",
           "note": "Chỉ gửi yêu cầu hợp đồng. PT duyệt và bạn thanh toán qua quy trình hiện có; chưa tự động trừ tiền."
         },
         "final": {
@@ -1585,7 +1577,7 @@
                 "budgetVnd": 1500000,
                 "sessionMinutes": 60
               },
-              "actionId": "a67682df-d6e4-4824-8cf1-11f4970d6349"
+              "actionId": "8cb596b8-4b59-4ba1-a3cb-f654348e17f3"
             }
           ],
           "confirmPTContract": [

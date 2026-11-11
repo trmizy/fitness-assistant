@@ -1,0 +1,492 @@
+{
+ "note": "Phase 4.7R2 development-side metrics. All sets below were available for tuning; NOT a generalisation verdict. Diagnostic V2 = rag-grounding-heldout-v2.json (observed).",
+ "devV3": {
+  "queries": 145,
+  "baseline": {
+   "queries": 145,
+   "inScope": 61,
+   "topicHit_at1": 0.393,
+   "topicHit_at3": 0.41,
+   "relevantCuratedEvidence_at3": 0.026,
+   "syntheticTop1_evidenceQueries": 0.949,
+   "duplicateRate": 0.404,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0.1,
+   "safeAbstention": {
+    "n": 27,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 30,
+    "count": 30
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 15,
+     "leaks": 15
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 11,
+     "leaks": 11
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 9,
+     "leaks": 9
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 8,
+     "leaks": 8
+    },
+    "OTHER_OOD": {
+     "n": 14,
+     "leaks": 14
+    }
+   },
+   "ambiguousTermOodPrecision": 0,
+   "ctxTokensEst": {
+    "p50": 376,
+    "p90": 614,
+    "max": 985
+   },
+   "latencyMs": {
+    "p50": 170,
+    "p90": 308
+   }
+  },
+  "v2_2": {
+   "queries": 145,
+   "inScope": 61,
+   "topicHit_at1": 0.885,
+   "topicHit_at3": 0.967,
+   "relevantCuratedEvidence_at3": 0.949,
+   "syntheticTop1_evidenceQueries": 0.051,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.016,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 27,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 30,
+    "count": 0
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 15,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 11,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 9,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 8,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 14,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": 1,
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 696,
+    "max": 743
+   },
+   "latencyMs": {
+    "p50": 63,
+    "p90": 75
+   }
+  },
+  "byDomain_v2_2": {
+   "TECHNIQUE": {
+    "n": 1,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "EXERCISE_CATALOG": {
+    "n": 10,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "NUTRITION": {
+    "n": 12,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 14,
+    "topicHit_at3": 0.929,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "TERMINOLOGY": {
+    "n": 1,
+    "topicHit_at3": 0,
+    "empty": 1
+   },
+   "STRENGTH": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "diagnosticV2": {
+  "baseline": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.383,
+   "topicHit_at3": 0.426,
+   "relevantCuratedEvidence_at3": 0.088,
+   "syntheticTop1_evidenceQueries": 0.853,
+   "duplicateRate": 0.397,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 9,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "ctxTokensEst": {
+    "p50": 415,
+    "p90": 619,
+    "max": 1224
+   },
+   "latencyMs": {
+    "p50": 186,
+    "p90": 356
+   }
+  },
+  "v2_1_oneShot": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.723,
+   "topicHit_at3": 0.787,
+   "relevantCuratedEvidence_at3": 0.824,
+   "syntheticTop1_evidenceQueries": 0,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.313,
+   "emptyRetrieval_inScope": 0.106,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 9,
+    "success": 0.889,
+    "returnedNonTrusted": 0.111
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 719,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 67,
+    "p90": 87
+   }
+  },
+  "v2_2": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.809,
+   "topicHit_at3": 0.894,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.021,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 9,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 12,
+    "count": 0
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 16,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": null,
+   "ctxTokensEst": {
+    "p50": 525,
+    "p90": 712,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 64,
+    "p90": 75
+   }
+  },
+  "byDomain_v2_2": {
+   "NUTRITION": {
+    "n": 14,
+    "topicHit_at3": 0.786,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0.2
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "generalizationDevV2": {
+  "baseline": {
+   "queries": 104,
+   "inScope": 77,
+   "topicHit_at1": 0.351,
+   "topicHit_at3": 0.377,
+   "relevantCuratedEvidence_at3": 0.057,
+   "syntheticTop1_evidenceQueries": 0.906,
+   "duplicateRate": 0.419,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 8,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "ctxTokensEst": {
+    "p50": 389,
+    "p90": 572,
+    "max": 1016
+   },
+   "latencyMs": {
+    "p50": 147,
+    "p90": 239
+   }
+  },
+  "v2_2": {
+   "queries": 104,
+   "inScope": 77,
+   "topicHit_at1": 0.844,
+   "topicHit_at3": 0.896,
+   "relevantCuratedEvidence_at3": 0.925,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.052,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 8,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 10,
+    "count": 0
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 19,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": null,
+   "ctxTokensEst": {
+    "p50": 512,
+    "p90": 716,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 65,
+    "p90": 79
+   }
+  }
+ },
+ "originalDev111": {
+  "baseline": {
+   "queries": 111,
+   "inScope": 106,
+   "topicHit_at1": 0.528,
+   "topicHit_at3": 0.575,
+   "relevantCuratedEvidence_at3": 0.185,
+   "syntheticTop1_evidenceQueries": 0.796,
+   "duplicateRate": 0.375,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "ctxTokensEst": {
+    "p50": 349,
+    "p90": 610,
+    "max": 1393
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 84
+   }
+  },
+  "v2_2": {
+   "queries": 111,
+   "inScope": 106,
+   "topicHit_at1": 0.689,
+   "topicHit_at3": 0.783,
+   "relevantCuratedEvidence_at3": 0.87,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.151,
+   "catalogRecall_at3": 0.778,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 7,
+    "count": 1
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": null,
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 711,
+    "max": 756
+   },
+   "latencyMs": {
+    "p50": 67,
+    "p90": 76
+   }
+  }
+ },
+ "diagnosticV1": {
+  "baseline": {
+   "queries": 56,
+   "inScope": 50,
+   "topicHit_at1": 0.32,
+   "topicHit_at3": 0.38,
+   "relevantCuratedEvidence_at3": 0.059,
+   "syntheticTop1_evidenceQueries": 0.941,
+   "duplicateRate": 0.468,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": null,
+   "ctxTokensEst": {
+    "p50": 445,
+    "p90": 619,
+    "max": 810
+   },
+   "latencyMs": {
+    "p50": 195,
+    "p90": 299
+   }
+  },
+  "v2_2": {
+   "queries": 56,
+   "inScope": 50,
+   "topicHit_at1": 0.76,
+   "topicHit_at3": 0.84,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.08,
+   "catalogRecall_at3": null,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 4,
+    "count": 0
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 6,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": null,
+   "ctxTokensEst": {
+    "p50": 683,
+    "p90": 719,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 68,
+    "p90": 79
+   }
+  }
+ }
+}

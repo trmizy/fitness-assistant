@@ -1,0 +1,56 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageRoutesIntegrationsStagesOfProtectedApi",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*",
+        "arn:aws:apigateway:ap-southeast-1::/tags/*"
+      ]
+    },
+    {
+      "Sid": "ReadProtectedApi",
+      "Effect": "Allow",
+      "Action": "apigateway:GET",
+      "Resource": "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl"
+    },
+    {
+      "Sid": "InvokePermissionsOnApiFacingLambdas",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:GetFunction"
+      ],
+      "Resource": [
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+      ]
+    },
+    {
+      "Sid": "IamLevelHardStopOnApiDeletionOrCreation",
+      "Effect": "Deny",
+      "Action": [
+        "apigateway:DELETE",
+        "apigateway:POST"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+        "arn:aws:apigateway:ap-southeast-1::/apis"
+      ]
+    }
+  ]
+}

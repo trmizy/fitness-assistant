@@ -41,6 +41,15 @@ interface QueueMessage {
   data: unknown;
 }
 
+// The TS union type above is compile-time only — `JSON.parse` gives no runtime guarantee the
+// message actually carries one of these two values. Without this check, any other `name` (a
+// producer bug, a future task type added to queue-provider.ts's AiTaskName without updating
+// this handler, or corrupted message data) silently fell through the `else` branch below into
+// the workout-plan processor, relying only on incidental Zod-schema mismatch inside
+// processAiTaskJob to ever surface the problem. Named here from the same two values
+// queue-provider.ts's AiTaskName type and ai.worker.ts's own internal name check use.
+const KNOWN_TASK_NAMES = new Set(["generate-plan", "generate-nutrition-plan"]);
+
 function buildJobShim(
   messageId: string,
   approximateReceiveCount: string | undefined,
@@ -66,6 +75,11 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   for (const record of event.Records) {
     try {
       const message = JSON.parse(record.body) as QueueMessage;
+      if (!KNOWN_TASK_NAMES.has(message.name)) {
+        throw new Error(
+          `Unknown ai-tasks message name "${message.name}" — refusing to guess a processor`,
+        );
+      }
       const job = buildJobShim(
         record.messageId,
         record.attributes?.ApproximateReceiveCount,

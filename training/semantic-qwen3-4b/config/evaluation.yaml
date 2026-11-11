@@ -1,0 +1,36 @@
+# Weighted product score for selecting a best candidate (task §19/§38).
+# Mirrors SCORE_WEIGHTS in scripts/tune_optuna.py - this file documents the
+# weights; the script is the source of truth that actually applies them.
+#
+# Chosen from what evaluate_semantics.py can actually measure today (see
+# docs/ai-training/local-qwen4b-training-pipeline.md §8/§22) - correction/
+# reference/ambiguity accuracy are in the task's own example weighting but
+# are not implemented yet, so their weight was redistributed to the metrics
+# that exist, rather than silently scoring an unimplemented metric as 0
+# (which would equally penalize every candidate and not reflect reality).
+# Revisit these weights once those metrics are added.
+weights:
+  primaryIntentAccuracy: 0.25
+  entityF1Mean: 0.20
+  schemaValidityRate: 0.20
+  jsonValidityRate: 0.15
+  # Not a raw metric - computed as 1 / (1 + meanLatencySeconds) so a lower
+  # latency always scores higher, bounded to (0, 1].
+  meanLatencySecondsInverse: 0.20
+
+# Safety is a GATE, never a weighted term (task §18/§19/§29): any candidate
+# with unsafeOutputRate > 0 scores 0 outright and can never be selected as
+# best, regardless of every other metric.
+safety_gate:
+  unsafeOutputRate_must_equal: 0
+
+# Deferred metrics (task §17) - add here once implemented, with their own
+# weight, and rebalance the table above at that point; do not add a weight
+# for a metric that is not yet computed.
+not_yet_implemented:
+  - correctionAccuracy
+  - referenceAccuracy
+  - ambiguityAccuracy
+  - requestedActionAccuracy
+  - domainAccuracy
+  - timeoutRate   # currently folded into errorRate, not reported separately

@@ -118,6 +118,31 @@ test("substitution never returns an exercise the caller explicitly excluded", as
   assert.ok(!ranked.some((r) => r.id === excludeId));
 });
 
+test("Phase 3 R2 (H1 live-HTTP finding): substitution never returns a non-PUBLISHED (e.g. STAGING) exercise", async () => {
+  // Confirm-time persistence (/workouts/from-ai-plan) only maps PUBLISHED
+  // exercises; a STAGING row returned here as a "substitute" would pass the
+  // AI draft all the way to confirm and then fail there with a confusing
+  // "not_found" error (reproduced live via H1). Self-contained: creates its
+  // own STAGING row sharing the target's bodyPart/movementPattern (so it
+  // would otherwise rank highly) rather than depending on any particular
+  // STAGING row already existing in this environment's seed data.
+  const target = await prisma.exercise.findFirstOrThrow({ where: { exerciseName: "Dumbbell Bench Press" } });
+  const staging = await prisma.exercise.create({
+    data: {
+      exerciseName: "R2-test-staging-decoy-bench-press", typeOfActivity: target.typeOfActivity, typeOfEquipment: target.typeOfEquipment,
+      bodyPart: target.bodyPart, type: target.type, muscleGroupsActivated: target.muscleGroupsActivated, instructions: "test fixture",
+      movementPattern: target.movementPattern, mechanics: target.mechanics, status: "STAGING",
+    },
+  });
+  try {
+    const owned = await allEquipmentIds();
+    const ranked = await exerciseSubstitutionService.rankSubstitutes(target.id, owned, { limit: 500 });
+    assert.ok(!ranked.some((r) => r.id === staging.id), "a STAGING exercise must never be offered as a substitute, however well it would otherwise score");
+  } finally {
+    await prisma.exercise.delete({ where: { id: staging.id } });
+  }
+});
+
 test("substitution respects equipment availability — never suggests an exercise the user can't perform", async () => {
   const bodyweightOnly = await prisma.equipment.findMany({
     where: { slug: { in: ["bodyweight", "pull-up-bar"] } },

@@ -1,0 +1,134 @@
+{
+    "Changes": [
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "AppDeployRole",
+                "ResourceType": "AWS::IAM::Role",
+                "Scope": [],
+                "Details": []
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "CfnExecutionRole",
+                "ResourceType": "AWS::IAM::Role",
+                "Scope": [],
+                "Details": []
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "CiReadRole",
+                "ResourceType": "AWS::IAM::Role",
+                "Scope": [],
+                "Details": []
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "InfraApplyRole",
+                "ResourceType": "AWS::IAM::Role",
+                "Scope": [],
+                "Details": []
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "InfraPlanRole",
+                "ResourceType": "AWS::IAM::Role",
+                "Scope": [],
+                "Details": []
+            }
+        }
+    ],
+    "ChangeSetName": "phase-16b1b-cicd-iam-activation",
+    "ChangeSetId": "arn:aws:cloudformation:ap-southeast-1:191798898985:changeSet/phase-16b1b-cicd-iam-activation/9527f015-2b16-4ff6-83b9-d0bd05496c4b",
+    "StackId": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-cicd-iam/62a62150-c63f-11f1-890a-0affd989b073",
+    "StackName": "fitness-assistant-dev-cicd-iam",
+    "Description": null,
+    "Parameters": [
+        {
+            "ParameterKey": "ApiGatewayStackName",
+            "ParameterValue": "fitness-assistant-dev-api-gateway"
+        },
+        {
+            "ParameterKey": "InfraApplyEnvironmentName",
+            "ParameterValue": "dev-infra"
+        },
+        {
+            "ParameterKey": "ArtifactBucketName",
+            "ParameterValue": "fitness-assistant-deployments-dev-191798898985"
+        },
+        {
+            "ParameterKey": "ChatEcrRepositoryName",
+            "ParameterValue": "fitness-assistant-dev-chat"
+        },
+        {
+            "ParameterKey": "ChatTaskRoleName",
+            "ParameterValue": "fitness-assistant-dev-chat-task-role"
+        },
+        {
+            "ParameterKey": "ChatServiceName",
+            "ParameterValue": "fitness-assistant-dev-chat-service"
+        },
+        {
+            "ParameterKey": "ChatClusterName",
+            "ParameterValue": "fitness-assistant-dev-cluster"
+        },
+        {
+            "ParameterKey": "InfraPlanEnvironmentName",
+            "ParameterValue": "dev-infra-plan"
+        },
+        {
+            "ParameterKey": "ProtectedApiId",
+            "ParameterValue": "id1iz7upbl"
+        },
+        {
+            "ParameterKey": "GitHubRepository",
+            "ParameterValue": "trmizy/fitness-assistant"
+        },
+        {
+            "ParameterKey": "ChatExecutionRoleName",
+            "ParameterValue": "fitness-assistant-dev-chat-execution-role"
+        },
+        {
+            "ParameterKey": "DevEnvironmentName",
+            "ParameterValue": "dev"
+        },
+        {
+            "ParameterKey": "ExistingOidcProviderArn",
+            "ParameterValue": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com"
+        }
+    ],
+    "CreationTime": "2026-10-12T13:18:16.667000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+        "CAPABILITY_NAMED_IAM"
+    ],
+    "Tags": null,
+    "ParentChangeSetId": null,
+    "IncludeNestedStacks": false,
+    "RootChangeSetId": null,
+    "OnStackFailure": null,
+    "ImportExistingResources": null,
+    "StackDriftStatus": null,
+    "DeploymentMode": null,
+    "DeploymentConfig": {
+        "Mode": "STANDARD",
+        "DisableRollback": false
+    }
+}

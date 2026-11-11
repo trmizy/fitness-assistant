@@ -9,7 +9,7 @@ import Constants from "expo-constants";
 import { listingFlowHeaders } from "./listingFlow";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
-import { apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
+import { aiStreamUrl, apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
@@ -3817,12 +3817,12 @@ export const coachService = {
     }, 10000);
     const timeoutTimer = setTimeout(() => {
       controller.abort();
-    }, 75000);
+    }, 180000);
 
     (async () => {
       try {
         const sendStreamRequest = (token: string | null) =>
-          streamingFetch(`${API_URL}/ai/ask/stream`, {
+          streamingFetch(aiStreamUrl(), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

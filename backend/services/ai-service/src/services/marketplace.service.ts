@@ -242,15 +242,6 @@ export const marketplaceService = {
     // existing "you must have trained it to review it" rule. Applies to
     // every publisher equally, PT or not — see publisherIsVerifiedPt's doc
     // comment, which is a label only, never a bypass of this check.
-    const publisherHasTrainedIt = await marketplaceDeps.hasCompletedCycleForPlan(userId, sourcePlanId);
-    if (!publisherHasTrainedIt) {
-      throw new ApiError(
-        "PUBLISHED_PLAN_FORBIDDEN",
-        "You must complete a training cycle on this plan yourself before publishing it to the marketplace",
-        403,
-      );
-    }
-
     const existing = await prisma.publishedPlan.findFirst({
       where: {
         sourcePlanId,
@@ -262,6 +253,15 @@ export const marketplaceService = {
         "PUBLISHED_PLAN_INVALID_STATE",
         "This plan has already been published",
         409,
+      );
+    }
+
+    const publisherHasTrainedIt = await marketplaceDeps.hasCompletedCycleForPlan(userId, sourcePlanId);
+    if (!publisherHasTrainedIt) {
+      throw new ApiError(
+        "PUBLISHED_PLAN_FORBIDDEN",
+        "You must complete a training cycle on this plan yourself before publishing it to the marketplace",
+        403,
       );
     }
 
@@ -313,6 +313,52 @@ export const marketplaceService = {
       );
     }
     await prisma.publishedPlan.delete({ where: { id } });
+  },
+
+  async adminDeleteApproved(id: string, adminUserId?: string) {
+    const listing = await prisma.publishedPlan.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        moderationStatus: true,
+        title: true,
+        publisherId: true,
+        _count: {
+          select: {
+            packages: true,
+            reviews: true,
+            improvementSuggestions: true,
+            moderationAnalyses: true,
+          },
+        },
+      },
+    });
+    if (!listing) {
+      throw new ApiError("PUBLISHED_PLAN_NOT_FOUND", "Listing not found", 404);
+    }
+    if (listing.moderationStatus !== "APPROVED") {
+      throw new ApiError(
+        "PUBLISHED_PLAN_INVALID_STATE",
+        "Only an approved listing can be deleted from the approved marketplace queue",
+        409,
+      );
+    }
+
+    await prisma.publishedPlan.delete({ where: { id } });
+    logger.info(
+      {
+        adminUserId,
+        publishedPlanId: id,
+        publisherId: listing.publisherId,
+        packageCount: listing._count.packages,
+        reviewCount: listing._count.reviews,
+        improvementSuggestionCount: listing._count.improvementSuggestions,
+        moderationAnalysisCount: listing._count.moderationAnalyses,
+      },
+      "[marketplace] admin deleted approved listing",
+    );
+
+    return { id, title: listing.title, deleted: true };
   },
 
   // ── Browse + rating ──────────────────────────────────────────────────────

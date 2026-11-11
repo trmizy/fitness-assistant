@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV — Phase 15B-A: PROPOSED (not applied) addition to the real API.
+  Kept SEPARATE from api-gateway-baseline.yaml so the baseline import can be
+  proven zero-change before any real behavior change is applied. Deploy only
+  after the baseline is imported+verified and the owner separately approves
+  this one route. See AWS_DEV_API_GATEWAY_ADOPTION_PLAN_2026-10-09.md.
+
+Parameters:
+  HttpApiId:
+    Type: String
+    Default: id1iz7upbl
+  AuthIntegrationId:
+    Type: String
+    Description: >
+      The AuthIntegration logical resource's real integration ID, from the
+      already-imported api-gateway-baseline stack's outputs (not re-declared
+      here — this template must never create a second Auth integration).
+  AuthLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth
+
+Resources:
+  AuthPasswordResetRequestRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/password-reset/request"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthPasswordResetRequestPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/password-reset/request"

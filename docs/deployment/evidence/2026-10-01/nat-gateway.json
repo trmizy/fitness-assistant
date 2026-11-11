@@ -1,0 +1,31 @@
+{
+    "NatGateways": [
+        {
+            "CreateTime": "2026-08-27T05:39:01+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-08694ce526e3345b8",
+                    "NetworkInterfaceId": "eni-0c05331b631584bc1",
+                    "PrivateIp": "10.0.1.107",
+                    "PublicIp": "3.1.207.168",
+                    "AssociationId": "eipassoc-0b062812a025d627a",
+                    "IsPrimary": true,
+                    "Status": "succeeded"
+                }
+            ],
+            "NatGatewayId": "nat-025b2c37935815d6d",
+            "State": "available",
+            "SubnetId": "subnet-0f1a5fcd6ed0401ee",
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "fitness-assistant-dev-nat-a"
+                }
+            ],
+            "ConnectivityType": "public",
+            "AvailabilityMode": "zonal",
+            "AttachedAppliances": []
+        }
+    ]
+}

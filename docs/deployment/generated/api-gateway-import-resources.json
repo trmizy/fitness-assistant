@@ -1,0 +1,2049 @@
+{
+  "generatedAt": "2026-10-09T08:18:37.497Z",
+  "note": "Phase 15B-B1: final (non-placeholder) import specification. LogicalResourceId values are the REAL logical IDs present in infra/cloudformation/api-gateway-baseline.yaml after its Fn::ForEach &{Identifier} fix, cross-derived from real live route/integration data (api-gateway-live-routes.json) and real Lambda resource policies (aws lambda get-policy on all 6 functions). Verified via a real, non-executed, deleted CREATE-type test change set that the template expands to exactly this resource composition (18 Integration + 119 Route + 117 Permission = 254) with zero transform errors.",
+  "verifiedIdentifierFormats": {
+    "AWS::ApiGatewayV2::Integration": "Confirmed via a real (test, non-executed, deleted) change set: {ApiId, IntegrationId}",
+    "AWS::ApiGatewayV2::Route": "Confirmed via a real (test, non-executed, deleted) change set: {ApiId, RouteId}",
+    "AWS::Lambda::Permission": "Confirmed via a real (test, non-executed, deleted) change set: {FunctionName, Id} where Id is the policy statement Sid"
+  },
+  "totalResources": 254,
+  "breakdown": {
+    "integrations": 18,
+    "routes": 119,
+    "permissions": 117
+  },
+  "resources": [
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "UserIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "tqe5r7h"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AiIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "biirr1c"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "GymIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "045z1ul"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "PaymentIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "w9fjro0"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "ChatIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ebe69nj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "FitnessIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "wv4c1bs"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthLoginIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1vnd68s"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthLogoutIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "vq6v245"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthMeIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "mg2016a"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRefreshIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1m2k0ec"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRegisterIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "6l59zzc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRegisterVerifyIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "4y4qfnr"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersListIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9ibcmaf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersDisableIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ai0sybi"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersEnableIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9291bod"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersRoleIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "5z0d625"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthVerifyIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "0dz9hk6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "HealthIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "uvqqpy4"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UseradminBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "mdpctvi"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UseradminProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wfkvdlk"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiadminaiBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "65xzyns"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiadminaiProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7zaeabq"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminbranchdocumentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "esz25ge"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminbranchdocumentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xf9x9ua"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminbrandsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "sdsqnz9"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminbrandsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3xm8fwq"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincommissionrateBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lszd6nm"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincommissionrateProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "i6e87zb"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincomplaintphotosBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3ltqisf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincomplaintphotosProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "svsel22"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincomplaintsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "j1zikb4"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmincomplaintsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "0fwxutq"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmingymmembershipsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ol4bbq5"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmingymmembershipsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lf1r6ca"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmingymsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w0hu166"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadmingymsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "58us9ti"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminpartneraccountsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "j6jnr1m"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminpartneraccountsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "famsfr2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminpartnersBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6nc986n"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymadminpartnersProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w730nap"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentadminpaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6xzii05"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentadminpaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xem7w3d"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiaiBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wiymnt4"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiaiProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bbga7ea"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthLoginRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "pdyttwa"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthLogoutRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "qzs0h76"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthMeRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "udx6zk8"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthMePasswordRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "kglwdf4"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRefreshRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b4qz92c"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRegisterRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "v1ulrmi"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRegisterVerifyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s6u0xlk"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersListRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "t5rs0fv"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersDisableRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b13kqj2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersEnableRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inqm7z3"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersRoleRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "od61vtj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthVerifyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bql2ffm"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UseravailabilityBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ozcusqo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UseravailabilityProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w2a80m6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "ChatProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "15ai11p"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesscoachBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "4315hcn"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesscoachProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "f40xejo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymcollaborationsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wnat8l3"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymcollaborationsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "tj6cmlc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsercontractsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ls3te8j"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsercontractsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "yauy7z2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessequipmentBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "vq11nk5"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessequipmentProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inys2ec"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessexercisesBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8ilg5k7"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessexercisesProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "5ofr8a5"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessexportsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bgcs0g8"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessexportsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "2jtcryu"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessfitnessroadmapsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1qn9tii"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessfitnessroadmapsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "no4a9ym"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessfoodBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "dwkj034"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessfoodProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bdw3qc1"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymgymsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "w7k9zoo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymgymsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8bx6hwl"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "HealthRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hu01bl2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessimportsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wpmmzqc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessimportsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hxj17fj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserinbodyBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "eh0vod1"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserinbodyProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ekjml8p"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserlocationsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "sti5ne2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserlocationsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7ntf1qc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AimarketplaceBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "z3abvev"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AimarketplaceProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xoh2fbn"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsermeBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "8zf6b99"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsermeProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "9r1iooo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeComplaintsRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3vkbwhg"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymCheckinsGetRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "7hyfj5o"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymCheckinsPostRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "cmq4gi6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymMembershipsRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q30z6lt"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymMembershipsIdRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fx5ps3u"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymMembershipsCancelRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "h01w0lm"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymMembershipsCancelMembershipRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "x33r8d2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymMeGymMembershipsPayRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ca6znwr"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmepaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q2x73ci"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmepaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "aexyi40"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmeptwalletBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ky8pdte"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmeptwalletProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fnw2xg2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewalletBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wz6h20l"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewalletProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "18pp73s"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewithdrawalsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hccamfd"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewithdrawalsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6sa0fv8"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsernotificationsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "uwtdhye"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsernotificationsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "0bkv0mf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessnutritionBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "iimte3l"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessnutritionProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ainvdjj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymownerBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ipmsbj1"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymownerProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s9eyv0o"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentpaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ggous3t"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentpaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "25k6vpo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentVnpayReturnRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1a39mw9"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentWebhookProviderRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "gd8slzc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentWebhookVnpayRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lc4uib6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiplansBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ncrmmot"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AiplansProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "9b2uho6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserprofileBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "vy11qph"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserprofileProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3zu5nin"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserptBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "4xyore1"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserptapplicationsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bwk10qr"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserptapplicationsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "2ekkgno"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UserptProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "85gmdtp"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymPtPtUserIdGymsRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "atfo58e"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymPtGymAffiliationsRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "iz1o0hv"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymPtGymInvitationsRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "p1yjqic"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "GymPtGymInvitationsIdRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "56l7prf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsersessionsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "khx3zci"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "UsersessionsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "tfku6cv"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessstatsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "3h9jawf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessstatsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "94p8z9q"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesstemplatesBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "jj9zela"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesstemplatesProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hpk8kzj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesstrainingcyclesBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "5laesro"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnesstrainingcyclesProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "51r7foc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessworkoutsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "l6rxw2s"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "FitnessworkoutsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "nesngve"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRegisterPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthLoginPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRefreshPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "4b688a74-fac9-55d1-9aea-f2991a612f30"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthLogoutPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "76615900-0d3e-5b89-9d91-0bd373206d23"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthVerifyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "72afdf9d-7781-5b76-9d15-3934874f10d6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersListPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "f553221d-5393-559b-9674-fc44edd40b6e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersRolePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "0fcfe73c-7fa5-5e64-8663-61d76f2e6dba"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRegisterVerifyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "ebf2f04e-95b9-5a57-ab25-72b54a7f9801"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersDisablePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "243bcfe0-270c-5634-9451-a7eff781cc8a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "HealthPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "dbaa99cc-bf59-594b-92ed-f8499b7af824"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersEnablePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "161e1a2d-183d-5ae7-bffb-29310adaf3ff"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthMePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "d320efbb-5b94-5605-a88e-0c84fa2299f9"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthMePasswordPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "apigw-auth-me-password"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserlocationsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "76d82055-0fca-5ff4-8e85-436aae2c58a3"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserlocationsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "dfcb30c2-983d-58c6-b2bc-7c51b023768e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UseradminBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "d314abc8-f889-5736-96ba-f465152781ff"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UseradminProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "d1f362de-2689-5936-b444-3cbf96d5c79c"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UseravailabilityBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "a334593b-5f28-544f-aece-582d0ad71e65"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UseravailabilityProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "62b9ce82-3959-57fc-92f1-749b73b73246"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsercontractsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "b9e8c60a-e0f9-59f6-9182-803b4173ac60"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsercontractsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "b8310c8a-d397-5aac-888a-f7264c012792"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserinbodyBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "5d80e063-3317-52ee-b3ba-6aa4d3130975"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserinbodyProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "a0190746-809a-5f87-9e03-f24f3e916306"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsermeBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "9e8a21f5-17b7-590d-ad8c-4ff457ccb6b1"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsermeProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "40cb65b0-8fd2-5b2c-a56e-8d49d12ea6ab"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsernotificationsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "c023d055-6d9e-545b-af99-9d190633f734"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsernotificationsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "0b3662c1-5d7f-5cc2-b59e-2729dc3a55ee"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserprofileBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "f2280175-f0d2-5cdf-9f27-9dd093081572"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserprofileProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "91cb048e-aa2b-5cbe-be6f-0aaeb6ab25af"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserptBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "8b26a6ac-e8fe-5cae-abb7-c1a641a706ed"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserptProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "513b3c1f-89a1-5a5f-ba1e-9662f0fd4282"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserptapplicationsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "756b3887-694c-50ce-9320-1f8476f736b6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UserptapplicationsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "5605e27e-4979-5e2f-9257-7b1268021684"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsersessionsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "5265d51a-5c91-59fd-88d0-17721c10ff19"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "UsersessionsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-user",
+        "Id": "70d8ef34-2d41-5a2e-beb1-56726d79a10b"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessexercisesBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "75306dc2-4ff1-5220-bf86-7ce3886f937e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessexercisesProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "871b03d7-8d66-5508-99e3-4d4338eddf34"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesscoachBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "79ea966d-71fd-5ba1-8e90-e5d52c951fc0"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesscoachProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "7a17ae1b-3053-5cf1-bcca-fdc11fede181"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessequipmentBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "b3c9c8e6-009b-546b-9198-66e88975a100"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessequipmentProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "fb82f827-cfdb-5e45-8f29-b57242613703"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessexportsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "92e42fb3-de6a-5eb6-a7dc-ae85c1d0098e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessexportsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "50dd44f4-354b-53f4-856f-bad53112ee39"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessfoodBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "429863bc-dd58-575f-b408-68728f38fdf6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessfoodProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "dd15253f-7124-5b5d-ae91-38386156dba6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessimportsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "c1a35265-ca60-57fe-88d8-138b5a37a55f"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessimportsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "7742e2cd-819c-5934-ab04-a12cd54f13ba"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessnutritionBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "8434ff11-b479-53dc-853b-6492c490d710"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessnutritionProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "e066964b-69e5-549c-b748-7c7339cbd4bb"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessstatsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "5ed80354-6c0d-564c-879f-7bba9bc4816d"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessstatsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "c8c0dda0-91b2-5032-bc35-02aee48cd059"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesstemplatesBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "5d25534c-870e-5730-92b3-1438c39d823e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesstemplatesProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "732d5141-d9af-58ea-a90d-9cda1359f78f"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesstrainingcyclesBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "61468eb6-99b6-5561-8fa9-fa5e4f3a9d91"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnesstrainingcyclesProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "f46ab8fa-1b96-5f41-af1c-afd2afa4a8fd"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessworkoutsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "5d2984a9-876d-5900-9f0a-80d86609194e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessworkoutsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "057b52e0-42ee-55c3-91eb-e1e7241efa11"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessfitnessroadmapsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "fitness-roadmaps-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "FitnessfitnessroadmapsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-fitness",
+        "Id": "fitness-roadmaps-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymcollaborationsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "1c88ad0a-99f4-5d68-8d8b-14e6ded1c656"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymcollaborationsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "8a6f14ce-31b3-51b6-9383-4761b586adcd"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymgymsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "5cd71c66-fa90-5c6e-a9a2-bee7a2a21c9a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymgymsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "a7498c96-e127-5465-ba5b-c3530615a03e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymownerBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "318a56df-ec6b-53fb-8908-c41de005bc7c"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymownerProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "2e5400e9-30df-5e46-8103-dd3fad3eeb8a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmingymsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-gyms-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmingymsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-gyms-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminbrandsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-brands-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminbrandsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-brands-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmingymmembershipsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-gym-memberships-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmingymmembershipsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-gym-memberships-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminpartnersBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-partners-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminpartnersProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-partners-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminpartneraccountsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-partner-accounts-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminpartneraccountsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-partner-accounts-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincommissionrateBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-commission-rate-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincommissionrateProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-commission-rate-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincomplaintsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-complaints-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincomplaintsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-complaints-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincomplaintphotosBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-complaint-photos-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadmincomplaintphotosProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-complaint-photos-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminbranchdocumentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-branch-documents-exact"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymadminbranchdocumentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "admin-branch-documents-proxy"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymMembershipsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-memberships"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymMembershipsIdPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-memberships-id-"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymMembershipsPayPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-memberships-id-pay"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymMembershipsCancelPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-memberships-id-cancel"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymMembershipsCancelMembershipPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-memberships-id-cancel-membership"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeGymCheckinsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-gym-checkins"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymMeComplaintsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-me-complaints"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymPtGymInvitationsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-pt-gym-invitations"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymPtGymInvitationsIdPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-pt-gym-invitations-id-"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymPtGymAffiliationsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-pt-gym-affiliations"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "GymPtPtUserIdGymsPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-gym",
+        "Id": "hotfix-pt-ptUserId-gyms"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentadminpaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "ad16c206-6bf8-56b2-b564-51afa40764ab"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentadminpaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "24e3e0fb-a876-505a-b857-d145ce1e9522"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewalletBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "4ffd67f3-ba68-5082-9ed0-d9f4b059bbf7"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewalletProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "bad0bcde-985e-59af-97a7-f7ca98de6902"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewithdrawalsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "c2627d1c-a232-5769-916b-e013479ed8ef"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewithdrawalsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "be3b441a-f86a-5910-a007-4d7a142096a5"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmepaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "d0955da6-ec61-52f8-9c44-2331da64ea0a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmepaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "83e8c4bf-7d55-55b1-a0c3-03c1336e905d"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmeptwalletBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "27dfa253-38d1-553f-86cb-d33f459fbab8"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmeptwalletProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "cc4008ee-6c01-5247-85d0-2e4b294b882e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentpaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "b3662570-3dfb-5270-ae0b-784ad916ab1c"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentpaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "544c730d-fe5c-50cd-ab97-e03aa7d383af"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentVnpayReturnPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "3f918279-e486-532f-8f24-9642831b81c8"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentWebhookProviderPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "9e68fb48-61a1-5de1-8098-dad2b49ee291"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentWebhookVnpayPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "64dfbfa3-2b1c-5b9a-8ba3-c81114edae3b"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiadminaiBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "e652ddb3-df8d-5814-8c62-1789c12ed578"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiadminaiProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "ade8dce3-b498-5795-b590-a5c8bc19dbe7"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiaiBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "febf8556-11f1-5a94-91f6-0bb3fa8589b4"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiaiProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "46eb2b78-210e-50e0-942d-9bd0dc85ba0a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AimarketplaceBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "cd565a16-7434-550c-a5c9-5b32b760aa0f"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AimarketplaceProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "491ae079-2e88-5a31-b7de-a1ea20d93e1d"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiplansBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "ee8d1fc4-a824-504e-b708-46be62fc3f1c"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AiplansProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-ai",
+        "Id": "1d610a37-44e3-5e38-a6c0-8b3181665828"
+      }
+    }
+  ]
+}

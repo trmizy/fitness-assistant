@@ -5,6 +5,7 @@ import app from "../app";
 import { ragService } from "../services/rag.service";
 import { llmService } from "../services/llm.service";
 import { conversationService } from "../services/conversation.service";
+import { authServiceClientDeps } from "../clients/auth-service.client";
 import { LlmError } from "../errors/api-error";
 
 const originalRag = ragService.rag;
@@ -82,14 +83,32 @@ test(
   "POST /ai/ask rejects direct request without gateway token",
   { concurrency: false },
   async () => {
-    const res = await request(app)
-      .post("/ai/ask")
-      .set({ Authorization: "Bearer test-token", "x-user-id": "user-123" })
-      .send({ question: "test direct access" });
+    // A garbage/direct-access Bearer token is a definite rejection in production — the real
+    // auth-service answers a malformed JWT in milliseconds with a real 401 (jwt.verify itself
+    // throws synchronously). Simulated here via the deps seam instead of a real network call,
+    // since most test environments have no auth-service listening at all: without this, the
+    // request fell through to a 5s connection timeout instead (a transient-failure shape, no
+    // `.response`), which auth.middleware.ts's isDefiniteTokenRejection correctly classifies as
+    // 503 rather than 401 — see auth-middleware-token-rejection.test.ts for that classifier's
+    // own direct unit tests.
+    const originalVerify = authServiceClientDeps.verify;
+    authServiceClientDeps.verify = async () => {
+      const err: any = new Error("Invalid or expired token");
+      err.response = { status: 401, data: { error: "Invalid or expired token" } };
+      throw err;
+    };
+    try {
+      const res = await request(app)
+        .post("/ai/ask")
+        .set({ Authorization: "Bearer test-token", "x-user-id": "user-123" })
+        .send({ question: "test direct access" });
 
-    assert.equal(res.status, 401);
-    assert.equal(res.body.success, false);
-    assert.equal(res.body.error.code, "UNAUTHORIZED");
+      assert.equal(res.status, 401);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.error.code, "UNAUTHORIZED");
+    } finally {
+      authServiceClientDeps.verify = originalVerify;
+    }
   },
 );
 

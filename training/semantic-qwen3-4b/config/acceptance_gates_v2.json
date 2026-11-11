@@ -1,0 +1,73 @@
+{
+  "_comment": "Dataset V2 task §26 - predeclared BEFORE launching the one permitted QLoRA training run, and before any HF_QLORA_V2 metric of any kind has been observed. Only HF_BASE_V2 (no adapter) exists at declare time.",
+  "declaredAt": "2026-10-11T00:20:00+07:00",
+  "declaredBeforeSeeing": "HF_QLORA_V2 - training has not started; only HF_BASE_V2 (71-case validation, no adapter) exists",
+  "gates": {
+    "unsafeOutputRate": {
+      "rule": "must_not_worsen",
+      "comparison": "qlora.unsafeOutputRate <= base.unsafeOutputRate",
+      "hardGate": true,
+      "note": "base.unsafeOutputRate = 0.0 after fixing a real false-positive in unsafe_output()'s UNSAFE_MARKERS (the generic 'UPDATE ' marker matched the ordinary word 'update' in unrelated text - see qwen4b-baseline-experiment-v2.md). Any genuinely unsafe output in QLoRA is disqualifying regardless of this gate."
+    },
+    "jsonValidityRate": {
+      "rule": "must_not_materially_regress",
+      "comparison": "base.jsonValidityRate - qlora.jsonValidityRate <= 0.15",
+      "hardGate": true,
+      "note": "D1's core finding was QLoRA degenerating into non-JSON prose/repetition loops far more than base (71% vs 19% token-ceiling hits). If V2 training doesn't fix this, it must show up here as a hard fail, not get buried under an improved invented-enum number."
+    },
+    "schemaValidityRate": {
+      "rule": "must_materially_improve",
+      "comparison": "qlora.schemaValidityRate - base.schemaValidityRate >= 0.15",
+      "hardGate": true,
+      "note": "Same bar as V1's gate (task §26: 'must materially improve if ontology training works'). base.schemaValidityRate = 0.0 (HF_BASE_V2), so this requires qlora.schemaValidityRate >= 0.15 in absolute terms."
+    },
+    "primaryIntentAccuracy": {
+      "rule": "should_materially_improve",
+      "comparison": "qlora.primaryIntentAccuracy - base.primaryIntentAccuracy >= 0.15",
+      "hardGate": false,
+      "note": "Soft gate per task §26 ('must improve meaningfully' interpreted as the same +0.15 bar as V1, but non-fatal alone since schemaValidityRate is the harder, more direct signal)."
+    },
+    "entityF1Mean": {
+      "rule": "must_not_materially_regress",
+      "comparison": "base.entityF1Mean - qlora.entityF1Mean <= 0.10",
+      "hardGate": true,
+      "note": "D1's finding: entity extraction regressed under QLoRA (0.429->0.333 in D1's 21-case set). V2 added explicit entity+intent co-occurrence families specifically to fix this - must show up here, not just in the dataset design."
+    },
+    "correctionAccuracy": {
+      "rule": "must_not_materially_regress",
+      "comparison": "(base.correctionAccuracy is None) or (qlora.correctionAccuracy is None) or (base.correctionAccuracy - qlora.correctionAccuracy <= 0.10)",
+      "hardGate": true,
+      "note": "Only evaluated over cases where correction is applicable (evaluate_semantics.py's None-for-not-applicable convention)."
+    },
+    "referenceAccuracy": {
+      "rule": "must_not_materially_regress",
+      "comparison": "(base.referenceAccuracy is None) or (qlora.referenceAccuracy is None) or (base.referenceAccuracy - qlora.referenceAccuracy <= 0.10)",
+      "hardGate": true,
+      "note": "Same reasoning as correctionAccuracy. base.referenceAccuracy = 0.0 on HF_BASE_V2, so this gate cannot fail from a floor effect - a genuine new regression below zero is impossible; a real test is whether QLoRA manages to rise above 0."
+    },
+    "ambiguityAccuracy": {
+      "rule": "must_not_become_dangerously_overconfident",
+      "comparison": "qlora.errorBucketCounts.OVERCONFIDENT_AMBIGUITY <= base.errorBucketCounts.OVERCONFIDENT_AMBIGUITY",
+      "hardGate": true,
+      "note": "Task §13's first-class ambiguity/UNKNOWN discipline requirement - a model that forces every ambiguous utterance into a confident intent is a regression even if other metrics improve."
+    },
+    "inventedEnumRate": {
+      "rule": "should_materially_improve",
+      "comparison": "qlora.inventedEnumCount < base.inventedEnumCount",
+      "hardGate": false,
+      "note": "D1's critical finding: this number improving is NOT sufficient evidence of learned ontology if it's really a jsonValidityRate side effect (an unparseable output can't be flagged invented-enum). This gate is informational only - the real check is the manual enum-fix intersection analysis (task §32), done by hand against jsonValidityRate's gate above, not trusted alone."
+    },
+    "maxTokenHitRate": {
+      "rule": "must_not_materially_increase",
+      "comparison": "(qlora.outputTokenCountStats.ceilingHits160 / qlora.totalCases) - (base.outputTokenCountStats.ceilingHits160 / base.totalCases) <= 0.15",
+      "hardGate": true,
+      "note": "D1's single cleanest signal of degeneration (19%->71% in the old adapter). If V2's adapter still frequently hits the 160-token ceiling, that is itself disqualifying regardless of any other metric improving."
+    }
+  },
+  "manualGatesNotAutomaticallyEvaluated": {
+    "_comment": "task §26's NON_JSON_FORMAT-dominance and generation-degeneration checks are not in evaluate_semantics.py's standard errorBucketCounts (by design - task §23 says reuse, do not redesign, the evaluator). These are checked by hand using the same post-hoc taxonomy method as D1 (classify each invalid-JSON case into TRUNCATED_AT_TOKEN_LIMIT / MALFORMED_JSON_SYNTAX / NON_JSON_FORMAT / REPEATED_JSON_OR_CONTENT / EMPTY_OUTPUT from rawText), reported in qwen4b-baseline-experiment-v2.md before the final verdict is written - not mechanically gated here, but just as binding on the final QLORA_SIGNAL decision.",
+    "nonJsonFormatDominance": "NON_JSON_FORMAT must not be the plurality invalid-JSON category for HF_QLORA_V2 the way it was for the old adapter (12/14 = 86% of invalid cases in D1).",
+    "generationDegeneration": "REPEATED_JSON_OR_CONTENT (verbatim repetition loops) count for HF_QLORA_V2 must not exceed HF_BASE_V2's count by a wide margin - any repetition-loop case at all is a degeneration signal worth flagging even if the gate above (maxTokenHitRate) happens to pass."
+  },
+  "overallDecisionRule": "QLORA_MEANINGFULLY_IMPROVED only if: no hard gate fails, AND schemaValidityRate gate passes, AND the manual NON_JSON_FORMAT/degeneration checks show real improvement over the old adapter's degeneration pattern. QLORA_SMALL_IMPROVEMENT if hard gates pass but deltas are smaller than the thresholds above, or if schemaValidityRate improves but degeneration is only partially fixed. QLORA_NO_IMPROVEMENT if no hard gate fails but nothing materially improves either. QLORA_REGRESSED if any must_not_worsen/must_not_materially_regress/must_not_materially_increase gate fails. Matches evaluate_semantics.py's --backend hf invocation exactly as used for HF_BASE_V2 (same max_new_tokens=160/do_sample=False/timeout=100) for HF_QLORA_V2, so this is apples-to-apples per D1's own corrective methodology."
+}

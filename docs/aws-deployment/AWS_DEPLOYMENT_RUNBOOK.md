@@ -249,7 +249,11 @@ Tối thiểu cần cho Lambda role:
     {
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::fitness-assistant-uploads-dev-191798898985/*"
+      "Resource": [
+        "arn:aws:s3:::fitness-assistant-uploads-dev-191798898985/profile-photos/*",
+        "arn:aws:s3:::fitness-assistant-uploads-dev-191798898985/pt-applications/*",
+        "arn:aws:s3:::fitness-assistant-uploads-dev-191798898985/contracts/*"
+      ]
     },
     {
       "Effect": "Allow",
@@ -262,6 +266,26 @@ Tối thiểu cần cho Lambda role:
 
 Thay `<account-id>` bằng account thật khi cấu hình console/IAM.
 
+Lưu ý: policy S3 của User Lambda **không** được dùng `bucket/*`. Trên dev thật, inline policy
+`fitness-assistant-dev-user-profile-upload` đã giới hạn đúng ba prefix trên (mỗi prefix có Put/Get/Delete),
+để user-service không đọc được giấy tờ pháp lý của đối tác.
+
+#### Gym Lambda (partner uploads)
+
+Role `fitness-assistant-dev-gym-lambda-role` (dùng chung cho hàm `gym` và `gym-jobs`) có inline policy
+`fitness-assistant-dev-gym-partner-uploads`, chỉ cho một prefix, không có `s3:ListBucket`:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+  "Resource": "arn:aws:s3:::fitness-assistant-uploads-dev-191798898985/partner-applications/*"
+}
+```
+
+Khoá do server sinh: `partner-applications/{partnerId}/{segment}/{uuid}.ext`. Mọi tệp riêng tư, chỉ đọc bằng presigned GET ngắn hạn.
+Dùng chung bucket `uploads`, **không** tạo bucket partner riêng — không chạy `terraform apply` khi `infra/terraform/environments/dev/partner-uploads.tf` (giả định hai bucket mới) chưa được gỡ.
+
 ### 15. S3 CORS required
 
 Bucket upload dev cần CORS cho frontend origin hiện tại:
@@ -270,9 +294,10 @@ Bucket upload dev cần CORS cho frontend origin hiện tại:
 [
   {
     "AllowedOrigins": [
-      "http://fitness-assistant-frontend-dev-191798898985.s3-website-ap-southeast-1.amazonaws.com"
+      "http://fitness-assistant-frontend-dev-191798898985.s3-website-ap-southeast-1.amazonaws.com",
+      "http://localhost:5173"
     ],
-    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
     "AllowedHeaders": ["content-type", "x-amz-*"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 300
@@ -280,7 +305,16 @@ Bucket upload dev cần CORS cho frontend origin hiện tại:
 ]
 ```
 
-Nếu frontend chuyển qua CloudFront domain, thêm domain CloudFront vào `AllowedOrigins`.
+- `POST` cần cho presigned POST của luồng đăng ký đối tác (ký điều kiện giới hạn dung lượng phía S3). CORS chỉ là chính sách trình duyệt, không nới quyền ghi.
+- `http://localhost:5173` là **tạm thời**, phục vụ chạy kiểm thử tự động với S3 thật trước khi deploy. Gỡ khỏi `AllowedOrigins` khi đối tác báo đã test xong.
+- CORS được cấu hình tay (Terraform không quản). Public access block: cả bốn cờ đều `true`. Chưa có lifecycle rule (chưa cần: luồng partner dùng presigned POST một phần, không multipart).
+- Nếu frontend chuyển qua CloudFront domain, thêm domain CloudFront vào `AllowedOrigins`.
+
+Biến môi trường của hàm `gym` và `gym-jobs` cho luồng partner upload:
+
+- `PARTNER_S3_PRIVATE_BUCKET=fitness-assistant-uploads-dev-191798898985`
+- `PARTNER_S3_REGION=ap-southeast-1`
+- Không đặt `PARTNER_S3_ENDPOINT`, `PARTNER_S3_PUBLIC_ENDPOINT`, `PARTNER_S3_FORCE_PATH_STYLE`, `PARTNER_S3_ACCESS_KEY_ID/SECRET`, `PARTNER_S3_PUBLIC_BUCKET`, `PARTNER_S3_PUBLIC_BASE_URL` (ở production service từ chối khởi động nếu thấy chúng).
 
 ### 16. Required Lambda environment variables
 

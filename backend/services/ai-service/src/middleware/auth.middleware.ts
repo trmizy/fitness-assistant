@@ -48,6 +48,19 @@ declare global {
         role: string;
         /** Original Authorization header — forwarded to profile/fitness calls */
         authorizationHeader?: string;
+        /**
+         * How the caller proved itself — set only by requireAuth, never read from a
+         * request header:
+         *  - "service":      proved INTERNAL_SERVICE_SECRET and carries NO end-user
+         *                    bearer (a genuine service-to-service call such as
+         *                    fitness-service). The only kind a service-only route accepts.
+         *  - "gateway_user": proved INTERNAL_SERVICE_SECRET AND carries an end-user
+         *                    bearer — the Express gateway forwarding a logged-in user
+         *                    (the gateway stamps the secret on every proxied request, so
+         *                    the secret alone cannot tell it apart from fitness-service).
+         *  - "user":         end-user JWT verified against auth-service directly.
+         */
+        callerKind?: "service" | "gateway_user" | "user";
       };
     }
   }
@@ -64,6 +77,33 @@ function bearerToken(req: Request): string | null {
   if (!header?.startsWith("Bearer ")) return null;
   const token = header.slice("Bearer ".length).trim();
   return token || null;
+}
+
+/**
+ * Distinguishes a genuine token rejection from a failure to even ask auth-service.
+ *
+ * BUG (found live on AWS DEV, 2026-09-30, from real user-visible "Invalid or expired token"
+ * errors while the token was actually still valid): `verifyToken()` calls auth-service via a
+ * direct Lambda invoke (see clients/lambda-http.client.ts). When that invoke itself is throttled
+ * by AWS (function/account concurrency limit — confirmed via the CloudWatch Throttles metric on
+ * fitness-assistant-dev-auth, ~130 throttles in a 5-minute window coinciding with this exact
+ * error) or times out, the SDK/axios call throws with no `.response` at all, since auth-service
+ * never got the chance to answer. That was being reported identically to a real 401 FROM
+ * auth-service (which throwForLambdaHttpError only ever throws with `.response.status` set,
+ * since it runs on an already-received HTTP-shaped response) — telling a user with a perfectly
+ * valid token that their session is invalid, which also defeats the frontend's refresh-and-retry
+ * logic (a 401 looks like "log in again", not "the verification call itself failed transiently").
+ * Only a real answer from auth-service is a genuine rejection; anything else is transient.
+ */
+export function isDefiniteTokenRejection(error: unknown): boolean {
+  const err = error as { response?: { status?: number } } | null | undefined;
+  const status = err?.response?.status;
+  // auth-service's own /auth/verify handler (auth.service.ts's verifyToken) only ever throws
+  // 401 (invalid/expired/unknown user) or 403 (account disabled) as a deliberate, completed
+  // judgment on the token — any other status (its own 500 on an unexpected internal error) or no
+  // status at all (the invoke never got an HTTP-shaped answer — throttled, timed out, network
+  // error) means we don't actually know whether the token is valid.
+  return status === 401 || status === 403;
 }
 
 export async function requireAuth(
@@ -91,6 +131,7 @@ export async function requireAuth(
       userId: rawUserId.trim(),
       role: (extractHeader(req, "x-user-role") ?? "").trim(),
       authorizationHeader,
+      callerKind: bearerToken(req) ? "gateway_user" : "service",
     };
     return next();
   }
@@ -107,13 +148,23 @@ export async function requireAuth(
         userId: user.id,
         role: (user.role ?? "").trim(),
         authorizationHeader,
+        callerKind: "user",
       };
       return next();
     } catch (error) {
       logger.warn(
-        { err: (error as Error).message, path: req.path },
+        { err: (error as Error)?.message, path: req.path },
         "[ai-service] token verification failed",
       );
+      if (!isDefiniteTokenRejection(error)) {
+        return next(
+          new ApiError(
+            "SERVICE_UNAVAILABLE",
+            "Unable to verify session right now — please retry",
+            503,
+          ),
+        );
+      }
       return next(new ApiError("UNAUTHORIZED", "Invalid or expired token", 401));
     }
   }
@@ -144,6 +195,7 @@ export async function requireAuth(
       userId: rawUserId,
       role: (extractHeader(req, "x-user-role") ?? "").trim(),
       authorizationHeader,
+      callerKind: "service",
     };
     return next();
   }

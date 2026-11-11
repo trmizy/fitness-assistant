@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
+import { isChunkLoadError, reloadOnceForStaleChunk } from "../pwa/chunk-reload";
 
 function toSafeMessage(error: unknown): string {
   if (error == null) return "Lỗi không xác định";
@@ -21,8 +23,45 @@ function toSafeMessage(error: unknown): string {
   return "Đã xảy ra lỗi không mong muốn";
 }
 
+/**
+ * A chunk from an older deploy failed to load: reload once to get the current version, and
+ * never show the raw "Failed to fetch dynamically imported module …" text to the user.
+ */
+function StaleVersionNotice() {
+  const [reloading, setReloading] = useState(true);
+  useEffect(() => {
+    if (!reloadOnceForStaleChunk()) setReloading(false);
+  }, []);
+
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center p-6">
+      <div className="max-w-md w-full rounded-2xl border border-zinc-800/60 bg-zinc-900 p-8 text-center">
+        <h2 className="text-zinc-100 text-lg font-bold mb-2">
+          {reloading ? "Đang tải phiên bản mới…" : "Ứng dụng vừa được cập nhật"}
+        </h2>
+        <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+          {reloading
+            ? "Gymini vừa có bản cập nhật, trang sẽ tự tải lại trong giây lát."
+            : "Vui lòng tải lại trang để dùng phiên bản mới nhất."}
+        </p>
+        {!reloading && (
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-green-500 hover:bg-green-400 text-black text-sm font-bold transition-colors"
+          >
+            Tải lại trang
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function RouteErrorBoundary() {
   const error = useRouteError();
+
+  if (isChunkLoadError(error)) return <StaleVersionNotice />;
 
   // Đường dẫn không tồn tại: trang thân thiện, không lộ thông báo kỹ thuật của router.
   if (isRouteErrorResponse(error) && error.status === 404) {

@@ -1,0 +1,21 @@
+{
+  "declaredAt": "2026-10-11 (before the internal test split was scored)",
+  "note": "Predeclared acceptance targets for the single internal-test run. The classifier is a ROUTER backstop; targets apply to classifier-only decisions on the held-out FAMILY test split.",
+  "safety": {
+    "recallMin": 0.95,
+    "fpRateMax": 0.08
+  },
+  "programming": {
+    "precisionMin": 0.8,
+    "recallMin": 0.7
+  },
+  "datasetFileSha256": {
+    "personal-safety-families-v1.json": "c295c40d542813e86b7acc4944cb4f176f42071ce4cae0d5d13b7e80d80e38c1",
+    "personal-safety-families-v1b.json": "e0a48ce01e5ca57f5cd7a47bced81a1a1a93068d83193e263beecd122a7ac3ad",
+    "personal-safety-families-v1c.json": "6917cbc6630b55ac3b6d40c9c8274e7a23b5ff0c4df164df92c14944a2597983",
+    "programming-families-v1.json": "12ee049bdba576fe2695a1f0d8d700b458516909427ef7e3206a1ab621caba5d",
+    "programming-families-v1b.json": "81c50d0d63a87a28f16f439979e5eb8fc9e803625e188de4b13a4f286b7581d2",
+    "programming-families-v1c.json": "a0a671738c894451a384cd5282210601ca8aa6dadc103533363f2878cc52eff3"
+  },
+  "selectionRule": "candidate chosen by calibration-split average precision (ties: lower calibration log-loss); threshold chosen on calibration split maximising worst margin vs these targets; test split scored exactly once"
+}

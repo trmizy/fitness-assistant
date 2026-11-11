@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowsClockwiseIcon as RefreshCw, WifiSlashIcon as WifiOff } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { shouldRegisterPwa } from "./pwa-registration.utils";
 
 const SERVICE_WORKER_URL = "/sw.js";
@@ -11,7 +11,6 @@ function isServiceWorkerReady(worker: ServiceWorker | null): worker is ServiceWo
 
 export function PwaUpdatePrompt() {
   const reloadRequestedRef = useRef(false);
-  const offlineReadyShownRef = useRef(false);
 
   useEffect(() => {
     if (!shouldRegisterPwa(navigator, window, import.meta.env.DEV)) return;
@@ -32,16 +31,6 @@ export function PwaUpdatePrompt() {
             worker.postMessage({ type: "SKIP_WAITING" });
           },
         },
-      });
-    };
-
-    const showOfflineReady = () => {
-      if (offlineReadyShownRef.current) return;
-      offlineReadyShownRef.current = true;
-      toast("Có thể mở khi mất mạng", {
-        description: "Một bản shell cơ bản đã sẵn sàng cho lần tải lại offline.",
-        icon: <WifiOff className="h-4 w-4" />,
-        duration: 5000,
       });
     };
 
@@ -68,10 +57,10 @@ export function PwaUpdatePrompt() {
           installing.addEventListener("statechange", () => {
             if (disposed || installing.state !== "installed") return;
 
+            // First install (no controller yet) stays silent: the offline shell is cached in the
+            // background, and a "ready for offline" toast on a user's very first visit was noise.
             if (navigator.serviceWorker.controller) {
               promptUpdate(installing);
-            } else {
-              showOfflineReady();
             }
           });
         });

@@ -36,6 +36,7 @@ const original = {
   extract: fitnessAgentDeps.profileExtractor.extract,
   saveNutritionPlanFromAiPlan: fitnessAgentDeps.tools.saveNutritionPlanFromAiPlan,
   getNutritionTargetPreview: fitnessAgentDeps.tools.getNutritionTargetPreview,
+  getNutritionActiveState: fitnessAgentDeps.tools.getNutritionActiveState,
   queueNutritionPlanGeneration: conversationService.queueNutritionPlanGeneration,
   findNutritionPlanById: conversationRepository.findNutritionPlanById,
   getHealthStatus: llmService.getHealthStatus,
@@ -46,6 +47,7 @@ test.afterEach(() => {
   fitnessAgentDeps.profileExtractor.extract = original.extract;
   fitnessAgentDeps.tools.saveNutritionPlanFromAiPlan = original.saveNutritionPlanFromAiPlan;
   fitnessAgentDeps.tools.getNutritionTargetPreview = original.getNutritionTargetPreview;
+  fitnessAgentDeps.tools.getNutritionActiveState = original.getNutritionActiveState;
   conversationService.queueNutritionPlanGeneration = original.queueNutritionPlanGeneration;
   conversationRepository.findNutritionPlanById = original.findNutritionPlanById;
   llmService.getHealthStatus = original.getHealthStatus;
@@ -90,11 +92,19 @@ function stubNutritionFixtures() {
     profile: {
       goal: "WEIGHT_LOSS", age: 28, heightCm: 170, currentWeightKg: 75, gender: "FEMALE",
       experienceLevel: "INTERMEDIATE", activityLevel: "MODERATE",
+      region: "NAM",
       training: { trainingDaysPerWeek: 3, availableEquipment: [], injuries: [], preferredTrainingDays: [1, 2, 3] },
     },
   } as any);
   llmService.getHealthStatus = async () => ({ llmAvailable: true } as any);
   fitnessAgentDeps.tools.getNutritionTargetPreview = async () => ({ status: "ACTIVE_GOAL", goalId: "goal-1", calories: 1800, protein: 150, carbs: 160, fat: 55 } as any);
+  fitnessAgentDeps.tools.getNutritionActiveState = async () => ({
+    status: "MATCHED",
+    activeGoal: { id: "goal-1", calories: 1800, protein: 150, carbs: 160, fat: 55 },
+    activeProgram: null,
+    mismatches: [],
+    recommendedAction: "matched",
+  } as any);
   conversationService.queueNutritionPlanGeneration = async (params: any) => {
     calls.queue.push(params);
     const planId = randomUUID();
@@ -127,6 +137,7 @@ test("CREATE_NUTRITION_PLAN golden flow (real DB): asks only for mealsPerDay, qu
     const r2 = await fitnessAgent.tryTurn("4 bữa", identity, session.id);
     assert.equal(calls.queue.length, 1, "workflow completion must queue the real generation exactly once");
     assert.equal(calls.queue[0].mealsPerDay, 4);
+    assert.equal(calls.queue[0].vietnameseRegion, "NAM", "profile region must reach nutrition generation params");
     assert.equal(r2!.blocks.length, 0, "must not show a preview before the job is actually done");
     assert.match(r2!.answer, /tính toán|1-2 phút/i);
 
@@ -171,6 +182,59 @@ test("CREATE_NUTRITION_PLAN golden flow (real DB): asks only for mealsPerDay, qu
     const r6b = await fitnessAgent.execute(identity, actionId, true);
     assert.deepEqual(r6b, r6, "re-confirming an already-COMPLETED action must return the stored result, not re-run");
     assert.equal(calls.save.length, 1, "must not save a second time");
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.agentWorkflowSession.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});
+
+test("CREATE_NUTRITION_PLAN discloses when active meal plan is stale against current nutrition goal", async () => {
+  const { plans, calls } = stubNutritionFixtures();
+  fitnessAgentDeps.tools.getNutritionTargetPreview = async () => ({ status: "ACTIVE_GOAL", goalId: "goal-current", calories: 3000, protein: 150, carbs: 375, fat: 83 } as any);
+  fitnessAgentDeps.tools.getNutritionActiveState = async () => ({
+    status: "MACRO_MISMATCH",
+    activeGoal: { id: "goal-current", calories: 3000, protein: 150, carbs: 375, fat: 83 },
+    activeProgram: {
+      id: "program-old",
+      name: "Old cutting menu",
+      dailyCaloriesTarget: 2200,
+      proteinTargetGrams: 150,
+      carbTargetGrams: 225,
+      fatTargetGrams: 56,
+      sourceGoalId: "goal-old",
+    },
+    mismatches: [
+      { field: "calories", planValue: 2200, goalValue: 3000, diff: 800 },
+      { field: "carbs", planValue: 225, goalValue: 375, diff: 150 },
+    ],
+    recommendedAction: "regenerate",
+  } as any);
+  const userId = `agent-workflow-nutrition-stale-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    const r1 = await fitnessAgent.tryTurn("Tao thuc don moi, 3 bua", identity, session.id);
+    assert.match(r1!.answer, /3000 kcal/);
+    assert.match(r1!.answer, /2200 kcal/);
+    assert.match(r1!.answer, /Ban moi nay se tinh theo muc tieu hien tai/);
+    assert.equal(calls.queue[0].dailyCaloriesTarget, 3000);
+
+    const pendingAction = await prisma.fitnessAgentAction.findFirst({ where: { userId, kind: "CREATE_NUTRITION_PLAN" } });
+    const planId = (pendingAction!.payload as any).planId as string;
+    const content = {
+      ...nutritionPlanContentFixture({ mealsPerDay: 3 }),
+      dailyCaloriesTarget: 3000,
+      proteinTargetGrams: 150,
+      carbTargetGrams: 375,
+      fatTargetGrams: 83,
+    };
+    plans.set(planId, { ...plans.get(planId), status: PlanStatus.COMPLETED, plan: content });
+
+    const r2 = await fitnessAgent.tryTurn("xong chua", identity, session.id);
+    assert.equal(r2!.blocks[0].type, "NUTRITION_PLAN_PREVIEW");
+    assert.match(String((r2!.blocks[0] as any).targetNote), /3000 kcal/);
+    assert.match(String((r2!.blocks[0] as any).targetNote), /2200 kcal/);
   } finally {
     await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
     await prisma.agentWorkflowSession.deleteMany({ where: { userId } });

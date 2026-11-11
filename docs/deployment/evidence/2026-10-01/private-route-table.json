@@ -1,0 +1,62 @@
+{
+    "RouteTables": [
+        {
+            "Associations": [
+                {
+                    "Main": false,
+                    "RouteTableAssociationId": "rtbassoc-05bb2dbccc6881b4d",
+                    "RouteTableId": "rtb-0f743d4fd0949f9aa",
+                    "SubnetId": "subnet-09e3230f7bca04c8e",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                },
+                {
+                    "Main": false,
+                    "RouteTableAssociationId": "rtbassoc-0b8919132b38661d2",
+                    "RouteTableId": "rtb-0f743d4fd0949f9aa",
+                    "SubnetId": "subnet-02b39d77762465ef8",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "PropagatingVgws": [],
+            "RouteTableId": "rtb-0f743d4fd0949f9aa",
+            "Routes": [
+                {
+                    "DestinationCidrBlock": "10.0.0.0/16",
+                    "GatewayId": "local",
+                    "Origin": "CreateRouteTable",
+                    "State": "active"
+                },
+                {
+                    "DestinationCidrBlock": "0.0.0.0/0",
+                    "NatGatewayId": "nat-025b2c37935815d6d",
+                    "Origin": "CreateRoute",
+                    "State": "active"
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "phase",
+                    "Value": "3"
+                },
+                {
+                    "Key": "project",
+                    "Value": "fitness-assistant"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "fitness-assistant-dev-private-app-rt"
+                },
+                {
+                    "Key": "environment",
+                    "Value": "dev"
+                }
+            ],
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "OwnerId": "191798898985"
+        }
+    ]
+}

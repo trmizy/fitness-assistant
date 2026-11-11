@@ -1,0 +1,59 @@
+{
+ "candidate": "RAG_V2_2_CANDIDATE",
+ "frozenAt": "2026-10-11T03:35:22.058Z",
+ "files": {
+  "backend/services/ai-service/src/llm/retrieval-v2.ts": "10320f08f987d3301b760795c8617a819ef8f12c914aac352e239e5c4243bc21",
+  "backend/services/ai-service/src/llm/fitness-concepts.ts": "3927fb92a90edbabf8fb6c598650a81125b78b8364d6af751d093a2c6d2e5c72",
+  "backend/services/ai-service/src/llm/knowledge-source.ts": "b33bb5d9a47fcf5f04988c594fa1706b05e5752f29414a24804c6cbfb50839f7"
+ },
+ "qdrant": {
+  "fitness_evidence": {
+   "points": 187,
+   "idSetHash": "d1e74aaad31d0543",
+   "contentSetHash": "b4b61def7d35f077"
+  },
+  "fitness_knowledge": {
+   "points": 7072,
+   "idSetHash": "29a9d4b061f50bca",
+   "contentSetHash": "5f750300d23fe298"
+  },
+  "fitness_faq": {
+   "points": 5946,
+   "idSetHash": "39f3933f84db0149",
+   "contentSetHash": "d38ca93b8e199a11"
+  },
+  "exercises": {
+   "points": 207,
+   "idSetHash": "7c5e4349570e19f7",
+   "contentSetHash": "e87beac9ba16ddde"
+  }
+ },
+ "evaluatorFiles": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "622424adaefc84343b2b3208a125484533a8376736262b022a0f86934808535f",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "ee7e74e5c631544277ee8155fa50d0056ee69b7cde045b123c5f4ff94f23d3c0"
+ },
+ "developmentSetsUsed": [
+  "rag-grounding-eval-v1.json",
+  "rag-grounding-heldout-v1.json (Diagnostic V1)",
+  "rag-grounding-generalization-dev-v2.json",
+  "rag-grounding-heldout-v2.json (Diagnostic V2)",
+  "rag-grounding-ood-safety-dev-v3.json"
+ ],
+ "note": "No tuning of normalisation, aliases, ambiguity classes, positive/incompatible context, OOD gate, safety recognition/routing, domain selection, ranking, topic guard or Qdrant after this record. Fresh held-out V3 is created AFTER this file.",
+ "configHash": "4625eff4467c63237ee5fa89c6b38b405c9b7f7acc397d35889fa9b4a28fe97e",
+ "evaluatorFilesAtRun": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "622424adaefc84343b2b3208a125484533a8376736262b022a0f86934808535f",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "ee7e74e5c631544277ee8155fa50d0056ee69b7cde045b123c5f4ff94f23d3c0"
+ },
+ "heldoutV3": {
+  "file": "data/eval/retrieval/rag-grounding-heldout-v3.json",
+  "sha256BeforeExecution": "3066ae6ad88b120597f9b07a3df86c9753b9c62cb3fa2e4a2d75c4b15fc1c0a7",
+  "recordedAt": "2026-10-11T03:36:31.853Z",
+  "executedAt": "2026-10-11T03:38:01.942Z",
+  "executions": 1,
+  "resultsFile": "data/eval/retrieval/rag-grounding-heldout-v3-results-2026-10-11.json",
+  "resultsSha256": "50cb7d4e4e7f859e0aabea8a98ab94e91ec1b6816a7f22cc2643bc8c8dd077eb",
+  "sha256AfterExecution": "3066ae6ad88b120597f9b07a3df86c9753b9c62cb3fa2e4a2d75c4b15fc1c0a7",
+  "byteIdentical": true
+ }
+}

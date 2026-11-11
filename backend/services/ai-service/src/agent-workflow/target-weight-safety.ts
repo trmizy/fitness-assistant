@@ -50,14 +50,14 @@ export function assessTargetWeightSafety(input: TargetWeightSafetyInput): Target
     return {
       verdict: "UNSAFE",
       reason: "WRONG_DIRECTION_FOR_GOAL",
-      clarifyingQuestion: `Mục tiêu của bạn là giảm mỡ, nhưng ${targetWeightKg}kg không thấp hơn cân nặng hiện tại (${currentWeightKg}kg). Bạn cho mình một mức thấp hơn cân nặng hiện tại nhé?`,
+      clarifyingQuestion: `Mục tiêu của bạn là giảm mỡ, nhưng ${targetWeightKg}kg không thấp hơn cân nặng hiện tại (${currentWeightKg}kg). Bạn cho mình một mức thấp hơn cân nặng hiện tại, hoặc nhắn "đổi mục tiêu sang tăng cơ" nếu bạn muốn tăng cân nhé?`,
     };
   }
   if (goal === "MUSCLE_GAIN" && targetWeightKg <= currentWeightKg) {
     return {
       verdict: "UNSAFE",
       reason: "WRONG_DIRECTION_FOR_GOAL",
-      clarifyingQuestion: `Mục tiêu của bạn là tăng cơ, nhưng ${targetWeightKg}kg không cao hơn cân nặng hiện tại (${currentWeightKg}kg). Bạn cho mình một mức cao hơn cân nặng hiện tại nhé?`,
+      clarifyingQuestion: `Mục tiêu của bạn là tăng cơ, nhưng ${targetWeightKg}kg không cao hơn cân nặng hiện tại (${currentWeightKg}kg). Bạn cho mình một mức cao hơn cân nặng hiện tại, hoặc nhắn "đổi mục tiêu sang giảm mỡ" nếu bạn muốn giảm cân nhé?`,
     };
   }
 

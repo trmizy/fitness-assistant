@@ -15,7 +15,11 @@
  * existing deployment unless QUEUE_PROVIDER=sqs is explicitly set, which no
  * current docker-compose/.env file sets.
  */
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import {
+  SQSClient,
+  SendMessageCommand,
+  GetQueueAttributesCommand,
+} from "@aws-sdk/client-sqs";
 import { aiQueue } from "./ai.queue";
 
 export type AiTaskName = "generate-plan" | "generate-nutrition-plan";
@@ -36,9 +40,50 @@ function getSqsClient(): SQSClient {
   return sqsClient;
 }
 
+// Test seam, same pattern as `bedrockRuntimeDeps.send` in services/bedrock.client.ts — tests
+// replace these with a recorder/stub instead of hitting real SQS or mocking the SDK module.
+export const sqsDeps = {
+  sendMessage: (command: SendMessageCommand) => getSqsClient().send(command),
+  getQueueAttributes: (command: GetQueueAttributesCommand) =>
+    getSqsClient().send(command),
+};
+
+// Test seam for the BullMQ stats path — lets tests exercise success/failure/timeout without
+// ever touching the real `aiQueue` (which lazily opens a Redis connection on first use).
+export const bullmqStatsDeps = {
+  getStats: async (): Promise<AiQueueStats> => {
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
+      aiQueue.getWaitingCount(),
+      aiQueue.getActiveCount(),
+      aiQueue.getCompletedCount(),
+      aiQueue.getFailedCount(),
+      aiQueue.getDelayedCount(),
+    ]);
+    return { waiting, active, completed, failed, delayed };
+  },
+};
+
+/** Seam for the BullMQ publish (tests assert the exact options without a Redis connection). */
+export const bullmqPublishDeps = {
+  add: async (name: string, data: Record<string, unknown>, opts?: { jobId?: string }) => {
+    // BullMQ ignores add() for an id that still exists. A republish of an execution whose previous job is only RETAINED (failed or
+    // completed, kept by the queue's retention) must replace it, otherwise recovery silently does nothing. A waiting/active/delayed
+    // job is left alone (that is the duplicate we want to absorb); the durable worker claim dedupes the rest.
+    if (opts?.jobId) {
+      const existing = await aiQueue.getJob(opts.jobId);
+      if (existing) {
+        const state = await existing.getState();
+        if (state === "failed" || state === "completed") await existing.remove();
+      }
+    }
+    return aiQueue.add(name, data, opts);
+  },
+};
+
 export async function enqueueAiTask(
   name: AiTaskName,
   data: Record<string, unknown>,
+  opts: { jobId?: string } = {},
 ): Promise<EnqueuedAiTask> {
   if (process.env.QUEUE_PROVIDER === "sqs") {
     const queueUrl = process.env.AI_TASKS_QUEUE_URL;
@@ -51,7 +96,7 @@ export async function enqueueAiTask(
     // already carried (job.name + job.data) — worker-lambda.ts and
     // processAiTaskJob/processNutritionPlanJob read `.name`/`.data`
     // identically regardless of which queue backend produced the job.
-    const result = await getSqsClient().send(
+    const result = await sqsDeps.sendMessage(
       new SendMessageCommand({
         QueueUrl: queueUrl,
         MessageBody: JSON.stringify({ name, data }),
@@ -63,6 +108,91 @@ export async function enqueueAiTask(
     return { id: result.MessageId };
   }
 
-  const job = await aiQueue.add(name, data);
+  // opts.jobId makes the BullMQ add idempotent per execution (same id => no duplicate job). SQS has no equivalent here;
+  // duplicate SQS messages are absorbed by the durable worker claim instead.
+  const job = await bullmqPublishDeps.add(name, data, opts.jobId ? { jobId: opts.jobId } : undefined);
   return { id: job.id! };
+}
+
+export interface AiQueueStats {
+  waiting: number | null;
+  active: number | null;
+  completed: number | null;
+  failed: number | null;
+  delayed: number | null;
+}
+
+const EMPTY_STATS: AiQueueStats = {
+  waiting: null,
+  active: null,
+  completed: null,
+  failed: null,
+  delayed: null,
+};
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+/**
+ * Admin dashboard queue counts (GET /admin/ai/overview, /admin/ai/queue).
+ *
+ * BUG (found live on AWS DEV, 2026-09-30): the old call site read these 5 counts directly off
+ * `aiQueue` (BullMQ) unconditionally, even when QUEUE_PROVIDER=sqs. `aiQueue` lazily connects to
+ * Redis (REDIS_HOST default "localhost") on first property access — there is no Redis reachable
+ * from the AI HTTP Lambda in the AWS deployment, and ioredis's default retry strategy does not
+ * reject quickly, so the connection attempt ran past the Lambda's 30s timeout on every call
+ * instead of failing into the existing `.catch(() => null)`. Both endpoints returned 503 to the
+ * client every time. Fix: never touch `aiQueue`/BullMQ at all when QUEUE_PROVIDER=sqs — read SQS's
+ * own `GetQueueAttributes` instead — and bound whichever path runs with a hard 2s timeout so a
+ * slow/unreachable stats source degrades to `null` counts instead of hanging the whole request.
+ */
+export async function getAiQueueStats(): Promise<AiQueueStats> {
+  if (process.env.QUEUE_PROVIDER === "sqs") {
+    const queueUrl = process.env.AI_TASKS_QUEUE_URL;
+    if (!queueUrl) return EMPTY_STATS;
+
+    return withTimeout(
+      (async (): Promise<AiQueueStats> => {
+        const result = await sqsDeps.getQueueAttributes(
+          new GetQueueAttributesCommand({
+            QueueUrl: queueUrl,
+            AttributeNames: [
+              "ApproximateNumberOfMessages",
+              "ApproximateNumberOfMessagesNotVisible",
+              "ApproximateNumberOfMessagesDelayed",
+            ],
+          }),
+        );
+        const attrs = result.Attributes || {};
+        const num = (v: string | undefined) => (v != null ? Number(v) : null);
+        return {
+          waiting: num(attrs.ApproximateNumberOfMessages),
+          active: num(attrs.ApproximateNumberOfMessagesNotVisible),
+          delayed: num(attrs.ApproximateNumberOfMessagesDelayed),
+          // SQS has no equivalent of BullMQ's completed/failed counts (a message is deleted on
+          // success and moved to the DLQ after maxReceiveCount, not counted in place) — report
+          // as explicitly unavailable rather than inventing a number.
+          completed: null,
+          failed: null,
+        };
+      })(),
+      2000,
+      EMPTY_STATS,
+    );
+  }
+
+  return withTimeout(bullmqStatsDeps.getStats(), 2000, EMPTY_STATS);
 }

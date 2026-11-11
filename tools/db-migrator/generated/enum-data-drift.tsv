@@ -1,0 +1,2 @@
+| fitness_assistant_user | NotificationEntityType | NUTRITION_PROGRAM,TRAINING_CYCLE,TRAINING_PROGRAM,WORKOUT_SCHEDULE | notifications.entity_type |
+| fitness_assistant_user | NotificationEventType | CYCLE_REASSESSMENT_READY,NUTRITION_PLAN_READY,PT_FEEDBACK_RECEIVED,TRAINING_PLAN_UPDATED,WORKOUT_RESCHEDULED,WORKOUT_UNFINISHED,WORKOUT_UPCOMING | notifications.event_type |

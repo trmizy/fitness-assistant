@@ -1,0 +1,17 @@
+{
+  "name": "PT_DEICTIC_CANONICAL_POLICY_V1",
+  "decided": "product decision, locked before this task's re-score (see task §1/§0)",
+  "scope": "THIS_ITEM / PREVIOUS_STATE references whose domain is PT/HLV/coach",
+  "rules": {
+    "1_explicit_name": "unique explicit PT name -> RESOLVED",
+    "2_one_antecedent": "exactly one compatible visible PT antecedent -> RESOLVED",
+    "3_zero_antecedent": "zero compatible visible PT antecedents -> UNRESOLVED",
+    "4_multiple_antecedent": "multiple compatible visible PT antecedents, no disambiguator -> UNRESOLVED",
+    "5_hidden_state": "resolution requiring ci.proposal / candidate list / DB state / omitted history / current-PT state not in persisted -> UNRESOLVED at the semantic-parser layer"
+  },
+  "basis": [
+    "parser visible-context contract (interpreter.ts buildPrompt(): single message + optional expectedSlot, no history, no ci.proposal visible to this step)",
+    "InterpretContext.persisted has no PT/coach field",
+    "V2.3A.1 cross-dataset consistency audit (docs/ai-training/qwen4b-v2-3a1-pt-deictic-gold-consistency-audit.md)"
+  ]
+}

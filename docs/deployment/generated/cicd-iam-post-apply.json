@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "phase": "16B.1B",
+    "purpose": "Post-apply snapshot of the Gymini DEV CI/CD IAM activation. No secrets included.",
+    "appliedAt": "2026-10-12T13:19:41Z",
+    "executedBy": "arn:aws:iam::191798898985:user/gymini-admin",
+    "sourceTemplate": "infra/cloudformation/ci-cd-oidc.yaml",
+    "sourceTemplateSha256": "91ba592374184025146d234d3cc12dd6d2b4bb1dc7268a5143983e5727d193dc",
+    "activationManifestSha256": "d4492ba82f4c6a2b36920880520e64a332c21982b5b3a59385201f11f5979428",
+    "activationManifest": "docs/deployment/generated/cicd-iam-activation-plan.json"
+  },
+  "stack": {
+    "stackName": "fitness-assistant-dev-cicd-iam",
+    "stackId": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-cicd-iam/62a62150-c63f-11f1-890a-0affd989b073",
+    "changeSetType": "CREATE",
+    "changeSetName": "phase-16b1b-cicd-iam-activation",
+    "changeSetId": "arn:aws:cloudformation:ap-southeast-1:191798898985:changeSet/phase-16b1b-cicd-iam-activation/9527f015-2b16-4ff6-83b9-d0bd05496c4b",
+    "creationTime": "2026-10-12T13:18:16.667000+00:00",
+    "finalStatus": "CREATE_COMPLETE"
+  },
+  "rolesCreated": [
+    {
+      "roleName": "GyminiDevCiReadRole",
+      "roleArn": "arn:aws:iam::191798898985:role/GyminiDevCiReadRole",
+      "createDate": "2026-10-12T13:19:51+00:00",
+      "trustPolicySha256": "c8bd0631149c3eeb979ffa84544dd782f8ababa752bd3b14fda19b4a0e3bb4e2",
+      "permissionPolicySha256": "ca5338ee23637fc0e4bd749464f3acbc0d9e16d0a305d429f05cfa641bbcd04f",
+      "inlinePolicyNames": ["ci-read"],
+      "attachedManagedPolicies": [],
+      "permissionsBoundary": null
+    },
+    {
+      "roleName": "GyminiDevAppDeployRole",
+      "roleArn": "arn:aws:iam::191798898985:role/GyminiDevAppDeployRole",
+      "createDate": "2026-10-12T13:19:50+00:00",
+      "trustPolicySha256": "06db4f97a3c7368c24f624a260911b999c5b52ebdf818cccfac9f6797d184d35",
+      "permissionPolicySha256": "afe61d589caa2d281ed5bf1fdad49af7126720394ebfd1965cd11298d4f0b3a2",
+      "inlinePolicyNames": ["app-deploy"],
+      "attachedManagedPolicies": [],
+      "permissionsBoundary": null
+    },
+    {
+      "roleName": "GyminiDevInfraPlanRole",
+      "roleArn": "arn:aws:iam::191798898985:role/GyminiDevInfraPlanRole",
+      "createDate": "2026-10-12T13:20:13+00:00",
+      "trustPolicySha256": "f6455d5301a74774d925d6e65eca8bb5b79b98cc8e141334a9e3943815f658d0",
+      "permissionPolicySha256": "abd355fbe344633c1bffabab6cc60f96721a05959efa2243ef3e871c2237b6bc",
+      "inlinePolicyNames": ["infra-plan"],
+      "attachedManagedPolicies": [],
+      "permissionsBoundary": null
+    },
+    {
+      "roleName": "GyminiDevInfraApplyRole",
+      "roleArn": "arn:aws:iam::191798898985:role/GyminiDevInfraApplyRole",
+      "createDate": "2026-10-12T13:20:13+00:00",
+      "trustPolicySha256": "ced28712a37506b7b8e7d44494e2ad026f279e8394dd3d4853486cce3556f325",
+      "permissionPolicySha256": "4c5dc87349a60b8fae181b6a3291e274e36238d6087f3455b0a0e60440577028",
+      "inlinePolicyNames": ["infra-apply"],
+      "attachedManagedPolicies": [],
+      "permissionsBoundary": null
+    },
+    {
+      "roleName": "GyminiDevCfnExecutionRole",
+      "roleArn": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole",
+      "createDate": "2026-10-12T13:19:50+00:00",
+      "trustPolicySha256": "df17b6918a6600e4e8c3a026b5ead41f737e7f6143ea0ebb4b0dcacd015db1af",
+      "permissionPolicySha256": "445cf515fb30fd8bb6f1409605a916b9e3a400d76802e666362d0265a7ea1b09",
+      "inlinePolicyNames": ["api-gateway-stack-resources"],
+      "attachedManagedPolicies": [],
+      "permissionsBoundary": null
+    }
+  ],
+  "oidcProvider": {
+    "arn": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com",
+    "action": "LEAVE_UNCHANGED",
+    "changed": false,
+    "beforeAfterDiffCount": 0
+  },
+  "legacyRole": {
+    "roleName": "fitness-assistant-github-actions-ci",
+    "action": "LEAVE_UNCHANGED",
+    "changed": false,
+    "trustPolicyDigest": "217839cd9c1f58f96b21a68e6cac1f7dcb8230c7b3a9d8ada54a3238b2e8c232",
+    "planReadOnlyPolicyDigest": "46531f9ca0524e80627ab01bb338957226b08e3b87b040794ada9e06d3039fe9",
+    "stateBackendReadPolicyDigest": "429bb03878a2975964fa0caebb702aeae482199c1c864b395b46be3832ac791a",
+    "permissionsBoundary": null,
+    "beforeAfterDiffCount": 0
+  },
+  "iamUsersCreated": 0,
+  "accessKeysCreated": 0,
+  "staticAwsCredentialsCreated": false,
+  "runtimePreservation": {
+    "apiGatewayStackStatus": "UPDATE_COMPLETE (unchanged, separate stack)",
+    "chatEcsDesiredCount": 1,
+    "chatEcsRunningCount": 1,
+    "lambdaAuthLastModified": "2026-10-07T13:59:02.000+0000 (unchanged)",
+    "auroraStatus": "available (unchanged)",
+    "natGatewayState": "available (unchanged, 1 NAT)"
+  },
+  "workflowActivation": {
+    "activeDeployWorkflowsCreated": 0,
+    "draftFilesMovedToGithubWorkflows": 0,
+    "liveGithubOidcAssumeRoleTest": "DEFERRED_TO_WORKFLOW_ACTIVATION"
+  }
+}

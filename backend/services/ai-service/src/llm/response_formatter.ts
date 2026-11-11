@@ -133,6 +133,10 @@ function restLabel(restSeconds: number): string {
   return `${restSeconds}s`;
 }
 
+// "30-45s reps" / "8-10 mỗi bên reps" read wrong: a duration or per-side count already carries its unit. Also collapse a doubled word ("Rollout Rollout").
+const repsWithUnit = (reps: string, unit: string) => (/\d\s*s\b|seconds?|giây|phút|mỗi bên|each side/i.test(reps) ? reps : `${reps} ${unit}`);
+const dedupeWords = (name: string) => name.replace(/\b(\p{L}+)(\s+\1\b)+/giu, "$1");
+
 function formatExerciseLine(
   name: string,
   sets: number,
@@ -141,9 +145,9 @@ function formatExerciseLine(
   language: ResponseLanguage,
 ): string {
   if (language === "vi") {
-    return `- **${name}**: ${sets} hiệp × ${reps} reps — nghỉ ${restLabel(restSeconds)}`;
+    return `- **${dedupeWords(name)}**: ${sets} hiệp × ${repsWithUnit(reps, "reps")} — nghỉ ${restLabel(restSeconds)}`;
   }
-  return `- **${name}**: ${sets} sets × ${reps} reps — rest ${restLabel(restSeconds)}`;
+  return `- **${dedupeWords(name)}**: ${sets} sets × ${repsWithUnit(reps, "reps")} — rest ${restLabel(restSeconds)}`;
 }
 
 function joinFollowUps(
@@ -405,15 +409,23 @@ function formatMealPlan(
   }
 
   const lines: string[] = [];
+  const unsavedChatSuggestionNote =
+    "> Đây là bản gợi ý trong chat, chưa lưu vào trang Dinh dưỡng. Để tạo bản có thể lưu, nhắn: \"tạo thực đơn cho tôi\" rồi xác nhận lưu.";
 
   if (language === "vi") {
     lines.push("## 🥗 Thực Đơn Của Bạn");
+    lines.push("");
+    lines.push(unsavedChatSuggestionNote);
     lines.push("");
     if ((rec.personalizationSummary || []).length > 0) {
       lines.push("**Cá nhân hóa theo dữ liệu của bạn:**");
       rec
         .personalizationSummary!.slice(0, 5)
         .forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+    if (mealPlan.whatIf) {
+      lines.push("> Con số theo yêu cầu bạn vừa nêu (ước tính) — **không** thay đổi mục tiêu dinh dưỡng đã lưu của bạn.");
       lines.push("");
     }
     if (mealPlan.isDefaultTemplate) {

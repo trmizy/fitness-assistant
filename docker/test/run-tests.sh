@@ -31,8 +31,19 @@ fi
 printf '\n[docker-test] root build\n'
 pnpm run build
 
-printf '\n[docker-test] unit tests\n'
-pnpm test
+if [ "$PROFILE" = "full" ]; then
+  printf '\n[docker-test] workspace tests (Postgres profile)\n'
+  pnpm test
+else
+  # Backend scripts also contain DB-backed tests. They cannot run without
+  # Postgres; keep those in full and the independent CI DB integration gate.
+  # The host CI unit jobs still exercise backend suites before this Docker gate.
+  printf '\n[docker-test] offline AI evaluation/policy and mobile tests\n'
+  pnpm --filter @gym-coach/ai-service run test:evaluation
+  pnpm --filter @gym-coach/ai-service run test:policy
+  pnpm --filter mobile run test:unit
+  pnpm --filter mobile run test:components --runInBand
+fi
 
 printf '\n[docker-test] ai-service build\n'
 pnpm --filter @gym-coach/ai-service run build

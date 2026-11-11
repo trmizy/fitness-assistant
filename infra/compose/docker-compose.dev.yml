@@ -419,10 +419,11 @@ services:
       # set LLM_BASE_URL=http://ollama:11434.
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      AI_CHAT_LLM_TIMEOUT_MS: ${AI_CHAT_LLM_TIMEOUT_MS:-80000}  # Above this, tunnel (~100s) and app (120s) time out first anyway.
       EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
       LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
       LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
@@ -509,7 +510,7 @@ services:
       # to run against Docker-local Ollama instead.
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
@@ -668,6 +669,7 @@ services:
       NVIDIA_VISIBLE_DEVICES: void
       CUDA_VISIBLE_DEVICES: ""
       OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: "30m"   # R1: keep the approved model resident between turns; cold loads measured at 60-82 s
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
@@ -689,7 +691,7 @@ services:
       [
         "sh",
         "-c",
-        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-qwen3:4b-instruct-2507-q4_K_M}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
       ]
     networks:
       - default

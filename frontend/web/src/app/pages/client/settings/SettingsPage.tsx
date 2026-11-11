@@ -44,7 +44,7 @@ export function SettingsPage() {
       </div>
 
       <div
-        className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm py-2"
+        className="flex gap-1.5 overflow-x-auto md:flex-wrap md:overflow-visible pb-1 -mx-4 px-4 md:mx-0 md:px-0 sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm py-2"
         data-testid="settings-jump-bar"
       >
         {JUMP_LINKS.map((link) => (

@@ -1,0 +1,114 @@
+[
+  {
+    "family": "v22-deictic-no-target",
+    "boundary": "bare deictic, zero antecedent anywhere in the visible text",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 4,
+    "note": "Core A-case: no exercise/PT/plan/number named anywhere in the message, so the deictic word has nothing to bind to."
+  },
+  {
+    "family": "v22-multiple-visible-targets",
+    "boundary": "exactly two candidates named in the SAME message, singular deictic used without picking one",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 3,
+    "note": "Genuine ambiguity visible entirely within the text itself - two real candidates, no disambiguation, not reliant on any hidden state."
+  },
+  {
+    "family": "v22-pt-switch-no-antecedent",
+    "boundary": "PT-switch request with zero PT ever named in the message",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 3,
+    "note": "Narrower, PT-specific sibling of family A - deliberately targets the exact OVERCONFIDENT_AMBIGUITY pattern seen on validation, with fresh wording (never 'PT đó/kia' from V2.1's own families, never the validation phrasing)."
+  },
+  {
+    "family": "v22-exercise-ref-no-antecedent",
+    "boundary": "exercise-swap/removal request with zero exercise ever named in the message",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 3,
+    "note": "Exercise-specific sibling of family A."
+  },
+  {
+    "family": "v22-numeric-ref-no-antecedent",
+    "boundary": "numeric-adjustment request referring to an unlabeled number/level with none named in the message",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 3,
+    "note": "Covers deictic reference to a quantity rather than an entity - same underlying boundary, different surface target type."
+  },
+  {
+    "family": "v22-correction-ambiguous-target",
+    "boundary": "correction-shaped utterance with no identifiable field/entity target anywhere in the message",
+    "polarity": "negative",
+    "split": "train",
+    "exampleCount": 3,
+    "note": "Extends the ambiguity boundary to CORRECT_INFORMATION-shaped text, not just REVISE_WORKFLOW-shaped - a distinct intent surface sharing the same underlying 'no antecedent' problem."
+  },
+  {
+    "family": "v22-backreference-same-message",
+    "boundary": "antecedent (squat/PT Minh/eat-clean) named earlier in the SAME message, deictic word refers back to it unambiguously",
+    "polarity": "positive",
+    "split": "train",
+    "exampleCount": 5,
+    "note": "The key positive contrast: the referent is visible in text the model actually receives (no conversation history needed) - teaches resolution should happen when a real antecedent exists, directly preventing the family above from over-generalizing into never resolving anything."
+  },
+  {
+    "family": "v22-explicit-named-target",
+    "boundary": "item named directly, no deictic word at all - confirms confident action is still correct when there's no ambiguity to begin with",
+    "polarity": "positive",
+    "split": "train",
+    "exampleCount": 5,
+    "note": "Baseline positive contrast - explicit naming needs no reference-resolution machinery at all; included so the model isn't pushed toward hedging on perfectly clear requests."
+  },
+  {
+    "family": "v22dev-deictic-no-target",
+    "boundary": "dev twin of family A, fresh wording",
+    "polarity": "negative",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only, never trained on - tests whether the A-boundary generalizes."
+  },
+  {
+    "family": "v22dev-pt-switch-no-antecedent",
+    "boundary": "dev twin of family C, fresh wording",
+    "polarity": "negative",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only - directly tests the exact targeted OVERCONFIDENT_AMBIGUITY pattern with new phrasing."
+  },
+  {
+    "family": "v22dev-multiple-visible-targets",
+    "boundary": "dev twin of family B, fresh wording",
+    "polarity": "negative",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only."
+  },
+  {
+    "family": "v22dev-backreference-same-message",
+    "boundary": "dev twin of family G, fresh wording",
+    "polarity": "positive",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only - tests whether the positive within-message-antecedent resolution survives alongside the negative families above."
+  },
+  {
+    "family": "v22dev-explicit-named-target",
+    "boundary": "dev twin of family H, fresh wording",
+    "polarity": "positive",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only."
+  },
+  {
+    "family": "v22dev-numeric-ref-no-antecedent",
+    "boundary": "dev twin of family E, fresh wording",
+    "polarity": "negative",
+    "split": "dev",
+    "exampleCount": 2,
+    "note": "Dev-only."
+  }
+]

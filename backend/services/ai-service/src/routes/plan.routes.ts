@@ -2,6 +2,7 @@ import { Router } from "express";
 import { planController } from "../controllers/plan.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/requireRole.middleware";
+import { expensiveRateLimiter } from "../middleware/ai-rate-limiters";
 import { validateBody } from "../middleware/validate.middleware";
 import {
   GeneratePlanRequestSchema,
@@ -19,6 +20,14 @@ const router = Router();
 // All /plans/* routes require a verified user identity.
 router.use(requireAuth);
 
+// PUBLIC_AUTHENTICATED_AI. Two enforcement points, one shared per-user "ai-expensive" budget:
+//  - SYNCHRONOUS model routes (explain, nutrition/:id/explain) use expensiveRateLimiter here.
+//  - QUEUED generation routes (workout/generate, nutrition/generate, adjust, nutrition/:id/adjust)
+//    are admitted INSIDE the queue*Generation command (services/generation-admission.ts), which the
+//    AI-chat nutrition flow also calls — so REST and chat share the allowance and a request is never
+//    charged twice. Admission runs before any plan row / job is created. Identity is
+//    req.context.userId; these controllers never read a body userId.
+
 /**
  * GET /plans/llm-health
  * Preflight check used by the UI before starting LLM-backed actions.
@@ -29,7 +38,7 @@ router.get("/llm-health", planController.getLlmHealth);
  * POST /plans/nutrition/:planId/explain
  * Generate a natural-language explanation for a COMPLETED nutrition plan.
  */
-router.post("/nutrition/:planId/explain", planController.explainNutritionPlan);
+router.post("/nutrition/:planId/explain", expensiveRateLimiter, planController.explainNutritionPlan);
 
 /**
  * POST /plans/nutrition/:planId/adjust
@@ -105,6 +114,7 @@ router.get("/job/:jobId", planController.getJobStatus);
  */
 router.post(
   "/explain",
+  expensiveRateLimiter,
   validateBody(ExplainPlanRequestSchema),
   planController.explainPlan,
 );

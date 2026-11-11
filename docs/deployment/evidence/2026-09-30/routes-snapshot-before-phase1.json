@@ -1,0 +1,630 @@
+{
+    "Items": [
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "0bkv0mf",
+            "RouteKey": "ANY /notifications/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "15ai11p",
+            "RouteKey": "ANY /chat/{proxy+}",
+            "Target": "integrations/ebe69nj"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "18pp73s",
+            "RouteKey": "ANY /me/wallet/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "1a39mw9",
+            "RouteKey": "ANY /payments/vnpay/return",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "25k6vpo",
+            "RouteKey": "ANY /payments/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "2ekkgno",
+            "RouteKey": "ANY /pt-applications/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "2jtcryu",
+            "RouteKey": "ANY /exports/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "3h9jawf",
+            "RouteKey": "ANY /stats",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "3zu5nin",
+            "RouteKey": "ANY /profile/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "4315hcn",
+            "RouteKey": "ANY /coach",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "4xyore1",
+            "RouteKey": "ANY /pt",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "51r7foc",
+            "RouteKey": "ANY /training-cycles/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "5laesro",
+            "RouteKey": "ANY /training-cycles",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "5ofr8a5",
+            "RouteKey": "ANY /exercises/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "65xzyns",
+            "RouteKey": "ANY /admin/ai",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "6sa0fv8",
+            "RouteKey": "ANY /me/withdrawals/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "6xzii05",
+            "RouteKey": "ANY /admin/payments",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "7ntf1qc",
+            "RouteKey": "ANY /locations/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "7zaeabq",
+            "RouteKey": "ANY /admin/ai/{proxy+}",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "85gmdtp",
+            "RouteKey": "ANY /pt/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "8bx6hwl",
+            "RouteKey": "ANY /gyms/{proxy+}",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "8ilg5k7",
+            "RouteKey": "ANY /exercises",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "8zf6b99",
+            "RouteKey": "ANY /me",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "94p8z9q",
+            "RouteKey": "ANY /stats/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "9b2uho6",
+            "RouteKey": "ANY /plans/{proxy+}",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "9r1iooo",
+            "RouteKey": "ANY /me/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "aexyi40",
+            "RouteKey": "ANY /me/payments/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ainvdjj",
+            "RouteKey": "ANY /nutrition/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "b13kqj2",
+            "RouteKey": "PATCH /auth/users/{userId}/disable",
+            "Target": "integrations/ai0sybi"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "b4qz92c",
+            "RouteKey": "POST /auth/refresh",
+            "Target": "integrations/1m2k0ec"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "bbga7ea",
+            "RouteKey": "ANY /ai/{proxy+}",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "bdw3qc1",
+            "RouteKey": "ANY /food/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "bgcs0g8",
+            "RouteKey": "ANY /exports",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "bql2ffm",
+            "RouteKey": "POST /auth/verify",
+            "Target": "integrations/0dz9hk6"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "bwk10qr",
+            "RouteKey": "ANY /pt-applications",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "dwkj034",
+            "RouteKey": "ANY /food",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "eh0vod1",
+            "RouteKey": "ANY /inbody",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ekjml8p",
+            "RouteKey": "ANY /inbody/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "f40xejo",
+            "RouteKey": "ANY /coach/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "fnw2xg2",
+            "RouteKey": "ANY /me/pt-wallet/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "gd8slzc",
+            "RouteKey": "ANY /payments/webhook/{provider}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ggous3t",
+            "RouteKey": "ANY /payments",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "hccamfd",
+            "RouteKey": "ANY /me/withdrawals",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "hpk8kzj",
+            "RouteKey": "ANY /templates/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "hu01bl2",
+            "RouteKey": "GET /health",
+            "Target": "integrations/uvqqpy4"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "hxj17fj",
+            "RouteKey": "ANY /imports/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "iimte3l",
+            "RouteKey": "ANY /nutrition",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "inqm7z3",
+            "RouteKey": "PATCH /auth/users/{userId}/enable",
+            "Target": "integrations/9291bod"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "inys2ec",
+            "RouteKey": "ANY /equipment/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ipmsbj1",
+            "RouteKey": "ANY /owner",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "jj9zela",
+            "RouteKey": "ANY /templates",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "khx3zci",
+            "RouteKey": "ANY /sessions",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ky8pdte",
+            "RouteKey": "ANY /me/pt-wallet",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "l6rxw2s",
+            "RouteKey": "ANY /workouts",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "lc4uib6",
+            "RouteKey": "ANY /payments/webhook/vnpay",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ls3te8j",
+            "RouteKey": "ANY /contracts",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "mdpctvi",
+            "RouteKey": "ANY /admin",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ncrmmot",
+            "RouteKey": "ANY /plans",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "nesngve",
+            "RouteKey": "ANY /workouts/{proxy+}",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "od61vtj",
+            "RouteKey": "PATCH /auth/users/{userId}/role",
+            "Target": "integrations/5z0d625"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "ozcusqo",
+            "RouteKey": "ANY /availability",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "pdyttwa",
+            "RouteKey": "POST /auth/login",
+            "Target": "integrations/1vnd68s"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "q2x73ci",
+            "RouteKey": "ANY /me/payments",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "qzs0h76",
+            "RouteKey": "POST /auth/logout",
+            "Target": "integrations/vq6v245"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "s6u0xlk",
+            "RouteKey": "POST /auth/register/verify",
+            "Target": "integrations/4y4qfnr"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "s9eyv0o",
+            "RouteKey": "ANY /owner/{proxy+}",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "sti5ne2",
+            "RouteKey": "ANY /locations",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "t5rs0fv",
+            "RouteKey": "GET /auth/users",
+            "Target": "integrations/9ibcmaf"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "tfku6cv",
+            "RouteKey": "ANY /sessions/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "tj6cmlc",
+            "RouteKey": "ANY /collaborations/{proxy+}",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "udx6zk8",
+            "RouteKey": "PATCH /auth/me",
+            "Target": "integrations/mg2016a"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "uwtdhye",
+            "RouteKey": "ANY /notifications",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationScopes": [],
+            "AuthorizationType": "NONE",
+            "RequestParameters": {},
+            "RouteId": "v1ulrmi",
+            "RouteKey": "POST /auth/register",
+            "Target": "integrations/6l59zzc"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "vq11nk5",
+            "RouteKey": "ANY /equipment",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "vy11qph",
+            "RouteKey": "ANY /profile",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "w2a80m6",
+            "RouteKey": "ANY /availability/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "w7k9zoo",
+            "RouteKey": "ANY /gyms",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "wfkvdlk",
+            "RouteKey": "ANY /admin/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "wiymnt4",
+            "RouteKey": "ANY /ai",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "wnat8l3",
+            "RouteKey": "ANY /collaborations",
+            "Target": "integrations/045z1ul"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "wpmmzqc",
+            "RouteKey": "ANY /imports",
+            "Target": "integrations/wv4c1bs"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "wz6h20l",
+            "RouteKey": "ANY /me/wallet",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "xem7w3d",
+            "RouteKey": "ANY /admin/payments/{proxy+}",
+            "Target": "integrations/w9fjro0"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "xoh2fbn",
+            "RouteKey": "ANY /marketplace/{proxy+}",
+            "Target": "integrations/biirr1c"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "yauy7z2",
+            "RouteKey": "ANY /contracts/{proxy+}",
+            "Target": "integrations/tqe5r7h"
+        },
+        {
+            "ApiKeyRequired": false,
+            "AuthorizationType": "NONE",
+            "RouteId": "z3abvev",
+            "RouteKey": "ANY /marketplace",
+            "Target": "integrations/biirr1c"
+        }
+    ]
+}

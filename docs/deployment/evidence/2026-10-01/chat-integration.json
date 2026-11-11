@@ -1,0 +1,9 @@
+{
+    "ConnectionType": "INTERNET",
+    "IntegrationId": "ebe69nj",
+    "IntegrationMethod": "ANY",
+    "IntegrationType": "HTTP_PROXY",
+    "IntegrationUri": "http://fitness-assistant-dev-chat-alb-1556383256.ap-southeast-1.elb.amazonaws.com/chat/{proxy}",
+    "PayloadFormatVersion": "1.0",
+    "TimeoutInMillis": 30000
+}

@@ -1,0 +1,218 @@
+{
+  "captured_at_utc": "2026-10-01T09:14:10Z",
+  "purpose": "Pre-migration rollback evidence for the old manually-created NAT, captured immediately before Phase 2 deletion. See docs/deployment/AWS_DEV_NAT_ON_DEMAND_MIGRATION_2026-10-01.md",
+  "nat_gateway":
+{
+    "NatGateways": [
+        {
+            "CreateTime": "2026-08-27T05:39:01+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-08694ce526e3345b8",
+                    "NetworkInterfaceId": "eni-0c05331b631584bc1",
+                    "PrivateIp": "10.0.1.107",
+                    "PublicIp": "3.1.207.168",
+                    "AssociationId": "eipassoc-0b062812a025d627a",
+                    "IsPrimary": true,
+                    "Status": "succeeded"
+                }
+            ],
+            "NatGatewayId": "nat-025b2c37935815d6d",
+            "State": "available",
+            "SubnetId": "subnet-0f1a5fcd6ed0401ee",
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "fitness-assistant-dev-nat-a"
+                }
+            ],
+            "ConnectivityType": "public",
+            "AvailabilityMode": "zonal",
+            "AttachedAppliances": []
+        }
+    ]
+}
+  ,
+  "eip":
+{
+    "Addresses": [
+        {
+            "AllocationId": "eipalloc-08694ce526e3345b8",
+            "AssociationId": "eipassoc-0b062812a025d627a",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-0c05331b631584bc1",
+            "NetworkInterfaceOwnerId": "191798898985",
+            "PrivateIpAddress": "10.0.1.107",
+            "PublicIpv4Pool": "amazon",
+            "NetworkBorderGroup": "ap-southeast-1",
+            "PublicIp": "3.1.207.168"
+        }
+    ]
+}
+  ,
+  "route_table":
+{
+    "RouteTables": [
+        {
+            "Associations": [
+                {
+                    "Main": false,
+                    "RouteTableAssociationId": "rtbassoc-05bb2dbccc6881b4d",
+                    "RouteTableId": "rtb-0f743d4fd0949f9aa",
+                    "SubnetId": "subnet-09e3230f7bca04c8e",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                },
+                {
+                    "Main": false,
+                    "RouteTableAssociationId": "rtbassoc-0b8919132b38661d2",
+                    "RouteTableId": "rtb-0f743d4fd0949f9aa",
+                    "SubnetId": "subnet-02b39d77762465ef8",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "PropagatingVgws": [],
+            "RouteTableId": "rtb-0f743d4fd0949f9aa",
+            "Routes": [
+                {
+                    "DestinationCidrBlock": "10.0.0.0/16",
+                    "GatewayId": "local",
+                    "Origin": "CreateRouteTable",
+                    "State": "active"
+                },
+                {
+                    "DestinationCidrBlock": "0.0.0.0/0",
+                    "NatGatewayId": "nat-025b2c37935815d6d",
+                    "Origin": "CreateRoute",
+                    "State": "active"
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "phase",
+                    "Value": "3"
+                },
+                {
+                    "Key": "project",
+                    "Value": "fitness-assistant"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "fitness-assistant-dev-private-app-rt"
+                },
+                {
+                    "Key": "environment",
+                    "Value": "dev"
+                }
+            ],
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "OwnerId": "191798898985"
+        }
+    ]
+}
+  ,
+  "nat_eni":
+{
+    "NetworkInterfaces": [
+        {
+            "Association": {
+                "AllocationId": "eipalloc-08694ce526e3345b8",
+                "AssociationId": "eipassoc-0b062812a025d627a",
+                "IpOwnerId": "191798898985",
+                "PublicDnsName": "ec2-3-1-207-168.ap-southeast-1.compute.amazonaws.com",
+                "PublicIp": "3.1.207.168"
+            },
+            "Attachment": {
+                "AttachmentId": "ela-attach-012144cad443d171f",
+                "DeleteOnTermination": false,
+                "DeviceIndex": 1,
+                "InstanceOwnerId": "amazon-aws",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "ap-southeast-1a",
+            "Description": "Interface for NAT Gateway nat-025b2c37935815d6d",
+            "Groups": [],
+            "InterfaceType": "nat_gateway",
+            "Ipv6Addresses": [],
+            "MacAddress": "06:24:bc:42:46:35",
+            "NetworkInterfaceId": "eni-0c05331b631584bc1",
+            "OwnerId": "191798898985",
+            "PrivateDnsName": "ip-10-0-1-107.ap-southeast-1.compute.internal",
+            "PublicDnsName": "ec2-3-1-207-168.ap-southeast-1.compute.amazonaws.com",
+            "PublicIpDnsNameOptions": {
+                "DnsHostnameType": "public-ipv4-dns-name",
+                "PublicIpv4DnsName": "ec2-3-1-207-168.ap-southeast-1.compute.amazonaws.com"
+            },
+            "PrivateIpAddress": "10.0.1.107",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "AllocationId": "eipalloc-08694ce526e3345b8",
+                        "AssociationId": "eipassoc-0b062812a025d627a",
+                        "IpOwnerId": "191798898985",
+                        "PublicDnsName": "ec2-3-1-207-168.ap-southeast-1.compute.amazonaws.com",
+                        "PublicIp": "3.1.207.168"
+                    },
+                    "Primary": true,
+                    "PrivateDnsName": "ip-10-0-1-107.ap-southeast-1.compute.internal",
+                    "PrivateIpAddress": "10.0.1.107"
+                }
+            ],
+            "RequesterId": "079661615068",
+            "RequesterManaged": true,
+            "SourceDestCheck": false,
+            "Status": "in-use",
+            "SubnetId": "subnet-0f1a5fcd6ed0401ee",
+            "TagSet": [],
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "Operator": {
+                "Managed": false,
+                "HiddenByDefault": false
+            },
+            "AvailabilityZoneId": "apse1-az2"
+        }
+    ]
+}
+  ,
+  "public_subnet":
+{
+    "Subnets": [
+        {
+            "AvailabilityZoneId": "apse1-az2",
+            "MapCustomerOwnedIpOnLaunch": false,
+            "OwnerId": "191798898985",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "fitness-assistant-dev-public-a"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:ap-southeast-1:191798898985:subnet/subnet-0f1a5fcd6ed0401ee",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            },
+            "BlockPublicAccessStates": {
+                "InternetGatewayBlockMode": "off"
+            },
+            "SubnetId": "subnet-0f1a5fcd6ed0401ee",
+            "State": "available",
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "CidrBlock": "10.0.1.0/24",
+            "AvailableIpAddressCount": 249,
+            "AvailabilityZone": "ap-southeast-1a",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": false
+        }
+    ]
+}
+}

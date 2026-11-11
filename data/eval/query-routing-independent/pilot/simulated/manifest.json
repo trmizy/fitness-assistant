@@ -1,0 +1,42 @@
+{
+  "status": "SIMULATED_PIPELINE_SMOKE_ONLY",
+  "independentHumanAnnotation": false,
+  "authority": "SIMULATED_LABELS",
+  "createdBy": "Claude (AI), 2026-10-11, simulated at the project owner request while no human annotators were available",
+  "allowedUses": [
+    "tooling smoke",
+    "schema smoke",
+    "agreement-command smoke"
+  ],
+  "forbiddenUses": [
+    "classifier gold",
+    "independent agreement evidence",
+    "policy signoff",
+    "R6B signoff",
+    "Heldout V6 readiness",
+    "training or evaluating any classifier",
+    "threshold / alias / envelope tuning"
+  ],
+  "provenanceFile": "pilot_annotations_SIMULATED_PROVENANCE.md",
+  "files": {
+    "pilot_A01_SIMULATED.csv": "3b3277c1f9cd1266423568a0d04f44f876749077c32fe0bed3e1eef228102458",
+    "pilot_A02_SIMULATED.csv": "3931f4653606cddee777b05a99692d51ea8dde22b4e77d1e52ea68e16b806ae4",
+    "pilot_annotations_SIMULATED_PROVENANCE.md": "3bbbd54070f5fffd7882a61c93817dcd9a5c5c9b542356a070ee495125a87c12"
+  },
+  "originals": {
+    "path": "docs/ai-training/",
+    "preserved": true,
+    "note": "originals left untouched (untracked, another workstream area); the copies here are the versioned quarantine",
+    "sha256": {
+      "pilot_A01.csv": "3b3277c1f9cd1266423568a0d04f44f876749077c32fe0bed3e1eef228102458",
+      "pilot_A02.csv": "3931f4653606cddee777b05a99692d51ea8dde22b4e77d1e52ea68e16b806ae4",
+      "pilot_annotations_PROVENANCE.md": "3bbbd54070f5fffd7882a61c93817dcd9a5c5c9b542356a070ee495125a87c12"
+    }
+  },
+  "utteranceStatus": "SYNTHETIC_UTTERANCES_WITH_FUTURE_HUMAN_LABELS",
+  "writerIntendedLabelsFile": {
+    "path": "docs/ai-training/pilot_candidates.csv",
+    "sha256": "5d577952b465a983db426a843f3b4cae1932e32baa1615c5ee5eac6737907c06",
+    "restriction": "contains hidden writer-intended labels; must NOT be shown to human annotators or disagreement reviewers; not copied into this directory"
+  }
+}

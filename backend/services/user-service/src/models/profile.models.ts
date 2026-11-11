@@ -39,6 +39,16 @@ export const profileSchema = z.object({
   safetyScreeningStatus: z.enum(["UNKNOWN", "CLEARED", "FOLLOW_UP_SUGGESTED"]).optional(),
   safetyScreeningFlags: z.array(z.string()).optional(),
   preferredTrainingDays: z.array(z.number().int().min(0).max(6)).optional(),
+  // 2026-10-23 real bug: OnboardingWizardPage's "Thời lượng mỗi buổi (phút)"
+  // input has always sent this field, but it was never in this schema —
+  // Zod silently drops unknown keys, so no user's chosen session length was
+  // EVER persisted; every AI-generated plan fell back to the ai-service
+  // default of 60 minutes regardless of what was entered here. Range
+  // matches ai-service's own domain bound (agent-workflow/slot-values.ts's
+  // parseMinutes, 10-240), wider than the onboarding form's own 15-180 UI
+  // cap so a value already saved under the old (wider) chat-parsed range
+  // is never rejected on a later unrelated profile update.
+  sessionDurationMinutes: z.number().int().min(10).max(240).optional(),
   availableEquipment: z.array(z.string()).optional(),
   injuries: z.array(z.string()).optional(),
   currentWeight: z.number().positive().optional(),

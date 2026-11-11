@@ -1,0 +1,60 @@
+{
+    "VpcEndpoints": [
+        {
+            "VpcEndpointId": "vpce-067d43742cdb6b4d4",
+            "VpcEndpointType": "Interface",
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "ServiceName": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-02fb9435bff6076bb",
+            "State": "available",
+            "PolicyDocument": "{\n  \"Statement\": [\n    {\n      \"Action\": \"*\",\n      \"Effect\": \"Allow\",\n      \"Principal\": \"*\",\n      \"Resource\": \"*\"\n    }\n  ]\n}",
+            "RouteTableIds": [],
+            "SubnetIds": [
+                "subnet-09e3230f7bca04c8e",
+                "subnet-02b39d77762465ef8"
+            ],
+            "Groups": [
+                {
+                    "GroupId": "sg-0b38ab22927b284ab",
+                    "GroupName": "fitness-assistant-dev-lambda-sg"
+                }
+            ],
+            "IpAddressType": "ipv4",
+            "DnsOptions": {
+                "DnsRecordIpType": "ipv4"
+            },
+            "PrivateDnsEnabled": true,
+            "RequesterManaged": false,
+            "NetworkInterfaceIds": [
+                "eni-0c291c8cc2fc5a26e",
+                "eni-0f348c46444e4d10c"
+            ],
+            "DnsEntries": [
+                {
+                    "DnsName": "vpce-067d43742cdb6b4d4-hbb4buqs.vpce-svc-02fb9435bff6076bb.ap-southeast-1.vpce.amazonaws.com",
+                    "HostedZoneId": "Z18LLCSTV4NVNL"
+                },
+                {
+                    "DnsName": "vpce-067d43742cdb6b4d4-hbb4buqs-ap-southeast-1b.vpce-svc-02fb9435bff6076bb.ap-southeast-1.vpce.amazonaws.com",
+                    "HostedZoneId": "Z18LLCSTV4NVNL"
+                },
+                {
+                    "DnsName": "vpce-067d43742cdb6b4d4-hbb4buqs-ap-southeast-1a.vpce-svc-02fb9435bff6076bb.ap-southeast-1.vpce.amazonaws.com",
+                    "HostedZoneId": "Z18LLCSTV4NVNL"
+                },
+                {
+                    "DnsName": "privatelink.c00.sgw.sin.prod.aoss.searchservices.aws.dev",
+                    "HostedZoneId": "Z072409830DT9VOFP8AY9"
+                }
+            ],
+            "CreationTimestamp": "2026-09-15T08:15:16.726000+00:00",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "fitness-dev-opensearch-vpce"
+                }
+            ],
+            "OwnerId": "191798898985",
+            "ServiceRegion": "ap-southeast-1"
+        }
+    ]
+}

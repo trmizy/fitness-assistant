@@ -1,0 +1,1798 @@
+{
+  "generatedAt": "2026-10-09T06:31:23.011Z",
+  "apiId": "id1iz7upbl",
+  "apiName": "fitness-assistant-dev-api",
+  "protocolType": "HTTP",
+  "stage": "$default",
+  "autoDeploy": true,
+  "endpoint": "https://id1iz7upbl.execute-api.ap-southeast-1.amazonaws.com",
+  "routeCount": 119,
+  "note": "Refreshed Phase 15B-HF (2026-10-09) after the Gym route hotfix - 12 new routes added.",
+  "routes": [
+    {
+      "routeId": "mdpctvi",
+      "method": "ANY",
+      "path": "/admin",
+      "routeKey": "ANY /admin",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "wfkvdlk",
+      "method": "ANY",
+      "path": "/admin/{proxy+}",
+      "routeKey": "ANY /admin/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "65xzyns",
+      "method": "ANY",
+      "path": "/admin/ai",
+      "routeKey": "ANY /admin/ai",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "7zaeabq",
+      "method": "ANY",
+      "path": "/admin/ai/{proxy+}",
+      "routeKey": "ANY /admin/ai/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "esz25ge",
+      "method": "ANY",
+      "path": "/admin/branch-documents",
+      "routeKey": "ANY /admin/branch-documents",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "xf9x9ua",
+      "method": "ANY",
+      "path": "/admin/branch-documents/{proxy+}",
+      "routeKey": "ANY /admin/branch-documents/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "sdsqnz9",
+      "method": "ANY",
+      "path": "/admin/brands",
+      "routeKey": "ANY /admin/brands",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "3xm8fwq",
+      "method": "ANY",
+      "path": "/admin/brands/{proxy+}",
+      "routeKey": "ANY /admin/brands/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "lszd6nm",
+      "method": "ANY",
+      "path": "/admin/commission-rate",
+      "routeKey": "ANY /admin/commission-rate",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "i6e87zb",
+      "method": "ANY",
+      "path": "/admin/commission-rate/{proxy+}",
+      "routeKey": "ANY /admin/commission-rate/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "3ltqisf",
+      "method": "ANY",
+      "path": "/admin/complaint-photos",
+      "routeKey": "ANY /admin/complaint-photos",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "svsel22",
+      "method": "ANY",
+      "path": "/admin/complaint-photos/{proxy+}",
+      "routeKey": "ANY /admin/complaint-photos/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "j1zikb4",
+      "method": "ANY",
+      "path": "/admin/complaints",
+      "routeKey": "ANY /admin/complaints",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "0fwxutq",
+      "method": "ANY",
+      "path": "/admin/complaints/{proxy+}",
+      "routeKey": "ANY /admin/complaints/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ol4bbq5",
+      "method": "ANY",
+      "path": "/admin/gym-memberships",
+      "routeKey": "ANY /admin/gym-memberships",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "lf1r6ca",
+      "method": "ANY",
+      "path": "/admin/gym-memberships/{proxy+}",
+      "routeKey": "ANY /admin/gym-memberships/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "w0hu166",
+      "method": "ANY",
+      "path": "/admin/gyms",
+      "routeKey": "ANY /admin/gyms",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "58us9ti",
+      "method": "ANY",
+      "path": "/admin/gyms/{proxy+}",
+      "routeKey": "ANY /admin/gyms/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "j6jnr1m",
+      "method": "ANY",
+      "path": "/admin/partner-accounts",
+      "routeKey": "ANY /admin/partner-accounts",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "famsfr2",
+      "method": "ANY",
+      "path": "/admin/partner-accounts/{proxy+}",
+      "routeKey": "ANY /admin/partner-accounts/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "6nc986n",
+      "method": "ANY",
+      "path": "/admin/partners",
+      "routeKey": "ANY /admin/partners",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "w730nap",
+      "method": "ANY",
+      "path": "/admin/partners/{proxy+}",
+      "routeKey": "ANY /admin/partners/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "6xzii05",
+      "method": "ANY",
+      "path": "/admin/payments",
+      "routeKey": "ANY /admin/payments",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "xem7w3d",
+      "method": "ANY",
+      "path": "/admin/payments/{proxy+}",
+      "routeKey": "ANY /admin/payments/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "wiymnt4",
+      "method": "ANY",
+      "path": "/ai",
+      "routeKey": "ANY /ai",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "bbga7ea",
+      "method": "ANY",
+      "path": "/ai/{proxy+}",
+      "routeKey": "ANY /ai/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "pdyttwa",
+      "method": "POST",
+      "path": "/auth/login",
+      "routeKey": "POST /auth/login",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "1vnd68s",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "qzs0h76",
+      "method": "POST",
+      "path": "/auth/logout",
+      "routeKey": "POST /auth/logout",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "vq6v245",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "udx6zk8",
+      "method": "PATCH",
+      "path": "/auth/me",
+      "routeKey": "PATCH /auth/me",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "mg2016a",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "kglwdf4",
+      "method": "PATCH",
+      "path": "/auth/me/password",
+      "routeKey": "PATCH /auth/me/password",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "mg2016a",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "b4qz92c",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "routeKey": "POST /auth/refresh",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "1m2k0ec",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "v1ulrmi",
+      "method": "POST",
+      "path": "/auth/register",
+      "routeKey": "POST /auth/register",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "6l59zzc",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "s6u0xlk",
+      "method": "POST",
+      "path": "/auth/register/verify",
+      "routeKey": "POST /auth/register/verify",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "4y4qfnr",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "t5rs0fv",
+      "method": "GET",
+      "path": "/auth/users",
+      "routeKey": "GET /auth/users",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "9ibcmaf",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "b13kqj2",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/disable",
+      "routeKey": "PATCH /auth/users/{userId}/disable",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "ai0sybi",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "inqm7z3",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/enable",
+      "routeKey": "PATCH /auth/users/{userId}/enable",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "9291bod",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "od61vtj",
+      "method": "PATCH",
+      "path": "/auth/users/{userId}/role",
+      "routeKey": "PATCH /auth/users/{userId}/role",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "5z0d625",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "bql2ffm",
+      "method": "POST",
+      "path": "/auth/verify",
+      "routeKey": "POST /auth/verify",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "0dz9hk6",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ozcusqo",
+      "method": "ANY",
+      "path": "/availability",
+      "routeKey": "ANY /availability",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "w2a80m6",
+      "method": "ANY",
+      "path": "/availability/{proxy+}",
+      "routeKey": "ANY /availability/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "15ai11p",
+      "method": "ANY",
+      "path": "/chat/{proxy+}",
+      "routeKey": "ANY /chat/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "ebe69nj",
+        "integrationType": "HTTP_PROXY",
+        "target": "http://dev-chat-alb-1795494241.ap-southeast-1.elb.amazonaws.com/chat/{proxy}",
+        "payloadFormatVersion": "1.0"
+      }
+    },
+    {
+      "routeId": "4315hcn",
+      "method": "ANY",
+      "path": "/coach",
+      "routeKey": "ANY /coach",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "f40xejo",
+      "method": "ANY",
+      "path": "/coach/{proxy+}",
+      "routeKey": "ANY /coach/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "wnat8l3",
+      "method": "ANY",
+      "path": "/collaborations",
+      "routeKey": "ANY /collaborations",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "tj6cmlc",
+      "method": "ANY",
+      "path": "/collaborations/{proxy+}",
+      "routeKey": "ANY /collaborations/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ls3te8j",
+      "method": "ANY",
+      "path": "/contracts",
+      "routeKey": "ANY /contracts",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "yauy7z2",
+      "method": "ANY",
+      "path": "/contracts/{proxy+}",
+      "routeKey": "ANY /contracts/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "vq11nk5",
+      "method": "ANY",
+      "path": "/equipment",
+      "routeKey": "ANY /equipment",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "inys2ec",
+      "method": "ANY",
+      "path": "/equipment/{proxy+}",
+      "routeKey": "ANY /equipment/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "8ilg5k7",
+      "method": "ANY",
+      "path": "/exercises",
+      "routeKey": "ANY /exercises",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "5ofr8a5",
+      "method": "ANY",
+      "path": "/exercises/{proxy+}",
+      "routeKey": "ANY /exercises/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "bgcs0g8",
+      "method": "ANY",
+      "path": "/exports",
+      "routeKey": "ANY /exports",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "2jtcryu",
+      "method": "ANY",
+      "path": "/exports/{proxy+}",
+      "routeKey": "ANY /exports/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "1qn9tii",
+      "method": "ANY",
+      "path": "/fitness-roadmaps",
+      "routeKey": "ANY /fitness-roadmaps",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "no4a9ym",
+      "method": "ANY",
+      "path": "/fitness-roadmaps/{proxy+}",
+      "routeKey": "ANY /fitness-roadmaps/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "dwkj034",
+      "method": "ANY",
+      "path": "/food",
+      "routeKey": "ANY /food",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "bdw3qc1",
+      "method": "ANY",
+      "path": "/food/{proxy+}",
+      "routeKey": "ANY /food/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "w7k9zoo",
+      "method": "ANY",
+      "path": "/gyms",
+      "routeKey": "ANY /gyms",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "8bx6hwl",
+      "method": "ANY",
+      "path": "/gyms/{proxy+}",
+      "routeKey": "ANY /gyms/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "hu01bl2",
+      "method": "GET",
+      "path": "/health",
+      "routeKey": "GET /health",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "uvqqpy4",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-auth",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "wpmmzqc",
+      "method": "ANY",
+      "path": "/imports",
+      "routeKey": "ANY /imports",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "hxj17fj",
+      "method": "ANY",
+      "path": "/imports/{proxy+}",
+      "routeKey": "ANY /imports/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "eh0vod1",
+      "method": "ANY",
+      "path": "/inbody",
+      "routeKey": "ANY /inbody",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ekjml8p",
+      "method": "ANY",
+      "path": "/inbody/{proxy+}",
+      "routeKey": "ANY /inbody/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "sti5ne2",
+      "method": "ANY",
+      "path": "/locations",
+      "routeKey": "ANY /locations",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "7ntf1qc",
+      "method": "ANY",
+      "path": "/locations/{proxy+}",
+      "routeKey": "ANY /locations/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "z3abvev",
+      "method": "ANY",
+      "path": "/marketplace",
+      "routeKey": "ANY /marketplace",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "xoh2fbn",
+      "method": "ANY",
+      "path": "/marketplace/{proxy+}",
+      "routeKey": "ANY /marketplace/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "8zf6b99",
+      "method": "ANY",
+      "path": "/me",
+      "routeKey": "ANY /me",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "9r1iooo",
+      "method": "ANY",
+      "path": "/me/{proxy+}",
+      "routeKey": "ANY /me/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "3vkbwhg",
+      "method": "GET",
+      "path": "/me/complaints",
+      "routeKey": "GET /me/complaints",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "7hyfj5o",
+      "method": "GET",
+      "path": "/me/gym-checkins",
+      "routeKey": "GET /me/gym-checkins",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "cmq4gi6",
+      "method": "POST",
+      "path": "/me/gym-checkins",
+      "routeKey": "POST /me/gym-checkins",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "q30z6lt",
+      "method": "GET",
+      "path": "/me/gym-memberships",
+      "routeKey": "GET /me/gym-memberships",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "fx5ps3u",
+      "method": "GET",
+      "path": "/me/gym-memberships/{id}",
+      "routeKey": "GET /me/gym-memberships/{id}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "h01w0lm",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/cancel",
+      "routeKey": "POST /me/gym-memberships/{id}/cancel",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "x33r8d2",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/cancel-membership",
+      "routeKey": "POST /me/gym-memberships/{id}/cancel-membership",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ca6znwr",
+      "method": "POST",
+      "path": "/me/gym-memberships/{id}/pay",
+      "routeKey": "POST /me/gym-memberships/{id}/pay",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "q2x73ci",
+      "method": "ANY",
+      "path": "/me/payments",
+      "routeKey": "ANY /me/payments",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "aexyi40",
+      "method": "ANY",
+      "path": "/me/payments/{proxy+}",
+      "routeKey": "ANY /me/payments/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ky8pdte",
+      "method": "ANY",
+      "path": "/me/pt-wallet",
+      "routeKey": "ANY /me/pt-wallet",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "fnw2xg2",
+      "method": "ANY",
+      "path": "/me/pt-wallet/{proxy+}",
+      "routeKey": "ANY /me/pt-wallet/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "wz6h20l",
+      "method": "ANY",
+      "path": "/me/wallet",
+      "routeKey": "ANY /me/wallet",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "18pp73s",
+      "method": "ANY",
+      "path": "/me/wallet/{proxy+}",
+      "routeKey": "ANY /me/wallet/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "hccamfd",
+      "method": "ANY",
+      "path": "/me/withdrawals",
+      "routeKey": "ANY /me/withdrawals",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "6sa0fv8",
+      "method": "ANY",
+      "path": "/me/withdrawals/{proxy+}",
+      "routeKey": "ANY /me/withdrawals/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "uwtdhye",
+      "method": "ANY",
+      "path": "/notifications",
+      "routeKey": "ANY /notifications",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "0bkv0mf",
+      "method": "ANY",
+      "path": "/notifications/{proxy+}",
+      "routeKey": "ANY /notifications/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "iimte3l",
+      "method": "ANY",
+      "path": "/nutrition",
+      "routeKey": "ANY /nutrition",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ainvdjj",
+      "method": "ANY",
+      "path": "/nutrition/{proxy+}",
+      "routeKey": "ANY /nutrition/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ipmsbj1",
+      "method": "ANY",
+      "path": "/owner",
+      "routeKey": "ANY /owner",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "s9eyv0o",
+      "method": "ANY",
+      "path": "/owner/{proxy+}",
+      "routeKey": "ANY /owner/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ggous3t",
+      "method": "ANY",
+      "path": "/payments",
+      "routeKey": "ANY /payments",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "25k6vpo",
+      "method": "ANY",
+      "path": "/payments/{proxy+}",
+      "routeKey": "ANY /payments/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "1a39mw9",
+      "method": "ANY",
+      "path": "/payments/vnpay/return",
+      "routeKey": "ANY /payments/vnpay/return",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "gd8slzc",
+      "method": "ANY",
+      "path": "/payments/webhook/{provider}",
+      "routeKey": "ANY /payments/webhook/{provider}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "lc4uib6",
+      "method": "ANY",
+      "path": "/payments/webhook/vnpay",
+      "routeKey": "ANY /payments/webhook/vnpay",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "w9fjro0",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-payment",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "ncrmmot",
+      "method": "ANY",
+      "path": "/plans",
+      "routeKey": "ANY /plans",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "9b2uho6",
+      "method": "ANY",
+      "path": "/plans/{proxy+}",
+      "routeKey": "ANY /plans/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "biirr1c",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-ai",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "vy11qph",
+      "method": "ANY",
+      "path": "/profile",
+      "routeKey": "ANY /profile",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "3zu5nin",
+      "method": "ANY",
+      "path": "/profile/{proxy+}",
+      "routeKey": "ANY /profile/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "4xyore1",
+      "method": "ANY",
+      "path": "/pt",
+      "routeKey": "ANY /pt",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "bwk10qr",
+      "method": "ANY",
+      "path": "/pt-applications",
+      "routeKey": "ANY /pt-applications",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "2ekkgno",
+      "method": "ANY",
+      "path": "/pt-applications/{proxy+}",
+      "routeKey": "ANY /pt-applications/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "85gmdtp",
+      "method": "ANY",
+      "path": "/pt/{proxy+}",
+      "routeKey": "ANY /pt/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "atfo58e",
+      "method": "GET",
+      "path": "/pt/{ptUserId}/gyms",
+      "routeKey": "GET /pt/{ptUserId}/gyms",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "iz1o0hv",
+      "method": "GET",
+      "path": "/pt/gym-affiliations",
+      "routeKey": "GET /pt/gym-affiliations",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "p1yjqic",
+      "method": "GET",
+      "path": "/pt/gym-invitations",
+      "routeKey": "GET /pt/gym-invitations",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "56l7prf",
+      "method": "PATCH",
+      "path": "/pt/gym-invitations/{id}",
+      "routeKey": "PATCH /pt/gym-invitations/{id}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "045z1ul",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-gym",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "khx3zci",
+      "method": "ANY",
+      "path": "/sessions",
+      "routeKey": "ANY /sessions",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "tfku6cv",
+      "method": "ANY",
+      "path": "/sessions/{proxy+}",
+      "routeKey": "ANY /sessions/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "tqe5r7h",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-user",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "3h9jawf",
+      "method": "ANY",
+      "path": "/stats",
+      "routeKey": "ANY /stats",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "94p8z9q",
+      "method": "ANY",
+      "path": "/stats/{proxy+}",
+      "routeKey": "ANY /stats/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "jj9zela",
+      "method": "ANY",
+      "path": "/templates",
+      "routeKey": "ANY /templates",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "hpk8kzj",
+      "method": "ANY",
+      "path": "/templates/{proxy+}",
+      "routeKey": "ANY /templates/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "5laesro",
+      "method": "ANY",
+      "path": "/training-cycles",
+      "routeKey": "ANY /training-cycles",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "51r7foc",
+      "method": "ANY",
+      "path": "/training-cycles/{proxy+}",
+      "routeKey": "ANY /training-cycles/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "l6rxw2s",
+      "method": "ANY",
+      "path": "/workouts",
+      "routeKey": "ANY /workouts",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    },
+    {
+      "routeId": "nesngve",
+      "method": "ANY",
+      "path": "/workouts/{proxy+}",
+      "routeKey": "ANY /workouts/{proxy+}",
+      "authorizationType": "NONE",
+      "authorizerId": null,
+      "apiKeyRequired": false,
+      "integration": {
+        "integrationId": "wv4c1bs",
+        "integrationType": "AWS_PROXY",
+        "target": "fitness-assistant-dev-fitness",
+        "payloadFormatVersion": "2.0"
+      }
+    }
+  ]
+}

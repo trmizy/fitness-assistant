@@ -201,7 +201,7 @@ export function AccountSection() {
           data-testid="settings-account-change-password"
           disabled={!canChangePassword}
           onClick={() => passwordMutation.mutate()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-zinc-100 text-zinc-950 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-zinc-600 text-zinc-100 hover:border-zinc-400 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {passwordMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

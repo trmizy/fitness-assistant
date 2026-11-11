@@ -2,6 +2,16 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { fitnessAgentService, type AgentChatBlock, type AgentReply } from "../../services/fitnessAgent";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
+import { DayMacroEstimate } from "../nutrition/DayMacroEstimate";
+
+/** Backend action results name the destination by domain (ai-service / fitness-service contract). The web app's real routes differ
+ * for training: the "Tập luyện" page lives at /client/workout, so "/client/training" would be a 404. Only listed targets get a link. */
+const NEXT_URL_ROUTE: Record<string, string> = {
+  "/client/contracts": "/client/contracts",
+  "/client/training": "/client/workout",
+  "/client/dashboard": "/client/dashboard",
+  "/client/nutrition": "/client/nutrition",
+};
 
 const button = "min-h-11 rounded-lg border border-emerald-600 px-3 py-2 text-sm text-emerald-300 disabled:opacity-50";
 const money = (n: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
@@ -128,10 +138,42 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       {block.kind === "CREATE_PLAN_BUNDLE" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
         {block.summary?.roadmapSummary && <p className="text-zinc-200">{block.summary.roadmapSummary}</p>}
         {block.summary?.phaseCount > 0 && <p>📅 Lộ trình: {block.summary.phaseCount} giai đoạn · {block.summary.totalWeeks} tuần</p>}
+        {/* Phase-by-phase detail so the user knows what they confirm (user test 2026-11-08: only "4 giai đoạn · 20 tuần" was shown). */}
+        {Array.isArray(block.summary?.phases) && block.summary.phases.length > 0 && <ol className="space-y-1.5">
+          {block.summary.phases.map((p: { index: number; name: string; typeLabel: string | null; weeks: number | null; dateRange?: string | null; reason: string | null }) => <li key={p.index} className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+            <p className="font-medium text-zinc-200 break-words">Giai đoạn {p.index}: {p.name}{p.typeLabel && p.typeLabel !== p.name ? ` · ${p.typeLabel}` : ""}{p.weeks ? ` · ${p.weeks} tuần` : ""}</p>
+            {p.dateRange && <p className="text-zinc-400">{p.dateRange}</p>}
+            {p.reason && <p className="text-zinc-400 break-words">{p.reason}</p>}
+          </li>)}
+        </ol>}
+        {Array.isArray(block.summary?.assumptions) && block.summary.assumptions.length > 0 && <details>
+          <summary className="min-h-11 py-2 cursor-pointer text-zinc-300">Giả định khi lập lộ trình ({block.summary.assumptions.length})</summary>
+          <ul className="list-disc space-y-0.5 pl-4 text-zinc-400">{block.summary.assumptions.map((a: string, i: number) => <li key={i} className="break-words">{a}</li>)}</ul>
+        </details>}
+        {Array.isArray(block.summary?.warnings) && block.summary.warnings.length > 0 && <ul className="list-disc space-y-0.5 pl-4 text-amber-300">
+          {block.summary.warnings.map((w: string, i: number) => <li key={i} className="break-words">{w}</li>)}
+        </ul>}
+        {/* an active cycle outside any roadmap blocks activation; confirming closes exactly this one (history kept) — 2026-11-09 */}
+        {block.summary?.legacyCycle && <p className="text-amber-300 break-words">🔁 Chu kỳ tập đang chạy{block.summary.legacyCycle.name ? ` “${block.summary.legacyCycle.name}”` : ""}{block.summary.legacyCycle.startDate ? ` (từ ${block.summary.legacyCycle.startDate})` : ""} sẽ được kết thúc khi xác nhận — lịch sử buổi tập và kết quả đánh giá vẫn được giữ.</p>}
         {block.summary?.workoutName
           ? <p>🏋️ Chương trình tập: {block.summary.workoutName} · {block.summary.workoutDaysPerWeek} buổi/tuần</p>
-          : <p className="text-amber-300">🏋️ Chưa tìm được chương trình tập phù hợp — phần này sẽ bị bỏ qua khi xác nhận.</p>}
-        <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>
+          : <p className="text-amber-300">🏋️ Chưa có chương trình tập mẫu khớp với mục tiêu này — khi xác nhận, chỉ lộ trình và dinh dưỡng được áp dụng; sau đó bạn có thể nhờ mình tạo lịch tập riêng.</p>}
+        {/* the numbers confirming will write (fitness /nutrition/target-preview — same engine as the confirm step), 2026-11-09 */}
+        {block.summary?.nutritionPreview
+          ? <p>🥗 Dinh dưỡng{block.summary.nutritionPreview.kept ? " (giữ mục tiêu đang dùng)" : " (ước tính từ hồ sơ/InBody)"}: <strong>{block.summary.nutritionPreview.calories} kcal/ngày</strong> · đạm {block.summary.nutritionPreview.protein} g · tinh bột {block.summary.nutritionPreview.carbs} g · chất béo {block.summary.nutritionPreview.fat} g</p>
+          : <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>}
+        {block.risk === "HIGH" && <p className="text-zinc-400">“Rủi ro cao” ở đây nghĩa là thao tác thay đổi dữ liệu thật của bạn (lộ trình, lịch tập, mục tiêu dinh dưỡng) — không phải rủi ro sức khỏe. Bạn có thể nhắn để điều chỉnh trước khi xác nhận.</p>}
+      </div>}
+      {block.kind === "PT_CLIENT_ACTION_PROPOSAL" && <div className="space-y-2 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p className="break-words text-zinc-200">👤 {block.summary?.clientLabel}</p>
+        {Array.isArray(block.summary?.basedOn) && block.summary.basedOn.length > 0 && <ul className="list-disc space-y-0.5 pl-4 text-zinc-400">
+          {block.summary.basedOn.map((e: string, i: number) => <li key={i}>{e}</li>)}
+        </ul>}
+        {Array.isArray(block.summary?.proposals) && block.summary.proposals.map((p: { title: string; body: string }, i: number) => <div key={i} className="space-y-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+          <p className="font-medium text-zinc-200">{p.title}</p>
+          <p className="whitespace-pre-wrap break-words text-zinc-300">{p.body}</p>
+        </div>)}
+        <p className="text-amber-300">Bản nháp để bạn duyệt — chưa gửi gì cho client và chưa thay đổi dữ liệu nào.</p>
       </div>}
       {block.kind === "SAVE_GENERATED_PLAN" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
         <p>🏋️ {block.summary?.planName} · {block.summary?.daysPerWeek} buổi/tuần · {block.summary?.durationWeeks} tuần</p>
@@ -168,7 +210,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       <button className={button} disabled={busy || completed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}</button>
       {dismissed
         ? <p className="text-xs text-zinc-400">Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.</p>
-        : <button className="min-h-11 px-3" disabled={busy || completed} onClick={() => setDismissed(true)}>Để sau</button>}
+        : !completed && <button className="min-h-11 px-3" disabled={busy} onClick={() => setDismissed(true)}>Để sau</button>}
     </div>}
     {block.type === "GOAL_ANALYSIS" && <div className="space-y-3">
       <p>{block.note}</p>
@@ -201,7 +243,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
     {block.type === "ACTION_RESULT" && <div role="status" className="space-y-1.5">
       <p>{block.message ?? (block.goalConfirmed ? "Đã lưu mục tiêu. Bạn có thể yêu cầu gợi ý PT hoặc chương trình tập." : "Thao tác đã hoàn tất.")}</p>
       {Array.isArray(block.steps) && <ul className="space-y-0.5 text-xs">{block.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>}
-      {block.nextUrl && ["/client/contracts", "/client/training", "/client/dashboard", "/client/nutrition"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}
+      {block.nextUrl && NEXT_URL_ROUTE[block.nextUrl] && <Link className="text-emerald-300 underline" to={NEXT_URL_ROUTE[block.nextUrl]}>Mở chi tiết</Link>}
     </div>}
     {block.type === "SUBSTITUTE_RESULT" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
       <p className="text-zinc-200">{block.message}</p>
@@ -221,7 +263,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         <p className="text-xs text-amber-300">Bạn có thể nhắn "chấp nhận" hoặc "từ chối" để phản hồi đề xuất này.</p>}
     </div>}
     {block.type === "WORKFLOW_MISSING_DATA" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
-      {block.known?.length ? <ul className="space-y-0.5 text-xs text-zinc-400">{block.known.map((k, i) => <li key={i}>✓ {k}</li>)}</ul> : null}
+      {block.known?.length ? <ul className="space-y-0.5 text-xs text-zinc-400">{block.known.map((k, i) => <li key={i}>✓ {k.label}: {k.value}</li>)}</ul> : null}
       {block.missing?.length ? <ul className="space-y-0.5 text-xs text-amber-300">{block.missing.map((m, i) => <li key={i}>• {m}</li>)}</ul> : null}
     </div>}
     {block.type === "PROFILE_UPDATE_CONFIRMATION" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
@@ -265,6 +307,25 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed || dismissed} onClick={() => void dismissDraft()}>{dismissed ? "Đã bỏ qua" : "Bỏ qua bản này"}</button>
       </div>
     </div>}
+    {block.type === "SUBSTITUTE_SAVED_EXERCISE_PREVIEW" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-semibold">Đổi bài tập trong lịch tập đang áp dụng</h3>
+        <RiskBadge risk={block.risk} />
+      </div>
+      <p className="text-sm text-zinc-200">
+        <span className="line-through text-zinc-500">{block.oldExerciseName}</span>
+        {" → "}
+        <span className="font-medium">{block.newExerciseName}</span>
+      </p>
+      <p className="text-xs text-zinc-400">Áp dụng cho: {block.substituteDays?.map((d, i) => <span key={i}>{i > 0 ? ", " : ""}Buổi {d.dayNumber}{d.title ? ` (${d.title})` : ""}</span>)}</p>
+      <p className="text-xs text-zinc-500">Chỉ bài tập này đổi — các bài khác và sets/reps giữ nguyên. Muốn thu hẹp lại buổi áp dụng, hãy gõ ví dụ "chỉ buổi {block.substituteDays?.[0]?.dayNumber}" trước khi xác nhận.</p>
+      <div className="flex flex-wrap gap-2">
+        <button className={button} disabled={busy || completed || dismissed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã gán" : "Gán vào lịch tập"}</button>
+        <button className="min-h-11 px-3 text-sm text-zinc-400" disabled={busy || completed || dismissed} onClick={() => void dismissDraft()}>{dismissed ? "Đã bỏ qua" : "Bỏ qua"}</button>
+      </div>
+    </div>}
+    {/* "Tính macro cả ngày" from chat — read-only until the user presses "Lưu vào nhật ký" */}
+    {block.type === "NUTRITION_DAY_ESTIMATE" && block.estimate && <DayMacroEstimate estimate={block.estimate} />}
     {block.type === "NUTRITION_PLAN_PREVIEW" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-semibold">{block.title ?? "Thực đơn do AI Coach tạo"}</h3>

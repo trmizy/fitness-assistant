@@ -1,0 +1,197 @@
+{
+  "generatedAt": "2026-10-09T00:00:00.000Z",
+  "principle": "PROPOSED_CHANGES = future explicit behavior changes, kept entirely separate from the adoption baseline. Nothing here is applied by importing api-gateway-baseline.yaml. Each entry below was individually investigated (frontend callers, local-dev-gateway registration, auth model, external-provider dependency) in Phase 15B-A, not auto-classified from the Phase 15A shorthand.",
+  "sourceOnlyRoutes": [
+    {
+      "method": "POST",
+      "path": "/auth/register/resend",
+      "service": "auth",
+      "handler": "authController.resendRegistration",
+      "authModel": "PUBLIC, rate-limited (createEmailActionRateLimit('register-resend'): 5/15min per scope+ip+email)",
+      "frontendCaller": [
+        "frontend/web/src/app/pages/auth/RegisterPage.tsx",
+        "frontend/mobile/app/(auth)/register.tsx"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - real registration-resend-code UI exists on both platforms",
+      "productionCodeReachable": "Reachable in local dev (backend/gateway's generic 'router.use(\"/auth\", ...)' proxy); NOT reachable on live AWS DEV (no matching Gateway route)",
+      "externalProviderDependency": "SMTP (via auth-service's own email.service.ts), no different from register itself",
+      "securitySensitivity": "LOW - same rate-limit discipline as password-reset-request; does not leak account existence (it only operates on a pending, not-yet-verified registration a token already proves control of)",
+      "expectedPublicExposure": "PUBLIC, same as /auth/register itself",
+      "reasonCurrentlyMissing": "auth-service has no catch-all proxy route on the real AWS Gateway (confirmed architecturally in Phase 15A) - every new Auth route has always needed a manual add, and this one never got one",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "PATCH",
+      "path": "/auth/users/:userId/name",
+      "service": "auth",
+      "handler": "authController.updateUserName",
+      "authModel": "ADMIN only (consistent with the other /auth/users/:userId/* routes already live)",
+      "frontendCaller": [
+        "frontend/web/src/app/pages/admin/AdminPartnersPage.tsx"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - admin-corrects-a-partner's-display-name UI exists",
+      "productionCodeReachable": "Reachable in local dev; NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None",
+      "securitySensitivity": "LOW-MEDIUM - admin-only mutation of another user's profile field; same risk class as the already-live disable/enable/role routes",
+      "expectedPublicExposure": "ADMIN only, same exposure class as its 3 already-live siblings",
+      "reasonCurrentlyMissing": "Same structural reason as register/resend",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/password-reset",
+      "service": "auth",
+      "handler": "authController.resetPassword",
+      "authModel": "PUBLIC (no login - the reset token IS the proof of identity)",
+      "frontendCaller": [
+        "frontend/web/src/app/pages/auth/ForgotPasswordPage.tsx",
+        "frontend/web/src/app/pages/auth/PartnerPasswordResetPage.tsx",
+        "frontend/mobile/app/(auth)/forgot-password.tsx"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - this is the CONSUMING half of the reset flow (the link the email sends)",
+      "productionCodeReachable": "Reachable in local dev; NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None (the token was already emailed by /auth/password-reset/request)",
+      "securitySensitivity": "MEDIUM, reviewed in depth (see Phase 15B-A.3 / the report's Password Reset Security Review) - single-use, SHA-256-hashed-at-rest, 256-bit cryptographically random token, time-limited, atomic (password+session-revoke) on success. SAFE_TO_EXPOSE: YES.",
+      "expectedPublicExposure": "PUBLIC - this is meant to be reachable with no prior auth, same as the request endpoint",
+      "reasonCurrentlyMissing": "Never added, same as its sibling /request endpoint - the two were evidently built together and neither ever got a Gateway route",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/password-reset/request",
+      "service": "auth",
+      "handler": "authController.requestPasswordReset",
+      "authModel": "PUBLIC, rate-limited (5/15min per scope+ip+email), anti-enumeration (uniform response regardless of whether the email exists/is active/is in cooldown/fails to send)",
+      "frontendCaller": [
+        "frontend/web/src/app/services/api.ts",
+        "frontend/mobile/src/services/api.ts"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - the already-known gap this whole Phase 14A->15A->15B-A chain has tracked",
+      "productionCodeReachable": "Reachable in local dev; confirmed live HTTP 404 on AWS DEV (Phase 13D-B)",
+      "externalProviderDependency": "SMTP",
+      "securitySensitivity": "MEDIUM, fully reviewed - see Password Reset Security Review. PASSWORD_RESET_SAFE_TO_EXPOSE: YES.",
+      "expectedPublicExposure": "PUBLIC",
+      "reasonCurrentlyMissing": "Never added to the AWS Gateway",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/partner-applications/start",
+      "service": "auth",
+      "handler": "partnerApplicationController.start",
+      "authModel": "PUBLIC, rate-limited (partnerApplicationStartLimiter in the local gateway's own middleware chain - the real AWS-side equivalent would need the same discipline applied inside auth-service itself, not the Gateway, since the Gateway has no rate-limiting construct of its own here)",
+      "frontendCaller": [
+        "frontend/mobile/app/admin/applications/index.tsx",
+        "frontend/mobile/app/admin/applications/[id].tsx",
+        "frontend/web/src/app/services/partnerApplication.ts"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - gym-partner self-onboarding (see GYM_PARTNER_SELF_ONBOARDING_SPEC.md)",
+      "productionCodeReachable": "Reachable in local dev (backend/gateway explicitly registers rate-limited routes for this exact path); NOT reachable on live AWS DEV",
+      "externalProviderDependency": "SMTP (verification email)",
+      "securitySensitivity": "MEDIUM - unauthenticated self-service account creation path; the local gateway's dedicated rate limiter for this specific route (separate from the generic one) signals this was already recognized as higher-risk than an ordinary public route",
+      "expectedPublicExposure": "PUBLIC, by design (self-service onboarding)",
+      "reasonCurrentlyMissing": "Never added to the AWS Gateway",
+      "recommendedAction": "NEEDS_SECURITY_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/partner-applications/verify",
+      "service": "auth",
+      "handler": "partnerApplicationController.verify",
+      "authModel": "PUBLIC (token-gated, same flow as /start)",
+      "frontendCaller": [
+        "frontend/mobile/app/admin/applications/index.tsx",
+        "frontend/web/src/app/services/partnerApplication.ts"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE",
+      "productionCodeReachable": "Reachable in local dev; NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None directly (consumes the token /start emailed)",
+      "securitySensitivity": "MEDIUM - same flow family as /start",
+      "expectedPublicExposure": "PUBLIC",
+      "reasonCurrentlyMissing": "Never added to the AWS Gateway",
+      "recommendedAction": "NEEDS_SECURITY_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/partner-applications/set-password",
+      "service": "auth",
+      "handler": "partnerApplicationController.setPassword",
+      "authModel": "PUBLIC (token-gated, same flow as /start and /verify)",
+      "frontendCaller": [
+        "frontend/mobile/app/admin/applications/index.tsx",
+        "frontend/web/src/app/services/partnerApplication.ts"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE",
+      "productionCodeReachable": "Reachable in local dev; NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None",
+      "securitySensitivity": "MEDIUM-HIGH - sets a brand-new account's initial password from a token; same risk class as the password-reset consume endpoint, not individually reviewed to the same depth in this phase",
+      "expectedPublicExposure": "PUBLIC",
+      "reasonCurrentlyMissing": "Never added to the AWS Gateway",
+      "recommendedAction": "NEEDS_SECURITY_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/dropbox-sign",
+      "service": "user",
+      "handler": "dropboxSignWebhookController.handleDropboxSignWebhook",
+      "authModel": "OTHER - Dropbox Sign API-key-based event-callback signature check (not a user JWT); fails closed (401) when DROPBOX_SIGN_API_KEY is unset",
+      "frontendCaller": [],
+      "serviceCaller": "External provider only: Dropbox Sign's own servers call this, never any Gymini frontend/service",
+      "featureStatus": "CONDITIONAL - mounted only when REQUIRE_CONTRACT_ESIGN !== 'false' (default true, so mounted in this Lambda's actual deployed code unless explicitly overridden)",
+      "productionCodeReachable": "Reachable in local dev (backend/gateway explicitly registers '/webhooks/dropbox-sign'); NOT reachable on live AWS DEV - Dropbox Sign's callback has nowhere to land",
+      "externalProviderDependency": "Dropbox Sign (contract e-signature)",
+      "securitySensitivity": "MEDIUM - a missing webhook doesn't expose anything, but it silently breaks the contract e-signature completion flow: a contract that needed e-sign may be stuck PENDING_SIGNATURE forever on AWS DEV today if REQUIRE_CONTRACT_ESIGN is true there",
+      "expectedPublicExposure": "PUBLIC (by webhook nature), but never user-facing",
+      "reasonCurrentlyMissing": "No '/webhooks' prefix exists anywhere in the live Gateway at all - not a per-route gap, a whole-prefix gap",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "ANY",
+      "path": "/complaint-photos/{token}",
+      "service": "gym",
+      "handler": "complaintPhotoController.upload (POST) / .serve (GET)",
+      "authModel": "AUTHENTICATED - requireAuth + requireRoles('CUSTOMER','PT') (corrected in this phase from Phase 15A's incorrect 'PUBLIC' guess - re-verified directly against client.routes.ts's own 'gate' middleware array)",
+      "frontendCaller": [
+        "frontend/web/src/app/services/api.ts",
+        "frontend/mobile/src/services/api.ts"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - complaint photo evidence upload/serve",
+      "productionCodeReachable": "Reachable in local dev; NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None",
+      "securitySensitivity": "LOW-MEDIUM - authenticated, role-gated, serves/accepts user-submitted complaint evidence photos",
+      "expectedPublicExposure": "AUTHENTICATED, not public (correcting Phase 15A's shorthand)",
+      "reasonCurrentlyMissing": "No live route of any kind at this top-level prefix",
+      "recommendedAction": "ADD_LATER"
+    },
+    {
+      "method": "ANY",
+      "path": "/partner-invitations/{token}",
+      "service": "gym",
+      "handler": "publicPartnerController.previewInvitation (GET) / .acceptInvitation (POST, at .../accept)",
+      "authModel": "PUBLIC (token-gated) - confirmed in public.routes.ts, genuinely no auth middleware, by design (the invitee has no account yet)",
+      "frontendCaller": [
+        "frontend/web/src/app/pages/gym-owner/ManageManagersPage.tsx",
+        "frontend/web/src/app/components/gym-management/InviteAccountSheet.tsx",
+        "frontend/mobile/app/gym-owner/managers.tsx"
+      ],
+      "serviceCaller": null,
+      "featureStatus": "ACTIVE - gym-owner invites a manager; the invitee opens a public link to accept",
+      "productionCodeReachable": "Reachable in local dev (backend/gateway explicitly registers both sub-paths); NOT reachable on live AWS DEV",
+      "externalProviderDependency": "None directly (SMTP sends the invite link, via the owner-facing /owner/partner-invitations routes which ARE already live under /owner/{proxy+})",
+      "securitySensitivity": "MEDIUM - unauthenticated account-creation-adjacent flow (accepting creates/activates a manager account); token-gated the same way password-reset is",
+      "expectedPublicExposure": "PUBLIC, by design",
+      "reasonCurrentlyMissing": "No live route of any kind at this top-level prefix (the OWNER-facing half under /owner/partner-invitations is already live and unaffected)",
+      "recommendedAction": "ADD_LATER"
+    }
+  ],
+  "mismatchedRoutes": [],
+  "mismatchedRoutesResolvedNote": "All 4 originally-listed mismatchedRoutes entries were resolved live via the Phase 15B-HF hotfix (2026-10-09): 12 exact routes were added to the Gateway, reusing the existing Gym integration (045z1ul), restoring gym-service as the real target for its own /me/* and /pt/* sub-paths. mismatchedRoutes is now empty - see docs/deployment/AWS_DEV_GYM_ROUTE_HOTFIX_2026-10-09.md for full evidence."
+}

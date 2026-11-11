@@ -13,7 +13,9 @@ export type CycleEvaluationResult = {
 };
 
 export interface AgentChatBlock {
-  type: "PT_RECOMMENDATIONS" | "PROGRAM_RECOMMENDATIONS" | "ACTION_CONFIRMATION" | "ACTION_RESULT" | "GOAL_ANALYSIS" | "IMAGE_CHAT" | "SUBSTITUTE_RESULT" | "CYCLE_EVALUATION_RESULT" | "WORKFLOW_MISSING_DATA" | "PROFILE_UPDATE_CONFIRMATION" | "WORKOUT_PLAN_PREVIEW" | "NUTRITION_PLAN_PREVIEW";
+  type: "PT_RECOMMENDATIONS" | "PROGRAM_RECOMMENDATIONS" | "ACTION_CONFIRMATION" | "ACTION_RESULT" | "GOAL_ANALYSIS" | "IMAGE_CHAT" | "SUBSTITUTE_RESULT" | "CYCLE_EVALUATION_RESULT" | "WORKFLOW_MISSING_DATA" | "PROFILE_UPDATE_CONFIRMATION" | "WORKOUT_PLAN_PREVIEW" | "NUTRITION_PLAN_PREVIEW" | "SUBSTITUTE_SAVED_EXERCISE_PREVIEW" | "NUTRITION_DAY_ESTIMATE";
+  /** NUTRITION_DAY_ESTIMATE ("tính macro cả ngày" in chat): see components/nutrition/DayMacroEstimate.tsx */
+  estimate?: import("../components/nutrition/DayMacroEstimate").DayEstimate;
   recommendationId?: string; actionId?: string; kind?: string; title?: string; note?: string; expiresAt?: string;
   risk?: "LOW" | "MEDIUM" | "HIGH";
   // PT_RECOMMENDATIONS/PROGRAM_RECOMMENDATIONS: PT/program candidate cards (id/name/compatibility/...).
@@ -28,7 +30,7 @@ export interface AgentChatBlock {
   decision?: string | null; aiSummary?: string | null; userDecision?: string;
   nutritionDecision?: string | null; nutritionAiHeadline?: string | null; nutritionAiExplanation?: string | null; nutritionUserDecision?: string;
   // WORKFLOW_MISSING_DATA (agent-workflow/orchestrator.ts) — "known so far" vs "still missing" slot summary.
-  workflowId?: string; workflowType?: string; known?: string[]; missing?: string[];
+  workflowId?: string; workflowType?: string; known?: Array<{ label: string; value: string }>; missing?: string[];
   // PROFILE_UPDATE_CONFIRMATION — proposed profile field changes awaiting explicit user confirmation.
   changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   // Codex Conversational AI Coach Evaluation #1 — server-computed from slot
@@ -52,6 +54,14 @@ export interface AgentChatBlock {
   targetNote?: string; excludedFoods?: string[]; softPreferences?: string[];
   mealsPerDay?: number; dailyCaloriesTarget?: number; proteinTargetGrams?: number; carbTargetGrams?: number; fatTargetGrams?: number;
   nutritionDays?: Array<{ dayNumber: number; title: string; totalCalories: number; meals: Array<{ mealType: string; title: string; calories: number; protein: number; carbs: number; fat: number; items: Array<{ name: string; quantity: number; unit: string; calories: number }> }> }>;
+  // SUBSTITUTE_SAVED_EXERCISE_PREVIEW (real Bug D follow-up, 2026-10-23,
+  // fitness-agent.service.ts::trySubstituteSavedExercise/
+  // tryReviseSubstituteSavedExerciseDraft) — "thay bài X bằng bài Y"
+  // against an ALREADY-SAVED active WorkoutProgram. Own field name
+  // (substituteDays, not `days`) since its element shape differs from
+  // WORKOUT_PLAN_PREVIEW's `days`.
+  oldExerciseName?: string; newExerciseName?: string;
+  substituteDays?: Array<{ dayNumber: number; title?: string | null }>;
 }
 export interface AgentReply { sessionId: string; conversationId: string; block: AgentChatBlock }
 async function post(url: string, body: unknown): Promise<AgentReply> {

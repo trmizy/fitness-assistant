@@ -9,9 +9,11 @@ import { FitnessAgentBlock } from "../../components/agent/FitnessAgentBlocks";
 import { fitnessAgentService, type AgentReply } from "../../services/fitnessAgent";
 import { appendAgentReply, appendImageChatExchange } from "../../stores/pendingAiTasks";
 import {
+  getLastActiveCoachSessionId,
   useAiCoachSession,
   newDraftSessionKey,
   hydrateSessionMessages,
+  setLastActiveCoachSessionId,
 } from "../../stores/pendingAiTasks";
 import { AutoText } from "../../components/i18n/AutoText";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
@@ -89,7 +91,9 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
   const userScopeId = user?.id ?? "guest";
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeSessionId = searchParams.get("sessionId");
+  const urlSessionId = searchParams.get("sessionId");
+  const rememberedSessionId = getLastActiveCoachSessionId(userScopeId);
+  const activeSessionId = urlSessionId ?? rememberedSessionId;
   const [draftKey, setDraftKey] = useState(() => newDraftSessionKey());
   const [mobileView, setMobileView] = useState<"list" | "chat">(
     activeSessionId ? "chat" : "list",
@@ -137,6 +141,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
   }
   const receiveAgentReply = (reply: AgentReply) => {
     appendAgentReply(userScopeId, reply);
+    setLastActiveCoachSessionId(userScopeId, reply.sessionId);
     if (reply.sessionId !== activeSessionId) setSearchParams({ sessionId: reply.sessionId });
     setMobileView("chat");
     void queryClient.invalidateQueries({ queryKey: ["ai-sessions", userScopeId] });
@@ -147,7 +152,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
   const sessionKey = activeSessionId ?? draftKey;
 
-  const { session, setInitialMessage, sendQuestion } = useAiCoachSession(
+  const { session, setInitialMessage, sendQuestion, retryQuestion, retryable } = useAiCoachSession(
     userScopeId,
     sessionKey,
   );
@@ -231,6 +236,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
   const handleSessionAdopted = useCallback(
     (newSessionId: string) => {
+      setLastActiveCoachSessionId(userScopeId, newSessionId);
       setSearchParams({ sessionId: newSessionId }, { replace: true });
       void queryClient.invalidateQueries({
         queryKey: ["ai-sessions", userScopeId],
@@ -266,6 +272,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
     try {
       const reply = await fitnessAgentService.imageChat(file, question, activeSessionId ?? undefined);
       appendImageChatExchange(userScopeId, reply, question, previewUrl);
+      setLastActiveCoachSessionId(userScopeId, reply.sessionId);
       if (reply.sessionId !== activeSessionId) setSearchParams({ sessionId: reply.sessionId });
       setMobileView("chat");
       void queryClient.invalidateQueries({ queryKey: ["ai-sessions", userScopeId] });
@@ -279,16 +286,18 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
   const startNewChat = useCallback(() => {
     setDraftKey(newDraftSessionKey());
+    setLastActiveCoachSessionId(userScopeId, null);
     setSearchParams({}, { replace: true });
     setMobileView("chat");
-  }, [setSearchParams]);
+  }, [setSearchParams, userScopeId]);
 
   const selectSession = useCallback(
     (id: string) => {
+      setLastActiveCoachSessionId(userScopeId, id);
       setSearchParams({ sessionId: id });
       setMobileView("chat");
     },
-    [setSearchParams],
+    [setSearchParams, userScopeId],
   );
 
   const renameMutation = useCallback(
@@ -320,6 +329,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
     });
     if (wasActive) {
       setDraftKey(newDraftSessionKey());
+      setLastActiveCoachSessionId(userScopeId, null);
       setSearchParams({}, { replace: true });
     }
   }, [archiveTarget, activeSessionId, queryClient, userScopeId, setSearchParams]);
@@ -752,6 +762,18 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+          {/* Explicit retry of a failed/uncertain send: re-sends the SAME request id, so the server never creates a duplicate generation. */}
+          {session.status === "failed" && retryable && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => retryQuestion(handleSessionAdopted)}
+                className="px-4 py-2 rounded-xl border border-green-500/40 text-green-400 text-sm hover:bg-green-500/10"
+              >
+                Thử lại
+              </button>
             </div>
           )}
           <div ref={messagesEndRef} aria-hidden="true" />

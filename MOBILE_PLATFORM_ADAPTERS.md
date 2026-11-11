@@ -1,4 +1,4 @@
-﻿# Mobile Platform Adapters — Web → React Native
+# Mobile Platform Adapters — Web → React Native
 
 > Kiểm kê trước cách mỗi hành vi phụ thuộc nền tảng ánh xạ từ `frontend/web` (Capacitor/WebView)
 > sang `frontend/mobile` (React Native/Expo thật), và chốt sẵn thư viện/API RN tương ứng — theo

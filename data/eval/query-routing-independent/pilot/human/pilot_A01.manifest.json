@@ -1,0 +1,20 @@
+{
+  "annotatorId": "A01",
+  "authority": "SINGLE_HUMAN_ANNOTATOR_VALIDATED",
+  "projectState": "A01_HUMAN_VALIDATED_AWAITING_A02",
+  "note": "single annotator only; NOT inter-annotator evidence; agreement / kappa / adjudication not available; primary labels are immutable raw evidence",
+  "rowCount": 149,
+  "uniqueIdCount": 149,
+  "batchHash": "da3a4789b0518179a64fde293773e7c73242f63179035472c85d197f5ac1078c",
+  "guidelineVersion": "ANNOTATION_GUIDELINES_V1",
+  "guidelineHash": "c4d4c5f526d7d8d06b7af42c237919f74810da9ced7dd228af3709b2132649b3",
+  "annotationFileHash": "2dfe21535850ed16f9a1e26a9a6ed9413986c49f7b815e43670182f9bbe0b45d",
+  "provenanceFileHash": "398e0aedad0fe15bde782c2beba5522b2bcfb0a041409230846270f5be056a1c",
+  "attestationFileHash": "b80fad0c16cf8dc2774ff82cfa6d623b0f5ae69e6defdeff001c9fe6141d064d",
+  "auditStatus": "PASS",
+  "normalizationDisclosure": "Post-annotation technical normalization by ChatGPT/OpenAI assistant only; no safetyLabel or programmingLabel values were changed. Normalized annotator A1→A01, domain typo ODD→OOD, cleared schema-invalid or internally inconsistent optional tags without inferring replacements, normalized booleans/timestamps, converted semicolon-delimited input to standard comma-delimited UTF-8 CSV, and filled canonical guideline/batch hashes.",
+  "warnings": [
+    "annotationTimestampRange.start (2020-10-02T00:00:00+07:00) precedes the batch/guideline creation date 2026-10-11; recorded as declared, not altered"
+  ],
+  "validatedAt": "2026-10-12T15:38:16.905Z"
+}

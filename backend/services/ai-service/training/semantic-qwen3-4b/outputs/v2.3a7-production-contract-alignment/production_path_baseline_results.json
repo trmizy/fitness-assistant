@@ -1,0 +1,310 @@
+{
+  "label": "PRODUCTION_PATH_HYBRID_V1",
+  "liveBedrock": true,
+  "results": [
+    {
+      "id": "intent-1",
+      "category": "intent",
+      "text": "Tôi cao 170cm.",
+      "expectedPrimaryIntent": "PROVIDE_INFORMATION",
+      "latencyMs": 6,
+      "interpretation": {
+        "primaryIntent": "PROVIDE_INFORMATION",
+        "entities": [
+          {
+            "type": "HEIGHT_CM",
+            "value": 170,
+            "sourceText": "170cm",
+            "explicit": true,
+            "confidence": 0.97
+          }
+        ],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.97,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "entity-1",
+      "category": "entities",
+      "text": "Tôi nặng 65kg và cao 170cm.",
+      "expectEntityType": "WEIGHT_KG",
+      "latencyMs": 3,
+      "interpretation": {
+        "primaryIntent": "PROVIDE_INFORMATION",
+        "entities": [
+          {
+            "type": "HEIGHT_CM",
+            "value": 170,
+            "sourceText": "170cm",
+            "explicit": true,
+            "confidence": 0.97
+          },
+          {
+            "type": "WEIGHT_KG",
+            "value": 65,
+            "sourceText": "65kg",
+            "explicit": true,
+            "confidence": 0.94
+          }
+        ],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.94,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "goal-1",
+      "category": "goalSignals",
+      "text": "Tôi muốn giảm mỡ.",
+      "expectGoal": "WEIGHT_LOSS",
+      "latencyMs": 0,
+      "interpretation": {
+        "primaryIntent": "PROVIDE_INFORMATION",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [
+          {
+            "goal": "WEIGHT_LOSS",
+            "strength": "EXPLICIT",
+            "sourceText": "giam mo"
+          }
+        ],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.85,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "recommend-1",
+      "category": "asksRecommendation",
+      "text": "Bạn chọn giúp tôi mức tạ phù hợp.",
+      "expectAsksRecommendation": true,
+      "latencyMs": 0,
+      "interpretation": {
+        "primaryIntent": "ASK_RECOMMENDATION",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "requestedAction": "SUGGEST",
+        "clarificationRequired": false,
+        "confidence": 0.85,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "correction-1",
+      "category": "isCorrection",
+      "text": "à không, tôi tập 5 buổi",
+      "expectedPrimaryIntent": "CORRECT_INFORMATION",
+      "latencyMs": 0,
+      "interpretation": {
+        "primaryIntent": "CORRECT_INFORMATION",
+        "entities": [
+          {
+            "type": "SESSIONS_PER_WEEK",
+            "value": 5,
+            "sourceText": "5 buoi",
+            "explicit": true,
+            "confidence": 0.8
+          }
+        ],
+        "corrections": [
+          {
+            "field": "SESSIONS_PER_WEEK",
+            "newValue": 5,
+            "confidence": 0.76
+          }
+        ],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "requestedAction": "REVISE",
+        "clarificationRequired": false,
+        "confidence": 0.8,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "reference-zero-1",
+      "category": "reference_0",
+      "text": "đổi sang PT đó đi",
+      "expectReferenceResolved": false,
+      "expectClarification": true,
+      "latencyMs": 63,
+      "interpretation": {
+        "primaryIntent": "START_WORKFLOW",
+        "workflowIntent": "FIND_PT",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [
+          {
+            "field": "reference",
+            "reason": "deterministic grounding guard: no visible candidate matches this reference"
+          }
+        ],
+        "clarificationRequired": true,
+        "confidence": 0.3,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "reference-one-1",
+      "category": "reference_1",
+      "text": "PT Minh tư vấn tốt lắm, chốt người đó cho tôi.",
+      "expectReferenceResolved": true,
+      "expectClarification": false,
+      "latencyMs": 3,
+      "interpretation": {
+        "primaryIntent": "START_WORKFLOW",
+        "workflowIntent": "FIND_PT",
+        "entities": [],
+        "corrections": [],
+        "references": [
+          {
+            "kind": "THIS_ITEM",
+            "sourceText": "nguoi do"
+          }
+        ],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.85,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "reference-multi-1",
+      "category": "reference_multi",
+      "text": "Bench và deadlift đều nặng, bớt cái đó lại.",
+      "expectReferenceResolved": false,
+      "expectClarification": true,
+      "latencyMs": 0,
+      "interpretation": {
+        "primaryIntent": "PROVIDE_INFORMATION",
+        "entities": [],
+        "corrections": [],
+        "references": [
+          {
+            "kind": "ACCEPT_PROPOSAL",
+            "sourceText": "cai do "
+          }
+        ],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.85,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "ambiguity-1",
+      "category": "ambiguity",
+      "text": "cái này",
+      "expectClarification": true,
+      "latencyMs": 1,
+      "interpretation": {
+        "primaryIntent": "UNKNOWN",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": true,
+        "confidence": 0.3,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "workflow-1",
+      "category": "workflow",
+      "text": "Tìm PT cho tôi.",
+      "expectedPrimaryIntent": "START_WORKFLOW",
+      "latencyMs": 0,
+      "interpretation": {
+        "primaryIntent": "START_WORKFLOW",
+        "workflowIntent": "FIND_PT",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": false,
+        "confidence": 0.75,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    },
+    {
+      "id": "dismiss-1",
+      "category": "dismiss",
+      "text": "Thôi bỏ qua đi.",
+      "expectedPrimaryIntent": "DISMISS",
+      "latencyMs": 5,
+      "interpretation": {
+        "primaryIntent": "UNKNOWN",
+        "entities": [],
+        "corrections": [],
+        "references": [],
+        "goalSignals": [],
+        "negations": [],
+        "ambiguities": [],
+        "clarificationRequired": true,
+        "confidence": 0.3,
+        "source": "DETERMINISTIC"
+      },
+      "error": null
+    }
+  ],
+  "modelMetrics": {
+    "primaryIntentCorrect": 3,
+    "primaryIntentTotal": 4,
+    "entityCorrect": 1,
+    "entityTotal": 1,
+    "goalCorrect": 1,
+    "goalTotal": 1,
+    "asksRecommendationCorrect": 1,
+    "asksRecommendationTotal": 1,
+    "jsonValid": 11,
+    "schemaValid": 11
+  },
+  "systemMetrics": {
+    "referenceCorrect": 2,
+    "referenceTotal": 3,
+    "clarificationCorrect": 3,
+    "clarificationTotal": 4
+  }
+}

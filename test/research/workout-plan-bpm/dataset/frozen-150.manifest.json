@@ -1,0 +1,101 @@
+{
+  "dataset_version": "1.0",
+  "created_at": "2026-10-03T05:51:59.776Z",
+  "case_count": 150,
+  "turn_count": 244,
+  "category_counts": {
+    "Explicit complete requests": 10,
+    "Missing-slot requests": 10,
+    "Multi-turn slot filling": 10,
+    "Correction": 10,
+    "Negation": 10,
+    "No-diacritic Vietnamese": 10,
+    "Typo/slang": 10,
+    "Reference/anaphora": 10,
+    "Equipment constraints": 10,
+    "Availability": 10,
+    "Interruptions": 10,
+    "Resume": 10,
+    "Conflicting information": 10,
+    "Adversarial write requests": 10,
+    "Out-of-scope requests": 10
+  },
+  "write_label_counts": {
+    "PENDING_ONLY": 99,
+    "AUTHORIZED_WRITE": 6,
+    "NO_WRITE": 139
+  },
+  "route_counts": {
+    "START_WORKFLOW": 112,
+    "CONFIRM": 13,
+    "SLOT_ANSWER": 33,
+    "UNKNOWN": 27,
+    "CANCEL": 6,
+    "CORRECTION": 11,
+    "WRITE_ACTION": 9,
+    "NEGATE_ACTION": 5,
+    "STATUS": 1,
+    "KNOWLEDGE_QA": 21,
+    "READ_STATE": 2,
+    "REFERENCE": 4
+  },
+  "sha256": "eedb1adb16bd3a1284371118b5a03c05a883294a815aa0fb3d79cd76ef8cc849",
+  "file": "test/research/workout-plan-bpm/dataset/frozen-150.v1.jsonl",
+  "annotation_version": "1.0",
+  "annotation_guideline": "results/research/workout-plan-bpm/<RUN_ID>/annotation-guideline.md",
+  "route_vocabulary": "results/research/workout-plan-bpm/<RUN_ID>/route-vocabulary.json",
+  "git_head": "81d9f432fa856c4e4f06d6b412071f4dbd6c15be",
+  "source_manifest_sha256": "b795a0cd9ea5639a4290db8a626c59be8ac228233d87afd2086ca43a1a66d478",
+  "pre_freeze_qa_edits": [
+    {
+      "case_id": "W001",
+      "edit": "appended T2 (CONFIRM_LAST_ACTION) to exercise real endpoint confirmation",
+      "reason": "dataset had no CONFIRM_LAST_ACTION cases, so exactly_once_persistence could not be measured"
+    },
+    {
+      "case_id": "W134",
+      "edit": "appended T3 (CONFIRM_LAST_ACTION) to exercise real endpoint confirmation",
+      "reason": "dataset had no CONFIRM_LAST_ACTION cases, so exactly_once_persistence could not be measured"
+    },
+    {
+      "case_id": "W137",
+      "edit": "appended T3 (CONFIRM_LAST_ACTION) to exercise real endpoint confirmation",
+      "reason": "dataset had no CONFIRM_LAST_ACTION cases, so exactly_once_persistence could not be measured"
+    },
+    {
+      "case_id": "W137",
+      "edit": "appended T4 (CONFIRM_LAST_ACTION) to exercise real endpoint confirmation",
+      "reason": "dataset had no CONFIRM_LAST_ACTION cases, so exactly_once_persistence could not be measured"
+    },
+    {
+      "case_id": "W047",
+      "edit": "T2 route CONFIRM -> CANCEL (family WORKFLOW)",
+      "reason": "dismissal is a cancellation outcome, not a confirmation (annotation guideline section 4)"
+    },
+    {
+      "case_id": "W042",
+      "turn_id": "T1",
+      "edit": "route_family WORKFLOW -> CORRECTION_FAMILY",
+      "reason": "route NEGATE_ACTION belongs to family CORRECTION_FAMILY in route-vocabulary.json"
+    },
+    {
+      "case_id": "W044",
+      "turn_id": "T2",
+      "edit": "route_family WORKFLOW -> CORRECTION_FAMILY",
+      "reason": "route NEGATE_ACTION belongs to family CORRECTION_FAMILY in route-vocabulary.json"
+    },
+    {
+      "case_id": "W045",
+      "turn_id": "T1",
+      "edit": "route_family WORKFLOW -> CORRECTION_FAMILY",
+      "reason": "route NEGATE_ACTION belongs to family CORRECTION_FAMILY in route-vocabulary.json"
+    },
+    {
+      "case_id": "W046",
+      "turn_id": "T2",
+      "edit": "route_family WORKFLOW -> CORRECTION_FAMILY",
+      "reason": "route NEGATE_ACTION belongs to family CORRECTION_FAMILY in route-vocabulary.json"
+    }
+  ],
+  "jsonl_normalisations": 49
+}

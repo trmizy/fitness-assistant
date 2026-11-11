@@ -25,7 +25,7 @@ function inferGoal(
 ): IntentRoute["goalHint"] {
   const q = question.toLowerCase();
   if (
-    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
+    /(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|c[aắ]t m[oỡ]|cat mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(
       q,
     )
   )
@@ -174,6 +174,21 @@ function inferIntent(question: string): RoutedIntentType {
     return "nutrient_timing_request";
   }
 
+  const isSpecificExerciseRequest =
+    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(q);
+
+  // Impersonal nutrition KNOWLEDGE questions ("Macro là gì?", "Protein có vai trò gì?", "Whey có bắt buộc không?",
+  // "Protein bao nhiêu là đủ?") are not requests for a personalized meal plan. Without this the bare nutrient
+  // keywords below turned every such question into the full meal-plan template (found by the full chat
+  // verification). A question that refers to the user ("của tôi", "tôi cần") or asks to build/suggest a plan
+  // still reaches meal_plan_request.
+  const isKnowledgeQuestion =
+    /(l[aà] g[iì]|vai tr[oò]|c[oó] (b[aắ]t bu[oộ]c|c[aầ]n thi[eế]t|t[oố]t|h[aạ]i|t[aá]c d[uụ]ng|hi[eệ]u qu[aả])|bao nhi[eê]u l[aà] (đ[uủ]|an to[aà]n|t[oố]t)|t[aạ]i sao|v[iì] sao|kh[aá]c (g[iì]|nhau)|what is|why)/i.test(q) &&
+    !/(c[uủ]a t[oô]i|t[oô]i c[aầ]n|cho t[oô]i|m[iì]nh c[aầ]n|c[uủ]a m[iì]nh|t[aạ]o |l[eê]n |x[aâ]y d[uự]ng|thi[eế]t k[eế]|g[oợ]i [yý]|[dđ][eề] xu[aấ]t|meal plan|th[uự]c [dđ][oơ]n)/i.test(q);
+  if (isKnowledgeQuestion && !isSpecificExerciseRequest) {
+    return "general_fitness_knowledge";
+  }
+
   if (
     /(th[uứự]c [dđ][oơ]n|thực đơn|dinh d[uư][oơỡ]ng|dinh dưỡng|b[ưữ]a [aă]n|bua an|meal plan|calo\b|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(
       q,
@@ -239,11 +254,7 @@ function inferIntent(question: string): RoutedIntentType {
     return "muscle_group_routine_request";
   }
 
-  if (
-    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(
-      q,
-    )
-  ) {
+  if (isSpecificExerciseRequest) {
     return "specific_exercise_request";
   }
 

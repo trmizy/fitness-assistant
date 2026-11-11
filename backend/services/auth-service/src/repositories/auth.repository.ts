@@ -1,7 +1,15 @@
-import { PrismaClient, Role } from "../generated/prisma";
+import { PrismaClient, Prisma, Role } from "../generated/prisma";
 import { logger } from "@gym-coach/shared";
 
 export const prisma = new PrismaClient();
+
+// Lets a caller run a write inside an existing `prisma.$transaction(async (tx) => ...)`
+// by passing `tx` through, instead of every method being hardcoded to the module-level
+// singleton. Defaults to the singleton so every existing non-transactional call site is
+// unaffected. Used by changePassword/resetPasswordWithToken (auth.service.ts) so a
+// password update and its refresh-token revocation commit or roll back together — see
+// docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
 export const authRepository = {
   // `role` narrows to one role (e.g. the admin "Quản lý gym & owner" page listing only
@@ -122,8 +130,8 @@ export const authRepository = {
 
   // Any successful password change clears mustChangePassword — a forced first-login change
   // and a normal voluntary one both go through this same call, so both clear it the same way.
-  updateUserPasswordById: (id: string, password: string) =>
-    prisma.user.update({
+  updateUserPasswordById: (id: string, password: string, client: DbClient = prisma) =>
+    client.user.update({
       where: { id },
       data: { password, mustChangePassword: false },
       select: {
@@ -186,8 +194,8 @@ export const authRepository = {
   deleteRefreshTokenByValue: (token: string) =>
     prisma.refreshToken.deleteMany({ where: { token } }),
 
-  deleteRefreshTokensByUserId: (userId: string) =>
-    prisma.refreshToken.deleteMany({ where: { userId } }),
+  deleteRefreshTokensByUserId: (userId: string, client: DbClient = prisma) =>
+    client.refreshToken.deleteMany({ where: { userId } }),
 
   // ── Đặt lại mật khẩu bằng link (Phase 2) ────────────────────────────────
   createPasswordResetToken: (data: {
@@ -200,8 +208,8 @@ export const authRepository = {
   findPasswordResetByHash: (tokenHash: string) =>
     prisma.passwordResetToken.findUnique({ where: { tokenHash }, include: { user: true } }),
 
-  markPasswordResetUsed: (id: string) =>
-    prisma.passwordResetToken.update({ where: { id }, data: { usedAt: new Date() } }),
+  markPasswordResetUsed: (id: string, client: DbClient = prisma) =>
+    client.passwordResetToken.update({ where: { id }, data: { usedAt: new Date() } }),
 
   /** Claim the single-use link and change credentials atomically. A failed write rolls back the claim. */
   consumePasswordReset: (id: string, userId: string, password: string) =>

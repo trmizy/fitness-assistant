@@ -1,0 +1,142 @@
+# DRAFT - Phase 16A. NOT ACTIVE: lives under ci/drafts/, GitHub never loads it.
+# To activate (Phase 16B, step 5): copy to .github/workflows/pr-validation.yml.
+#
+# PR validation: NO AWS access of any kind (no OIDC, no secrets), NO mutation.
+# It complements - does not replace - the existing .github/workflows/docker-test.yml,
+# which already owns the Postgres-backed "Critical DB Integration" job and the
+# docker fast-test. Keep that workflow as the required check for DB-backed suites.
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [master, aws-deploy]
+    paths-ignore: ["docs/**", "**/*.md"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true          # safe: validation only, nothing is mutated
+
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda: ${{ steps.i.outputs.lambda }}
+      ecs: ${{ steps.i.outputs.ecs }}
+      infra: ${{ steps.i.outputs.infra }}
+      validate_all: ${{ steps.i.outputs.validate_all }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: i
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $r = ./scripts/ci/Get-ChangedServices.ps1 -Base $env:BASE_SHA -Head $env:HEAD_SHA | ConvertFrom-Json
+          "lambda=$(ConvertTo-Json -InputObject @($r.LambdaServices) -Compress)"  >> $env:GITHUB_OUTPUT
+          "ecs=$(ConvertTo-Json -InputObject @($r.EcsServices) -Compress)"        >> $env:GITHUB_OUTPUT
+          "infra=$(ConvertTo-Json -InputObject @($r.Infra) -Compress)"            >> $env:GITHUB_OUTPUT
+          "validate_all=$($r.ValidateAll.ToString().ToLower())"                   >> $env:GITHUB_OUTPUT
+          $r | ConvertTo-Json -Depth 4 >> $env:GITHUB_STEP_SUMMARY
+
+  # 1-4: install (lockfile frozen), lint/hygiene, typecheck+build.
+  # `pnpm run build` is `tsc` per package - it is the repo's typecheck.
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # setup-node resolves the pnpm cache during setup, so pnpm must exist first.
+      - uses: pnpm/action-setup@v4
+        with: { run_install: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - name: Install (lockfile must be up to date)
+        run: pnpm install --frozen-lockfile
+      - name: Repo hygiene lint
+        run: pnpm run lint
+      - name: Prisma generate (required before tsc in 6 services)
+        run: pnpm run prisma:generate
+      - name: Typecheck + build
+        run: pnpm run build
+
+  # 5: unit tests, per impacted service. UNIT only: suites that need local
+  # Postgres are INTEGRATION_LOCAL and run in docker-test.yml's db-integration job.
+  # A missing-DB failure is classified, not reported as a code failure.
+  unit:
+    needs: [impact, quality]
+    if: needs.impact.outputs.lambda != '[]' || needs.impact.outputs.validate_all == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, user, fitness, gym, payment, ai]
+    steps:
+      - uses: actions/checkout@v4
+      # setup-node resolves the pnpm cache during setup, so pnpm must exist first.
+      - uses: pnpm/action-setup@v4
+        with: { run_install: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run prisma:generate
+      - name: Run unit tests (skipped when service not impacted)
+        shell: pwsh
+        env:
+          SERVICE: ${{ matrix.service }}
+          IMPACTED: ${{ needs.impact.outputs.lambda }}
+          VALIDATE_ALL: ${{ needs.impact.outputs.validate_all }}
+        run: |
+          if ($env:VALIDATE_ALL -ne 'true' -and (@(ConvertFrom-Json $env:IMPACTED) -notcontains $env:SERVICE)) { "not impacted: skip"; exit 0 }
+          pnpm --filter "@gym-coach/$($env:SERVICE)-service" test *> test.log
+          $code = $LASTEXITCODE
+          Get-Content test.log -Tail 60
+          if ($code -ne 0) {
+            Import-Module ./scripts/ci/CiHelpers.psm1 -Force
+            $f = Get-CiFailureClass -Stage unit -Message (Get-Content test.log -Raw)
+            "### $($env:SERVICE): $($f.Class) ($($f.Status))" >> $env:GITHUB_STEP_SUMMARY
+            if ($f.Blocking) { exit $code }       # NOT_RUN / BLOCKED classes do not fail the PR
+          }
+
+  # 7-9: IaC + manifest validation, still offline.
+  iac:
+    needs: impact
+    if: needs.impact.outputs.infra != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # NEW TOOLING (not in the repo today) - decide in 16B whether to adopt cfn-lint.
+      - name: cfn-lint
+        run: |
+          pip install cfn-lint
+          cfn-lint infra/cloudformation/ci-cd-oidc.yaml infra/cloudformation/api-gateway-additions.yaml infra/cloudformation/api-gateway-baseline.yaml
+      - name: Source-route manifest is valid JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('docs/deployment/generated/api-source-routes.json','utf8'))"
+      # GAP (documented in the report): a static manifest-vs-template route parity
+      # check does not exist yet. Test-ApiRouteParity.ps1 reads the LIVE API, so it
+      # is a post-deploy check, not a PR check.
+
+  # 6/10: Docker build validation for Chat (build only, never push).
+  chat-image:
+    needs: impact
+    if: needs.impact.outputs.ecs != '[]' || needs.impact.outputs.validate_all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:pr-validation .
+
+  # CI helper logic (Windows PowerShell 5.1 ships Pester 3.x, which the repo's
+  # *.Tests.ps1 files are written for; ubuntu's Pester 5 would reject `Should Be`).
+  ci-helper-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: powershell
+        run: |
+          $r = Invoke-Pester scripts/ci/CiHelpers.Tests.ps1, scripts/aws/api-gateway/lib/ApiRouteParity.Tests.ps1, scripts/aws/lib/DevLifecycle.Tests.ps1 -PassThru -Quiet
+          "Passed=$($r.PassedCount) Failed=$($r.FailedCount)"
+          if ($r.FailedCount -gt 0) { exit 1 }

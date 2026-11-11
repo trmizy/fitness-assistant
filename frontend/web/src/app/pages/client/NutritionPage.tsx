@@ -17,6 +17,8 @@ import { nutritionService, foodService } from "../../services/api";
 import type { NutritionGoalPlanConsistency } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
+import { activityLevelInfo } from "../../constants/activityLevels";
+import { DayMacroQuickEstimate } from "../../components/nutrition/DayMacroEstimate";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
 import { useApp } from "../../context/AppContext";
@@ -765,6 +767,34 @@ export function NutritionPage() {
       toast.error(e.response?.data?.error ?? "Không thể lưu mục tiêu"),
   });
 
+  // Profile goal vs target weight contradiction reported by the recommendation (fitness-service nutrition-bootstrap-screening.ts).
+  const [goalConflict, setGoalConflict] = useState<{ goal: string; currentWeight: number; targetWeight: number } | null>(null);
+  // How the recommended number was reached (ESTIMATED) — shown so a user can spot an over-chosen activity level.
+  const [goalEstimate, setGoalEstimate] = useState<{ bmr: number; bmrFormula: string; activityLevel: string; activityFactor: number; maintenanceCalories: number; adjustmentKcal: number } | null>(null);
+  const recommendedGoalMutation = useMutation({
+    mutationFn: () => nutritionService.getTargetPreview(true),
+    onSuccess: (result) => {
+      if (result.status === "insufficient_data") {
+        // field names in plain Vietnamese + where to fix them (the toast used to read "...: activityLevel")
+        const LABEL: Record<string, string> = { activityLevel: "mức độ vận động", age: "tuổi", gender: "giới tính", heightCm: "chiều cao", weightKg: "cân nặng", goal: "mục tiêu" };
+        const missing = result.missingFields?.map((f) => LABEL[f] ?? f).join(", ") || "hồ sơ/InBody";
+        toast.error(`Chưa đủ dữ liệu để AI đề xuất mục tiêu: thiếu ${missing}. Bổ sung trong trang Hồ sơ rồi bấm lại.`);
+        return;
+      }
+      setGoalForm({
+        calories: Math.round(result.calories),
+        protein: Math.round(result.protein),
+        carbs: Math.round(result.carbs),
+        fat: Math.round(result.fat),
+      });
+      setGoalMode("RECOMMENDED");
+      setGoalConflict((result as { goalTargetConflict?: { goal: string; currentWeight: number; targetWeight: number } }).goalTargetConflict ?? null);
+      setGoalEstimate(result.status === "COMPUTED" ? result.estimate ?? null : null);
+      toast.success("Đã lấy mục tiêu AI đề xuất mới nhất");
+    },
+    onError: () => toast.error("Không thể lấy mục tiêu AI đề xuất lúc này"),
+  });
+
   // Goal <-> Plan sync gap (docs/audit/nutrition-ai-current-flow-audit.md,
   // câu 6) — read-only check, never auto-archives/regenerates anything.
   const { data: goalPlanConsistency } = useQuery({
@@ -1051,7 +1081,6 @@ export function NutritionPage() {
           const [y, m, d] = dateString.split("-").map(Number);
           setSelectedDate(new Date(y, m - 1, d));
         }}
-        onAddClick={openDefaultAddModal}
       />
 
       {/* ── Date navigation (mini) ── */}
@@ -1945,6 +1974,9 @@ export function NutritionPage() {
           ))}
         </div>
       )}
+
+      {/* ── Quick estimate: describe the day in words -> per-item + total macros (save on explicit confirm) ── */}
+      <DayMacroQuickEstimate dateStr={dateStr} />
 
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -3129,9 +3161,52 @@ export function NutritionPage() {
                 </button>
               </div>
               {goalMode === "RECOMMENDED" && (
-                <p className="mt-2 text-[11px] text-zinc-500">
-                  Đây là mục tiêu do hệ thống tính toán. Chuyển sang "Tự nhập" nếu bạn muốn tự chỉnh số liệu.
-                </p>
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] text-zinc-500">
+                    Đây là mục tiêu do AI/hệ thống tính từ hồ sơ, InBody và mục tiêu hiện tại. Chuyển sang "Tự nhập" nếu bạn muốn tự chỉnh số liệu.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => recommendedGoalMutation.mutate()}
+                    disabled={recommendedGoalMutation.isPending}
+                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-500/15 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {recommendedGoalMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {recommendedGoalMutation.isPending
+                      ? "Đang đề xuất..."
+                      : "AI đề xuất lại"}
+                  </button>
+                  {goalEstimate && (
+                    <div data-testid="goal-estimate" className="rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-3 py-2 text-xs text-zinc-300 space-y-1">
+                      <div>
+                        <span className="text-zinc-500">Cách tính (ước tính): </span>
+                        BMR {goalEstimate.bmr.toLocaleString("vi-VN")} kcal{goalEstimate.bmrFormula === "inbody_measured" ? " (đo InBody)" : " (công thức Mifflin-St Jeor)"}
+                        {" × "}{goalEstimate.activityFactor} ({activityLevelInfo(goalEstimate.activityLevel)?.label ?? goalEstimate.activityLevel})
+                        {" = "}{goalEstimate.maintenanceCalories.toLocaleString("vi-VN")} kcal duy trì
+                        {goalEstimate.adjustmentKcal !== 0 && (
+                          <>{goalEstimate.adjustmentKcal > 0 ? " + " : " − "}{Math.abs(goalEstimate.adjustmentKcal).toLocaleString("vi-VN")} kcal {goalEstimate.adjustmentKcal > 0 ? "dư" : "thâm hụt"}</>
+                        )}
+                      </div>
+                      {(goalEstimate.activityLevel === "VERY_ACTIVE" || goalEstimate.activityLevel === "EXTREMELY_ACTIVE") && (
+                        <div className="text-amber-300">
+                          Hệ số {goalEstimate.activityFactor} dành cho: {activityLevelInfo(goalEstimate.activityLevel)?.hint.toLowerCase()}.
+                          Nếu bạn làm việc ngồi và tập gym 3–5 buổi/tuần, hãy chọn <strong>Vận động vừa</strong> (×1.55) trong <a href="/client/profile" className="underline">Hồ sơ</a> rồi bấm “AI đề xuất lại”.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {goalConflict && (
+                    <div role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                      Hồ sơ đang chọn mục tiêu <strong>{goalConflict.goal === "MUSCLE_GAIN" ? "Tăng cơ" : "Giảm cân"}</strong> nhưng cân nặng mong muốn
+                      ({goalConflict.targetWeight} kg) {goalConflict.targetWeight < goalConflict.currentWeight ? "thấp hơn" : "cao hơn"} cân nặng hiện tại ({goalConflict.currentWeight} kg).
+                      Mình tạm đề xuất mức <strong>duy trì</strong>. Vào <a href="/client/profile" className="underline">Hồ sơ</a> chọn lại mục tiêu (giảm mỡ / tăng cơ / tái cấu trúc) rồi bấm “AI đề xuất lại”.
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -3302,7 +3377,6 @@ function NutritionCalendarGrid({
   onPrevMonth,
   onNextMonth,
   onDayClick,
-  onAddClick,
 }: {
   month: Date;
   today: string;
@@ -3311,7 +3385,6 @@ function NutritionCalendarGrid({
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onDayClick: (date: string) => void;
-  onAddClick: () => void;
 }) {
   const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const year = month.getFullYear();
@@ -3344,12 +3417,6 @@ function NutritionCalendarGrid({
           </div>
           <span className="text-sm font-bold text-zinc-200">Lịch tập</span>
         </div>
-        <button
-          onClick={onAddClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-xl transition-all shadow-sm shadow-green-500/20"
-        >
-          <Plus className="w-3.5 h-3.5" /> Thêm
-        </button>
       </div>
 
       {/* Month navigation */}

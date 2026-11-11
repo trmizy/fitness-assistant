@@ -1,0 +1,733 @@
+{
+  "generatedAt": "2026-10-09T09:12:46.274Z",
+  "note": "Phase 15B-B2B1: the exact 66-resource Batch 2 (Auth+Payment) import specification, in the LOGICAL_ID/RESOURCE_TYPE/EXISTING_PHYSICAL_ID/IMPORT_IDENTIFIER/SERVICE/EXPECTED_CURRENT_TARGET shape. Content is identical in substance to api-gateway-import-resources-batch2.json (prepared in Phase 15B-B1, re-validated unchanged this phase via fresh live reads) - this file adds the explicit per-field breakdown this phase requires.",
+  "totalResources": 66,
+  "resources": [
+    {
+      "LOGICAL_ID": "PaymentIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "w9fjro0",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "w9fjro0"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "1vnd68s",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1vnd68s"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "vq6v245",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "vq6v245"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthMeIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "mg2016a",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "mg2016a"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "1m2k0ec",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1m2k0ec"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "6l59zzc",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "6l59zzc"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "4y4qfnr",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "4y4qfnr"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "9ibcmaf",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9ibcmaf"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisableIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "ai0sybi",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ai0sybi"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnableIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "9291bod",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9291bod"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRoleIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "5z0d625",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "5z0d625"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyIntegration",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Integration",
+      "EXISTING_PHYSICAL_ID": "0dz9hk6",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "0dz9hk6"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "6xzii05",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6xzii05"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "xem7w3d",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xem7w3d"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "pdyttwa",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "pdyttwa"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "qzs0h76",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "qzs0h76"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthMeRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "udx6zk8",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "udx6zk8"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthMePasswordRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "kglwdf4",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "kglwdf4"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "b4qz92c",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b4qz92c"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "v1ulrmi",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "v1ulrmi"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "s6u0xlk",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s6u0xlk"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "t5rs0fv",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "t5rs0fv"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisableRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "b13kqj2",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b13kqj2"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnableRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "inqm7z3",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inqm7z3"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRoleRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "od61vtj",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "od61vtj"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "bql2ffm",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bql2ffm"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "q2x73ci",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q2x73ci"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "aexyi40",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "aexyi40"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "ky8pdte",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ky8pdte"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "fnw2xg2",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fnw2xg2"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "wz6h20l",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wz6h20l"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "18pp73s",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "18pp73s"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "hccamfd",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hccamfd"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "6sa0fv8",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6sa0fv8"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsBareRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "ggous3t",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ggous3t"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsProxyRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "25k6vpo",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "25k6vpo"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentVnpayReturnRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "1a39mw9",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1a39mw9"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookProviderRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "gd8slzc",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "gd8slzc"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookVnpayRoute",
+      "RESOURCE_TYPE": "AWS::ApiGatewayV2::Route",
+      "EXISTING_PHYSICAL_ID": "lc4uib6",
+      "IMPORT_IDENTIFIER": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lc4uib6"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthLoginPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRefreshPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "4b688a74-fac9-55d1-9aea-f2991a612f30 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "4b688a74-fac9-55d1-9aea-f2991a612f30"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthLogoutPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "76615900-0d3e-5b89-9d91-0bd373206d23 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "76615900-0d3e-5b89-9d91-0bd373206d23"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthVerifyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "72afdf9d-7781-5b76-9d15-3934874f10d6 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "72afdf9d-7781-5b76-9d15-3934874f10d6"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersListPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "f553221d-5393-559b-9674-fc44edd40b6e (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "f553221d-5393-559b-9674-fc44edd40b6e"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersRolePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "0fcfe73c-7fa5-5e64-8663-61d76f2e6dba (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "0fcfe73c-7fa5-5e64-8663-61d76f2e6dba"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthRegisterVerifyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "ebf2f04e-95b9-5a57-ab25-72b54a7f9801 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "ebf2f04e-95b9-5a57-ab25-72b54a7f9801"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersDisablePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "243bcfe0-270c-5634-9451-a7eff781cc8a (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "243bcfe0-270c-5634-9451-a7eff781cc8a"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthUsersEnablePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "161e1a2d-183d-5ae7-bffb-29310adaf3ff (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "161e1a2d-183d-5ae7-bffb-29310adaf3ff"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthMePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "d320efbb-5b94-5605-a88e-0c84fa2299f9 (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "d320efbb-5b94-5605-a88e-0c84fa2299f9"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "AuthMePasswordPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "apigw-auth-me-password (FunctionName=fitness-assistant-dev-auth)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "apigw-auth-me-password"
+      },
+      "SERVICE": "Auth",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-auth"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "ad16c206-6bf8-56b2-b564-51afa40764ab (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "ad16c206-6bf8-56b2-b564-51afa40764ab"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentadminpaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "24e3e0fb-a876-505a-b857-d145ce1e9522 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "24e3e0fb-a876-505a-b857-d145ce1e9522"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "4ffd67f3-ba68-5082-9ed0-d9f4b059bbf7 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "4ffd67f3-ba68-5082-9ed0-d9f4b059bbf7"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewalletProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "bad0bcde-985e-59af-97a7-f7ca98de6902 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "bad0bcde-985e-59af-97a7-f7ca98de6902"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "c2627d1c-a232-5769-916b-e013479ed8ef (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "c2627d1c-a232-5769-916b-e013479ed8ef"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmewithdrawalsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "be3b441a-f86a-5910-a007-4d7a142096a5 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "be3b441a-f86a-5910-a007-4d7a142096a5"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "d0955da6-ec61-52f8-9c44-2331da64ea0a (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "d0955da6-ec61-52f8-9c44-2331da64ea0a"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmepaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "83e8c4bf-7d55-55b1-a0c3-03c1336e905d (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "83e8c4bf-7d55-55b1-a0c3-03c1336e905d"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "27dfa253-38d1-553f-86cb-d33f459fbab8 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "27dfa253-38d1-553f-86cb-d33f459fbab8"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentmeptwalletProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "cc4008ee-6c01-5247-85d0-2e4b294b882e (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "cc4008ee-6c01-5247-85d0-2e4b294b882e"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsBarePermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "b3662570-3dfb-5270-ae0b-784ad916ab1c (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "b3662570-3dfb-5270-ae0b-784ad916ab1c"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentpaymentsProxyPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "544c730d-fe5c-50cd-ab97-e03aa7d383af (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "544c730d-fe5c-50cd-ab97-e03aa7d383af"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentVnpayReturnPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "3f918279-e486-532f-8f24-9642831b81c8 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "3f918279-e486-532f-8f24-9642831b81c8"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookProviderPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "9e68fb48-61a1-5de1-8098-dad2b49ee291 (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "9e68fb48-61a1-5de1-8098-dad2b49ee291"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    },
+    {
+      "LOGICAL_ID": "PaymentWebhookVnpayPermission",
+      "RESOURCE_TYPE": "AWS::Lambda::Permission",
+      "EXISTING_PHYSICAL_ID": "64dfbfa3-2b1c-5b9a-8ba3-c81114edae3b (FunctionName=fitness-assistant-dev-payment)",
+      "IMPORT_IDENTIFIER": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "64dfbfa3-2b1c-5b9a-8ba3-c81114edae3b"
+      },
+      "SERVICE": "Payment",
+      "EXPECTED_CURRENT_TARGET": "fitness-assistant-dev-payment"
+    }
+  ]
+}

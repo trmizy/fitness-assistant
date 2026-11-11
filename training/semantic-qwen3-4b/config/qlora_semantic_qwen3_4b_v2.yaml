@@ -1,0 +1,34 @@
+# Dataset V2 task §27 - "Use previous configuration unless sequence-length
+# evidence requires only a memory-compatible length change." V2's token
+# analysis (analyze_token_lengths.py --version v2) found max=374 at full
+# sequence, same as v1's finding (max=363) - max_seq_length=384 remains
+# sufficient (0% truncation), so it is UNCHANGED. Every hyperparameter below
+# is identical to qlora_semantic_qwen3_4b.yaml (v1) - only base_model path,
+# train_file/eval_file, and output_dir differ. No tuning performed.
+base_model: unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit
+output_dir: training/semantic-qwen3-4b/outputs/train/qlora-baseline-v2
+train_file: training/semantic-qwen3-4b/datasets/processed/v2/train.jsonl
+eval_file: training/semantic-qwen3-4b/datasets/processed/v2/validation.jsonl
+max_seq_length: 384
+learning_rate: 0.00005
+num_train_epochs: 2
+max_steps: null
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+load_in_4bit: true
+bf16: true
+save_steps: 50
+eval_steps: 25
+logging_steps: 1
+seed: 3407

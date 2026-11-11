@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { logger, type AgentEvidence, type RecommendationNarration } from "@gym-coach/shared";
-import { callLlmJson } from "./json_llm_call.util";
+import { callLlmJson, NARRATION_BUDGET } from "./json_llm_call.util";
+import { LLM_MODEL } from "../services/llm.service";
 import {
   buildDefaultProgramSelection,
   buildProgramClaimCatalog,
@@ -56,12 +57,15 @@ export async function narrateProgramRecommendations(
     };
   }
 
+  const narrationStarted = Date.now();
   const result = await callLlmJson(buildPrompt(candidates, catalogs), ProgramClaimSelectionSchema, {
     userId: opts.userId,
     phase: "program_recommendation_claim_selection",
     numPredict: 600,
-    attempts: 2,
+    attempts: NARRATION_BUDGET.attempts,
+    timeoutMs: NARRATION_BUDGET.timeoutMs,
     logPrefix: "[program-recommendation-narrator]",
+    purpose: "RECOMMENDATION_NARRATION",
   }).catch(err => {
     logger.warn({ err: (err as Error)?.message, userId: opts.userId }, "[program-recommendation-narrator] LLM selection failed; using fallback");
     return null;
@@ -78,5 +82,7 @@ export async function narrateProgramRecommendations(
     if (!selected.length) usedFallback = true;
     narrations.push(renderProgramNarrationFromClaims(candidate.program.id, catalog, finalIds));
   }
+  // R1.1 telemetry (no prompt, no answer text, no user data).
+  logger.info({ callPurpose: "RECOMMENDATION_NARRATION", kind: "program", model: LLM_MODEL, timeoutMs: NARRATION_BUDGET.timeoutMs, attempts: NARRATION_BUDGET.attempts, latencyMs: Date.now() - narrationStarted, outcome: result ? "ok" : "failed", fallbackUsed: usedFallback, candidateCount: candidates.length }, "narration_result");
   return { narrations, usedFallback };
 }

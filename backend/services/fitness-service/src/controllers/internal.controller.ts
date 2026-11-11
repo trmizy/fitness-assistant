@@ -197,9 +197,29 @@ export const internalController = {
       // existed before today; it only ever narrows the pool for NEW
       // imports still in STAGING/REVIEW_REQUIRED.
       where.status = "PUBLISHED";
+      // 2026-10-22 live incident: this endpoint's candidate pool was
+      // missing the archivedAt exclusion that
+      // plan-equipment-validator.service.ts's final visibility check
+      // already requires (status=PUBLISHED AND archivedAt=null) — an
+      // archived-but-still-PUBLISHED exercise could reach the AI worker's
+      // candidate pool, get selected into a plan, then get rejected by
+      // that final check, failing the whole plan closed. Same
+      // "archived = never reaches a plan" invariant as the status gate
+      // above, just the missing other half of it.
+      where.archivedAt = null;
 
       const result = await exerciseRepository.findMany(where);
-      let candidates = result.data as any[];
+      // 2026-10-25 live incident: PUBLISHED alone is not "visible to this
+      // user" — plan-equipment-validator.service.ts's final check accepts
+      // only (PUBLISHED + SYSTEM) or the caller's OWN USER_CUSTOM exercise.
+      // Another user's PUBLISHED USER_CUSTOM row (e.g. a custom "Hip Thrust")
+      // leaked into every user's candidate pool, got picked into a plan, then
+      // failed that final check -> "equipment_constraint_violation" and the
+      // whole plan failed closed. Filter per user here, after the (shared,
+      // cached) findMany, to the exact same visibility rule.
+      let candidates = (result.data as any[]).filter(
+        (ex) => ex.source === "SYSTEM" || (ex.source === "USER_CUSTOM" && !!userId && ex.ownerId === userId),
+      );
 
       // Deterministic equipment gate (never delegated to the LLM — see
       // equipment-availability.util.ts). Applied here, before the
@@ -431,8 +451,16 @@ export const internalController = {
           LIMIT ${PER_AXIS_LIMIT}
         `),
       ]);
+      // Curated everyday foods (prisma/seed_everyday_foods.ts): real USDA rows with a Vietnamese display name, returned
+      // regardless of the keyword filter above (cooking oil and avocado are everyday fat sources it excludes). Listed
+      // first so their name survives the merge. ai-service prefers them for meal plans (test/ai-quality-eval, 2026-11-08).
+      const curatedRows = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT f.id, f.name, f.calories, f.protein, f.carbs, f.fats, f.food_form, f.realistic_serving_max_g, a.alias AS vi_name
+        FROM foods f JOIN food_aliases a ON a.food_id = f.id AND a.source = 'everyday_curated' AND a.language = 'vi'
+        WHERE f.is_supplement = false
+      `);
       const foodsById = new Map<string, any>();
-      for (const row of [...proteinRows, ...carbRows, ...fatRows]) {
+      for (const row of [...curatedRows, ...proteinRows, ...carbRows, ...fatRows]) {
         if (!foodsById.has(row.id)) foodsById.set(row.id, row);
       }
       const foods = [...foodsById.values()];
@@ -449,6 +477,8 @@ export const internalController = {
         tags: [],
         foodForm: f.food_form ?? null,
         realisticServingMaxG: f.realistic_serving_max_g ?? null,
+        viName: f.vi_name ?? null,
+        curated: Boolean(f.vi_name),
       }));
       res.json({ success: true, data: { foods: mappedFoods } });
     } catch (err) {
@@ -509,6 +539,29 @@ export const internalController = {
     } catch (err) {
       logger.error({ err }, "internal.bootstrapNutrition failed");
       res.status(500).json({ success: false, error: "Failed to bootstrap nutrition" });
+    }
+  },
+
+  // INTERNAL — canonical muscle data for up to 200 Exercise ids: { exercises: [{ id, name, bodyPart, muscleGroups }] }.
+  // Unknown ids are simply absent from the result (the caller must treat "not returned" as "unknown", never as "safe").
+  async exerciseMuscleProfiles(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const ids = (req.body as { exerciseIds?: unknown })?.exerciseIds;
+      if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((x) => typeof x === "string" && x.length > 0 && x.length <= 64)) {
+        res.status(400).json({ success: false, error: "exerciseIds must be a non-empty array of at most 200 ids" });
+        return;
+      }
+      const rows = await prisma.exercise.findMany({
+        where: { id: { in: [...new Set(ids as string[])] } },
+        select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true },
+      });
+      res.json({
+        success: true,
+        data: { exercises: rows.map((r: { id: string; exerciseName: string; bodyPart: string; muscleGroupsActivated: string[] }) => ({ id: r.id, name: r.exerciseName, bodyPart: r.bodyPart, muscleGroups: r.muscleGroupsActivated })) },
+      });
+    } catch (err) {
+      logger.error({ err }, "internal.exerciseMuscleProfiles failed");
+      res.status(500).json({ success: false, error: "Failed to load exercise muscle profiles" });
     }
   },
 

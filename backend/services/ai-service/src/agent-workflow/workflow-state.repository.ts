@@ -1,4 +1,5 @@
 import { prisma } from "../repositories/conversation.repository";
+import { Prisma } from "../generated/prisma";
 import type { WorkflowStatus, PendingProfileUpdate } from "./types";
 
 /** Real DB-backed CRUD for AgentWorkflowSession — see the model's own doc
@@ -104,6 +105,34 @@ export const workflowStateRepository = {
     await prisma.agentWorkflowSession.updateMany({
       where: { id, status: "WRITING" },
       data: { status: "AWAITING_SLOT_CONFIRMATION" },
+    });
+  },
+
+  /** X4 event-ordering fix (docs/conversational-intelligence-x4-event-ordering-fix.md), Defect A:
+   * the previous version fetched only the 5 most recent TERMINAL rows and filtered for a
+   * non-null `pendingProfileUpdate` in JS — Codex's independent "history-over-five" reproduction
+   * proved that six newer, unrelated terminal workflows (e.g. abandoned CREATE_WORKOUT_PLAN
+   * slot-collections, `pendingProfileUpdate` always null) fill all 5 slots and hide an older,
+   * genuinely completed profile confirmation, falsely denying a real saved change.
+   *
+   * Fixed by filtering AT THE DATABASE LEVEL — `pendingProfileUpdate: { not: Prisma.DbNull }`
+   * matches every row where a real value was ever written (this code only ever stores an actual
+   * proposal array or leaves the column at its SQL-NULL default — never an explicit JSON `null`
+   * literal — so `DbNull`, not `JsonNull`/`AnyNull`, is the correct sentinel here) — combined with
+   * `status IN (terminal)` and `ORDER BY updated_at DESC LIMIT 1` in a single query. No
+   * take/window truncation of any kind; the (userId, sessionId, status, updatedAt) index added
+   * alongside this fix (migration 20260927150000_fitness_agent_action_updated_at) keeps this a
+   * single index-scan lookup regardless of how much unrelated terminal-workflow history exists
+   * for the session.
+   *
+   * The status filter is technically redundant with findActive()'s own contract (this is only
+   * ever meaningful to call after findActive() has returned null, so every row is already
+   * terminal) but is kept explicit for clarity/safety against future callers. */
+  async findLatestProfileConfirmation(userId: string, sessionId: string) {
+    return prisma.agentWorkflowSession.findFirst({
+      where: { userId, sessionId, status: { in: TERMINAL_STATUSES }, pendingProfileUpdate: { not: Prisma.DbNull } },
+      orderBy: { updatedAt: "desc" },
+      select: { status: true, updatedAt: true, pendingProfileUpdate: true },
     });
   },
 };

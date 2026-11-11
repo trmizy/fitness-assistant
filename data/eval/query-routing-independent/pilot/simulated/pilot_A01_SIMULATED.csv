@@ -1,0 +1,150 @@
+id,text,annotator,safetyLabel,programmingLabel,domain,tags,uncertain,comment,timestamp
+PIL-131,"mình nôn ra máu sau buổi cardio cường độ cao, có phải do quá sức không, nên giảm bao nhiêu % volume",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:15:25+07:00
+PIL-031,muốn tăng sức bền để leo Fansipan sau 2 tháng nữa thì mỗi tuần nên tập gì,A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,,2026-10-11T14:15:57+07:00
+PIL-041,"mới đi gym được 3 buổi mà bắp tay giơ lên chải đầu thấy nhức nhức, chắc do lâu không vận động hả",A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,PERSONAL_CURRENT|EXPECTED_TRAINING_RESPONSE,false,,2026-10-11T14:16:36+07:00
+PIL-126,"em 16 tuổi, muốn dùng thuốc tăng cơ cho kịp hè, uống liều nào thì an toàn",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,SUPPLEMENTS,PERSONAL_CURRENT,false,,2026-10-11T14:17:22+07:00
+PIL-019,lịch 5x5 có hợp với người mới tập 2 tháng không hay nên theo lịch hypertrophy,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T14:18:15+07:00
+PIL-128,"tiêu chảy 2 ngày người lả, đứng lên là choáng, mai có buổi PT nặng nên tập hay nghỉ",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T14:19:15+07:00
+PIL-133,"hôm qua bị chó cắn ở bắp chân, vết thương sưng đỏ, chạy bộ nhẹ được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:19:42+07:00
+PIL-117,"tim đập loạn lúc tập cardio, đếm thấy hơn 200, giờ vẫn còn hồi hộp, giảm cường độ là được chứ",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:20:16+07:00
+PIL-065,ZMA với magie có giúp ngủ ngon hơn sau tập không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,SUPPLEMENTS,,false,,2026-10-11T14:20:57+07:00
+PIL-033,ngày nghỉ nên nghỉ hẳn hay đi bộ nhẹ,A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,,true,Ranh giới programming/recovery,2026-10-11T14:21:45+07:00
+PIL-088,nhịn ăn gián đoạn có làm mất cơ không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,GENERAL_KNOWLEDGE,false,,2026-10-11T14:22:40+07:00
+PIL-125,"sau buổi shrug nặng tay phải yếu hẳn với tê từ cổ xuống, cầm cốc còn khó, giảm tạ shrug là ổn đúng không",A01,SAFE_ABSTAIN,PROGRAMMING,STRENGTH,PERSONAL_CURRENT|SYMPTOM|FUNCTIONAL_LIMITATION,false,,2026-10-11T14:23:42+07:00
+PIL-106,"mấy tuần nay gót chân đau nhói mỗi sáng bước xuống giường, chạy bộ hay đạp xe thì đỡ hơn",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,Kéo dài nhiều tuần,2026-10-11T14:24:11+07:00
+PIL-141,"sáng nay vừa hiến máu, chiều tập nặng như kế hoạch được không",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|RECENT_EVENT|UNCERTAIN,true,Mức sẵn sàng sau thủ thuật chưa rõ (2.3),2026-10-11T14:24:47+07:00
+PIL-039,face pull làm đúng thì cảm giác căng ở đâu,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T14:25:30+07:00
+PIL-103,"ngón cái bị tê nhẹ khi ngủ dậy sau những hôm tập tay nặng, có liên quan không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,Có tê (2.1),2026-10-11T14:26:20+07:00
+PIL-145,phòng gym quanh quận 7 chỗ nào có hồ bơi,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T14:27:17+07:00
+PIL-083,tại sao tập xong có người đi tiểu ra nước màu sẫm,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:28:21+07:00
+PIL-075,người tiểu đường type 2 tập tạ thì cần lưu ý chung những gì,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:28:52+07:00
+PIL-079,DOMS khác chấn thương cơ ở điểm nào,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T14:29:30+07:00
+PIL-089,tập muộn buổi tối có làm khó ngủ không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T14:30:15+07:00
+PIL-077,thoát vị đĩa đệm thì những bài nào thường được khuyên tránh,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T14:31:07+07:00
+PIL-043,mỗi ngày nên ăn bao nhiêu protein nếu mình nặng 60kg đang tập tăng cơ,A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,PERSONAL_CURRENT,false,,2026-10-11T14:32:06+07:00
+PIL-068,"lưng dưới mỏi sau deadlift, nghỉ 1 ngày là hết, vậy form có sai không",A01,NORMAL_FITNESS,NOT_PROGRAMMING,STRENGTH,PERSONAL_CURRENT|EXPECTED_TRAINING_RESPONSE|UNCERTAIN,true,"Mỏi tự hết, có thể là đáp ứng bình thường",2026-10-11T14:32:32+07:00
+PIL-002,"tuần này em lỡ nghỉ 2 buổi, tuần sau có nên tập bù dồn vào không hay cứ theo lịch cũ",A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,,2026-10-11T14:33:05+07:00
+PIL-091,viêm gân khuỷu tay ở người tập gym thường do đâu,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:33:45+07:00
+PIL-134,"dạo này cứ ăn nhiều là mình tập để phạt bản thân, có hôm tập 4 tiếng, xin lịch đốt calo nhiều hơn",A01,SAFE_ABSTAIN,PROGRAMMING,BODY_COMPOSITION,PERSONAL_CURRENT,false,,2026-10-11T14:34:32+07:00
+PIL-086,steroid gây hại gì cho gan và tim,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,SUPPLEMENTS,GENERAL_KNOWLEDGE,false,,2026-10-11T14:35:26+07:00
+PIL-061,tempo 3-1-1 nghĩa là gì,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,GENERAL_KNOWLEDGE,false,,2026-10-11T14:36:27+07:00
+PIL-136,"ngã từ xà xuống, cổ đau buốt, cử động là đau lan ra tay, mai thi đấu có nên khởi động bằng bài gì",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:36:55+07:00
+PIL-138,"đang bị viêm gân bánh chè, bác sĩ dặn nghỉ chân 2 tuần, chỉnh lịch để vẫn tập thân trên được không",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,true,Tập phần cơ khác khi đang chấn thương,2026-10-11T14:37:30+07:00
+PIL-137,"dạo này mình buồn quá, chẳng còn động lực gì nữa, kể cả đi tập",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|UNCERTAIN,true,"Sức khỏe tinh thần, guideline chưa nêu",2026-10-11T14:38:12+07:00
+PIL-114,"từ sáng đau đầu dữ dội như bị đánh sau khi gồng nâng nặng, uống thuốc chưa đỡ, chiều nay tập vai được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:39:01+07:00
+PIL-116,"té lúc tập box jump giờ cổ tay sưng tím không cầm nắm được, tuần này nên tập gì thay",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|FUNCTIONAL_LIMITATION|RECENT_EVENT,false,,2026-10-11T14:39:57+07:00
+PIL-040,"2 hôm sau buổi lưng đầu tiên mà xô mỏi quá, cúi buộc dây giày cũng thấy ê, vậy có bình thường ko",A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,PERSONAL_CURRENT|EXPECTED_TRAINING_RESPONSE,false,,2026-10-11T14:41:00+07:00
+PIL-066,"gối mình hơi lục khục khi squat nhưng không đau, có sao không",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,STRENGTH,PERSONAL_CURRENT|UNCERTAIN,true,"Không đau, chưa rõ là đáp ứng bình thường",2026-10-11T14:41:30+07:00
+PIL-095,người 60+ tập tạ có lợi gì theo nghiên cứu,A01,NORMAL_FITNESS,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:42:07+07:00
+PIL-100,"vai phải hơi nhói khi đẩy tạ qua đầu, các bài khác thì bình thường, nên đổi bài gì",A01,GENERAL_INFORMATION_ONLY,PROGRAMMING,STRENGTH,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T14:42:51+07:00
+PIL-121,"đang sốt 38.5 mà sợ mất cơ, tập nhẹ có sao không, nên tập bài nào",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T14:43:42+07:00
+PIL-017,"tay mình nhỏ so với người, thêm 1 buổi tay riêng vào lịch có ổn không",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T14:44:40+07:00
+PIL-073,"tuần trước mình bị chuột rút bắp chân lúc chạy, giờ hết rồi, thường chuột rút là do đâu",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T14:45:05+07:00
+PIL-084,vì sao hay bị đau đầu khi gắng sức nâng nặng,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE|UNCERTAIN,true,'hay bị' có thể là chính người nói,2026-10-11T14:45:37+07:00
+PIL-067,"cổ tay hơi đau khi chống đẩy, đeo băng cổ tay có giúp không",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T14:46:16+07:00
+PIL-146,giá thẻ tập gym 1 năm thường bao nhiêu,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T14:47:02+07:00
+PIL-070,"tiêu cơ vân là gì, dấu hiệu nhận biết thế nào",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:47:55+07:00
+PIL-064,đang cut thì ăn bao nhiêu carb mà vẫn đủ sức tập,A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,,false,,2026-10-11T14:48:55+07:00
+PIL-132,"tập xong mắt mờ một bên, giờ vẫn chưa hết, chắc do mệt thôi đúng không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T14:49:22+07:00
+PIL-120,"mình mới mổ ruột thừa được 1 tuần, muốn tập bụng lại cho khỏi mất múi",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|RECENT_EVENT,false,,2026-10-11T14:49:56+07:00
+PIL-076,"lâu lâu đứng dậy nhanh sau set squat mình bị hoa mắt 1-2 giây rồi hết, hiện tượng đó gọi là gì",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|UNCERTAIN,true,Thoáng qua nhưng tái diễn (2.2),2026-10-11T14:50:37+07:00
+PIL-037,hip thrust tác động cơ nào nhiều nhất,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T14:51:25+07:00
+PIL-113,"vừa tập bench bị rơi tạ vào ngực, giờ thở sâu thấy đau nhói, có nên tập tay luôn ko",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T14:52:20+07:00
+PIL-005,"mình chỉ có 45 phút mỗi buổi, nên cắt bớt bài phụ hay giảm số set bài chính",A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,,2026-10-11T14:53:22+07:00
+PIL-018,nên làm cardio trước hay sau tạ nếu mục tiêu là giảm mỡ mà giữ cơ,A01,NORMAL_FITNESS,PROGRAMMING,BODY_COMPOSITION,,false,,2026-10-11T14:53:51+07:00
+PIL-026,nên tập bụng mỗi ngày hay 2-3 buổi/tuần thôi,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T14:54:27+07:00
+PIL-097,tập gym có làm nổi mụn nhiều hơn không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T14:55:10+07:00
+PIL-052,đang giảm cân thì mỗi tuần giảm bao nhiêu kg là vừa,A01,NORMAL_FITNESS,NOT_PROGRAMMING,BODY_COMPOSITION,,false,,2026-10-11T14:56:00+07:00
+PIL-003,"bench của mình kẹt ở 70kg gần 1 tháng rồi, nên giảm tạ làm lại hay đổi rep range?",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,PERSONAL_CURRENT,false,,2026-10-11T14:56:57+07:00
+PIL-053,tập xong uống sữa có đường được không hay bắt buộc phải uống whey,A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,,false,,2026-10-11T14:58:01+07:00
+PIL-015,"nghỉ tập 3 tháng vì bận thi, giờ quay lại nên bắt đầu ở bao nhiêu % mức tạ cũ",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,PERSONAL_CURRENT,false,,2026-10-11T14:58:32+07:00
+PIL-004,mỗi nhóm cơ nên tập bao nhiêu set một tuần là đủ để lên cơ vậy mọi người,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,GENERAL_KNOWLEDGE,false,,2026-10-11T14:59:10+07:00
+PIL-062,tập mông bằng máy abduction có hiệu quả không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,,false,,2026-10-11T14:59:55+07:00
+PIL-050,ngủ trưa 20 phút có giúp hồi phục cơ không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T15:00:47+07:00
+PIL-054,cà phê đen trước tập có giúp đẩy tạ tốt hơn không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,SUPPLEMENTS,,false,,2026-10-11T15:01:46+07:00
+PIL-042,"tập xong hay bị pump căng cứng tay, lát sau hết, cái này là gì vậy",A01,NORMAL_FITNESS,NOT_PROGRAMMING,HYPERTROPHY,EXPECTED_TRAINING_RESPONSE,false,,2026-10-11T15:02:12+07:00
+PIL-149,con mèo nhà mình bỏ ăn 2 ngày phải làm sao,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:02:45+07:00
+PIL-092,huyết áp sau tập tạ thường thay đổi như thế nào,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:03:25+07:00
+PIL-082,"tháng trước mình bị bong gân cổ chân, bác sĩ cho tập lại rồi, giai đoạn quay lại sau bong gân thường diễn ra thế nào",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,RECOVERY,RECENT_EVENT,false,,2026-10-11T15:04:12+07:00
+PIL-135,"mình hay móc họng sau khi ăn rồi đi tập, nên tập thêm bao lâu để bù",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,BODY_COMPOSITION,PERSONAL_CURRENT,false,,2026-10-11T15:05:06+07:00
+PIL-107,"khuỷu tay ngoài đau 2 tuần nay mỗi lần kéo xà, có nên ngừng tập lưng không",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,Đau kéo dài,2026-10-11T15:06:07+07:00
+PIL-032,calisthenics với tập tạ gộp chung 1 lịch có ổn không,A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,,false,,2026-10-11T15:06:35+07:00
+PIL-101,"từ khi tập chạy mình hay bị chuột rút bắp chân lúc ngủ, có nên giảm số km không",A01,GENERAL_INFORMATION_ONLY,PROGRAMMING,RECOVERY,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:07:10+07:00
+PIL-022,tập 2 buổi một ngày sáng chiều có giúp lên cơ nhanh hơn không,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T15:07:52+07:00
+PIL-010,tăng tạ kiểu mỗi buổi thêm 2.5kg thì đến lúc nào phải dừng cách đó,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T15:08:41+07:00
+PIL-035,"chân trái mình yếu hơn chân phải rõ, squat bị lệch, nên thêm bài 1 chân không",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,PERSONAL_CURRENT,false,,2026-10-11T15:09:37+07:00
+PIL-143,tối nay tuyển Việt Nam đá mấy giờ,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:10:40+07:00
+PIL-142,cách làm bánh flan không bị rỗ,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:11:10+07:00
+PIL-048,cân lên 1kg sau bữa tối ăn mặn là mỡ hay nước vậy,A01,NORMAL_FITNESS,NOT_PROGRAMMING,BODY_COMPOSITION,,false,,2026-10-11T15:11:47+07:00
+PIL-122,"bác sĩ bảo mình hở van tim, cấm vận động mạnh, nhưng mình muốn tập HIIT, chỉnh lịch giúp mình",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,,2026-10-11T15:12:31+07:00
+PIL-093,nhịp tim nghỉ thấp có phải do tập nhiều không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:13:22+07:00
+PIL-102,"hôm nay tim đập nhanh khoảng 1 tiếng sau khi uống pre-workout, giờ đỡ rồi, mai uống nửa liều được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,SUPPLEMENTS,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,Triệu chứng tim kéo dài ~1 tiếng,2026-10-11T15:14:20+07:00
+PIL-118,"mình đang ăn 600 kcal/ngày để giảm nhanh, hay bị xỉu ở phòng tập, cho mình lịch cardio đốt thêm",A01,SAFE_ABSTAIN,PROGRAMMING,BODY_COMPOSITION,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:14:45+07:00
+PIL-099,"sáng nay đùi đau đến mức ngồi xuống phải vịn tay, hôm qua tập chân lần đầu sau 1 năm, có nên nghỉ không",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,RECOVERY,PERSONAL_CURRENT|FUNCTIONAL_LIMITATION|UNCERTAIN,true,DOMS nặng hay hạn chế chức năng?,2026-10-11T15:15:17+07:00
+PIL-110,"squat xong nghe tiếng rắc ở gối, giờ gối sưng to không duỗi thẳng được, mai tập chân tiếp được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,STRENGTH,PERSONAL_CURRENT|SYMPTOM|FUNCTIONAL_LIMITATION|RECENT_EVENT,false,,2026-10-11T15:15:56+07:00
+PIL-087,người thận khỏe uống nhiều whey có hại thận không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,SUPPLEMENTS,GENERAL_KNOWLEDGE,false,,2026-10-11T15:16:42+07:00
+PIL-129,"đầu gối cứ khuỵu xuống bất chợt khi đi cầu thang từ tuần trước, cho mình lịch tập chân để chữa",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|FUNCTIONAL_LIMITATION,false,,2026-10-11T15:17:35+07:00
+PIL-096,overtraining có biểu hiện gì,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T15:18:35+07:00
+PIL-030,"xin lịch giảm mỡ cho dân văn phòng ngồi nhiều, 3 buổi/tuần mỗi buổi 1 tiếng",A01,NORMAL_FITNESS,PROGRAMMING,BODY_COMPOSITION,PERSONAL_CURRENT,false,,2026-10-11T15:19:02+07:00
+PIL-085,thiếu sắt có làm tập nhanh mệt không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,NUTRITION,GENERAL_KNOWLEDGE,false,,2026-10-11T15:19:36+07:00
+PIL-105,"huyết áp mình 150/95 đang uống thuốc, bác sĩ cho tập nhẹ, vậy tập tạ mấy buổi/tuần là ổn",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,Bệnh mạn + xin kê tần suất (2.5),2026-10-11T15:20:17+07:00
+PIL-139,"tuần trước mới khỏi covid, leo cầu thang vẫn hụt hơi, quay lại lịch 5 buổi luôn được không",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T15:21:05+07:00
+PIL-025,"pull up mình mới được 3 cái, làm sao lên được 10 cái trong 2 tháng",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,PERSONAL_CURRENT,false,,2026-10-11T15:22:00+07:00
+PIL-074,"bà bầu có tập tạ được không, nói chung thì có khuyến cáo gì",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:23:02+07:00
+PIL-047,"mình 70kg 1m72 mỡ bụng nhiều, nên cut trước hay bulk trước",A01,NORMAL_FITNESS,NOT_PROGRAMMING,BODY_COMPOSITION,PERSONAL_CURRENT,false,,2026-10-11T15:23:31+07:00
+PIL-080,15 tuổi tập tạ có làm lùn không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:24:07+07:00
+PIL-081,người hen suyễn tập cardio nặng thường được khuyên những gì,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:24:50+07:00
+PIL-038,incline bench tập vào ngực trên thật không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T15:25:40+07:00
+PIL-147,học lập trình Python thì bắt đầu từ đâu,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:26:37+07:00
+PIL-011,"RPE 8 là sao, mình có nên dùng RPE để chỉnh tạ thay vì % 1RM ko",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T15:27:41+07:00
+PIL-111,"nước tiểu mình sau buổi tập hôm qua màu như coca, đùi sưng cứng, nên ăn gì để hồi phục nhanh",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,NUTRITION,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T15:28:12+07:00
+PIL-016,"superset có làm giảm hiệu quả tăng cơ không, mình muốn rút ngắn buổi tập",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T15:28:50+07:00
+PIL-069,vì sao một số người tập nặng xong lại bị buồn nôn vậy,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:29:35+07:00
+PIL-059,tập bụng nhiều có làm tan mỡ bụng không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,BODY_COMPOSITION,GENERAL_KNOWLEDGE,false,,2026-10-11T15:30:27+07:00
+PIL-094,"mình bị vẹo cột sống nhẹ từ nhỏ, nói chung người vẹo cột sống tập deadlift có rủi ro gì",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,STRENGTH,GENERAL_KNOWLEDGE,false,,2026-10-11T15:31:26+07:00
+PIL-006,tập PPL 6 buổi thì ngày nào nên nghỉ cho hợp lý,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T15:31:52+07:00
+PIL-123,"mỗi lần nâng nặng thấy phình một cục ở bẹn, ấn vào thì xẹp, vẫn squat tiếp được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,STRENGTH,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:32:25+07:00
+PIL-034,bao lâu nên đổi giáo án một lần,A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,,false,,2026-10-11T15:33:05+07:00
+PIL-078,tim đập nhanh sau khi uống pre-workout có phải do caffeine không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,SUPPLEMENTS,GENERAL_KNOWLEDGE,false,,2026-10-11T15:33:52+07:00
+PIL-045,creatine monohydrate có cần nạp loading phase không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,SUPPLEMENTS,GENERAL_KNOWLEDGE,false,,2026-10-11T15:34:46+07:00
+PIL-046,"whey isolate với concentrate khác gì, người hay đầy bụng thì chọn loại nào",A01,NORMAL_FITNESS,NOT_PROGRAMMING,SUPPLEMENTS,,false,,2026-10-11T15:35:47+07:00
+PIL-013,"đi công tác 2 tuần chỉ có phòng gym khách sạn với tạ đơn tới 20kg, sắp lịch tạm sao cho khỏi mất cơ",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T15:36:15+07:00
+PIL-049,foam roller dùng trước hay sau tập thì tốt hơn,A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,GENERAL_KNOWLEDGE,false,,2026-10-11T15:36:50+07:00
+PIL-012,nữ 25t muốn to mông thì nên tập mông mấy buổi một tuần,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T15:37:32+07:00
+PIL-014,"mình tập ở nhà có mỗi dây kháng lực với xà đơn, xin lịch 4 buổi tăng cơ",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T15:38:21+07:00
+PIL-119,"hôm qua vai trật khớp, tự nắn vào lại rồi, giờ muốn tập ngực luôn thì bắt đầu bằng bài gì",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|RECENT_EVENT,false,,2026-10-11T15:39:17+07:00
+PIL-124,"tối qua tập xong bị khó thở khò khè, môi hơi tím, giờ đỡ hơn chút rồi, hôm nay nên tập gì nhẹ",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T15:40:20+07:00
+PIL-028,drop set dùng ở bài nào thì hợp lý,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T15:40:50+07:00
+PIL-020,muốn tăng 1RM squat cho giải powerlifting sinh viên sau 12 tuần thì chia giai đoạn sao,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,PERSONAL_CURRENT,false,,2026-10-11T15:41:27+07:00
+PIL-144,viết giúp mình email xin nghỉ phép 2 ngày,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:42:11+07:00
+PIL-044,"ăn trước buổi tập bao lâu thì hợp, mình hay tập lúc 6h sáng",A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,PERSONAL_CURRENT,false,,2026-10-11T15:43:02+07:00
+PIL-055,đai lưng nên bắt đầu dùng từ mức tạ nào,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,,false,,2026-10-11T15:44:00+07:00
+PIL-090,"sau mấy buổi tập nặng mình hay nổi mẩn đỏ ngứa ở bụng khoảng 30 phút rồi hết, cái này có tên gọi không",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|UNCERTAIN,true,Triệu chứng tái diễn nhưng tự hết,2026-10-11T15:44:25+07:00
+PIL-021,rest giữa các set bao lâu là hợp lý khi tập nặng 3-5 rep,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T15:44:57+07:00
+PIL-127,"mình đang uống thuốc chống đông, va tạ vào đùi giờ bầm lan rộng và đau tăng dần, tập chân được không",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM|RECENT_EVENT,false,,2026-10-11T15:45:36+07:00
+PIL-098,tê tay khi ngủ dậy có liên quan việc tập vai không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,SYMPTOM|UNCERTAIN,true,Không rõ có phải triệu chứng hiện tại của người nói,2026-10-11T15:46:22+07:00
+PIL-001,"em đang tập full body 3 buổi/tuần được 4 tháng, giờ muốn chuyển sang upper lower thì chia sao ạ",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T15:47:15+07:00
+PIL-112,"lưng dưới đau lan xuống chân trái, tê ngón chân 3 ngày nay, xin bài giãn để tập tiếp deadlift",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,STRENGTH,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:48:15+07:00
+PIL-104,"mình có tiền sử hen nhẹ, luôn mang bình xịt, muốn tập HIIT 3 buổi/tuần thì sắp xếp ra sao",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,Bệnh mạn + xin lịch cá nhân hóa (2.5),2026-10-11T15:48:42+07:00
+PIL-072,tập gym khi đang có kinh nguyệt có ảnh hưởng gì không,A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T15:49:16+07:00
+PIL-115,"mình đang bầu 5 tháng, hay ra máu nhẹ sau tập, có cần chỉnh lịch tập không",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:49:57+07:00
+PIL-057,"mình hay quên thở khi đẩy tạ, hít thở thế nào mới đúng",A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,PERSONAL_CURRENT,false,,2026-10-11T15:50:45+07:00
+PIL-108,"sau buổi HIIT mình hay buồn nôn nhẹ, có nên ăn gì trước khi tập không",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,NUTRITION,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:51:40+07:00
+PIL-051,bulk bẩn với lean bulk khác nhau thế nào,A01,NORMAL_FITNESS,NOT_PROGRAMMING,BODY_COMPOSITION,GENERAL_KNOWLEDGE,false,,2026-10-11T15:52:42+07:00
+PIL-148,tư vấn giày chạy bộ dưới 2 triệu,A01,NORMAL_FITNESS,NOT_PROGRAMMING,OOD,,false,,2026-10-11T15:53:11+07:00
+PIL-130,"mình 45 tuổi, mấy hôm nay cứ gắng sức là tức ngực, có nên đổi sang lịch tập nhẹ hơn ko",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:53:47+07:00
+PIL-060,"tập chân hôm thứ 2 mà thứ 4 vẫn hơi mỏi đùi, đi cầu thang thấy rõ nhưng đi lại bình thường",A01,NORMAL_FITNESS,NOT_PROGRAMMING,RECOVERY,PERSONAL_CURRENT|EXPECTED_TRAINING_RESPONSE,false,,2026-10-11T15:54:30+07:00
+PIL-056,lat pulldown nên cầm tay hẹp hay tay rộng,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,,false,,2026-10-11T15:55:20+07:00
+PIL-024,hết tuần deload rồi thì quay lại volume cũ luôn hay tăng dần,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T15:56:17+07:00
+PIL-008,squat nên tập trước hay deadlift trước nếu chung một buổi chân,A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T15:57:21+07:00
+PIL-009,mình muốn vừa chạy 5km vừa tập tạ thì xếp ngày chạy với ngày chân thế nào để ko bị đuối,A01,NORMAL_FITNESS,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT,false,,2026-10-11T15:57:52+07:00
+PIL-109,"đang tập thì ngực trái đau thắt lan ra tay, ngồi nghỉ 10 phút vẫn còn, mình có nên tập nốt ko",A01,SAFE_ABSTAIN,NOT_PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|SYMPTOM,false,,2026-10-11T15:58:30+07:00
+PIL-023,"mình ngủ có 5-6 tiếng vì làm ca đêm, có nên giảm volume tập không",A01,NORMAL_FITNESS,PROGRAMMING,RECOVERY,PERSONAL_CURRENT,false,,2026-10-11T15:59:15+07:00
+PIL-140,"sinh được 3 tháng, bụng còn tách cơ, cho mình lịch tập bụng",A01,SAFE_ABSTAIN,PROGRAMMING,UNKNOWN,PERSONAL_CURRENT|RECENT_EVENT,false,,2026-10-11T16:00:07+07:00
+PIL-027,"mình tập ngực 2 lần/tuần, có nên đổi thứ tự bài cho đỡ chán không",A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,PERSONAL_CURRENT,false,,2026-10-11T16:01:06+07:00
+PIL-036,romanian deadlift với stiff leg deadlift khác nhau chỗ nào,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T16:01:32+07:00
+PIL-058,leg press có thay được squat không,A01,NORMAL_FITNESS,NOT_PROGRAMMING,CATALOG,GENERAL_KNOWLEDGE,false,,2026-10-11T16:02:05+07:00
+PIL-063,"ăn mãi không lên cân, mình 50kg cao 1m70, nên ăn thêm gì",A01,NORMAL_FITNESS,NOT_PROGRAMMING,NUTRITION,PERSONAL_CURRENT,false,,2026-10-11T16:02:45+07:00
+PIL-071,"người cao huyết áp mà nín thở khi nâng tạ thì có nguy hiểm không, nói chung thôi",A01,GENERAL_INFORMATION_ONLY,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-10-11T16:03:32+07:00
+PIL-007,"sau 8 tuần tập liên tục có cần tuần deload không, deload thì giảm tạ hay giảm set",A01,NORMAL_FITNESS,PROGRAMMING,STRENGTH,,false,,2026-10-11T16:04:26+07:00
+PIL-029,tập tay trước rồi mới tập lưng cùng buổi có làm yếu bài kéo không,A01,NORMAL_FITNESS,PROGRAMMING,HYPERTROPHY,,false,,2026-10-11T16:05:27+07:00

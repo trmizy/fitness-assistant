@@ -1,3 +1,4 @@
+import { describeOperationJob } from "../services/generation-operations";
 import { Request, Response, NextFunction } from "express";
 import { AxiosError } from "axios";
 import { logger, aiPlanGenerationsTotal } from "@gym-coach/shared";
@@ -10,8 +11,11 @@ import {
   PlanStatus,
 } from "../repositories/conversation.repository";
 import { llmService } from "../services/llm.service";
+import { ExplainUnavailableError, EXPLAIN_UNAVAILABLE_MESSAGE_VI, generateAiExplanation, nutritionExplanationRequest, workoutExplanationRequest } from "../services/plan-explanation";
+import { extractNutritionConstraints, unsupportedRestrictionMessage, isKnownExclusionKey } from "../services/nutrition-food-constraints";
 import {
   ApiError,
+  RateLimitedError,
   formatSuccessResponse,
   formatErrorResponse,
 } from "../errors/api-error";
@@ -51,28 +55,11 @@ async function ensureLlmAvailable(res: Response): Promise<boolean> {
   return false;
 }
 
-function stringifyPlanWarning(warning: unknown): string {
-  if (typeof warning === "string") return warning.trim();
-  if (Array.isArray(warning))
-    return warning
-      .map((item) => stringifyPlanWarning(item))
-      .filter(Boolean)
-      .join(", ");
-  if (warning && typeof warning === "object") {
-    const record = warning as Record<string, unknown>;
-    return Object.entries(record)
-      .filter(
-        ([, value]) => value !== undefined && value !== null && value !== "",
-      )
-      .map(
-        ([key, value]) =>
-          `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`,
-      )
-      .join(" | ");
-  }
-  return String(warning ?? "").trim();
-}
-
+/**
+ * `_metadata.aiWarnings` mixes plain sentences with structured internal records (validation results, repairs, name mappings).
+ * Only the sentences are meant for the user: the explanation box used to show the records as "type: coach_plan_validation | errors: []
+ * | warnings: [...]". The page translates the structured validation warnings itself (frontend planWarnings.ts).
+ */
 function extractPlanWarnings(planContent: PlanContent): string[] {
   const metadata = (planContent as PlanContent & { _metadata?: unknown })
     ._metadata;
@@ -80,107 +67,20 @@ function extractPlanWarnings(planContent: PlanContent): string[] {
   const warnings = (metadata as Record<string, unknown>).aiWarnings;
   if (!Array.isArray(warnings)) return [];
   return warnings
-    .map((warning) => stringifyPlanWarning(warning))
-    .filter(Boolean);
+    .filter((warning): warning is string => typeof warning === "string")
+    .map((warning) => warning.trim())
+    .filter((warning) => warning.length > 0 && !warning.startsWith("{") && !warning.startsWith("["));
 }
 
-function buildFallbackExplanation(plan: PlanContent, language: string): string {
-  const schedule = plan.weeklySchedule
-    .map((day, index) => {
-      const exercises = day.exercises
-        .map((exercise) => `${exercise.name} ${exercise.sets}x${exercise.reps}`)
-        .join(", ");
-      return `${index + 1}. ${day.day} (${day.goal}): ${exercises}${day.cardio ? ` | Cardio: ${day.cardio}` : ""}`;
-    })
-    .join("\n");
-
-  const progression =
-    plan.progressionNotes.length > 0
-      ? plan.progressionNotes.join(" ")
-      : "Tăng tải dần theo khả năng hồi phục.";
-  const recovery =
-    plan.recoveryNotes.length > 0
-      ? plan.recoveryNotes.join(" ")
-      : "Ngủ đủ và ưu tiên phục hồi chủ động.";
-  const nutrition = plan.nutritionSummary || "Chưa có nutrition summary.";
-
-  if (language === "vi") {
-    return [
-      `Kế hoạch này hướng tới mục tiêu ${plan.goal} trong ${plan.durationWeeks} tuần, với ${plan.daysPerWeek} buổi mỗi tuần.`,
-      "",
-      "Lịch tập theo tuần:",
-      schedule,
-      "",
-      `Tiến độ: ${progression}`,
-      `Phục hồi: ${recovery}`,
-      `Dinh dưỡng: ${nutrition}`,
-    ].join("\n");
-  }
-
-  return [
-    `This plan targets ${plan.goal} over ${plan.durationWeeks} weeks with ${plan.daysPerWeek} training days per week.`,
-    "",
-    "Weekly schedule:",
-    schedule,
-    "",
-    `Progression: ${progression}`,
-    `Recovery: ${recovery}`,
-    `Nutrition: ${nutrition}`,
-  ].join("\n");
-}
-
-async function callExplainLlmWithTimeout(prompt: string, timeoutMs: number) {
-  return Promise.race([
-    llmService.callLLM(prompt),
-    new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => {
-        clearTimeout(timer);
-        reject(new Error("EXPLAIN_TIMEOUT"));
-      }, timeoutMs);
-    }),
-  ]);
-}
-
-function buildExplanationPrompt(plan: PlanContent, language: string): string {
-  const schedule = plan.weeklySchedule
-    .map(
-      (day) =>
-        `${day.day} (${day.goal}): ` +
-        day.exercises.map((e) => `${e.name} ${e.sets}x${e.reps}`).join(", "),
-    )
-    .join("\n");
-
-  if (language === "vi") {
-    return `Bạn là huấn luyện viên cá nhân. Hãy giải thích kế hoạch tập luyện sau bằng tiếng Việt:
-
-Mục tiêu: ${plan.goal}
-Thời lượng: ${plan.durationWeeks} tuần, ${plan.daysPerWeek} buổi/tuần
-
-Lịch tập:
-${schedule}
-
-Hãy giải thích:
-1. Tại sao kế hoạch này được thiết kế cho mục tiêu ${plan.goal}
-2. Nguyên tắc chọn bài tập
-3. Kết quả kỳ vọng và thời điểm đạt được
-4. Lưu ý kỹ thuật quan trọng
-5. Cách tiến độ qua từng tuần`;
-  }
-
-  return `You are a personal trainer. Explain the following workout plan clearly and motivatingly:
-
-Goal: ${plan.goal}
-Duration: ${plan.durationWeeks} weeks, ${plan.daysPerWeek} days/week
-
-Schedule:
-${schedule}
-
-Please explain:
-1. Why this plan is designed this way for the ${plan.goal} goal
-2. Key principles behind the exercise selection
-3. Expected results and timeline
-4. Important technique notes for the main exercises
-5. How to progress across the weeks`;
+/**
+ * Optional `Idempotency-Key` request header -> stable operation identity. The key only ever names a logical
+ * request WITHIN the verified caller's own namespace (the operation row is unique per actor+key); it grants
+ * no authorization and is never used for quota ownership. A malformed key is ignored (treated as no key).
+ */
+function idempotencyKeyFrom(req: Request, scope: string): string | undefined {
+  const raw = req.header("idempotency-key");
+  if (!raw || !/^[A-Za-z0-9._:-]{8,128}$/.test(raw)) return undefined;
+  return `rest:${scope}:${raw}`;
 }
 
 export const planController = {
@@ -260,6 +160,7 @@ export const planController = {
 
       const result = await conversationService.queuePlanGeneration({
         userId,
+        idempotencyKey: idempotencyKeyFrom(req, "workout"),
         goal,
         durationWeeks,
         daysPerWeek,
@@ -292,6 +193,7 @@ export const planController = {
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
         ...req.body,
+        idempotencyKey: idempotencyKeyFrom(req, "nutrition"),
       });
       aiPlanGenerationsTotal.inc({ status: "queued" });
       // 202 Accepted: the plan is queued, not yet complete.
@@ -433,6 +335,18 @@ export const planController = {
     const { jobId } = req.params;
 
     try {
+      // Canonical path: the public job reference is an OPERATION id (workout AND nutrition). Pre-operation jobs fall through
+      // to the legacy Plan.jobId / BullMQ lookup below, whose behaviour is unchanged (workout plans only).
+      const canonical = await describeOperationJob(userId, jobId);
+      if (canonical.kind === "FORBIDDEN") {
+        res.status(403).json(formatErrorResponse("FORBIDDEN", "You do not have access to this job"));
+        return;
+      }
+      if (canonical.kind === "OK") {
+        res.json(formatSuccessResponse(canonical.body));
+        return;
+      }
+
       // Check DB first — the plan record is created before the job is queued.
       const dbPlan = await conversationRepository.findPlanByJobId(jobId);
       if (dbPlan && dbPlan.userId !== userId) {
@@ -448,10 +362,24 @@ export const planController = {
       }
 
       // Enrich with live BullMQ state when available.
-      const bullJob = await aiQueue.getJob(jobId);
+      //
+      // BUG (found live on AWS DEV, 2026-09-30 — the exact cause of the frontend's queued-plan
+      // status appearing stuck at "Đang tạo kế hoạch AI..." forever): this call was unconditional,
+      // but `aiQueue` (workers/ai.queue.ts) lazily opens a real ioredis connection to REDIS_HOST
+      // (default "localhost") on first property access. In the AWS deployment (QUEUE_PROVIDER=sqs)
+      // there is no Redis reachable from this Lambda, so EVERY call to this endpoint — the exact
+      // one the frontend polls repeatedly while a plan is generating — hung/timed out instead of
+      // ever returning the plan's real status, which the DB (dbPlan.status/failReason, populated
+      // by worker-lambda.ts/ai.worker.ts regardless of queue backend) already had correctly. Same
+      // bug class as BUG-A1 (/admin/ai/overview, /admin/ai/queue), same fix: never touch
+      // BullMQ/Redis at all when QUEUE_PROVIDER=sqs — the DB alone is authoritative there.
+      let bullJob: Awaited<ReturnType<typeof aiQueue.getJob>> | null = null;
       let bullState: string | null = null;
-      if (bullJob) {
-        bullState = await bullJob.getState();
+      if (process.env.QUEUE_PROVIDER !== "sqs") {
+        bullJob = await aiQueue.getJob(jobId);
+        if (bullJob) {
+          bullState = await bullJob.getState();
+        }
       }
 
       if (!dbPlan && !bullJob) {
@@ -554,36 +482,23 @@ export const planController = {
       }
 
       const planContent = plan.plan as unknown as PlanContent;
-      const prompt = buildExplanationPrompt(planContent, lang);
       const warnings = extractPlanWarnings(planContent);
 
       if (!(await ensureLlmAvailable(res))) return;
 
       try {
-        const llmResponse = await callExplainLlmWithTimeout(prompt, 8000);
-        res.json(
-          formatSuccessResponse<ExplainPlanResponse>({
-            planId,
-            explanation: llmResponse.answer,
-            source: "llm",
-            warnings,
-          }),
+        const explanation = await generateAiExplanation(
+          (p, o) => llmService.callLLM(p, o),
+          workoutExplanationRequest(planContent as any, lang),
         );
+        res.json(formatSuccessResponse<ExplainPlanResponse>({ planId, explanation, source: "llm", warnings }));
         return;
       } catch (err) {
-        const explanation = buildFallbackExplanation(planContent, lang);
-        const fallbackWarnings = [
-          "Đang dùng giải thích tự động vì AI phản hồi chậm.",
-        ].concat(warnings);
-        logger.warn({ err, planId, userId }, "Explain plan fallback used");
-        res.json(
-          formatSuccessResponse<ExplainPlanResponse>({
-            planId,
-            explanation,
-            source: "fallback",
-            warnings: fallbackWarnings,
-          }),
-        );
+        // The explanation must be written by the AI for THIS plan. No canned text: say so and let the user retry.
+        const reason = err instanceof ExplainUnavailableError ? err.reason : "LLM_ERROR";
+        logger.warn({ err, planId, userId, reason }, "Explain plan: AI did not produce an explanation");
+        res.status(503).json(formatErrorResponse("LLM_GENERATION_FAILED", EXPLAIN_UNAVAILABLE_MESSAGE_VI));
+        return;
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -764,6 +679,7 @@ export const planController = {
       const result = await conversationService.queuePlanAdjustment({
         originalPlanId: planId,
         userId,
+        idempotencyKey: idempotencyKeyFrom(req, `adjust:${planId}`),
         adjustments,
         daysPerWeek,
         exercisesPerDay,
@@ -773,6 +689,7 @@ export const planController = {
     } catch (err) {
       aiPlanGenerationsTotal.inc({ status: "failure" });
       if (err instanceof ApiError) {
+        if (err instanceof RateLimitedError) res.setHeader("Retry-After", String(err.retryAfterSeconds));
         res.status(err.statusCode).json(err.toJSON());
         return;
       }
@@ -1067,56 +984,28 @@ export const planController = {
       }
 
       const planContent = plan.plan as any;
-      const schedule = (planContent.weeklySchedule || [])
-        .slice(0, 7)
-        .map((day: any, idx: number) => {
-          const meals = (day.meals || [])
-            .map(
-              (m: any) =>
-                `${m.mealType || m.title}: ${(m.items || []).map((item: any) => `${item.name} ${item.quantity}${item.unit || "g"}`).join(", ")}`,
-            )
-            .join(" | ");
-          return `Ngày ${day.dayNumber || idx + 1} (${day.totalCalories || 0}kcal): ${meals}`;
-        })
-        .join("\n");
-
-      const nutritionPrompt = `Bạn là chuyên gia dinh dưỡng. Hãy giải thích kế hoạch dinh dưỡng sau bằng tiếng Việt:
-
-Mục tiêu: ${plan.goal}
-Thời lượng: ${plan.durationWeeks} tuần, ${plan.mealsPerDay} bữa/ngày
-Calories mục tiêu: ${planContent.dailyCaloriesTarget || "N/A"} kcal/ngày
-Protein: ${planContent.proteinTargetGrams || 0}g | Carbs: ${planContent.carbTargetGrams || 0}g | Fat: ${planContent.fatTargetGrams || 0}g
-
-Thực đơn 7 ngày:
-${schedule}
-
-Hãy giải thích:
-1. Vì sao lượng calories và macro này phù hợp với mục tiêu ${plan.goal}
-2. Nguyên tắc chọn thực phẩm trong kế hoạch
-3. Cách áp dụng thực đơn 7 ngày này
-4. Lưu ý dinh dưỡng quan trọng
-5. Cách thay thế món nếu không hợp khẩu vị`;
-
-      let explanation = "";
-      let source: "llm" | "fallback" = "llm";
 
       try {
         const health = await llmService.getHealthStatus();
-        if (!health.llmAvailable) throw new Error("LLM not available");
-        const llmResp = await callExplainLlmWithTimeout(nutritionPrompt, 30000);
-        explanation = (llmResp as any).answer || String(llmResp);
+        if (!health.llmAvailable) throw new ExplainUnavailableError("LLM_ERROR");
+        const explanation = await generateAiExplanation(
+          (p, o) => llmService.callLLM(p, o),
+          nutritionExplanationRequest({
+            goal: plan.goal, durationWeeks: plan.durationWeeks, mealsPerDay: plan.mealsPerDay,
+            dailyCaloriesTarget: planContent.dailyCaloriesTarget, proteinTargetGrams: planContent.proteinTargetGrams,
+            carbTargetGrams: planContent.carbTargetGrams, fatTargetGrams: planContent.fatTargetGrams,
+            days: planContent.nutritionDays ?? planContent.weeklySchedule ?? [],
+          }),
+        );
+        res.json(formatSuccessResponse({ planId, explanation, source: "llm" as const }));
+        return;
       } catch (err) {
-        source = "fallback";
-        explanation = [
-          `Kế hoạch dinh dưỡng này được thiết kế cho mục tiêu **${plan.goal}** trong ${plan.durationWeeks} tuần.`,
-          `Mức calories ${planContent.dailyCaloriesTarget || 2000} kcal/ngày được cân bằng với Protein ${planContent.proteinTargetGrams || 0}g, Carbs ${planContent.carbTargetGrams || 0}g, Fat ${planContent.fatTargetGrams || 0}g.`,
-          `Thực đơn 7 ngày luân phiên giúp đảm bảo đa dạng dinh dưỡng và không bị nhàm chán.`,
-          `Bạn có thể thay thế các món không hợp khẩu vị bằng các thực phẩm tương đương về calories và macros.`,
-          `Uống đủ 2-3 lít nước mỗi ngày và ăn đúng giờ để tối ưu hiệu quả.`,
-        ].join("\n\n");
+        // AI only — never a canned paragraph passed off as the explanation (see services/plan-explanation.ts).
+        const reason = err instanceof ExplainUnavailableError ? err.reason : "LLM_ERROR";
+        logger.warn({ err, planId, userId, reason }, "Explain nutrition plan: AI did not produce an explanation");
+        res.status(503).json(formatErrorResponse("LLM_GENERATION_FAILED", EXPLAIN_UNAVAILABLE_MESSAGE_VI));
+        return;
       }
-
-      res.json(formatSuccessResponse({ planId, explanation, source }));
     } catch (err) {
       logger.error({ err, planId, userId }, "Error explaining nutrition plan");
       next(err);
@@ -1195,6 +1084,17 @@ Hãy giải thích:
         return;
       }
 
+      // A food exclusion in the adjustment text ("tôi dị ứng với bò") must be ENFORCED, not only forwarded as a prompt note the
+      // model may ignore (user test 2026-11-08: the adjusted plan still had beef). The previous plan's exclusions carry over;
+      // a restriction that cannot be enforced is refused honestly instead of pretending (same policy as the chat workflow).
+      const constraints = extractNutritionConstraints(adjustments);
+      if (constraints.unsupported.length > 0) {
+        res.status(422).json(formatErrorResponse("VALIDATION_ERROR", unsupportedRestrictionMessage(constraints.unsupported)));
+        return;
+      }
+      const priorKeys = Array.isArray((plan.plan as any)?.excludedFoodKeys) ? ((plan.plan as any).excludedFoodKeys as string[]) : [];
+      const excludedFoodKeys = [...new Set([...priorKeys, ...constraints.exclusions.map((e) => e.key)])].filter(isKnownExclusionKey).slice(0, 20);
+
       if (!(await ensureLlmAvailable(res))) return;
 
       const result = await conversationService.queueNutritionPlanGeneration({
@@ -1203,6 +1103,8 @@ Hãy giải thích:
         durationWeeks: 1,
         mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
         notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
+        excludedFoodKeys,
+        idempotencyKey: idempotencyKeyFrom(req, `nutrition-adjust:${planId}`),
       });
 
       aiPlanGenerationsTotal.inc({ status: "queued" });

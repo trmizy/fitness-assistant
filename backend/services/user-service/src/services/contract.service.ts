@@ -1669,6 +1669,11 @@ export const contractService = {
   // checkRelationship above (which is direction-agnostic and includes
   // PENDING_SIGNATURE/COMPLETED — fine for chat eligibility, not fine for
   // "can this PT write training data for this client").
+  /** Authoritative roster of a PT (ACTIVE contracts only). The only source fitness-service may build a cross-client view from. */
+  async listActiveClientIdsForPt(ptUserId: string) {
+    return { clientUserIds: await contractRepository.findActiveClientIdsOfPt(ptUserId) };
+  },
+
   async checkActivePtClientRelationship(ptUserId: string, clientUserId: string) {
     const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
     // A PAUSED_BY_ADMIN contract is not a working coaching relationship: fitness-service (which asks

@@ -86,6 +86,10 @@ test("AUTH_LAMBDA_NAME set: internal calls attach x-service-secret from INTERNAL
       await authServiceClient.internalPatch("/auth/internal/users/u1/role", { role: "PT" });
       assert.strictEqual(capturedEvent.routeKey, "PATCH /auth/internal/users/u1/role");
       assert.strictEqual(JSON.parse(capturedEvent.body).role, "PT");
+      // express.json() in auth-service ignores a body without a JSON content-type → empty
+      // body → 400 on every internal POST/PATCH (PT application approval failed on AWS).
+      assert.strictEqual(capturedEvent.headers["content-type"], "application/json");
+      assert.strictEqual(capturedEvent.headers["x-service-secret"], "s3cr3t-value");
     } finally {
       LambdaClient.prototype.send = originalSend;
     }

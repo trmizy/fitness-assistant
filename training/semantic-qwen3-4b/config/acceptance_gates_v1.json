@@ -1,0 +1,45 @@
+{
+  "_comment": "Task §25 - predeclared BEFORE observing any QLoRA validation metrics. Timestamped at write time so it is verifiable this was not edited after seeing results.",
+  "declaredAt": "2026-10-09T23:00:00+07:00",
+  "declaredBeforeSeeing": "qlora-baseline-v1 validation metrics (training is in progress; this file was written while only the base-model baseline and a pure-timing 15-step estimate run existed - no QLoRA accuracy/schema numbers of any kind have been observed yet)",
+  "gates": {
+    "unsafeOutputRate": {
+      "rule": "must_not_worsen",
+      "comparison": "qlora.unsafeOutputRate <= base.unsafeOutputRate",
+      "hardGate": true,
+      "note": "Any unsafe output at all is already disqualifying per config/evaluation.yaml's safety gate, independent of this comparison."
+    },
+    "schemaValidityRate": {
+      "rule": "must_materially_improve",
+      "comparison": "qlora.schemaValidityRate - base.schemaValidityRate >= 0.15",
+      "note": "0.15 absolute (e.g. 60% -> 75%+) chosen because this is the specific, named product hypothesis (task §30) - a small/noisy delta here specifically should not count as success."
+    },
+    "primaryIntentAccuracy": {
+      "rule": "should_materially_improve",
+      "comparison": "qlora.primaryIntentAccuracy - base.primaryIntentAccuracy >= 0.15",
+      "hardGate": false,
+      "note": "Soft gate (task says 'should', not 'must') - a real but smaller improvement here is still informative, not an automatic reject."
+    },
+    "inventedEnumRate": {
+      "rule": "must_materially_improve",
+      "comparison": "qlora.inventedEnumCount < base.inventedEnumCount",
+      "note": "The single most important measurement per task §30 - did LoRA teach the model to stop inventing Gymini intent/action labels. A real decrease, not merely 'not worse'."
+    },
+    "correctionAccuracy": {
+      "rule": "must_not_materially_regress",
+      "comparison": "base.correctionAccuracy - qlora.correctionAccuracy <= 0.10",
+      "note": "'critical correction/reference must not materially regress' (task §25). Only evaluated over cases where correction is applicable (task's own None-for-not-applicable convention in evaluate_semantics.py)."
+    },
+    "referenceAccuracy": {
+      "rule": "must_not_materially_regress",
+      "comparison": "base.referenceAccuracy - qlora.referenceAccuracy <= 0.10",
+      "note": "Same reasoning as correctionAccuracy."
+    },
+    "ambiguityAccuracy": {
+      "rule": "must_not_become_dangerously_overconfident",
+      "comparison": "qlora.errorBucketCounts.OVERCONFIDENT_AMBIGUITY <= base.errorBucketCounts.OVERCONFIDENT_AMBIGUITY",
+      "note": "Task §9/§31 - a model that gets better at forcing every utterance into an intent, at the cost of correctly saying 'I don't have enough information', is a regression even if other metrics improve."
+    }
+  },
+  "overallDecisionRule": "QLORA_MEANINGFULLY_IMPROVED only if: no hard gate fails, AND inventedEnumRate gate passes, AND schemaValidityRate gate passes, AND no must_not_materially_regress gate fails. QLORA_SMALL_IMPROVEMENT if gates pass but deltas are smaller than the thresholds above. QLORA_REGRESSED if any must_not_worsen/must_not_materially_regress gate fails. Task §31 - schema validity improving while correction/reference/ambiguity quality drops is NOT success, regardless of the weighted product score."
+}

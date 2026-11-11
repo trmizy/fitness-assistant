@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gymini conversational semantic-understanding fine-tuning example",
+  "description": "One row = one user turn. 'target' mirrors backend/services/ai-service/src/conversational-intelligence/schema.ts's SemanticInterpretationSchema exactly (no invented fields) - this is the real, already-shipped, Zod-validated contract the fine-tuned model's output is validated against at runtime via callLlmJson.",
+  "type": "object",
+  "required": ["caseId", "category", "templateFamily", "messages", "target"],
+  "properties": {
+    "caseId": { "type": "string", "minLength": 1 },
+    "category": {
+      "type": "string",
+      "enum": ["INTENT", "ENTITY", "CORRECTION", "REFERENCE", "SHORTHAND", "FOLLOWUP_SLOT", "AMBIGUITY", "MULTI_INTENT", "REVISION", "SAFETY_NON_AUTHORITY"]
+    },
+    "templateFamily": {
+      "type": "string",
+      "description": "Groups paraphrase variants of the same underlying case so a whole family stays in one split (train/validation/heldout) - never split across them (task's own anti-leakage rule)."
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["system", "user"] },
+          "content": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "target": {
+      "type": "object",
+      "description": "Mirrors SemanticInterpretationSchema. Every enum value here must be one schema.ts actually declares - the dataset validator cross-checks this at build time.",
+      "required": ["primaryIntent", "entities", "corrections", "references", "goalSignals", "negations", "ambiguities", "clarificationRequired", "confidence", "source"],
+      "properties": {
+        "primaryIntent": { "type": "string" },
+        "workflowIntent": { "type": "string" },
+        "entities": { "type": "array" },
+        "corrections": { "type": "array" },
+        "references": { "type": "array" },
+        "goalSignals": { "type": "array" },
+        "negations": { "type": "array" },
+        "ambiguities": { "type": "array" },
+        "requestedAction": { "type": "string" },
+        "asksWhy": { "type": "boolean" },
+        "clarificationRequired": { "type": "boolean" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source": { "type": "string", "enum": ["LLM"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

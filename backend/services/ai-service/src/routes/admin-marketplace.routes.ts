@@ -13,6 +13,7 @@ router.use(requireAuth);
 router.use(requireRole(["ADMIN"]));
 
 router.get("/plans", marketplaceController.listForModeration);
+router.delete("/plans/:id", marketplaceController.adminDeleteApproved);
 router.post("/plans/:id/review/:action", marketplaceController.reviewAction);
 
 export default router;

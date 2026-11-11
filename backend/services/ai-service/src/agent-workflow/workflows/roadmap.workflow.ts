@@ -1,5 +1,5 @@
 import type { SlotDefinition, WorkflowContext, WorkflowDefinition } from "../types";
-import { parseAge, parseGender, parseGoal, parseHeightCm, parseWeightKg } from "../slot-values";
+import { parseAge, parseGender, parseGoal, parseHeightCm, parseTargetWeightKg, parseWeightKg } from "../slot-values";
 import { assessTargetWeightSafety } from "../target-weight-safety";
 import { normalizeAgentText } from "../../services/fitness-agent-intent";
 
@@ -106,7 +106,7 @@ const targetWeightSlot: SlotDefinition<number> = {
     return goal === "WEIGHT_LOSS" || goal === "MUSCLE_GAIN";
   },
   readFromContext: (ctx) => profileNumber(ctx, "targetWeight"),
-  parse: parseWeightKg,
+  parse: parseTargetWeightKg,
   // Codex Evaluation #1 HIGH finding — a 30kg target for a 180cm/80kg
   // profile passed the absolute 25-300kg range check with no contextual
   // gate. This runs AFTER parse() (which only validates syntax) and is
@@ -179,8 +179,11 @@ function extractHeightFromMessage(s: string): number | undefined {
 // request itself, not the number), which was a real false-positive caught
 // while building this (it misassigned "25" from "25 tuổi" as the target
 // weight because "muốn" appeared ~15 chars earlier in the same sentence).
-const CURRENT_WEIGHT_CUE_RE = /(hien tai|hien nay|\bhien\b|\bdang\b|can nang hien tai)/;
+// "nang 80kg" / "can nang 80kg" is the most natural way to state the current weight ("nặng 80kg", "cân nặng 80kg").
+const CURRENT_WEIGHT_CUE_RE = /(hien tai|hien nay|\bhien\b|\bdang\b|can nang hien tai|\bnang\b|\bcan nang\b)/;
 const TARGET_WEIGHT_CUE_RE = /(muc tieu|muon xuong|muon len|muon giam|muon tang|xuong con|len den)/;
+// How far back a cue may sit from its number. "mục tiêu của tôi là 70kg" puts ~20 characters between the two.
+const WEIGHT_CUE_WINDOW = 26;
 function extractWeightPairFromMessage(s: string): { currentWeightKg?: number; targetWeightKg?: number } {
   const weightMatches = [...s.matchAll(/(\d{2,3}(?:[.,]\d)?)(kg|ky|can)?\b/g)]
     .map((m) => ({ value: Number(m[1].replace(",", ".")), index: m.index ?? 0, matchedLength: m[0].length }))
@@ -189,11 +192,18 @@ function extractWeightPairFromMessage(s: string): { currentWeightKg?: number; ta
     // though they fall in a numerically weight-plausible range (e.g. "25
     // tuổi", "175cm") — otherwise they pollute the "exactly 2 weight
     // numbers -> assign the other by elimination" heuristic below.
-    .filter((m) => !/^\s*(tuoi|cm)\b/.test(s.slice(m.index + m.matchedLength, m.index + m.matchedLength + 6)));
+    .filter((m) => !/^\s*(tuoi|cm)\b/.test(s.slice(m.index + m.matchedLength, m.index + m.matchedLength + 6)))
+    // The "73" of "1m73" is a height fragment, never a weight.
+    .filter((m) => !/\dm\s*$/.test(s.slice(Math.max(0, m.index - 3), m.index)));
   if (weightMatches.length === 0) return {};
 
+  // A cue only counts when nothing but filler sits between it and the number: it must not reach across another
+  // number ("muc tieu 70kg ... nang 80kg" must not hand 80 the "muc tieu" cue).
   function cueBefore(index: number, re: RegExp): boolean {
-    return re.test(s.slice(Math.max(0, index - 15), index));
+    const before = s.slice(Math.max(0, index - WEIGHT_CUE_WINDOW), index);
+    const lastNumber = before.search(/\d(?!.*\d)/);
+    const window = lastNumber >= 0 ? before.slice(lastNumber + 1) : before;
+    return re.test(window);
   }
 
   let current: number | undefined;
@@ -211,6 +221,14 @@ function extractWeightPairFromMessage(s: string): { currentWeightKg?: number; ta
   return { currentWeightKg: current, targetWeightKg: target };
 }
 
+// Only explicit self-descriptions count ("nam giới", "giới tính nam", "tôi là nam/nữ"). A bare "nam"/"nu" is never
+// enough: normalized text folds "năm" (year) into "nam".
+function extractGenderFromMessage(s: string): "MALE" | "FEMALE" | undefined {
+  if (/\bnam gioi\b|gioi tinh\s*(la\s*|:\s*)?nam\b|\b(toi|minh|em|anh) la (mot )?(nguoi )?nam\b|\bla dan ong\b/.test(s)) return "MALE";
+  if (/\bnu gioi\b|gioi tinh\s*(la\s*|:\s*)?nu\b|\b(toi|minh|em|chi) la (mot )?(nguoi )?nu\b|\bla phu nu\b/.test(s)) return "FEMALE";
+  return undefined;
+}
+
 export function extractRoadmapSlotsFromMessage(message: string): Record<string, unknown> {
   const s = normalizeAgentText(message);
   const known: Record<string, unknown> = {};
@@ -220,6 +238,8 @@ export function extractRoadmapSlotsFromMessage(message: string): Record<string, 
   if (age !== undefined) known.age = age;
   const height = extractHeightFromMessage(s);
   if (height !== undefined) known.heightCm = height;
+  const gender = extractGenderFromMessage(s);
+  if (gender) known.gender = gender;
   const { currentWeightKg, targetWeightKg } = extractWeightPairFromMessage(s);
   if (currentWeightKg !== undefined) known.currentWeightKg = currentWeightKg;
   if (targetWeightKg !== undefined) known.targetWeight = targetWeightKg;

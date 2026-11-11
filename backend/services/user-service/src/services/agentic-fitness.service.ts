@@ -49,9 +49,13 @@ export const agenticFitnessService = {
       sessionMinutes: request.sessionMinutes ?? profile.sessionDurationMinutes,
       budgetVnd: request.budgetVnd ?? profile.ptBudgetVnd ?? undefined });
     const origin = originFor(preferences);
-    if (!preferences.goal || !preferences.days || !preferences.budgetVnd) throw fail("Please provide goal, training days and PT budget", 422);
+    // Budget is OPTIONAL: an explicit "no budget cap" answer reaches this service as an absent budgetVnd (the AI Coach's
+    // NO_CAP sentinel is resolved to `undefined` before the call, and scorePT already treats undefined as "no budget term").
+    // It used to be REQUIRED here, so answering "không giới hạn" — the exact wording the assistant itself offers — ended in
+    // a 422 that the chat surfaced as HTTP 500 (found by the full chat verification).
+    if (!preferences.goal || !preferences.days) throw fail("Please provide goal and training days", 422);
     const packageWhere: Prisma.PTServicePackageWhereInput = { isActive: true, archivedAt: null,
-      price: { lte: preferences.budgetVnd }, sessionDurationMinutes: { lte: preferences.sessionMinutes },
+      ...(preferences.budgetVnd ? { price: { lte: preferences.budgetVnd } } : {}), sessionDurationMinutes: { lte: preferences.sessionMinutes },
       ...(preferences.mode ? { sessionMode: preferences.mode } : {}) };
     const profiles = await prisma.userProfile.findMany({
       where: { userId: { not: userId }, isPT: true, ptSuspended: false, isAcceptingClients: true, dataOrigin: origin,
