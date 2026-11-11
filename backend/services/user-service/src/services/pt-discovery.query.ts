@@ -96,6 +96,50 @@ function priceAggregateJoinSql(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
   `;
 }
 
+function offlineEligibleSql(): Prisma.Sql {
+  return Prisma.sql`(
+    pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
+    AND EXISTS (
+      SELECT 1 FROM pt_training_locations tl
+      WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
+    )
+    AND EXISTS (
+      SELECT 1 FROM pt_service_packages pkg
+      WHERE pkg.pt_user_id = p."userId"
+        AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
+    )
+  )`;
+}
+
+function onlineEligibleSql(): Prisma.Sql {
+  return Prisma.sql`(
+    pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
+    AND EXISTS (
+      SELECT 1 FROM pt_service_packages pkg
+      WHERE pkg.pt_user_id = p."userId"
+        AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
+    )
+  )`;
+}
+
+function anyModeEligibleSql(): Prisma.Sql {
+  return Prisma.sql`(${offlineEligibleSql()} OR ${onlineEligibleSql()})`;
+}
+
+function currentStatsJoinSql(): Prisma.Sql {
+  return Prisma.sql`
+    LEFT JOIN pt_discovery_stats ds
+      ON ds.pt_user_id = p."userId"
+     AND ds.epoch = (
+       SELECT e.epoch
+       FROM pt_discovery_epochs e
+       WHERE e.is_current = true
+         AND e.status = 'READY'::"PtDiscoveryEpochStatus"
+       LIMIT 1
+     )
+  `;
+}
+
 function resolveOrderSql(
   sortBy: string | undefined,
   packageMode?: "ONLINE" | "OFFLINE",
@@ -128,9 +172,10 @@ function resolveOrderSql(
         orderBySql: Prisma.sql`ORDER BY pr.from_price_per_session DESC NULLS LAST, p."userId" ASC`,
       };
     default: {
+      const joinSql = currentStatsJoinSql();
       if (viewerGymIds.length > 0) {
         return {
-          joinSql: Prisma.empty,
+          joinSql,
           orderBySql: Prisma.sql`ORDER BY
             p.is_accepting_clients DESC,
             EXISTS (
@@ -139,23 +184,26 @@ function resolveOrderSql(
                 AND tl.is_active = true
                 AND tl.gym_id = ANY(${viewerGymIds}::text[])
             ) DESC,
+            ds.quality DESC NULLS LAST,
             p."createdAt" DESC,
             p."userId" ASC`,
         };
       }
       return {
-        joinSql: Prisma.empty,
-        orderBySql: Prisma.sql`ORDER BY p.is_accepting_clients DESC, p."createdAt" DESC, p."userId" ASC`,
+        joinSql,
+        orderBySql: Prisma.sql`ORDER BY p.is_accepting_clients DESC, ds.quality DESC NULLS LAST, p."createdAt" DESC, p."userId" ASC`,
       };
     }
   }
 }
 
 /**
- * Global SQL query for public PT discovery (D0a):
+ * Global SQL query for public PT discovery (D0a + D0b-1):
  * - Visibility is equivalent to `ptPublicWhere` (pt-public-dto.ts:38).
- * - Mode, price, specialty, location, and text filters run in SQL (one row per PT).
- * - Global sorting runs across all matching candidates with deterministic `p."userId" ASC` tie-break.
+ * - Mode, package-eligibility (ANY = OFFLINE-eligible OR ONLINE-eligible), price, specialty,
+ *   location, and text filters run in SQL (one row per PT).
+ * - Default ordering reads `pt_discovery_stats.quality` from the current READY epoch inline
+ *   and naturally falls back to D0a order (`createdAt DESC`) when no current epoch exists.
  * - Uses `limit + 1` to compute `hasMore` without a separate COUNT(*) round trip.
  */
 export async function findDiscoveryPtPageIds(
@@ -184,25 +232,14 @@ export async function findDiscoveryPtPageIds(
       : undefined;
 
   if (filters.sessionMode === "OFFLINE") {
-    where.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
-    where.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM pt_training_locations tl
-      WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
-    )`);
-    where.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM pt_service_packages pkg
-      WHERE pkg.pt_user_id = p."userId"
-        AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
-    )`);
+    where.push(offlineEligibleSql());
   } else if (filters.sessionMode === "ONLINE") {
-    where.push(Prisma.sql`pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
-    where.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM pt_service_packages pkg
-      WHERE pkg.pt_user_id = p."userId"
-        AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
-    )`);
+    where.push(onlineEligibleSql());
   } else if (filters.sessionMode === "HYBRID") {
     where.push(Prisma.sql`pa.service_mode = 'HYBRID'::"ServiceMode"`);
+    where.push(anyModeEligibleSql());
+  } else {
+    where.push(anyModeEligibleSql());
   }
 
   if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {

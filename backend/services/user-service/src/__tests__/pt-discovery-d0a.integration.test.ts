@@ -208,7 +208,8 @@ function buildDataset(): void {
     } else if (idx >= VISIBLE_PTS && idx < 4710) {
       // Hidden PTs with ultra-low price to catch any visibility leak immediately
       addPkg("a", "OFFLINE", 1, 40_000);
-    } else if (idx % 25 !== 0) {
+    } else if (idx === 0 || idx === 1200 || idx === 1500 || idx === 2400 || idx === 2500 || idx % 25 !== 0) {
+      // Reserve idx 25, 50, 75... as 0-package PTs while keeping named fixture anchors (0, 1200, 1500, 2400, 2500) eligible.
       const baseSessionPrice = 100_000 + ((idx * 37) % 85) * 10_000;
       if (serviceMode === "OFFLINE") {
         addPkg("a", "OFFLINE", 10, baseSessionPrice * 10);
@@ -483,6 +484,20 @@ function refIsVisible(pt: SimPt): boolean {
   return pt.isPT && !pt.ptSuspended && pt.appStatus === "APPROVED" && !pt.hasOpenAccountRestriction;
 }
 
+function refHasForSalePkg(pt: SimPt, mode?: "ONLINE" | "OFFLINE"): boolean {
+  return pt.packages.some(
+    (p) => p.isActive && p.archivedAt === null && p.sessionCount >= 1 && p.price > 0 && (!mode || p.sessionMode === mode),
+  );
+}
+
+/** D0b-1 list rule (ANY = OFFLINE-eligible OR ONLINE-eligible) + base visibility. */
+function refIsDiscoverable(pt: SimPt): boolean {
+  if (!refIsVisible(pt)) return false;
+  const offlineOk = (pt.serviceMode === "OFFLINE" || pt.serviceMode === "HYBRID") && pt.activeLocations.length > 0 && refHasForSalePkg(pt, "OFFLINE");
+  const onlineOk = (pt.serviceMode === "ONLINE" || pt.serviceMode === "HYBRID") && refHasForSalePkg(pt, "ONLINE");
+  return offlineOk || onlineOk;
+}
+
 function refFromPrice(pt: SimPt, sessionMode?: string): number | null {
   const usable = pt.packages.filter((p) => {
     if (!p.isActive || p.archivedAt !== null || p.sessionCount < 1 || p.price <= 0) return false;
@@ -573,7 +588,7 @@ async function fetchAllPages(queryBase: string): Promise<{ ids: string[]; pages:
 
 // ── 1. Visibility equivalence & 404 detail check ──────────────────────────────────────────────
 
-test("D0a visibility: SQL candidate set equals ptPublicWhere exactly; hidden PTs return 404 on detail", async () => {
+test("D0a visibility: SQL candidate set equals ptPublicWhere + package eligibility; hidden PTs 404 on detail, 0-pkg visible PTs 200 on detail", async () => {
   const expectedViaPrisma = (
     await prisma.userProfile.findMany({
       where: { AND: [await ptPublicWhere(), { userId: { startsWith: prefix } }] },
@@ -582,37 +597,39 @@ test("D0a visibility: SQL candidate set equals ptPublicWhere exactly; hidden PTs
   ).map((r) => r.userId);
 
   const expectedVisible = simPts.filter(refIsVisible).map((p) => p.userId);
+  const expectedDiscoverable = simPts.filter(refIsDiscoverable).map((p) => p.userId);
   assert.equal(expectedVisible.length, VISIBLE_PTS);
   assert.deepEqual(new Set(expectedViaPrisma), new Set(expectedVisible), "fixture matches ptPublicWhere");
 
   const { ids } = await fetchAllPages(`q=${encodeURIComponent(tag)}`);
   assert.equal(new Set(ids).size, ids.length, "no duplicate PT IDs across all pages");
-  assert.deepEqual(new Set(ids), new Set(expectedViaPrisma), "endpoint candidate set matches ptPublicWhere");
+  // đổi theo quyết định Ngài 10/11: danh sách chỉ gồm PT công khai ĐỒNG THỜI thỏa ANY (OFFLINE-eligible OR ONLINE-eligible)
+  assert.deepEqual(new Set(ids), new Set(expectedDiscoverable), "list candidate set matches ptPublicWhere + ANY eligibility");
 
   // Sample hidden PTs from every category must return 404 on detail
   for (const hiddenIdx of [4700, 4760, 4820, 4880, 4940, 4941]) {
     const d = await app.call("GET", `/profile/pts/${simPts[hiddenIdx].userId}`, viewerToken);
     assert.equal(d.status, 404, `hidden PT idx=${hiddenIdx} must return 404`);
   }
-  // Visible edge cases (lifted ACCOUNT restriction + open CONTRACT restriction) return 200
-  for (const visibleIdx of [10, 20]) {
+  // Visible edge cases (lifted ACCOUNT restriction, open CONTRACT restriction, AND 0-package/ineligible visible PTs) return 200 on detail
+  for (const visibleIdx of [10, 20, 25, 1101, 1103]) {
     const d = await app.call("GET", `/profile/pts/${simPts[visibleIdx].userId}`, viewerToken);
-    assert.equal(d.status, 200, `visible PT idx=${visibleIdx} must return 200`);
+    assert.equal(d.status, 200, `visible PT idx=${visibleIdx} must return 200 on detail`);
   }
 });
 
 // ── 2. Exhaustive multi-page pagination across all sort modes ─────────────────────────────────
 
 for (const sortMode of [undefined, "nameAsc", "priceAsc", "priceDesc", "ratingDesc", "ratingAsc"] as const) {
-  test(`D0a global sort & full pagination (${sortMode ?? "newest/default"}): 0 duplicates, 0 omissions, matches independent reference across 4,700 visible PTs`, async () => {
-    const visiblePts = simPts.filter(refIsVisible);
-    const expectedOrder = refSortIds(visiblePts, sortMode);
+  test(`D0a global sort & full pagination (${sortMode ?? "newest/default"}): 0 duplicates, 0 omissions, matches independent reference across discoverable PTs`, async () => {
+    const discoverablePts = simPts.filter(refIsDiscoverable);
+    const expectedOrder = refSortIds(discoverablePts, sortMode);
 
     const qs = `q=${encodeURIComponent(tag)}${sortMode ? `&sortBy=${sortMode}` : ""}`;
     const { ids, pages } = await fetchAllPages(qs);
 
-    assert.equal(ids.length, VISIBLE_PTS, "total returned count equals expected visible count");
-    assert.equal(new Set(ids).size, VISIBLE_PTS, "zero duplicates across all pages");
+    assert.equal(ids.length, discoverablePts.length, "total returned count equals expected discoverable count");
+    assert.equal(new Set(ids).size, discoverablePts.length, "zero duplicates across all pages");
     assert.deepEqual(ids, expectedOrder, `exact global order for ${sortMode ?? "default"}`);
     assert.equal(pages[0].length, PAGE_LIMIT);
 
@@ -635,7 +652,7 @@ for (const sortMode of [undefined, "nameAsc", "priceAsc", "priceDesc", "ratingDe
       assert.equal(ids[0], simPts[3502].userId, "idx 3502 (>1000) 5.0★ PT lands at #1");
     }
 
-    // NULLS LAST invariant for both directions of rating and price
+    // NULLS LAST invariant for rating
     if (sortMode === "ratingDesc" || sortMode === "ratingAsc") {
       const firstUnratedIdx = ids.findIndex((id) => refAvgRating(simByUserId.get(id)!) === null);
       assert.ok(firstUnratedIdx > 0, "rated PTs appear first");
@@ -643,12 +660,9 @@ for (const sortMode of [undefined, "nameAsc", "priceAsc", "priceDesc", "ratingDe
         assert.equal(refAvgRating(simByUserId.get(ids[k])!), null, "all unrated PTs stay at the tail");
       }
     }
+    // đổi theo quyết định Ngài 10/11: PT không có gói phù hợp bị loại khỏi danh sách nên mọi PT trả về đều có fromPrice != null
     if (sortMode === "priceAsc" || sortMode === "priceDesc") {
-      const firstNoPriceIdx = ids.findIndex((id) => refFromPrice(simByUserId.get(id)!) === null);
-      assert.ok(firstNoPriceIdx > 0, "priced PTs appear first");
-      for (let k = firstNoPriceIdx; k < ids.length; k++) {
-        assert.equal(refFromPrice(simByUserId.get(ids[k])!), null, "all zero-package PTs stay at the tail");
-      }
+      assert.ok(ids.every((id) => refFromPrice(simByUserId.get(id)!) !== null), "every listed PT has a derived package price");
     }
   });
 }
@@ -687,6 +701,22 @@ test("D0a unfiltered global GET /profile/pts (without q) matches independent SQL
         AND NOT EXISTS (
           SELECT 1 FROM pt_restrictions r
           WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT'
+        )
+        AND (
+          (
+            pa.service_mode IN ('OFFLINE', 'HYBRID')
+            AND EXISTS (SELECT 1 FROM pt_training_locations tl WHERE tl.pt_user_id = p."userId" AND tl.is_active = true)
+            AND EXISTS (
+              SELECT 1 FROM pt_service_packages pkg
+              WHERE pkg.pt_user_id = p."userId" AND pkg.is_active = true AND pkg.archived_at IS NULL AND pkg.session_count >= 1 AND pkg.price > 0 AND pkg.session_mode = 'OFFLINE'
+            )
+          ) OR (
+            pa.service_mode IN ('ONLINE', 'HYBRID')
+            AND EXISTS (
+              SELECT 1 FROM pt_service_packages pkg
+              WHERE pkg.pt_user_id = p."userId" AND pkg.is_active = true AND pkg.archived_at IS NULL AND pkg.session_count >= 1 AND pkg.price > 0 AND pkg.session_mode = 'ONLINE'
+            )
+          )
         )
       ORDER BY ${orderExpr}, p."userId" ASC
       LIMIT 50
@@ -729,17 +759,20 @@ test("D0a filters: sessionMode + price consistency, specialties, province/ward, 
   assert.ok(onlineRes.ids.includes(simPts[1102].userId), "HYBRID with ONLINE pkg matches ONLINE");
   assert.ok(!onlineRes.ids.includes(simPts[1103].userId), "ONLINE without ONLINE pkg excluded from ONLINE");
 
-  // HYBRID: preserves existing behavior (serviceMode='HYBRID')
-  const expectedHybrid = simPts.filter((p) => refIsVisible(p) && p.serviceMode === "HYBRID");
+  // HYBRID: serviceMode='HYBRID' AND (OFFLINE-eligible OR ONLINE-eligible) (đổi theo quyết định Ngài 10/11)
+  const expectedHybrid = simPts.filter((p) => refIsDiscoverable(p) && p.serviceMode === "HYBRID");
   const hybridRes = await fetchAllPages(`q=${encodeURIComponent(tag)}&sessionMode=HYBRID`);
   assert.deepEqual(new Set(hybridRes.ids), new Set(expectedHybrid.map((p) => p.userId)));
 
-  // Zero-package visible PT (idx 25): listed when no sessionMode/price filter, excluded when price filter set
+  // Zero-package visible PT (idx 25): excluded from list even when no sessionMode/price filter is set (đổi theo quyết định Ngài 10/11),
+  // while GET /profile/pts/:userId detail stays open.
   const zeroPkgPt = simPts[25];
   assert.equal(zeroPkgPt.packages.length, 0);
   const noFilterPage = await app.call("GET", `/profile/pts?q=${encodeURIComponent(zeroPkgPt.firstName)}&limit=50`, viewerToken);
   assert.equal(noFilterPage.status, 200);
-  assert.ok((noFilterPage.body.pts as any[]).some((p) => p.userId === zeroPkgPt.userId), "0-package PT listed without mode/price filter");
+  assert.ok(!(noFilterPage.body.pts as any[]).some((p) => p.userId === zeroPkgPt.userId), "0-package PT excluded from list without mode/price filter");
+  const zeroDetail = await app.call("GET", `/profile/pts/${zeroPkgPt.userId}`, viewerToken);
+  assert.equal(zeroDetail.status, 200, "0-package visible PT still reachable via detail route");
   const minPriceZero = await app.call("GET", `/profile/pts?q=${encodeURIComponent(zeroPkgPt.firstName)}&minPrice=0&limit=50`, viewerToken);
   assert.equal(minPriceZero.status, 200);
   assert.ok(!(minPriceZero.body.pts as any[]).some((p) => p.userId === zeroPkgPt.userId), "0-package PT excluded by minPrice=0");
@@ -773,14 +806,14 @@ test("D0a filters: sessionMode + price consistency, specialties, province/ward, 
   assert.equal(specOnly.body.hasMore, false);
 
   const expectedYogaOrBoxing = simPts.filter(
-    (p) => refIsVisible(p) && (p.specialties.includes("YOGA") || p.specialties.includes("BOXING")),
+    (p) => refIsDiscoverable(p) && (p.specialties.includes("YOGA") || p.specialties.includes("BOXING")),
   );
   const specMulti = await fetchAllPages(`q=${encodeURIComponent(tag)}&specialties=YOGA,BOXING`);
   assert.deepEqual(new Set(specMulti.ids), new Set(expectedYogaOrBoxing.map((p) => p.userId)));
 
   // provinceCode / wardCode filter: multi-location PT appears once; inactive location does not match
   const expectedProvA = simPts.filter(
-    (p) => refIsVisible(p) && p.activeLocations.some((l) => l.provinceCode === PROV_A),
+    (p) => refIsDiscoverable(p) && p.activeLocations.some((l) => l.provinceCode === PROV_A),
   );
   const provARes = await fetchAllPages(`q=${encodeURIComponent(tag)}&provinceCode=${PROV_A}`);
   assert.equal(new Set(provARes.ids).size, provARes.ids.length, "multi-location PT in same province appears once");
@@ -855,7 +888,7 @@ test("D0a validation: limit=100 clamps to 50; invalid limit/page/areaProvince/ar
 // ── 6. SAME_GYM default ranking at function level (BACKEND INTEGRATION, no outbound gym-service) ──
 
 test("D0a default order SAME_GYM via findDiscoveryPtPageIds: active gymX prioritized, inactive gymX ignored, non-accepting still last, sortBy unaffected", async () => {
-  const visiblePts = simPts.filter(refIsVisible);
+  const discoverablePts = simPts.filter(refIsDiscoverable);
 
   // With viewerGymIds=[gymX]: active gymX accepting PTs (2500, 2501) jump to top in createdAt DESC order,
   // inactive gymX (idx 5) is NOT promoted, non-accepting active gymX (idx 2502) stays in non-accepting tail.
@@ -865,7 +898,7 @@ test("D0a default order SAME_GYM via findDiscoveryPtPageIds: active gymX priorit
     page: 1,
     limit: PAGE_LIMIT,
   });
-  const expectedWithGym = refSortIds(visiblePts, undefined, undefined, [gymX]);
+  const expectedWithGym = refSortIds(discoverablePts, undefined, undefined, [gymX]);
   assert.deepEqual(withGym.userIds, expectedWithGym.slice(0, PAGE_LIMIT));
   assert.equal(withGym.userIds[0], simPts[2500].userId);
   assert.equal(withGym.userIds[1], simPts[2501].userId);
@@ -880,7 +913,7 @@ test("D0a default order SAME_GYM via findDiscoveryPtPageIds: active gymX priorit
     page: 1,
     limit: PAGE_LIMIT,
   });
-  assert.deepEqual(emptyGym.userIds, refSortIds(visiblePts, undefined, undefined, []).slice(0, PAGE_LIMIT));
+  assert.deepEqual(emptyGym.userIds, refSortIds(discoverablePts, undefined, undefined, []).slice(0, PAGE_LIMIT));
   assert.equal(emptyGym.userIds[0], simPts[2].userId);
 
   // Explicit sortBy ignores viewerGymIds and is_accepting_clients
@@ -891,7 +924,7 @@ test("D0a default order SAME_GYM via findDiscoveryPtPageIds: active gymX priorit
     page: 1,
     limit: PAGE_LIMIT,
   });
-  assert.deepEqual(priceWithGym.userIds, refSortIds(visiblePts, "priceAsc").slice(0, PAGE_LIMIT));
+  assert.deepEqual(priceWithGym.userIds, refSortIds(discoverablePts, "priceAsc").slice(0, PAGE_LIMIT));
   assert.equal(priceWithGym.userIds[0], simPts[3500].userId);
   assert.equal(priceWithGym.userIds[1], simPts[1].userId);
 });

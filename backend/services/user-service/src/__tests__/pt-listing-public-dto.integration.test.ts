@@ -225,7 +225,9 @@ test("prices: fromPricePerSession / fromPackagePrice and the legacy price fields
   const all = await app.call("GET", `/profile/pts?q=${shared}&limit=100`, tok);
   assert.equal(all.status, 200);
   const byId = new Map<string, any>((all.body.pts as any[]).map((p) => [p.userId, p]));
-  assert.equal(byId.size, 3, "a visible trainer with no packages is still listed");
+  // đổi theo quyết định Ngài 10/11: PT 0 gói không hiện trên danh sách công khai, nhưng chi tiết GET /profile/pts/:userId vẫn mở được.
+  assert.equal(byId.size, 2, "a visible trainer with no packages is excluded from the public list (đổi theo quyết định Ngài 10/11)");
+  assert.ok(!byId.has(P2.userId), "0-package trainer P2 is excluded from list");
 
   const a1 = byId.get(P1.userId).ptApplication;
   assert.equal(byId.get(P1.userId).fromPricePerSession, 200_000);
@@ -241,9 +243,12 @@ test("prices: fromPricePerSession / fromPackagePrice and the legacy price fields
   assert.equal(byId.get(P1.userId).servicePackages.length, 3);
   assert.ok(byId.get(P1.userId).servicePackages.every((p: any) => p.version === 1));
 
-  assert.equal(byId.get(P2.userId).fromPricePerSession, null);
-  assert.equal(byId.get(P2.userId).fromPackagePrice, null);
-  assert.deepEqual(byId.get(P2.userId).servicePackages, []);
+  // Detail endpoint stays open for 0-package visible trainers.
+  const d2 = await app.call("GET", `/profile/pts/${P2.userId}`, tok);
+  assert.equal(d2.status, 200, "0-package visible PT still accessible via detail route");
+  assert.equal(d2.body.fromPricePerSession, null);
+  assert.equal(d2.body.fromPackagePrice, null);
+  assert.deepEqual(d2.body.servicePackages, []);
 
   const a3 = byId.get(P3.userId).ptApplication;
   assert.deepEqual([a3.fromPricePerSession, a3.fromPackagePrice, a3.onlinePricePerSession, a3.offlinePricePerSession, a3.desiredSessionPrice], [500_000, 500_000, 500_000, null, 500_000]);
@@ -278,9 +283,9 @@ test("prices: fromPricePerSession / fromPackagePrice and the legacy price fields
   assert.deepEqual(await f("minPrice=400000&maxPrice=600000&sessionMode=ONLINE"), [P3.userId]);
   assert.deepEqual(await f("minPrice=400000&maxPrice=600000&sessionMode=OFFLINE"), []);
 
-  // sorting is by the derived per-session price; a trainer with nothing for sale sinks either way
-  assert.deepEqual(await f("sortBy=priceAsc"), [P1.userId, P3.userId, P2.userId]);
-  assert.deepEqual(await f("sortBy=priceDesc"), [P3.userId, P1.userId, P2.userId]);
+  // sorting is by the derived per-session price; P2 (0 packages) is excluded from discovery list
+  assert.deepEqual(await f("sortBy=priceAsc"), [P1.userId, P3.userId]);
+  assert.deepEqual(await f("sortBy=priceDesc"), [P3.userId, P1.userId]);
 });
 
 // ── 4. physique photos: PUBLISHED only ───────────────────────────────────────────────────────
@@ -288,6 +293,7 @@ test("prices: fromPricePerSession / fromPackagePrice and the legacy price fields
 test("physiquePhotos: only PUBLISHED rows are exposed, in sort order, with the cover url; STAGED / RETIRED / DISCARDED never appear", async () => {
   const pt = await makePublicPt();
   created.push(pt.userId);
+  await makePackage(pt.userId);
   const mk = (over: Record<string, unknown>) =>
     prisma.ptPhysiquePhoto.create({
       data: { ptUserId: pt.userId, storageKey: `pt-physique/${pt.userId}/${randomUUID()}.jpg`, mime: "image/jpeg", bytes: 1000, uploadedBy: pt.userId, ...over } as any,
