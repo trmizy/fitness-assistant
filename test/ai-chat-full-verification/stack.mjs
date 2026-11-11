@@ -53,7 +53,7 @@ const services = [
     LLM_PROVIDER: process.env.LLM_PROVIDER_OVERRIDE || "ollama", LLM_MODEL: MODEL, LLM_BASE_URL: LLM, OLLAMA_BASE_URL: LLM, EMBEDDING_PROVIDER: "ollama", EMBEDDING_MODEL: "nomic-embed-text", EMBEDDING_DIMENSIONS: "768",
     LLM_TIMEOUT_MS: "170000", EMBEDDING_TIMEOUT_MS: "120000", LLM_NUM_CTX: "8192", LLM_JSON_NUM_CTX: "8192", ENABLE_TOOL_CALLING: "false",
     AI_ASK_RATE_LIMIT_MAX: "1000", AI_EXPENSIVE_RATE_LIMIT_MAX: "1000", ...bedrockEnv } },
-  { name: "gateway", cwd: "backend/gateway", port: p(3000), env: { PORT: String(p(3000)), NODE_PATH: path.join(root, ".tmp-stack/deps/node_modules"), AI_ASK_RATE_LIMIT_MAX_REQUESTS: "1000", PARTNER_APPLICATION_START_RATE_MAX: "1000", PARTNER_APPLICATION_RATE_MAX: "1000" } },
+  { name: "gateway", cwd: "backend/gateway", port: p(3000), env: { PORT: String(p(3000)), NODE_PATH: path.join(root, ".tmp-stack/deps/node_modules"), AI_ASK_RATE_LIMIT_MAX_REQUESTS: "1000", AUTH_RATE_LIMIT_MAX_REQUESTS: "1000" /* isolated :13000 gateway only: each eval run registers 6 personas, which exhausted the 20/15min default; the default and AWS are unchanged */, PARTNER_APPLICATION_START_RATE_MAX: "1000", PARTNER_APPLICATION_RATE_MAX: "1000" } },
 ];
 if (process.argv.includes("--web")) services.push({ name: "web", cwd: "frontend/web", port: 15173, cmd: ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "15173"], env: { VITE_API_URL: `http://localhost:${p(3000)}` } });
 

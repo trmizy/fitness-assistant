@@ -56,7 +56,11 @@ export function parseFitnessAgentIntent(text: string): {
     // "thuê PT này / PT thứ 2 / PT số 1": hiring a SPECIFIC recommended PT is a selection (which still goes through the
     // draft + explicit confirmations); a bare "thuê PT" / "tôi muốn thuê PT" stays a PT search.
     || (/\b(thue|hire)\b/.test(s) && /\b(pt|huan luyen vien)\b/.test(s) && /\b(nay|do|kia|thu\s+(?:nhat|hai|ba|bon|tu|nam|\d+)|so\s*\d+|dau tien|first)\b/.test(s));
-  const noPt = /khong (?:muon |can )?(?:thue )?pt|tu tap|self.training|without.*trainer/.test(s);
+  // "tu tap" is "tự tập" (train by myself) but accent-stripping also turns "từ tập" (FROM training machines…) into it:
+  // "Tôi muốn đổi từ tập máy sang tạ tự do thì nên bắt đầu thế nào?" was read as "I want a self-training program" and the
+  // agent asked which days to train (eval B2-15, 2026-11-11). Accented "từ tập" or a transition verb before it is not "tự tập".
+  const selfTrain = /tu tap/.test(s) && !/từ tập/.test(text.toLowerCase()) && !/\b(?:doi|chuyen|thay|bat dau|bo) tu tap/.test(s);
+  const noPt = /khong (?:muon |can )?(?:thue )?pt|self.training|without.*trainer/.test(s) || selfTrain;
 
   // Adaptive Cycle Evaluation via chat (docs/agentic-fitness/01_NUTRITION_
   // AGENT_TOOLS_PLAN.md, phase C/D) — checked BEFORE PT/PROGRAM/SELECT so a

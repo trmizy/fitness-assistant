@@ -178,8 +178,27 @@ function detectMinorAge(question: string): boolean {
   if (!ageMatch) return false;
   const age = Number(ageMatch[1] ?? ageMatch[2] ?? ageMatch[3]);
   if (!Number.isFinite(age) || age <= 0 || age >= 18) return false;
-  return NUTRITION_ADVICE_PATTERNS.some((p) => p.test(q)) || /tập|workout|training|gym/i.test(q);
+  return NUTRITION_ADVICE_PATTERNS.some((p) => p.test(q)) || MINOR_BODY_GOAL_PATTERN.test(q) || /tập|workout|training|gym/i.test(q);
 }
+
+/**
+ * A minor asking a purely GENERAL safety/myth question about training ("Em 16 tuổi tập tạ có bị lùn không ạ?") can get an
+ * evidence-based general answer with supervision/parent guidance (NSCA 2009; Lloyd 2014: supervised resistance training does
+ * not stunt growth) — a flat redirect left the actual question unanswered and kept a harmful myth alive (eval B1-44 / B2-44).
+ * Anything PERSONAL — a diet, calories, a weight goal or a plan for themselves — stays behind the minor gate.
+ */
+export function isMinorGeneralKnowledgeQuestion(question: string): boolean {
+  if (!detectMinorAge(question)) return false;
+  const q = question.toLowerCase();
+  const asksGeneralSafety = /lùn|chiều cao|cao lên|tăng trưởng|có hại|có sao không|có an toàn|an toàn không|có nên.{0,30}không|có được không|có tốt không|bị lùn|ảnh hưởng|lần đầu|bắt đầu (?:như )?thế nào|bắt đầu từ đâu/.test(q);
+  const personalPlanOrDiet = /giảm cân|giam can|giảm mỡ|giảm ký|ăn kiêng|nhịn ăn|calo|calories|protein|đạm|thực đơn|bao nhiêu kg|\d+\s*kg|tăng cân|lịch tập|kế hoạch|giáo án|tạo |lên lịch|nên ăn|nên tập (gì|bài)|bài tập nào/.test(q);
+  return asksGeneralSafety && !personalPlanOrDiet;
+}
+
+// A minor stating a body-weight / diet goal is the most sensitive case of all, yet "Em 16 tuổi muốn giảm cân từ 55 xuống 50kg
+// thì nên làm gì?" names no calorie/protein/training word and used to get an adult calorie-deficit plan (eval B2-44, 2026-11-11).
+const MINOR_BODY_GOAL_PATTERN =
+  /giảm cân|giam can|giảm mỡ|giam mo|giảm ký|giam ky|giảm béo|giam beo|ăn kiêng|an kieng|nhịn ăn|nhin an|tăng cân|tang can|tăng cơ|tang co|\d+\s*kg|weight loss|lose weight|fat loss|\bdiet\b/i;
 
 // Pregnancy / breastfeeding — nutrient needs (calories, specific nutrients,
 // safe exercise intensity) differ and require OB/dietitian guidance.
@@ -520,7 +539,7 @@ export const safetyGuard = {
       };
     }
 
-    if (detectMinorAge(question)) {
+    if (detectMinorAge(question) && !isMinorGeneralKnowledgeQuestion(question)) {
       return safetyGuard.minorAgeResult();
     }
 

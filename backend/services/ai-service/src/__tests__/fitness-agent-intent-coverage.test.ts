@@ -51,3 +51,11 @@ test("English 'workout plan' and 'thực đơn ... N bữa' route to their creat
 test("pure knowledge Q&A and off-topic never route to an action", () => {
   for (const t of ["Progressive overload là gì?", "Romanian deadlift tập cơ gì?", "Protein bao nhiêu là đủ?", "Có bài nào thay lat pulldown không?", "Thời tiết hôm nay thế nào?", "Viết code Java cho tôi."]) assert.equal(kind(t), null, t);
 });
+
+// Regression (2026-11-11, eval B2-15): "từ tập máy" (from machine training) is not "tự tập" (self-training).
+test("'đổi từ tập máy sang tạ tự do' is not a self-training program request", async () => {
+  const { parseFitnessAgentIntent } = await import("../services/fitness-agent-intent");
+  assert.equal(parseFitnessAgentIntent("Tôi muốn đổi từ tập máy sang tạ tự do thì nên bắt đầu thế nào?").kind, null);
+  assert.equal(parseFitnessAgentIntent("doi tu tap may sang ta tu do thi nen bat dau the nao").kind, null);
+  assert.equal(parseFitnessAgentIntent("Tôi muốn tự tập, gợi ý chương trình giúp tôi").kind, "PROGRAM");
+});

@@ -29,7 +29,8 @@ import {
   hasCriticalStructureMismatch,
 } from "./answer_validator";
 import { responseFormatter } from "./response_formatter";
-import { appendMedicalReferralNote } from "./medical-referral";
+import { appendMedicalReferralNote, appendMinorSupervisionNote, minorGeneralInfoPromptNote } from "./medical-referral";
+import { isMinorGeneralKnowledgeQuestion } from "./safety_guard";
 import {
   isDirectNutritionQuestion,
   formatDirectNutritionAnswer,
@@ -158,6 +159,16 @@ const PROFILE_AGE_SENSITIVE_SAFETY_TYPES = new Set<string>([
 ]);
 /** Folded text: skipping meals / fasting, "N kg in <short time>", crash wording, slimming pills — read with the profile age above. */
 const AGGRESSIVE_WEIGHT_LOSS_PLAN = /\b(nhin (an|bua|doi|toi|sang|trua)|bo bua|giam \d{1,2} ?kg (trong|sau|chi) (\d|mot|hai|ba|1)|cap toc|that nhanh|thuoc giam can|tra giam can|an kieng khat khe|chi an (1|mot) bua)\b/;
+
+/** Appended to the prompt for the single retry after a wrong "out of scope" refusal of a general coaching question. */
+function scopeRetryNote(lang: string): string {
+  return lang === "en"
+    ? "Note: this question IS within a personal trainer's scope (motivation, habits, the mindset around training, sleep, recovery, body image while training). Answer it directly and practically in 4-6 sentences, using the user's profile where relevant. Only suggest a mental-health professional if the user describes serious distress."
+    : "Lưu ý: câu hỏi này NẰM TRONG phạm vi của một huấn luyện viên cá nhân (động lực, thói quen, tâm lý khi tập luyện, giấc ngủ, phục hồi, hình ảnh cơ thể khi tập). Hãy trả lời trực tiếp, thực tế trong 4-6 câu, dựa trên hồ sơ của người dùng khi liên quan. Chỉ gợi ý gặp chuyên gia tâm lý nếu người dùng mô tả tình trạng nghiêm trọng.";
+}
+
+/** Folded text: a weight-loss / diet goal. Read with the profile age too, so a minor who does not state their age still gets the minor guidance (eval B2-44). */
+const WEIGHT_LOSS_GOAL = /\b(giam can|giam mo|giam ky|giam beo|an kieng|weight loss|lose weight|fat loss)\b/;
 
 export function buildAiUnavailableFallback(language: LanguageDecision): string {
   if (language.responseLanguage === "vi") {
@@ -434,7 +445,8 @@ async function runInner(
     // (found by test/ai-quality-eval SF-D1, 2026-11-08). The profile is only read on these rare safety turns.
     // Also a "safe"-classified but aggressive self weight-loss plan ("Em muốn uống whey và nhịn bữa tối để giảm 7kg trong 1 tháng",
     // SF-D2 2026-11-08: a 16-year-old got adult advice, no parent/doctor) — skipping meals, N kg in a short time, "cấp tốc".
-    const aggressiveWeightLossPlan = safetyCheck.type === "safe" && AGGRESSIVE_WEIGHT_LOSS_PLAN.test(question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase());
+    const foldedQuestion = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
+    const aggressiveWeightLossPlan = safetyCheck.type === "safe" && (AGGRESSIVE_WEIGHT_LOSS_PLAN.test(foldedQuestion) || WEIGHT_LOSS_GOAL.test(foldedQuestion));
     if ((PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(safetyCheck.type) || aggressiveWeightLossPlan) && userId) {
       try {
         const age = (await profileExtractor.extract(userId, authHeader)).profile?.age;
@@ -1029,6 +1041,7 @@ async function runInner(
 
     let llmAnswer = deterministicAnswer;
     let prompt = "";
+    const minorGeneralInfo = isMinorGeneralKnowledgeQuestion(question);
     let promptTokens = 0;
     let completionTokens = 0;
     let totalTokens = 0;
@@ -1077,6 +1090,8 @@ async function runInner(
           bodyCompAndCoachText || undefined,
         ),
       );
+      // A minor's general safety question reaches the model (instead of the flat redirect) with a hard guardrail.
+      if (minorGeneralInfo) prompt = `${prompt}\n\n${minorGeneralInfoPromptNote(language.responseLanguage)}`;
       try {
         const llmCallOpts = {
           timeoutMs: LLM_TIMEOUT_MS,
@@ -1146,6 +1161,30 @@ async function runInner(
           usedDeterministicFallbackBecauseOfValidation = true;
           fallbackReason = "llm_empty_answer";
         }
+        // A general coaching question the model wrongly called "out of scope" (motivation, habits, comparing yourself to
+        // others online…) gets ONE retry with the scope spelled out, instead of an unrelated canned plan dump
+        // (eval B2-48, 2026-11-11). Only when nothing else owns the turn; any failure falls through to the old fallback.
+        if (
+          safetyCheck.type === "safe" &&
+          isFitnessScopeRefusal(llmAnswer) &&
+          routedIntent.intent === "general_fitness_knowledge" &&
+          !bodyCompositionQuestion &&
+          !parsedInput.mentionsInjury
+        ) {
+          try {
+            const retry = await llmService.callLLM(`${prompt}\n\n${scopeRetryNote(language.responseLanguage)}`, llmCallOpts);
+            const retried = labelLocalizer.localize(retry.answer, language.responseLanguage);
+            if (retried.trim() && !isFitnessScopeRefusal(retried)) {
+              llmAnswer = retried;
+              promptTokens += retry.promptTokens ?? 0;
+              completionTokens += retry.completionTokens ?? 0;
+              totalTokens += retry.totalTokens ?? 0;
+              logger.info({ request_id: trace.traceId }, "AI chat scope refusal recovered by one retry");
+            }
+          } catch (err) {
+            logger.warn({ error: safeErrorMessage(err), request_id: trace.traceId }, "AI chat scope-refusal retry failed; using fallback");
+          }
+        }
         if (
           safetyCheck.type === "safe" &&
           isFitnessScopeRefusal(llmAnswer) &&
@@ -1201,7 +1240,13 @@ async function runInner(
     // The model sometimes copies the prompt's "[...]" format-instruction lines verbatim; never show those.
     if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = stripTemplateArtifacts(llmAnswer);
     // A user who says they have a chronic condition always gets a doctor referral, even if the model forgot it (eval B1-45).
-    if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = appendMedicalReferralNote(question, llmAnswer, language.responseLanguage);
+    if (minorGeneralInfo && needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = appendMinorSupervisionNote(llmAnswer, language.responseLanguage);
+    if (needsLlm && llmAnswer !== deterministicAnswer) llmAnswer = appendMedicalReferralNote(
+      question,
+      llmAnswer,
+      language.responseLanguage,
+      Array.isArray(chatHistory) ? chatHistory.slice(0, 4).map((e: any) => String(e?.question ?? "")) : [],
+    );
 
     const validation = await timeAsync(timing, "validationMs", async () =>
       answerValidator.validate(
