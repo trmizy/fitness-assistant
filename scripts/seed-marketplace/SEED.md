@@ -238,3 +238,18 @@ The last three commands must print `false`: `VNPAY_SIMULATE=true` is set only by
 For a partial or complete rerun, re-enable the seed override first, then use the same command with `--reseed`. No database reset is needed. `fresh` performs an empty-business-data check on first use and requires its matching local `.runtime` receipt for `--reseed`; `partner` requires the explicit environment confirmation and retains collision/production/local-host guards. Never copy a fresh receipt to authorize a different database set. Token and audit rows produced by real authentication are reported separately from business writes.
 
 Seed accounts end in `@seed.gymini.test`; `data_origin` stays REAL. Admin: `marketplace-admin@seed.gymini.test`, password from **Accounts and the three groups** above. Useful logins: `pham-thu-uyen` (client), `tran-minh-khoa` (approved PT), `le-hoang-nam` (pending listing), `dang-quoc-bao` (contract restriction), `hoang-thu-trang` (not accepting clients), `nguyen-truong-thanh` (active owner), `doan-minh-tam` (onboarding owner), `huynh-kim-ngan` (under review), `to-quang-vinh` (changes requested), `cao-van-loc` (suspended owner; login intentionally blocked). Append the seed domain to each slug.
+
+## Scale seed (`--tier scale`, isolated `gymini-scale`)
+
+Used ONLY against the isolated scale stack (`localhost:55440`, `SEED_MARKETPLACE_CONFIRM=scale`) or isolated test container (`--target test --scale-factor 0.01|0.1`). Generates ~25,000 clients, 10,400 PTs (10,000 public + 400 non-public), 900 gym owners / 2,500 branches (700 standalone + 180 medium + 20 large) across 34 C3 provinces, and financially inert (`SYNTHETIC`, `COMPLETED`/`EXPIRED` only) training/membership/review history. Demo credentials are written only to gitignored `scripts/seed-marketplace/.runtime/scale-demo-accounts.txt`.
+
+```powershell
+# Smoke/scale-test on isolated test container (55433)
+node scripts/seed-marketplace/index.mjs --target test --tier scale --scale-factor 0.01
+
+# Full isolated S1-run (only after Phase X passes & stack up)
+$env:SEED_MARKETPLACE_CONFIRM='scale'
+node scripts/seed-marketplace/index.mjs --target scale --tier scale --batch 1000
+# After S1-run finishes, restart user-service scale so its startup background job builds PT discovery stats epoch #1 automatically:
+docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml restart user-service
+```
