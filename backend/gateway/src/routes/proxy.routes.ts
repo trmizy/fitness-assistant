@@ -824,8 +824,8 @@ router.use(
 router.post("/auth/partner-applications/start", partnerApplicationStartLimiter);
 router.use("/auth/partner-applications", partnerApplicationLimiter);
 
+// Apply authRateLimiter only to sensitive credential / OTP / email-spam endpoints;
 // session lifecycle endpoints (/auth/verify, /auth/refresh, /auth/logout, GET/PATCH /auth/me) remain
-// session lifecycle endpoints (/auth/verify, /auth/refresh, /auth/logout, /auth/me*) remain
 // covered by the global rateLimiter (100 req / 60s).
 const SENSITIVE_AUTH_RATE_LIMIT_PATHS = [
   "/auth/login",
