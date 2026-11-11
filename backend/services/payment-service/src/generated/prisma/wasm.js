@@ -386,6 +386,20 @@ exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ReconciliationRunScalarFieldEnum = {
+  id: 'id',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  trigger: 'trigger',
+  triggeredBy: 'triggeredBy',
+  status: 'status',
+  escrowBalance: 'escrowBalance',
+  claimsTotal: 'claimsTotal',
+  drift: 'drift',
+  summary: 'summary',
+  errorCode: 'errorCode'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -581,7 +595,8 @@ exports.Prisma.ModelName = {
   PartnerReceivableEvent: 'PartnerReceivableEvent',
   ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
   ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
-  PaymentWebhookEvent: 'PaymentWebhookEvent'
+  PaymentWebhookEvent: 'PaymentWebhookEvent',
+  ReconciliationRun: 'ReconciliationRun'
 };
 
 /**

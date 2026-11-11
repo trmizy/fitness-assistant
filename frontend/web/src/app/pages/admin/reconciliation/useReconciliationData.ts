@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminService, api } from "../../../services/api";
 import { normalizeObligationsReport, normalizeSessionsReport } from "../adminReconciliation.utils";
 import { normalizeReconciliation, reconciliationFromHttpError, type ReconciliationReport } from "../adminFinanceOverview.utils";
 import { describeAdminError } from "../shared/useAdminError";
-import { normalizeGatewayDiscrepancies } from "./reconciliationView";
+import { normalizeGatewayDiscrepancies, normalizeReconciliationRuns } from "./reconciliationView";
 
 /**
  * Data of "Tài chính › Đối soát". The three reads that already existed keep their query keys AND the exact data shape
@@ -13,6 +13,8 @@ import { normalizeGatewayDiscrepancies } from "./reconciliationView";
  */
 export const RECON_KEYS = {
   balance: ["admin", "finance", "reconciliation"] as const,
+  /** G-06 run history. Starts with the balance key, so "Làm mới" (prefix invalidation) refreshes it together with the balance. */
+  runs: ["admin", "finance", "reconciliation", "runs"] as const,
   obligations: ["admin", "finance", "obligations-report"] as const,
   sessions: ["admin", "finance", "sessions-reconciliation"] as const,
   gateway: ["admin", "finance", "gateway-discrepancies"] as const,
@@ -97,4 +99,40 @@ export function useExceptionReports(opts: { gateway: boolean }) {
   const sessions = useQuery({ queryKey: RECON_KEYS.sessions, queryFn: fetchSessionsReport, refetchInterval: POLL_MS, ...OPTIONS });
   const gateway = useQuery({ queryKey: RECON_KEYS.gateway, enabled: opts.gateway, queryFn: fetchGatewayDiscrepancies, refetchInterval: POLL_MS, ...OPTIONS });
   return { payment, sessions, gateway };
+}
+
+/** G-06 — the history of balance checks, newest first. Same axios instance (auth header, base URL, refresh) as every admin call. */
+export const RUNS_PAGE_SIZE = 20;
+
+export async function fetchReconciliationRuns(offset: number) {
+  const { data } = await api.get("/admin/payments/reconciliation/runs", { params: { limit: RUNS_PAGE_SIZE, offset } });
+  const page = normalizeReconciliationRuns(data);
+  if (!page) throw malformed();
+  return page;
+}
+
+export function useReconciliationRuns(offset: number) {
+  return useQuery({ queryKey: [...RECON_KEYS.runs, offset], queryFn: () => fetchReconciliationRuns(offset), placeholderData: keepPreviousData, ...OPTIONS });
+}
+
+/**
+ * G-06 - "Chạy đối soát và lưu": POST asks the server to run the balance check and record ONE run. It is the only write of this
+ * screen and never touches money. On success the run history and the balance are re-read.
+ */
+export async function postReconciliationRun() {
+  const { data } = await api.post("/admin/payments/reconciliation/runs");
+  return data as { run?: unknown };
+}
+
+export function useRunReconciliation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: postReconciliationRun,
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: RECON_KEYS.runs }),
+        qc.invalidateQueries({ queryKey: RECON_KEYS.balance }),
+      ]);
+    },
+  });
 }

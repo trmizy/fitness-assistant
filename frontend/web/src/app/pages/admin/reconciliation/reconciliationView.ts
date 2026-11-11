@@ -12,7 +12,9 @@
 import {
   centsToDong,
   formatDong,
+  formatMoneyExact,
   formatMoneyString,
+  formatVnDateTime,
   parseCents,
   type ReconciliationReport,
 } from "../adminFinanceOverview.utils";
@@ -370,3 +372,84 @@ export function negativeWalletViews(r: ReconciliationReport): NegativeWalletView
     };
   });
 }
+
+// ───────────────────────────────────────────────────────── G-06 — lịch sử đối soát ──
+/**
+ * G-06. P3 (`GET /admin/payments/reconciliation`) keeps its contract: 200 when balanced, 409 `{ success:false, data }` when not
+ * (read via `reconciliationFromHttpError`). It writes nothing; the history is written by `POST .../reconciliation/runs` only.
+ */
+
+/** What the "Chạy đối soát và lưu" button says when the POST fails. 429 = this admin ran it a moment ago; anything else = nothing was saved. */
+export function runReconciliationErrorText(error: unknown): string {
+  const status = (error as { response?: { status?: number } } | null | undefined)?.response?.status;
+  if (status === 429) return "Vừa chạy xong, thử lại sau ít giây.";
+  if (status === 401 || status === 403) return "Tài khoản này không có quyền chạy đối soát hoặc phiên đăng nhập đã hết hạn.";
+  if (status === 500) return "Máy chủ không chạy được đối soát. Chưa có kết quả nào được lưu.";
+  return "Không chạy được đối soát lúc này. Chưa có kết quả nào được lưu.";
+}
+
+export type RunStatus = "BALANCED" | "DRIFT" | "ERROR";
+export type RunTrigger = "ADMIN" | "JOB";
+export type RunTone = "success" | "danger" | "warning";
+
+export const RUN_STATUS_LABEL: Record<RunStatus, string> = { BALANCED: "Cân bằng", DRIFT: "Lệch sổ", ERROR: "Lỗi khi đối soát" };
+export const RUN_STATUS_TONE: Record<RunStatus, RunTone> = { BALANCED: "success", DRIFT: "danger", ERROR: "warning" };
+export const RUN_TRIGGER_LABEL: Record<RunTrigger, string> = { ADMIN: "Quản trị viên", JOB: "Hệ thống tự chạy" };
+
+export const runStatusLabel = (s: string | null | undefined) => (s && RUN_STATUS_LABEL[s as RunStatus]) || "Không rõ";
+export const runStatusTone = (s: string | null | undefined): RunTone => (s && RUN_STATUS_TONE[s as RunStatus]) || "warning";
+export const runTriggerLabel = (t: string | null | undefined) => (t && RUN_TRIGGER_LABEL[t as RunTrigger]) || "Không rõ";
+
+export interface ReconciliationRunRow {
+  id: string;
+  startedAt: string;
+  status: string;
+  trigger: string;
+  /** Raw decimal string as stored, or null (an ERROR run has no figures). */
+  drift: string | null;
+  escrowBalance: string | null;
+  claimsTotal: string | null;
+  errorCode: string | null;
+}
+
+export interface ReconciliationRunsPage {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  items: ReconciliationRunRow[];
+}
+
+const strOrNull = (v: unknown): string | null => (typeof v === "string" ? v : null);
+
+/** `GET /admin/payments/reconciliation/runs`. A body that is not that shape → `null` (the caller shows a load error, not an empty history). */
+export function normalizeReconciliationRuns(raw: unknown): ReconciliationRunsPage | null {
+  const o = raw as Record<string, unknown> | null | undefined;
+  if (!o || typeof o !== "object" || !Array.isArray(o.items)) return null;
+  const int = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const total = int(o.total);
+  const limit = int(o.limit);
+  const offset = int(o.offset);
+  if (total === null || limit === null || offset === null) return null;
+  const items: ReconciliationRunRow[] = [];
+  for (const r of o.items) {
+    const row = r as Record<string, unknown> | null;
+    if (!row || typeof row.id !== "string" || typeof row.startedAt !== "string") return null;
+    items.push({
+      id: row.id,
+      startedAt: row.startedAt,
+      status: typeof row.status === "string" ? row.status : "",
+      trigger: typeof row.trigger === "string" ? row.trigger : "",
+      drift: strOrNull(row.drift),
+      escrowBalance: strOrNull(row.escrowBalance),
+      claimsTotal: strOrNull(row.claimsTotal),
+      errorCode: strOrNull(row.errorCode),
+    });
+  }
+  return { total, limit, offset, hasMore: o.hasMore === true, items };
+}
+
+/** The drift of one run: the exact stored amount; "—" when the run has none (never "0 ₫" for an ERROR run). */
+export const runDriftText = (r: Pick<ReconciliationRunRow, "drift" | "status">): string => (r.status === "ERROR" ? "—" : formatMoneyExact(r.drift));
+
+export const runTimeText = (r: Pick<ReconciliationRunRow, "startedAt">): string => formatVnDateTime(r.startedAt);
