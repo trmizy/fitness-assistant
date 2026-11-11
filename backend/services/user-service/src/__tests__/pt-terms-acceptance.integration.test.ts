@@ -110,7 +110,9 @@ test("the served text: one versioned source, every clause has a body, internal s
   const r = await call("GET", "/pt-applications/terms", tokenFor(u, "CUSTOMER"));
   assert.equal(r.status, 200);
   assert.equal(r.body.version, PT_TERMS_VERSION);
-  assert.equal(r.body.isDraft, true, "the wording is a DRAFT until the owner approves it");
+  assert.equal(r.body.isDraft, false, "official since the owner's release (11/11/2026): version 2026-11-pt-v1");
+  assert.equal(r.body.version, "2026-11-pt-v1");
+  assert.doesNotMatch(JSON.stringify(r.body), /bản nháp|đang chờ rà soát pháp lý/, "no draft notice is served");
   assert.equal(r.body.sections.length, PT_TERMS_SECTIONS.length);
   for (const s of r.body.sections) {
     assert.ok(s.title && s.body.length > 0, `section ${s.id} has text`);
@@ -258,6 +260,28 @@ test("VERSION BUMP / OLD VERSION: a confirmation of an older version does not op
 
   assert.equal((await call("POST", "/pt-applications/terms/accept", tok, { version: PT_TERMS_VERSION })).status, 200);
   assert.equal((await termsRows(pt)).length, 2, "history is kept: the old confirmation stays, the new one is added");
+  assert.equal((await call("PATCH", `/contracts/${c.id}/accept`, tok)).status, 200);
+});
+
+test("OFFICIAL RELEASE 2026-11-pt-v1: a PT who only confirmed the old draft id (2026-10-pt-draft-6) does NOT pass the gate, must re-confirm the official id, and cannot re-confirm the draft id", { skip }, async () => {
+  const pt = await makePt();
+  created.push(pt);
+  const tok = tokenFor(pt, "PT");
+  await prisma.ptTermsAcceptance.create({ data: { userId: pt, version: "2026-10-pt-draft-6", source: "RECONFIRM" } });
+  const c = await reviewContract(pt);
+
+  let r = await call("GET", "/pt-applications/terms", tok);
+  assert.deepEqual([r.body.version, r.body.isDraft], ["2026-11-pt-v1", false]);
+  assert.deepEqual([r.body.accepted, r.body.mustReconfirm, r.body.previouslyAcceptedVersion], [false, true, "2026-10-pt-draft-6"], "the draft row is history only");
+  r = await call("PATCH", `/contracts/${c.id}/accept`, tok);
+  assert.deepEqual([r.status, r.body.code, r.body.termsVersion], [409, "PT_TERMS_NOT_ACCEPTED", "2026-11-pt-v1"]);
+  assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).status, "PENDING_REVIEW");
+
+  r = await call("POST", "/pt-applications/terms/accept", tok, { version: "2026-10-pt-draft-6" });
+  assert.deepEqual([r.status, r.body.code, r.body.termsVersion], [409, "PT_TERMS_VERSION_MISMATCH", "2026-11-pt-v1"], "the retired draft id can no longer be confirmed");
+
+  assert.equal((await call("POST", "/pt-applications/terms/accept", tok, { version: "2026-11-pt-v1" })).status, 200);
+  assert.deepEqual((await termsRows(pt)).map((x) => x.version).sort(), ["2026-10-pt-draft-6", "2026-11-pt-v1"], "history kept: the draft row stays, the official one is added");
   assert.equal((await call("PATCH", `/contracts/${c.id}/accept`, tok)).status, 200);
 });
 

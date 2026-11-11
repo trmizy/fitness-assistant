@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 export const SCALE_NAMESPACE = "gymini-scale-v1";
 export const SCALE_EMAIL_DOMAIN = "scale.gymini.test";
 export const SCALE_EPOCH = new Date("2026-11-11T00:00:00.000Z");
-export const PT_TERMS_VERSION = "2026-10-pt-draft-6";
+export const PT_TERMS_VERSION = "2026-11-pt-v1";
 
 export const PHOTO_REUSE_CAP = 40;
 
