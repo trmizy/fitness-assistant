@@ -65,3 +65,13 @@ test("sanitizeOptionalMetrics drops NaN/empty values and rounds BMR to the Int c
   assert.deepEqual(sanitizeOptionalMetrics({ weight: 80, bmr: Number.NaN, visceralFat: "" }), { weight: 80 });
   assert.deepEqual(sanitizeOptionalMetrics({ weight: 80 }), { weight: 80 });
 });
+
+// Vision test 2026-11-11: a day-first date read month-first lands in the future; swap it back only when that is valid and past.
+test("fixDayMonthSwap repairs a future month-first reading, never a plausible date", async () => {
+  const { fixDayMonthSwap } = await import("../services/inbody.service");
+  const now = new Date("2026-11-11T00:00:00Z");
+  assert.equal(fixDayMonthSwap("2026-12-08", now), "2026-08-12");
+  assert.equal(fixDayMonthSwap("2026-08-07", now), "2026-08-07");
+  assert.equal(fixDayMonthSwap("2026-12-25", now), "2026-12-25", "day > 12 cannot be a swap");
+  assert.equal(fixDayMonthSwap("2027-03-04", now), "2027-03-04", "swap would still be future");
+});

@@ -64,6 +64,23 @@ export function sanitizeOptionalMetrics<T extends Record<string, any>>(data: T):
   return out as T;
 }
 
+/**
+ * InBody prints the test date day-first ("07. 08. 2026"); a vision model occasionally reads it month-first. A measurement can
+ * never be in the future, so a future date whose day/month swap is a valid past date is swapped back (vision test 2026-11-11:
+ * "08.12.2026" read as 2026-12-08 for a report from August). Anything else is returned unchanged for the user to confirm.
+ */
+export function fixDayMonthSwap(isoDate: string, now: Date = new Date()): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!m) return isoDate;
+  const today = now.toISOString().slice(0, 10);
+  if (isoDate <= today) return isoDate;
+  const [, y, mo, d] = m;
+  if (Number(d) > 12) return isoDate;
+  const swapped = `${y}-${d}-${mo}`;
+  const check = new Date(`${swapped}T00:00:00Z`);
+  return !isNaN(check.getTime()) && check.toISOString().slice(0, 10) === swapped && swapped <= today ? swapped : isoDate;
+}
+
 export const inbodyService = {
   async getHistory(userId: string) {
     return inbodyRepository.findByUserId(userId);
@@ -213,7 +230,7 @@ export const inbodyService = {
         const parsed = new Date(cleaned);
         if (!isNaN(parsed.getTime()) && cleaned.length >= 8) {
           // Return as YYYY-MM-DD
-          measurementDate = parsed.toISOString().slice(0, 10);
+          measurementDate = fixDayMonthSwap(parsed.toISOString().slice(0, 10));
         }
       }
 
