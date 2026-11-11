@@ -824,10 +824,24 @@ router.use(
 router.post("/auth/partner-applications/start", partnerApplicationStartLimiter);
 router.use("/auth/partner-applications", partnerApplicationLimiter);
 
+// session lifecycle endpoints (/auth/verify, /auth/refresh, /auth/logout, GET/PATCH /auth/me) remain
+// session lifecycle endpoints (/auth/verify, /auth/refresh, /auth/logout, /auth/me*) remain
+// covered by the global rateLimiter (100 req / 60s).
+const SENSITIVE_AUTH_RATE_LIMIT_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/register/verify",
+  "/auth/register/resend",
+  "/auth/password-reset",
+  "/auth/password-reset/request",
+];
+router.post(SENSITIVE_AUTH_RATE_LIMIT_PATHS, authRateLimiter);
+// Change password requires the current password -> password-guessing surface, keep the strict limiter.
+router.patch("/auth/me/password", authRateLimiter);
+
 // Public — Auth Service
 router.use(
   "/auth",
-  authRateLimiter,
   createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
