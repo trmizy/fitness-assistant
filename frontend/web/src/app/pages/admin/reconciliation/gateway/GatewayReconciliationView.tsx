@@ -8,7 +8,6 @@ import { ShortIdCopy, SkeletonBlock, TxnStatusPill } from "../../finance/transac
 import { FOCUS, Rows, type Column } from "../ExceptionParts";
 import { ForbiddenPanel, LevelNote, useNow } from "../ReconStates";
 import { errorView } from "../useReconciliationData";
-import { GATEWAY_CHIP_REASON } from "../reconciliationView";
 import {
   EMPTY_TEXT,
   ITEM_CAP,
@@ -32,10 +31,12 @@ import {
   type GatewayItem,
 } from "./gatewayReconciliationModel";
 import { useGatewayReconciliation } from "./useGatewayReconciliation";
+import { L3_STATUS_NOTE } from "./vnpayL3Model";
+import { VnpayL3Section } from "./VnpayL3Section";
 
 /**
  * Chip "Đối chiếu cổng ↔ Gymini (L2)". READ ONLY — there is no action on this screen.
- * L2 = what the gateways sent back and Gymini stored; it is NOT an independent comparison with the gateways' settlement files (L3, no source yet).
+ * L2 = what the gateways sent back and Gymini stored. L3 (asking VNPay directly; VNPay only; on demand) is the separate section at the bottom.
  * The day range lives in the URL (`?from&to`); loading / error / 403 are states, never "no discrepancy".
  */
 
@@ -145,7 +146,7 @@ export function GatewayReconciliationView() {
 
       <LevelNote level="L2" testId="gw-level-note" text={`Mức L2 — ${L2_BANNER_TEXT} Chỉ đọc: màn hình này không có thao tác nào.`} />
       <p data-testid="gw-l3-note" className="text-[11px] leading-relaxed text-adm-text-2">
-        Đối soát độc lập với báo cáo quyết toán của cổng/ngân hàng: {GATEWAY_CHIP_REASON}. Gymini không hiện số liệu giả thay cho phần này.
+        {L3_STATUS_NOTE}
       </p>
 
       <div role="group" aria-label="Khoảng thời gian đối chiếu" data-testid="gw-range" className="flex flex-wrap items-end gap-3">
@@ -233,6 +234,8 @@ export function GatewayReconciliationView() {
           )}
         </div>
       )}
+
+      <VnpayL3Section />
     </div>
   );
 }

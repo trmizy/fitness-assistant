@@ -59,13 +59,13 @@ const UNPROCESSED_GRACE_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
-const isoDate = z
+export const gatewayIsoDate = z
   .string()
   .refine((s) => ISO_DATE_RE.test(s) && !Number.isNaN(Date.parse(s)), 'ngày không hợp lệ')
   .transform((s) => new Date(s));
 
 export const gatewayReconciliationQuerySchema = z
-  .object({ from: isoDate.optional(), to: isoDate.optional() })
+  .object({ from: gatewayIsoDate.optional(), to: gatewayIsoDate.optional() })
   .strict();
 
 export type GatewayReconciliationQuery = z.output<typeof gatewayReconciliationQuerySchema>;
