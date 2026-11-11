@@ -900,6 +900,12 @@ function estimatePlanNumPredict(
   // fallback catalog repair that discards the LLM's actual exercise
   // selection. num_ctx=8192 leaves enough headroom (typical prompts run
   // ~3500 tokens) for the higher budget.
+  // Hosted models (Bedrock Nova / Claude) are wordier per exercise object: Nova Pro used 1969 tokens for 3x5 = 15 exercises, so a
+  // 4x5 plan needed > 2048 and was cut off mid-JSON on both attempts ("did not return any JSON", eval adj W07 2026-11-11). Their
+  // output is billed per token actually produced, so a generous ceiling costs nothing on short plans.
+  if (process.env.LLM_PROVIDER === "bedrock" || process.env.LLM_PROVIDER === "anthropic") {
+    return clampInt(600 + exerciseObjects * 140, 2048, 5000);
+  }
   return clampInt(430 + exerciseObjects * 80, 650, 4500);
 }
 

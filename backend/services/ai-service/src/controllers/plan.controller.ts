@@ -13,6 +13,31 @@ import {
 import { llmService } from "../services/llm.service";
 import { ExplainUnavailableError, EXPLAIN_UNAVAILABLE_MESSAGE_VI, generateAiExplanation, nutritionExplanationRequest, workoutExplanationRequest } from "../services/plan-explanation";
 import { extractNutritionConstraints, unsupportedRestrictionMessage, isKnownExclusionKey } from "../services/nutrition-food-constraints";
+import { getActiveNutritionGoal } from "../services/enterprise-data/nutrition.reader";
+
+/**
+ * P1 fix (2026-11-11, adjust eval): a nutrition plan generated without an explicit calorie target used the processor's
+ * hard-coded 2200 kcal instead of the user's NutritionGoal — the web form's calorie field is optional and empty by default,
+ * and "Điều chỉnh" never sent a target at all, so a 52-year-old with a 1253 kcal goal got a 2200 kcal "weight-loss" menu.
+ * NutritionGoal is the authoritative prescription: when the caller gives no calorie target, the ACTIVE goal's
+ * calories + macros are used (read-only). Explicit numbers the user typed are kept. `fallback` (the original plan's own
+ * target, for an adjustment) is used only when there is no active goal.
+ */
+export async function resolveNutritionTargets(
+  userId: string,
+  authorizationHeader: string | undefined,
+  supplied: { dailyCaloriesTarget?: unknown },
+  fallback?: { dailyCaloriesTarget?: number; proteinTargetG?: number; carbTargetG?: number; fatTargetG?: number },
+): Promise<{ dailyCaloriesTarget?: number; proteinTargetG?: number; carbTargetG?: number; fatTargetG?: number; source: "user" | "nutrition_goal" | "original_plan" | "none" }> {
+  if (typeof supplied.dailyCaloriesTarget === "number" && supplied.dailyCaloriesTarget > 0) return { source: "user" };
+  const goal = await getActiveNutritionGoal({ userId, authorizationHeader }).catch(() => null);
+  if (goal && goal.status === "ok" && goal.value) {
+    const g = goal.value;
+    return { dailyCaloriesTarget: Math.round(g.calories), proteinTargetG: Math.round(g.protein), carbTargetG: Math.round(g.carbs), fatTargetG: Math.round(g.fat), source: "nutrition_goal" };
+  }
+  if (fallback?.dailyCaloriesTarget) return { ...fallback, source: "original_plan" };
+  return { source: "none" };
+}
 import {
   ApiError,
   RateLimitedError,
@@ -190,8 +215,12 @@ export const planController = {
     try {
       if (!(await ensureLlmAvailable(res))) return;
 
+      // The user's active NutritionGoal fills the target only when they typed none; any number they did type wins (body last).
+      const { source: targetSource, ...goalTargets } = await resolveNutritionTargets(userId, req.headers.authorization, req.body ?? {});
+      logger.info({ userId, targetSource }, "Nutrition plan target resolved");
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
+        ...goalTargets,
         ...req.body,
         idempotencyKey: idempotencyKeyFrom(req, "nutrition"),
       });
@@ -1097,8 +1126,19 @@ export const planController = {
 
       if (!(await ensureLlmAvailable(res))) return;
 
+      // An adjustment keeps the plan on the user's CURRENT NutritionGoal; the original plan's own target is only the fallback.
+      const prior = (plan.plan ?? {}) as any;
+      const { source: targetSource, ...goalTargets } = await resolveNutritionTargets(userId, req.headers.authorization, {}, {
+        dailyCaloriesTarget: Number(prior.dailyCaloriesTarget) || undefined,
+        proteinTargetG: Number(prior.proteinTargetGrams) || undefined,
+        carbTargetG: Number(prior.carbTargetGrams) || undefined,
+        fatTargetG: Number(prior.fatTargetGrams) || undefined,
+      });
+      logger.info({ userId, planId, targetSource }, "Nutrition adjustment target resolved");
+
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
+        ...goalTargets,
         goal: plan.goal || "General Health",
         durationWeeks: 1,
         mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
