@@ -80,9 +80,11 @@ describe("ADMIN_NAV structure", () => {
     for (const p of LEGACY_SIDEBAR_PATHS) assert.ok(paths.has(p), `missing sidebar entry for ${p}`);
   });
 
-  it("does not add a Transactions entry (needs backend G-04/G-05)", () => {
-    assert.ok(!ADMIN_NAV_ITEMS.some((i) => /transactions/.test(i.to)));
-    assert.ok(!ADMIN_FINANCE_TABS.some((t) => /transactions/.test(t.to)));
+  it("has the read-only Transactions entry (B7: backend G-04/G-05) in the Tài chính group, between Đối soát and Rút tiền", () => {
+    const fin = ADMIN_NAV.find((g) => g.id === "finance")!;
+    assert.deepEqual(fin.items.map((i) => i.to.split("/").pop()), ["finance", "reconciliation", "transactions", "withdrawals", "refunds"]);
+    assert.equal(fin.items.find((i) => i.id === "finance-transactions")?.label, "Giao dịch");
+    assert.ok(ADMIN_FINANCE_TABS.some((t) => t.key === "transactions" && t.to === "/admin/finance/transactions"));
   });
 
   it("the disputes item is a plain link (no badge — owned by another workstream)", () => {
@@ -163,9 +165,9 @@ describe("findActiveNavItem / breadcrumb", () => {
 });
 
 describe("finance tabs", () => {
-  it("four tabs whose keys are the legacy ?tab= values and paths are unique", () => {
-    assert.deepEqual(ADMIN_FINANCE_TABS.map((t) => t.key), ["overview", "reconciliation", "withdrawals", "refunds"]);
-    assert.equal(new Set(ADMIN_FINANCE_TABS.map((t) => t.to)).size, 4);
+  it("five tabs whose keys are the legacy ?tab= values and paths are unique", () => {
+    assert.deepEqual(ADMIN_FINANCE_TABS.map((t) => t.key), ["overview", "reconciliation", "transactions", "withdrawals", "refunds"]);
+    assert.equal(new Set(ADMIN_FINANCE_TABS.map((t) => t.to)).size, 5);
     assert.equal(ADMIN_FINANCE_TABS.filter((t) => t.end).length, 1);
   });
 

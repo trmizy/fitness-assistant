@@ -33,6 +33,80 @@ export const MIN_WITHDRAWAL_AMOUNT: Prisma.Decimal = (() => {
 })();
 
 /**
+ * BE-2 "four-eyes" on large withdrawals (Ngài's decision 10/11/2026): for a request whose amount is
+ * >= this threshold, the admin who CONFIRMS IT WAS PAID (markPaid, the money-out step) must be a
+ * DIFFERENT admin from the one who approved it (WithdrawalRequest.reviewedBy). Below it nothing
+ * changes. The single ADMIN role is kept — this is a separation of duties between two people, not a
+ * new role. Admin refunds are not covered.
+ *
+ * Env WITHDRAWAL_FOUR_EYES_MIN_VND, default 5,000,000. Parsed strictly (plain positive integer);
+ * anything else falls back to the default with one warning per distinct bad value. Read per call
+ * (not at module load) so a test can set it, and compared as Prisma.Decimal — no float math.
+ */
+export const DEFAULT_FOUR_EYES_MIN_VND = 5000000;
+const warnedFourEyesValues = new Set<string>();
+
+export function parseFourEyesMinAmount(raw: string | undefined | null): Prisma.Decimal {
+  if (raw === undefined || raw === null || raw.trim() === '') return new Prisma.Decimal(DEFAULT_FOUR_EYES_MIN_VND);
+  const text = raw.trim();
+  if (/^[0-9]+$/.test(text)) {
+    const parsed = new Prisma.Decimal(text);
+    if (parsed.greaterThan(0)) return parsed;
+  }
+  if (!warnedFourEyesValues.has(text)) {
+    warnedFourEyesValues.add(text);
+    logger.warn({
+      message: 'WITHDRAWAL_FOUR_EYES_MIN_VND is not a positive integer — using the default',
+      value: text,
+      default: DEFAULT_FOUR_EYES_MIN_VND,
+    });
+  }
+  return new Prisma.Decimal(DEFAULT_FOUR_EYES_MIN_VND);
+}
+
+export function getFourEyesMinAmount(): Prisma.Decimal {
+  return parseFourEyesMinAmount(process.env.WITHDRAWAL_FOUR_EYES_MIN_VND);
+}
+
+/** "5.000.000" — the threshold as shown in Vietnamese text (whole đồng, dot-grouped). */
+function formatThresholdVnd(threshold: Prisma.Decimal): string {
+  return threshold.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+export function isFourEyesRequired(amount: Prisma.Decimal, threshold: Prisma.Decimal = getFourEyesMinAmount()): boolean {
+  return amount.greaterThanOrEqualTo(threshold);
+}
+
+/**
+ * Throws FOUR_EYES_REQUIRED when `adminId` may not confirm this payout. A request that was never
+ * approved (still PENDING, reviewedBy null) is refused too for a large amount: the old "pay straight
+ * from PENDING" shortcut would let one admin approve AND pay in a single call, which is exactly what
+ * the rule forbids — so a large request must be approved first by one admin and paid by another.
+ */
+function assertFourEyes(
+  request: { amount: Prisma.Decimal; status: string; reviewedBy: string | null },
+  adminId: string,
+) {
+  const threshold = getFourEyesMinAmount();
+  if (!isFourEyesRequired(request.amount, threshold)) return;
+  const label = formatThresholdVnd(threshold);
+  if (request.status === 'PENDING' || !request.reviewedBy) {
+    throw err(
+      `Khoản rút từ ${label} ₫ trở lên cần được duyệt trước bởi một quản trị viên, rồi một quản trị viên khác xác nhận đã chi.`,
+      409,
+      'FOUR_EYES_REQUIRED',
+    );
+  }
+  if (request.reviewedBy === adminId) {
+    throw err(
+      `Khoản rút từ ${label} ₫ trở lên cần một quản trị viên khác với người đã duyệt xác nhận đã chi.`,
+      409,
+      'FOUR_EYES_REQUIRED',
+    );
+  }
+}
+
+/**
  * WalletLedgerEntry.transactionId is a hard FK to PaymentTransaction — every other caller of
  * withWallets passes the id of the real gateway transaction the movement traces back to. A
  * withdrawal payout is outbound money with no such origin (unlike a REFUND, which reuses the
@@ -157,8 +231,22 @@ export const withdrawalService = {
     return withdrawalRepository.findByWallet(wallet.id);
   },
 
+  /**
+   * Admin queue. Every row keeps its original fields; BE-2 adds, per item (the response stays a flat
+   * array so the existing frontend keeps working): `fourEyesRequired` (this amount needs two admins),
+   * `approvedBy` (= reviewedBy, the admin who approved; null while PENDING) and `fourEyesMinAmount`
+   * (the configured threshold as an exact string, e.g. "5000000.00").
+   */
   async listPending() {
-    return withdrawalRepository.listPending();
+    const rows = await withdrawalRepository.listPending();
+    const threshold = getFourEyesMinAmount();
+    const minAmount = threshold.toFixed(2);
+    return rows.map((r) => ({
+      ...r,
+      fourEyesRequired: isFourEyesRequired(r.amount, threshold),
+      approvedBy: r.reviewedBy ?? null,
+      fourEyesMinAmount: minAmount,
+    }));
   },
 
   async listByStatus(status: WithdrawalRequestStatus) {
@@ -250,6 +338,10 @@ export const withdrawalService = {
     if (request.status !== 'PENDING' && request.status !== 'APPROVED') {
       throw err(`Không thể chi trả một yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
     }
+    // BE-2 fast path: refuse BEFORE the payout PaymentTransaction row is created, so a refused
+    // attempt writes nothing. Only a snapshot read — the authoritative check re-runs below inside
+    // the wallet lock, on the re-read row.
+    assertFourEyes(request, adminId);
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
     const escrowWallet = await walletService.getEscrowWallet();
@@ -267,6 +359,10 @@ export const withdrawalService = {
       if (current.status !== 'PENDING' && current.status !== 'APPROVED') {
         throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
       }
+      // BE-2 authoritative four-eyes check: same wallet lock + same transaction as the status
+      // change, on the freshly re-read row, so a concurrent approve/pay cannot slip past it. A
+      // refusal throws inside withWallets -> the transaction rolls back, nothing is written.
+      assertFourEyes(current, adminId);
       return withIdempotentLedgerOp(ops, `WITHDRAWAL:${request.id}`, async () => {
         if (current.status === 'PENDING') {
           // Never explicitly approved — lock it now, in the same operation, so a request paid
@@ -296,6 +392,16 @@ export const withdrawalService = {
           },
         });
       });
+    }).then((paid) => {
+      // There is no paidBy column, so who confirmed the payout is recorded here (after commit).
+      logger.info({
+        message: 'Withdrawal paid',
+        withdrawalId: id,
+        approvedBy: paid.reviewedBy ?? null,
+        paidBy: adminId,
+        fourEyesRequired: isFourEyesRequired(paid.amount),
+      });
+      return paid;
     }).catch((e) => {
       logger.error({ error: 'Withdrawal markPaid failed', withdrawalId: id, message: (e as Error).message });
       throw e;

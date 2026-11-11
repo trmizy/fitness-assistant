@@ -14,6 +14,7 @@ import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
 import { assertRefundNotBypassingCase, RefundGuardError } from '../services/refund-case-guard';
+import { adminTransactionsQuerySchema, adminTransactionsService, isUuid } from '../services/admin-transactions.service';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -30,6 +31,35 @@ router.use(extractUser, requireAuth, requireRoles('ADMIN'));
 
 // FH-4 part 2 - read-only obligations report (must stay above the '/:id/...' routes below).
 router.use('/obligations', adminObligationsRoutes);
+
+// BE-1 (G-04 / G-05 / G-14) - read-only finance transaction list + detail (whitelisted DTOs, see admin-transactions.service.ts).
+// Registered before every '/:id/...' route below so these static paths can never be shadowed. Error body: { error, code }.
+router.get('/transactions', async (req: Request, res: Response) => {
+  const parsed = adminTransactionsQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Tham số truy vấn không hợp lệ.', code: 'INVALID_QUERY' });
+  }
+  try {
+    return res.json(await adminTransactionsService.list(parsed.data));
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] admin transactions list failed');
+    return res.status(500).json({ error: 'Không tải được danh sách giao dịch.', code: 'TRANSACTIONS_LIST_FAILED' });
+  }
+});
+
+router.get('/transactions/:id', async (req: Request, res: Response) => {
+  if (!isUuid(req.params.id)) {
+    return res.status(400).json({ error: 'Mã giao dịch không hợp lệ.', code: 'INVALID_ID' });
+  }
+  try {
+    const detail = await adminTransactionsService.detail(req.params.id);
+    if (!detail) return res.status(404).json({ error: 'Không tìm thấy giao dịch.', code: 'TRANSACTION_NOT_FOUND' });
+    return res.json(detail);
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] admin transaction detail failed');
+    return res.status(500).json({ error: 'Không tải được chi tiết giao dịch.', code: 'TRANSACTION_DETAIL_FAILED' });
+  }
+});
 
 // GET /admin/payments — real transaction list (was a hardcoded empty array
 // regardless of what data actually existed).
