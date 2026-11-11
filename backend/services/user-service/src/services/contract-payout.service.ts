@@ -25,7 +25,7 @@ import {
 } from "../repositories/session-settlement.repository";
 import { invalidMoneyFigures, ledgerRefusalOf, settlingD65bEnabled } from "./session-settlement-answers";
 import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
-import { declaredEndingNoticeHooks } from "./contract-termination-notices";
+import { declaredEndingNoticeHooks, platformEndingNoticeHooks } from "./contract-termination-notices";
 
 /** Every termination reason ends the contract in exactly one of these two final states. */
 function statusFor(reason: string): ContractStatus {
@@ -962,11 +962,19 @@ const terminationHookRegistry = new Map<string, () => TerminationHooks>();
 export function registerTerminationHooks(reason: TerminationReason, factory: () => TerminationHooks): void {
   terminationHookRegistry.set(reason, factory);
 }
+/** The hooks the registry holds for `reason` (undefined when none) - exposed so a test can prove an ending reason is wired. */
+export function registeredTerminationHooks(reason: TerminationReason): TerminationHooks | undefined {
+  return terminationHookRegistry.get(reason)?.();
+}
 
 // C2-05: the reasons a party declares themselves tell the other party (and, for PT_CANCELLED, confirm to the PT) after the commit.
 registerTerminationHooks("PT_CANCELLED", () => declaredEndingNoticeHooks("PT_CANCELLED"));
 registerTerminationHooks("CLIENT_CANCELLED", () => declaredEndingNoticeHooks("CLIENT_CANCELLED"));
 registerTerminationHooks("PT_REPEATED_NO_SHOW", () => declaredEndingNoticeHooks("PT_REPEATED_NO_SHOW"));
+// NB-01: the endings the admin / the platform decides tell both parties too (MUTUAL is admin-only; the PT-lock unwind passes its own hooks).
+registerTerminationHooks("MUTUAL", () => platformEndingNoticeHooks("MUTUAL"));
+registerTerminationHooks("EXPIRED", () => platformEndingNoticeHooks("EXPIRED"));
+registerTerminationHooks("SERVICE_DISCONTINUED_BY_PLATFORM", () => platformEndingNoticeHooks("SERVICE_DISCONTINUED_BY_PLATFORM"));
 
 export interface ContractTerminationResult {
   /** The reason the ending carries: the one RECORDED with it (D59) - which is not the requested one when an earlier ending was resumed. */

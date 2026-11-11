@@ -18,6 +18,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
 import { gymService, collaborationService } from "../../services/api";
 import { partneredPtCount as partneredPtCountFor } from "../../utils/brandPartnership";
+import { useStaffRole } from "../../hooks/useStaffRole";
+import { canViewCollaborations, canViewWallet } from "../../utils/gymStaffRole";
 import { formatVND } from "../../utils/currency";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { EntityCard } from "../../components/ui/EntityCard";
@@ -187,6 +189,10 @@ export function GymOwnerDashboard() {
   });
 
   const [selectedGymId, setSelectedGymId] = useState<string>("");
+  // ND-01: ví và cộng tác chỉ dành cho chủ (kế toán có ví nhưng không vào trang này) — quản lý không gọi để khỏi nhận 403.
+  const { role: staffRole } = useStaffRole();
+  const showWallet = canViewWallet(staffRole);
+  const showCollaborations = canViewCollaborations(staffRole);
 
   const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
     queryKey: ["owned-gyms"],
@@ -198,7 +204,7 @@ export function GymOwnerDashboard() {
   const { data: wallet, isLoading: walletLoading } = useQuery({
     queryKey: ["owned-gym-wallet", activeGymId],
     queryFn: () => gymService.getOwnedWallet(activeGymId),
-    enabled: !!activeGymId,
+    enabled: !!activeGymId && showWallet,
   });
 
   // Gói hội viên thuộc THƯƠNG HIỆU, không thuộc từng chi nhánh (một chủ = một thương hiệu), nên
@@ -246,6 +252,7 @@ export function GymOwnerDashboard() {
   const { data: collaborations = [] } = useQuery<Collaboration[]>({
     queryKey: ["owner-collaborations"],
     queryFn: () => collaborationService.listForOwner(),
+    enabled: showCollaborations,
   });
 
   const isInitialLoading = gymsLoading;
@@ -258,8 +265,7 @@ export function GymOwnerDashboard() {
   const activeGym = gyms.find((g) => g.id === activeGymId);
   const partneredPtCount = partneredPtCountFor(collaborations, { id: activeGymId, brandId: activeGym?.brandId ?? null });
 
-  const kpis = [
-    {
+  const walletKpi = {
       label: "Doanh thu ví Gym",
       value: formatVND(availableBalance),
       change: "Khả dụng",
@@ -269,7 +275,9 @@ export function GymOwnerDashboard() {
       iconBg: "bg-green-500/15",
       border: "border-green-500/20",
       loading: walletLoading,
-    },
+  };
+  const kpis = [
+    ...(showWallet ? [walletKpi] : []),
     {
       label: "Tổng hội viên Active",
       value: String(activeMembersCount),
@@ -409,7 +417,7 @@ export function GymOwnerDashboard() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${kpis.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {kpis.map((k, i) => (
           <KpiCard key={k.label} {...k} animationDelayClass={STAGGER_DELAYS[i]} />
         ))}
@@ -532,10 +540,12 @@ export function GymOwnerDashboard() {
               <span className="text-xs text-zinc-400">Gói hội viên đang bán</span>
               <span className="text-sm font-bold text-zinc-200">{activePlansCount}</span>
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-zinc-400">PT đang hợp tác</span>
-              <span className="text-sm font-bold text-zinc-200">{partneredPtCount}</span>
-            </div>
+            {showCollaborations && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-zinc-400">PT đang hợp tác</span>
+                <span className="text-sm font-bold text-zinc-200">{partneredPtCount}</span>
+              </div>
+            )}
             <div className="px-4 py-3">
               <button
                 onClick={() => navigate(`/gym-owner/gyms/${activeGymId}`)}

@@ -1,4 +1,6 @@
-import { Prisma } from '../generated/prisma';
+import { z } from 'zod';
+import { logger } from '@gym-coach/shared';
+import { Prisma, type ReconciliationRun } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import { PLATFORM_ESCROW_ID, PLATFORM_REVENUE_ID } from './wallet.service';
 
@@ -144,4 +146,192 @@ export async function assertInvariant(context = ''): Promise<ReconciliationRepor
     );
   }
   return report;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// G-06 - run history. An append-only record of balance checks: one row when an admin presses "Chạy đối soát và lưu"
+// (POST /admin/payments/reconciliation/runs) and one row when the 5-minute job sees something NEW. A plain
+// GET /admin/payments/reconciliation is read-only and writes nothing. The history is evidence only: nothing reads
+// it back to change a balance.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type ReconciliationTrigger = 'ADMIN' | 'JOB';
+export type ReconciliationRunStatus = 'BALANCED' | 'DRIFT' | 'ERROR';
+
+/** Same admin cannot record two runs closer than this. */
+export const ADMIN_RUN_MIN_INTERVAL_MS = 30_000;
+/** The job always records at least one run per this window, even when nothing changed (a heartbeat). */
+export const JOB_HEARTBEAT_MS = 60 * 60_000;
+
+/** What a stored run's `summary` holds: figures already in the report (decimal strings) plus a count. No wallet or owner ids. */
+export function buildRunSummary(report: ReconciliationReport): Prisma.InputJsonObject {
+  return { breakdown: { ...report.breakdown }, negativeWalletCount: report.negativeWallets.length };
+}
+
+export interface ReconciliationRunDto {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  trigger: string;
+  triggeredBy: string | null;
+  status: string;
+  escrowBalance: string | null;
+  claimsTotal: string | null;
+  drift: string | null;
+  summary: unknown;
+  errorCode: string | null;
+}
+
+type RunRow = ReconciliationRun;
+
+export function toRunDto(r: RunRow): ReconciliationRunDto {
+  return {
+    id: r.id,
+    startedAt: r.startedAt.toISOString(),
+    finishedAt: r.finishedAt ? r.finishedAt.toISOString() : null,
+    trigger: r.trigger,
+    triggeredBy: r.triggeredBy,
+    status: r.status,
+    escrowBalance: r.escrowBalance ? r.escrowBalance.toFixed(2) : null,
+    claimsTotal: r.claimsTotal ? r.claimsTotal.toFixed(2) : null,
+    drift: r.drift ? r.drift.toFixed(2) : null,
+    summary: r.summary,
+    errorCode: r.errorCode,
+  };
+}
+
+async function persistReportRun(report: ReconciliationReport, startedAt: Date, trigger: ReconciliationTrigger, triggeredBy: string | null): Promise<RunRow> {
+  return prisma.reconciliationRun.create({
+    data: {
+      startedAt,
+      finishedAt: new Date(),
+      trigger,
+      triggeredBy,
+      status: report.balanced ? 'BALANCED' : 'DRIFT',
+      escrowBalance: new Prisma.Decimal(report.escrow),
+      claimsTotal: new Prisma.Decimal(report.claims),
+      drift: new Prisma.Decimal(report.drift),
+      summary: buildRunSummary(report),
+    },
+  });
+}
+
+async function persistErrorRun(startedAt: Date, trigger: ReconciliationTrigger, triggeredBy: string | null): Promise<void> {
+  try {
+    await prisma.reconciliationRun.create({
+      data: { startedAt, finishedAt: new Date(), trigger, triggeredBy, status: 'ERROR', summary: {}, errorCode: 'REPORT_FAILED' },
+    });
+  } catch (recErr) {
+    logger.error({ err: (recErr as Error).message }, '[payment-service] reconciliation ERROR run could not be recorded');
+  }
+}
+
+export class ReconciliationTooSoonError extends Error {
+  constructor() {
+    super('RECONCILIATION_RUN_TOO_SOON');
+  }
+}
+
+/**
+ * Admin "run and save". Throttled per admin: a run by the same admin less than ADMIN_RUN_MIN_INTERVAL_MS ago throws
+ * ReconciliationTooSoonError (nothing is run). A report failure records an ERROR run (best effort) and rethrows; a failure to
+ * write the run also throws (this call exists to record).
+ */
+export async function runAndRecordAdminReconciliation(adminId: string, now: Date = new Date()): Promise<ReconciliationRunDto> {
+  const last = await prisma.reconciliationRun.findFirst({
+    where: { trigger: 'ADMIN', triggeredBy: adminId },
+    orderBy: { startedAt: 'desc' },
+    select: { startedAt: true },
+  });
+  if (last && now.getTime() - last.startedAt.getTime() < ADMIN_RUN_MIN_INTERVAL_MS) throw new ReconciliationTooSoonError();
+  const startedAt = new Date();
+  let report: ReconciliationReport;
+  try {
+    report = await buildReconciliationReport();
+  } catch (err) {
+    await persistErrorRun(startedAt, 'ADMIN', adminId);
+    throw err;
+  }
+  return toRunDto(await persistReportRun(report, startedAt, 'ADMIN', adminId));
+}
+
+/** The figures the job compares between two passes. */
+export interface RunFingerprint {
+  status: string;
+  /** Decimal string with 2 decimals, or null (ERROR). */
+  drift: string | null;
+}
+
+/**
+ * Job dedupe rule (pure): record when there is no previous run, when the status or the drift differs from the LATEST run of any
+ * trigger, or when the latest JOB run is older than JOB_HEARTBEAT_MS (or there is none).
+ */
+export function shouldRecordJobRun(
+  current: RunFingerprint,
+  latestAny: RunFingerprint | null,
+  latestJobStartedAt: Date | null,
+  now: Date,
+): { record: boolean; reason: 'FIRST' | 'CHANGED' | 'HEARTBEAT' | 'UNCHANGED' } {
+  if (!latestAny) return { record: true, reason: 'FIRST' };
+  if (latestAny.status !== current.status || latestAny.drift !== current.drift) return { record: true, reason: 'CHANGED' };
+  if (!latestJobStartedAt || now.getTime() - latestJobStartedAt.getTime() > JOB_HEARTBEAT_MS) return { record: true, reason: 'HEARTBEAT' };
+  return { record: false, reason: 'UNCHANGED' };
+}
+
+/** One pass of the job: checks the ledger and records a JOB run only when it has something new (see shouldRecordJobRun). */
+export async function recordJobRunIfChanged(now: Date = new Date()): Promise<{ recorded: boolean; reason: string; runId: string | null }> {
+  const startedAt = new Date();
+  let report: ReconciliationReport | null = null;
+  let current: RunFingerprint;
+  try {
+    report = await buildReconciliationReport();
+    current = { status: report.balanced ? 'BALANCED' : 'DRIFT', drift: report.drift };
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] reconciliation job report failed');
+    current = { status: 'ERROR', drift: null };
+  }
+  const [latestAny, latestJob] = await Promise.all([
+    prisma.reconciliationRun.findFirst({ orderBy: { startedAt: 'desc' }, select: { status: true, drift: true } }),
+    prisma.reconciliationRun.findFirst({ where: { trigger: 'JOB' }, orderBy: { startedAt: 'desc' }, select: { startedAt: true } }),
+  ]);
+  const decision = shouldRecordJobRun(
+    current,
+    latestAny ? { status: latestAny.status, drift: latestAny.drift ? latestAny.drift.toFixed(2) : null } : null,
+    latestJob?.startedAt ?? null,
+    now,
+  );
+  if (!decision.record) return { recorded: false, reason: decision.reason, runId: null };
+  if (!report) {
+    await persistErrorRun(startedAt, 'JOB', null);
+    return { recorded: true, reason: decision.reason, runId: null };
+  }
+  const row = await persistReportRun(report, startedAt, 'JOB', null);
+  return { recorded: true, reason: decision.reason, runId: row.id };
+}
+
+const intParam = (min: number, max: number, fallback: number) =>
+  z
+    .string()
+    .regex(/^\d+$/)
+    .transform((s) => Number(s))
+    .refine((n) => Number.isSafeInteger(n) && n >= min && n <= max)
+    .optional()
+    .transform((n) => n ?? fallback);
+
+export const reconciliationRunsQuerySchema = z
+  .object({
+    limit: intParam(1, 100, 20),
+    offset: intParam(0, 100000, 0),
+    status: z.enum(['BALANCED', 'DRIFT', 'ERROR']).optional(),
+  })
+  .strict();
+
+export async function listReconciliationRuns(q: z.output<typeof reconciliationRunsQuerySchema>) {
+  const where: Prisma.ReconciliationRunWhereInput = q.status ? { status: q.status } : {};
+  const [total, rows] = await Promise.all([
+    prisma.reconciliationRun.count({ where }),
+    prisma.reconciliationRun.findMany({ where, orderBy: [{ startedAt: 'desc' }, { id: 'asc' }], skip: q.offset, take: q.limit }),
+  ]);
+  const items = rows.map(toRunDto);
+  return { total, limit: q.limit, offset: q.offset, hasMore: q.offset + items.length < total, items };
 }

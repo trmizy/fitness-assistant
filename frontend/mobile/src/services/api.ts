@@ -3973,9 +3973,9 @@ export const chatService = {
     return data;
   },
 
-  getMessages: async (conversationId: string, page = 1, limit = 30) => {
+  getMessages: async (conversationId: string, page = 1, limit = 30, beforeId?: string) => {
     const { data } = await api.get(
-      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
+      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}${beforeId ? `&before=${encodeURIComponent(beforeId)}` : ""}`,
     );
     return data;
   },
@@ -4069,26 +4069,15 @@ export const adminService = {
 
   // Vòng 4 / Phase C — gym/brand moderation. There was no admin-facing gym/brand list at all
   // before this phase.
-  // No self-registration path for GYM_OWNER — an admin creates the account directly after
-  // arranging the partnership out of band (phone/email); returns the random temporary
-  // password ONCE, never retrievable again after this call.
-  createGymOwner: async (payload: { email: string; firstName: string; lastName?: string }) => {
-    const { data } = await api.post('/admin/gym-owners', payload);
-    return data?.data ?? data;
-  },
-  // "Quản lý gym & owner" — admin can only CREATE an owner account before this; these three
-  // fill the gap the user pointed out (suspend/reactivate + name fix, no email edit — see
-  // authService.updateUserNameAsAdmin's doc comment for why email is excluded).
-  listGymOwners: async () => {
-    const { data } = await api.get('/admin/gym-owners');
-    return data?.data ?? data;
-  },
+  // NE: /admin/gym-owners (create + list) and /admin/workflows* were removed — the gateway has no such routes
+  // (404 even for an admin, N-A-04) and no screen called them. Owner accounts come from partner applications.
+  // Fixing a name goes through auth-service via the gateway's ADMIN-only /auth/users/:id/name (same as web's role route).
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
     const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
   },
   updateGymOwnerName: async (userId: string, payload: { firstName?: string; lastName?: string }) => {
-    const { data } = await api.patch(`/admin/users/${userId}/name`, payload);
+    const { data } = await api.patch(`/auth/users/${userId}/name`, payload);
     return data?.data ?? data;
   },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
@@ -4132,47 +4121,6 @@ export const adminService = {
     return data?.data ?? data;
   },
 
-  getWorkflowMeta: async () => {
-    const { data } = await api.get("/admin/workflows/meta");
-    return data;
-  },
-
-  getStudioAuthState: async () => {
-    const { data } = await api.get("/admin/workflows/studio-auth-state", {
-      withCredentials: true,
-    });
-    return data;
-  },
-
-  listWorkflows: async () => {
-    const { data } = await api.get("/admin/workflows");
-    return data;
-  },
-
-  getWorkflowExecutions: async (workflowId: string, limit = 20) => {
-    const { data } = await api.get(
-      `/admin/workflows/${workflowId}/executions?limit=${limit}`,
-    );
-    return data;
-  },
-
-  getExecutionDetail: async (executionId: string) => {
-    const { data } = await api.get(
-      `/admin/workflows/executions/${executionId}`,
-    );
-    return data;
-  },
-
-  runSmokeTest: async () => {
-    const { data } = await api.post("/admin/workflows/smoke-test", {});
-    return data;
-  },
-
-  setupSampleWorkflows: async () => {
-    const { data } = await api.post("/admin/workflows/setup-samples", {});
-    return data;
-  },
-
   listPTProfiles: async () => {
     const { data } = await api.get("/profile/pts");
     return data;
@@ -4187,15 +4135,6 @@ export const adminService = {
     const { data } = await api.patch(
       `/profile/admin/users/${userId}/pt-status`,
       { isPT },
-    );
-    return data;
-  },
-
-  runFullSystemTest: async () => {
-    const { data } = await api.post(
-      "/admin/workflows/full-system-test",
-      {},
-      { timeout: 120000 },
     );
     return data;
   },

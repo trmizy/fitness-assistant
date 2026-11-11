@@ -167,6 +167,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   searchCity: 'searchCity',
   searchDistrict: 'searchDistrict',
   searchWard: 'searchWard',
+  searchProvinceCode: 'searchProvinceCode',
+  searchWardCode: 'searchWardCode',
   gymId: 'gymId',
   specialties: 'specialties',
   createdAt: 'createdAt',
@@ -457,6 +459,19 @@ exports.Prisma.VietnamWardScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.VietnamWardGeoScalarFieldEnum = {
+  wardCode: 'wardCode',
+  provinceCode: 'provinceCode',
+  centroidLat: 'centroidLat',
+  centroidLng: 'centroidLng',
+  minLat: 'minLat',
+  maxLat: 'maxLat',
+  minLng: 'minLng',
+  maxLng: 'maxLng',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   id: 'id',
   ptUserId: 'ptUserId',
@@ -467,6 +482,8 @@ exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   addressLine: 'addressLine',
   legacyDistrictName: 'legacyDistrictName',
   gymId: 'gymId',
+  latitude: 'latitude',
+  longitude: 'longitude',
   isPrimary: 'isPrimary',
   isActive: 'isActive',
   note: 'note',
@@ -1165,6 +1182,30 @@ exports.Prisma.DisputeCaseDecisionReplacementScalarFieldEnum = {
   rejectionReason: 'rejectionReason'
 };
 
+exports.Prisma.PtDiscoveryEpochScalarFieldEnum = {
+  epoch: 'epoch',
+  status: 'status',
+  isCurrent: 'isCurrent',
+  createdAt: 'createdAt',
+  readyAt: 'readyAt'
+};
+
+exports.Prisma.PtDiscoveryStatScalarFieldEnum = {
+  epoch: 'epoch',
+  ptUserId: 'ptUserId',
+  ratingAvg: 'ratingAvg',
+  ratingCount: 'ratingCount',
+  bayesRating: 'bayesRating',
+  completeness: 'completeness',
+  availableHours7d: 'availableHours7d',
+  accepting: 'accepting',
+  approvedAt: 'approvedAt',
+  fromPriceOverall: 'fromPriceOverall',
+  fromPriceOnline: 'fromPriceOnline',
+  fromPriceOffline: 'fromPriceOffline',
+  quality: 'quality'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1350,7 +1391,13 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
   PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED',
   GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED',
-  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED'
+  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED',
+  GYM_COMPLAINT_CASE_OPENED: 'GYM_COMPLAINT_CASE_OPENED',
+  GYM_COMPLAINT_CASE_MORE_INFO: 'GYM_COMPLAINT_CASE_MORE_INFO',
+  GYM_COMPLAINT_CASE_SLA_WARNING: 'GYM_COMPLAINT_CASE_SLA_WARNING',
+  GYM_COMPLAINT_CASE_SLA_OVERDUE: 'GYM_COMPLAINT_CASE_SLA_OVERDUE',
+  GYM_COMPLAINT_CASE_APPEAL_FILED: 'GYM_COMPLAINT_CASE_APPEAL_FILED',
+  GYM_COMPLAINT_CASE_RESOLVED: 'GYM_COMPLAINT_CASE_RESOLVED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -1366,7 +1413,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   PT_LISTING: 'PT_LISTING',
   PAYMENT: 'PAYMENT',
   GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
-  DISPUTE_CASE: 'DISPUTE_CASE'
+  DISPUTE_CASE: 'DISPUTE_CASE',
+  GYM_COMPLAINT_CASE: 'GYM_COMPLAINT_CASE'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {
@@ -1613,6 +1661,11 @@ exports.LateOpenReconciliationOutcome = exports.$Enums.LateOpenReconciliationOut
   REJECTED: 'REJECTED'
 };
 
+exports.PtDiscoveryEpochStatus = exports.$Enums.PtDiscoveryEpochStatus = {
+  BUILDING: 'BUILDING',
+  READY: 'READY'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -1629,6 +1682,7 @@ exports.Prisma.ModelName = {
   PTScheduleException: 'PTScheduleException',
   VietnamProvince: 'VietnamProvince',
   VietnamWard: 'VietnamWard',
+  VietnamWardGeo: 'VietnamWardGeo',
   PTTrainingLocation: 'PTTrainingLocation',
   PTServicePackage: 'PTServicePackage',
   SessionRescheduleRequest: 'SessionRescheduleRequest',
@@ -1674,7 +1728,9 @@ exports.Prisma.ModelName = {
   DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
   DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
   DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision',
-  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
+  DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement',
+  PtDiscoveryEpoch: 'PtDiscoveryEpoch',
+  PtDiscoveryStat: 'PtDiscoveryStat'
 };
 
 /**

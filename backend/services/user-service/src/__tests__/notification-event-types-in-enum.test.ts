@@ -64,6 +64,12 @@ test("every stored notification uses an event type and entity type the database 
   // …and the suspension no longer falls back on the SESSION_CANCELLED stopgap.
   assert.ok(!calls.some((c) => c.file.endsWith("pt-restriction.service.ts") && c.eventType === "SESSION_CANCELLED"));
 
+  // N09C-01: the gym-service complaint-case notices (sent over POST /internal/notifications) must be storable.
+  for (const type of ["OPENED", "MORE_INFO", "SLA_WARNING", "SLA_OVERDUE", "APPEAL_FILED", "RESOLVED"]) {
+    assert.ok(eventTypes.has(`GYM_COMPLAINT_CASE_${type}`), `GYM_COMPLAINT_CASE_${type} is a value of NotificationEventType`);
+  }
+  assert.ok(entityTypes.has("GYM_COMPLAINT_CASE"), "GYM_COMPLAINT_CASE is a value of NotificationEntityType");
+
   const unknown = calls.filter((c) => !eventTypes.has(c.eventType) || !entityTypes.has(c.entityType));
   assert.deepEqual(unknown, []);
 });

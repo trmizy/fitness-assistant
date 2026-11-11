@@ -14,6 +14,8 @@ import { Button } from "../../components/ui/button";
 import { describeAdminError } from "./shared/useAdminError";
 import { moneyText } from "./shared/moneyGuards";
 import { QUEUE_KEY, ROW_GRID, WithdrawalRow } from "./withdrawals/WithdrawalRow";
+import { WithdrawalHistoryPanel } from "./withdrawals/WithdrawalHistoryPanel";
+import { TAB_LABEL, parseHistoryPage, parseHistoryTab, type WithdrawalTab } from "./withdrawals/withdrawalHistory";
 import {
   QUEUE_STATUSES,
   WITHDRAWAL_API_LIMIT,
@@ -34,9 +36,10 @@ import {
  * table-on-desktop / card-on-phone list. Manual payout flow, no payout API: "Đã chi trả" only records a transfer
  * the admin already made outside the system.
  *
- * Data limits are shown, not hidden: the endpoint returns only PENDING + APPROVED, oldest first, max 100 rows
- * (≥100 ⇒ "có thể còn nữa"); history (Đã chuyển / Từ chối), requester name and available balance need a new
- * backend API (G-08) — those chips are disabled with the reason and nothing is invented.
+ * Data limits are shown, not hidden: the queue endpoint returns only PENDING + APPROVED, oldest first, max 100 rows
+ * (≥100 ⇒ "có thể còn nữa"). The two history chips (G-08, `?status=PAID|REJECTED&page=`) read the separate paged,
+ * read-only `withdrawal-history` API — see `withdrawals/WithdrawalHistoryPanel.tsx`. The requester's name is not
+ * available anywhere, so people are identified by their user code.
  *
  * B1 behaviour (confirmation dialogs, per-row pending, one POST per confirmation, no retry, errors ≠ empty) lives
  * in `withdrawals/WithdrawalRow.tsx` and is unchanged.
@@ -44,9 +47,8 @@ import {
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
 
-const CHIP_LABEL: Record<QueueStatus, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt – chờ chuyển khoản" };
-const G08_REASON = "cần API lịch sử rút tiền (G-08)";
-const G08_NOTE_ID = "admin-withdrawals-g08-note";
+const CHIP_LABEL: Record<QueueStatus, string> = { PENDING: TAB_LABEL.PENDING, APPROVED: TAB_LABEL.APPROVED };
+const ALL_TABS: readonly WithdrawalTab[] = ["PENDING", "APPROVED", "PAID", "REJECTED"];
 
 function timeText(ms: number) {
   if (!ms) return "—";
@@ -111,6 +113,8 @@ function ErrorBlock({ title, message, onRetry, icon: Icon }: { title: string; me
 export function AdminWithdrawals() {
   const [searchParams, setSearchParams] = useSearchParams();
   const active = parseStatusParam(searchParams.get("status"));
+  const historyTab = parseHistoryTab(searchParams.get("status"));
+  const historyPage = parseHistoryPage(searchParams.get("page"));
   const now = useNow(30_000);
   // After an approve / pay / reject the row leaves the list; keep keyboard focus on the chips instead of the page top.
   const focusLostPending = useRef(false);
@@ -127,11 +131,24 @@ export function AdminWithdrawals() {
   const rows = rowsFor(queue.rows, active);
   const other: QueueStatus = active === "PENDING" ? "APPROVED" : "PENDING";
 
-  const selectChip = (status: QueueStatus) => {
+  const selectChip = (status: WithdrawalTab) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
         next.set("status", status);
+        next.delete("page");
+        return next;
+      },
+      { replace: false },
+    );
+  };
+
+  const selectHistoryPage = (page: number) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (page > 1) next.set("page", String(page));
+        else next.delete("page");
         return next;
       },
       { replace: false },
@@ -157,6 +174,42 @@ export function AdminWithdrawals() {
   const totalVnd = centsToVnd(view.total.cents);
   const totalText = totalVnd === null ? "—" : `${view.lowerBound ? "≥ " : ""}${moneyText(totalVnd)}`;
 
+  const selectedTab: WithdrawalTab = historyTab ?? active;
+  // Chips (URL: ?status=). The queue chips carry a count once the queue has loaded; the history chips have none (the
+  // count would need a second request per chip) — the total of the open history tab is shown inside it.
+  const chips = (
+    <div role="group" aria-label="Lọc theo trạng thái" data-testid="admin-withdrawals-chips" className="flex flex-wrap gap-2">
+      {ALL_TABS.map((tab) => {
+        const selected = tab === selectedTab;
+        const queueStatus = tab === "PENDING" || tab === "APPROVED" ? tab : null;
+        return (
+          <button
+            key={tab}
+            type="button"
+            aria-pressed={selected}
+            data-testid={`admin-withdrawals-chip-${tab}`}
+            onClick={() => selectChip(tab)}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors motion-reduce:transition-none xl:min-h-10 ${FOCUS} ${
+              selected
+                ? "border-adm-text bg-adm-text text-adm-bg"
+                : "border-adm-border bg-adm-surface text-adm-text hover:bg-adm-surface-2"
+            }`}
+          >
+            {TAB_LABEL[tab]}
+            {queueStatus && hasData && (
+              <span
+                data-testid={`admin-withdrawals-chip-count-${queueStatus}`}
+                className={`rounded-full px-2 py-px text-xs font-semibold tabular-nums ${selected ? "bg-adm-bg/20 text-adm-bg" : "bg-adm-pill text-adm-text"}`}
+              >
+                {countText(summary[queueStatus].count, summary[queueStatus].lowerBound)}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="space-y-5" data-testid="admin-withdrawals-page">
       {/* Header: title + subtitle, last update (the "Làm mới" button is the Tài chính header's) */}
@@ -167,7 +220,7 @@ export function AdminWithdrawals() {
         </div>
         {/* "Làm mới" lives in the Tài chính header (it re-reads this queue); only the timestamp stays here. */}
         <div className="flex items-center gap-3">
-          {hasData && (
+          {hasData && !historyTab && (
             <span data-testid="admin-withdrawals-updated" className="text-xs tabular-nums text-adm-text-2">
               Cập nhật lúc {timeText(query.dataUpdatedAt)}
             </span>
@@ -175,7 +228,12 @@ export function AdminWithdrawals() {
         </div>
       </div>
 
-      {query.isLoading ? (
+      {historyTab ? (
+        <>
+          {chips}
+          <WithdrawalHistoryPanel status={historyTab} page={historyPage} onPage={selectHistoryPage} />
+        </>
+      ) : query.isLoading ? (
         <Skeleton />
       ) : forbidden ? (
         <ErrorBlock
@@ -208,57 +266,12 @@ export function AdminWithdrawals() {
             </div>
           )}
 
-          {/* Chips (URL: ?status=) */}
-          <div role="group" aria-label="Lọc theo trạng thái" data-testid="admin-withdrawals-chips" className="flex flex-wrap gap-2">
-            {QUEUE_STATUSES.map((status) => {
-              const selected = status === active;
-              return (
-                <button
-                  key={status}
-                  type="button"
-                  aria-pressed={selected}
-                  data-testid={`admin-withdrawals-chip-${status}`}
-                  onClick={() => selectChip(status)}
-                  className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors motion-reduce:transition-none xl:min-h-10 ${FOCUS} ${
-                    selected
-                      ? "border-adm-text bg-adm-text text-adm-bg"
-                      : "border-adm-border bg-adm-surface text-adm-text hover:bg-adm-surface-2"
-                  }`}
-                >
-                  {CHIP_LABEL[status]}
-                  <span
-                    data-testid={`admin-withdrawals-chip-count-${status}`}
-                    className={`rounded-full px-2 py-px text-xs font-semibold tabular-nums ${selected ? "bg-adm-bg/20 text-adm-bg" : "bg-adm-pill text-adm-text"}`}
-                  >
-                    {countText(summary[status].count, summary[status].lowerBound)}
-                  </span>
-                </button>
-              );
-            })}
-            {(["Đã chuyển", "Từ chối"] as const).map((label) => (
-              <button
-                key={label}
-                type="button"
-                aria-disabled="true"
-                aria-describedby={G08_NOTE_ID}
-                title={`${label}: ${G08_REASON}`}
-                data-testid={`admin-withdrawals-chip-disabled-${label === "Đã chuyển" ? "PAID" : "REJECTED"}`}
-                onClick={(e) => e.preventDefault()}
-                className={`inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-full border border-dashed border-adm-border bg-transparent px-4 text-sm text-adm-text-2 xl:min-h-10 ${FOCUS}`}
-              >
-                {label}
-                <span className="text-[11px]">
-                  <span className="sm:hidden">cần API G-08</span>
-                  <span className="hidden sm:inline">{G08_REASON}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-          <p id={G08_NOTE_ID} data-testid="admin-withdrawals-g08-note" className="flex items-start gap-2 text-xs text-adm-text-2">
+          {chips}
+          <p data-testid="admin-withdrawals-queue-note" className="flex items-start gap-2 text-xs text-adm-text-2">
             <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
             <span>
-              “Đã chuyển” và “Từ chối” chưa dùng được: {G08_REASON}. Backend hiện chỉ trả các yêu cầu chờ duyệt và đã duyệt (cũ nhất trước, tối đa{" "}
-              {WITHDRAWAL_API_LIMIT}); tên người rút và số dư khả dụng của họ cũng chưa có nên chưa hiển thị — đối chiếu người rút bằng mã người dùng.
+              Hàng đợi chỉ gồm yêu cầu chờ duyệt và đã duyệt (cũ nhất trước, tối đa {WITHDRAWAL_API_LIMIT}); tên người rút chưa có nên đối chiếu người rút bằng mã
+              người dùng. Yêu cầu đã chuyển hoặc bị từ chối nằm ở hai nhãn “Đã chuyển” và “Từ chối”.
             </span>
           </p>
 
@@ -291,7 +304,7 @@ export function AdminWithdrawals() {
             </div>
           ) : (
             <p data-testid="admin-withdrawals-process-note" className="text-xs text-adm-text-2">
-              “Duyệt” chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc chuyển khoản sẽ mất thời gian — chuyển được ngay thì bấm thẳng “Đã chi trả”. Tiền
+              “Duyệt” chỉ là bước giữ chỗ tuỳ chọn (khoá số tiền lại) khi việc chuyển khoản sẽ mất thời gian — chuyển được ngay thì bấm thẳng “Đã chi trả”. Riêng khoản từ 5.000.000 ₫ trở lên bắt buộc phải “Duyệt” trước, rồi một quản trị viên khác bấm “Đã chi trả”. Tiền
               chỉ thực sự bị trừ khỏi ví ở bước “Đã chi trả”.
             </p>
           )}

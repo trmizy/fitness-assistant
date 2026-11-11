@@ -24,18 +24,29 @@ import {
   type FieldErrors,
 } from "../disputes/partyModel";
 
+// Cùng biểu mẫu dùng cho hội viên (mặc định) và cho chủ/quản lý phòng gym (ND-07): chỉ khác hàm gửi và vài câu chữ.
+type SubmitStatement = (caseId: string, body: { text: string; supplementReason?: string }, key: string) => Promise<GymStatementResult>;
+type SubmitDocument = (caseId: string, body: { description: string; sha256: string; title?: string; fileName?: string }, key: string) => Promise<GymCreatedId>;
+
 // ───────────────────────────────────────────────────────── Statement Form ──
 interface GymStatementFormProps {
   caseId: string;
   statementCount: number;
   onSaved: () => void;
+  /** Mặc định: lời khai của hội viên (/me/complaint-cases). Phòng gym truyền hàm gửi lời giải trình của mình. */
+  submit?: SubmitStatement;
+  /** "gym": câu chữ dành cho chủ/quản lý phòng gym. */
+  party?: "member" | "gym";
 }
 
 export function GymStatementForm({
   caseId,
   statementCount,
   onSaved,
+  submit = gymCaseApi.submitStatement,
+  party = "member",
 }: GymStatementFormProps) {
+  const gym = party === "gym";
   const needsReason = statementCount > 0;
   const [text, setText] = useState("");
   const [reason, setReason] = useState("");
@@ -68,12 +79,12 @@ export function GymStatementForm({
 
     const body = val.body;
     const res = await action.run(body, (key, b) =>
-      gymCaseApi.submitStatement(caseId, b, key),
+      submit(caseId, b, key),
     );
 
     if (res.status === "busy") return;
     if (res.status === "ok") {
-      setSuccess("Đã gửi lời khai.");
+      setSuccess(gym ? "Đã gửi lời giải trình." : "Đã gửi lời khai.");
       setText("");
       setReason("");
       onSaved();
@@ -84,7 +95,7 @@ export function GymStatementForm({
   };
 
   return (
-    <Panel id="gym-statement-form" title="Gửi lời khai">
+    <Panel id="gym-statement-form" title={gym ? "Gửi lời giải trình" : "Gửi lời khai"}>
       <form onSubmit={handleSubmit} className="space-y-3">
         {success && (
           <div
@@ -98,7 +109,7 @@ export function GymStatementForm({
 
         <Field
           id="gym-statement-text"
-          label="Nội dung lời khai"
+          label={gym ? "Nội dung giải trình" : "Nội dung lời khai"}
           error={errors.text}
           required
         >
@@ -112,7 +123,7 @@ export function GymStatementForm({
               setErrors({ ...errors, text: undefined });
               setFeedback(null);
             }}
-            placeholder="Nêu rõ diễn biến sự việc theo lời khai của bạn..."
+            placeholder={gym ? "Nêu rõ phòng gym đã xử lý hoặc ghi nhận sự việc này như thế nào..." : "Nêu rõ diễn biến sự việc theo lời khai của bạn..."}
             maxLength={STATEMENT_MAX}
             disabled={action.pending}
           />
@@ -121,7 +132,7 @@ export function GymStatementForm({
         {needsReason && (
           <Field
             id="gym-statement-reason"
-            label="Lý do bổ sung (Bắt buộc từ lần khai thứ hai)"
+            label={gym ? "Lý do bổ sung (bắt buộc từ lần giải trình thứ hai)" : "Lý do bổ sung (Bắt buộc từ lần khai thứ hai)"}
             error={errors.supplementReason}
             required
           >
@@ -135,7 +146,7 @@ export function GymStatementForm({
                 setErrors({ ...errors, supplementReason: undefined });
                 setFeedback(null);
               }}
-              placeholder="Nêu lý do bạn gửi thêm lời khai..."
+              placeholder={gym ? "Nêu lý do bạn gửi thêm giải trình..." : "Nêu lý do bạn gửi thêm lời khai..."}
               maxLength={REASON_MAX}
               disabled={action.pending}
             />
@@ -147,7 +158,7 @@ export function GymStatementForm({
           className={PRIMARY_BUTTON}
           disabled={action.pending || !text.trim()}
         >
-          {action.pending ? "Đang gửi..." : "Gửi lời khai"}
+          {action.pending ? "Đang gửi..." : gym ? "Gửi giải trình" : "Gửi lời khai"}
         </button>
       </form>
     </Panel>
@@ -164,9 +175,11 @@ type HashState =
 interface GymDocumentFormProps {
   caseId: string;
   onSaved: () => void;
+  /** Mặc định: tài liệu của hội viên. Phòng gym truyền hàm gửi bằng chứng của mình. */
+  submit?: SubmitDocument;
 }
 
-export function GymDocumentForm({ caseId, onSaved }: GymDocumentFormProps) {
+export function GymDocumentForm({ caseId, onSaved, submit = gymCaseApi.submitEvidence }: GymDocumentFormProps) {
   const [description, setDescription] = useState("");
   const [title, setTitle] = useState("");
   const [fileName, setFileName] = useState("");
@@ -217,7 +230,7 @@ export function GymDocumentForm({ caseId, onSaved }: GymDocumentFormProps) {
 
     const body = val.body;
     const res = await action.run(body, (key, b) =>
-      gymCaseApi.submitEvidence(caseId, b, key),
+      submit(caseId, b, key),
     );
 
     if (res.status === "busy") return;

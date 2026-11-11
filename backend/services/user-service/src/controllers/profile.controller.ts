@@ -12,8 +12,22 @@ import {
   ptReviewRepository,
   attachPtRatings,
 } from "../repositories/ptReview.repository";
-import { enrichForDiscovery } from "../services/pt-discovery.service";
-import { computeFromPricesByMode, toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
+import { enrichForDiscovery, viewerGymIds } from "../services/pt-discovery.service";
+import {
+  PT_DISCOVERY_DEFAULT_LIMIT,
+  PT_DISCOVERY_MAX_LIMIT,
+  type PtSearchPageItem,
+} from "../services/pt-discovery.query";
+import {
+  CursorExpiredError,
+  CursorFilterMismatchError,
+  CursorSecretUnavailableError,
+  InvalidCursorError,
+  type DiscoveryMode,
+  type DiscoveryScope,
+  type DiscoverySortKey,
+} from "../services/pt-discovery-cursor";
+import { toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
 import { auditService, auditMeta } from "../services/audit.service";
 import { profileNameFields } from "../utils/profileName.util";
 import { AuditEntityType } from "../generated/prisma";
@@ -26,6 +40,247 @@ import {
   keyFromS3Ref,
   profilePhotoUrlForKey,
 } from "../services/s3-upload.service";
+import type { PtSearchQueryInput } from "../services/pt-discovery.query";
+
+const VALID_SEARCH_SCOPES = new Set<DiscoveryScope>(["near", "province", "national"]);
+const VALID_SEARCH_MODES = new Set<DiscoveryMode>(["ANY", "ONLINE", "OFFLINE", "HYBRID"]);
+const VALID_SEARCH_SORTS = new Set<DiscoverySortKey>([
+  "default",
+  "distance",
+  "ratingDesc",
+  "ratingAsc",
+  "priceAsc",
+  "priceDesc",
+  "nameAsc",
+]);
+
+function isPositivePgInt(v: unknown): v is number {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 1 && v <= 2_147_483_647;
+}
+
+function isStatementTimeoutError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as Record<string, any>;
+  if (e.code === "57014" || e.meta?.code === "57014") return true;
+  const msg = String(e.meta?.message ?? e.message ?? "");
+  return /statement timeout/i.test(msg);
+}
+
+function parseStrictQueryInt(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!/^-?\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return Number.isSafeInteger(n) && Math.abs(n) <= 2_147_483_647 ? n : null;
+}
+
+function parseAreaParamsFromQuery(
+  query: Record<string, unknown>,
+): { areaProvince?: number; areaWard?: number } | { error: string } {
+  let areaProvince: number | undefined;
+  let areaWard: number | undefined;
+  if (query.areaProvince !== undefined) {
+    const parsed = parseStrictQueryInt(query.areaProvince);
+    if (parsed === null) return { error: "areaProvince phải là số nguyên" };
+    areaProvince = parsed;
+  }
+  if (query.areaWard !== undefined) {
+    const parsed = parseStrictQueryInt(query.areaWard);
+    if (parsed === null) return { error: "areaWard phải là số nguyên" };
+    if (areaProvince === undefined) {
+      return { error: "areaWard phải đi kèm areaProvince" };
+    }
+    areaWard = parsed;
+  }
+  return { areaProvince, areaWard };
+}
+
+function parseSearchPtsBody(
+  raw: unknown,
+): { value: PtSearchQueryInput } | { error: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: "Body tìm kiếm phải là JSON object" };
+  }
+  const b = raw as Record<string, unknown>;
+
+  let lat: number | undefined;
+  let lng: number | undefined;
+  if (b.lat != null || b.lng != null) {
+    if (typeof b.lat !== "number" || !Number.isFinite(b.lat) || typeof b.lng !== "number" || !Number.isFinite(b.lng)) {
+      return { error: "lat và lng phải đi cùng nhau và là số hợp lệ" };
+    }
+    if (b.lat < 8 || b.lat > 24 || b.lng < 102 || b.lng > 110) {
+      return { error: "Tọa độ ngoài phạm vi cho phép (lat 8-24, lng 102-110)" };
+    }
+    lat = b.lat;
+    lng = b.lng;
+  }
+
+  let radiusKm: number | undefined;
+  if (b.radiusKm != null) {
+    if (typeof b.radiusKm !== "number" || !Number.isFinite(b.radiusKm) || b.radiusKm < 1 || b.radiusKm > 100) {
+      return { error: "radiusKm phải nằm trong khoảng 1-100" };
+    }
+    radiusKm = b.radiusKm;
+  }
+
+  let limit: number | undefined;
+  if (b.limit != null) {
+    if (typeof b.limit !== "number" || !Number.isSafeInteger(b.limit) || b.limit < 1 || b.limit > PT_DISCOVERY_MAX_LIMIT) {
+      return { error: `limit phải là số nguyên trong khoảng 1-${PT_DISCOVERY_MAX_LIMIT}` };
+    }
+    limit = b.limit;
+  }
+
+  let areaProvince: number | undefined;
+  if (b.areaProvince != null) {
+    if (!isPositivePgInt(b.areaProvince)) return { error: "areaProvince phải là số nguyên dương" };
+    areaProvince = b.areaProvince;
+  }
+
+  let areaWard: number | undefined;
+  if (b.areaWard != null) {
+    if (!isPositivePgInt(b.areaWard)) return { error: "areaWard phải là số nguyên dương" };
+    if (areaProvince === undefined) return { error: "areaWard phải đi kèm areaProvince" };
+    areaWard = b.areaWard;
+  }
+
+  let scope: DiscoveryScope | undefined;
+  if (b.scope != null) {
+    if (typeof b.scope !== "string" || !VALID_SEARCH_SCOPES.has(b.scope as DiscoveryScope)) {
+      return { error: "scope không hợp lệ (near | province | national)" };
+    }
+    scope = b.scope as DiscoveryScope;
+    if (scope === "province" && areaProvince === undefined) {
+      return { error: "scope='province' phải đi kèm areaProvince" };
+    }
+  }
+
+  let mode: DiscoveryMode | undefined;
+  if (b.mode != null) {
+    if (typeof b.mode !== "string" || !VALID_SEARCH_MODES.has(b.mode as DiscoveryMode)) {
+      return { error: "mode không hợp lệ (ANY | ONLINE | OFFLINE | HYBRID)" };
+    }
+    mode = b.mode as DiscoveryMode;
+  }
+
+  let sortBy: DiscoverySortKey | undefined;
+  if (b.sortBy != null) {
+    if (typeof b.sortBy !== "string" || !VALID_SEARCH_SORTS.has(b.sortBy as DiscoverySortKey)) {
+      return { error: "sortBy không hợp lệ" };
+    }
+    sortBy = b.sortBy as DiscoverySortKey;
+  }
+
+  let cursor: string | undefined;
+  if (b.cursor != null) {
+    if (typeof b.cursor !== "string" || b.cursor.trim().length === 0) {
+      return { error: "cursor không hợp lệ" };
+    }
+    cursor = b.cursor;
+  }
+
+  let q: string | undefined;
+  let specialties: string[] | undefined;
+  let minPrice: number | undefined;
+  let maxPrice: number | undefined;
+  let gymId: string | undefined;
+  if (b.filters != null) {
+    if (typeof b.filters !== "object" || Array.isArray(b.filters)) {
+      return { error: "filters phải là JSON object" };
+    }
+    const f = b.filters as Record<string, unknown>;
+    if (f.q != null) {
+      if (typeof f.q !== "string") return { error: "filters.q phải là chuỗi" };
+      q = f.q;
+    }
+    if (f.gymId != null) {
+      if (typeof f.gymId !== "string") return { error: "filters.gymId phải là chuỗi" };
+      if (f.gymId.trim()) gymId = f.gymId.trim();
+    }
+    if (f.specialties != null) {
+      if (!Array.isArray(f.specialties) || f.specialties.some((s) => typeof s !== "string")) {
+        return { error: "filters.specialties phải là mảng chuỗi" };
+      }
+      const cleaned = f.specialties.map((s) => s.trim()).filter(Boolean);
+      if (cleaned.length > 0) specialties = cleaned;
+    }
+    if (f.minPrice != null) {
+      if (typeof f.minPrice !== "number" || !Number.isFinite(f.minPrice) || f.minPrice < 0) {
+        return { error: "filters.minPrice phải là số không âm" };
+      }
+      minPrice = f.minPrice;
+    }
+    if (f.maxPrice != null) {
+      if (typeof f.maxPrice !== "number" || !Number.isFinite(f.maxPrice) || f.maxPrice < 0) {
+        return { error: "filters.maxPrice phải là số không âm" };
+      }
+      maxPrice = f.maxPrice;
+    }
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      return { error: "filters.minPrice phải <= filters.maxPrice" };
+    }
+  }
+
+  return {
+    value: {
+      lat,
+      lng,
+      radiusKm,
+      areaProvince,
+      areaWard,
+      scope,
+      mode,
+      sortBy,
+      q,
+      specialties,
+      minPrice,
+      maxPrice,
+      gymId,
+      cursor,
+      limit,
+    },
+  };
+}
+
+/** Shared page hydration (auth-name backfill, rating attach, slots/matchReason, optional distance, allowlisted DTO). */
+async function hydrateDiscoveryPublicPts(
+  profiles: PublishedPtSource[],
+  viewerUserId: string | undefined,
+  viewerArea: { areaProvince?: number; areaWard?: number },
+  activeViewerGymIds: Set<string>,
+  distanceMetaByUserId?: Map<string, PtSearchPageItem>,
+) {
+  const nameless = new Set((profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId));
+  if (nameless.size > 0) {
+    const namelessProfiles = (profiles as any[]).filter((p) => nameless.has(p.userId));
+    await enrichProfilesWithAuthNames(namelessProfiles);
+    void Promise.all(
+      namelessProfiles.map((p) => {
+        const names = profileNameFields(p.firstName, p.lastName);
+        return names ? profileRepository.backfillNames(p.userId, names) : null;
+      }),
+    ).catch(() => undefined);
+  }
+
+  const rated = await attachPtRatings(profiles as any[]);
+  const enriched = await enrichForDiscovery(rated, viewerUserId, viewerArea, activeViewerGymIds);
+
+  return Promise.all(
+    (enriched as any[]).map((row) => {
+      const distMeta = distanceMetaByUserId?.get(row.userId);
+      return withSignedProfilePhoto(
+        toPublicPtDto(row as PublishedPtSource, {
+          avgRating: row.avgRating,
+          ratingCount: row.ratingCount,
+          availableSlotsNext28Days: row.availableSlotsNext28Days,
+          matchReason: row.matchReason,
+          ...(distMeta ? { distanceKm: distMeta.distanceKm, distanceBasis: distMeta.distanceBasis } : {}),
+        }),
+      );
+    }),
+  );
+}
 
 export const profileController = {
   async getProfile(req: AuthRequest, res: Response): Promise<void> {
@@ -68,6 +323,13 @@ export const profileController = {
         res
           .status(400)
           .json({ error: "Validation failed", details: error.errors });
+        return;
+      }
+      if (error?.status === 400) {
+        res.status(400).json({
+          error: error.message,
+          ...(error.code ? { code: error.code } : {}),
+        });
         return;
       }
       logger.error(error, "Update profile error");
@@ -145,32 +407,67 @@ export const profileController = {
 
   async listPTs(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const q = req.query.q as string | undefined;
-      const sessionMode = req.query.sessionMode as string | undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const page = req.query.page
-        ? parseInt(req.query.page as string, 10)
-        : undefined;
-      const limit = req.query.limit
-        ? parseInt(req.query.limit as string, 10)
-        : undefined;
+      const q = typeof req.query.q === "string" ? req.query.q : undefined;
+      const sessionMode = typeof req.query.sessionMode === "string" ? req.query.sessionMode : undefined;
+      const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy.trim() || undefined : undefined;
+
+      let page = 1;
+      if (req.query.page !== undefined) {
+        const parsedPage = parseStrictQueryInt(req.query.page);
+        if (parsedPage === null || parsedPage < 1) {
+          res.status(400).json({ error: "page phải là số nguyên >= 1" });
+          return;
+        }
+        page = parsedPage;
+      }
+
+      let limit = PT_DISCOVERY_DEFAULT_LIMIT;
+      if (req.query.limit !== undefined) {
+        if (typeof req.query.limit !== "string") {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        const trimmedLimit = req.query.limit.trim();
+        if (!/^-?\d+$/.test(trimmedLimit)) {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        const parsedLimit = Number(trimmedLimit);
+        if (!Number.isSafeInteger(parsedLimit) || parsedLimit < 1) {
+          res.status(400).json({ error: "limit phải là số nguyên >= 1" });
+          return;
+        }
+        limit = Math.min(parsedLimit, PT_DISCOVERY_MAX_LIMIT);
+      }
 
       // Parse and validate numeric filters
       let minPrice: number | undefined;
       let maxPrice: number | undefined;
       let provinceCode: number | undefined;
       let wardCode: number | undefined;
+      let areaProvince: number | undefined;
+      let areaWard: number | undefined;
 
       if (req.query.minPrice !== undefined) {
         minPrice = Number(req.query.minPrice);
-        if (isNaN(minPrice) || minPrice < 0) {
+        if (
+          typeof req.query.minPrice !== "string" ||
+          req.query.minPrice.trim() === "" ||
+          !Number.isFinite(minPrice) ||
+          minPrice < 0
+        ) {
           res.status(400).json({ error: "minPrice phải là số không âm" });
           return;
         }
       }
       if (req.query.maxPrice !== undefined) {
         maxPrice = Number(req.query.maxPrice);
-        if (isNaN(maxPrice) || maxPrice < 0) {
+        if (
+          typeof req.query.maxPrice !== "string" ||
+          req.query.maxPrice.trim() === "" ||
+          !Number.isFinite(maxPrice) ||
+          maxPrice < 0
+        ) {
           res.status(400).json({ error: "maxPrice phải là số không âm" });
           return;
         }
@@ -184,18 +481,20 @@ export const profileController = {
         return;
       }
       if (req.query.provinceCode !== undefined) {
-        provinceCode = Number(req.query.provinceCode);
-        if (isNaN(provinceCode)) {
+        const parsed = parseStrictQueryInt(req.query.provinceCode);
+        if (parsed === null) {
           res.status(400).json({ error: "provinceCode phải là số nguyên" });
           return;
         }
+        provinceCode = parsed;
       }
       if (req.query.wardCode !== undefined) {
-        wardCode = Number(req.query.wardCode);
-        if (isNaN(wardCode)) {
+        const parsed = parseStrictQueryInt(req.query.wardCode);
+        if (parsed === null) {
           res.status(400).json({ error: "wardCode phải là số nguyên" });
           return;
         }
+        wardCode = parsed;
         // A ward code is only meaningful inside a province — the same number is reused
         // across provinces, so filtering on it alone quietly matches wards the caller never
         // meant. The search form already pairs the two; enforcing it only there leaves the
@@ -207,30 +506,32 @@ export const profileController = {
           return;
         }
       }
+      const parsedArea = parseAreaParamsFromQuery(req.query);
+      if ("error" in parsedArea) {
+        res.status(400).json({ error: parsedArea.error });
+        return;
+      }
+      areaProvince = parsedArea.areaProvince;
+      areaWard = parsedArea.areaWard;
 
-      const searchCity = req.query.searchCity as string | undefined;
-      const searchDistrict = req.query.searchDistrict as string | undefined;
-      const gymId = req.query.gymId as string | undefined;
+      const searchCity = typeof req.query.searchCity === "string" ? req.query.searchCity : undefined;
+      const searchDistrict = typeof req.query.searchDistrict === "string" ? req.query.searchDistrict : undefined;
+      const gymId = typeof req.query.gymId === "string" ? req.query.gymId : undefined;
       let specialties: string[] | undefined;
-      if (req.query.specialties) {
-        if (Array.isArray(req.query.specialties)) {
-          specialties = req.query.specialties as string[];
-        } else {
-          specialties = (req.query.specialties as string).split(",");
-        }
+      if (req.query.specialties !== undefined) {
+        const rawSpecialties = Array.isArray(req.query.specialties)
+          ? req.query.specialties.flatMap((v) => String(v).split(","))
+          : String(req.query.specialties).split(",");
+        const cleaned = rawSpecialties.map((s) => s.trim()).filter(Boolean);
+        if (cleaned.length > 0) specialties = cleaned;
       }
 
-      // Rating order can't be expressed in findPTs' orderBy (the score is aggregated from
-      // session_reviews, not a column), so for that one mode we page in memory: fetch the
-      // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
-      // sorting afterwards would only order each page against itself.
-      // Price order is the same story: the per-session price is DERIVED from the packages for sale (it is not a
-      // column), so price sorts are done in memory too.
-      const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
-      const sortByPrice = sortBy === "priceAsc" || sortBy === "priceDesc";
-      const sortInMemory = sortByRating || sortByPrice;
+      // Fetch viewer's active gyms once before the query so default-order SQL can prioritize
+      // SAME_GYM globally and enrichForDiscovery reuses the exact same set for matchReason.
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
 
-      const profiles = await profileRepository.findPTs({
+      // Global SQL filtering, sorting, and pagination (no limit:1000 JS sort).
+      const { pts: profiles, hasMore } = await profileRepository.findPTsPaged({
         q: q?.trim() || undefined,
         minPrice,
         maxPrice,
@@ -241,105 +542,84 @@ export const profileController = {
         searchDistrict,
         gymId,
         specialties,
-        sortBy: sortInMemory ? undefined : sortBy,
-        page: sortInMemory ? undefined : page,
-        limit: sortInMemory ? 1000 : limit,
+        sortBy,
+        viewerGymIds: activeViewerGymIds.size > 0 ? [...activeViewerGymIds] : undefined,
+        page,
+        limit,
       });
 
-      // B10b. Ưu tiên gymId: Nếu có gymId, đưa các PT có cùng gymId lên đầu danh sách
-      if (gymId) {
-        profiles.sort((a, b) => {
-          if (a.gymId === gymId && b.gymId !== gymId) return -1;
-          if (b.gymId === gymId && a.gymId !== gymId) return 1;
-          return 0;
-        });
-      }
-      // Trainers approved before names were copied at approval time still have empty name
-      // columns, so `q` cannot find them. Whatever auth-service fills in below is written back
-      // (only into still-empty columns) — the list heals itself the first time it is loaded.
-      // Only the nameless rows go to auth-service (the helper would otherwise also fetch every row's email, which
-      // the public DTO never emits). Whatever it adds beyond names is dropped by toPublicPtDto's allowlist.
-      const nameless = (profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId);
-      await enrichProfilesWithAuthNames((profiles as any[]).filter((p) => nameless.includes(p.userId)));
-      if (nameless.length > 0) {
-        const healed = (profiles as any[]).filter((p) => nameless.includes(p.userId));
-        void Promise.all(
-          healed.map((p) => {
-            const names = profileNameFields(p.firstName, p.lastName);
-            return names ? profileRepository.backfillNames(p.userId, names) : null;
-          }),
-        ).catch(() => undefined);
-      }
+      const signed = await hydrateDiscoveryPublicPts(profiles, req.user?.id, { areaProvince, areaWard }, activeViewerGymIds);
 
-      // One grouped query for the whole list, never one per PT.
-      let rated = await attachPtRatings(profiles as any[]);
-
-      if (sortInMemory) {
-        if (sortByRating) {
-          const dir = sortBy === "ratingAsc" ? 1 : -1;
-          // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
-          rated.sort((a, b) => {
-            if (a.avgRating === null && b.avgRating === null) return 0;
-            if (a.avgRating === null) return 1;
-            if (b.avgRating === null) return -1;
-            return (a.avgRating - b.avgRating) * dir;
-          });
-        } else {
-          const dir = sortBy === "priceAsc" ? 1 : -1;
-          // With a mode filter the price that matters is that mode's; otherwise the cheapest of all. A trainer
-          // with nothing for sale has no price and sinks to the bottom either way.
-          const priceOf = (row: any): number | null => {
-            const byMode = computeFromPricesByMode(row.servicePackages ?? []);
-            const picked =
-              sessionMode === "ONLINE" ? byMode.online : sessionMode === "OFFLINE" ? byMode.offline : byMode.overall;
-            return picked.fromPricePerSession;
-          };
-          rated.sort((a, b) => {
-            const pa = priceOf(a);
-            const pb = priceOf(b);
-            if (pa === null && pb === null) return 0;
-            if (pa === null) return 1;
-            if (pb === null) return -1;
-            return (pa - pb) * dir;
-          });
-        }
-        const take = limit ?? 50;
-        const skip = page ? (page - 1) * take : 0;
-        rated = rated.slice(skip, skip + take);
-      }
-
-      // Phase 1 layer 2 + Phase 2 VĐ6: the two fields the buying UI needs. Both are computed
-      // for the whole page at once — one grouped slot query and one membership lookup — so
-      // the query count does not grow with the number of trainers returned.
-      // The viewer comes from the verified token, never from a query parameter — otherwise
-      // anyone could ask "rank this list as if I were that user" and read their gym membership.
-      const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
-      // Everything below this line is the public allowlist: rows came from the public finder (visibility rule
-      // applied), and only the fields toPublicPtDto names are emitted.
-      const signed = await Promise.all(
-        (enriched as any[]).map((row) =>
-          withSignedProfilePhoto(
-            toPublicPtDto(row as PublishedPtSource, {
-              avgRating: row.avgRating,
-              ratingCount: row.ratingCount,
-              availableSlotsNext28Days: row.availableSlotsNext28Days,
-              matchReason: row.matchReason,
-            }),
-          ),
-        ),
-      );
-
-      res.json({ pts: signed });
+      res.json({ pts: signed, hasMore });
     } catch (error) {
       logger.error(error, "List PTs error");
       res.status(500).json({ error: "Internal server error" });
     }
   },
 
-  /** One PT's public profile, with their rating and the latest commented reviews. */
+  /** Geo / epoch-cursor PT search via POST body so GPS coordinates never appear on URLs or logs. */
+  async searchPTs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = parseSearchPtsBody(req.body);
+      if ("error" in parsed) {
+        res.status(400).json({ error: parsed.error, code: "VALIDATION_ERROR" });
+        return;
+      }
+
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
+      const { pts: profiles, metaByUserId, nextCursor, hasMore, appliedScope } =
+        await profileRepository.searchPTsCursor({
+          ...parsed.value,
+          viewerGymIds: activeViewerGymIds.size > 0 ? [...activeViewerGymIds] : undefined,
+        });
+
+      const signed = await hydrateDiscoveryPublicPts(
+        profiles,
+        req.user?.id,
+        { areaProvince: parsed.value.areaProvince, areaWard: parsed.value.areaWard },
+        activeViewerGymIds,
+        metaByUserId,
+      );
+
+      res.json({ pts: signed, nextCursor, hasMore, appliedScope });
+    } catch (err: unknown) {
+      if (err instanceof InvalidCursorError) {
+        res.status(err.status).json({ error: err.message, code: err.code });
+        return;
+      }
+      if (err instanceof CursorExpiredError || err instanceof CursorFilterMismatchError) {
+        res.status(err.status).json({ error: err.message, code: err.code });
+        return;
+      }
+      if (err instanceof CursorSecretUnavailableError) {
+        logger.error({ code: err.code }, "PT search cursor key missing");
+        res.status(err.status).json({ error: "Tìm kiếm tạm thời chưa khả dụng", code: err.code });
+        return;
+      }
+      if (isStatementTimeoutError(err)) {
+        // Never log raw error / params in case SQL parameters contain viewer coordinates.
+        logger.warn({ code: "QUERY_TIMEOUT" }, "PT search timed out");
+        res.status(503).json({ error: "Truy vấn tìm kiếm quá thời gian cho phép", code: "QUERY_TIMEOUT" });
+        return;
+      }
+      logger.error(
+        { code: (err as any)?.code ?? null, name: err instanceof Error ? err.name : "Error" },
+        "Search PTs error",
+      );
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** One PT's public profile, with full discovery fields + rating and the latest commented reviews. */
   async getPTDetail(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
+      const parsedArea = parseAreaParamsFromQuery(req.query);
+      if ("error" in parsedArea) {
+        res.status(400).json({ error: parsedArea.error });
+        return;
+      }
+
       // Same visibility rule as the list (ptPublicWhere): a suspended / restricted / not-approved trainer is a
       // 404 here too, so an id typed into the URL cannot get past the filter the list applies.
       const source = await profileRepository.findPublicPtByUserId(userId);
@@ -348,17 +628,20 @@ export const profileController = {
         return;
       }
 
-      // A profile row is created lazily and may still lack the name (auth-service has it).
-      const named: any = source;
-      if (!named.firstName && !named.lastName) await enrichProfilesWithAuthNames([named]);
-      const [rating, recentReviews, ratingDistribution] = await Promise.all([
-        ptReviewRepository.aggregateForPt(userId),
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
+      const [[hydratedPt], recentReviews, ratingDistribution] = await Promise.all([
+        hydrateDiscoveryPublicPts(
+          [source],
+          req.user?.id,
+          { areaProvince: parsedArea.areaProvince, areaWard: parsedArea.areaWard },
+          activeViewerGymIds,
+        ),
         ptReviewRepository.recentCommentsForPt(userId, 5),
         ptReviewRepository.ratingDistributionForPt(userId),
       ]);
 
       res.json({
-        ...((await withSignedProfilePhoto(toPublicPtDto(source, rating))) as any),
+        ...(hydratedPt as any),
         recentReviews,
         ratingDistribution,
       });

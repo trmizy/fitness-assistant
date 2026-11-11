@@ -74,7 +74,19 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Khiếu nại buổi tập", icon: "alert", tone: "warning" };
     case "SESSION_DISPUTE_RESOLVED":
     case "GYM_COMPLAINT_RESOLVED":
+    case "GYM_COMPLAINT_CASE_RESOLVED":
       return { title: "Khiếu nại đã xử lý", icon: "shield", tone: "primary" };
+    // Gym complaint case (N09C-01): no mobile case screen exists yet, so these only get a title/icon and open nothing.
+    case "GYM_COMPLAINT_CASE_OPENED":
+      return { title: "Báo cáo đã được tiếp nhận", icon: "shield", tone: "primary" };
+    case "GYM_COMPLAINT_CASE_MORE_INFO":
+      return { title: "Cần bổ sung thông tin", icon: "alert", tone: "warning" };
+    case "GYM_COMPLAINT_CASE_SLA_WARNING":
+      return { title: "Hồ sơ sắp đến hạn xử lý", icon: "alert", tone: "warning" };
+    case "GYM_COMPLAINT_CASE_SLA_OVERDUE":
+      return { title: "Hồ sơ đã quá hạn xử lý", icon: "alert", tone: "danger" };
+    case "GYM_COMPLAINT_CASE_APPEAL_FILED":
+      return { title: "Kháng nghị đã được tiếp nhận", icon: "shield", tone: "primary" };
     case "CONTRACT_REQUESTED":
     case "CONTRACT_ACCEPTED":
       return { title: "Hợp đồng PT", icon: "file", tone: "primary" };

@@ -93,3 +93,35 @@ export function pushTapRoute(
   }
   return ROLE_HOME[role];
 }
+
+/** The part of a presented notification the call tidy-up needs (a subset of expo's NotificationContent). */
+export type PresentedNotice = { identifier: string; body?: string | null; data?: unknown };
+
+const MISSED_NOTICE = /nhỡ/i;
+
+/**
+ * NE-08 — which "Đang gọi…" notices in the shade are stale.
+ *
+ * With `endedCallSessionId` only that call's notice goes (it was answered, rejected, cancelled or
+ * ended). Without it, every call notice except the live one (`activeCallSessionId`) goes — used
+ * when the app comes to the foreground, because calls that ended while the app was closed never
+ * reached it as a socket event. The "Cuộc gọi … nhỡ" notice shares the ringing notice's tag and
+ * is a record the user wants to keep, so it is never returned.
+ */
+export function staleCallNoticeIds(
+  shown: PresentedNotice[],
+  opts: { endedCallSessionId?: string | null; activeCallSessionId?: string | null },
+): string[] {
+  const ids: string[] = [];
+  for (const n of shown) {
+    const data = readPushData(n.data);
+    if (data.kind !== "CALL" || !data.callSessionId) continue;
+    if (n.body && MISSED_NOTICE.test(n.body)) continue;
+    if (opts.endedCallSessionId) {
+      if (data.callSessionId === opts.endedCallSessionId) ids.push(n.identifier);
+    } else if (data.callSessionId !== opts.activeCallSessionId) {
+      ids.push(n.identifier);
+    }
+  }
+  return ids;
+}

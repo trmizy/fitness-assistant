@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
@@ -39,6 +39,7 @@ import {
   ownedGyms,
   pendingCollabCount,
   recentMemberships,
+  staffRoleOf,
   todayCheckinCount,
 } from "../../src/features/gymOwner/gymOwner";
 
@@ -56,7 +57,30 @@ import {
  * "Cần chú ý" sits ABOVE the numbers (GYM_MANAGEMENT master spec §61/§66 — the owner opens the
  * dashboard and sees what needs them first), and is derived from the branch rows already fetched.
  */
+/**
+ * NE-13 — an accountant's bar holds "Hồ sơ" only (gym-service 403s their check-in reads), so the
+ * operations dashboard is not theirs: send them to the one tab they have BEFORE any of its reads
+ * fire. Other roles — and an unreadable role, which the server still polices — see the dashboard.
+ */
 export default function GymOwnerDashboardScreen() {
+  const { user } = useApp();
+  const accent = useWorkspaceAccent();
+  const statusQuery = useQuery({
+    queryKey: ["partner-onboarding-status", user?.id ?? "guest"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  if (statusQuery.isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator color={accent.primary} />
+      </View>
+    );
+  }
+  if (staffRoleOf(statusQuery.data) === "ACCOUNTANT") return <Redirect href="/gym-owner/profile" />;
+  return <OperationsDashboard />;
+}
+
+function OperationsDashboard() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const { user } = useApp();

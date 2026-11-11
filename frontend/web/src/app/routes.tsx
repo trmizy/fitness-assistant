@@ -109,6 +109,8 @@ const GymCollaborationsPage = lazy(() => import("./pages/gym-owner/GymCollaborat
 const ManageManagersPage = lazy(() => import("./pages/gym-owner/ManageManagersPage").then((m) => ({ default: m.ManageManagersPage })));
 const FrontDeskPage = lazy(() => import("./pages/gym-owner/FrontDeskPage").then((m) => ({ default: m.FrontDeskPage })));
 const GymFinancePage = lazy(() => import("./pages/gym-owner/GymFinancePage").then((m) => ({ default: m.GymFinancePage })));
+const GymComplaintCasesPage = lazy(() => import("./pages/gym-owner/GymComplaintCasesPage").then((m) => ({ default: m.GymComplaintCasesPage })));
+const GymComplaintCasePage = lazy(() => import("./pages/gym-owner/GymComplaintCasesPage").then((m) => ({ default: m.GymComplaintCasePage })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
@@ -136,6 +138,8 @@ const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").the
 // Finance level-2 tabs (each a route; rendered inside AdminFinancePage's <Outlet/>).
 const AdminFinanceOverviewTab = lazy(() => import("./pages/admin/AdminFinanceOverviewTab").then((m) => ({ default: m.AdminFinanceOverviewTab })));
 const AdminReconciliationPanel = lazy(() => import("./pages/admin/AdminReconciliationPanel").then((m) => ({ default: m.AdminReconciliationPanel })));
+const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions").then((m) => ({ default: m.AdminTransactions })));
+const AdminWallets = lazy(() => import("./pages/admin/finance/wallets/AdminWallets").then((m) => ({ default: m.AdminWallets })));
 const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals").then((m) => ({ default: m.AdminWithdrawals })));
 const PTServiceRefunds = lazy(() => import("./pages/admin/PTServiceRefunds").then((m) => ({ default: m.PTServiceRefunds })));
 // Listing Management D1 - PT + branch listing revisions, amenity catalogue and proposals.
@@ -365,6 +369,9 @@ export const router = createBrowserRouter([
           { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
           { path: "front-desk", element: <RequireStaffFeature feature="frontDesk"><FrontDeskPage /></RequireStaffFeature> },
           { path: "finance", element: <RequireStaffFeature feature="finance"><GymFinancePage /></RequireStaffFeature> },
+          // ND-07: hồ sơ khiếu nại về chi nhánh — chủ và quản lý (đúng chi nhánh được giao) giải trình + gửi bằng chứng.
+          { path: "complaint-cases", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasesPage /></RequireStaffFeature> },
+          { path: "complaint-cases/:caseId", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasePage /></RequireStaffFeature> },
           { path: "profile", element: <RequireStaffFeature feature="profile"><GymOwnerProfilePage /></RequireStaffFeature> },
         ],
       },
@@ -393,9 +400,11 @@ export const router = createBrowserRouter([
             children: [
               { index: true, Component: AdminFinanceOverviewTab },
               { path: "reconciliation", Component: AdminReconciliationPanel },
+              { path: "transactions", Component: AdminTransactions },
+              { path: "wallets", Component: AdminWallets },
               { path: "withdrawals", Component: AdminWithdrawals },
               { path: "refunds", Component: PTServiceRefunds },
-              // Đường dẫn con không tồn tại (vd. /transactions — chưa có API) → Tổng quan, không 404.
+              // Đường dẫn con không tồn tại → Tổng quan, không 404.
               { path: "*", element: <Navigate to="/admin/finance" replace /> },
             ],
           },

@@ -7,6 +7,7 @@
  *   node scripts/seed-marketplace/index.mjs --tier b --dry-run                      Tier B request plan, nothing is sent
  *   SEED_MARKETPLACE_CONFIRM=dev node scripts/seed-marketplace/index.mjs --target dev [--reseed] --tier all \
  *        --gateway http://localhost:3000       (needs verify-clean.ok + SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD + the compose override of SEED.md)
+ *   SEED_MARKETPLACE_CONFIRM=scale node scripts/seed-marketplace/index.mjs --target scale --counts   (isolated scale stack on localhost:55440)
  *
  * Tier A = direct DB fixtures (accounts, profiles, InBody). Tier B = the real flows over HTTP through the gateway.
  * Guards: see lib/guard.mjs. The password is never printed. Nothing here ever deletes or updates an existing row.
@@ -61,6 +62,9 @@ async function main() {
     if (flag("counts", false)) {
       console.log(JSON.stringify(await seedCounts(pools), null, 2));
       return;
+    }
+    if (!["a", "b", "all"].includes(tier)) {
+      throw new SeedGuardError("UNKNOWN_TIER", `Unsupported --tier "${tier}" (expected a, b, or all; scale generator lands in phase S1).`);
     }
     if (guard.kind === "fresh") await checkFreshTarget(target, pools, { reseed: gopts.reseed });
     await assertNoCollisions(pools, world);

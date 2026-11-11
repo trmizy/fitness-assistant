@@ -16,6 +16,7 @@ import {
   updateMeSchema,
   changePasswordSchema,
   updateUserRoleSchema,
+  PASSWORD_POLICY_MESSAGE_VI,
 } from "../models/auth.models";
 
 const INTERNAL_SERVICE_SECRET =
@@ -349,9 +350,13 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        // N-A-07: a weak new password gets the same Vietnamese policy sentence as reset/invite.
+        const weakNew = error.errors.some((e) => e.path[0] === "newPassword");
+        res.status(400).json({
+          error: weakNew ? PASSWORD_POLICY_MESSAGE_VI : "Validation failed",
+          ...(weakNew ? { code: "WEAK_PASSWORD" } : {}),
+          details: error.errors,
+        });
         return;
       }
       if (error.status) {

@@ -5,6 +5,7 @@ import {
   CheckIcon,
   ClockIcon,
   CopyIcon,
+  InfoIcon,
   LockSimpleIcon,
   MoneyIcon,
   XIcon,
@@ -14,7 +15,9 @@ import { Button } from "../../../components/ui/button";
 import { MoneyActionDialog } from "../shared/MoneyActionDialog";
 import { useAdminError } from "../shared/useAdminError";
 import { hasText, moneyText } from "../shared/moneyGuards";
-import { formatAge, shortId, type WithdrawalRequest } from "./withdrawalQueue";
+import { useApp } from "../../../context/AppContext";
+import { formatMoneyExact } from "../adminFinanceOverview.utils";
+import { canOfferMarkPaid, fourEyesGate, formatAge, shortId, type WithdrawalRequest } from "./withdrawalQueue";
 
 /**
  * B5 — one request of the withdrawal queue. It keeps every B1 money behaviour: approve and mark-paid go through
@@ -36,7 +39,7 @@ const APPROVE_HINT =
   "Ví của người rút có thể không đủ số dư khả dụng hoặc đang bị khoá — yêu cầu cần xem lại.";
 
 const APPROVE_TITLE =
-  "Tuỳ chọn: khoá số tiền này lại trước, để việc chuyển khoản có mất thời gian cũng không bị nghiệp vụ khác ăn vào số dư. Không bấm cũng được — bấm thẳng \"Đã chi trả\" khi chuyển khoản xong.";
+  "Tuỳ chọn: khoá số tiền này lại trước, để việc chuyển khoản có mất thời gian cũng không bị nghiệp vụ khác ăn vào số dư. Khoản dưới 5.000.000 ₫ không bấm cũng được — bấm thẳng \"Đã chi trả\" khi chuyển khoản xong; khoản từ 5.000.000 ₫ phải duyệt trước và do một quản trị viên khác xác nhận đã chi.";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
 
@@ -50,7 +53,7 @@ function formatDateTime(iso: string) {
   );
 }
 
-function CopyId({ id, label }: { id: string; label: string }) {
+export function CopyId({ id, label }: { id: string; label: string }) {
   if (!id) return null;
   async function copy() {
     try {
@@ -96,6 +99,7 @@ const CELL_LABEL = "text-[11px] font-medium text-adm-text-2 xl:hidden";
 
 export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; now: number; onActionDone?: () => void }) {
   const queryClient = useQueryClient();
+  const { user } = useApp();
   const { report } = useAdminError();
   const [dialog, setDialog] = useState<"approve" | "pay" | null>(null);
   const [rejecting, setRejecting] = useState(false);
@@ -118,6 +122,9 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
   const amountText = moneyText(r.amount);
   const ownerLabel = OWNER_LABEL[r.ownerType] ?? r.ownerType;
   const isApproved = r.status === "APPROVED";
+  // BE-2 four-eyes: a UI hint only — the server refuses with 409 FOUR_EYES_REQUIRED whatever is shown here.
+  const gate = fourEyesGate(r, user?.id ?? null, formatMoneyExact);
+  const offerMarkPaid = canOfferMarkPaid(gate);
 
   const approveMutation = useMutation({
     mutationFn: () => adminService.approveWithdrawal(r.id),
@@ -235,6 +242,7 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
                 <CheckIcon aria-hidden /> Duyệt
               </Button>
             )}
+            {offerMarkPaid && (
             <Button
               type="button"
               size="sm"
@@ -245,6 +253,7 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
             >
               <MoneyIcon aria-hidden /> Đã chi trả
             </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -259,6 +268,18 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
           </div>
         )}
       </div>
+
+      {gate.kind !== "none" && (
+        <p
+          role="note"
+          data-testid="admin-withdrawal-four-eyes-note"
+          data-gate={gate.kind}
+          className="col-span-2 flex items-start gap-1.5 text-xs text-st-info xl:col-span-full"
+        >
+          <InfoIcon className="mt-px size-3.5 shrink-0" weight="fill" aria-hidden />
+          <span>{gate.kind === "second-admin" ? gate.note : gate.message}</span>
+        </p>
+      )}
 
       {rejecting && (
         <div role="cell" className="col-span-2 min-w-0 rounded-lg border border-adm-border bg-adm-surface-2 p-3 xl:col-span-full">

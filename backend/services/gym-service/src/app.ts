@@ -15,6 +15,11 @@ import mediaRoutes from './routes/media.routes';
 import { gymMediaController } from './controllers/gym-media.controller';
 import { asyncHandler } from './middleware/asyncHandler';
 import { legacyCompatRefusalGuard } from './services/legacy-compat.service';
+import { localizeErrors } from './middleware/localize-errors.middleware';
+import { installViZodErrorMap } from './config/zod-vi';
+
+// N09C-02: zod's default English messages ("Required", ...) become Vietnamese for every schema that gives none of its own.
+installViZodErrorMap();
 
 const app = express();
 
@@ -33,6 +38,19 @@ app.use((req, res, next) => {
 // Mounted ahead of the body parser so a malformed JSON body (400) is seen too.
 app.use(legacyCompatRefusalGuard);
 app.use(express.json());
+// Catch malformed JSON early with 400 INVALID_JSON so body-parser messages/snippets never reach logger.error.
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_JSON', message: 'Dữ liệu JSON không hợp lệ' },
+    });
+    return;
+  }
+  next(err);
+});
+// N09C-02 / N-A-01: Vietnamese error messages (codes kept) and no Prisma text / file paths in any 5xx - see utils/error-messages.vi.ts.
+app.use(localizeErrors);
 // Địa chỉ công khai người gọi đang dùng — cho link tệp ký theo đúng cửa họ đi vào (partner-s3.service.ts).
 app.use(requestContextMiddleware);
 app.use(metricsMiddleware());
@@ -81,7 +99,8 @@ app.use('/internal', internalRoutes);
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   logger.error({ err: err?.message, path: req.path }, 'Unhandled error in gym-service');
   if (res.headersSent) return;
-  res.status(err?.status || 500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  const status = Number.isInteger(err?.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
+  res.status(status).json({ success: false, error: { code: status === 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR', message: status === 500 ? 'Hệ thống đang gặp lỗi. Vui lòng thử lại sau.' : 'Yêu cầu không hợp lệ.' } });
 });
 
 export default app;

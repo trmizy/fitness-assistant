@@ -103,6 +103,34 @@ export const ACCESS_STATE_TEXT: Record<PartnerAccessState, { title: string; body
   TERMINATED: { title: "Đã chấm dứt hợp tác", body: "Hợp tác giữa bạn và Gymini đã kết thúc." },
 };
 
+/**
+ * NE-12 — why the access-status call failed, when the server said so. A revoked staff member gets
+ * 403 PARTNER_ACCESS_REVOKED: that is an answer ("you no longer have access"), not a glitch to
+ * retry. Error body is `{ error: { code } }` (gym-service) — a flat `{ code }` is read too.
+ */
+export type PartnerAccessError = { kind: "revoked" | "forbidden"; title: string; body: string };
+
+export function partnerAccessError(error: unknown): PartnerAccessError | null {
+  const res = (error as { response?: { status?: number; data?: any } } | null)?.response;
+  if (!res || res.status !== 403) return null;
+  const code = res.data?.error?.code ?? res.data?.code;
+  if (code === "PARTNER_ACCESS_REVOKED") {
+    return {
+      kind: "revoked",
+      title: "Quyền truy cập đã bị thu hồi",
+      body: "Quyền truy cập của bạn vào phòng gym này đã bị thu hồi. Hãy liên hệ chủ phòng gym nếu bạn cho rằng đây là nhầm lẫn, hoặc đăng xuất để dùng tài khoản khác.",
+    };
+  }
+  if (typeof code === "string" && /^(PARTNER_|OWNER_ROLE_REQUIRED|STAFF_)/.test(code)) {
+    return {
+      kind: "forbidden",
+      title: "Không có quyền truy cập",
+      body: "Tài khoản của bạn hiện không có quyền dùng khu vực quản lý phòng gym. Hãy liên hệ chủ phòng gym hoặc đăng xuất để dùng tài khoản khác.",
+    };
+  }
+  return null;
+}
+
 export function accessStateText(state: PartnerAccessState | null | undefined) {
   return (
     (state && ACCESS_STATE_TEXT[state]) ?? {

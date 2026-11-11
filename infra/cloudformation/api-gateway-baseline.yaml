@@ -234,6 +234,8 @@ Resources:
       - locations
       - pt
       - me
+      # Public PT physique photos (user-service media.routes.ts: GET /media/pt-physique/:photoId -> 302 to a presigned S3 GET).
+      - media/pt-physique
     - "User&{Prefix}BareRoute":
         Type: AWS::ApiGatewayV2::Route
         DeletionPolicy: Retain
@@ -332,6 +334,9 @@ Resources:
       - admin/gyms
       - admin/partner-accounts
       - admin/partners
+      # Public, read-only gym photos (gym-service media.routes.ts: GET /media/gym-photos/:photoId -> 302 to a presigned S3 GET).
+      # The local gateway proxies this path; without a route here every gym photo on gymini.vn is {"message":"Not Found"} (2026-11-10).
+      - media/gym-photos
     - "Gym&{Prefix}BareRoute":
         Type: AWS::ApiGatewayV2::Route
         DeletionPolicy: Retain

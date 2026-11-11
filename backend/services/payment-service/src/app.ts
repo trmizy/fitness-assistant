@@ -4,6 +4,9 @@ import webhookRoutes from './routes/webhook.routes';
 import vnpayReturnRoutes from './routes/vnpay-return.routes';
 import paymentRoutes from './routes/payment.routes';
 import adminRoutes from './routes/admin.routes';
+import adminWithdrawalHistoryRoutes from './routes/admin-withdrawal-history.routes';
+import adminWalletsRoutes from './routes/admin-wallets.routes';
+import adminGatewayReconciliationRoutes from './routes/admin-gateway-reconciliation.routes';
 import internalRoutes from './routes/internal.routes';
 import walletRoutes from './routes/wallet.routes';
 
@@ -42,6 +45,11 @@ app.get('/metrics', async (_req, res) => {
 
 app.use('/me/payments', paymentRoutes);
 app.use('/me', walletRoutes);
+// B8 (L2) read-only gateway reconciliation: before the generic admin router so no '/:id/...' route can shadow it.
+app.use('/admin/payments/gateway-reconciliation', adminGatewayReconciliationRoutes);
+// G-08 withdrawal history and G-09/G-10 wallet explorer (read-only): mounted before the generic admin router (11/11).
+app.use('/admin/payments/withdrawal-history', adminWithdrawalHistoryRoutes);
+app.use('/admin/payments/wallets', adminWalletsRoutes);
 app.use('/admin/payments', adminRoutes);
 app.use('/internal', internalRoutes);
 

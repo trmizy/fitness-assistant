@@ -84,6 +84,21 @@ export const profileSchema = z.object({
   // canonical field on this model stays metric regardless of this value.
   unitSystem: z.enum(["metric", "imperial"]).optional(),
   energyUnit: z.enum(["kcal", "kj"]).optional(),
+  // D1.1: Optional discovery region preferences ("Toàn quốc" when null; no FK in DB).
+  searchProvinceCode: z
+    .number()
+    .int()
+    .min(1)
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
+  searchWardCode: z
+    .number()
+    .int()
+    .min(1)
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
 });
 
 export const adminPTStatusSchema = z.object({

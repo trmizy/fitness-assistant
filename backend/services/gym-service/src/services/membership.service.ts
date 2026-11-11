@@ -411,16 +411,26 @@ export const membershipService = {
     const list = await membershipRepository.findByClient(clientId);
     const result = [];
     for (const m of list) {
-      result.push((await membershipRepository.expireIfPastEndDate(m)) ?? m);
+      const { gym, ...rest } = m;
+      const row = (await membershipRepository.expireIfPastEndDate(rest)) ?? rest;
+      result.push({
+        ...row,
+        gymName: gym.approvedName ?? gym.name,
+      });
     }
     return result;
   },
 
   async getForClient(membershipId: string, clientId: string) {
-    const m = await membershipRepository.findById(membershipId);
+    const m = await membershipRepository.findByIdWithGymName(membershipId);
     if (!m) throw err('Membership not found', 404);
     if (m.clientId !== clientId) throw err('Not authorized', 403);
-    return (await membershipRepository.expireIfPastEndDate(m)) ?? m;
+    const { gym, ...rest } = m;
+    const row = (await membershipRepository.expireIfPastEndDate(rest)) ?? rest;
+    return {
+      ...row,
+      gymName: gym.approvedName ?? gym.name,
+    };
   },
 
   async listForOwner(gymId: string, ownerId: string) {

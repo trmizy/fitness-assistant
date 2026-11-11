@@ -26,6 +26,8 @@ export const trainingLocationRepository = {
       gymName?: string | null;
       addressLine?: string | null;
       legacyDistrictName?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       isPrimary?: boolean;
       note?: string | null;
     },
@@ -45,6 +47,8 @@ export const trainingLocationRepository = {
           gymName: data.gymName ?? null,
           addressLine: data.addressLine ?? null,
           legacyDistrictName: data.legacyDistrictName ?? null,
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null,
           isPrimary: data.isPrimary ?? false,
           note: data.note ?? null,
         },
@@ -65,6 +69,8 @@ export const trainingLocationRepository = {
       gymName?: string | null;
       addressLine?: string | null;
       legacyDistrictName?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       isPrimary?: boolean;
       isActive?: boolean;
       note?: string | null;

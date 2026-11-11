@@ -8,16 +8,17 @@ import {
 } from "../services/call.policy";
 import { chatRepository } from "../repositories/chat.repository";
 import type { AuthRequest } from "../middleware/auth.middleware";
+import { callErrorText } from "../utils/callErrors";
 
 // Map service-level error strings to clean HTTP statuses.
 function mapServiceError(err: string): { status: number; message: string } {
-  if (/already in a call/i.test(err)) return { status: 409, message: err };
-  if (/busy/i.test(err)) return { status: 409, message: err };
-  if (/not authorized/i.test(err)) return { status: 403, message: err };
-  if (/not found/i.test(err)) return { status: 404, message: err };
+  if (/already in a call/i.test(err)) return { status: 409, message: callErrorText(err) };
+  if (/busy/i.test(err)) return { status: 409, message: callErrorText(err) };
+  if (/not authorized/i.test(err)) return { status: 403, message: callErrorText(err) };
+  if (/not found/i.test(err)) return { status: 404, message: callErrorText(err) };
   if (/no longer ringing|cannot be cancelled|not in an active state/i.test(err))
-    return { status: 409, message: err };
-  return { status: 400, message: err };
+    return { status: 409, message: callErrorText(err) };
+  return { status: 400, message: callErrorText(err) };
 }
 
 export const callController = {
@@ -26,7 +27,7 @@ export const callController = {
   async create(req: AuthRequest, res: Response) {
     try {
       const callerId = req.user?.id;
-      if (!callerId) return res.status(401).json({ error: "Unauthorized" });
+      if (!callerId) return res.status(401).json({ error: callErrorText("Unauthorized") });
 
       const {
         receiverId,
@@ -38,11 +39,11 @@ export const callController = {
       const calleeId = receiverId;
       const type = (callType || "").toString().toUpperCase();
       if (!calleeId)
-        return res.status(400).json({ error: "receiverId is required" });
+        return res.status(400).json({ error: callErrorText("receiverId is required") });
       if (!["VOICE", "VIDEO"].includes(type)) {
         return res
           .status(400)
-          .json({ error: "callType must be 'VOICE' or 'VIDEO'" });
+          .json({ error: callErrorText("callType must be 'VOICE' or 'VIDEO'") });
       }
 
       const callOrigin: CallOrigin =
@@ -67,7 +68,7 @@ export const callController = {
         if (!convId) {
           return res
             .status(403)
-            .json({ error: "No conversation between caller and receiver" });
+            .json({ error: callErrorText("No conversation between caller and receiver") });
         }
         const verdict = await canInitiateCallFromChat(
           callerId,
@@ -78,7 +79,7 @@ export const callController = {
         if (!verdict.allowed)
           return res
             .status(403)
-            .json({ error: verdict.reason || "Not allowed" });
+            .json({ error: callErrorText(verdict.reason || "Not allowed") });
 
         const result = await callService.initiateCall({
           conversationId: convId,
@@ -99,7 +100,7 @@ export const callController = {
       // SESSION-origin call
       if (!coachingSessionId) {
         return res.status(400).json({
-          error: "coachingSessionId is required for session-origin calls",
+          error: callErrorText("coachingSessionId is required for session-origin calls"),
         });
       }
       const sessionVerdict = await canInitiateCallFromSession(
@@ -110,7 +111,7 @@ export const callController = {
       if (!sessionVerdict.allowed)
         return res
           .status(403)
-          .json({ error: sessionVerdict.reason || "Not allowed" });
+          .json({ error: callErrorText(sessionVerdict.reason || "Not allowed") });
       const result = await callService.initiateCall({
         callerId,
         calleeId: sessionVerdict.calleeId || calleeId,
@@ -125,7 +126,7 @@ export const callController = {
       return res.status(201).json({ call: result.call ?? result.existingCall });
     } catch (error: any) {
       logger.error(error, "Create call error");
-      return res.status(500).json({ error: "Failed to create call" });
+      return res.status(500).json({ error: callErrorText("Failed to create call") });
     }
   },
 
@@ -133,7 +134,7 @@ export const callController = {
   async accept(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      if (!userId) return res.status(401).json({ error: callErrorText("Unauthorized") });
       const result = await callService.acceptCall(req.params.id, userId);
       if (result.error) {
         const mapped = mapServiceError(result.error);
@@ -142,7 +143,7 @@ export const callController = {
       return res.json({ call: result.call });
     } catch (error: any) {
       logger.error(error, "Accept call error");
-      return res.status(500).json({ error: "Failed to accept call" });
+      return res.status(500).json({ error: callErrorText("Failed to accept call") });
     }
   },
 
@@ -150,12 +151,12 @@ export const callController = {
   async end(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      if (!userId) return res.status(401).json({ error: callErrorText("Unauthorized") });
       const reason = req.body?.reason;
       // If the call is still RINGING (callee never picked up) treat as cancel/reject;
       // otherwise it's a real hangup of an active call.
       const current = await callService.findById(req.params.id);
-      if (!current) return res.status(404).json({ error: "Call not found" });
+      if (!current) return res.status(404).json({ error: callErrorText("Call not found") });
       let result: any;
       if (current.status === "RINGING" || current.status === "INITIATING") {
         result =
@@ -172,7 +173,7 @@ export const callController = {
       return res.json({ call: result.call });
     } catch (error: any) {
       logger.error(error, "End call error");
-      return res.status(500).json({ error: "Failed to end call" });
+      return res.status(500).json({ error: callErrorText("Failed to end call") });
     }
   },
 };

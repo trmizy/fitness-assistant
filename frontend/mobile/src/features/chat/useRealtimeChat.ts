@@ -102,17 +102,15 @@ export function useRealtimeChat(conversationIds: string[], activeConversationId?
     async (conversationId: string, content: string) => {
       const text = content.trim();
       if (!text) return false;
-      if (socket && connected && (await ensureFreshSocket())) {
-        socket.emit(REALTIME_EVENTS.chatMessageSend, { conversationId, content: text });
-        return true;
-      }
+      // Always REST: the answer is a real acknowledgement (it rejects when the server did not store the
+      // message), so the caller keeps the typed text on failure (web N09F-03). The gateway relays it live.
       const saved: any = await chatService.sendMessage(conversationId, text);
       const m = normalizeMessage(saved?.data ?? saved);
       queryClient.setQueryData<ChatMessage[]>(messagesKey(userId, conversationId), (old) => mergeMessage(old, m));
       void queryClient.invalidateQueries({ queryKey: conversationsKey(userId) });
       return true;
     },
-    [socket, connected, queryClient, userId],
+    [queryClient, userId],
   );
 
   const sendTyping = useCallback(

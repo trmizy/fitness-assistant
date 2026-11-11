@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlassIcon as Search, BarbellIcon as Dumbbell, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { workoutService } from "../../../services/api";
 import { ExerciseMediaPreview } from "./ExerciseMediaPreview";
-import { ACTIVITY_TYPE_VI, EQUIPMENT_VI } from "../../../utils/labels.vi";
+import { ACTIVITY_TYPE_VI, EQUIPMENT_VI, equipmentLabel } from "../../../utils/labels.vi";
 
 const PAGE_SIZE = 24;
 
@@ -219,7 +219,7 @@ export function ExerciseLibraryPage() {
                     {BODY_PART_LABELS[ex.bodyPart] ?? ex.bodyPart}
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
-                    {String(ex.typeOfEquipment).replace(/_/g, " ").toLowerCase()}
+                    {equipmentLabel(String(ex.typeOfEquipment))}
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
                     {LOGGING_MODE_LABELS[ex.loggingMode] ?? ex.loggingMode}

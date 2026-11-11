@@ -83,7 +83,12 @@ export const authClient = {
    */
   async sendEmail(payload: { to: string; subject: string; text: string; html?: string }): Promise<boolean> {
     try {
-      await axios.post(`${AUTH_SERVICE_URL}/auth/internal/send-email`, payload, { headers, timeout: 8000 });
+      const { data } = await axios.post(`${AUTH_SERVICE_URL}/auth/internal/send-email`, payload, { headers, timeout: 8000 });
+      // auth-service trả 200 {delivered:false} khi SMTP chưa cấu hình — thư KHÔNG đi, không được báo "đã gửi" (N09C-04).
+      if (data && typeof data === 'object' && (data as { delivered?: unknown }).delivered === false) {
+        logger.warn({ to: payload.to }, '[gym-service] auth-service báo chưa gửi được email (delivered=false, SMTP chưa cấu hình?)');
+        return false;
+      }
       return true;
     } catch (e) {
       logger.error({ err: (e as Error).message, to: payload.to }, '[gym-service] gửi email thất bại');

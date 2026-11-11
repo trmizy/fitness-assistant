@@ -1042,12 +1042,15 @@ model Gym {
 
   @@index([status])
   @@index([operationalStatus])
+  @@index([status, operationalStatus])
   @@index([ownerId])
   @@index([brandId])
   /// Khớp với index đã tạo tay ở migration 20260908040000 — thiếu dòng này khiến
   /// `prisma migrate diff` coi index đã có trong CSDL là "thừa, cần xoá" (phát hiện khi
   /// soạn migration Phase 1 của master spec quản lý gym).
   @@index([provinceCode])
+  @@index([latitude, longitude])
+  @@index([provinceCode, wardCode])
   @@map("gyms")
 }
 
@@ -1085,12 +1088,18 @@ model GymMembershipPlan {
   @@map("gym_membership_plans")
 }
 
+enum DataOrigin {
+  REAL
+  SYNTHETIC
+}
+
 model GymMembershipContract {
   id                   String                       @id @default(uuid())
   gymId                String                       @map("gym_id")
   planId               String                       @map("plan_id")
   clientId             String                       @map("client_id")
   status               GymMembershipContractStatus  @default(PENDING_PAYMENT)
+  dataOrigin           DataOrigin                   @default(REAL) @map("data_origin")
   paymentTxnId         String?                      @map("payment_txn_id")
   startDate            DateTime?                    @map("start_date")
   endDate              DateTime?                     @map("end_date")
@@ -1130,6 +1139,7 @@ model GymMembershipContract {
 
   @@index([clientId, status])
   @@index([gymId, status])
+  @@index([dataOrigin, status])
   @@map("gym_membership_contracts")
 }
 
@@ -1176,13 +1186,14 @@ model GymCheckIn {
 
 // ─── Gym Review / Rating (one per member per gym) ─────────────────────
 model GymReview {
-  id        String   @id @default(uuid())
-  gymId     String   @map("gym_id")
-  clientId  String   @map("client_id")
-  rating    Int // 1–5
-  comment   String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String     @id @default(uuid())
+  gymId      String     @map("gym_id")
+  clientId   String     @map("client_id")
+  rating     Int // 1–5
+  comment    String?
+  dataOrigin DataOrigin @default(REAL) @map("data_origin")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
 
   gym Gym @relation(fields: [gymId], references: [id])
 

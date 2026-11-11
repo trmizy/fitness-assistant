@@ -128,6 +128,18 @@ export const gymPublicRepository = {
     return row as PublishedGymSource | null;
   },
 
+  /** Ordered page hydration for POST /gyms/search: preserves caller's SQL-ordered id array. */
+  async findPublishedByIds(ids: string[]): Promise<PublishedGymListSource[]> {
+    if (ids.length === 0) return [];
+    const where = await gymPublicWhere();
+    const rows = await prisma.gym.findMany({
+      where: { AND: [{ id: { in: ids } }, where] },
+      include: LIST_INCLUDE,
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => Boolean(r)) as PublishedGymListSource[];
+  },
+
   /** Every publicly visible branch of one brand (for the brand's branch map). */
   async findPublishedBranchesOfBrand(brandId: string) {
     const where = await gymPublicWhere();

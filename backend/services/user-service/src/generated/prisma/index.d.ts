@@ -89,6 +89,11 @@ export type VietnamProvince = $Result.DefaultSelection<Prisma.$VietnamProvincePa
  */
 export type VietnamWard = $Result.DefaultSelection<Prisma.$VietnamWardPayload>
 /**
+ * Model VietnamWardGeo
+ * 
+ */
+export type VietnamWardGeo = $Result.DefaultSelection<Prisma.$VietnamWardGeoPayload>
+/**
  * Model PTTrainingLocation
  * 
  */
@@ -346,6 +351,16 @@ export type DisputeHeldMoneyDecision = $Result.DefaultSelection<Prisma.$DisputeH
  * the old approval row is never touched; approving this only sends the Case back to FINDING_RECORDED so a new proposal -> approval can be made. Pending = the executor answers 409 REPLACEMENT_PENDING.
  */
 export type DisputeCaseDecisionReplacement = $Result.DefaultSelection<Prisma.$DisputeCaseDecisionReplacementPayload>
+/**
+ * Model PtDiscoveryEpoch
+ * 
+ */
+export type PtDiscoveryEpoch = $Result.DefaultSelection<Prisma.$PtDiscoveryEpochPayload>
+/**
+ * Model PtDiscoveryStat
+ * 
+ */
+export type PtDiscoveryStat = $Result.DefaultSelection<Prisma.$PtDiscoveryStatPayload>
 
 /**
  * Enums
@@ -552,7 +567,13 @@ export const NotificationEventType: {
   GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
   PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED',
   GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED',
-  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED'
+  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED',
+  GYM_COMPLAINT_CASE_OPENED: 'GYM_COMPLAINT_CASE_OPENED',
+  GYM_COMPLAINT_CASE_MORE_INFO: 'GYM_COMPLAINT_CASE_MORE_INFO',
+  GYM_COMPLAINT_CASE_SLA_WARNING: 'GYM_COMPLAINT_CASE_SLA_WARNING',
+  GYM_COMPLAINT_CASE_SLA_OVERDUE: 'GYM_COMPLAINT_CASE_SLA_OVERDUE',
+  GYM_COMPLAINT_CASE_APPEAL_FILED: 'GYM_COMPLAINT_CASE_APPEAL_FILED',
+  GYM_COMPLAINT_CASE_RESOLVED: 'GYM_COMPLAINT_CASE_RESOLVED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -571,7 +592,8 @@ export const NotificationEntityType: {
   PT_LISTING: 'PT_LISTING',
   PAYMENT: 'PAYMENT',
   GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
-  DISPUTE_CASE: 'DISPUTE_CASE'
+  DISPUTE_CASE: 'DISPUTE_CASE',
+  GYM_COMPLAINT_CASE: 'GYM_COMPLAINT_CASE'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
@@ -922,6 +944,14 @@ export const LateOpenReconciliationOutcome: {
 
 export type LateOpenReconciliationOutcome = (typeof LateOpenReconciliationOutcome)[keyof typeof LateOpenReconciliationOutcome]
 
+
+export const PtDiscoveryEpochStatus: {
+  BUILDING: 'BUILDING',
+  READY: 'READY'
+};
+
+export type PtDiscoveryEpochStatus = (typeof PtDiscoveryEpochStatus)[keyof typeof PtDiscoveryEpochStatus]
+
 }
 
 export type Gender = $Enums.Gender
@@ -1127,6 +1157,10 @@ export const DisputeCaseExecutionState: typeof $Enums.DisputeCaseExecutionState
 export type LateOpenReconciliationOutcome = $Enums.LateOpenReconciliationOutcome
 
 export const LateOpenReconciliationOutcome: typeof $Enums.LateOpenReconciliationOutcome
+
+export type PtDiscoveryEpochStatus = $Enums.PtDiscoveryEpochStatus
+
+export const PtDiscoveryEpochStatus: typeof $Enums.PtDiscoveryEpochStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1400,6 +1434,16 @@ export class PrismaClient<
     * ```
     */
   get vietnamWard(): Prisma.VietnamWardDelegate<ExtArgs>;
+
+  /**
+   * `prisma.vietnamWardGeo`: Exposes CRUD operations for the **VietnamWardGeo** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more VietnamWardGeos
+    * const vietnamWardGeos = await prisma.vietnamWardGeo.findMany()
+    * ```
+    */
+  get vietnamWardGeo(): Prisma.VietnamWardGeoDelegate<ExtArgs>;
 
   /**
    * `prisma.pTTrainingLocation`: Exposes CRUD operations for the **PTTrainingLocation** model.
@@ -1860,6 +1904,26 @@ export class PrismaClient<
     * ```
     */
   get disputeCaseDecisionReplacement(): Prisma.DisputeCaseDecisionReplacementDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptDiscoveryEpoch`: Exposes CRUD operations for the **PtDiscoveryEpoch** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtDiscoveryEpoches
+    * const ptDiscoveryEpoches = await prisma.ptDiscoveryEpoch.findMany()
+    * ```
+    */
+  get ptDiscoveryEpoch(): Prisma.PtDiscoveryEpochDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptDiscoveryStat`: Exposes CRUD operations for the **PtDiscoveryStat** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtDiscoveryStats
+    * const ptDiscoveryStats = await prisma.ptDiscoveryStat.findMany()
+    * ```
+    */
+  get ptDiscoveryStat(): Prisma.PtDiscoveryStatDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -2316,6 +2380,7 @@ export namespace Prisma {
     PTScheduleException: 'PTScheduleException',
     VietnamProvince: 'VietnamProvince',
     VietnamWard: 'VietnamWard',
+    VietnamWardGeo: 'VietnamWardGeo',
     PTTrainingLocation: 'PTTrainingLocation',
     PTServicePackage: 'PTServicePackage',
     SessionRescheduleRequest: 'SessionRescheduleRequest',
@@ -2361,7 +2426,9 @@ export namespace Prisma {
     DisputeCaseQuotaCorrection: 'DisputeCaseQuotaCorrection',
     DisputeHeldMoneyReview: 'DisputeHeldMoneyReview',
     DisputeHeldMoneyDecision: 'DisputeHeldMoneyDecision',
-    DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement'
+    DisputeCaseDecisionReplacement: 'DisputeCaseDecisionReplacement',
+    PtDiscoveryEpoch: 'PtDiscoveryEpoch',
+    PtDiscoveryStat: 'PtDiscoveryStat'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2377,7 +2444,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputePolicyReviewEvent" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent" | "disputeCasePartyNotice" | "disputeCaseDeadline" | "disputeCaseAgreement" | "disputeCaseAgreementConfirmation" | "disputeCaseAppeal" | "disputeCaseAppealConsequence" | "disputeCaseQuotaCorrection" | "disputeHeldMoneyReview" | "disputeHeldMoneyDecision" | "disputeCaseDecisionReplacement"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "vietnamWardGeo" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance" | "disputeCase" | "disputePolicyReviewEvent" | "disputeCasePolicyEligibilityReview" | "disputeCaseIssue" | "disputeCaseClaim" | "disputeCaseEvidence" | "disputeCaseStatement" | "disputeCaseShare" | "disputeCaseAssessment" | "disputeCaseFinding" | "disputeCaseProposal" | "disputeCaseApproval" | "disputeCaseEvent" | "disputeCaseAccessLog" | "disputeCaseExecution" | "lateOpenReconciliation" | "lateOpenReconciliationEvent" | "lateOpenRecovery" | "d65bResolution" | "d65bResolutionEvent" | "disputeCasePartyNotice" | "disputeCaseDeadline" | "disputeCaseAgreement" | "disputeCaseAgreementConfirmation" | "disputeCaseAppeal" | "disputeCaseAppealConsequence" | "disputeCaseQuotaCorrection" | "disputeHeldMoneyReview" | "disputeHeldMoneyDecision" | "disputeCaseDecisionReplacement" | "ptDiscoveryEpoch" | "ptDiscoveryStat"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3428,6 +3495,76 @@ export namespace Prisma {
           count: {
             args: Prisma.VietnamWardCountArgs<ExtArgs>
             result: $Utils.Optional<VietnamWardCountAggregateOutputType> | number
+          }
+        }
+      }
+      VietnamWardGeo: {
+        payload: Prisma.$VietnamWardGeoPayload<ExtArgs>
+        fields: Prisma.VietnamWardGeoFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.VietnamWardGeoFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.VietnamWardGeoFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          findFirst: {
+            args: Prisma.VietnamWardGeoFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.VietnamWardGeoFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          findMany: {
+            args: Prisma.VietnamWardGeoFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>[]
+          }
+          create: {
+            args: Prisma.VietnamWardGeoCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          createMany: {
+            args: Prisma.VietnamWardGeoCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.VietnamWardGeoCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>[]
+          }
+          delete: {
+            args: Prisma.VietnamWardGeoDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          update: {
+            args: Prisma.VietnamWardGeoUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          deleteMany: {
+            args: Prisma.VietnamWardGeoDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.VietnamWardGeoUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.VietnamWardGeoUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardGeoPayload>
+          }
+          aggregate: {
+            args: Prisma.VietnamWardGeoAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateVietnamWardGeo>
+          }
+          groupBy: {
+            args: Prisma.VietnamWardGeoGroupByArgs<ExtArgs>
+            result: $Utils.Optional<VietnamWardGeoGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.VietnamWardGeoCountArgs<ExtArgs>
+            result: $Utils.Optional<VietnamWardGeoCountAggregateOutputType> | number
           }
         }
       }
@@ -6651,6 +6788,146 @@ export namespace Prisma {
           }
         }
       }
+      PtDiscoveryEpoch: {
+        payload: Prisma.$PtDiscoveryEpochPayload<ExtArgs>
+        fields: Prisma.PtDiscoveryEpochFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtDiscoveryEpochFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtDiscoveryEpochFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          findFirst: {
+            args: Prisma.PtDiscoveryEpochFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtDiscoveryEpochFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          findMany: {
+            args: Prisma.PtDiscoveryEpochFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>[]
+          }
+          create: {
+            args: Prisma.PtDiscoveryEpochCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          createMany: {
+            args: Prisma.PtDiscoveryEpochCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtDiscoveryEpochCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>[]
+          }
+          delete: {
+            args: Prisma.PtDiscoveryEpochDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          update: {
+            args: Prisma.PtDiscoveryEpochUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtDiscoveryEpochDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtDiscoveryEpochUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtDiscoveryEpochUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryEpochPayload>
+          }
+          aggregate: {
+            args: Prisma.PtDiscoveryEpochAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtDiscoveryEpoch>
+          }
+          groupBy: {
+            args: Prisma.PtDiscoveryEpochGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtDiscoveryEpochGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtDiscoveryEpochCountArgs<ExtArgs>
+            result: $Utils.Optional<PtDiscoveryEpochCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtDiscoveryStat: {
+        payload: Prisma.$PtDiscoveryStatPayload<ExtArgs>
+        fields: Prisma.PtDiscoveryStatFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtDiscoveryStatFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtDiscoveryStatFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          findFirst: {
+            args: Prisma.PtDiscoveryStatFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtDiscoveryStatFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          findMany: {
+            args: Prisma.PtDiscoveryStatFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>[]
+          }
+          create: {
+            args: Prisma.PtDiscoveryStatCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          createMany: {
+            args: Prisma.PtDiscoveryStatCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtDiscoveryStatCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>[]
+          }
+          delete: {
+            args: Prisma.PtDiscoveryStatDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          update: {
+            args: Prisma.PtDiscoveryStatUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtDiscoveryStatDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtDiscoveryStatUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtDiscoveryStatUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtDiscoveryStatPayload>
+          }
+          aggregate: {
+            args: Prisma.PtDiscoveryStatAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtDiscoveryStat>
+          }
+          groupBy: {
+            args: Prisma.PtDiscoveryStatGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtDiscoveryStatGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtDiscoveryStatCountArgs<ExtArgs>
+            result: $Utils.Optional<PtDiscoveryStatCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -6818,6 +7095,7 @@ export namespace Prisma {
     servicePackages: number
     physiquePhotos: number
     mediaUploadIntents: number
+    discoveryStats: number
   }
 
   export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6827,6 +7105,7 @@ export namespace Prisma {
     servicePackages?: boolean | UserProfileCountOutputTypeCountServicePackagesArgs
     physiquePhotos?: boolean | UserProfileCountOutputTypeCountPhysiquePhotosArgs
     mediaUploadIntents?: boolean | UserProfileCountOutputTypeCountMediaUploadIntentsArgs
+    discoveryStats?: boolean | UserProfileCountOutputTypeCountDiscoveryStatsArgs
   }
 
   // Custom InputTypes
@@ -6880,6 +7159,13 @@ export namespace Prisma {
    */
   export type UserProfileCountOutputTypeCountMediaUploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PtMediaUploadIntentWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountDiscoveryStatsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtDiscoveryStatWhereInput
   }
 
 
@@ -7027,11 +7313,13 @@ export namespace Prisma {
 
   export type VietnamProvinceCountOutputType = {
     wards: number
+    wardGeos: number
     trainingLocations: number
   }
 
   export type VietnamProvinceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     wards?: boolean | VietnamProvinceCountOutputTypeCountWardsArgs
+    wardGeos?: boolean | VietnamProvinceCountOutputTypeCountWardGeosArgs
     trainingLocations?: boolean | VietnamProvinceCountOutputTypeCountTrainingLocationsArgs
   }
 
@@ -7051,6 +7339,13 @@ export namespace Prisma {
    */
   export type VietnamProvinceCountOutputTypeCountWardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: VietnamWardWhereInput
+  }
+
+  /**
+   * VietnamProvinceCountOutputType without action
+   */
+  export type VietnamProvinceCountOutputTypeCountWardGeosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VietnamWardGeoWhereInput
   }
 
   /**
@@ -7725,6 +8020,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type PtDiscoveryEpochCountOutputType
+   */
+
+  export type PtDiscoveryEpochCountOutputType = {
+    stats: number
+  }
+
+  export type PtDiscoveryEpochCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stats?: boolean | PtDiscoveryEpochCountOutputTypeCountStatsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PtDiscoveryEpochCountOutputType without action
+   */
+  export type PtDiscoveryEpochCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpochCountOutputType
+     */
+    select?: PtDiscoveryEpochCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PtDiscoveryEpochCountOutputType without action
+   */
+  export type PtDiscoveryEpochCountOutputTypeCountStatsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtDiscoveryStatWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -7750,6 +8076,8 @@ export namespace Prisma {
     targetWeight: number | null
     startingWeight: number | null
     sessionDurationMinutes: number | null
+    searchProvinceCode: number | null
+    searchWardCode: number | null
     ptBudgetVnd: number | null
   }
 
@@ -7763,6 +8091,8 @@ export namespace Prisma {
     targetWeight: number | null
     startingWeight: number | null
     sessionDurationMinutes: number | null
+    searchProvinceCode: number | null
+    searchWardCode: number | null
     ptBudgetVnd: number | null
   }
 
@@ -7807,6 +8137,8 @@ export namespace Prisma {
     searchCity: string | null
     searchDistrict: string | null
     searchWard: string | null
+    searchProvinceCode: number | null
+    searchWardCode: number | null
     gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -7855,6 +8187,8 @@ export namespace Prisma {
     searchCity: string | null
     searchDistrict: string | null
     searchWard: string | null
+    searchProvinceCode: number | null
+    searchWardCode: number | null
     gymId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -7907,6 +8241,8 @@ export namespace Prisma {
     searchCity: number
     searchDistrict: number
     searchWard: number
+    searchProvinceCode: number
+    searchWardCode: number
     gymId: number
     specialties: number
     createdAt: number
@@ -7928,6 +8264,8 @@ export namespace Prisma {
     targetWeight?: true
     startingWeight?: true
     sessionDurationMinutes?: true
+    searchProvinceCode?: true
+    searchWardCode?: true
     ptBudgetVnd?: true
   }
 
@@ -7941,6 +8279,8 @@ export namespace Prisma {
     targetWeight?: true
     startingWeight?: true
     sessionDurationMinutes?: true
+    searchProvinceCode?: true
+    searchWardCode?: true
     ptBudgetVnd?: true
   }
 
@@ -7985,6 +8325,8 @@ export namespace Prisma {
     searchCity?: true
     searchDistrict?: true
     searchWard?: true
+    searchProvinceCode?: true
+    searchWardCode?: true
     gymId?: true
     createdAt?: true
     updatedAt?: true
@@ -8033,6 +8375,8 @@ export namespace Prisma {
     searchCity?: true
     searchDistrict?: true
     searchWard?: true
+    searchProvinceCode?: true
+    searchWardCode?: true
     gymId?: true
     createdAt?: true
     updatedAt?: true
@@ -8085,6 +8429,8 @@ export namespace Prisma {
     searchCity?: true
     searchDistrict?: true
     searchWard?: true
+    searchProvinceCode?: true
+    searchWardCode?: true
     gymId?: true
     specialties?: true
     createdAt?: true
@@ -8226,6 +8572,8 @@ export namespace Prisma {
     searchCity: string | null
     searchDistrict: string | null
     searchWard: string | null
+    searchProvinceCode: number | null
+    searchWardCode: number | null
     gymId: string | null
     specialties: string[]
     createdAt: Date
@@ -8299,6 +8647,8 @@ export namespace Prisma {
     searchCity?: boolean
     searchDistrict?: boolean
     searchWard?: boolean
+    searchProvinceCode?: boolean
+    searchWardCode?: boolean
     gymId?: boolean
     specialties?: boolean
     createdAt?: boolean
@@ -8313,6 +8663,7 @@ export namespace Prisma {
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
     physiquePhotos?: boolean | UserProfile$physiquePhotosArgs<ExtArgs>
     mediaUploadIntents?: boolean | UserProfile$mediaUploadIntentsArgs<ExtArgs>
+    discoveryStats?: boolean | UserProfile$discoveryStatsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["userProfile"]>
 
@@ -8361,6 +8712,8 @@ export namespace Prisma {
     searchCity?: boolean
     searchDistrict?: boolean
     searchWard?: boolean
+    searchProvinceCode?: boolean
+    searchWardCode?: boolean
     gymId?: boolean
     specialties?: boolean
     createdAt?: boolean
@@ -8415,6 +8768,8 @@ export namespace Prisma {
     searchCity?: boolean
     searchDistrict?: boolean
     searchWard?: boolean
+    searchProvinceCode?: boolean
+    searchWardCode?: boolean
     gymId?: boolean
     specialties?: boolean
     createdAt?: boolean
@@ -8432,6 +8787,7 @@ export namespace Prisma {
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
     physiquePhotos?: boolean | UserProfile$physiquePhotosArgs<ExtArgs>
     mediaUploadIntents?: boolean | UserProfile$mediaUploadIntentsArgs<ExtArgs>
+    discoveryStats?: boolean | UserProfile$discoveryStatsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -8446,6 +8802,7 @@ export namespace Prisma {
       servicePackages: Prisma.$PTServicePackagePayload<ExtArgs>[]
       physiquePhotos: Prisma.$PtPhysiquePhotoPayload<ExtArgs>[]
       mediaUploadIntents: Prisma.$PtMediaUploadIntentPayload<ExtArgs>[]
+      discoveryStats: Prisma.$PtDiscoveryStatPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8492,6 +8849,8 @@ export namespace Prisma {
       searchCity: string | null
       searchDistrict: string | null
       searchWard: string | null
+      searchProvinceCode: number | null
+      searchWardCode: number | null
       gymId: string | null
       specialties: string[]
       createdAt: Date
@@ -8870,6 +9229,7 @@ export namespace Prisma {
     servicePackages<T extends UserProfile$servicePackagesArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$servicePackagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findMany"> | Null>
     physiquePhotos<T extends UserProfile$physiquePhotosArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$physiquePhotosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findMany"> | Null>
     mediaUploadIntents<T extends UserProfile$mediaUploadIntentsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$mediaUploadIntentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findMany"> | Null>
+    discoveryStats<T extends UserProfile$discoveryStatsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$discoveryStatsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8943,6 +9303,8 @@ export namespace Prisma {
     readonly searchCity: FieldRef<"UserProfile", 'String'>
     readonly searchDistrict: FieldRef<"UserProfile", 'String'>
     readonly searchWard: FieldRef<"UserProfile", 'String'>
+    readonly searchProvinceCode: FieldRef<"UserProfile", 'Int'>
+    readonly searchWardCode: FieldRef<"UserProfile", 'Int'>
     readonly gymId: FieldRef<"UserProfile", 'String'>
     readonly specialties: FieldRef<"UserProfile", 'String[]'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
@@ -9396,6 +9758,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PtMediaUploadIntentScalarFieldEnum | PtMediaUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.discoveryStats
+   */
+  export type UserProfile$discoveryStatsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    where?: PtDiscoveryStatWhereInput
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtDiscoveryStatScalarFieldEnum | PtDiscoveryStatScalarFieldEnum[]
   }
 
   /**
@@ -23004,6 +23386,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     wards?: boolean | VietnamProvince$wardsArgs<ExtArgs>
+    wardGeos?: boolean | VietnamProvince$wardGeosArgs<ExtArgs>
     trainingLocations?: boolean | VietnamProvince$trainingLocationsArgs<ExtArgs>
     _count?: boolean | VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["vietnamProvince"]>
@@ -23032,6 +23415,7 @@ export namespace Prisma {
 
   export type VietnamProvinceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     wards?: boolean | VietnamProvince$wardsArgs<ExtArgs>
+    wardGeos?: boolean | VietnamProvince$wardGeosArgs<ExtArgs>
     trainingLocations?: boolean | VietnamProvince$trainingLocationsArgs<ExtArgs>
     _count?: boolean | VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -23041,6 +23425,7 @@ export namespace Prisma {
     name: "VietnamProvince"
     objects: {
       wards: Prisma.$VietnamWardPayload<ExtArgs>[]
+      wardGeos: Prisma.$VietnamWardGeoPayload<ExtArgs>[]
       trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -23417,6 +23802,7 @@ export namespace Prisma {
   export interface Prisma__VietnamProvinceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     wards<T extends VietnamProvince$wardsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvince$wardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findMany"> | Null>
+    wardGeos<T extends VietnamProvince$wardGeosArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvince$wardGeosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findMany"> | Null>
     trainingLocations<T extends VietnamProvince$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvince$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -23789,6 +24175,26 @@ export namespace Prisma {
   }
 
   /**
+   * VietnamProvince.wardGeos
+   */
+  export type VietnamProvince$wardGeosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    where?: VietnamWardGeoWhereInput
+    orderBy?: VietnamWardGeoOrderByWithRelationInput | VietnamWardGeoOrderByWithRelationInput[]
+    cursor?: VietnamWardGeoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: VietnamWardGeoScalarFieldEnum | VietnamWardGeoScalarFieldEnum[]
+  }
+
+  /**
    * VietnamProvince.trainingLocations
    */
   export type VietnamProvince$trainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -24058,6 +24464,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    geo?: boolean | VietnamWard$geoArgs<ExtArgs>
     trainingLocations?: boolean | VietnamWard$trainingLocationsArgs<ExtArgs>
     _count?: boolean | VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["vietnamWard"]>
@@ -24089,6 +24496,7 @@ export namespace Prisma {
 
   export type VietnamWardInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    geo?: boolean | VietnamWard$geoArgs<ExtArgs>
     trainingLocations?: boolean | VietnamWard$trainingLocationsArgs<ExtArgs>
     _count?: boolean | VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -24100,6 +24508,7 @@ export namespace Prisma {
     name: "VietnamWard"
     objects: {
       province: Prisma.$VietnamProvincePayload<ExtArgs>
+      geo: Prisma.$VietnamWardGeoPayload<ExtArgs> | null
       trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -24477,6 +24886,7 @@ export namespace Prisma {
   export interface Prisma__VietnamWardClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     province<T extends VietnamProvinceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvinceDefaultArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    geo<T extends VietnamWard$geoArgs<ExtArgs> = {}>(args?: Subset<T, VietnamWard$geoArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     trainingLocations<T extends VietnamWard$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamWard$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -24834,6 +25244,21 @@ export namespace Prisma {
   }
 
   /**
+   * VietnamWard.geo
+   */
+  export type VietnamWard$geoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    where?: VietnamWardGeoWhereInput
+  }
+
+  /**
    * VietnamWard.trainingLocations
    */
   export type VietnamWard$trainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -24869,6 +25294,1067 @@ export namespace Prisma {
 
 
   /**
+   * Model VietnamWardGeo
+   */
+
+  export type AggregateVietnamWardGeo = {
+    _count: VietnamWardGeoCountAggregateOutputType | null
+    _avg: VietnamWardGeoAvgAggregateOutputType | null
+    _sum: VietnamWardGeoSumAggregateOutputType | null
+    _min: VietnamWardGeoMinAggregateOutputType | null
+    _max: VietnamWardGeoMaxAggregateOutputType | null
+  }
+
+  export type VietnamWardGeoAvgAggregateOutputType = {
+    wardCode: number | null
+    provinceCode: number | null
+    centroidLat: number | null
+    centroidLng: number | null
+    minLat: number | null
+    maxLat: number | null
+    minLng: number | null
+    maxLng: number | null
+  }
+
+  export type VietnamWardGeoSumAggregateOutputType = {
+    wardCode: number | null
+    provinceCode: number | null
+    centroidLat: number | null
+    centroidLng: number | null
+    minLat: number | null
+    maxLat: number | null
+    minLng: number | null
+    maxLng: number | null
+  }
+
+  export type VietnamWardGeoMinAggregateOutputType = {
+    wardCode: number | null
+    provinceCode: number | null
+    centroidLat: number | null
+    centroidLng: number | null
+    minLat: number | null
+    maxLat: number | null
+    minLng: number | null
+    maxLng: number | null
+    source: string | null
+    createdAt: Date | null
+  }
+
+  export type VietnamWardGeoMaxAggregateOutputType = {
+    wardCode: number | null
+    provinceCode: number | null
+    centroidLat: number | null
+    centroidLng: number | null
+    minLat: number | null
+    maxLat: number | null
+    minLng: number | null
+    maxLng: number | null
+    source: string | null
+    createdAt: Date | null
+  }
+
+  export type VietnamWardGeoCountAggregateOutputType = {
+    wardCode: number
+    provinceCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type VietnamWardGeoAvgAggregateInputType = {
+    wardCode?: true
+    provinceCode?: true
+    centroidLat?: true
+    centroidLng?: true
+    minLat?: true
+    maxLat?: true
+    minLng?: true
+    maxLng?: true
+  }
+
+  export type VietnamWardGeoSumAggregateInputType = {
+    wardCode?: true
+    provinceCode?: true
+    centroidLat?: true
+    centroidLng?: true
+    minLat?: true
+    maxLat?: true
+    minLng?: true
+    maxLng?: true
+  }
+
+  export type VietnamWardGeoMinAggregateInputType = {
+    wardCode?: true
+    provinceCode?: true
+    centroidLat?: true
+    centroidLng?: true
+    minLat?: true
+    maxLat?: true
+    minLng?: true
+    maxLng?: true
+    source?: true
+    createdAt?: true
+  }
+
+  export type VietnamWardGeoMaxAggregateInputType = {
+    wardCode?: true
+    provinceCode?: true
+    centroidLat?: true
+    centroidLng?: true
+    minLat?: true
+    maxLat?: true
+    minLng?: true
+    maxLng?: true
+    source?: true
+    createdAt?: true
+  }
+
+  export type VietnamWardGeoCountAggregateInputType = {
+    wardCode?: true
+    provinceCode?: true
+    centroidLat?: true
+    centroidLng?: true
+    minLat?: true
+    maxLat?: true
+    minLng?: true
+    maxLng?: true
+    source?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type VietnamWardGeoAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamWardGeo to aggregate.
+     */
+    where?: VietnamWardGeoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWardGeos to fetch.
+     */
+    orderBy?: VietnamWardGeoOrderByWithRelationInput | VietnamWardGeoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: VietnamWardGeoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWardGeos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWardGeos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned VietnamWardGeos
+    **/
+    _count?: true | VietnamWardGeoCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: VietnamWardGeoAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: VietnamWardGeoSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: VietnamWardGeoMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: VietnamWardGeoMaxAggregateInputType
+  }
+
+  export type GetVietnamWardGeoAggregateType<T extends VietnamWardGeoAggregateArgs> = {
+        [P in keyof T & keyof AggregateVietnamWardGeo]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateVietnamWardGeo[P]>
+      : GetScalarType<T[P], AggregateVietnamWardGeo[P]>
+  }
+
+
+
+
+  export type VietnamWardGeoGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VietnamWardGeoWhereInput
+    orderBy?: VietnamWardGeoOrderByWithAggregationInput | VietnamWardGeoOrderByWithAggregationInput[]
+    by: VietnamWardGeoScalarFieldEnum[] | VietnamWardGeoScalarFieldEnum
+    having?: VietnamWardGeoScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: VietnamWardGeoCountAggregateInputType | true
+    _avg?: VietnamWardGeoAvgAggregateInputType
+    _sum?: VietnamWardGeoSumAggregateInputType
+    _min?: VietnamWardGeoMinAggregateInputType
+    _max?: VietnamWardGeoMaxAggregateInputType
+  }
+
+  export type VietnamWardGeoGroupByOutputType = {
+    wardCode: number
+    provinceCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source: string
+    createdAt: Date
+    _count: VietnamWardGeoCountAggregateOutputType | null
+    _avg: VietnamWardGeoAvgAggregateOutputType | null
+    _sum: VietnamWardGeoSumAggregateOutputType | null
+    _min: VietnamWardGeoMinAggregateOutputType | null
+    _max: VietnamWardGeoMaxAggregateOutputType | null
+  }
+
+  type GetVietnamWardGeoGroupByPayload<T extends VietnamWardGeoGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<VietnamWardGeoGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof VietnamWardGeoGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], VietnamWardGeoGroupByOutputType[P]>
+            : GetScalarType<T[P], VietnamWardGeoGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type VietnamWardGeoSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    wardCode?: boolean
+    provinceCode?: boolean
+    centroidLat?: boolean
+    centroidLng?: boolean
+    minLat?: boolean
+    maxLat?: boolean
+    minLng?: boolean
+    maxLng?: boolean
+    source?: boolean
+    createdAt?: boolean
+    ward?: boolean | VietnamWardDefaultArgs<ExtArgs>
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["vietnamWardGeo"]>
+
+  export type VietnamWardGeoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    wardCode?: boolean
+    provinceCode?: boolean
+    centroidLat?: boolean
+    centroidLng?: boolean
+    minLat?: boolean
+    maxLat?: boolean
+    minLng?: boolean
+    maxLng?: boolean
+    source?: boolean
+    createdAt?: boolean
+    ward?: boolean | VietnamWardDefaultArgs<ExtArgs>
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["vietnamWardGeo"]>
+
+  export type VietnamWardGeoSelectScalar = {
+    wardCode?: boolean
+    provinceCode?: boolean
+    centroidLat?: boolean
+    centroidLng?: boolean
+    minLat?: boolean
+    maxLat?: boolean
+    minLng?: boolean
+    maxLng?: boolean
+    source?: boolean
+    createdAt?: boolean
+  }
+
+  export type VietnamWardGeoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ward?: boolean | VietnamWardDefaultArgs<ExtArgs>
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }
+  export type VietnamWardGeoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ward?: boolean | VietnamWardDefaultArgs<ExtArgs>
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }
+
+  export type $VietnamWardGeoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "VietnamWardGeo"
+    objects: {
+      ward: Prisma.$VietnamWardPayload<ExtArgs>
+      province: Prisma.$VietnamProvincePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      wardCode: number
+      provinceCode: number
+      centroidLat: number
+      centroidLng: number
+      minLat: number
+      maxLat: number
+      minLng: number
+      maxLng: number
+      source: string
+      createdAt: Date
+    }, ExtArgs["result"]["vietnamWardGeo"]>
+    composites: {}
+  }
+
+  type VietnamWardGeoGetPayload<S extends boolean | null | undefined | VietnamWardGeoDefaultArgs> = $Result.GetResult<Prisma.$VietnamWardGeoPayload, S>
+
+  type VietnamWardGeoCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<VietnamWardGeoFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: VietnamWardGeoCountAggregateInputType | true
+    }
+
+  export interface VietnamWardGeoDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['VietnamWardGeo'], meta: { name: 'VietnamWardGeo' } }
+    /**
+     * Find zero or one VietnamWardGeo that matches the filter.
+     * @param {VietnamWardGeoFindUniqueArgs} args - Arguments to find a VietnamWardGeo
+     * @example
+     * // Get one VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends VietnamWardGeoFindUniqueArgs>(args: SelectSubset<T, VietnamWardGeoFindUniqueArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one VietnamWardGeo that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {VietnamWardGeoFindUniqueOrThrowArgs} args - Arguments to find a VietnamWardGeo
+     * @example
+     * // Get one VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends VietnamWardGeoFindUniqueOrThrowArgs>(args: SelectSubset<T, VietnamWardGeoFindUniqueOrThrowArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first VietnamWardGeo that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoFindFirstArgs} args - Arguments to find a VietnamWardGeo
+     * @example
+     * // Get one VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends VietnamWardGeoFindFirstArgs>(args?: SelectSubset<T, VietnamWardGeoFindFirstArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first VietnamWardGeo that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoFindFirstOrThrowArgs} args - Arguments to find a VietnamWardGeo
+     * @example
+     * // Get one VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends VietnamWardGeoFindFirstOrThrowArgs>(args?: SelectSubset<T, VietnamWardGeoFindFirstOrThrowArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more VietnamWardGeos that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all VietnamWardGeos
+     * const vietnamWardGeos = await prisma.vietnamWardGeo.findMany()
+     * 
+     * // Get first 10 VietnamWardGeos
+     * const vietnamWardGeos = await prisma.vietnamWardGeo.findMany({ take: 10 })
+     * 
+     * // Only select the `wardCode`
+     * const vietnamWardGeoWithWardCodeOnly = await prisma.vietnamWardGeo.findMany({ select: { wardCode: true } })
+     * 
+     */
+    findMany<T extends VietnamWardGeoFindManyArgs>(args?: SelectSubset<T, VietnamWardGeoFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a VietnamWardGeo.
+     * @param {VietnamWardGeoCreateArgs} args - Arguments to create a VietnamWardGeo.
+     * @example
+     * // Create one VietnamWardGeo
+     * const VietnamWardGeo = await prisma.vietnamWardGeo.create({
+     *   data: {
+     *     // ... data to create a VietnamWardGeo
+     *   }
+     * })
+     * 
+     */
+    create<T extends VietnamWardGeoCreateArgs>(args: SelectSubset<T, VietnamWardGeoCreateArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many VietnamWardGeos.
+     * @param {VietnamWardGeoCreateManyArgs} args - Arguments to create many VietnamWardGeos.
+     * @example
+     * // Create many VietnamWardGeos
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends VietnamWardGeoCreateManyArgs>(args?: SelectSubset<T, VietnamWardGeoCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many VietnamWardGeos and returns the data saved in the database.
+     * @param {VietnamWardGeoCreateManyAndReturnArgs} args - Arguments to create many VietnamWardGeos.
+     * @example
+     * // Create many VietnamWardGeos
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many VietnamWardGeos and only return the `wardCode`
+     * const vietnamWardGeoWithWardCodeOnly = await prisma.vietnamWardGeo.createManyAndReturn({ 
+     *   select: { wardCode: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends VietnamWardGeoCreateManyAndReturnArgs>(args?: SelectSubset<T, VietnamWardGeoCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a VietnamWardGeo.
+     * @param {VietnamWardGeoDeleteArgs} args - Arguments to delete one VietnamWardGeo.
+     * @example
+     * // Delete one VietnamWardGeo
+     * const VietnamWardGeo = await prisma.vietnamWardGeo.delete({
+     *   where: {
+     *     // ... filter to delete one VietnamWardGeo
+     *   }
+     * })
+     * 
+     */
+    delete<T extends VietnamWardGeoDeleteArgs>(args: SelectSubset<T, VietnamWardGeoDeleteArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one VietnamWardGeo.
+     * @param {VietnamWardGeoUpdateArgs} args - Arguments to update one VietnamWardGeo.
+     * @example
+     * // Update one VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends VietnamWardGeoUpdateArgs>(args: SelectSubset<T, VietnamWardGeoUpdateArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more VietnamWardGeos.
+     * @param {VietnamWardGeoDeleteManyArgs} args - Arguments to filter VietnamWardGeos to delete.
+     * @example
+     * // Delete a few VietnamWardGeos
+     * const { count } = await prisma.vietnamWardGeo.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends VietnamWardGeoDeleteManyArgs>(args?: SelectSubset<T, VietnamWardGeoDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VietnamWardGeos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many VietnamWardGeos
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends VietnamWardGeoUpdateManyArgs>(args: SelectSubset<T, VietnamWardGeoUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one VietnamWardGeo.
+     * @param {VietnamWardGeoUpsertArgs} args - Arguments to update or create a VietnamWardGeo.
+     * @example
+     * // Update or create a VietnamWardGeo
+     * const vietnamWardGeo = await prisma.vietnamWardGeo.upsert({
+     *   create: {
+     *     // ... data to create a VietnamWardGeo
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the VietnamWardGeo we want to update
+     *   }
+     * })
+     */
+    upsert<T extends VietnamWardGeoUpsertArgs>(args: SelectSubset<T, VietnamWardGeoUpsertArgs<ExtArgs>>): Prisma__VietnamWardGeoClient<$Result.GetResult<Prisma.$VietnamWardGeoPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of VietnamWardGeos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoCountArgs} args - Arguments to filter VietnamWardGeos to count.
+     * @example
+     * // Count the number of VietnamWardGeos
+     * const count = await prisma.vietnamWardGeo.count({
+     *   where: {
+     *     // ... the filter for the VietnamWardGeos we want to count
+     *   }
+     * })
+    **/
+    count<T extends VietnamWardGeoCountArgs>(
+      args?: Subset<T, VietnamWardGeoCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], VietnamWardGeoCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a VietnamWardGeo.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends VietnamWardGeoAggregateArgs>(args: Subset<T, VietnamWardGeoAggregateArgs>): Prisma.PrismaPromise<GetVietnamWardGeoAggregateType<T>>
+
+    /**
+     * Group by VietnamWardGeo.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGeoGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends VietnamWardGeoGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: VietnamWardGeoGroupByArgs['orderBy'] }
+        : { orderBy?: VietnamWardGeoGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, VietnamWardGeoGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetVietnamWardGeoGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the VietnamWardGeo model
+   */
+  readonly fields: VietnamWardGeoFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for VietnamWardGeo.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__VietnamWardGeoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    ward<T extends VietnamWardDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VietnamWardDefaultArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    province<T extends VietnamProvinceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvinceDefaultArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the VietnamWardGeo model
+   */ 
+  interface VietnamWardGeoFieldRefs {
+    readonly wardCode: FieldRef<"VietnamWardGeo", 'Int'>
+    readonly provinceCode: FieldRef<"VietnamWardGeo", 'Int'>
+    readonly centroidLat: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly centroidLng: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly minLat: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly maxLat: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly minLng: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly maxLng: FieldRef<"VietnamWardGeo", 'Float'>
+    readonly source: FieldRef<"VietnamWardGeo", 'String'>
+    readonly createdAt: FieldRef<"VietnamWardGeo", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * VietnamWardGeo findUnique
+   */
+  export type VietnamWardGeoFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWardGeo to fetch.
+     */
+    where: VietnamWardGeoWhereUniqueInput
+  }
+
+  /**
+   * VietnamWardGeo findUniqueOrThrow
+   */
+  export type VietnamWardGeoFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWardGeo to fetch.
+     */
+    where: VietnamWardGeoWhereUniqueInput
+  }
+
+  /**
+   * VietnamWardGeo findFirst
+   */
+  export type VietnamWardGeoFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWardGeo to fetch.
+     */
+    where?: VietnamWardGeoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWardGeos to fetch.
+     */
+    orderBy?: VietnamWardGeoOrderByWithRelationInput | VietnamWardGeoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamWardGeos.
+     */
+    cursor?: VietnamWardGeoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWardGeos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWardGeos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamWardGeos.
+     */
+    distinct?: VietnamWardGeoScalarFieldEnum | VietnamWardGeoScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWardGeo findFirstOrThrow
+   */
+  export type VietnamWardGeoFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWardGeo to fetch.
+     */
+    where?: VietnamWardGeoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWardGeos to fetch.
+     */
+    orderBy?: VietnamWardGeoOrderByWithRelationInput | VietnamWardGeoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamWardGeos.
+     */
+    cursor?: VietnamWardGeoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWardGeos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWardGeos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamWardGeos.
+     */
+    distinct?: VietnamWardGeoScalarFieldEnum | VietnamWardGeoScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWardGeo findMany
+   */
+  export type VietnamWardGeoFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWardGeos to fetch.
+     */
+    where?: VietnamWardGeoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWardGeos to fetch.
+     */
+    orderBy?: VietnamWardGeoOrderByWithRelationInput | VietnamWardGeoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing VietnamWardGeos.
+     */
+    cursor?: VietnamWardGeoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWardGeos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWardGeos.
+     */
+    skip?: number
+    distinct?: VietnamWardGeoScalarFieldEnum | VietnamWardGeoScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWardGeo create
+   */
+  export type VietnamWardGeoCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * The data needed to create a VietnamWardGeo.
+     */
+    data: XOR<VietnamWardGeoCreateInput, VietnamWardGeoUncheckedCreateInput>
+  }
+
+  /**
+   * VietnamWardGeo createMany
+   */
+  export type VietnamWardGeoCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many VietnamWardGeos.
+     */
+    data: VietnamWardGeoCreateManyInput | VietnamWardGeoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VietnamWardGeo createManyAndReturn
+   */
+  export type VietnamWardGeoCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many VietnamWardGeos.
+     */
+    data: VietnamWardGeoCreateManyInput | VietnamWardGeoCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * VietnamWardGeo update
+   */
+  export type VietnamWardGeoUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * The data needed to update a VietnamWardGeo.
+     */
+    data: XOR<VietnamWardGeoUpdateInput, VietnamWardGeoUncheckedUpdateInput>
+    /**
+     * Choose, which VietnamWardGeo to update.
+     */
+    where: VietnamWardGeoWhereUniqueInput
+  }
+
+  /**
+   * VietnamWardGeo updateMany
+   */
+  export type VietnamWardGeoUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update VietnamWardGeos.
+     */
+    data: XOR<VietnamWardGeoUpdateManyMutationInput, VietnamWardGeoUncheckedUpdateManyInput>
+    /**
+     * Filter which VietnamWardGeos to update
+     */
+    where?: VietnamWardGeoWhereInput
+  }
+
+  /**
+   * VietnamWardGeo upsert
+   */
+  export type VietnamWardGeoUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * The filter to search for the VietnamWardGeo to update in case it exists.
+     */
+    where: VietnamWardGeoWhereUniqueInput
+    /**
+     * In case the VietnamWardGeo found by the `where` argument doesn't exist, create a new VietnamWardGeo with this data.
+     */
+    create: XOR<VietnamWardGeoCreateInput, VietnamWardGeoUncheckedCreateInput>
+    /**
+     * In case the VietnamWardGeo was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<VietnamWardGeoUpdateInput, VietnamWardGeoUncheckedUpdateInput>
+  }
+
+  /**
+   * VietnamWardGeo delete
+   */
+  export type VietnamWardGeoDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+    /**
+     * Filter which VietnamWardGeo to delete.
+     */
+    where: VietnamWardGeoWhereUniqueInput
+  }
+
+  /**
+   * VietnamWardGeo deleteMany
+   */
+  export type VietnamWardGeoDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamWardGeos to delete
+     */
+    where?: VietnamWardGeoWhereInput
+  }
+
+  /**
+   * VietnamWardGeo without action
+   */
+  export type VietnamWardGeoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardGeo
+     */
+    select?: VietnamWardGeoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardGeoInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model PTTrainingLocation
    */
 
@@ -24883,11 +26369,15 @@ export namespace Prisma {
   export type PTTrainingLocationAvgAggregateOutputType = {
     provinceCode: number | null
     wardCode: number | null
+    latitude: number | null
+    longitude: number | null
   }
 
   export type PTTrainingLocationSumAggregateOutputType = {
     provinceCode: number | null
     wardCode: number | null
+    latitude: number | null
+    longitude: number | null
   }
 
   export type PTTrainingLocationMinAggregateOutputType = {
@@ -24900,6 +26390,8 @@ export namespace Prisma {
     addressLine: string | null
     legacyDistrictName: string | null
     gymId: string | null
+    latitude: number | null
+    longitude: number | null
     isPrimary: boolean | null
     isActive: boolean | null
     note: string | null
@@ -24917,6 +26409,8 @@ export namespace Prisma {
     addressLine: string | null
     legacyDistrictName: string | null
     gymId: string | null
+    latitude: number | null
+    longitude: number | null
     isPrimary: boolean | null
     isActive: boolean | null
     note: string | null
@@ -24934,6 +26428,8 @@ export namespace Prisma {
     addressLine: number
     legacyDistrictName: number
     gymId: number
+    latitude: number
+    longitude: number
     isPrimary: number
     isActive: number
     note: number
@@ -24946,11 +26442,15 @@ export namespace Prisma {
   export type PTTrainingLocationAvgAggregateInputType = {
     provinceCode?: true
     wardCode?: true
+    latitude?: true
+    longitude?: true
   }
 
   export type PTTrainingLocationSumAggregateInputType = {
     provinceCode?: true
     wardCode?: true
+    latitude?: true
+    longitude?: true
   }
 
   export type PTTrainingLocationMinAggregateInputType = {
@@ -24963,6 +26463,8 @@ export namespace Prisma {
     addressLine?: true
     legacyDistrictName?: true
     gymId?: true
+    latitude?: true
+    longitude?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -24980,6 +26482,8 @@ export namespace Prisma {
     addressLine?: true
     legacyDistrictName?: true
     gymId?: true
+    latitude?: true
+    longitude?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -24997,6 +26501,8 @@ export namespace Prisma {
     addressLine?: true
     legacyDistrictName?: true
     gymId?: true
+    latitude?: true
+    longitude?: true
     isPrimary?: true
     isActive?: true
     note?: true
@@ -25101,6 +26607,8 @@ export namespace Prisma {
     addressLine: string | null
     legacyDistrictName: string | null
     gymId: string | null
+    latitude: number | null
+    longitude: number | null
     isPrimary: boolean
     isActive: boolean
     note: string | null
@@ -25137,6 +26645,8 @@ export namespace Prisma {
     addressLine?: boolean
     legacyDistrictName?: boolean
     gymId?: boolean
+    latitude?: boolean
+    longitude?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -25157,6 +26667,8 @@ export namespace Prisma {
     addressLine?: boolean
     legacyDistrictName?: boolean
     gymId?: boolean
+    latitude?: boolean
+    longitude?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -25177,6 +26689,8 @@ export namespace Prisma {
     addressLine?: boolean
     legacyDistrictName?: boolean
     gymId?: boolean
+    latitude?: boolean
+    longitude?: boolean
     isPrimary?: boolean
     isActive?: boolean
     note?: boolean
@@ -25212,6 +26726,8 @@ export namespace Prisma {
       addressLine: string | null
       legacyDistrictName: string | null
       gymId: string | null
+      latitude: number | null
+      longitude: number | null
       isPrimary: boolean
       isActive: boolean
       note: string | null
@@ -25622,6 +27138,8 @@ export namespace Prisma {
     readonly addressLine: FieldRef<"PTTrainingLocation", 'String'>
     readonly legacyDistrictName: FieldRef<"PTTrainingLocation", 'String'>
     readonly gymId: FieldRef<"PTTrainingLocation", 'String'>
+    readonly latitude: FieldRef<"PTTrainingLocation", 'Float'>
+    readonly longitude: FieldRef<"PTTrainingLocation", 'Float'>
     readonly isPrimary: FieldRef<"PTTrainingLocation", 'Boolean'>
     readonly isActive: FieldRef<"PTTrainingLocation", 'Boolean'>
     readonly note: FieldRef<"PTTrainingLocation", 'String'>
@@ -73311,6 +74829,2093 @@ export namespace Prisma {
 
 
   /**
+   * Model PtDiscoveryEpoch
+   */
+
+  export type AggregatePtDiscoveryEpoch = {
+    _count: PtDiscoveryEpochCountAggregateOutputType | null
+    _avg: PtDiscoveryEpochAvgAggregateOutputType | null
+    _sum: PtDiscoveryEpochSumAggregateOutputType | null
+    _min: PtDiscoveryEpochMinAggregateOutputType | null
+    _max: PtDiscoveryEpochMaxAggregateOutputType | null
+  }
+
+  export type PtDiscoveryEpochAvgAggregateOutputType = {
+    epoch: number | null
+  }
+
+  export type PtDiscoveryEpochSumAggregateOutputType = {
+    epoch: number | null
+  }
+
+  export type PtDiscoveryEpochMinAggregateOutputType = {
+    epoch: number | null
+    status: $Enums.PtDiscoveryEpochStatus | null
+    isCurrent: boolean | null
+    createdAt: Date | null
+    readyAt: Date | null
+  }
+
+  export type PtDiscoveryEpochMaxAggregateOutputType = {
+    epoch: number | null
+    status: $Enums.PtDiscoveryEpochStatus | null
+    isCurrent: boolean | null
+    createdAt: Date | null
+    readyAt: Date | null
+  }
+
+  export type PtDiscoveryEpochCountAggregateOutputType = {
+    epoch: number
+    status: number
+    isCurrent: number
+    createdAt: number
+    readyAt: number
+    _all: number
+  }
+
+
+  export type PtDiscoveryEpochAvgAggregateInputType = {
+    epoch?: true
+  }
+
+  export type PtDiscoveryEpochSumAggregateInputType = {
+    epoch?: true
+  }
+
+  export type PtDiscoveryEpochMinAggregateInputType = {
+    epoch?: true
+    status?: true
+    isCurrent?: true
+    createdAt?: true
+    readyAt?: true
+  }
+
+  export type PtDiscoveryEpochMaxAggregateInputType = {
+    epoch?: true
+    status?: true
+    isCurrent?: true
+    createdAt?: true
+    readyAt?: true
+  }
+
+  export type PtDiscoveryEpochCountAggregateInputType = {
+    epoch?: true
+    status?: true
+    isCurrent?: true
+    createdAt?: true
+    readyAt?: true
+    _all?: true
+  }
+
+  export type PtDiscoveryEpochAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDiscoveryEpoch to aggregate.
+     */
+    where?: PtDiscoveryEpochWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryEpoches to fetch.
+     */
+    orderBy?: PtDiscoveryEpochOrderByWithRelationInput | PtDiscoveryEpochOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtDiscoveryEpochWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryEpoches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryEpoches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtDiscoveryEpoches
+    **/
+    _count?: true | PtDiscoveryEpochCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtDiscoveryEpochAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtDiscoveryEpochSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtDiscoveryEpochMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtDiscoveryEpochMaxAggregateInputType
+  }
+
+  export type GetPtDiscoveryEpochAggregateType<T extends PtDiscoveryEpochAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtDiscoveryEpoch]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtDiscoveryEpoch[P]>
+      : GetScalarType<T[P], AggregatePtDiscoveryEpoch[P]>
+  }
+
+
+
+
+  export type PtDiscoveryEpochGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtDiscoveryEpochWhereInput
+    orderBy?: PtDiscoveryEpochOrderByWithAggregationInput | PtDiscoveryEpochOrderByWithAggregationInput[]
+    by: PtDiscoveryEpochScalarFieldEnum[] | PtDiscoveryEpochScalarFieldEnum
+    having?: PtDiscoveryEpochScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtDiscoveryEpochCountAggregateInputType | true
+    _avg?: PtDiscoveryEpochAvgAggregateInputType
+    _sum?: PtDiscoveryEpochSumAggregateInputType
+    _min?: PtDiscoveryEpochMinAggregateInputType
+    _max?: PtDiscoveryEpochMaxAggregateInputType
+  }
+
+  export type PtDiscoveryEpochGroupByOutputType = {
+    epoch: number
+    status: $Enums.PtDiscoveryEpochStatus
+    isCurrent: boolean
+    createdAt: Date
+    readyAt: Date | null
+    _count: PtDiscoveryEpochCountAggregateOutputType | null
+    _avg: PtDiscoveryEpochAvgAggregateOutputType | null
+    _sum: PtDiscoveryEpochSumAggregateOutputType | null
+    _min: PtDiscoveryEpochMinAggregateOutputType | null
+    _max: PtDiscoveryEpochMaxAggregateOutputType | null
+  }
+
+  type GetPtDiscoveryEpochGroupByPayload<T extends PtDiscoveryEpochGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtDiscoveryEpochGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtDiscoveryEpochGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtDiscoveryEpochGroupByOutputType[P]>
+            : GetScalarType<T[P], PtDiscoveryEpochGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtDiscoveryEpochSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    epoch?: boolean
+    status?: boolean
+    isCurrent?: boolean
+    createdAt?: boolean
+    readyAt?: boolean
+    stats?: boolean | PtDiscoveryEpoch$statsArgs<ExtArgs>
+    _count?: boolean | PtDiscoveryEpochCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptDiscoveryEpoch"]>
+
+  export type PtDiscoveryEpochSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    epoch?: boolean
+    status?: boolean
+    isCurrent?: boolean
+    createdAt?: boolean
+    readyAt?: boolean
+  }, ExtArgs["result"]["ptDiscoveryEpoch"]>
+
+  export type PtDiscoveryEpochSelectScalar = {
+    epoch?: boolean
+    status?: boolean
+    isCurrent?: boolean
+    createdAt?: boolean
+    readyAt?: boolean
+  }
+
+  export type PtDiscoveryEpochInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stats?: boolean | PtDiscoveryEpoch$statsArgs<ExtArgs>
+    _count?: boolean | PtDiscoveryEpochCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PtDiscoveryEpochIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PtDiscoveryEpochPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtDiscoveryEpoch"
+    objects: {
+      stats: Prisma.$PtDiscoveryStatPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      epoch: number
+      status: $Enums.PtDiscoveryEpochStatus
+      isCurrent: boolean
+      createdAt: Date
+      readyAt: Date | null
+    }, ExtArgs["result"]["ptDiscoveryEpoch"]>
+    composites: {}
+  }
+
+  type PtDiscoveryEpochGetPayload<S extends boolean | null | undefined | PtDiscoveryEpochDefaultArgs> = $Result.GetResult<Prisma.$PtDiscoveryEpochPayload, S>
+
+  type PtDiscoveryEpochCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtDiscoveryEpochFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtDiscoveryEpochCountAggregateInputType | true
+    }
+
+  export interface PtDiscoveryEpochDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtDiscoveryEpoch'], meta: { name: 'PtDiscoveryEpoch' } }
+    /**
+     * Find zero or one PtDiscoveryEpoch that matches the filter.
+     * @param {PtDiscoveryEpochFindUniqueArgs} args - Arguments to find a PtDiscoveryEpoch
+     * @example
+     * // Get one PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtDiscoveryEpochFindUniqueArgs>(args: SelectSubset<T, PtDiscoveryEpochFindUniqueArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtDiscoveryEpoch that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtDiscoveryEpochFindUniqueOrThrowArgs} args - Arguments to find a PtDiscoveryEpoch
+     * @example
+     * // Get one PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtDiscoveryEpochFindUniqueOrThrowArgs>(args: SelectSubset<T, PtDiscoveryEpochFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtDiscoveryEpoch that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochFindFirstArgs} args - Arguments to find a PtDiscoveryEpoch
+     * @example
+     * // Get one PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtDiscoveryEpochFindFirstArgs>(args?: SelectSubset<T, PtDiscoveryEpochFindFirstArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtDiscoveryEpoch that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochFindFirstOrThrowArgs} args - Arguments to find a PtDiscoveryEpoch
+     * @example
+     * // Get one PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtDiscoveryEpochFindFirstOrThrowArgs>(args?: SelectSubset<T, PtDiscoveryEpochFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtDiscoveryEpoches that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtDiscoveryEpoches
+     * const ptDiscoveryEpoches = await prisma.ptDiscoveryEpoch.findMany()
+     * 
+     * // Get first 10 PtDiscoveryEpoches
+     * const ptDiscoveryEpoches = await prisma.ptDiscoveryEpoch.findMany({ take: 10 })
+     * 
+     * // Only select the `epoch`
+     * const ptDiscoveryEpochWithEpochOnly = await prisma.ptDiscoveryEpoch.findMany({ select: { epoch: true } })
+     * 
+     */
+    findMany<T extends PtDiscoveryEpochFindManyArgs>(args?: SelectSubset<T, PtDiscoveryEpochFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtDiscoveryEpoch.
+     * @param {PtDiscoveryEpochCreateArgs} args - Arguments to create a PtDiscoveryEpoch.
+     * @example
+     * // Create one PtDiscoveryEpoch
+     * const PtDiscoveryEpoch = await prisma.ptDiscoveryEpoch.create({
+     *   data: {
+     *     // ... data to create a PtDiscoveryEpoch
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtDiscoveryEpochCreateArgs>(args: SelectSubset<T, PtDiscoveryEpochCreateArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtDiscoveryEpoches.
+     * @param {PtDiscoveryEpochCreateManyArgs} args - Arguments to create many PtDiscoveryEpoches.
+     * @example
+     * // Create many PtDiscoveryEpoches
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtDiscoveryEpochCreateManyArgs>(args?: SelectSubset<T, PtDiscoveryEpochCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtDiscoveryEpoches and returns the data saved in the database.
+     * @param {PtDiscoveryEpochCreateManyAndReturnArgs} args - Arguments to create many PtDiscoveryEpoches.
+     * @example
+     * // Create many PtDiscoveryEpoches
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtDiscoveryEpoches and only return the `epoch`
+     * const ptDiscoveryEpochWithEpochOnly = await prisma.ptDiscoveryEpoch.createManyAndReturn({ 
+     *   select: { epoch: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtDiscoveryEpochCreateManyAndReturnArgs>(args?: SelectSubset<T, PtDiscoveryEpochCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtDiscoveryEpoch.
+     * @param {PtDiscoveryEpochDeleteArgs} args - Arguments to delete one PtDiscoveryEpoch.
+     * @example
+     * // Delete one PtDiscoveryEpoch
+     * const PtDiscoveryEpoch = await prisma.ptDiscoveryEpoch.delete({
+     *   where: {
+     *     // ... filter to delete one PtDiscoveryEpoch
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtDiscoveryEpochDeleteArgs>(args: SelectSubset<T, PtDiscoveryEpochDeleteArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtDiscoveryEpoch.
+     * @param {PtDiscoveryEpochUpdateArgs} args - Arguments to update one PtDiscoveryEpoch.
+     * @example
+     * // Update one PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtDiscoveryEpochUpdateArgs>(args: SelectSubset<T, PtDiscoveryEpochUpdateArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtDiscoveryEpoches.
+     * @param {PtDiscoveryEpochDeleteManyArgs} args - Arguments to filter PtDiscoveryEpoches to delete.
+     * @example
+     * // Delete a few PtDiscoveryEpoches
+     * const { count } = await prisma.ptDiscoveryEpoch.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtDiscoveryEpochDeleteManyArgs>(args?: SelectSubset<T, PtDiscoveryEpochDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtDiscoveryEpoches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtDiscoveryEpoches
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtDiscoveryEpochUpdateManyArgs>(args: SelectSubset<T, PtDiscoveryEpochUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtDiscoveryEpoch.
+     * @param {PtDiscoveryEpochUpsertArgs} args - Arguments to update or create a PtDiscoveryEpoch.
+     * @example
+     * // Update or create a PtDiscoveryEpoch
+     * const ptDiscoveryEpoch = await prisma.ptDiscoveryEpoch.upsert({
+     *   create: {
+     *     // ... data to create a PtDiscoveryEpoch
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtDiscoveryEpoch we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtDiscoveryEpochUpsertArgs>(args: SelectSubset<T, PtDiscoveryEpochUpsertArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtDiscoveryEpoches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochCountArgs} args - Arguments to filter PtDiscoveryEpoches to count.
+     * @example
+     * // Count the number of PtDiscoveryEpoches
+     * const count = await prisma.ptDiscoveryEpoch.count({
+     *   where: {
+     *     // ... the filter for the PtDiscoveryEpoches we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtDiscoveryEpochCountArgs>(
+      args?: Subset<T, PtDiscoveryEpochCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtDiscoveryEpochCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtDiscoveryEpoch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtDiscoveryEpochAggregateArgs>(args: Subset<T, PtDiscoveryEpochAggregateArgs>): Prisma.PrismaPromise<GetPtDiscoveryEpochAggregateType<T>>
+
+    /**
+     * Group by PtDiscoveryEpoch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryEpochGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtDiscoveryEpochGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtDiscoveryEpochGroupByArgs['orderBy'] }
+        : { orderBy?: PtDiscoveryEpochGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtDiscoveryEpochGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtDiscoveryEpochGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtDiscoveryEpoch model
+   */
+  readonly fields: PtDiscoveryEpochFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtDiscoveryEpoch.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtDiscoveryEpochClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    stats<T extends PtDiscoveryEpoch$statsArgs<ExtArgs> = {}>(args?: Subset<T, PtDiscoveryEpoch$statsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtDiscoveryEpoch model
+   */ 
+  interface PtDiscoveryEpochFieldRefs {
+    readonly epoch: FieldRef<"PtDiscoveryEpoch", 'Int'>
+    readonly status: FieldRef<"PtDiscoveryEpoch", 'PtDiscoveryEpochStatus'>
+    readonly isCurrent: FieldRef<"PtDiscoveryEpoch", 'Boolean'>
+    readonly createdAt: FieldRef<"PtDiscoveryEpoch", 'DateTime'>
+    readonly readyAt: FieldRef<"PtDiscoveryEpoch", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtDiscoveryEpoch findUnique
+   */
+  export type PtDiscoveryEpochFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryEpoch to fetch.
+     */
+    where: PtDiscoveryEpochWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryEpoch findUniqueOrThrow
+   */
+  export type PtDiscoveryEpochFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryEpoch to fetch.
+     */
+    where: PtDiscoveryEpochWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryEpoch findFirst
+   */
+  export type PtDiscoveryEpochFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryEpoch to fetch.
+     */
+    where?: PtDiscoveryEpochWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryEpoches to fetch.
+     */
+    orderBy?: PtDiscoveryEpochOrderByWithRelationInput | PtDiscoveryEpochOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDiscoveryEpoches.
+     */
+    cursor?: PtDiscoveryEpochWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryEpoches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryEpoches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDiscoveryEpoches.
+     */
+    distinct?: PtDiscoveryEpochScalarFieldEnum | PtDiscoveryEpochScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryEpoch findFirstOrThrow
+   */
+  export type PtDiscoveryEpochFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryEpoch to fetch.
+     */
+    where?: PtDiscoveryEpochWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryEpoches to fetch.
+     */
+    orderBy?: PtDiscoveryEpochOrderByWithRelationInput | PtDiscoveryEpochOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDiscoveryEpoches.
+     */
+    cursor?: PtDiscoveryEpochWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryEpoches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryEpoches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDiscoveryEpoches.
+     */
+    distinct?: PtDiscoveryEpochScalarFieldEnum | PtDiscoveryEpochScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryEpoch findMany
+   */
+  export type PtDiscoveryEpochFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryEpoches to fetch.
+     */
+    where?: PtDiscoveryEpochWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryEpoches to fetch.
+     */
+    orderBy?: PtDiscoveryEpochOrderByWithRelationInput | PtDiscoveryEpochOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtDiscoveryEpoches.
+     */
+    cursor?: PtDiscoveryEpochWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryEpoches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryEpoches.
+     */
+    skip?: number
+    distinct?: PtDiscoveryEpochScalarFieldEnum | PtDiscoveryEpochScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryEpoch create
+   */
+  export type PtDiscoveryEpochCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtDiscoveryEpoch.
+     */
+    data?: XOR<PtDiscoveryEpochCreateInput, PtDiscoveryEpochUncheckedCreateInput>
+  }
+
+  /**
+   * PtDiscoveryEpoch createMany
+   */
+  export type PtDiscoveryEpochCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtDiscoveryEpoches.
+     */
+    data: PtDiscoveryEpochCreateManyInput | PtDiscoveryEpochCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtDiscoveryEpoch createManyAndReturn
+   */
+  export type PtDiscoveryEpochCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtDiscoveryEpoches.
+     */
+    data: PtDiscoveryEpochCreateManyInput | PtDiscoveryEpochCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtDiscoveryEpoch update
+   */
+  export type PtDiscoveryEpochUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtDiscoveryEpoch.
+     */
+    data: XOR<PtDiscoveryEpochUpdateInput, PtDiscoveryEpochUncheckedUpdateInput>
+    /**
+     * Choose, which PtDiscoveryEpoch to update.
+     */
+    where: PtDiscoveryEpochWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryEpoch updateMany
+   */
+  export type PtDiscoveryEpochUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtDiscoveryEpoches.
+     */
+    data: XOR<PtDiscoveryEpochUpdateManyMutationInput, PtDiscoveryEpochUncheckedUpdateManyInput>
+    /**
+     * Filter which PtDiscoveryEpoches to update
+     */
+    where?: PtDiscoveryEpochWhereInput
+  }
+
+  /**
+   * PtDiscoveryEpoch upsert
+   */
+  export type PtDiscoveryEpochUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtDiscoveryEpoch to update in case it exists.
+     */
+    where: PtDiscoveryEpochWhereUniqueInput
+    /**
+     * In case the PtDiscoveryEpoch found by the `where` argument doesn't exist, create a new PtDiscoveryEpoch with this data.
+     */
+    create: XOR<PtDiscoveryEpochCreateInput, PtDiscoveryEpochUncheckedCreateInput>
+    /**
+     * In case the PtDiscoveryEpoch was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtDiscoveryEpochUpdateInput, PtDiscoveryEpochUncheckedUpdateInput>
+  }
+
+  /**
+   * PtDiscoveryEpoch delete
+   */
+  export type PtDiscoveryEpochDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+    /**
+     * Filter which PtDiscoveryEpoch to delete.
+     */
+    where: PtDiscoveryEpochWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryEpoch deleteMany
+   */
+  export type PtDiscoveryEpochDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDiscoveryEpoches to delete
+     */
+    where?: PtDiscoveryEpochWhereInput
+  }
+
+  /**
+   * PtDiscoveryEpoch.stats
+   */
+  export type PtDiscoveryEpoch$statsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    where?: PtDiscoveryStatWhereInput
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtDiscoveryStatScalarFieldEnum | PtDiscoveryStatScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryEpoch without action
+   */
+  export type PtDiscoveryEpochDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryEpoch
+     */
+    select?: PtDiscoveryEpochSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryEpochInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtDiscoveryStat
+   */
+
+  export type AggregatePtDiscoveryStat = {
+    _count: PtDiscoveryStatCountAggregateOutputType | null
+    _avg: PtDiscoveryStatAvgAggregateOutputType | null
+    _sum: PtDiscoveryStatSumAggregateOutputType | null
+    _min: PtDiscoveryStatMinAggregateOutputType | null
+    _max: PtDiscoveryStatMaxAggregateOutputType | null
+  }
+
+  export type PtDiscoveryStatAvgAggregateOutputType = {
+    epoch: number | null
+    ratingAvg: number | null
+    ratingCount: number | null
+    bayesRating: number | null
+    completeness: number | null
+    availableHours7d: number | null
+    fromPriceOverall: Decimal | null
+    fromPriceOnline: Decimal | null
+    fromPriceOffline: Decimal | null
+    quality: number | null
+  }
+
+  export type PtDiscoveryStatSumAggregateOutputType = {
+    epoch: number | null
+    ratingAvg: number | null
+    ratingCount: number | null
+    bayesRating: number | null
+    completeness: number | null
+    availableHours7d: number | null
+    fromPriceOverall: Decimal | null
+    fromPriceOnline: Decimal | null
+    fromPriceOffline: Decimal | null
+    quality: number | null
+  }
+
+  export type PtDiscoveryStatMinAggregateOutputType = {
+    epoch: number | null
+    ptUserId: string | null
+    ratingAvg: number | null
+    ratingCount: number | null
+    bayesRating: number | null
+    completeness: number | null
+    availableHours7d: number | null
+    accepting: boolean | null
+    approvedAt: Date | null
+    fromPriceOverall: Decimal | null
+    fromPriceOnline: Decimal | null
+    fromPriceOffline: Decimal | null
+    quality: number | null
+  }
+
+  export type PtDiscoveryStatMaxAggregateOutputType = {
+    epoch: number | null
+    ptUserId: string | null
+    ratingAvg: number | null
+    ratingCount: number | null
+    bayesRating: number | null
+    completeness: number | null
+    availableHours7d: number | null
+    accepting: boolean | null
+    approvedAt: Date | null
+    fromPriceOverall: Decimal | null
+    fromPriceOnline: Decimal | null
+    fromPriceOffline: Decimal | null
+    quality: number | null
+  }
+
+  export type PtDiscoveryStatCountAggregateOutputType = {
+    epoch: number
+    ptUserId: number
+    ratingAvg: number
+    ratingCount: number
+    bayesRating: number
+    completeness: number
+    availableHours7d: number
+    accepting: number
+    approvedAt: number
+    fromPriceOverall: number
+    fromPriceOnline: number
+    fromPriceOffline: number
+    quality: number
+    _all: number
+  }
+
+
+  export type PtDiscoveryStatAvgAggregateInputType = {
+    epoch?: true
+    ratingAvg?: true
+    ratingCount?: true
+    bayesRating?: true
+    completeness?: true
+    availableHours7d?: true
+    fromPriceOverall?: true
+    fromPriceOnline?: true
+    fromPriceOffline?: true
+    quality?: true
+  }
+
+  export type PtDiscoveryStatSumAggregateInputType = {
+    epoch?: true
+    ratingAvg?: true
+    ratingCount?: true
+    bayesRating?: true
+    completeness?: true
+    availableHours7d?: true
+    fromPriceOverall?: true
+    fromPriceOnline?: true
+    fromPriceOffline?: true
+    quality?: true
+  }
+
+  export type PtDiscoveryStatMinAggregateInputType = {
+    epoch?: true
+    ptUserId?: true
+    ratingAvg?: true
+    ratingCount?: true
+    bayesRating?: true
+    completeness?: true
+    availableHours7d?: true
+    accepting?: true
+    approvedAt?: true
+    fromPriceOverall?: true
+    fromPriceOnline?: true
+    fromPriceOffline?: true
+    quality?: true
+  }
+
+  export type PtDiscoveryStatMaxAggregateInputType = {
+    epoch?: true
+    ptUserId?: true
+    ratingAvg?: true
+    ratingCount?: true
+    bayesRating?: true
+    completeness?: true
+    availableHours7d?: true
+    accepting?: true
+    approvedAt?: true
+    fromPriceOverall?: true
+    fromPriceOnline?: true
+    fromPriceOffline?: true
+    quality?: true
+  }
+
+  export type PtDiscoveryStatCountAggregateInputType = {
+    epoch?: true
+    ptUserId?: true
+    ratingAvg?: true
+    ratingCount?: true
+    bayesRating?: true
+    completeness?: true
+    availableHours7d?: true
+    accepting?: true
+    approvedAt?: true
+    fromPriceOverall?: true
+    fromPriceOnline?: true
+    fromPriceOffline?: true
+    quality?: true
+    _all?: true
+  }
+
+  export type PtDiscoveryStatAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDiscoveryStat to aggregate.
+     */
+    where?: PtDiscoveryStatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryStats to fetch.
+     */
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryStats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryStats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtDiscoveryStats
+    **/
+    _count?: true | PtDiscoveryStatCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtDiscoveryStatAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtDiscoveryStatSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtDiscoveryStatMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtDiscoveryStatMaxAggregateInputType
+  }
+
+  export type GetPtDiscoveryStatAggregateType<T extends PtDiscoveryStatAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtDiscoveryStat]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtDiscoveryStat[P]>
+      : GetScalarType<T[P], AggregatePtDiscoveryStat[P]>
+  }
+
+
+
+
+  export type PtDiscoveryStatGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtDiscoveryStatWhereInput
+    orderBy?: PtDiscoveryStatOrderByWithAggregationInput | PtDiscoveryStatOrderByWithAggregationInput[]
+    by: PtDiscoveryStatScalarFieldEnum[] | PtDiscoveryStatScalarFieldEnum
+    having?: PtDiscoveryStatScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtDiscoveryStatCountAggregateInputType | true
+    _avg?: PtDiscoveryStatAvgAggregateInputType
+    _sum?: PtDiscoveryStatSumAggregateInputType
+    _min?: PtDiscoveryStatMinAggregateInputType
+    _max?: PtDiscoveryStatMaxAggregateInputType
+  }
+
+  export type PtDiscoveryStatGroupByOutputType = {
+    epoch: number
+    ptUserId: string
+    ratingAvg: number | null
+    ratingCount: number
+    bayesRating: number
+    completeness: number
+    availableHours7d: number
+    accepting: boolean
+    approvedAt: Date | null
+    fromPriceOverall: Decimal | null
+    fromPriceOnline: Decimal | null
+    fromPriceOffline: Decimal | null
+    quality: number
+    _count: PtDiscoveryStatCountAggregateOutputType | null
+    _avg: PtDiscoveryStatAvgAggregateOutputType | null
+    _sum: PtDiscoveryStatSumAggregateOutputType | null
+    _min: PtDiscoveryStatMinAggregateOutputType | null
+    _max: PtDiscoveryStatMaxAggregateOutputType | null
+  }
+
+  type GetPtDiscoveryStatGroupByPayload<T extends PtDiscoveryStatGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtDiscoveryStatGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtDiscoveryStatGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtDiscoveryStatGroupByOutputType[P]>
+            : GetScalarType<T[P], PtDiscoveryStatGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtDiscoveryStatSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    epoch?: boolean
+    ptUserId?: boolean
+    ratingAvg?: boolean
+    ratingCount?: boolean
+    bayesRating?: boolean
+    completeness?: boolean
+    availableHours7d?: boolean
+    accepting?: boolean
+    approvedAt?: boolean
+    fromPriceOverall?: boolean
+    fromPriceOnline?: boolean
+    fromPriceOffline?: boolean
+    quality?: boolean
+    epochRef?: boolean | PtDiscoveryEpochDefaultArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptDiscoveryStat"]>
+
+  export type PtDiscoveryStatSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    epoch?: boolean
+    ptUserId?: boolean
+    ratingAvg?: boolean
+    ratingCount?: boolean
+    bayesRating?: boolean
+    completeness?: boolean
+    availableHours7d?: boolean
+    accepting?: boolean
+    approvedAt?: boolean
+    fromPriceOverall?: boolean
+    fromPriceOnline?: boolean
+    fromPriceOffline?: boolean
+    quality?: boolean
+    epochRef?: boolean | PtDiscoveryEpochDefaultArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptDiscoveryStat"]>
+
+  export type PtDiscoveryStatSelectScalar = {
+    epoch?: boolean
+    ptUserId?: boolean
+    ratingAvg?: boolean
+    ratingCount?: boolean
+    bayesRating?: boolean
+    completeness?: boolean
+    availableHours7d?: boolean
+    accepting?: boolean
+    approvedAt?: boolean
+    fromPriceOverall?: boolean
+    fromPriceOnline?: boolean
+    fromPriceOffline?: boolean
+    quality?: boolean
+  }
+
+  export type PtDiscoveryStatInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    epochRef?: boolean | PtDiscoveryEpochDefaultArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type PtDiscoveryStatIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    epochRef?: boolean | PtDiscoveryEpochDefaultArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $PtDiscoveryStatPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtDiscoveryStat"
+    objects: {
+      epochRef: Prisma.$PtDiscoveryEpochPayload<ExtArgs>
+      ptProfile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      epoch: number
+      ptUserId: string
+      ratingAvg: number | null
+      ratingCount: number
+      bayesRating: number
+      completeness: number
+      availableHours7d: number
+      accepting: boolean
+      approvedAt: Date | null
+      fromPriceOverall: Prisma.Decimal | null
+      fromPriceOnline: Prisma.Decimal | null
+      fromPriceOffline: Prisma.Decimal | null
+      quality: number
+    }, ExtArgs["result"]["ptDiscoveryStat"]>
+    composites: {}
+  }
+
+  type PtDiscoveryStatGetPayload<S extends boolean | null | undefined | PtDiscoveryStatDefaultArgs> = $Result.GetResult<Prisma.$PtDiscoveryStatPayload, S>
+
+  type PtDiscoveryStatCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtDiscoveryStatFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtDiscoveryStatCountAggregateInputType | true
+    }
+
+  export interface PtDiscoveryStatDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtDiscoveryStat'], meta: { name: 'PtDiscoveryStat' } }
+    /**
+     * Find zero or one PtDiscoveryStat that matches the filter.
+     * @param {PtDiscoveryStatFindUniqueArgs} args - Arguments to find a PtDiscoveryStat
+     * @example
+     * // Get one PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtDiscoveryStatFindUniqueArgs>(args: SelectSubset<T, PtDiscoveryStatFindUniqueArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtDiscoveryStat that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtDiscoveryStatFindUniqueOrThrowArgs} args - Arguments to find a PtDiscoveryStat
+     * @example
+     * // Get one PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtDiscoveryStatFindUniqueOrThrowArgs>(args: SelectSubset<T, PtDiscoveryStatFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtDiscoveryStat that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatFindFirstArgs} args - Arguments to find a PtDiscoveryStat
+     * @example
+     * // Get one PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtDiscoveryStatFindFirstArgs>(args?: SelectSubset<T, PtDiscoveryStatFindFirstArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtDiscoveryStat that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatFindFirstOrThrowArgs} args - Arguments to find a PtDiscoveryStat
+     * @example
+     * // Get one PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtDiscoveryStatFindFirstOrThrowArgs>(args?: SelectSubset<T, PtDiscoveryStatFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtDiscoveryStats that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtDiscoveryStats
+     * const ptDiscoveryStats = await prisma.ptDiscoveryStat.findMany()
+     * 
+     * // Get first 10 PtDiscoveryStats
+     * const ptDiscoveryStats = await prisma.ptDiscoveryStat.findMany({ take: 10 })
+     * 
+     * // Only select the `epoch`
+     * const ptDiscoveryStatWithEpochOnly = await prisma.ptDiscoveryStat.findMany({ select: { epoch: true } })
+     * 
+     */
+    findMany<T extends PtDiscoveryStatFindManyArgs>(args?: SelectSubset<T, PtDiscoveryStatFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtDiscoveryStat.
+     * @param {PtDiscoveryStatCreateArgs} args - Arguments to create a PtDiscoveryStat.
+     * @example
+     * // Create one PtDiscoveryStat
+     * const PtDiscoveryStat = await prisma.ptDiscoveryStat.create({
+     *   data: {
+     *     // ... data to create a PtDiscoveryStat
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtDiscoveryStatCreateArgs>(args: SelectSubset<T, PtDiscoveryStatCreateArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtDiscoveryStats.
+     * @param {PtDiscoveryStatCreateManyArgs} args - Arguments to create many PtDiscoveryStats.
+     * @example
+     * // Create many PtDiscoveryStats
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtDiscoveryStatCreateManyArgs>(args?: SelectSubset<T, PtDiscoveryStatCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtDiscoveryStats and returns the data saved in the database.
+     * @param {PtDiscoveryStatCreateManyAndReturnArgs} args - Arguments to create many PtDiscoveryStats.
+     * @example
+     * // Create many PtDiscoveryStats
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtDiscoveryStats and only return the `epoch`
+     * const ptDiscoveryStatWithEpochOnly = await prisma.ptDiscoveryStat.createManyAndReturn({ 
+     *   select: { epoch: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtDiscoveryStatCreateManyAndReturnArgs>(args?: SelectSubset<T, PtDiscoveryStatCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtDiscoveryStat.
+     * @param {PtDiscoveryStatDeleteArgs} args - Arguments to delete one PtDiscoveryStat.
+     * @example
+     * // Delete one PtDiscoveryStat
+     * const PtDiscoveryStat = await prisma.ptDiscoveryStat.delete({
+     *   where: {
+     *     // ... filter to delete one PtDiscoveryStat
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtDiscoveryStatDeleteArgs>(args: SelectSubset<T, PtDiscoveryStatDeleteArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtDiscoveryStat.
+     * @param {PtDiscoveryStatUpdateArgs} args - Arguments to update one PtDiscoveryStat.
+     * @example
+     * // Update one PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtDiscoveryStatUpdateArgs>(args: SelectSubset<T, PtDiscoveryStatUpdateArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtDiscoveryStats.
+     * @param {PtDiscoveryStatDeleteManyArgs} args - Arguments to filter PtDiscoveryStats to delete.
+     * @example
+     * // Delete a few PtDiscoveryStats
+     * const { count } = await prisma.ptDiscoveryStat.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtDiscoveryStatDeleteManyArgs>(args?: SelectSubset<T, PtDiscoveryStatDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtDiscoveryStats.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtDiscoveryStats
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtDiscoveryStatUpdateManyArgs>(args: SelectSubset<T, PtDiscoveryStatUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtDiscoveryStat.
+     * @param {PtDiscoveryStatUpsertArgs} args - Arguments to update or create a PtDiscoveryStat.
+     * @example
+     * // Update or create a PtDiscoveryStat
+     * const ptDiscoveryStat = await prisma.ptDiscoveryStat.upsert({
+     *   create: {
+     *     // ... data to create a PtDiscoveryStat
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtDiscoveryStat we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtDiscoveryStatUpsertArgs>(args: SelectSubset<T, PtDiscoveryStatUpsertArgs<ExtArgs>>): Prisma__PtDiscoveryStatClient<$Result.GetResult<Prisma.$PtDiscoveryStatPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtDiscoveryStats.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatCountArgs} args - Arguments to filter PtDiscoveryStats to count.
+     * @example
+     * // Count the number of PtDiscoveryStats
+     * const count = await prisma.ptDiscoveryStat.count({
+     *   where: {
+     *     // ... the filter for the PtDiscoveryStats we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtDiscoveryStatCountArgs>(
+      args?: Subset<T, PtDiscoveryStatCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtDiscoveryStatCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtDiscoveryStat.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtDiscoveryStatAggregateArgs>(args: Subset<T, PtDiscoveryStatAggregateArgs>): Prisma.PrismaPromise<GetPtDiscoveryStatAggregateType<T>>
+
+    /**
+     * Group by PtDiscoveryStat.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtDiscoveryStatGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtDiscoveryStatGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtDiscoveryStatGroupByArgs['orderBy'] }
+        : { orderBy?: PtDiscoveryStatGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtDiscoveryStatGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtDiscoveryStatGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtDiscoveryStat model
+   */
+  readonly fields: PtDiscoveryStatFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtDiscoveryStat.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtDiscoveryStatClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    epochRef<T extends PtDiscoveryEpochDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PtDiscoveryEpochDefaultArgs<ExtArgs>>): Prisma__PtDiscoveryEpochClient<$Result.GetResult<Prisma.$PtDiscoveryEpochPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    ptProfile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtDiscoveryStat model
+   */ 
+  interface PtDiscoveryStatFieldRefs {
+    readonly epoch: FieldRef<"PtDiscoveryStat", 'Int'>
+    readonly ptUserId: FieldRef<"PtDiscoveryStat", 'String'>
+    readonly ratingAvg: FieldRef<"PtDiscoveryStat", 'Float'>
+    readonly ratingCount: FieldRef<"PtDiscoveryStat", 'Int'>
+    readonly bayesRating: FieldRef<"PtDiscoveryStat", 'Float'>
+    readonly completeness: FieldRef<"PtDiscoveryStat", 'Float'>
+    readonly availableHours7d: FieldRef<"PtDiscoveryStat", 'Float'>
+    readonly accepting: FieldRef<"PtDiscoveryStat", 'Boolean'>
+    readonly approvedAt: FieldRef<"PtDiscoveryStat", 'DateTime'>
+    readonly fromPriceOverall: FieldRef<"PtDiscoveryStat", 'Decimal'>
+    readonly fromPriceOnline: FieldRef<"PtDiscoveryStat", 'Decimal'>
+    readonly fromPriceOffline: FieldRef<"PtDiscoveryStat", 'Decimal'>
+    readonly quality: FieldRef<"PtDiscoveryStat", 'Float'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtDiscoveryStat findUnique
+   */
+  export type PtDiscoveryStatFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryStat to fetch.
+     */
+    where: PtDiscoveryStatWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryStat findUniqueOrThrow
+   */
+  export type PtDiscoveryStatFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryStat to fetch.
+     */
+    where: PtDiscoveryStatWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryStat findFirst
+   */
+  export type PtDiscoveryStatFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryStat to fetch.
+     */
+    where?: PtDiscoveryStatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryStats to fetch.
+     */
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDiscoveryStats.
+     */
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryStats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryStats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDiscoveryStats.
+     */
+    distinct?: PtDiscoveryStatScalarFieldEnum | PtDiscoveryStatScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryStat findFirstOrThrow
+   */
+  export type PtDiscoveryStatFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryStat to fetch.
+     */
+    where?: PtDiscoveryStatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryStats to fetch.
+     */
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtDiscoveryStats.
+     */
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryStats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryStats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtDiscoveryStats.
+     */
+    distinct?: PtDiscoveryStatScalarFieldEnum | PtDiscoveryStatScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryStat findMany
+   */
+  export type PtDiscoveryStatFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter, which PtDiscoveryStats to fetch.
+     */
+    where?: PtDiscoveryStatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtDiscoveryStats to fetch.
+     */
+    orderBy?: PtDiscoveryStatOrderByWithRelationInput | PtDiscoveryStatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtDiscoveryStats.
+     */
+    cursor?: PtDiscoveryStatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtDiscoveryStats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtDiscoveryStats.
+     */
+    skip?: number
+    distinct?: PtDiscoveryStatScalarFieldEnum | PtDiscoveryStatScalarFieldEnum[]
+  }
+
+  /**
+   * PtDiscoveryStat create
+   */
+  export type PtDiscoveryStatCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtDiscoveryStat.
+     */
+    data: XOR<PtDiscoveryStatCreateInput, PtDiscoveryStatUncheckedCreateInput>
+  }
+
+  /**
+   * PtDiscoveryStat createMany
+   */
+  export type PtDiscoveryStatCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtDiscoveryStats.
+     */
+    data: PtDiscoveryStatCreateManyInput | PtDiscoveryStatCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtDiscoveryStat createManyAndReturn
+   */
+  export type PtDiscoveryStatCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtDiscoveryStats.
+     */
+    data: PtDiscoveryStatCreateManyInput | PtDiscoveryStatCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtDiscoveryStat update
+   */
+  export type PtDiscoveryStatUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtDiscoveryStat.
+     */
+    data: XOR<PtDiscoveryStatUpdateInput, PtDiscoveryStatUncheckedUpdateInput>
+    /**
+     * Choose, which PtDiscoveryStat to update.
+     */
+    where: PtDiscoveryStatWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryStat updateMany
+   */
+  export type PtDiscoveryStatUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtDiscoveryStats.
+     */
+    data: XOR<PtDiscoveryStatUpdateManyMutationInput, PtDiscoveryStatUncheckedUpdateManyInput>
+    /**
+     * Filter which PtDiscoveryStats to update
+     */
+    where?: PtDiscoveryStatWhereInput
+  }
+
+  /**
+   * PtDiscoveryStat upsert
+   */
+  export type PtDiscoveryStatUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtDiscoveryStat to update in case it exists.
+     */
+    where: PtDiscoveryStatWhereUniqueInput
+    /**
+     * In case the PtDiscoveryStat found by the `where` argument doesn't exist, create a new PtDiscoveryStat with this data.
+     */
+    create: XOR<PtDiscoveryStatCreateInput, PtDiscoveryStatUncheckedCreateInput>
+    /**
+     * In case the PtDiscoveryStat was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtDiscoveryStatUpdateInput, PtDiscoveryStatUncheckedUpdateInput>
+  }
+
+  /**
+   * PtDiscoveryStat delete
+   */
+  export type PtDiscoveryStatDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+    /**
+     * Filter which PtDiscoveryStat to delete.
+     */
+    where: PtDiscoveryStatWhereUniqueInput
+  }
+
+  /**
+   * PtDiscoveryStat deleteMany
+   */
+  export type PtDiscoveryStatDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtDiscoveryStats to delete
+     */
+    where?: PtDiscoveryStatWhereInput
+  }
+
+  /**
+   * PtDiscoveryStat without action
+   */
+  export type PtDiscoveryStatDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtDiscoveryStat
+     */
+    select?: PtDiscoveryStatSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtDiscoveryStatInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -73369,6 +76974,8 @@ export namespace Prisma {
     searchCity: 'searchCity',
     searchDistrict: 'searchDistrict',
     searchWard: 'searchWard',
+    searchProvinceCode: 'searchProvinceCode',
+    searchWardCode: 'searchWardCode',
     gymId: 'gymId',
     specialties: 'specialties',
     createdAt: 'createdAt',
@@ -73704,6 +77311,22 @@ export namespace Prisma {
   export type VietnamWardScalarFieldEnum = (typeof VietnamWardScalarFieldEnum)[keyof typeof VietnamWardScalarFieldEnum]
 
 
+  export const VietnamWardGeoScalarFieldEnum: {
+    wardCode: 'wardCode',
+    provinceCode: 'provinceCode',
+    centroidLat: 'centroidLat',
+    centroidLng: 'centroidLng',
+    minLat: 'minLat',
+    maxLat: 'maxLat',
+    minLng: 'minLng',
+    maxLng: 'maxLng',
+    source: 'source',
+    createdAt: 'createdAt'
+  };
+
+  export type VietnamWardGeoScalarFieldEnum = (typeof VietnamWardGeoScalarFieldEnum)[keyof typeof VietnamWardGeoScalarFieldEnum]
+
+
   export const PTTrainingLocationScalarFieldEnum: {
     id: 'id',
     ptUserId: 'ptUserId',
@@ -73714,6 +77337,8 @@ export namespace Prisma {
     addressLine: 'addressLine',
     legacyDistrictName: 'legacyDistrictName',
     gymId: 'gymId',
+    latitude: 'latitude',
+    longitude: 'longitude',
     isPrimary: 'isPrimary',
     isActive: 'isActive',
     note: 'note',
@@ -74548,6 +78173,36 @@ export namespace Prisma {
   };
 
   export type DisputeCaseDecisionReplacementScalarFieldEnum = (typeof DisputeCaseDecisionReplacementScalarFieldEnum)[keyof typeof DisputeCaseDecisionReplacementScalarFieldEnum]
+
+
+  export const PtDiscoveryEpochScalarFieldEnum: {
+    epoch: 'epoch',
+    status: 'status',
+    isCurrent: 'isCurrent',
+    createdAt: 'createdAt',
+    readyAt: 'readyAt'
+  };
+
+  export type PtDiscoveryEpochScalarFieldEnum = (typeof PtDiscoveryEpochScalarFieldEnum)[keyof typeof PtDiscoveryEpochScalarFieldEnum]
+
+
+  export const PtDiscoveryStatScalarFieldEnum: {
+    epoch: 'epoch',
+    ptUserId: 'ptUserId',
+    ratingAvg: 'ratingAvg',
+    ratingCount: 'ratingCount',
+    bayesRating: 'bayesRating',
+    completeness: 'completeness',
+    availableHours7d: 'availableHours7d',
+    accepting: 'accepting',
+    approvedAt: 'approvedAt',
+    fromPriceOverall: 'fromPriceOverall',
+    fromPriceOnline: 'fromPriceOnline',
+    fromPriceOffline: 'fromPriceOffline',
+    quality: 'quality'
+  };
+
+  export type PtDiscoveryStatScalarFieldEnum = (typeof PtDiscoveryStatScalarFieldEnum)[keyof typeof PtDiscoveryStatScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -75413,6 +79068,20 @@ export namespace Prisma {
    */
   export type ListEnumLateOpenReconciliationOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LateOpenReconciliationOutcome[]'>
     
+
+
+  /**
+   * Reference to a field of type 'PtDiscoveryEpochStatus'
+   */
+  export type EnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDiscoveryEpochStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtDiscoveryEpochStatus[]'
+   */
+  export type ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDiscoveryEpochStatus[]'>
+    
   /**
    * Deep Input Types
    */
@@ -75466,6 +79135,8 @@ export namespace Prisma {
     searchCity?: StringNullableFilter<"UserProfile"> | string | null
     searchDistrict?: StringNullableFilter<"UserProfile"> | string | null
     searchWard?: StringNullableFilter<"UserProfile"> | string | null
+    searchProvinceCode?: IntNullableFilter<"UserProfile"> | number | null
+    searchWardCode?: IntNullableFilter<"UserProfile"> | number | null
     gymId?: StringNullableFilter<"UserProfile"> | string | null
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
@@ -75480,6 +79151,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageListRelationFilter
     physiquePhotos?: PtPhysiquePhotoListRelationFilter
     mediaUploadIntents?: PtMediaUploadIntentListRelationFilter
+    discoveryStats?: PtDiscoveryStatListRelationFilter
   }
 
   export type UserProfileOrderByWithRelationInput = {
@@ -75527,6 +79199,8 @@ export namespace Prisma {
     searchCity?: SortOrderInput | SortOrder
     searchDistrict?: SortOrderInput | SortOrder
     searchWard?: SortOrderInput | SortOrder
+    searchProvinceCode?: SortOrderInput | SortOrder
+    searchWardCode?: SortOrderInput | SortOrder
     gymId?: SortOrderInput | SortOrder
     specialties?: SortOrder
     createdAt?: SortOrder
@@ -75541,6 +79215,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageOrderByRelationAggregateInput
     physiquePhotos?: PtPhysiquePhotoOrderByRelationAggregateInput
     mediaUploadIntents?: PtMediaUploadIntentOrderByRelationAggregateInput
+    discoveryStats?: PtDiscoveryStatOrderByRelationAggregateInput
   }
 
   export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -75591,6 +79266,8 @@ export namespace Prisma {
     searchCity?: StringNullableFilter<"UserProfile"> | string | null
     searchDistrict?: StringNullableFilter<"UserProfile"> | string | null
     searchWard?: StringNullableFilter<"UserProfile"> | string | null
+    searchProvinceCode?: IntNullableFilter<"UserProfile"> | number | null
+    searchWardCode?: IntNullableFilter<"UserProfile"> | number | null
     gymId?: StringNullableFilter<"UserProfile"> | string | null
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
@@ -75605,6 +79282,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageListRelationFilter
     physiquePhotos?: PtPhysiquePhotoListRelationFilter
     mediaUploadIntents?: PtMediaUploadIntentListRelationFilter
+    discoveryStats?: PtDiscoveryStatListRelationFilter
   }, "id" | "userId" | "referralCode">
 
   export type UserProfileOrderByWithAggregationInput = {
@@ -75652,6 +79330,8 @@ export namespace Prisma {
     searchCity?: SortOrderInput | SortOrder
     searchDistrict?: SortOrderInput | SortOrder
     searchWard?: SortOrderInput | SortOrder
+    searchProvinceCode?: SortOrderInput | SortOrder
+    searchWardCode?: SortOrderInput | SortOrder
     gymId?: SortOrderInput | SortOrder
     specialties?: SortOrder
     createdAt?: SortOrder
@@ -75714,6 +79394,8 @@ export namespace Prisma {
     searchCity?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     searchDistrict?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     searchWard?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    searchProvinceCode?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
+    searchWardCode?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gymId?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     specialties?: StringNullableListFilter<"UserProfile">
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
@@ -77232,6 +80914,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"VietnamProvince"> | Date | string
     updatedAt?: DateTimeFilter<"VietnamProvince"> | Date | string
     wards?: VietnamWardListRelationFilter
+    wardGeos?: VietnamWardGeoListRelationFilter
     trainingLocations?: PTTrainingLocationListRelationFilter
   }
 
@@ -77245,6 +80928,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     wards?: VietnamWardOrderByRelationAggregateInput
+    wardGeos?: VietnamWardGeoOrderByRelationAggregateInput
     trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
   }
 
@@ -77261,6 +80945,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"VietnamProvince"> | Date | string
     updatedAt?: DateTimeFilter<"VietnamProvince"> | Date | string
     wards?: VietnamWardListRelationFilter
+    wardGeos?: VietnamWardGeoListRelationFilter
     trainingLocations?: PTTrainingLocationListRelationFilter
   }, "code">
 
@@ -77308,6 +80993,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"VietnamWard"> | Date | string
     updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
     province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    geo?: XOR<VietnamWardGeoNullableRelationFilter, VietnamWardGeoWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
   }
 
@@ -77322,6 +81008,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     province?: VietnamProvinceOrderByWithRelationInput
+    geo?: VietnamWardGeoOrderByWithRelationInput
     trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
   }
 
@@ -77339,6 +81026,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"VietnamWard"> | Date | string
     updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
     province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    geo?: XOR<VietnamWardGeoNullableRelationFilter, VietnamWardGeoWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
   }, "code">
 
@@ -77374,6 +81062,91 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"VietnamWard"> | Date | string
   }
 
+  export type VietnamWardGeoWhereInput = {
+    AND?: VietnamWardGeoWhereInput | VietnamWardGeoWhereInput[]
+    OR?: VietnamWardGeoWhereInput[]
+    NOT?: VietnamWardGeoWhereInput | VietnamWardGeoWhereInput[]
+    wardCode?: IntFilter<"VietnamWardGeo"> | number
+    provinceCode?: IntFilter<"VietnamWardGeo"> | number
+    centroidLat?: FloatFilter<"VietnamWardGeo"> | number
+    centroidLng?: FloatFilter<"VietnamWardGeo"> | number
+    minLat?: FloatFilter<"VietnamWardGeo"> | number
+    maxLat?: FloatFilter<"VietnamWardGeo"> | number
+    minLng?: FloatFilter<"VietnamWardGeo"> | number
+    maxLng?: FloatFilter<"VietnamWardGeo"> | number
+    source?: StringFilter<"VietnamWardGeo"> | string
+    createdAt?: DateTimeFilter<"VietnamWardGeo"> | Date | string
+    ward?: XOR<VietnamWardRelationFilter, VietnamWardWhereInput>
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+  }
+
+  export type VietnamWardGeoOrderByWithRelationInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    ward?: VietnamWardOrderByWithRelationInput
+    province?: VietnamProvinceOrderByWithRelationInput
+  }
+
+  export type VietnamWardGeoWhereUniqueInput = Prisma.AtLeast<{
+    wardCode?: number
+    AND?: VietnamWardGeoWhereInput | VietnamWardGeoWhereInput[]
+    OR?: VietnamWardGeoWhereInput[]
+    NOT?: VietnamWardGeoWhereInput | VietnamWardGeoWhereInput[]
+    provinceCode?: IntFilter<"VietnamWardGeo"> | number
+    centroidLat?: FloatFilter<"VietnamWardGeo"> | number
+    centroidLng?: FloatFilter<"VietnamWardGeo"> | number
+    minLat?: FloatFilter<"VietnamWardGeo"> | number
+    maxLat?: FloatFilter<"VietnamWardGeo"> | number
+    minLng?: FloatFilter<"VietnamWardGeo"> | number
+    maxLng?: FloatFilter<"VietnamWardGeo"> | number
+    source?: StringFilter<"VietnamWardGeo"> | string
+    createdAt?: DateTimeFilter<"VietnamWardGeo"> | Date | string
+    ward?: XOR<VietnamWardRelationFilter, VietnamWardWhereInput>
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+  }, "wardCode">
+
+  export type VietnamWardGeoOrderByWithAggregationInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    _count?: VietnamWardGeoCountOrderByAggregateInput
+    _avg?: VietnamWardGeoAvgOrderByAggregateInput
+    _max?: VietnamWardGeoMaxOrderByAggregateInput
+    _min?: VietnamWardGeoMinOrderByAggregateInput
+    _sum?: VietnamWardGeoSumOrderByAggregateInput
+  }
+
+  export type VietnamWardGeoScalarWhereWithAggregatesInput = {
+    AND?: VietnamWardGeoScalarWhereWithAggregatesInput | VietnamWardGeoScalarWhereWithAggregatesInput[]
+    OR?: VietnamWardGeoScalarWhereWithAggregatesInput[]
+    NOT?: VietnamWardGeoScalarWhereWithAggregatesInput | VietnamWardGeoScalarWhereWithAggregatesInput[]
+    wardCode?: IntWithAggregatesFilter<"VietnamWardGeo"> | number
+    provinceCode?: IntWithAggregatesFilter<"VietnamWardGeo"> | number
+    centroidLat?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    centroidLng?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    minLat?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    maxLat?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    minLng?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    maxLng?: FloatWithAggregatesFilter<"VietnamWardGeo"> | number
+    source?: StringWithAggregatesFilter<"VietnamWardGeo"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"VietnamWardGeo"> | Date | string
+  }
+
   export type PTTrainingLocationWhereInput = {
     AND?: PTTrainingLocationWhereInput | PTTrainingLocationWhereInput[]
     OR?: PTTrainingLocationWhereInput[]
@@ -77387,6 +81160,8 @@ export namespace Prisma {
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
     gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    latitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
+    longitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
@@ -77407,6 +81182,8 @@ export namespace Prisma {
     addressLine?: SortOrderInput | SortOrder
     legacyDistrictName?: SortOrderInput | SortOrder
     gymId?: SortOrderInput | SortOrder
+    latitude?: SortOrderInput | SortOrder
+    longitude?: SortOrderInput | SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrderInput | SortOrder
@@ -77430,6 +81207,8 @@ export namespace Prisma {
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
     gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    latitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
+    longitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
@@ -77450,6 +81229,8 @@ export namespace Prisma {
     addressLine?: SortOrderInput | SortOrder
     legacyDistrictName?: SortOrderInput | SortOrder
     gymId?: SortOrderInput | SortOrder
+    latitude?: SortOrderInput | SortOrder
+    longitude?: SortOrderInput | SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrderInput | SortOrder
@@ -77475,6 +81256,8 @@ export namespace Prisma {
     addressLine?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
     gymId?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    latitude?: FloatNullableWithAggregatesFilter<"PTTrainingLocation"> | number | null
+    longitude?: FloatNullableWithAggregatesFilter<"PTTrainingLocation"> | number | null
     isPrimary?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
@@ -81752,6 +85535,164 @@ export namespace Prisma {
     rejectionReason?: StringNullableWithAggregatesFilter<"DisputeCaseDecisionReplacement"> | string | null
   }
 
+  export type PtDiscoveryEpochWhereInput = {
+    AND?: PtDiscoveryEpochWhereInput | PtDiscoveryEpochWhereInput[]
+    OR?: PtDiscoveryEpochWhereInput[]
+    NOT?: PtDiscoveryEpochWhereInput | PtDiscoveryEpochWhereInput[]
+    epoch?: IntFilter<"PtDiscoveryEpoch"> | number
+    status?: EnumPtDiscoveryEpochStatusFilter<"PtDiscoveryEpoch"> | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFilter<"PtDiscoveryEpoch"> | boolean
+    createdAt?: DateTimeFilter<"PtDiscoveryEpoch"> | Date | string
+    readyAt?: DateTimeNullableFilter<"PtDiscoveryEpoch"> | Date | string | null
+    stats?: PtDiscoveryStatListRelationFilter
+  }
+
+  export type PtDiscoveryEpochOrderByWithRelationInput = {
+    epoch?: SortOrder
+    status?: SortOrder
+    isCurrent?: SortOrder
+    createdAt?: SortOrder
+    readyAt?: SortOrderInput | SortOrder
+    stats?: PtDiscoveryStatOrderByRelationAggregateInput
+  }
+
+  export type PtDiscoveryEpochWhereUniqueInput = Prisma.AtLeast<{
+    epoch?: number
+    AND?: PtDiscoveryEpochWhereInput | PtDiscoveryEpochWhereInput[]
+    OR?: PtDiscoveryEpochWhereInput[]
+    NOT?: PtDiscoveryEpochWhereInput | PtDiscoveryEpochWhereInput[]
+    status?: EnumPtDiscoveryEpochStatusFilter<"PtDiscoveryEpoch"> | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFilter<"PtDiscoveryEpoch"> | boolean
+    createdAt?: DateTimeFilter<"PtDiscoveryEpoch"> | Date | string
+    readyAt?: DateTimeNullableFilter<"PtDiscoveryEpoch"> | Date | string | null
+    stats?: PtDiscoveryStatListRelationFilter
+  }, "epoch">
+
+  export type PtDiscoveryEpochOrderByWithAggregationInput = {
+    epoch?: SortOrder
+    status?: SortOrder
+    isCurrent?: SortOrder
+    createdAt?: SortOrder
+    readyAt?: SortOrderInput | SortOrder
+    _count?: PtDiscoveryEpochCountOrderByAggregateInput
+    _avg?: PtDiscoveryEpochAvgOrderByAggregateInput
+    _max?: PtDiscoveryEpochMaxOrderByAggregateInput
+    _min?: PtDiscoveryEpochMinOrderByAggregateInput
+    _sum?: PtDiscoveryEpochSumOrderByAggregateInput
+  }
+
+  export type PtDiscoveryEpochScalarWhereWithAggregatesInput = {
+    AND?: PtDiscoveryEpochScalarWhereWithAggregatesInput | PtDiscoveryEpochScalarWhereWithAggregatesInput[]
+    OR?: PtDiscoveryEpochScalarWhereWithAggregatesInput[]
+    NOT?: PtDiscoveryEpochScalarWhereWithAggregatesInput | PtDiscoveryEpochScalarWhereWithAggregatesInput[]
+    epoch?: IntWithAggregatesFilter<"PtDiscoveryEpoch"> | number
+    status?: EnumPtDiscoveryEpochStatusWithAggregatesFilter<"PtDiscoveryEpoch"> | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolWithAggregatesFilter<"PtDiscoveryEpoch"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"PtDiscoveryEpoch"> | Date | string
+    readyAt?: DateTimeNullableWithAggregatesFilter<"PtDiscoveryEpoch"> | Date | string | null
+  }
+
+  export type PtDiscoveryStatWhereInput = {
+    AND?: PtDiscoveryStatWhereInput | PtDiscoveryStatWhereInput[]
+    OR?: PtDiscoveryStatWhereInput[]
+    NOT?: PtDiscoveryStatWhereInput | PtDiscoveryStatWhereInput[]
+    epoch?: IntFilter<"PtDiscoveryStat"> | number
+    ptUserId?: StringFilter<"PtDiscoveryStat"> | string
+    ratingAvg?: FloatNullableFilter<"PtDiscoveryStat"> | number | null
+    ratingCount?: IntFilter<"PtDiscoveryStat"> | number
+    bayesRating?: FloatFilter<"PtDiscoveryStat"> | number
+    completeness?: FloatFilter<"PtDiscoveryStat"> | number
+    availableHours7d?: FloatFilter<"PtDiscoveryStat"> | number
+    accepting?: BoolFilter<"PtDiscoveryStat"> | boolean
+    approvedAt?: DateTimeNullableFilter<"PtDiscoveryStat"> | Date | string | null
+    fromPriceOverall?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFilter<"PtDiscoveryStat"> | number
+    epochRef?: XOR<PtDiscoveryEpochRelationFilter, PtDiscoveryEpochWhereInput>
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type PtDiscoveryStatOrderByWithRelationInput = {
+    epoch?: SortOrder
+    ptUserId?: SortOrder
+    ratingAvg?: SortOrderInput | SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    accepting?: SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    fromPriceOverall?: SortOrderInput | SortOrder
+    fromPriceOnline?: SortOrderInput | SortOrder
+    fromPriceOffline?: SortOrderInput | SortOrder
+    quality?: SortOrder
+    epochRef?: PtDiscoveryEpochOrderByWithRelationInput
+    ptProfile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type PtDiscoveryStatWhereUniqueInput = Prisma.AtLeast<{
+    epoch_ptUserId?: PtDiscoveryStatEpochPtUserIdCompoundUniqueInput
+    AND?: PtDiscoveryStatWhereInput | PtDiscoveryStatWhereInput[]
+    OR?: PtDiscoveryStatWhereInput[]
+    NOT?: PtDiscoveryStatWhereInput | PtDiscoveryStatWhereInput[]
+    epoch?: IntFilter<"PtDiscoveryStat"> | number
+    ptUserId?: StringFilter<"PtDiscoveryStat"> | string
+    ratingAvg?: FloatNullableFilter<"PtDiscoveryStat"> | number | null
+    ratingCount?: IntFilter<"PtDiscoveryStat"> | number
+    bayesRating?: FloatFilter<"PtDiscoveryStat"> | number
+    completeness?: FloatFilter<"PtDiscoveryStat"> | number
+    availableHours7d?: FloatFilter<"PtDiscoveryStat"> | number
+    accepting?: BoolFilter<"PtDiscoveryStat"> | boolean
+    approvedAt?: DateTimeNullableFilter<"PtDiscoveryStat"> | Date | string | null
+    fromPriceOverall?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFilter<"PtDiscoveryStat"> | number
+    epochRef?: XOR<PtDiscoveryEpochRelationFilter, PtDiscoveryEpochWhereInput>
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "epoch_ptUserId">
+
+  export type PtDiscoveryStatOrderByWithAggregationInput = {
+    epoch?: SortOrder
+    ptUserId?: SortOrder
+    ratingAvg?: SortOrderInput | SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    accepting?: SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    fromPriceOverall?: SortOrderInput | SortOrder
+    fromPriceOnline?: SortOrderInput | SortOrder
+    fromPriceOffline?: SortOrderInput | SortOrder
+    quality?: SortOrder
+    _count?: PtDiscoveryStatCountOrderByAggregateInput
+    _avg?: PtDiscoveryStatAvgOrderByAggregateInput
+    _max?: PtDiscoveryStatMaxOrderByAggregateInput
+    _min?: PtDiscoveryStatMinOrderByAggregateInput
+    _sum?: PtDiscoveryStatSumOrderByAggregateInput
+  }
+
+  export type PtDiscoveryStatScalarWhereWithAggregatesInput = {
+    AND?: PtDiscoveryStatScalarWhereWithAggregatesInput | PtDiscoveryStatScalarWhereWithAggregatesInput[]
+    OR?: PtDiscoveryStatScalarWhereWithAggregatesInput[]
+    NOT?: PtDiscoveryStatScalarWhereWithAggregatesInput | PtDiscoveryStatScalarWhereWithAggregatesInput[]
+    epoch?: IntWithAggregatesFilter<"PtDiscoveryStat"> | number
+    ptUserId?: StringWithAggregatesFilter<"PtDiscoveryStat"> | string
+    ratingAvg?: FloatNullableWithAggregatesFilter<"PtDiscoveryStat"> | number | null
+    ratingCount?: IntWithAggregatesFilter<"PtDiscoveryStat"> | number
+    bayesRating?: FloatWithAggregatesFilter<"PtDiscoveryStat"> | number
+    completeness?: FloatWithAggregatesFilter<"PtDiscoveryStat"> | number
+    availableHours7d?: FloatWithAggregatesFilter<"PtDiscoveryStat"> | number
+    accepting?: BoolWithAggregatesFilter<"PtDiscoveryStat"> | boolean
+    approvedAt?: DateTimeNullableWithAggregatesFilter<"PtDiscoveryStat"> | Date | string | null
+    fromPriceOverall?: DecimalNullableWithAggregatesFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: DecimalNullableWithAggregatesFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: DecimalNullableWithAggregatesFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatWithAggregatesFilter<"PtDiscoveryStat"> | number
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -81797,6 +85738,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -81811,6 +85754,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateInput = {
@@ -81858,6 +85802,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -81872,6 +85818,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUpdateInput = {
@@ -81919,6 +85866,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -81933,6 +85882,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateInput = {
@@ -81980,6 +85930,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -81994,6 +85946,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateManyInput = {
@@ -82041,6 +85994,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -82095,6 +86050,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -82149,6 +86106,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -84006,6 +87965,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     wards?: VietnamWardCreateNestedManyWithoutProvinceInput
+    wardGeos?: VietnamWardGeoCreateNestedManyWithoutProvinceInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutProvinceInput
   }
 
@@ -84019,6 +87979,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     wards?: VietnamWardUncheckedCreateNestedManyWithoutProvinceInput
+    wardGeos?: VietnamWardGeoUncheckedCreateNestedManyWithoutProvinceInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput
   }
 
@@ -84032,6 +87993,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     wards?: VietnamWardUpdateManyWithoutProvinceNestedInput
+    wardGeos?: VietnamWardGeoUpdateManyWithoutProvinceNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutProvinceNestedInput
   }
 
@@ -84045,6 +88007,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     wards?: VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput
+    wardGeos?: VietnamWardGeoUncheckedUpdateManyWithoutProvinceNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput
   }
 
@@ -84091,6 +88054,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     province: VietnamProvinceCreateNestedOneWithoutWardsInput
+    geo?: VietnamWardGeoCreateNestedOneWithoutWardInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutWardInput
   }
 
@@ -84104,6 +88068,7 @@ export namespace Prisma {
     shortCodename?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    geo?: VietnamWardGeoUncheckedCreateNestedOneWithoutWardInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput
   }
 
@@ -84117,6 +88082,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     province?: VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput
+    geo?: VietnamWardGeoUpdateOneWithoutWardNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutWardNestedInput
   }
 
@@ -84130,6 +88096,7 @@ export namespace Prisma {
     shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    geo?: VietnamWardGeoUncheckedUpdateOneWithoutWardNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput
   }
 
@@ -84168,6 +88135,95 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type VietnamWardGeoCreateInput = {
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+    ward: VietnamWardCreateNestedOneWithoutGeoInput
+    province: VietnamProvinceCreateNestedOneWithoutWardGeosInput
+  }
+
+  export type VietnamWardGeoUncheckedCreateInput = {
+    wardCode: number
+    provinceCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+  }
+
+  export type VietnamWardGeoUpdateInput = {
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ward?: VietnamWardUpdateOneRequiredWithoutGeoNestedInput
+    province?: VietnamProvinceUpdateOneRequiredWithoutWardGeosNestedInput
+  }
+
+  export type VietnamWardGeoUncheckedUpdateInput = {
+    wardCode?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamWardGeoCreateManyInput = {
+    wardCode: number
+    provinceCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+  }
+
+  export type VietnamWardGeoUpdateManyMutationInput = {
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamWardGeoUncheckedUpdateManyInput = {
+    wardCode?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PTTrainingLocationCreateInput = {
     id?: string
     gymName?: string | null
@@ -84175,6 +88231,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -84195,6 +88253,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -84209,6 +88269,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84229,6 +88291,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84246,6 +88310,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -84260,6 +88326,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84277,6 +88345,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -89221,6 +93291,173 @@ export namespace Prisma {
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type PtDiscoveryEpochCreateInput = {
+    status?: $Enums.PtDiscoveryEpochStatus
+    isCurrent?: boolean
+    createdAt?: Date | string
+    readyAt?: Date | string | null
+    stats?: PtDiscoveryStatCreateNestedManyWithoutEpochRefInput
+  }
+
+  export type PtDiscoveryEpochUncheckedCreateInput = {
+    epoch?: number
+    status?: $Enums.PtDiscoveryEpochStatus
+    isCurrent?: boolean
+    createdAt?: Date | string
+    readyAt?: Date | string | null
+    stats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutEpochRefInput
+  }
+
+  export type PtDiscoveryEpochUpdateInput = {
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stats?: PtDiscoveryStatUpdateManyWithoutEpochRefNestedInput
+  }
+
+  export type PtDiscoveryEpochUncheckedUpdateInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stats?: PtDiscoveryStatUncheckedUpdateManyWithoutEpochRefNestedInput
+  }
+
+  export type PtDiscoveryEpochCreateManyInput = {
+    epoch?: number
+    status?: $Enums.PtDiscoveryEpochStatus
+    isCurrent?: boolean
+    createdAt?: Date | string
+    readyAt?: Date | string | null
+  }
+
+  export type PtDiscoveryEpochUpdateManyMutationInput = {
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PtDiscoveryEpochUncheckedUpdateManyInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PtDiscoveryStatCreateInput = {
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+    epochRef: PtDiscoveryEpochCreateNestedOneWithoutStatsInput
+    ptProfile: UserProfileCreateNestedOneWithoutDiscoveryStatsInput
+  }
+
+  export type PtDiscoveryStatUncheckedCreateInput = {
+    epoch: number
+    ptUserId: string
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+  }
+
+  export type PtDiscoveryStatUpdateInput = {
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+    epochRef?: PtDiscoveryEpochUpdateOneRequiredWithoutStatsNestedInput
+    ptProfile?: UserProfileUpdateOneRequiredWithoutDiscoveryStatsNestedInput
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type PtDiscoveryStatCreateManyInput = {
+    epoch: number
+    ptUserId: string
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+  }
+
+  export type PtDiscoveryStatUpdateManyMutationInput = {
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateManyInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -89436,6 +93673,12 @@ export namespace Prisma {
     none?: PtMediaUploadIntentWhereInput
   }
 
+  export type PtDiscoveryStatListRelationFilter = {
+    every?: PtDiscoveryStatWhereInput
+    some?: PtDiscoveryStatWhereInput
+    none?: PtDiscoveryStatWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -89462,6 +93705,10 @@ export namespace Prisma {
   }
 
   export type PtMediaUploadIntentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtDiscoveryStatOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -89510,6 +93757,8 @@ export namespace Prisma {
     searchCity?: SortOrder
     searchDistrict?: SortOrder
     searchWard?: SortOrder
+    searchProvinceCode?: SortOrder
+    searchWardCode?: SortOrder
     gymId?: SortOrder
     specialties?: SortOrder
     createdAt?: SortOrder
@@ -89529,6 +93778,8 @@ export namespace Prisma {
     targetWeight?: SortOrder
     startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
+    searchProvinceCode?: SortOrder
+    searchWardCode?: SortOrder
     ptBudgetVnd?: SortOrder
   }
 
@@ -89573,6 +93824,8 @@ export namespace Prisma {
     searchCity?: SortOrder
     searchDistrict?: SortOrder
     searchWard?: SortOrder
+    searchProvinceCode?: SortOrder
+    searchWardCode?: SortOrder
     gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -89621,6 +93874,8 @@ export namespace Prisma {
     searchCity?: SortOrder
     searchDistrict?: SortOrder
     searchWard?: SortOrder
+    searchProvinceCode?: SortOrder
+    searchWardCode?: SortOrder
     gymId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -89638,6 +93893,8 @@ export namespace Prisma {
     targetWeight?: SortOrder
     startingWeight?: SortOrder
     sessionDurationMinutes?: SortOrder
+    searchProvinceCode?: SortOrder
+    searchWardCode?: SortOrder
     ptBudgetVnd?: SortOrder
   }
 
@@ -91090,7 +95347,17 @@ export namespace Prisma {
     none?: VietnamWardWhereInput
   }
 
+  export type VietnamWardGeoListRelationFilter = {
+    every?: VietnamWardGeoWhereInput
+    some?: VietnamWardGeoWhereInput
+    none?: VietnamWardGeoWhereInput
+  }
+
   export type VietnamWardOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type VietnamWardGeoOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -91142,6 +95409,11 @@ export namespace Prisma {
     isNot?: VietnamProvinceWhereInput
   }
 
+  export type VietnamWardGeoNullableRelationFilter = {
+    is?: VietnamWardGeoWhereInput | null
+    isNot?: VietnamWardGeoWhereInput | null
+  }
+
   export type VietnamWardCountOrderByAggregateInput = {
     code?: SortOrder
     provinceCode?: SortOrder
@@ -91188,6 +95460,99 @@ export namespace Prisma {
     provinceCode?: SortOrder
   }
 
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type VietnamWardRelationFilter = {
+    is?: VietnamWardWhereInput
+    isNot?: VietnamWardWhereInput
+  }
+
+  export type VietnamWardGeoCountOrderByAggregateInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VietnamWardGeoAvgOrderByAggregateInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+  }
+
+  export type VietnamWardGeoMaxOrderByAggregateInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VietnamWardGeoMinOrderByAggregateInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VietnamWardGeoSumOrderByAggregateInput = {
+    wardCode?: SortOrder
+    provinceCode?: SortOrder
+    centroidLat?: SortOrder
+    centroidLng?: SortOrder
+    minLat?: SortOrder
+    maxLat?: SortOrder
+    minLng?: SortOrder
+    maxLng?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type VietnamWardNullableRelationFilter = {
     is?: VietnamWardWhereInput | null
     isNot?: VietnamWardWhereInput | null
@@ -91203,6 +95568,8 @@ export namespace Prisma {
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
     gymId?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -91213,6 +95580,8 @@ export namespace Prisma {
   export type PTTrainingLocationAvgOrderByAggregateInput = {
     provinceCode?: SortOrder
     wardCode?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
   }
 
   export type PTTrainingLocationMaxOrderByAggregateInput = {
@@ -91225,6 +95594,8 @@ export namespace Prisma {
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
     gymId?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -91242,6 +95613,8 @@ export namespace Prisma {
     addressLine?: SortOrder
     legacyDistrictName?: SortOrder
     gymId?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
     isPrimary?: SortOrder
     isActive?: SortOrder
     note?: SortOrder
@@ -91252,6 +95625,8 @@ export namespace Prisma {
   export type PTTrainingLocationSumOrderByAggregateInput = {
     provinceCode?: SortOrder
     wardCode?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
   }
 
   export type PTServicePackageCountOrderByAggregateInput = {
@@ -91400,17 +95775,6 @@ export namespace Prisma {
     _max?: NestedEnumRescheduleStatusFilter<$PrismaModel>
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type InBodyEntryInbody_entries_user_id_date_only_keyCompoundUniqueInput = {
     userId: string
     dateOnly: Date | string
@@ -91543,22 +95907,6 @@ export namespace Prisma {
     trunkFat?: SortOrder
     rightLegFat?: SortOrder
     leftLegFat?: SortOrder
-  }
-
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type EnumAuditEntityTypeFilter<$PrismaModel = never> = {
@@ -94599,6 +98947,139 @@ export namespace Prisma {
     rejectionReason?: SortOrder
   }
 
+  export type EnumPtDiscoveryEpochStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDiscoveryEpochStatus | EnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel> | $Enums.PtDiscoveryEpochStatus
+  }
+
+  export type PtDiscoveryEpochCountOrderByAggregateInput = {
+    epoch?: SortOrder
+    status?: SortOrder
+    isCurrent?: SortOrder
+    createdAt?: SortOrder
+    readyAt?: SortOrder
+  }
+
+  export type PtDiscoveryEpochAvgOrderByAggregateInput = {
+    epoch?: SortOrder
+  }
+
+  export type PtDiscoveryEpochMaxOrderByAggregateInput = {
+    epoch?: SortOrder
+    status?: SortOrder
+    isCurrent?: SortOrder
+    createdAt?: SortOrder
+    readyAt?: SortOrder
+  }
+
+  export type PtDiscoveryEpochMinOrderByAggregateInput = {
+    epoch?: SortOrder
+    status?: SortOrder
+    isCurrent?: SortOrder
+    createdAt?: SortOrder
+    readyAt?: SortOrder
+  }
+
+  export type PtDiscoveryEpochSumOrderByAggregateInput = {
+    epoch?: SortOrder
+  }
+
+  export type EnumPtDiscoveryEpochStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDiscoveryEpochStatus | EnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDiscoveryEpochStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtDiscoveryEpochStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel>
+  }
+
+  export type PtDiscoveryEpochRelationFilter = {
+    is?: PtDiscoveryEpochWhereInput
+    isNot?: PtDiscoveryEpochWhereInput
+  }
+
+  export type PtDiscoveryStatEpochPtUserIdCompoundUniqueInput = {
+    epoch: number
+    ptUserId: string
+  }
+
+  export type PtDiscoveryStatCountOrderByAggregateInput = {
+    epoch?: SortOrder
+    ptUserId?: SortOrder
+    ratingAvg?: SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    accepting?: SortOrder
+    approvedAt?: SortOrder
+    fromPriceOverall?: SortOrder
+    fromPriceOnline?: SortOrder
+    fromPriceOffline?: SortOrder
+    quality?: SortOrder
+  }
+
+  export type PtDiscoveryStatAvgOrderByAggregateInput = {
+    epoch?: SortOrder
+    ratingAvg?: SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    fromPriceOverall?: SortOrder
+    fromPriceOnline?: SortOrder
+    fromPriceOffline?: SortOrder
+    quality?: SortOrder
+  }
+
+  export type PtDiscoveryStatMaxOrderByAggregateInput = {
+    epoch?: SortOrder
+    ptUserId?: SortOrder
+    ratingAvg?: SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    accepting?: SortOrder
+    approvedAt?: SortOrder
+    fromPriceOverall?: SortOrder
+    fromPriceOnline?: SortOrder
+    fromPriceOffline?: SortOrder
+    quality?: SortOrder
+  }
+
+  export type PtDiscoveryStatMinOrderByAggregateInput = {
+    epoch?: SortOrder
+    ptUserId?: SortOrder
+    ratingAvg?: SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    accepting?: SortOrder
+    approvedAt?: SortOrder
+    fromPriceOverall?: SortOrder
+    fromPriceOnline?: SortOrder
+    fromPriceOffline?: SortOrder
+    quality?: SortOrder
+  }
+
+  export type PtDiscoveryStatSumOrderByAggregateInput = {
+    epoch?: SortOrder
+    ratingAvg?: SortOrder
+    ratingCount?: SortOrder
+    bayesRating?: SortOrder
+    completeness?: SortOrder
+    availableHours7d?: SortOrder
+    fromPriceOverall?: SortOrder
+    fromPriceOnline?: SortOrder
+    fromPriceOffline?: SortOrder
+    quality?: SortOrder
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -94667,6 +99148,13 @@ export namespace Prisma {
     connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
   }
 
+  export type PtDiscoveryStatCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput> | PtDiscoveryStatCreateWithoutPtProfileInput[] | PtDiscoveryStatUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutPtProfileInput | PtDiscoveryStatCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtDiscoveryStatCreateManyPtProfileInputEnvelope
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+  }
+
   export type ClientJourneyUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
@@ -94713,6 +99201,13 @@ export namespace Prisma {
     connectOrCreate?: PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput | PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput[]
     createMany?: PtMediaUploadIntentCreateManyPtProfileInputEnvelope
     connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+  }
+
+  export type PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput> | PtDiscoveryStatCreateWithoutPtProfileInput[] | PtDiscoveryStatUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutPtProfileInput | PtDiscoveryStatCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtDiscoveryStatCreateManyPtProfileInputEnvelope
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -94906,6 +99401,20 @@ export namespace Prisma {
     deleteMany?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
   }
 
+  export type PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput> | PtDiscoveryStatCreateWithoutPtProfileInput[] | PtDiscoveryStatUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutPtProfileInput | PtDiscoveryStatCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtDiscoveryStatUpsertWithWhereUniqueWithoutPtProfileInput | PtDiscoveryStatUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtDiscoveryStatCreateManyPtProfileInputEnvelope
+    set?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    disconnect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    delete?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    update?: PtDiscoveryStatUpdateWithWhereUniqueWithoutPtProfileInput | PtDiscoveryStatUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtDiscoveryStatUpdateManyWithWhereWithoutPtProfileInput | PtDiscoveryStatUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
+  }
+
   export type ClientJourneyUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
@@ -94998,6 +99507,20 @@ export namespace Prisma {
     update?: PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput | PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput[]
     updateMany?: PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput | PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput[]
     deleteMany?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput> | PtDiscoveryStatCreateWithoutPtProfileInput[] | PtDiscoveryStatUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutPtProfileInput | PtDiscoveryStatCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtDiscoveryStatUpsertWithWhereUniqueWithoutPtProfileInput | PtDiscoveryStatUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtDiscoveryStatCreateManyPtProfileInputEnvelope
+    set?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    disconnect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    delete?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    update?: PtDiscoveryStatUpdateWithWhereUniqueWithoutPtProfileInput | PtDiscoveryStatUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtDiscoveryStatUpdateManyWithWhereWithoutPtProfileInput | PtDiscoveryStatUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
   }
 
   export type PTApplicationCreatemainSpecialtiesInput = {
@@ -95645,6 +100168,13 @@ export namespace Prisma {
     connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
   }
 
+  export type VietnamWardGeoCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput> | VietnamWardGeoCreateWithoutProvinceInput[] | VietnamWardGeoUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutProvinceInput | VietnamWardGeoCreateOrConnectWithoutProvinceInput[]
+    createMany?: VietnamWardGeoCreateManyProvinceInputEnvelope
+    connect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+  }
+
   export type PTTrainingLocationCreateNestedManyWithoutProvinceInput = {
     create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
     connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
@@ -95657,6 +100187,13 @@ export namespace Prisma {
     connectOrCreate?: VietnamWardCreateOrConnectWithoutProvinceInput | VietnamWardCreateOrConnectWithoutProvinceInput[]
     createMany?: VietnamWardCreateManyProvinceInputEnvelope
     connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+  }
+
+  export type VietnamWardGeoUncheckedCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput> | VietnamWardGeoCreateWithoutProvinceInput[] | VietnamWardGeoUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutProvinceInput | VietnamWardGeoCreateOrConnectWithoutProvinceInput[]
+    createMany?: VietnamWardGeoCreateManyProvinceInputEnvelope
+    connect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
   }
 
   export type PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput = {
@@ -95678,6 +100215,20 @@ export namespace Prisma {
     update?: VietnamWardUpdateWithWhereUniqueWithoutProvinceInput | VietnamWardUpdateWithWhereUniqueWithoutProvinceInput[]
     updateMany?: VietnamWardUpdateManyWithWhereWithoutProvinceInput | VietnamWardUpdateManyWithWhereWithoutProvinceInput[]
     deleteMany?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
+  }
+
+  export type VietnamWardGeoUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput> | VietnamWardGeoCreateWithoutProvinceInput[] | VietnamWardGeoUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutProvinceInput | VietnamWardGeoCreateOrConnectWithoutProvinceInput[]
+    upsert?: VietnamWardGeoUpsertWithWhereUniqueWithoutProvinceInput | VietnamWardGeoUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: VietnamWardGeoCreateManyProvinceInputEnvelope
+    set?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    disconnect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    delete?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    connect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    update?: VietnamWardGeoUpdateWithWhereUniqueWithoutProvinceInput | VietnamWardGeoUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: VietnamWardGeoUpdateManyWithWhereWithoutProvinceInput | VietnamWardGeoUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: VietnamWardGeoScalarWhereInput | VietnamWardGeoScalarWhereInput[]
   }
 
   export type PTTrainingLocationUpdateManyWithoutProvinceNestedInput = {
@@ -95708,6 +100259,20 @@ export namespace Prisma {
     deleteMany?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
   }
 
+  export type VietnamWardGeoUncheckedUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput> | VietnamWardGeoCreateWithoutProvinceInput[] | VietnamWardGeoUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutProvinceInput | VietnamWardGeoCreateOrConnectWithoutProvinceInput[]
+    upsert?: VietnamWardGeoUpsertWithWhereUniqueWithoutProvinceInput | VietnamWardGeoUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: VietnamWardGeoCreateManyProvinceInputEnvelope
+    set?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    disconnect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    delete?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    connect?: VietnamWardGeoWhereUniqueInput | VietnamWardGeoWhereUniqueInput[]
+    update?: VietnamWardGeoUpdateWithWhereUniqueWithoutProvinceInput | VietnamWardGeoUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: VietnamWardGeoUpdateManyWithWhereWithoutProvinceInput | VietnamWardGeoUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: VietnamWardGeoScalarWhereInput | VietnamWardGeoScalarWhereInput[]
+  }
+
   export type PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput = {
     create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
     connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
@@ -95728,11 +100293,23 @@ export namespace Prisma {
     connect?: VietnamProvinceWhereUniqueInput
   }
 
+  export type VietnamWardGeoCreateNestedOneWithoutWardInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutWardInput
+    connect?: VietnamWardGeoWhereUniqueInput
+  }
+
   export type PTTrainingLocationCreateNestedManyWithoutWardInput = {
     create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
     connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
     createMany?: PTTrainingLocationCreateManyWardInputEnvelope
     connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
+  export type VietnamWardGeoUncheckedCreateNestedOneWithoutWardInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutWardInput
+    connect?: VietnamWardGeoWhereUniqueInput
   }
 
   export type PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput = {
@@ -95750,6 +100327,16 @@ export namespace Prisma {
     update?: XOR<XOR<VietnamProvinceUpdateToOneWithWhereWithoutWardsInput, VietnamProvinceUpdateWithoutWardsInput>, VietnamProvinceUncheckedUpdateWithoutWardsInput>
   }
 
+  export type VietnamWardGeoUpdateOneWithoutWardNestedInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutWardInput
+    upsert?: VietnamWardGeoUpsertWithoutWardInput
+    disconnect?: VietnamWardGeoWhereInput | boolean
+    delete?: VietnamWardGeoWhereInput | boolean
+    connect?: VietnamWardGeoWhereUniqueInput
+    update?: XOR<XOR<VietnamWardGeoUpdateToOneWithWhereWithoutWardInput, VietnamWardGeoUpdateWithoutWardInput>, VietnamWardGeoUncheckedUpdateWithoutWardInput>
+  }
+
   export type PTTrainingLocationUpdateManyWithoutWardNestedInput = {
     create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
     connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
@@ -95764,6 +100351,16 @@ export namespace Prisma {
     deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
   }
 
+  export type VietnamWardGeoUncheckedUpdateOneWithoutWardNestedInput = {
+    create?: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
+    connectOrCreate?: VietnamWardGeoCreateOrConnectWithoutWardInput
+    upsert?: VietnamWardGeoUpsertWithoutWardInput
+    disconnect?: VietnamWardGeoWhereInput | boolean
+    delete?: VietnamWardGeoWhereInput | boolean
+    connect?: VietnamWardGeoWhereUniqueInput
+    update?: XOR<XOR<VietnamWardGeoUpdateToOneWithWhereWithoutWardInput, VietnamWardGeoUpdateWithoutWardInput>, VietnamWardGeoUncheckedUpdateWithoutWardInput>
+  }
+
   export type PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput = {
     create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
     connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
@@ -95776,6 +100373,42 @@ export namespace Prisma {
     update?: PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput | PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput[]
     updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutWardInput | PTTrainingLocationUpdateManyWithWhereWithoutWardInput[]
     deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type VietnamWardCreateNestedOneWithoutGeoInput = {
+    create?: XOR<VietnamWardCreateWithoutGeoInput, VietnamWardUncheckedCreateWithoutGeoInput>
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutGeoInput
+    connect?: VietnamWardWhereUniqueInput
+  }
+
+  export type VietnamProvinceCreateNestedOneWithoutWardGeosInput = {
+    create?: XOR<VietnamProvinceCreateWithoutWardGeosInput, VietnamProvinceUncheckedCreateWithoutWardGeosInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutWardGeosInput
+    connect?: VietnamProvinceWhereUniqueInput
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type VietnamWardUpdateOneRequiredWithoutGeoNestedInput = {
+    create?: XOR<VietnamWardCreateWithoutGeoInput, VietnamWardUncheckedCreateWithoutGeoInput>
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutGeoInput
+    upsert?: VietnamWardUpsertWithoutGeoInput
+    connect?: VietnamWardWhereUniqueInput
+    update?: XOR<XOR<VietnamWardUpdateToOneWithWhereWithoutGeoInput, VietnamWardUpdateWithoutGeoInput>, VietnamWardUncheckedUpdateWithoutGeoInput>
+  }
+
+  export type VietnamProvinceUpdateOneRequiredWithoutWardGeosNestedInput = {
+    create?: XOR<VietnamProvinceCreateWithoutWardGeosInput, VietnamProvinceUncheckedCreateWithoutWardGeosInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutWardGeosInput
+    upsert?: VietnamProvinceUpsertWithoutWardGeosInput
+    connect?: VietnamProvinceWhereUniqueInput
+    update?: XOR<XOR<VietnamProvinceUpdateToOneWithWhereWithoutWardGeosInput, VietnamProvinceUpdateWithoutWardGeosInput>, VietnamProvinceUncheckedUpdateWithoutWardGeosInput>
   }
 
   export type VietnamProvinceCreateNestedOneWithoutTrainingLocationsInput = {
@@ -95856,14 +100489,6 @@ export namespace Prisma {
     upsert?: SessionUpsertWithoutRescheduleRequestsInput
     connect?: SessionWhereUniqueInput
     update?: XOR<XOR<SessionUpdateToOneWithWhereWithoutRescheduleRequestsInput, SessionUpdateWithoutRescheduleRequestsInput>, SessionUncheckedUpdateWithoutRescheduleRequestsInput>
-  }
-
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type EnumAuditEntityTypeFieldUpdateOperationsInput = {
@@ -98188,6 +102813,80 @@ export namespace Prisma {
     update?: XOR<XOR<DisputeCaseApprovalUpdateToOneWithWhereWithoutReplacementsInput, DisputeCaseApprovalUpdateWithoutReplacementsInput>, DisputeCaseApprovalUncheckedUpdateWithoutReplacementsInput>
   }
 
+  export type PtDiscoveryStatCreateNestedManyWithoutEpochRefInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput> | PtDiscoveryStatCreateWithoutEpochRefInput[] | PtDiscoveryStatUncheckedCreateWithoutEpochRefInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutEpochRefInput | PtDiscoveryStatCreateOrConnectWithoutEpochRefInput[]
+    createMany?: PtDiscoveryStatCreateManyEpochRefInputEnvelope
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+  }
+
+  export type PtDiscoveryStatUncheckedCreateNestedManyWithoutEpochRefInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput> | PtDiscoveryStatCreateWithoutEpochRefInput[] | PtDiscoveryStatUncheckedCreateWithoutEpochRefInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutEpochRefInput | PtDiscoveryStatCreateOrConnectWithoutEpochRefInput[]
+    createMany?: PtDiscoveryStatCreateManyEpochRefInputEnvelope
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+  }
+
+  export type EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtDiscoveryEpochStatus
+  }
+
+  export type PtDiscoveryStatUpdateManyWithoutEpochRefNestedInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput> | PtDiscoveryStatCreateWithoutEpochRefInput[] | PtDiscoveryStatUncheckedCreateWithoutEpochRefInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutEpochRefInput | PtDiscoveryStatCreateOrConnectWithoutEpochRefInput[]
+    upsert?: PtDiscoveryStatUpsertWithWhereUniqueWithoutEpochRefInput | PtDiscoveryStatUpsertWithWhereUniqueWithoutEpochRefInput[]
+    createMany?: PtDiscoveryStatCreateManyEpochRefInputEnvelope
+    set?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    disconnect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    delete?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    update?: PtDiscoveryStatUpdateWithWhereUniqueWithoutEpochRefInput | PtDiscoveryStatUpdateWithWhereUniqueWithoutEpochRefInput[]
+    updateMany?: PtDiscoveryStatUpdateManyWithWhereWithoutEpochRefInput | PtDiscoveryStatUpdateManyWithWhereWithoutEpochRefInput[]
+    deleteMany?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateManyWithoutEpochRefNestedInput = {
+    create?: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput> | PtDiscoveryStatCreateWithoutEpochRefInput[] | PtDiscoveryStatUncheckedCreateWithoutEpochRefInput[]
+    connectOrCreate?: PtDiscoveryStatCreateOrConnectWithoutEpochRefInput | PtDiscoveryStatCreateOrConnectWithoutEpochRefInput[]
+    upsert?: PtDiscoveryStatUpsertWithWhereUniqueWithoutEpochRefInput | PtDiscoveryStatUpsertWithWhereUniqueWithoutEpochRefInput[]
+    createMany?: PtDiscoveryStatCreateManyEpochRefInputEnvelope
+    set?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    disconnect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    delete?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    connect?: PtDiscoveryStatWhereUniqueInput | PtDiscoveryStatWhereUniqueInput[]
+    update?: PtDiscoveryStatUpdateWithWhereUniqueWithoutEpochRefInput | PtDiscoveryStatUpdateWithWhereUniqueWithoutEpochRefInput[]
+    updateMany?: PtDiscoveryStatUpdateManyWithWhereWithoutEpochRefInput | PtDiscoveryStatUpdateManyWithWhereWithoutEpochRefInput[]
+    deleteMany?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
+  }
+
+  export type PtDiscoveryEpochCreateNestedOneWithoutStatsInput = {
+    create?: XOR<PtDiscoveryEpochCreateWithoutStatsInput, PtDiscoveryEpochUncheckedCreateWithoutStatsInput>
+    connectOrCreate?: PtDiscoveryEpochCreateOrConnectWithoutStatsInput
+    connect?: PtDiscoveryEpochWhereUniqueInput
+  }
+
+  export type UserProfileCreateNestedOneWithoutDiscoveryStatsInput = {
+    create?: XOR<UserProfileCreateWithoutDiscoveryStatsInput, UserProfileUncheckedCreateWithoutDiscoveryStatsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutDiscoveryStatsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type PtDiscoveryEpochUpdateOneRequiredWithoutStatsNestedInput = {
+    create?: XOR<PtDiscoveryEpochCreateWithoutStatsInput, PtDiscoveryEpochUncheckedCreateWithoutStatsInput>
+    connectOrCreate?: PtDiscoveryEpochCreateOrConnectWithoutStatsInput
+    upsert?: PtDiscoveryEpochUpsertWithoutStatsInput
+    connect?: PtDiscoveryEpochWhereUniqueInput
+    update?: XOR<XOR<PtDiscoveryEpochUpdateToOneWithWhereWithoutStatsInput, PtDiscoveryEpochUpdateWithoutStatsInput>, PtDiscoveryEpochUncheckedUpdateWithoutStatsInput>
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutDiscoveryStatsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutDiscoveryStatsInput, UserProfileUncheckedCreateWithoutDiscoveryStatsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutDiscoveryStatsInput
+    upsert?: UserProfileUpsertWithoutDiscoveryStatsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutDiscoveryStatsInput, UserProfileUpdateWithoutDiscoveryStatsInput>, UserProfileUncheckedUpdateWithoutDiscoveryStatsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -98831,6 +103530,22 @@ export namespace Prisma {
     _max?: NestedEnumDayOfWeekFilter<$PrismaModel>
   }
 
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type NestedEnumRescheduleRequestedByFilter<$PrismaModel = never> = {
     equals?: $Enums.RescheduleRequestedBy | EnumRescheduleRequestedByFieldRefInput<$PrismaModel>
     in?: $Enums.RescheduleRequestedBy[] | ListEnumRescheduleRequestedByFieldRefInput<$PrismaModel>
@@ -98863,22 +103578,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRescheduleStatusFilter<$PrismaModel>
     _max?: NestedEnumRescheduleStatusFilter<$PrismaModel>
-  }
-
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type NestedEnumAuditEntityTypeFilter<$PrismaModel = never> = {
@@ -99524,6 +104223,23 @@ export namespace Prisma {
     _max?: NestedEnumLateOpenReconciliationOutcomeNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDiscoveryEpochStatus | EnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel> | $Enums.PtDiscoveryEpochStatus
+  }
+
+  export type NestedEnumPtDiscoveryEpochStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtDiscoveryEpochStatus | EnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtDiscoveryEpochStatus[] | ListEnumPtDiscoveryEpochStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtDiscoveryEpochStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtDiscoveryEpochStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtDiscoveryEpochStatusFilter<$PrismaModel>
+  }
+
   export type ClientJourneyCreateWithoutUserInput = {
     id?: string
     ptId?: string | null
@@ -99762,6 +104478,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -99780,6 +104498,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -99902,6 +104622,46 @@ export namespace Prisma {
 
   export type PtMediaUploadIntentCreateManyPtProfileInputEnvelope = {
     data: PtMediaUploadIntentCreateManyPtProfileInput | PtMediaUploadIntentCreateManyPtProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PtDiscoveryStatCreateWithoutPtProfileInput = {
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+    epochRef: PtDiscoveryEpochCreateNestedOneWithoutStatsInput
+  }
+
+  export type PtDiscoveryStatUncheckedCreateWithoutPtProfileInput = {
+    epoch: number
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+  }
+
+  export type PtDiscoveryStatCreateOrConnectWithoutPtProfileInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    create: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtDiscoveryStatCreateManyPtProfileInputEnvelope = {
+    data: PtDiscoveryStatCreateManyPtProfileInput | PtDiscoveryStatCreateManyPtProfileInput[]
     skipDuplicates?: boolean
   }
 
@@ -100147,6 +104907,8 @@ export namespace Prisma {
     addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
     legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
     gymId?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    latitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
+    longitude?: FloatNullableFilter<"PTTrainingLocation"> | number | null
     isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
     isActive?: BoolFilter<"PTTrainingLocation"> | boolean
     note?: StringNullableFilter<"PTTrainingLocation"> | string | null
@@ -100251,6 +105013,41 @@ export namespace Prisma {
     expiresAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
     createdAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
     updatedAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+  }
+
+  export type PtDiscoveryStatUpsertWithWhereUniqueWithoutPtProfileInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    update: XOR<PtDiscoveryStatUpdateWithoutPtProfileInput, PtDiscoveryStatUncheckedUpdateWithoutPtProfileInput>
+    create: XOR<PtDiscoveryStatCreateWithoutPtProfileInput, PtDiscoveryStatUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtDiscoveryStatUpdateWithWhereUniqueWithoutPtProfileInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    data: XOR<PtDiscoveryStatUpdateWithoutPtProfileInput, PtDiscoveryStatUncheckedUpdateWithoutPtProfileInput>
+  }
+
+  export type PtDiscoveryStatUpdateManyWithWhereWithoutPtProfileInput = {
+    where: PtDiscoveryStatScalarWhereInput
+    data: XOR<PtDiscoveryStatUpdateManyMutationInput, PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileInput>
+  }
+
+  export type PtDiscoveryStatScalarWhereInput = {
+    AND?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
+    OR?: PtDiscoveryStatScalarWhereInput[]
+    NOT?: PtDiscoveryStatScalarWhereInput | PtDiscoveryStatScalarWhereInput[]
+    epoch?: IntFilter<"PtDiscoveryStat"> | number
+    ptUserId?: StringFilter<"PtDiscoveryStat"> | string
+    ratingAvg?: FloatNullableFilter<"PtDiscoveryStat"> | number | null
+    ratingCount?: IntFilter<"PtDiscoveryStat"> | number
+    bayesRating?: FloatFilter<"PtDiscoveryStat"> | number
+    completeness?: FloatFilter<"PtDiscoveryStat"> | number
+    availableHours7d?: FloatFilter<"PtDiscoveryStat"> | number
+    accepting?: BoolFilter<"PtDiscoveryStat"> | boolean
+    approvedAt?: DateTimeNullableFilter<"PtDiscoveryStat"> | Date | string | null
+    fromPriceOverall?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: DecimalNullableFilter<"PtDiscoveryStat"> | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFilter<"PtDiscoveryStat"> | number
   }
 
   export type PTApplicationCertificateCreateWithoutApplicationInput = {
@@ -100362,6 +105159,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -100375,6 +105174,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutPtApplicationInput = {
@@ -100422,6 +105222,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -100435,6 +105237,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutPtApplicationInput = {
@@ -100560,6 +105363,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100573,6 +105378,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutPtApplicationInput = {
@@ -100620,6 +105426,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100633,6 +105441,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type PTApplicationCreateWithoutCertificatesInput = {
@@ -103035,6 +107844,7 @@ export namespace Prisma {
     shortCodename?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    geo?: VietnamWardGeoCreateNestedOneWithoutWardInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutWardInput
   }
 
@@ -103047,6 +107857,7 @@ export namespace Prisma {
     shortCodename?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    geo?: VietnamWardGeoUncheckedCreateNestedOneWithoutWardInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput
   }
 
@@ -103060,6 +107871,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type VietnamWardGeoCreateWithoutProvinceInput = {
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+    ward: VietnamWardCreateNestedOneWithoutGeoInput
+  }
+
+  export type VietnamWardGeoUncheckedCreateWithoutProvinceInput = {
+    wardCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+  }
+
+  export type VietnamWardGeoCreateOrConnectWithoutProvinceInput = {
+    where: VietnamWardGeoWhereUniqueInput
+    create: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type VietnamWardGeoCreateManyProvinceInputEnvelope = {
+    data: VietnamWardGeoCreateManyProvinceInput | VietnamWardGeoCreateManyProvinceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type PTTrainingLocationCreateWithoutProvinceInput = {
     id?: string
     gymName?: string | null
@@ -103067,6 +107912,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -103085,6 +107932,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -103133,6 +107982,38 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
   }
 
+  export type VietnamWardGeoUpsertWithWhereUniqueWithoutProvinceInput = {
+    where: VietnamWardGeoWhereUniqueInput
+    update: XOR<VietnamWardGeoUpdateWithoutProvinceInput, VietnamWardGeoUncheckedUpdateWithoutProvinceInput>
+    create: XOR<VietnamWardGeoCreateWithoutProvinceInput, VietnamWardGeoUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type VietnamWardGeoUpdateWithWhereUniqueWithoutProvinceInput = {
+    where: VietnamWardGeoWhereUniqueInput
+    data: XOR<VietnamWardGeoUpdateWithoutProvinceInput, VietnamWardGeoUncheckedUpdateWithoutProvinceInput>
+  }
+
+  export type VietnamWardGeoUpdateManyWithWhereWithoutProvinceInput = {
+    where: VietnamWardGeoScalarWhereInput
+    data: XOR<VietnamWardGeoUpdateManyMutationInput, VietnamWardGeoUncheckedUpdateManyWithoutProvinceInput>
+  }
+
+  export type VietnamWardGeoScalarWhereInput = {
+    AND?: VietnamWardGeoScalarWhereInput | VietnamWardGeoScalarWhereInput[]
+    OR?: VietnamWardGeoScalarWhereInput[]
+    NOT?: VietnamWardGeoScalarWhereInput | VietnamWardGeoScalarWhereInput[]
+    wardCode?: IntFilter<"VietnamWardGeo"> | number
+    provinceCode?: IntFilter<"VietnamWardGeo"> | number
+    centroidLat?: FloatFilter<"VietnamWardGeo"> | number
+    centroidLng?: FloatFilter<"VietnamWardGeo"> | number
+    minLat?: FloatFilter<"VietnamWardGeo"> | number
+    maxLat?: FloatFilter<"VietnamWardGeo"> | number
+    minLng?: FloatFilter<"VietnamWardGeo"> | number
+    maxLng?: FloatFilter<"VietnamWardGeo"> | number
+    source?: StringFilter<"VietnamWardGeo"> | string
+    createdAt?: DateTimeFilter<"VietnamWardGeo"> | Date | string
+  }
+
   export type PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput = {
     where: PTTrainingLocationWhereUniqueInput
     update: XOR<PTTrainingLocationUpdateWithoutProvinceInput, PTTrainingLocationUncheckedUpdateWithoutProvinceInput>
@@ -103158,6 +108039,7 @@ export namespace Prisma {
     phoneCode?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    wardGeos?: VietnamWardGeoCreateNestedManyWithoutProvinceInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutProvinceInput
   }
 
@@ -103170,12 +108052,42 @@ export namespace Prisma {
     phoneCode?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    wardGeos?: VietnamWardGeoUncheckedCreateNestedManyWithoutProvinceInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput
   }
 
   export type VietnamProvinceCreateOrConnectWithoutWardsInput = {
     where: VietnamProvinceWhereUniqueInput
     create: XOR<VietnamProvinceCreateWithoutWardsInput, VietnamProvinceUncheckedCreateWithoutWardsInput>
+  }
+
+  export type VietnamWardGeoCreateWithoutWardInput = {
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutWardGeosInput
+  }
+
+  export type VietnamWardGeoUncheckedCreateWithoutWardInput = {
+    provinceCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+  }
+
+  export type VietnamWardGeoCreateOrConnectWithoutWardInput = {
+    where: VietnamWardGeoWhereUniqueInput
+    create: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
   }
 
   export type PTTrainingLocationCreateWithoutWardInput = {
@@ -103185,6 +108097,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -103203,6 +108117,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -103240,6 +108156,7 @@ export namespace Prisma {
     phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wardGeos?: VietnamWardGeoUpdateManyWithoutProvinceNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutProvinceNestedInput
   }
 
@@ -103252,7 +108169,43 @@ export namespace Prisma {
     phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wardGeos?: VietnamWardGeoUncheckedUpdateManyWithoutProvinceNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamWardGeoUpsertWithoutWardInput = {
+    update: XOR<VietnamWardGeoUpdateWithoutWardInput, VietnamWardGeoUncheckedUpdateWithoutWardInput>
+    create: XOR<VietnamWardGeoCreateWithoutWardInput, VietnamWardGeoUncheckedCreateWithoutWardInput>
+    where?: VietnamWardGeoWhereInput
+  }
+
+  export type VietnamWardGeoUpdateToOneWithWhereWithoutWardInput = {
+    where?: VietnamWardGeoWhereInput
+    data: XOR<VietnamWardGeoUpdateWithoutWardInput, VietnamWardGeoUncheckedUpdateWithoutWardInput>
+  }
+
+  export type VietnamWardGeoUpdateWithoutWardInput = {
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutWardGeosNestedInput
+  }
+
+  export type VietnamWardGeoUncheckedUpdateWithoutWardInput = {
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput = {
@@ -103271,6 +108224,142 @@ export namespace Prisma {
     data: XOR<PTTrainingLocationUpdateManyMutationInput, PTTrainingLocationUncheckedUpdateManyWithoutWardInput>
   }
 
+  export type VietnamWardCreateWithoutGeoInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutWardsInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardUncheckedCreateWithoutGeoInput = {
+    code: number
+    provinceCode: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardCreateOrConnectWithoutGeoInput = {
+    where: VietnamWardWhereUniqueInput
+    create: XOR<VietnamWardCreateWithoutGeoInput, VietnamWardUncheckedCreateWithoutGeoInput>
+  }
+
+  export type VietnamProvinceCreateWithoutWardGeosInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardCreateNestedManyWithoutProvinceInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceUncheckedCreateWithoutWardGeosInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardUncheckedCreateNestedManyWithoutProvinceInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceCreateOrConnectWithoutWardGeosInput = {
+    where: VietnamProvinceWhereUniqueInput
+    create: XOR<VietnamProvinceCreateWithoutWardGeosInput, VietnamProvinceUncheckedCreateWithoutWardGeosInput>
+  }
+
+  export type VietnamWardUpsertWithoutGeoInput = {
+    update: XOR<VietnamWardUpdateWithoutGeoInput, VietnamWardUncheckedUpdateWithoutGeoInput>
+    create: XOR<VietnamWardCreateWithoutGeoInput, VietnamWardUncheckedCreateWithoutGeoInput>
+    where?: VietnamWardWhereInput
+  }
+
+  export type VietnamWardUpdateToOneWithWhereWithoutGeoInput = {
+    where?: VietnamWardWhereInput
+    data: XOR<VietnamWardUpdateWithoutGeoInput, VietnamWardUncheckedUpdateWithoutGeoInput>
+  }
+
+  export type VietnamWardUpdateWithoutGeoInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamWardUncheckedUpdateWithoutGeoInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamProvinceUpsertWithoutWardGeosInput = {
+    update: XOR<VietnamProvinceUpdateWithoutWardGeosInput, VietnamProvinceUncheckedUpdateWithoutWardGeosInput>
+    create: XOR<VietnamProvinceCreateWithoutWardGeosInput, VietnamProvinceUncheckedCreateWithoutWardGeosInput>
+    where?: VietnamProvinceWhereInput
+  }
+
+  export type VietnamProvinceUpdateToOneWithWhereWithoutWardGeosInput = {
+    where?: VietnamProvinceWhereInput
+    data: XOR<VietnamProvinceUpdateWithoutWardGeosInput, VietnamProvinceUncheckedUpdateWithoutWardGeosInput>
+  }
+
+  export type VietnamProvinceUpdateWithoutWardGeosInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUpdateManyWithoutProvinceNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamProvinceUncheckedUpdateWithoutWardGeosInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput
+  }
+
   export type VietnamProvinceCreateWithoutTrainingLocationsInput = {
     code: number
     name: string
@@ -103281,6 +108370,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     wards?: VietnamWardCreateNestedManyWithoutProvinceInput
+    wardGeos?: VietnamWardGeoCreateNestedManyWithoutProvinceInput
   }
 
   export type VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput = {
@@ -103293,6 +108383,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     wards?: VietnamWardUncheckedCreateNestedManyWithoutProvinceInput
+    wardGeos?: VietnamWardGeoUncheckedCreateNestedManyWithoutProvinceInput
   }
 
   export type VietnamProvinceCreateOrConnectWithoutTrainingLocationsInput = {
@@ -103310,6 +108401,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     province: VietnamProvinceCreateNestedOneWithoutWardsInput
+    geo?: VietnamWardGeoCreateNestedOneWithoutWardInput
   }
 
   export type VietnamWardUncheckedCreateWithoutTrainingLocationsInput = {
@@ -103322,6 +108414,7 @@ export namespace Prisma {
     shortCodename?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    geo?: VietnamWardGeoUncheckedCreateNestedOneWithoutWardInput
   }
 
   export type VietnamWardCreateOrConnectWithoutTrainingLocationsInput = {
@@ -103374,6 +108467,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -103387,6 +108482,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutTrainingLocationsInput = {
@@ -103434,6 +108530,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -103447,6 +108545,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutTrainingLocationsInput = {
@@ -103475,6 +108574,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     wards?: VietnamWardUpdateManyWithoutProvinceNestedInput
+    wardGeos?: VietnamWardGeoUpdateManyWithoutProvinceNestedInput
   }
 
   export type VietnamProvinceUncheckedUpdateWithoutTrainingLocationsInput = {
@@ -103487,6 +108587,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     wards?: VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput
+    wardGeos?: VietnamWardGeoUncheckedUpdateManyWithoutProvinceNestedInput
   }
 
   export type VietnamWardUpsertWithoutTrainingLocationsInput = {
@@ -103510,6 +108611,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     province?: VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput
+    geo?: VietnamWardGeoUpdateOneWithoutWardNestedInput
   }
 
   export type VietnamWardUncheckedUpdateWithoutTrainingLocationsInput = {
@@ -103522,6 +108624,7 @@ export namespace Prisma {
     shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    geo?: VietnamWardGeoUncheckedUpdateOneWithoutWardNestedInput
   }
 
   export type UserProfileUpsertWithoutTrainingLocationsInput = {
@@ -103580,6 +108683,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -103593,6 +108698,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutTrainingLocationsInput = {
@@ -103640,6 +108746,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -103653,6 +108761,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateWithoutServicePackagesInput = {
@@ -103700,6 +108809,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -103713,6 +108824,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutServicePackagesInput = {
@@ -103760,6 +108872,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -103773,6 +108887,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutServicePackagesInput = {
@@ -103836,6 +108951,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -103849,6 +108966,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutServicePackagesInput = {
@@ -103896,6 +109014,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -103909,6 +109029,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type SessionCreateWithoutRescheduleRequestsInput = {
@@ -104520,6 +109641,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -104533,6 +109656,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutJourneysInput = {
@@ -104580,6 +109704,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -104593,6 +109719,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutJourneysInput = {
@@ -104813,6 +109940,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104826,6 +109955,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutJourneysInput = {
@@ -104873,6 +110003,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104886,6 +110018,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type ContractUpsertWithoutJourneysInput = {
@@ -105096,6 +110229,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -105109,6 +110244,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutAgentDraftsInput = {
@@ -105156,6 +110292,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -105169,6 +110307,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutAgentDraftsInput = {
@@ -105232,6 +110371,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -105245,6 +110386,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutAgentDraftsInput = {
@@ -105292,6 +110434,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -105305,6 +110449,7 @@ export namespace Prisma {
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type ContractCreateWithoutPtRestrictionsInput = {
@@ -105841,6 +110986,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -105854,6 +111001,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutPhysiquePhotosInput = {
@@ -105901,6 +111049,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -105914,6 +111064,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutPhysiquePhotosInput = {
@@ -105977,6 +111128,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -105990,6 +111143,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutPhysiquePhotosInput = {
@@ -106037,6 +111191,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -106050,6 +111206,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateWithoutMediaUploadIntentsInput = {
@@ -106097,6 +111254,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -106110,6 +111269,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutMediaUploadIntentsInput = {
@@ -106157,6 +111317,8 @@ export namespace Prisma {
     searchCity?: string | null
     searchDistrict?: string | null
     searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
     gymId?: string | null
     specialties?: UserProfileCreatespecialtiesInput | string[]
     createdAt?: Date | string
@@ -106170,6 +111332,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
     physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    discoveryStats?: PtDiscoveryStatUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutMediaUploadIntentsInput = {
@@ -106233,6 +111396,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -106246,6 +111411,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutMediaUploadIntentsInput = {
@@ -106293,6 +111459,8 @@ export namespace Prisma {
     searchCity?: NullableStringFieldUpdateOperationsInput | string | null
     searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
     searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     specialties?: UserProfileUpdatespecialtiesInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -106306,6 +111474,7 @@ export namespace Prisma {
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
     physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    discoveryStats?: PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type DisputeCaseIssueCreateWithoutCaseInput = {
@@ -112690,6 +117859,376 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtDiscoveryStatCreateWithoutEpochRefInput = {
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+    ptProfile: UserProfileCreateNestedOneWithoutDiscoveryStatsInput
+  }
+
+  export type PtDiscoveryStatUncheckedCreateWithoutEpochRefInput = {
+    ptUserId: string
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+  }
+
+  export type PtDiscoveryStatCreateOrConnectWithoutEpochRefInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    create: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput>
+  }
+
+  export type PtDiscoveryStatCreateManyEpochRefInputEnvelope = {
+    data: PtDiscoveryStatCreateManyEpochRefInput | PtDiscoveryStatCreateManyEpochRefInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PtDiscoveryStatUpsertWithWhereUniqueWithoutEpochRefInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    update: XOR<PtDiscoveryStatUpdateWithoutEpochRefInput, PtDiscoveryStatUncheckedUpdateWithoutEpochRefInput>
+    create: XOR<PtDiscoveryStatCreateWithoutEpochRefInput, PtDiscoveryStatUncheckedCreateWithoutEpochRefInput>
+  }
+
+  export type PtDiscoveryStatUpdateWithWhereUniqueWithoutEpochRefInput = {
+    where: PtDiscoveryStatWhereUniqueInput
+    data: XOR<PtDiscoveryStatUpdateWithoutEpochRefInput, PtDiscoveryStatUncheckedUpdateWithoutEpochRefInput>
+  }
+
+  export type PtDiscoveryStatUpdateManyWithWhereWithoutEpochRefInput = {
+    where: PtDiscoveryStatScalarWhereInput
+    data: XOR<PtDiscoveryStatUpdateManyMutationInput, PtDiscoveryStatUncheckedUpdateManyWithoutEpochRefInput>
+  }
+
+  export type PtDiscoveryEpochCreateWithoutStatsInput = {
+    status?: $Enums.PtDiscoveryEpochStatus
+    isCurrent?: boolean
+    createdAt?: Date | string
+    readyAt?: Date | string | null
+  }
+
+  export type PtDiscoveryEpochUncheckedCreateWithoutStatsInput = {
+    epoch?: number
+    status?: $Enums.PtDiscoveryEpochStatus
+    isCurrent?: boolean
+    createdAt?: Date | string
+    readyAt?: Date | string | null
+  }
+
+  export type PtDiscoveryEpochCreateOrConnectWithoutStatsInput = {
+    where: PtDiscoveryEpochWhereUniqueInput
+    create: XOR<PtDiscoveryEpochCreateWithoutStatsInput, PtDiscoveryEpochUncheckedCreateWithoutStatsInput>
+  }
+
+  export type UserProfileCreateWithoutDiscoveryStatsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutDiscoveryStatsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    searchProvinceCode?: number | null
+    searchWardCode?: number | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutDiscoveryStatsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutDiscoveryStatsInput, UserProfileUncheckedCreateWithoutDiscoveryStatsInput>
+  }
+
+  export type PtDiscoveryEpochUpsertWithoutStatsInput = {
+    update: XOR<PtDiscoveryEpochUpdateWithoutStatsInput, PtDiscoveryEpochUncheckedUpdateWithoutStatsInput>
+    create: XOR<PtDiscoveryEpochCreateWithoutStatsInput, PtDiscoveryEpochUncheckedCreateWithoutStatsInput>
+    where?: PtDiscoveryEpochWhereInput
+  }
+
+  export type PtDiscoveryEpochUpdateToOneWithWhereWithoutStatsInput = {
+    where?: PtDiscoveryEpochWhereInput
+    data: XOR<PtDiscoveryEpochUpdateWithoutStatsInput, PtDiscoveryEpochUncheckedUpdateWithoutStatsInput>
+  }
+
+  export type PtDiscoveryEpochUpdateWithoutStatsInput = {
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PtDiscoveryEpochUncheckedUpdateWithoutStatsInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    status?: EnumPtDiscoveryEpochStatusFieldUpdateOperationsInput | $Enums.PtDiscoveryEpochStatus
+    isCurrent?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    readyAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type UserProfileUpsertWithoutDiscoveryStatsInput = {
+    update: XOR<UserProfileUpdateWithoutDiscoveryStatsInput, UserProfileUncheckedUpdateWithoutDiscoveryStatsInput>
+    create: XOR<UserProfileCreateWithoutDiscoveryStatsInput, UserProfileUncheckedCreateWithoutDiscoveryStatsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutDiscoveryStatsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutDiscoveryStatsInput, UserProfileUncheckedUpdateWithoutDiscoveryStatsInput>
+  }
+
+  export type UserProfileUpdateWithoutDiscoveryStatsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutDiscoveryStatsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    searchProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    searchWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
   export type ClientJourneyCreateManyUserInput = {
     id?: string
     ptId?: string | null
@@ -112743,6 +118282,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -112787,6 +118328,21 @@ export namespace Prisma {
     expiresAt: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type PtDiscoveryStatCreateManyPtProfileInput = {
+    epoch: number
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
   }
 
   export type ClientJourneyUpdateWithoutUserInput = {
@@ -112928,6 +118484,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -112946,6 +118504,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -112962,6 +118522,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113084,6 +118646,51 @@ export namespace Prisma {
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtDiscoveryStatUpdateWithoutPtProfileInput = {
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+    epochRef?: PtDiscoveryEpochUpdateOneRequiredWithoutStatsNestedInput
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateWithoutPtProfileInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateManyWithoutPtProfileInput = {
+    epoch?: IntFieldUpdateOperationsInput | number
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
   }
 
   export type PTApplicationCertificateCreateManyApplicationInput = {
@@ -113673,6 +119280,18 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type VietnamWardGeoCreateManyProvinceInput = {
+    wardCode: number
+    centroidLat: number
+    centroidLng: number
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+    source?: string
+    createdAt?: Date | string
+  }
+
   export type PTTrainingLocationCreateManyProvinceInput = {
     id?: string
     ptUserId: string
@@ -113682,6 +119301,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -113698,6 +119319,7 @@ export namespace Prisma {
     shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    geo?: VietnamWardGeoUpdateOneWithoutWardNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutWardNestedInput
   }
 
@@ -113710,6 +119332,7 @@ export namespace Prisma {
     shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    geo?: VietnamWardGeoUncheckedUpdateOneWithoutWardNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput
   }
 
@@ -113724,6 +119347,42 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type VietnamWardGeoUpdateWithoutProvinceInput = {
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ward?: VietnamWardUpdateOneRequiredWithoutGeoNestedInput
+  }
+
+  export type VietnamWardGeoUncheckedUpdateWithoutProvinceInput = {
+    wardCode?: IntFieldUpdateOperationsInput | number
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamWardGeoUncheckedUpdateManyWithoutProvinceInput = {
+    wardCode?: IntFieldUpdateOperationsInput | number
+    centroidLat?: FloatFieldUpdateOperationsInput | number
+    centroidLng?: FloatFieldUpdateOperationsInput | number
+    minLat?: FloatFieldUpdateOperationsInput | number
+    maxLat?: FloatFieldUpdateOperationsInput | number
+    minLng?: FloatFieldUpdateOperationsInput | number
+    maxLng?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PTTrainingLocationUpdateWithoutProvinceInput = {
     id?: StringFieldUpdateOperationsInput | string
     gymName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113731,6 +119390,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113749,6 +119410,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113765,6 +119428,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113781,6 +119446,8 @@ export namespace Prisma {
     addressLine?: string | null
     legacyDistrictName?: string | null
     gymId?: string | null
+    latitude?: number | null
+    longitude?: number | null
     isPrimary?: boolean
     isActive?: boolean
     note?: string | null
@@ -113795,6 +119462,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113813,6 +119482,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -113829,6 +119500,8 @@ export namespace Prisma {
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     isPrimary?: BoolFieldUpdateOperationsInput | boolean
     isActive?: BoolFieldUpdateOperationsInput | boolean
     note?: NullableStringFieldUpdateOperationsInput | string | null
@@ -115818,6 +121491,66 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtDiscoveryStatCreateManyEpochRefInput = {
+    ptUserId: string
+    ratingAvg?: number | null
+    ratingCount?: number
+    bayesRating: number
+    completeness: number
+    availableHours7d?: number
+    accepting?: boolean
+    approvedAt?: Date | string | null
+    fromPriceOverall?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: Decimal | DecimalJsLike | number | string | null
+    quality: number
+  }
+
+  export type PtDiscoveryStatUpdateWithoutEpochRefInput = {
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+    ptProfile?: UserProfileUpdateOneRequiredWithoutDiscoveryStatsNestedInput
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateWithoutEpochRefInput = {
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type PtDiscoveryStatUncheckedUpdateManyWithoutEpochRefInput = {
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    ratingAvg?: NullableFloatFieldUpdateOperationsInput | number | null
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    bayesRating?: FloatFieldUpdateOperationsInput | number
+    completeness?: FloatFieldUpdateOperationsInput | number
+    availableHours7d?: FloatFieldUpdateOperationsInput | number
+    accepting?: BoolFieldUpdateOperationsInput | boolean
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fromPriceOverall?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOnline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fromPriceOffline?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    quality?: FloatFieldUpdateOperationsInput | number
+  }
+
 
 
   /**
@@ -115904,6 +121637,10 @@ export namespace Prisma {
      */
     export type DisputeHeldMoneyReviewCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeHeldMoneyReviewCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use PtDiscoveryEpochCountOutputTypeDefaultArgs instead
+     */
+    export type PtDiscoveryEpochCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtDiscoveryEpochCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
     export type UserProfileArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserProfileDefaultArgs<ExtArgs>
@@ -115963,6 +121700,10 @@ export namespace Prisma {
      * @deprecated Use VietnamWardDefaultArgs instead
      */
     export type VietnamWardArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamWardDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use VietnamWardGeoDefaultArgs instead
+     */
+    export type VietnamWardGeoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamWardGeoDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PTTrainingLocationDefaultArgs instead
      */
@@ -116147,6 +121888,14 @@ export namespace Prisma {
      * @deprecated Use DisputeCaseDecisionReplacementDefaultArgs instead
      */
     export type DisputeCaseDecisionReplacementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeCaseDecisionReplacementDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtDiscoveryEpochDefaultArgs instead
+     */
+    export type PtDiscoveryEpochArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtDiscoveryEpochDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtDiscoveryStatDefaultArgs instead
+     */
+    export type PtDiscoveryStatArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtDiscoveryStatDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

@@ -9,12 +9,14 @@ import { walletService } from '../services/wallet.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { Prisma } from '../generated/prisma';
-import { buildReconciliationReport } from '../services/reconcile.service';
+import { buildReconciliationReport, runAndRecordAdminReconciliation, ReconciliationTooSoonError, listReconciliationRuns, reconciliationRunsQuerySchema } from '../services/reconcile.service';
 import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-report.service';
+import { parseWithdrawalStatusFilter } from '../utils/withdrawal-status-filter';
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
 import { assertRefundNotBypassingCase, RefundGuardError } from '../services/refund-case-guard';
+import { adminTransactionsQuerySchema, adminTransactionsService, isUuid } from '../services/admin-transactions.service';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -31,6 +33,35 @@ router.use(extractUser, requireAuth, requireRoles('ADMIN'));
 
 // FH-4 part 2 - read-only obligations report (must stay above the '/:id/...' routes below).
 router.use('/obligations', adminObligationsRoutes);
+
+// BE-1 (G-04 / G-05 / G-14) - read-only finance transaction list + detail (whitelisted DTOs, see admin-transactions.service.ts).
+// Registered before every '/:id/...' route below so these static paths can never be shadowed. Error body: { error, code }.
+router.get('/transactions', async (req: Request, res: Response) => {
+  const parsed = adminTransactionsQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Tham số truy vấn không hợp lệ.', code: 'INVALID_QUERY' });
+  }
+  try {
+    return res.json(await adminTransactionsService.list(parsed.data));
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] admin transactions list failed');
+    return res.status(500).json({ error: 'Không tải được danh sách giao dịch.', code: 'TRANSACTIONS_LIST_FAILED' });
+  }
+});
+
+router.get('/transactions/:id', async (req: Request, res: Response) => {
+  if (!isUuid(req.params.id)) {
+    return res.status(400).json({ error: 'Mã giao dịch không hợp lệ.', code: 'INVALID_ID' });
+  }
+  try {
+    const detail = await adminTransactionsService.detail(req.params.id);
+    if (!detail) return res.status(404).json({ error: 'Không tìm thấy giao dịch.', code: 'TRANSACTION_NOT_FOUND' });
+    return res.json(detail);
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] admin transaction detail failed');
+    return res.status(500).json({ error: 'Không tải được chi tiết giao dịch.', code: 'TRANSACTION_DETAIL_FAILED' });
+  }
+});
 
 // GET /admin/payments — real transaction list (was a hardcoded empty array
 // regardless of what data actually existed).
@@ -56,6 +87,8 @@ router.get('/gateway-discrepancies', async (_req: Request, res: Response) => {
  * Reports escrow against the sum of every claim on it. `balanced: false` means the ledger has
  * created or destroyed money somewhere and needs investigating before anything else is
  * trusted; `negativeWallets` should always be empty.
+ * READ ONLY and contract-stable (the gateway dashboard, mobile and the E2E suite read `body.data`): 200 when balanced,
+ * 409 when not, body { success, data: report }. It writes nothing; recording a run is POST /reconciliation/runs below.
  */
 router.get('/reconciliation', async (_req: Request, res: Response) => {
   const report = await buildReconciliationReport();
@@ -63,14 +96,60 @@ router.get('/reconciliation', async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /admin/payments/finance-overview?groupBy=day|week|month|quarter&from=ISO&to=ISO
+ * GET /admin/payments/reconciliation/runs?limit&offset&status — history of the recorded checks (newest first).
+ * Registered before every '/:id/...' route. Read-only; amounts are decimal strings.
+ */
+router.get('/reconciliation/runs', async (req: Request, res: Response) => {
+  const parsed = reconciliationRunsQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Tham số truy vấn không hợp lệ.', code: 'INVALID_QUERY' });
+  }
+  try {
+    return res.json(await listReconciliationRuns(parsed.data));
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] admin reconciliation runs failed');
+    return res.status(500).json({ error: 'Không tải được lịch sử đối soát.', code: 'RECONCILIATION_RUNS_FAILED' });
+  }
+});
+
+/**
+ * POST /admin/payments/reconciliation/runs — "run the check and save it" (the only write of the reconciliation screen; it never
+ * touches money). No body. Records ONE run, trigger ADMIN, triggeredBy = the verified token's user.
+ * 201 { run } | 400 INVALID_BODY | 429 RECONCILIATION_RUN_TOO_SOON (same admin, < 30 s since their last run; nothing is run)
+ * | 500 RECONCILIATION_FAILED (an ERROR run is recorded when possible).
+ */
+router.post('/reconciliation/runs', async (req: Request, res: Response) => {
+  const body = req.body as unknown;
+  const bodyKeys = body && typeof body === 'object' ? Object.keys(body as object).length : 0;
+  const rawLen = Number(req.headers['content-length'] ?? 0);
+  if (bodyKeys > 0 || (body !== undefined && body !== null && typeof body !== 'object') || rawLen > 2) {
+    return res.status(400).json({ error: 'Yêu cầu này không nhận nội dung kèm theo.', code: 'INVALID_BODY' });
+  }
+  try {
+    const run = await runAndRecordAdminReconciliation(req.user!.userId);
+    return res.status(201).json({ run });
+  } catch (err) {
+    if (err instanceof ReconciliationTooSoonError) {
+      return res.status(429).json({ error: 'Vừa chạy đối soát xong, thử lại sau ít giây.', code: 'RECONCILIATION_RUN_TOO_SOON' });
+    }
+    logger.error({ err: (err as Error).message }, '[payment-service] admin reconciliation run failed');
+    return res.status(500).json({ error: 'Không chạy được đối soát sổ ví.', code: 'RECONCILIATION_FAILED' });
+  }
+});
+
+/**
+ * GET /admin/payments/finance-overview?groupBy=day|week|month|quarter|year&from=ISO&to=ISO
  *
  * Admin "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo khoảng thời gian, gộp theo
  * ngày/tuần/tháng/quý. `from`/`to` default to the last 30 days when omitted so the tab has a
  * sensible chart on first load.
  */
 router.get('/finance-overview', async (req: Request, res: Response) => {
-  const groupBy = isFinanceGroupBy(req.query.groupBy) ? req.query.groupBy : 'day';
+  const rawGroupBy = req.query.groupBy;
+  if (rawGroupBy !== undefined && !isFinanceGroupBy(rawGroupBy)) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_GROUP_BY', message: 'groupBy không hợp lệ — chỉ nhận day, week, month, quarter hoặc year' } });
+  }
+  const groupBy = rawGroupBy === undefined ? 'day' : rawGroupBy;
   const to = req.query.to ? new Date(String(req.query.to)) : new Date();
   const from = req.query.from
     ? new Date(String(req.query.from))
@@ -112,9 +191,14 @@ router.patch('/commissions/:id/settle', (_req, res) => {
 // Money-flow plan 5.3 — admin side of the manual withdrawal flow. approve/reject are optional
 // review steps before the money actually moves; markPaid is the only one that touches the
 // ledger, and only after an admin confirms a real bank/e-wallet transfer already happened.
-router.get('/withdrawals', async (_req: Request, res: Response) => {
-  const list = await withdrawalService.listPending();
-  res.json({ success: true, data: list });
+router.get('/withdrawals', async (req: Request, res: Response) => {
+  const parsed = parseWithdrawalStatusFilter(req.query.status);
+  if (!parsed.ok) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS_FILTER', message: 'Trạng thái lọc không hợp lệ — chỉ nhận PENDING, APPROVED, PAID hoặc REJECTED' } });
+  }
+  // No status param keeps the original queue (PENDING + APPROVED).
+  const list = parsed.status ? await withdrawalService.listByStatus(parsed.status) : await withdrawalService.listPending();
+  return res.json({ success: true, data: list });
 });
 
 const reviewSchema = z.object({ reason: z.string().min(1).optional() });

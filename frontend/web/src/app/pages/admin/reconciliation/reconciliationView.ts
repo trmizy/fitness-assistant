@@ -12,7 +12,9 @@
 import {
   centsToDong,
   formatDong,
+  formatMoneyExact,
   formatMoneyString,
+  formatVnDateTime,
   parseCents,
   type ReconciliationReport,
 } from "../adminFinanceOverview.utils";
@@ -22,26 +24,28 @@ import { countAttention, type ObligationsReport, type SessionsReconciliationRepo
 /**
  * `balance` / `exceptions` are the B4 chips. D7 adds the two money-exception views of Dispute V2.1 INSIDE the same surface (no new route):
  * `held-no-show` = "Khoản giữ của buổi PT vắng" (D65-B) and `late-open` = "Khoản bồi thường đến muộn còn mở".
+ * B8 adds `gateway` = "Đối chiếu cổng ↔ Gymini" at level L2 (what the gateways sent back and Gymini stored; NOT an independent L3 report).
  */
-export type ReconView = "balance" | "exceptions" | "held-no-show" | "late-open";
-export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions", "held-no-show", "late-open"];
+export type ReconView = "balance" | "exceptions" | "gateway" | "held-no-show" | "late-open";
+export const RECON_VIEWS: readonly ReconView[] = ["balance", "exceptions", "gateway", "held-no-show", "late-open"];
 export const RECON_VIEW_LABEL: Record<ReconView, string> = {
   balance: "Cân đối sổ",
   exceptions: "Ngoại lệ",
+  gateway: "Đối chiếu cổng ↔ Gymini",
   "held-no-show": "Khoản giữ buổi PT vắng",
   "late-open": "Bồi thường đến muộn",
 };
-/** All chips are L1: figures come from Gymini's own ledger / contracts. */
-export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1", "held-no-show": "L1", "late-open": "L1" };
+/** L1 chips: figures come from Gymini's own ledger / contracts. The gateway chip is L2: gateway callbacks Gymini stored (B8). */
+export const RECON_VIEW_LEVEL: Record<ReconView, string> = { balance: "L1", exceptions: "L1", gateway: "L2", "held-no-show": "L1", "late-open": "L1" };
 
 /**
  * `?view=` → chip. Missing or unknown → balance. Two values are kept working from the earlier plan / prototype:
- * `ledger` = the balance chip, `gateway` = the (disabled, L3 BLOCKED) gateway chip → falls back to balance.
+ * `ledger` = the balance chip. (`gateway` used to fall back to balance while the L3 chip was disabled; since B8 it is the L2 gateway chip.)
  */
 export function parseReconView(raw: string | null | undefined): ReconView {
   const v = (raw ?? "").trim().toLowerCase();
-  if (v === "exceptions" || v === "held-no-show" || v === "late-open") return v;
-  return "balance"; // "balance", "ledger", "gateway", "", anything else
+  if (v === "exceptions" || v === "gateway" || v === "held-no-show" || v === "late-open") return v;
+  return "balance"; // "balance", "ledger", "", anything else
 }
 
 /** Next query string for a chip click: keeps every other param, sets `view`. */
@@ -54,10 +58,14 @@ export function withReconView(prev: URLSearchParams, view: ReconView): URLSearch
 /** The ids the D7 views keep in the URL (`row` = late-open row, `session` = D65-B preview, `resolution` = a D65-B proposal, `status` = late-open filter). */
 export const MONEY_VIEW_PARAMS = ["row", "session", "resolution", "status"] as const;
 
+/** The day range of the gateway view (B8): `?from&to`, both `YYYY-MM-DD`. */
+export const GATEWAY_VIEW_PARAMS = ["from", "to"] as const;
+
 /** A chip click: like `withReconView` but a selection of the previous view never leaks into the next one. */
 export function switchReconView(prev: URLSearchParams, view: ReconView): URLSearchParams {
   const next = withReconView(prev, view);
   for (const k of MONEY_VIEW_PARAMS) next.delete(k);
+  for (const k of GATEWAY_VIEW_PARAMS) next.delete(k);
   return next;
 }
 
@@ -74,6 +82,7 @@ export const LEVEL_EXPLAIN: Record<ReconLevel, string> = {
   L3: "Báo cáo quyết toán độc lập từ cổng thanh toán / ngân hàng — chưa có nguồn nên chưa làm được (BLOCKED).",
 };
 export const GATEWAY_CHIP_LABEL = "Đối chiếu cổng ↔ Gymini";
+/** What is still missing behind the L2 gateway chip: an independent settlement report (shown as a note inside the gateway view). */
 export const GATEWAY_CHIP_REASON = "L3 — chưa có nguồn độc lập (BLOCKED)";
 export const NO_PROCEDURE_TEXT = "chưa có quy trình (G-15)";
 
@@ -363,3 +372,84 @@ export function negativeWalletViews(r: ReconciliationReport): NegativeWalletView
     };
   });
 }
+
+// ───────────────────────────────────────────────────────── G-06 — lịch sử đối soát ──
+/**
+ * G-06. P3 (`GET /admin/payments/reconciliation`) keeps its contract: 200 when balanced, 409 `{ success:false, data }` when not
+ * (read via `reconciliationFromHttpError`). It writes nothing; the history is written by `POST .../reconciliation/runs` only.
+ */
+
+/** What the "Chạy đối soát và lưu" button says when the POST fails. 429 = this admin ran it a moment ago; anything else = nothing was saved. */
+export function runReconciliationErrorText(error: unknown): string {
+  const status = (error as { response?: { status?: number } } | null | undefined)?.response?.status;
+  if (status === 429) return "Vừa chạy xong, thử lại sau ít giây.";
+  if (status === 401 || status === 403) return "Tài khoản này không có quyền chạy đối soát hoặc phiên đăng nhập đã hết hạn.";
+  if (status === 500) return "Máy chủ không chạy được đối soát. Chưa có kết quả nào được lưu.";
+  return "Không chạy được đối soát lúc này. Chưa có kết quả nào được lưu.";
+}
+
+export type RunStatus = "BALANCED" | "DRIFT" | "ERROR";
+export type RunTrigger = "ADMIN" | "JOB";
+export type RunTone = "success" | "danger" | "warning";
+
+export const RUN_STATUS_LABEL: Record<RunStatus, string> = { BALANCED: "Cân bằng", DRIFT: "Lệch sổ", ERROR: "Lỗi khi đối soát" };
+export const RUN_STATUS_TONE: Record<RunStatus, RunTone> = { BALANCED: "success", DRIFT: "danger", ERROR: "warning" };
+export const RUN_TRIGGER_LABEL: Record<RunTrigger, string> = { ADMIN: "Quản trị viên", JOB: "Hệ thống tự chạy" };
+
+export const runStatusLabel = (s: string | null | undefined) => (s && RUN_STATUS_LABEL[s as RunStatus]) || "Không rõ";
+export const runStatusTone = (s: string | null | undefined): RunTone => (s && RUN_STATUS_TONE[s as RunStatus]) || "warning";
+export const runTriggerLabel = (t: string | null | undefined) => (t && RUN_TRIGGER_LABEL[t as RunTrigger]) || "Không rõ";
+
+export interface ReconciliationRunRow {
+  id: string;
+  startedAt: string;
+  status: string;
+  trigger: string;
+  /** Raw decimal string as stored, or null (an ERROR run has no figures). */
+  drift: string | null;
+  escrowBalance: string | null;
+  claimsTotal: string | null;
+  errorCode: string | null;
+}
+
+export interface ReconciliationRunsPage {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  items: ReconciliationRunRow[];
+}
+
+const strOrNull = (v: unknown): string | null => (typeof v === "string" ? v : null);
+
+/** `GET /admin/payments/reconciliation/runs`. A body that is not that shape → `null` (the caller shows a load error, not an empty history). */
+export function normalizeReconciliationRuns(raw: unknown): ReconciliationRunsPage | null {
+  const o = raw as Record<string, unknown> | null | undefined;
+  if (!o || typeof o !== "object" || !Array.isArray(o.items)) return null;
+  const int = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const total = int(o.total);
+  const limit = int(o.limit);
+  const offset = int(o.offset);
+  if (total === null || limit === null || offset === null) return null;
+  const items: ReconciliationRunRow[] = [];
+  for (const r of o.items) {
+    const row = r as Record<string, unknown> | null;
+    if (!row || typeof row.id !== "string" || typeof row.startedAt !== "string") return null;
+    items.push({
+      id: row.id,
+      startedAt: row.startedAt,
+      status: typeof row.status === "string" ? row.status : "",
+      trigger: typeof row.trigger === "string" ? row.trigger : "",
+      drift: strOrNull(row.drift),
+      escrowBalance: strOrNull(row.escrowBalance),
+      claimsTotal: strOrNull(row.claimsTotal),
+      errorCode: strOrNull(row.errorCode),
+    });
+  }
+  return { total, limit, offset, hasMore: o.hasMore === true, items };
+}
+
+/** The drift of one run: the exact stored amount; "—" when the run has none (never "0 ₫" for an ERROR run). */
+export const runDriftText = (r: Pick<ReconciliationRunRow, "drift" | "status">): string => (r.status === "ERROR" ? "—" : formatMoneyExact(r.drift));
+
+export const runTimeText = (r: Pick<ReconciliationRunRow, "startedAt">): string => formatVnDateTime(r.startedAt);

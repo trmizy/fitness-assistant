@@ -7,6 +7,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CHAT_PAGE_SIZE,
+  canLoadOlder,
+  chatErrorText,
+  mergeMessageLists,
+  olderCursor,
+  sendFailureText,
   canSend,
   conversationIdOf,
   dayDivider,
@@ -103,5 +109,40 @@ describe("conversationIdOf", () => {
     assert.equal(conversationIdOf({ data: { id: "c3" } }), "c3");
     assert.equal(conversationIdOf({}), null);
     assert.equal(conversationIdOf(undefined), null);
+  });
+});
+
+describe("older-page cursor and merge (Xem tin cũ hơn)", () => {
+  const m = (id: string, t: string) => normalizeMessage({ id, conversationId: "c", content: id, createdAt: t, senderId: "u" });
+
+  it("merges older + latest without duplicates, oldest first, later list wins", () => {
+    const older = [m("a", "2026-01-01T00:00:00Z"), m("b", "2026-01-02T00:00:00Z")];
+    const latest = [m("b", "2026-01-02T00:00:00Z"), m("c", "2026-01-03T00:00:00Z")];
+    assert.deepEqual(mergeMessageLists(latest, older).map((x) => x.id), ["a", "b", "c"]);
+    assert.deepEqual(mergeMessageLists(undefined, undefined), []);
+  });
+
+  it("cursor is the oldest shown message id", () => {
+    assert.equal(olderCursor([m("a", "2026-01-01T00:00:00Z"), m("b", "2026-01-02T00:00:00Z")]), "a");
+    assert.equal(olderCursor([]), null);
+  });
+
+  it("control hides when a page is short and shows when the first page is full", () => {
+    assert.equal(canLoadOlder(CHAT_PAGE_SIZE, 0, false), true);
+    assert.equal(canLoadOlder(CHAT_PAGE_SIZE - 1, 0, false), false);
+    assert.equal(canLoadOlder(5, 30, false), true);
+    assert.equal(canLoadOlder(CHAT_PAGE_SIZE, 10, true), false);
+  });
+
+  it("chat:error prefers the Vietnamese detail", () => {
+    assert.equal(chatErrorText({ message: "Failed to send message", detail: "Tài khoản đã bị khóa" }), "Tài khoản đã bị khóa");
+    assert.equal(chatErrorText({ message: "Failed to send message" }), "Không gửi được tin nhắn.");
+    assert.equal(chatErrorText({ message: "x" }), "Có lỗi trò chuyện, thử lại sau.");
+    assert.equal(chatErrorText(undefined), "Có lỗi trò chuyện, thử lại sau.");
+  });
+
+  it("REST send failure uses the server sentence or a generic line", () => {
+    assert.equal(sendFailureText({ response: { data: { error: "Tin nhắn quá dài" } } }), "Tin nhắn quá dài");
+    assert.match(sendFailureText(new Error("net")), /Không gửi được/);
   });
 });

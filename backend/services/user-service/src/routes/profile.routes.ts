@@ -101,7 +101,9 @@ router.get("/me/restriction", authMiddleware, ptRestrictionController.ownStatus 
 
 // Listing PT users — used by the chat-service to validate PT-client conversations
 router.get("/pts", authMiddleware, publicNoCache, profileController.listPTs as any);
-// Declared after /pts so the literal path is never shadowed by this parameterised one.
+// Geo / epoch-cursor PT search via POST body so viewer GPS never enters URL logs (registered before /pts/:userId).
+router.post("/pts/search", authMiddleware, publicNoCache, profileController.searchPTs as any);
+// Declared after /pts and /pts/search so literal paths are never shadowed by this parameterised one.
 router.get(
   "/pts/:userId",
   authMiddleware,

@@ -35,16 +35,31 @@ function appBaseUrl(req: Request): string {
   return (raw || resolveFrontendUrl()).replace(/\/$/, '');
 }
 
+const PARTNER_STATUS_FILTER = ['PROSPECT', 'INVITED', 'ACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
+const PARTNER_VERIFICATION_FILTER = ['NOT_VERIFIED', 'IN_REVIEW', 'NEEDS_INFO', 'VERIFIED', 'REJECTED'] as const;
+const INVALID = Symbol('invalid-filter');
+/** undefined = no filter (absent / empty); INVALID = present but not one of the values (or sent more than once). */
+function parseEnumFilter<T extends string>(raw: unknown, allowed: readonly T[]): T | undefined | typeof INVALID {
+  if (raw === undefined || raw === '') return undefined;
+  return typeof raw === 'string' && (allowed as readonly string[]).includes(raw) ? (raw as T) : INVALID;
+}
+
 export const partnerController = {
   // ── Danh sách + hồ sơ ─────────────────────────────────────────────────────
   async list(req: Request, res: Response) {
-    const raw = req.query.status;
-    const VALID = ['PROSPECT', 'INVITED', 'ACTIVE', 'SUSPENDED', 'TERMINATED'];
-    const status = typeof raw === 'string' && VALID.includes(raw) ? (raw as any) : undefined;
-    const rawVerification = req.query.verificationStatus;
-    const VALID_VERIFICATION = ['NOT_VERIFIED', 'IN_REVIEW', 'NEEDS_INFO', 'VERIFIED', 'REJECTED'];
-    const verificationStatus =
-      typeof rawVerification === 'string' && VALID_VERIFICATION.includes(rawVerification) ? (rawVerification as any) : undefined;
+    // N-A-06: an unknown filter value used to be ignored (200 with every partner); now it is a 400. Absent or empty = no filter.
+    const status = parseEnumFilter(req.query.status, PARTNER_STATUS_FILTER);
+    const verificationStatus = parseEnumFilter(req.query.verificationStatus, PARTNER_VERIFICATION_FILTER);
+    if (status === INVALID || verificationStatus === INVALID) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: status === INVALID ? 'INVALID_STATUS_FILTER' : 'INVALID_VERIFICATION_FILTER',
+          message: status === INVALID ? 'Trạng thái lọc không hợp lệ. Hãy chọn lại bộ lọc.' : 'Trạng thái xác minh lọc không hợp lệ. Hãy chọn lại bộ lọc.',
+        },
+      });
+      return;
+    }
     const assignedAdminId = typeof req.query.assignedAdminId === 'string' ? req.query.assignedAdminId : undefined;
     const partners = await partnerService.listPartners({ status, verificationStatus, assignedAdminId });
     res.json({ success: true, data: partners });

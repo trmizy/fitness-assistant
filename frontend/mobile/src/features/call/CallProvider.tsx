@@ -8,8 +8,9 @@ import { isChatWsEnabled } from "../../config/serverUrl";
 import { connectSocket, disconnectSocket, getSocket, watchAppStateForSocketRecovery } from "../../services/socket";
 import type { CallType } from "../../types";
 import { callErrorMessage, callReducer, initialCallState, isFinishedCallStatus, type CallState } from "./callState";
+import { AppState } from "react-native";
 import { useRNWebRTC } from "./useRNWebRTC";
-import { dismissCallPush } from "../push/pushDevice";
+import { dismissCallPush, dismissStaleCallPushes } from "../push/pushDevice";
 import { mergeMessage, normalizeMessage, type ChatMessage } from "../chat/chat";
 import { conversationsKey, messagesKey } from "../chat/useRealtimeChat";
 
@@ -129,6 +130,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   });
 
   const doCleanup = useCallback(() => {
+    // NE-08 — whichever way the call ended (ended, cancelled, rejected, missed, failed), its
+    // "đang gọi" notice in the shade is stale.
+    const endedId = stateRef.current.callInfo?.callSessionId;
+    if (endedId) void dismissCallPush(endedId);
     webrtcRef.current.cleanup();
     if (durationRef.current) {
       clearInterval(durationRef.current);
@@ -144,6 +149,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated && stateRef.current.uiState !== "idle") doCleanup();
   }, [isAuthenticated, doCleanup]);
+
+  // NE-08 — calls that ended while the app was closed never arrived as an event: when the app
+  // comes forward, clear every "đang gọi" notice except a call that is live right now.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const tidy = () => void dismissStaleCallPushes(stateRef.current.callInfo?.callSessionId ?? null);
+    tidy();
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") tidy();
+    });
+    return () => sub.remove();
+  }, [isAuthenticated]);
 
   // ── Socket listeners ────────────────────────────────────────────
   useEffect(() => {
@@ -239,11 +256,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onCallEnd = (data?: { callSessionId?: string }) => {
+      if (data?.callSessionId) void dismissCallPush(data.callSessionId);
       if (data?.callSessionId && !isRelevant(data.callSessionId)) return;
       doCleanup();
     };
 
     const onMissed = (data?: { callSessionId?: string }) => {
+      if (data?.callSessionId) void dismissCallPush(data.callSessionId);
       if (data?.callSessionId && !isRelevant(data.callSessionId)) return;
       if (stateRef.current.callInfo?.origin === "SESSION") {
         toastRef.current.show("Người còn lại chưa online trong buổi học. Vui lòng chờ hoặc thử lại sau.");

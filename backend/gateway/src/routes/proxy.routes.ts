@@ -10,7 +10,20 @@ import {
   INTERNAL_SERVICE_SECRET_DEFAULT,
 } from "../utils/internal-secret";
 import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
-import { adminRoleBreakdown, adminRoleLabel, adminUserStatus } from "../utils/adminUserView";
+import {
+  adminDateVi,
+  adminMonthLabelVi,
+  adminRoleBreakdownVi,
+  adminRoleCode,
+  adminRoleLabel,
+  adminRoleLabelVi,
+  adminServiceLabelVi,
+  adminStatusCode,
+  adminStatusLabelVi,
+  adminTimeVi,
+  adminUserStatus,
+} from "../utils/adminUserView";
+import { isAdminUsersQueryError, parseAdminUsersQuery, selectAdminUsersPage } from "../utils/adminUsersQuery";
 import { relayRestChatMessage } from "../socket/chatRestRelay";
 import {
   partnerApplicationLimiter,
@@ -58,6 +71,8 @@ type ProbeResult = {
   timestamp: string;
   error: string | null;
   optional?: boolean; // true = down state doesn't lower health score
+  /** Vietnamese display name (N-A-10); `name` stays the English identifier. */
+  label?: string;
 };
 
 type AuthUser = {
@@ -155,8 +170,9 @@ async function probeServices(): Promise<ProbeResult[]> {
           timestamp: body.timestamp || new Date().toISOString(),
           error: isHealthy
             ? null
-            : `Health endpoint returned status ${response.status}`,
+            : `Kiểm tra sức khoẻ trả về mã ${response.status}`,
           optional: service.optional ?? false,
+          label: adminServiceLabelVi(service.key, service.name),
         } as ProbeResult;
       } catch (error: any) {
         return {
@@ -167,8 +183,9 @@ async function probeServices(): Promise<ProbeResult[]> {
           latencyMs: Date.now() - started,
           uptimeSeconds: null,
           timestamp: new Date().toISOString(),
-          error: error?.message || "Health check failed",
+          error: error?.message || "Không kiểm tra được sức khoẻ dịch vụ",
           optional: service.optional ?? false,
+          label: adminServiceLabelVi(service.key, service.name),
         } as ProbeResult;
       }
     }),
@@ -194,12 +211,11 @@ function buildMonitorSummary(probes: ProbeResult[]) {
     .filter((s) => s.status !== "healthy")
     .map((s) => ({
       level: s.status === "down" ? "error" : "warning",
-      service: s.name,
-      message: s.error || "Unknown issue",
-      time: new Date(s.timestamp).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      service: adminServiceLabelVi(s.key, s.name),
+      serviceKey: s.key,
+      // N-A-10: our own fixed phrases are Vietnamese; a raw network error text is passed through.
+      message: s.error || "Chưa rõ nguyên nhân",
+      time: adminTimeVi(new Date(s.timestamp)),
     }));
 
   return {
@@ -244,6 +260,20 @@ router.get(
 // today (Vietnam day). Expected body: { count: number } (also accepts { data: { count } }).
 const USER_SERVICE_SESSIONS_TODAY_COUNT_URL = `${USER_SERVICE_URL}/internal/admin/sessions/today-count`;
 
+/**
+ * N-A-05: PT applications that wait for an ADMIN decision. SUBMITTED is what the "Hôm nay" queue
+ * lists; UNDER_REVIEW is an application an admin has opened but not decided. NEEDS_MORE_INFO waits
+ * for the applicant, so it is deliberately not counted.
+ */
+export const PT_APPLICATION_PENDING_ADMIN_STATUSES = ["SUBMITTED", "UNDER_REVIEW"] as const;
+
+/** `X-Total-Count` of a paged `/pt-applications/admin` answer, or null when absent/garbled. */
+export function parsePendingPtTotal(headers: any): number | null {
+  const raw = headers?.["x-total-count"];
+  if (typeof raw !== "string" || !/^\d{1,9}$/.test(raw)) return null;
+  return Number(raw);
+}
+
 /** A non-negative integer count, or null when the upstream gave anything else (never a guess). */
 export function parseSessionsTodayCount(body: any): number | null {
   const raw = body?.count ?? body?.data?.count;
@@ -260,7 +290,7 @@ router.get(
     try {
       const authHeader = req.headers.authorization;
 
-      const [usersResult, ptsResult, statsResult, probesResult, reconResult, sessionsTodayResult] =
+      const [usersResult, ptsResult, statsResult, probesResult, reconResult, sessionsTodayResult, ...pendingPtResults] =
         await Promise.allSettled([
           axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
             headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -289,6 +319,16 @@ router.get(
             headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
             timeout: 4000,
           }),
+          // N-A-05: PT applications waiting for an admin decision (PtApplication rows, the model the
+          // admin queue reads) — one count per status, taken from the X-Total-Count header of a
+          // one-row page so the application payloads never cross the gateway.
+          ...PT_APPLICATION_PENDING_ADMIN_STATUSES.map((status) =>
+            axios.get(`${USER_SERVICE_URL}/pt-applications/admin`, {
+              headers: authHeader ? { Authorization: authHeader } : undefined,
+              params: { status, page: 1, limit: 1 },
+              timeout: 6000,
+            }),
+          ),
         ]);
 
       const usersRes =
@@ -355,75 +395,81 @@ router.get(
           "Admin dashboard sessions-today upstream failed — KPI left null",
         );
       }
-      const pendingPT = users.filter(
-        (u) => u.role !== "PT" && ptSet.has(u.id),
-      ).length;
+      // null (not 0) when any status count could not be read: "0 waiting" and "couldn't ask" differ.
+      const pendingPtCounts = pendingPtResults.map((r) =>
+        r.status === "fulfilled" ? parsePendingPtTotal(r.value?.headers) : null,
+      );
+      const pendingPtFailed = pendingPtCounts.some((c) => c === null);
+      const pendingPT = pendingPtFailed
+        ? null
+        : pendingPtCounts.reduce<number>((sum, c) => sum + (c ?? 0), 0);
+      if (pendingPtFailed) {
+        logger.warn(
+          { reasons: pendingPtResults.map((r) => (r.status === "rejected" ? r.reason?.message : null)) },
+          "Admin dashboard pending PT applications upstream failed — KPI left null",
+        );
+      }
 
       const sortedUsers = [...users].sort(
         (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt),
       );
-      const monthLabels: string[] = [];
+      // Last 6 calendar months, keyed by year+month (a bare month name collided across years).
+      const monthBuckets: { key: string; label: string }[] = [];
       for (let i = 5; i >= 0; i -= 1) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        monthLabels.push(d.toLocaleString("en-US", { month: "short" }));
+        monthBuckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: adminMonthLabelVi(d) });
       }
 
       const usersByMonth = new Map<string, number>();
       let cumulative = 0;
-      for (const label of monthLabels) {
-        usersByMonth.set(label, 0);
+      for (const b of monthBuckets) {
+        usersByMonth.set(b.key, 0);
       }
       for (const u of sortedUsers) {
-        const label = new Date(u.createdAt).toLocaleString("en-US", {
-          month: "short",
-        });
-        if (usersByMonth.has(label)) {
-          usersByMonth.set(label, (usersByMonth.get(label) || 0) + 1);
+        const created = new Date(u.createdAt);
+        const key = `${created.getFullYear()}-${created.getMonth()}`;
+        if (usersByMonth.has(key)) {
+          usersByMonth.set(key, (usersByMonth.get(key) || 0) + 1);
         }
       }
-      const userGrowth = monthLabels.map((label) => {
-        cumulative += usersByMonth.get(label) || 0;
-        return { month: label, users: cumulative };
+      const userGrowth = monthBuckets.map((b) => {
+        cumulative += usersByMonth.get(b.key) || 0;
+        return { month: b.label, users: cumulative };
       });
 
 
       const monitorSummary = buildMonitorSummary(probes);
+      // N-A-10: every alert text is Vietnamese (the dashboard shows it to the admin as written).
+      const warn = (service: string, message: string) => ({
+        level: "warning",
+        service,
+        message,
+        time: adminTimeVi(),
+      });
       const upstreamWarnings = [
         usersResult.status === "rejected"
-          ? {
-              level: "warning",
-              service: "Auth Service",
-              message:
-                "Unable to fetch user list for dashboard. Showing partial data.",
-              time: new Date().toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            }
+          ? warn(
+              adminServiceLabelVi("auth", "Auth Service"),
+              "Không tải được danh sách người dùng cho bảng điều khiển. Đang hiển thị dữ liệu một phần.",
+            )
           : null,
         ptsResult.status === "rejected"
-          ? {
-              level: "warning",
-              service: "User Service",
-              message:
-                "Unable to fetch PT profiles for dashboard. Showing partial data.",
-              time: new Date().toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            }
+          ? warn(
+              adminServiceLabelVi("user", "User Service"),
+              "Không tải được hồ sơ huấn luyện viên cho bảng điều khiển. Đang hiển thị dữ liệu một phần.",
+            )
           : null,
         statsResult.status === "rejected"
-          ? {
-              level: "warning",
-              service: "User Service",
-              message:
-                "Unable to fetch admin stats for dashboard. Showing partial data.",
-              time: new Date().toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            }
+          ? warn(
+              adminServiceLabelVi("user", "User Service"),
+              "Không tải được số liệu quản trị cho bảng điều khiển. Đang hiển thị dữ liệu một phần.",
+            )
+          : null,
+        pendingPtFailed
+          ? warn(
+              adminServiceLabelVi("user", "User Service"),
+              "Không tải được số hồ sơ huấn luyện viên đang chờ duyệt. Đang hiển thị dữ liệu một phần.",
+            )
           : null,
       ].filter(Boolean);
 
@@ -432,27 +478,26 @@ router.get(
           [u.firstName, u.lastName].filter(Boolean).join(" ") ||
           u.email.split("@")[0],
         email: u.email,
+        // `role` / `status` stay the codes the admin clients key on; the *Label fields are for reading.
         role: adminRoleLabel(u.role),
-        joined: new Date(u.createdAt).toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-        }),
+        roleCode: adminRoleCode(u.role),
+        roleLabel: adminRoleLabelVi(u.role),
+        joined: adminDateVi(u.createdAt, false),
         // GAP-21: was "Pending" for every PT (meaningless for an approved trainer).
         status: adminUserStatus(u.isActive),
+        statusCode: adminStatusCode(u.isActive),
+        statusLabel: adminStatusLabelVi(u.isActive),
       }));
 
       const alerts = [
         ...monitorSummary.recentErrors,
         ...upstreamWarnings,
-        pendingPT > 0
+        pendingPT !== null && pendingPT > 0
           ? {
               level: "info",
-              service: "PT Management",
-              message: `${pendingPT} PT verification requests pending admin review`,
-              time: new Date().toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              service: "Quản lý huấn luyện viên",
+              message: `${pendingPT} hồ sơ huấn luyện viên đang chờ quản trị viên duyệt`,
+              time: adminTimeVi(),
             }
           : null,
       ].filter(Boolean);
@@ -471,7 +516,7 @@ router.get(
           },
           userGrowth,
           // GAP-21: gym owners used to fall outside every slice.
-          roleData: adminRoleBreakdown(users, (u) => u.role === "PT" || ptSet.has(u.id)),
+          roleData: adminRoleBreakdownVi(users, (u) => u.role === "PT" || ptSet.has(u.id)),
           systemAlerts: alerts,
           recentUsers,
           ocrStats: statsRes?.data?.ocrStats || {
@@ -505,7 +550,7 @@ router.get(
         success: false,
         error: {
           code: "DASHBOARD_AGGREGATION_FAILED",
-          message: "Failed to aggregate dashboard data",
+          message: "Không tổng hợp được dữ liệu bảng điều khiển",
         },
       });
     }
@@ -522,6 +567,14 @@ router.get(
   async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
+
+      // N-A-06: validate search / status / page / limit up front — a bad value is the caller's
+      // mistake (400), never silently ignored. No such parameter = the whole list, as before.
+      const usersQuery = parseAdminUsersQuery(req.query as Record<string, unknown>);
+      if (isAdminUsersQueryError(usersQuery)) {
+        res.status(400).json({ success: false, error: usersQuery });
+        return;
+      }
 
       // Fetch users + PT profiles in parallel
       const [usersRes, contractsRes] = await Promise.allSettled([
@@ -543,7 +596,7 @@ router.get(
           success: false,
           error: {
             code: (usersRes.reason as any).response.data?.code || "INVALID_FILTER",
-            message: (usersRes.reason as any).response.data?.error || "Invalid filter",
+            message: (usersRes.reason as any).response.data?.error || "Bộ lọc không hợp lệ",
           },
         });
         return;
@@ -573,8 +626,19 @@ router.get(
           id: u.id,
           name,
           email: u.email,
+          // `role` / `status` / `joined` / `lastActive` keep their legacy shape: the web and mobile
+          // admin clients key on / parse them. N-A-10: the *Code, *Label (Vietnamese) and ISO
+          // fields below are what to read or display without translating.
           role,
+          roleCode: adminRoleCode(u.role),
+          roleLabel: adminRoleLabelVi(u.role),
           status,
+          statusCode: adminStatusCode(u.isActive),
+          statusLabel: adminStatusLabelVi(u.isActive),
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+          joinedLabel: adminDateVi(u.createdAt),
+          lastActiveLabel: adminDateVi(u.updatedAt),
           joined: new Date(u.createdAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -589,14 +653,29 @@ router.get(
         };
       });
 
-      res.json({ success: true, data: { total: users.length, users } });
+      const picked = selectAdminUsersPage(users, usersQuery);
+      if (picked.page !== null) {
+        res.setHeader("X-Total-Count", String(picked.total));
+        res.setHeader("X-Page", String(picked.page));
+        res.setHeader("X-Limit", String(picked.limit));
+      }
+      res.json({
+        success: true,
+        data: {
+          total: picked.total,
+          users: picked.rows,
+          ...(picked.page !== null
+            ? { page: picked.page, limit: picked.limit, totalPages: picked.totalPages }
+            : {}),
+        },
+      });
     } catch (error: any) {
       logger.error({ error: error?.message }, "Admin users aggregation failed");
       res.status(500).json({
         success: false,
         error: {
           code: "ADMIN_USERS_FAILED",
-          message: "Failed to fetch user list",
+          message: "Không tải được danh sách người dùng",
         },
       });
     }
@@ -1714,6 +1793,10 @@ router.use(
 
 // Public — browse gyms/plans/trainers (gym-service itself filters to APPROVED/ACTIVE/PUBLIC)
 router.get('/gyms', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+// [seed-discovery] Route cụ thể đặt TRƯỚC /gyms/:id để params matcher không nuốt /gyms/search và /gyms/brand-options.
+router.post('/gyms/search', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/brand-options', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+// [/seed-discovery]
 router.get('/gyms/:id', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/plans', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/trainers', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));

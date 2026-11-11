@@ -1,0 +1,332 @@
+# ISOLATED Scale environment for Gymini (10,000 PT / 2,500 gym seed & discovery benchmarks).
+#
+#   project name : gymini-scale    (ALWAYS pass `-p gymini-scale -f infra/compose/docker-compose.scale.yml`)
+#   own postgres : gymcoach-postgres-scale (127.0.0.1:55440), volume gymini-scale_pgdata,
+#                  7 DBs: gymcoach_{auth,user,fitness,ai,chat,payment,gym}_scale
+#   own redis    : gymcoach-redis-scale (127.0.0.1:59379), volume gymini-scale_redis_data
+#   own minio    : gymcoach-minio-scale (127.0.0.1:59000 API, 127.0.0.1:59001 console), volume gymini-scale_minio_data,
+#                  buckets: gymini-partner-private, gymini-user-media (private, no anonymous policy)
+#   app ports    : 59100 gateway, 59101 auth, 59104 user, 59105 chat, 59106 gym, 59107 payment (all bound to 127.0.0.1)
+#                  (web 59173 deferred to U1; fitness/ai services omitted — empty DBs created for target guard parity)
+#   isolation    : built from source (no bind mounts, no env_file/.env, no db-seeder, no Dispute E2E flags),
+#                  external payment/email/push integrations disabled or pointed to dead port 127.0.0.1:9.
+#   All credentials / secrets below are ONLY for this isolated throw-away scale environment.
+name: gymini-scale
+
+x-build: &build
+  context: ../..
+  dockerfile: infra/compose/scale/Dockerfile.scale
+
+x-secrets: &secrets
+  JWT_SECRET: scale_jwt_secret_0123456789abcdef0123456789abcdef
+  JWT_REFRESH_SECRET: scale_jwt_refresh_secret_0123456789abcdef0123456789
+  INTERNAL_SERVICE_SECRET: scale_internal_service_secret_0123456789abcdef
+  INTERNAL_API_SECRET: scale_internal_api_secret_0123456789abcdef01
+
+x-hc: &hc
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 40s
+
+services:
+  postgres-scale:
+    image: postgres:15-alpine
+    container_name: gymcoach-postgres-scale
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      POSTGRES_USER: gymcoach_scale
+      POSTGRES_PASSWORD: scale_pg_password_isolated
+      POSTGRES_DB: gymcoach_scale_admin
+    ports:
+      - "127.0.0.1:55440:5432"
+    volumes:
+      - ./scale/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+      - scale_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U gymcoach_scale -d gymcoach_scale_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis-scale:
+    image: redis:7-alpine
+    container_name: gymcoach-redis-scale
+    command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:59379:6379"
+    volumes:
+      - scale_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio-scale:
+    image: quay.io/minio/minio:latest
+    container_name: gymcoach-minio-scale
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:59000:9000"
+      - "127.0.0.1:59001:9001"
+    environment:
+      MINIO_ROOT_USER: scale_minio
+      MINIO_ROOT_PASSWORD: scale_minio_secret_isolated
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:59173,http://127.0.0.1:59173"
+    volumes:
+      - scale_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio-scale-init:
+    image: quay.io/minio/mc:latest
+    container_name: gymcoach-minio-scale-init
+    depends_on:
+      minio-scale: { condition: service_healthy }
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio-scale:9000 scale_minio scale_minio_secret_isolated &&
+      mc mb --ignore-existing local/gymini-partner-private &&
+      mc anonymous set none local/gymini-partner-private &&
+      mc mb --ignore-existing local/gymini-user-media &&
+      mc anonymous set none local/gymini-user-media &&
+      echo 'scale minio buckets ready'"
+
+  auth-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/auth-service, PKG: "@gym-coach/auth-service" }
+    image: gymini-scale/auth-service:local
+    container_name: gymcoach-auth-scale
+    ports: ["127.0.0.1:59101:3001"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3001
+      DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_auth_scale
+      USER_SERVICE_URL: http://user-service:3004
+      JWT_ACCESS_EXPIRY: 3h
+      JWT_REFRESH_EXPIRY: 7d
+      FRONTEND_URL: http://127.0.0.1:59173
+      PARTNER_APPLICATION_DEV_ECHO: "false"
+      SMTP_HOST: ""
+      SMTP_PORT: ""
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: ""
+      SMTP_SECURE: ""
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      postgres-scale: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"], <<: *hc }
+
+  payment-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/payment-service, PKG: "@gym-coach/payment-service" }
+    image: gymini-scale/payment-service:local
+    container_name: gymcoach-payment-scale
+    ports: ["127.0.0.1:59107:3007"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3007
+      DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_payment_scale
+      AUTH_SERVICE_URL: http://auth-service:3001
+      GYM_SERVICE_URL: http://gym-service:3006
+      USER_SERVICE_URL: http://user-service:3004
+      AI_SERVICE_URL: http://127.0.0.1:9/ai-disabled-in-scale
+      PLATFORM_COMMISSION_RATE: "0.10"
+      PAYMENT_PROVIDER: VNPAY
+      VNPAY_SIMULATE: "false"
+      VNPAY_TMN_CODE: ""
+      VNPAY_HASH_SECRET: ""
+      VNPAY_URL: http://127.0.0.1:9/disabled-in-scale
+      VNPAY_API_URL: http://127.0.0.1:9/disabled-in-scale
+      VNPAY_RETURN_URL: http://127.0.0.1:9/disabled-in-scale
+      PAYMENT_PUBLIC_URL: http://127.0.0.1:9/disabled-in-scale
+      MOMO_PARTNER_CODE: ""
+      MOMO_ACCESS_KEY: ""
+      MOMO_SECRET_KEY: ""
+      MOMO_IPN_URL: ""
+      MOMO_ENDPOINT: http://127.0.0.1:9/disabled-in-scale
+      MOMO_REDIRECT_URL: http://127.0.0.1:9/disabled-in-scale
+      ZALOPAY_APP_ID: ""
+      ZALOPAY_KEY1: ""
+      ZALOPAY_KEY2: ""
+      ZALOPAY_ENDPOINT: http://127.0.0.1:9/disabled-in-scale
+      ZALOPAY_CALLBACK_URL: http://127.0.0.1:9/disabled-in-scale
+      PAYOS_CLIENT_ID: ""
+      PAYOS_API_KEY: ""
+      PAYOS_CHECKSUM_KEY: ""
+      PAYOS_BASE_URL: http://127.0.0.1:9/disabled-in-scale
+      FRONTEND_URL: http://127.0.0.1:59173
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      postgres-scale: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"], <<: *hc }
+
+  user-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/user-service, PKG: "@gym-coach/user-service", SEED_LOCATIONS: "1" }
+    image: gymini-scale/user-service:local
+    container_name: gymcoach-user-scale
+    stop_grace_period: 45s
+    ports: ["127.0.0.1:59104:3004"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3004
+      DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_user_scale
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      CHAT_SERVICE_URL: http://chat-service:3005
+      FITNESS_SERVICE_URL: http://127.0.0.1:9/fitness-disabled-in-scale
+      AI_SERVICE_URL: http://127.0.0.1:9/ai-disabled-in-scale
+      REDIS_URL: redis://redis-scale:6379
+      REDIS_HOST: redis-scale
+      REDIS_PORT: "6379"
+      REQUIRE_CONTRACT_ESIGN: "false"
+      DROPBOX_SIGN_API_KEY: ""
+      DROPBOX_SIGN_CLIENT_ID: ""
+      FIREBASE_SERVICE_ACCOUNT_JSON: ""
+      FIREBASE_CREDENTIALS_DIR: /nonexistent-disabled-in-scale
+      FCM_SERVER_KEY: ""
+      USER_UPLOAD_BUCKET: ""
+      PT_MEDIA_S3_ENDPOINT: http://minio-scale:9000
+      PT_MEDIA_S3_PUBLIC_ENDPOINT: http://127.0.0.1:59000
+      PT_MEDIA_S3_PUBLIC_VIA_REQUEST: "true"
+      PT_MEDIA_S3_REGION: us-east-1
+      PT_MEDIA_S3_FORCE_PATH_STYLE: "true"
+      PT_MEDIA_S3_ACCESS_KEY_ID: scale_minio
+      PT_MEDIA_S3_SECRET_ACCESS_KEY: scale_minio_secret_isolated
+      PT_MEDIA_S3_BUCKET: gymini-user-media
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      postgres-scale: { condition: service_healthy }
+      redis-scale: { condition: service_healthy }
+      minio-scale-init: { condition: service_completed_successfully }
+      payment-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+
+  gym-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/gym-service, PKG: "@gym-coach/gym-service" }
+    image: gymini-scale/gym-service:local
+    container_name: gymcoach-gym-scale
+    ports: ["127.0.0.1:59106:3006"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3006
+      DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_gym_scale
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      USER_SERVICE_URL: http://user-service:3004
+      PARTNER_APPLICATION_DEV_ECHO: "false"
+      PARTNER_S3_ENDPOINT: http://minio-scale:9000
+      PARTNER_S3_PUBLIC_ENDPOINT: http://127.0.0.1:59000
+      PARTNER_S3_PUBLIC_VIA_REQUEST: "true"
+      PARTNER_S3_REGION: us-east-1
+      PARTNER_S3_FORCE_PATH_STYLE: "true"
+      PARTNER_S3_ACCESS_KEY_ID: scale_minio
+      PARTNER_S3_SECRET_ACCESS_KEY: scale_minio_secret_isolated
+      PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      FRONTEND_URL: http://127.0.0.1:59173
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      postgres-scale: { condition: service_healthy }
+      minio-scale-init: { condition: service_completed_successfully }
+      payment-service: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"], <<: *hc }
+
+  chat-service:
+    build:
+      <<: *build
+      args: { DIR: backend/services/chat-service, PKG: "@gym-coach/chat-service" }
+    image: gymini-scale/chat-service:local
+    container_name: gymcoach-chat-scale
+    ports: ["127.0.0.1:59105:3005"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3005
+      CHAT_SERVICE_PORT: 3005
+      DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_chat_scale
+      CHAT_DATABASE_URL: postgresql://gymcoach_scale:scale_pg_password_isolated@postgres-scale:5432/gymcoach_chat_scale
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CORS_ORIGIN: http://localhost:59173,http://127.0.0.1:59173
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      postgres-scale: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"], <<: *hc }
+
+  api-gateway:
+    build:
+      <<: *build
+      args: { DIR: backend/gateway, PKG: "@gym-coach/api-gateway", PRISMA: "0" }
+    image: gymini-scale/api-gateway:local
+    container_name: gymcoach-gateway-scale
+    ports: ["127.0.0.1:59100:3000"]
+    environment:
+      <<: [*secrets]
+      NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CHAT_SERVICE_URL: http://chat-service:3005
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      FITNESS_SERVICE_URL: http://fitness-service-not-in-this-env:3002
+      AI_SERVICE_URL: http://ai-service-not-in-this-env:3003
+      REDIS_URL: redis://redis-scale:6379
+      MINIO_PROXY_TARGET: http://minio-scale:9000
+      PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      PT_MEDIA_S3_BUCKET: gymini-user-media
+      CORS_ORIGIN: http://localhost:59173,http://127.0.0.1:59173
+      REQUIRE_CONTRACT_ESIGN: "false"
+      PARTNER_APPLICATION_START_RATE_MAX: "200"
+      PARTNER_APPLICATION_RATE_MAX: "600"
+      GYMINI_DEMO_ENVIRONMENT: "true"
+    depends_on:
+      redis-scale: { condition: service_healthy }
+      minio-scale-init: { condition: service_completed_successfully }
+      auth-service: { condition: service_healthy }
+      user-service: { condition: service_healthy }
+      gym-service: { condition: service_healthy }
+      chat-service: { condition: service_healthy }
+      payment-service: { condition: service_healthy }
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"], <<: *hc }
+
+volumes:
+  scale_pgdata:
+    name: gymini-scale_pgdata
+  scale_minio_data:
+    name: gymini-scale_minio_data
+  scale_redis_data:
+    name: gymini-scale_redis_data
+
+networks:
+  default:
+    name: gymini-scale_net
+

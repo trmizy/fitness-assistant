@@ -7,6 +7,7 @@ import { partyLabel } from "../adminReconciliation.utils";
 import { FOCUS } from "./ExceptionParts";
 import { BALANCE_MAX_AGE_MS, ForbiddenPanel, LevelNote, StaleChip, useNow } from "./ReconStates";
 import { NO_PROCEDURE_TEXT, driftCauseCounts, negativeWalletViews } from "./reconciliationView";
+import { ReconciliationRunsHistory } from "./ReconciliationRunsHistory";
 import { errorView, useBalanceReport, useExceptionReports } from "./useReconciliationData";
 
 /**
@@ -221,6 +222,8 @@ export function BalanceView() {
               <p className="mt-2 text-xs text-st-warning">Sổ cân bằng nhưng vẫn có ví âm — cần kiểm tra ở chip Ngoại lệ.</p>
             )}
           </section>
+
+          <ReconciliationRunsHistory />
 
           {/* quy tắc */}
           <div>

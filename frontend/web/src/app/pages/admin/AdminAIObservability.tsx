@@ -1939,11 +1939,7 @@ export function AdminAIObservability() {
 
       {/* Performance note */}
       <div className="text-center text-[10px] text-zinc-700 py-2">
-        Dữ liệu từ{" "}
-        <code className="text-zinc-600">
-          GET /admin/ai/{"{overview,requests,queue,errors}"}
-        </code>{" "}
-        · Tự làm mới mỗi 30 giây · Dự phòng = Qdrant không truy xuất được · DFB = dùng phương án dự phòng cố định
+        Số liệu tổng quan, yêu cầu, hàng đợi và lỗi của AI · Tự làm mới mỗi 30 giây · Dự phòng = Qdrant không truy xuất được · DFB = dùng phương án dự phòng cố định
       </div>
 
       {/* Trace detail drawer */}

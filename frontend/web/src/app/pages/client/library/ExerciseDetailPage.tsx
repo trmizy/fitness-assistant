@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon as ArrowLeft, BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, TrophyIcon as Trophy, ClockCounterClockwiseIcon as History } from "@phosphor-icons/react";
 import { workoutService } from "../../../services/api";
+import { equipmentLabel } from "../../../utils/labels.vi";
 import ExerciseMuscleMap from "../../../components/ExerciseMuscleMap";
 import { ExerciseMediaPreview } from "./ExerciseMediaPreview";
 
@@ -82,7 +83,7 @@ export function ExerciseDetailPage() {
             {BODY_PART_LABELS[exercise.bodyPart] ?? exercise.bodyPart}
           </span>
           <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-800 text-zinc-400">
-            {String(exercise.typeOfEquipment).replace(/_/g, " ").toLowerCase()}
+            {equipmentLabel(String(exercise.typeOfEquipment))}
           </span>
           <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-800 text-zinc-400">
             {LOGGING_MODE_LABELS[exercise.loggingMode] ?? exercise.loggingMode}

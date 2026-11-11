@@ -542,7 +542,9 @@ export const availabilityService = {
 
   // Remove a blocked date
   async removeException(id: string, ptUserId: string) {
-    await availabilityRepository.removeException(id, ptUserId);
+    // N-A-11: deleting an exception that does not exist (or is not this PT's) is a 404, not a silent success.
+    const removed = await availabilityRepository.removeException(id, ptUserId);
+    if (!removed || removed.count === 0) throw err("Không tìm thấy ngày nghỉ", 404);
   },
 
   // Get available time slots for a PT on a specific date

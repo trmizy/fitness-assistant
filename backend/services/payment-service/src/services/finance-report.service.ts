@@ -3,7 +3,7 @@ import { prisma } from '../repositories/prisma';
 import { buildReconciliationReport } from './reconcile.service';
 import { PLATFORM_REVENUE_ID } from './wallet.service';
 
-export type FinanceGroupBy = 'day' | 'week' | 'month' | 'quarter';
+export type FinanceGroupBy = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 export interface FinanceBucket {
   /** Bucket start, ISO — the client renders the label (dd/MM, "Tuần …", "Thg …", "Quý …"). */
@@ -36,7 +36,7 @@ export interface FinanceOverviewReport {
   excludedTestAccounts: number | null;
 }
 
-const VALID_GROUP_BY: FinanceGroupBy[] = ['day', 'week', 'month', 'quarter'];
+const VALID_GROUP_BY: FinanceGroupBy[] = ['day', 'week', 'month', 'quarter', 'year'];
 
 export function isFinanceGroupBy(value: unknown): value is FinanceGroupBy {
   return typeof value === 'string' && (VALID_GROUP_BY as string[]).includes(value);

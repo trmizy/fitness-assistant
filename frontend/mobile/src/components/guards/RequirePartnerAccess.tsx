@@ -4,12 +4,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, ShieldAlert } from "lucide-react-native";
 
-import { Button, Card } from "../ui";
+import { Button, Card, Tappable } from "../ui";
 import { useApp } from "../../context/AppContext";
 import { partnerApplicationService } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import { darkColors } from "../../theme/colors";
-import { accessStateText, ownerLanding } from "../../features/gymOwner/gymOwner";
+import { accessStateText, ownerLanding, partnerAccessError } from "../../features/gymOwner/gymOwner";
 import { PartnerOnboardingWizard } from "../../features/gymOwner/PartnerOnboardingWizard";
 import { ApplicantHome } from "../../features/partnerApplication/ApplicantHome";
 
@@ -32,7 +32,7 @@ import { ApplicantHome } from "../../features/partnerApplication/ApplicantHome";
 export function RequirePartnerAccess({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
-  const { isAuthenticated, role, user } = useApp();
+  const { isAuthenticated, role, user, logout } = useApp();
 
   const statusQuery = useQuery({
     queryKey: ["partner-access-status", user?.id ?? "guest"],
@@ -83,7 +83,12 @@ export function RequirePartnerAccess({ children }: { children: ReactNode }) {
    */
   if (landing === "application" && state) return <ApplicantHome state={state} />;
 
-  const text = statusQuery.isError
+  // NE-12 — an explicit "no access" answer is final: say so plainly and let the person sign out.
+  const denied = statusQuery.isError && !statusQuery.data ? partnerAccessError(statusQuery.error) : null;
+
+  const text = denied
+    ? { title: denied.title, body: denied.body }
+    : statusQuery.isError
     ? {
         title: "Không đọc được trạng thái hồ sơ",
         body: "Chưa xác nhận được quyền truy cập của bạn. Kéo xuống để thử lại.",
@@ -106,13 +111,25 @@ export function RequirePartnerAccess({ children }: { children: ReactNode }) {
 
           <Card className="mt-2 w-full gap-2 p-4">
             <Text className="font-body text-xs text-muted-foreground">
-              {"Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ Gymini."}
+              {denied ? "Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ chủ phòng gym." : "Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ Gymini."}
             </Text>
           </Card>
 
-          <Button variant="secondary" onPress={() => void statusQuery.refetch()}>
-            {statusQuery.isRefetching ? "Đang kiểm tra…" : "Kiểm tra lại"}
-          </Button>
+          {denied ? (
+            <Button variant="secondary" onPress={() => void logout()}>
+              Đăng xuất
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" onPress={() => void statusQuery.refetch()}>
+                {statusQuery.isRefetching ? "Đang kiểm tra…" : "Kiểm tra lại"}
+              </Button>
+              {/* The trap in NE-12 was a dead end with no way out: signing out is always available here. */}
+              <Tappable accessibilityLabel="Đăng xuất" onPress={() => void logout()} className="p-2">
+                <Text className="font-body text-xs text-muted-foreground">Đăng xuất</Text>
+              </Tappable>
+            </>
+          )}
         </View>
       </ScrollView>
     </View>

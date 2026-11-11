@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { notificationService } from "../../services/api";
 import { Preferences } from "../../services/storage";
+import { staleCallNoticeIds } from "./pushRouting";
 
 /**
  * Phase 14.2 — this phone's FCM token on the server (user-service `push_devices`).
@@ -30,16 +31,31 @@ export async function unregisterPushToken(): Promise<void> {
 }
 
 /**
- * E2 — once the call has been answered or declined in the app, its "đang gọi" notice in the shade
- * is stale. Best-effort: the shade entry is the system's, and a missing one is not an error.
+ * E2 / NE-08 — a call's "đang gọi" notice in the shade is stale once the call was answered,
+ * declined, cancelled, ended or missed. Best-effort: the shade entry is the system's, and a
+ * missing one is not an error.
  */
 export async function dismissCallPush(callSessionId: string): Promise<void> {
+  await dismiss({ endedCallSessionId: callSessionId });
+}
+
+/**
+ * NE-08 — calls that ended while the app was closed never reached it as an event, so their
+ * notices pile up. Called when the app comes to the foreground: every call notice but the live
+ * one (if any) is cleared.
+ */
+export async function dismissStaleCallPushes(activeCallSessionId: string | null): Promise<void> {
+  await dismiss({ activeCallSessionId });
+}
+
+async function dismiss(opts: { endedCallSessionId?: string; activeCallSessionId?: string | null }): Promise<void> {
   try {
     const shown = await Notifications.getPresentedNotificationsAsync();
-    for (const n of shown) {
-      const data = (n.request.content.data ?? {}) as Record<string, unknown>;
-      if (data.callSessionId === callSessionId) await Notifications.dismissNotificationAsync(n.request.identifier);
-    }
+    const ids = staleCallNoticeIds(
+      shown.map((n) => ({ identifier: n.request.identifier, body: n.request.content.body, data: n.request.content.data })),
+      opts,
+    );
+    await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
   } catch {
     // nothing to tidy
   }

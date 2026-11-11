@@ -712,7 +712,7 @@ export function InBodyModule() {
               return (
                 <div
                   key={r.id}
-                  className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}
+                  className={`flex flex-wrap items-center gap-x-4 gap-y-2 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}
                 >
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
                     {formatMeasurementDate(r)}
@@ -722,7 +722,7 @@ export function InBodyModule() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-4 text-xs text-zinc-500">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 min-w-0 text-xs text-zinc-500">
                     <span className="text-blue-400 font-semibold">
                       {r.weight}kg
                     </span>
