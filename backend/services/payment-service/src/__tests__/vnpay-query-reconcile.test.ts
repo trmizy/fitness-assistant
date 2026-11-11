@@ -174,6 +174,42 @@ test('QUERY_FAILED: signature failure (missing, wrong key, tampered field, forge
   assert.equal(forged91.result, 'QUERY_FAILED');
 });
 
+test('unsigned error reply (real sandbox: 99 "Unexpected error", no vnp_SecureHash) -> QUERY_FAILED explained by its code and message', async () => {
+  const sandbox = await runOne(txn(), () => ({ vnp_ResponseCode: '99', vnp_Message: 'Unexpected error' }));
+  assert.equal(sandbox.result, 'QUERY_FAILED');
+  assert.equal(sandbox.vnpayStatusCode, null);
+  assert.equal(sandbox.vnpayAmount, null);
+  assert.equal(sandbox.note, 'VNPay trả về mã lỗi 99 (Unexpected error) nên chưa đối chiếu được.');
+  assert.doesNotMatch(sandbox.note, /chữ ký/);
+  // without a message: no empty parentheses
+  assert.equal((await runOne(txn(), () => ({ vnp_ResponseCode: '94' }))).note, 'VNPay trả về mã lỗi 94 nên chưa đối chiếu được.');
+  // the message is plain, single-line and at most 100 characters; a non-string message is ignored
+  const long = await runOne(txn(), () => ({ vnp_ResponseCode: '99', vnp_Message: `x\ny${'z'.repeat(300)}` }));
+  assert.ok(long.note.length < 200);
+  assert.doesNotMatch(long.note, /\n/);
+  assert.equal((await runOne(txn(), () => ({ vnp_ResponseCode: '99', vnp_Message: { a: 1 } }))).note, 'VNPay trả về mã lỗi 99 nên chưa đối chiếu được.');
+  // never a match / mismatch decision, whatever the row status
+  for (const s of ['PAID', 'PENDING', 'REFUNDED']) {
+    assert.equal((await runOne(txn({ status: s }), () => ({ vnp_ResponseCode: '99', vnp_Message: 'Unexpected error', vnp_TransactionStatus: '00', vnp_Amount: '1' }))).result, 'QUERY_FAILED', s);
+  }
+});
+
+test('unsigned 91 and unsigned 00 still need a valid signature (signature note, no decision)', async () => {
+  for (const code of ['91', '00']) {
+    const item = await runOne(txn({ status: 'PAID' }), (r) => {
+      const a = answer(r, { code }) as Record<string, string>;
+      delete a.vnp_SecureHash;
+      return a;
+    });
+    assert.equal(item.result, 'QUERY_FAILED', code);
+    assert.match(item.note, /chữ ký/, code);
+  }
+  // an answer with no response code at all and no signature is also a signature failure
+  const none = await runOne(txn(), () => ({ vnp_Message: 'hello' }));
+  assert.equal(none.result, 'QUERY_FAILED');
+  assert.match(none.note, /chữ ký/);
+});
+
 test('QUERY_FAILED: network error / timeout, unexpected response code, wrong merchant or reference', async () => {
   assert.equal((await runOne(txn(), () => new Error('ECONNABORTED timeout of 8000ms exceeded'))).result, 'QUERY_FAILED');
   const c99 = await runOne(txn(), (r) => answer(r, { code: '99' }));
