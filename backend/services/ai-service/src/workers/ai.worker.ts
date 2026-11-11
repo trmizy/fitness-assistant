@@ -1023,6 +1023,10 @@ function buildFastPlanPrompt(args: {
 }
 
 // Job data schema
+/** Shown when the model could not produce an adjusted plan; the previous plan version is untouched (adjustments create a new version). */
+export const ADJUSTMENT_FAILED_MESSAGE_VI =
+  "AI chưa điều chỉnh được kế hoạch lần này. Kế hoạch cũ vẫn giữ nguyên — bạn bấm “Điều chỉnh” lại sau vài giây nhé.";
+
 function buildDeterministicPlanFromCatalogs(args: {
   goal: string;
   durationWeeks: number;
@@ -1169,6 +1173,10 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       equipmentPreference = "MIXED_GYM",
     } = dataResult.data as PlanJobData;
     const planJobStartedAt = Date.now();
+    // "Điều chỉnh" (POST /plans/adjust) is the only producer of adjustmentContext. For such a job the catalog fallback below would
+    // complete a plan that ignores the user's request and present it as the adjusted plan, so an adjustment must be made by the
+    // model or fail honestly (retry / "thử lại") — audit 2026-11-11.
+    const isAdjustmentJob = Boolean(adjustmentContext?.trim());
 
     logger.info(
       { jobId: job.id, planId, userId },
@@ -1643,7 +1651,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       );
       rawAnswer = llmResponse.answer;
     } catch (err) {
-      if (isRecoverablePlanLlmTimeout(err)) {
+      if (isRecoverablePlanLlmTimeout(err) && !isAdjustmentJob) {
         const fallbackContent = buildDeterministicPlanFromCatalogs({
           goal,
           durationWeeks,
@@ -1681,8 +1689,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         );
       }
 
-      const reason =
-        err instanceof LlmError
+      const reason = isAdjustmentJob
+        ? ADJUSTMENT_FAILED_MESSAGE_VI
+        : err instanceof LlmError
           ? `LLM unavailable: ${err.message}`
           : `Unexpected LLM error: ${String(err)}`;
       logger.error(
@@ -1810,7 +1819,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       }
     }
 
-    if (!parseResult.ok) {
+    if (!parseResult.ok && !isAdjustmentJob) {
       const fallbackContent = buildDeterministicPlanFromCatalogs({
         goal,
         durationWeeks,
@@ -1841,8 +1850,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       // surface a friendly message but keep the technical reason in logs.
       const tech = parseResult.reason || "";
       if (tech.includes("LLM did not return any JSON")) {
-        const reason =
-          "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
+        const reason = isAdjustmentJob
+          ? ADJUSTMENT_FAILED_MESSAGE_VI
+          : "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
         logger.error(
           {
             jobId: job.id,
@@ -1856,8 +1866,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         return;
       }
 
-      const reason =
-        "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
+      const reason = isAdjustmentJob
+        ? ADJUSTMENT_FAILED_MESSAGE_VI
+        : "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
       logger.error(
         {
           jobId: job.id,
