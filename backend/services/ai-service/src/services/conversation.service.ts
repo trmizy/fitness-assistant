@@ -10,6 +10,7 @@ import { submitGeneration } from "./generation-operations";
 import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
 import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
 import { ApiError, LlmGenerationError } from "../errors/api-error";
+import { parseWorkoutAdjustment } from "./revision/workout-adjustment-constraints";
 
 // Quick-workout exercise schema, simpler than the full multi-week plan.
 const QuickExerciseSchema = z.object({
@@ -200,10 +201,21 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     const newVersion = original.version + 1;
     const originalPlanContent = original.plan as {
       exercisesPerDay?: number;
+      weeklySchedule?: Array<{ day?: string; goal?: string; cardio?: string; exercises?: Array<{ exerciseId?: string; name?: string; sets?: number; reps?: string }> }>;
     } | null;
-    const daysPerWeek = params.daysPerWeek ?? original.daysPerWeek;
+    // Numbers typed only in the text box ("còn 2 buổi", "mỗi buổi 4 bài") count when the numeric inputs were left empty.
+    const parsedText = parseWorkoutAdjustment(params.adjustments ?? "");
+    const daysPerWeek = params.daysPerWeek ?? parsedText.daysPerWeek ?? original.daysPerWeek;
     const exercisesPerDay =
-      params.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
+      params.exercisesPerDay ?? parsedText.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
+    // The plan being adjusted, so the model EDITS it instead of generating an unrelated new one (adjust eval 2026-11-11).
+    const previousPlan = (originalPlanContent?.weeklySchedule ?? []).slice(0, 7).map((d) => ({
+      goal: String(d.goal ?? "").slice(0, 80),
+      cardio: d.cardio ? String(d.cardio).slice(0, 120) : undefined,
+      exercises: (d.exercises ?? []).slice(0, 10).map((e) => ({
+        exerciseId: String(e.exerciseId ?? ""), name: String(e.name ?? "").slice(0, 100), sets: Number(e.sets) || undefined, reps: e.reps ? String(e.reps).slice(0, 20) : undefined,
+      })),
+    }));
 
     const op = await submitGeneration({
       actorUserId: params.userId,
@@ -225,6 +237,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
         daysPerWeek,
         exercisesPerDay,
         adjustmentContext: params.adjustments,
+        previousPlan,
       },
     });
 

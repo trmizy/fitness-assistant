@@ -1136,12 +1136,15 @@ export const planController = {
       });
       logger.info({ userId, planId, targetSource }, "Nutrition adjustment target resolved");
 
+      // A meal count typed in the request ("chia thành 4 bữa", "5 bữa nhỏ") wins: the web adjust panel always sends the generate
+      // form's mealsPerDay (default 3) even when the user never touched it, so the field alone cannot express the change (eval N06).
+      const typedMeals = /(?:^|\D)([1-6])\s*b(?:ữ|ư|u)a\b/i.exec(adjustments);
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
         ...goalTargets,
         goal: plan.goal || "General Health",
         durationWeeks: 1,
-        mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
+        mealsPerDay: (typedMeals ? Number(typedMeals[1]) : undefined) || mealsPerDay || plan.mealsPerDay || 3,
         notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
         excludedFoodKeys,
         idempotencyKey: idempotencyKeyFrom(req, `nutrition-adjust:${planId}`),
