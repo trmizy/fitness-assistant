@@ -1,15 +1,17 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HandshakeIcon as Handshake, CircleNotchIcon as Loader2, CheckIcon as Check, XIcon as X, RepeatIcon as Repeat, TrashIcon as Trash2, WarningIcon as AlertTriangle, StorefrontIcon as Storefront } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { collaborationService, gymService, profileService } from "../../services/api";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { useApp } from "../../context/AppContext";
+import { collabQueryKeys } from "../../utils/discoverySearch";
+import { mergeUniquePages, nextCursorParam } from "../../utils/ptPaging";
 import {
   COVERAGE_COPY,
   LEGACY_OPEN_OFFER_NOTE,
   PT_NAME_FALLBACK,
   SIGNED_CONTRACTS_NOTE,
-  brandOptionsFromGyms,
   brandsBlockedForProposal,
   buildPartnershipSections,
   optionLabel,
@@ -57,7 +59,7 @@ const INPUT_CLS =
   "w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50";
 
 type Dialog =
-  | { type: "propose"; brandId?: string; ptUserId?: string; ptName?: string; doorBranchId?: string; repartner?: boolean }
+  | { type: "propose"; brandId?: string; brandLabel?: string; ptUserId?: string; ptName?: string; doorBranchId?: string; repartner?: boolean }
   | { type: "counter"; id: string; title: string; round: number; pt: string | null; gym: string | null; branchOnly?: boolean }
   | { type: "terminate"; id: string; title: string; lines: string[]; immediate: boolean };
 
@@ -72,16 +74,25 @@ function Chip({ children, cls = "bg-zinc-800/60 text-zinc-300" }: { children: Re
 
 export function CollaborationPanel({ as }: { as: Viewer }) {
   const queryClient = useQueryClient();
+  const { user } = useApp();
+  const cKeys = collabQueryKeys(user?.id, as);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [ptRate, setPtRate] = useState("55");
   const [gymRate, setGymRate] = useState("35");
   const [brandId, setBrandId] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
+  const [debouncedBrandSearch, setDebouncedBrandSearch] = useState("");
   const [inviteePtId, setInviteePtId] = useState("");
   const [ptSearch, setPtSearch] = useState("");
   // One dialog serves every flow; Back closes whichever is open.
   useBackDismissible(!!dialog, () => setDialog(null));
 
-  const queryKey = ["collaborations", as];
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedBrandSearch(brandSearch.trim()), 200);
+    return () => window.clearTimeout(t);
+  }, [brandSearch]);
+
+  const queryKey = cKeys.list;
   const { data: rawRows, isLoading, error: listError } = useQuery<any[]>({
     queryKey,
     queryFn: () => (as === "GYM" ? collaborationService.listForOwner() : collaborationService.listMine()),
@@ -98,7 +109,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
   );
   const nameQueries = useQueries({
     queries: ptIds.map((id) => ({
-      queryKey: ["pt-display-name", id],
+      queryKey: cKeys.ptDisplayName(id),
       queryFn: async () => ptDisplayName(await profileService.getPTDetail(id)),
       staleTime: 10 * 60_000,
       retry: false,
@@ -109,23 +120,37 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
 
   // What a new proposal can be addressed to.
   const proposing = dialog?.type === "propose";
-  const { data: publicGyms } = useQuery<any[]>({
-    queryKey: ["all-gyms-for-collab"],
-    queryFn: gymService.listGyms,
+  const brandOptionsQuery = useInfiniteQuery({
+    queryKey: cKeys.brandOptions(debouncedBrandSearch),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: any) => nextCursorParam(lastPage),
+    queryFn: ({ pageParam }) =>
+      gymService.getBrandOptions({
+        q: debouncedBrandSearch || undefined,
+        cursor: pageParam ?? null,
+        limit: 25,
+      }),
     enabled: proposing && as === "PT",
+    staleTime: 60_000,
   });
   const { data: ownedGyms } = useQuery<any[]>({
-    queryKey: ["owned-gyms-for-collab"],
+    queryKey: ["owned-gyms-for-collab", user?.id ?? "anon"],
     queryFn: gymService.listOwnedGyms,
     enabled: as === "GYM",
   });
   const brandOptions: BrandOption[] = useMemo(() => {
-    if (as === "PT") return brandOptionsFromGyms(publicGyms);
+    if (as === "PT") {
+      return mergeUniquePages(
+        brandOptionsQuery.data?.pages,
+        (page: any) => page?.options,
+        (opt: BrandOption) => opt.brandId,
+      );
+    }
     return ownerProposalOptions(ownedGyms);
-  }, [as, publicGyms, ownedGyms]);
+  }, [as, brandOptionsQuery.data?.pages, ownedGyms]);
   const blocked = useMemo(() => brandsBlockedForProposal(rawRows), [rawRows]);
   const { data: ptHits = [], isFetching: searching } = useQuery<{ userId: string; name: string }[]>({
-    queryKey: ["collab-pt-search", ptSearch.trim()],
+    queryKey: cKeys.ptSearch(ptSearch.trim()),
     queryFn: async () => {
       const res = await profileService.listPTs({ q: ptSearch.trim(), limit: 8 });
       const list = Array.isArray(res?.pts) ? res.pts : Array.isArray(res) ? res : [];
@@ -188,6 +213,8 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
     setInviteePtId(init.ptUserId ?? "");
     setPtSearch(init.ptName ?? "");
     setBrandId(init.brandId ?? "");
+    setBrandSearch("");
+    setDebouncedBrandSearch("");
     setDialog({ type: "propose", ...init });
   };
 
@@ -297,7 +324,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
         {c.canRepartner && (
           <button type="button" data-testid="collab-repartner"
             onClick={() =>
-              openPropose({ brandId: c.brandId, ptUserId: c.ptUserId, ptName: as === "GYM" ? nameOf(c.ptUserId) : undefined, doorBranchId: c.proposeBranchId ?? undefined, repartner: true })
+              openPropose({ brandId: c.brandId, brandLabel: c.brandName, ptUserId: c.ptUserId, ptName: as === "GYM" ? nameOf(c.ptUserId) : undefined, doorBranchId: c.proposeBranchId ?? undefined, repartner: true })
             }
             className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold mt-1">
             <Handshake className="w-3.5 h-3.5" /> Hợp tác lại
@@ -372,7 +399,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
         {g.canProposeJoint && (
           <button type="button" data-testid="collab-propose-joint"
             onClick={() =>
-              openPropose({ brandId: g.brandId ?? undefined, ptUserId: g.ptUserId, ptName: as === "GYM" ? nameOf(g.ptUserId) : undefined, doorBranchId: g.proposeBranchId ?? undefined })
+              openPropose({ brandId: g.brandId ?? undefined, brandLabel: g.brandName, ptUserId: g.ptUserId, ptName: as === "GYM" ? nameOf(g.ptUserId) : undefined, doorBranchId: g.proposeBranchId ?? undefined })
             }
             className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
             <Storefront className="w-3.5 h-3.5" /> Đề xuất thỏa thuận chung cho thương hiệu
@@ -465,20 +492,50 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
                 </div>
                 <div className="p-5 space-y-3">
                   {dialog.type === "propose" && as === "PT" && (
-                    <div>
-                      <label className="text-xs font-semibold text-zinc-400 mb-1 block" htmlFor="collab-brand">Hợp tác với</label>
-                      <select id="collab-brand" data-testid="collab-brand-select" value={brandId} disabled={!!dialog.repartner || !!dialog.brandId}
-                        onChange={(e) => setBrandId(e.target.value)} className={INPUT_CLS}>
-                        <option value="">-- Chọn thương hiệu --</option>
-                        {brandOptions.map((b) => (
-                          <option key={b.brandId} value={b.brandId} disabled={blocked.has(b.brandId)}>
-                            {optionLabel(b)}{blocked.has(b.brandId) ? " — đã có đề xuất/thỏa thuận" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      {selectedBrand && (
-                        <p data-testid="collab-option-note" className="text-[11px] text-zinc-500 mt-1">{optionNote(selectedBrand)}</p>
+                    <div className="space-y-2">
+                      {!dialog.repartner && !dialog.brandId && (
+                        <div>
+                          <label className="text-xs font-semibold text-zinc-400 mb-1 block" htmlFor="collab-brand-search">Tìm thương hiệu / phòng gym</label>
+                          <input
+                            id="collab-brand-search"
+                            data-testid="collab-brand-search"
+                            value={brandSearch}
+                            onChange={(e) => setBrandSearch(e.target.value)}
+                            placeholder="Gõ tên thương hiệu hoặc thành phố..."
+                            className={INPUT_CLS}
+                          />
+                        </div>
                       )}
+                      <div>
+                        <label className="text-xs font-semibold text-zinc-400 mb-1 block" htmlFor="collab-brand">Hợp tác với</label>
+                        <select id="collab-brand" data-testid="collab-brand-select" value={brandId} disabled={!!dialog.repartner || !!dialog.brandId}
+                          onChange={(e) => setBrandId(e.target.value)} className={INPUT_CLS}>
+                          <option value="">-- Chọn thương hiệu --</option>
+                          {dialog.brandId && !brandOptions.some((b) => b.brandId === dialog.brandId) && (
+                            <option value={dialog.brandId}>{dialog.brandLabel ?? dialog.brandId}</option>
+                          )}
+                          {brandOptions.map((b) => (
+                            <option key={b.brandId} value={b.brandId} disabled={blocked.has(b.brandId)}>
+                              {optionLabel(b)}{blocked.has(b.brandId) ? " — đã có đề xuất/thỏa thuận" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        {brandOptionsQuery.isLoading && <p className="text-[11px] text-zinc-500 mt-1">Đang tải danh sách thương hiệu…</p>}
+                        {!dialog.repartner && !dialog.brandId && brandOptionsQuery.hasNextPage && (
+                          <button
+                            type="button"
+                            data-testid="collab-brand-load-more"
+                            disabled={brandOptionsQuery.isFetchingNextPage}
+                            onClick={() => brandOptionsQuery.fetchNextPage()}
+                            className="mt-1.5 text-[11px] font-semibold text-green-400 hover:underline disabled:opacity-60"
+                          >
+                            {brandOptionsQuery.isFetchingNextPage ? "Đang tải thêm…" : "Tải thêm thương hiệu"}
+                          </button>
+                        )}
+                        {selectedBrand && (
+                          <p data-testid="collab-option-note" className="text-[11px] text-zinc-500 mt-1">{optionNote(selectedBrand)}</p>
+                        )}
+                      </div>
                     </div>
                   )}
                   {dialog.type === "propose" && as === "GYM" && (

@@ -27,6 +27,7 @@ const GymManagementKitchenSink = lazy(() =>
 
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
+const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 const PartnerInviteAcceptPage = lazy(() => import("./pages/auth/PartnerInviteAcceptPage").then((m) => ({ default: m.PartnerInviteAcceptPage })));
 const PartnerApplyPage = lazy(() => import("./pages/partner-application/PartnerApplyPage").then((m) => ({ default: m.PartnerApplyPage })));
@@ -208,6 +209,7 @@ export const router = createBrowserRouter([
       // login screen or in the app.
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
+      { path: "attributions", Component: AttributionsPage },
       { path: "register", Component: RegisterPage },
       { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },
       // Đăng ký đối tác tự phục vụ: công khai (chưa có tài khoản) → vùng ứng viên (đã đăng nhập, chưa được duyệt).

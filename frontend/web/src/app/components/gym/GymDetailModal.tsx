@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   BarbellIcon as Dumbbell,
   MapPinIcon as MapPin,
@@ -31,6 +31,8 @@ import { useLocationNames } from "./addressAutoPin";
 import { ABOUT_MAX } from "./AboutCounter";
 import { PaymentMethodDialog } from "../payment/PaymentMethodDialog";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { useApp } from "../../context/AppContext";
+import { gymDiscoveryKeys } from "../../utils/discoverySearch";
 
 /**
  * Trang tìm PT đã dùng modal 3 tab (Chi tiết/Giá gói/Đánh giá) từ lâu — tìm phòng gym vẫn
@@ -55,6 +57,8 @@ export function GymDetailModal({
   initialTab?: "detail" | "pricing" | "reviews";
 }) {
   const navigate = useNavigate();
+  const { user } = useApp();
+  const gymKeys = gymDiscoveryKeys(user?.id);
   useBackDismissible(true, onClose);
 
   const [isDesktopView, setIsDesktopView] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
@@ -74,20 +78,20 @@ export function GymDetailModal({
   const [referralCode, setReferralCode] = useState(() => (initialReferralCode ?? "").trim().toUpperCase());
 
   const { data: gym, isLoading: gymLoading, error: gymError } = useQuery<Gym>({
-    queryKey: ["gym", gymId],
+    queryKey: gymKeys.detail(gymId),
     queryFn: () => gymService.getGym(gymId),
     // 404 = hidden / closed / no longer approved since the list was loaded: retrying cannot help.
     retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
   const { data: plans = [], isLoading: plansLoading, error: plansError } = useQuery<GymMembershipPlan[]>({
-    queryKey: ["gym-plans", gymId],
+    queryKey: gymKeys.plans(gymId),
     queryFn: () => gymService.listPlans(gymId),
     retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
   const amenityGroups = groupedPublicAmenities(gym);
   const galleryPhotos = galleryPhotosOf(gym, API_URL);
   const { data: multiGymWarnings = [] } = useQuery({
-    queryKey: ["membership-warnings", gymId],
+    queryKey: gymKeys.warnings(gymId),
     queryFn: () => gymService.getMembershipWarnings(gymId),
   });
 
@@ -273,6 +277,14 @@ export function GymDetailModal({
               </section>
             )}
             <GymPhotoGallery photos={galleryPhotos} title={gym.name} />
+            {galleryPhotos.length > 0 && (
+              <p className="text-[11px] text-zinc-500 -mt-3">
+                Ảnh minh hoạ ·{" "}
+                <Link to="/attributions" onClick={onClose} className="text-green-400 hover:underline">
+                  Nguồn ảnh &amp; giấy phép
+                </Link>
+              </p>
+            )}
 
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2 text-zinc-300">
