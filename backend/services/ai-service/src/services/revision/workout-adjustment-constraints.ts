@@ -147,12 +147,22 @@ const BEGINNER_UNSAFE = /snatch|clean|jerk|muscle.?up|nordic|commando|pistol|ply
 export interface TraineeProfileLike { experienceLevel?: string | null; age?: number | null }
 
 /** True when this catalog exercise should not be offered to this trainee at all. */
+/**
+ * Olympic lifts, strongman/sled drills and powerlifting-specialty setups need coaching and special equipment; an unsupervised
+ * AI plan should not prescribe them to anyone below ADVANCED (swap test 2026-11-11: an INTERMEDIATE 28-year-old got Squat Jerk,
+ * Power Snatch, Hang Clean, Reverse Band Sumo Deadlift). Plain plyometrics stay allowed for intermediates.
+ */
+const NON_ADVANCED_UNSAFE = /snatch|clean|jerk|muscle.?up|kipping|with chains|with bands|reverse band|band(ed)? (bench|squat|deadlift)|board press|pin press|powerlifting|log lift|zercher|jefferson|frankenstein|sled|tire|atlas|stone|keg|yoke|power stairs|iron cross|bradford|rocky press|otis|heavy bag|anti.?gravity press|rickshaw|speed (box|squat|deadlift)/i;
+
 export function exerciseUnsafeForTrainee(ex: ExerciseLike, p: TraineeProfileLike | null | undefined): boolean {
   const name = String(ex.exerciseName ?? ex.name ?? "");
   if (ALWAYS_UNSAFE.test(name)) return true;
-  const novice = /beginner/i.test(String(p?.experienceLevel ?? "")) || (typeof p?.age === "number" && p.age >= 50);
-  if (!novice) return false;
-  return /expert|advanced/i.test(String(ex.difficultyLevel ?? "")) || BEGINNER_UNSAFE.test(name);
+  const level = String(p?.experienceLevel ?? "");
+  const novice = /beginner/i.test(level) || (typeof p?.age === "number" && p.age >= 50);
+  if (novice) return /expert|advanced/i.test(String(ex.difficultyLevel ?? "")) || BEGINNER_UNSAFE.test(name);
+  if (/advanced|expert|athlete/i.test(level)) return false;
+  // Intermediate, or level unknown: no Olympic/strongman/powerlifting-specialty work and no catalog-"expert" items.
+  return /expert/i.test(String(ex.difficultyLevel ?? "")) || NON_ADVANCED_UNSAFE.test(name);
 }
 
 /** Location to fetch the catalog with: equipment-only adjustments need the home pool (bodyweight/dumbbells). */

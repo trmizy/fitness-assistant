@@ -71,7 +71,7 @@ test("level safety: beginners and 50+ never get Olympic/explosive/powerlifting-s
     assert.equal(exerciseUnsafeForTrainee({ exerciseName: name, difficultyLevel: "intermediate" }, beginner), true, name);
     assert.equal(exerciseUnsafeForTrainee({ exerciseName: name, difficultyLevel: "intermediate" }, older), true, name);
   }
-  assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Power Clean", difficultyLevel: "intermediate" }, inter), false, "trained adults keep them");
+  assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Power Clean", difficultyLevel: "intermediate" }, { experienceLevel: "ADVANCED", age: 22 }), false, "advanced trainees keep them (intermediates no longer do, see below)");
   assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Neck Press", difficultyLevel: "intermediate" }, inter), true);
   assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Barbell Guillotine Bench Press" }, inter), true);
   assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Goblet Squat", difficultyLevel: "beginner" }, beginner), false);
@@ -84,4 +84,16 @@ test("dumbbell-only keeps dumbbell exercises only; full-body day is parsed", () 
   assert.equal(bad(db, "Push-Up", "BODYWEIGHT"), true);
   assert.equal(bad(db, "Dumbbell Romanian Deadlift", "DUMBBELLS"), false);
   assert.deepEqual(P("Đổi buổi 1 thành buổi tập toàn thân").fullBodyDays, [0]);
+});
+
+test("level safety: intermediates get no Olympic/strongman/powerlifting-specialty lifts; advanced trainees keep them", () => {
+  const inter = { experienceLevel: "INTERMEDIATE", age: 28 };
+  for (const name of ["Squat Jerk", "Power Snatch", "Hang Clean - Below the Knees", "Reverse Band Sumo Deadlift", "Pin Presses", "Anti-Gravity Press", "Sled Push", "Bench Press - Powerlifting"]) {
+    assert.equal(exerciseUnsafeForTrainee({ exerciseName: name, difficultyLevel: "intermediate" }, inter), true, name);
+  }
+  for (const name of ["Barbell Bench Press - Medium Grip", "Romanian Deadlift", "Box Jump", "Pull-Up", "Barbell Squat"]) {
+    assert.equal(exerciseUnsafeForTrainee({ exerciseName: name, difficultyLevel: "intermediate" }, inter), false, name);
+  }
+  assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Power Snatch" }, { experienceLevel: "ADVANCED", age: 28 }), false);
+  assert.equal(exerciseUnsafeForTrainee({ exerciseName: "Neck Press" }, { experienceLevel: "ADVANCED", age: 28 }), true);
 });
