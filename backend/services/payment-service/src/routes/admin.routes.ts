@@ -446,7 +446,8 @@ router.post('/:transactionId/retry-activation', async (req: Request, res: Respon
     return res.json({ success: true });
   } catch (err) {
     logger.error({ error: 'Manual retry-activation failed', transactionId: txn.id, message: (err as Error).message });
-    return res.status(502).json({ success: false, error: { code: 'RETRY_FAILED', message: (err as Error).message } });
+    // The raw message (an internal/English downstream error) stays in the log above only; the admin gets a fixed Vietnamese sentence.
+    return res.status(502).json({ success: false, error: { code: 'RETRY_FAILED', message: 'Chưa thử lại được khoản hoàn tiền. Hãy tải lại và kiểm tra trạng thái trước khi thử lại.' } });
   }
 });
 

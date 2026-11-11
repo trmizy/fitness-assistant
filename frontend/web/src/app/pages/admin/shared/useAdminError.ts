@@ -66,6 +66,12 @@ export const ADMIN_ERROR_CODES: Record<string, CodeEntry> = {
     message: "Máy chủ gặp lỗi khi xử lý. Chưa xác nhận được kết quả — hãy tải lại trạng thái để kiểm tra trước khi thử lại.",
     ambiguousOnWrite: true,
   },
+  // payment-service manual retry-activation (502): the downstream call failed, whether it took effect is unknown -> re-read first
+  RETRY_FAILED: {
+    message: "Chưa thử lại được khoản hoàn tiền. Hãy tải lại và kiểm tra trạng thái trước khi thử lại.",
+    stale: true,
+    ambiguousOnWrite: true,
+  },
   // payment-service finance screens (BE-1 transactions, G-06 reconciliation runs, G-08 history, G-09/10 wallets, B8 VNPay L3)
   INVALID_QUERY: { message: "Bộ lọc không hợp lệ. Hãy đặt lại bộ lọc rồi thử lại." },
   INVALID_ID: { message: "Mã không hợp lệ. Hãy mở lại từ danh sách." },

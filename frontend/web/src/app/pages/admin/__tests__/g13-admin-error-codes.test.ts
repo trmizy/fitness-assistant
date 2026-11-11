@@ -54,6 +54,23 @@ describe("G-13 withdrawal write codes", () => {
   });
 });
 
+describe("RETRY_FAILED (manual retry-activation, 502)", () => {
+  it("write: ambiguous (re-read before retrying), fixed Vietnamese text, raw English never shown", () => {
+    const v = describeAdminError(envelope(502, "RETRY_FAILED", "connect ECONNREFUSED 10.0.0.5:3003"), { action: "write" });
+    assert.equal(v.code, "RETRY_FAILED");
+    assert.equal(v.ambiguous, true);
+    assert.equal(v.message, "Chưa thử lại được khoản hoàn tiền. Hãy tải lại và kiểm tra trạng thái trước khi thử lại.");
+    assert.ok(!/ECONNREFUSED|10\.0/.test(v.message));
+  });
+
+  it("read: same Vietnamese text, flagged stale (reload), not ambiguous", () => {
+    const v = describeAdminError(envelope(502, "RETRY_FAILED", "connect ECONNREFUSED"), { action: "read" });
+    assert.equal(v.stale, true);
+    assert.equal(v.ambiguous, false);
+    assert.match(v.message, /tải lại và kiểm tra trạng thái/);
+  });
+});
+
 describe("G-13 finance screen codes", () => {
   const cases: Array<[number, string, RegExp]> = [
     [400, "INVALID_QUERY", /Bộ lọc không hợp lệ/],
