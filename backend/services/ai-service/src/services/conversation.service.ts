@@ -172,6 +172,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     daysPerWeek?: number;
     exercisesPerDay?: number;
     idempotencyKey?: string;
+    /** Resolved "đổi X thành Y" (plan.controller resolveExerciseSwap). */
+    swap?: { fromNames: string[]; toExerciseId?: string; toName?: string };
   }) {
     const original = await conversationRepository.findPlanById(
       params.originalPlanId,
@@ -238,6 +240,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
         exercisesPerDay,
         adjustmentContext: params.adjustments,
         previousPlan,
+        ...(params.swap ? { swap: params.swap } : {}),
       },
     });
 

@@ -1152,6 +1152,12 @@ const PlanJobDataSchema = z.object({
     cardio: z.string().max(120).optional(),
     exercises: z.array(z.object({ exerciseId: z.string().max(80).optional(), name: z.string().max(100).optional(), sets: z.number().optional(), reps: z.string().max(20).optional() })).max(10),
   })).max(7).optional(),
+  /** A named swap resolved by plan.controller ("đổi X thành Y"): X = exact names in the previous plan, Y = a real catalog row. */
+  swap: z.object({
+    fromNames: z.array(z.string().max(120)).min(1).max(5),
+    toExerciseId: z.string().max(80).optional(),
+    toName: z.string().max(120).optional(),
+  }).optional(),
 });
 type PlanJobData = z.infer<typeof PlanJobDataSchema>;
 
@@ -1204,12 +1210,20 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       exercisesPerDay,
       adjustmentContext,
       previousPlan,
+      swap,
       trainingLocation: requestedTrainingLocation = "GYM",
       equipmentPreference = "MIXED_GYM",
     } = dataResult.data as PlanJobData;
     const planJobStartedAt = Date.now();
     // Adjustment constraints parsed from the user's text: they decide which catalog exercises the model may choose from.
     const adjust = adjustmentContext?.trim() ? parseWorkoutAdjustment(adjustmentContext) : null;
+    if (adjust && swap) {
+      // A named swap removes EXACTLY X. Keyword exclusions from the same text ("bench press", "squat") would also remove the
+      // target Y ("Dumbbell Bench Press", "Goblet Squat") and every similar exercise the user wanted to keep.
+      const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      adjust.excludeNamePatterns = swap.fromNames.map((name) => new RegExp(`^${escape(name)}$`, "i"));
+      adjust.excludeLabels = [...swap.fromNames];
+    }
     const trainingLocation = adjust ? fetchLocationFor(adjust, requestedTrainingLocation) : requestedTrainingLocation;
     // "Điều chỉnh" (POST /plans/adjust) is the only producer of adjustmentContext. For such a job the catalog fallback below would
     // complete a plan that ignores the user's request and present it as the adjusted plan, so an adjustment must be made by the
@@ -1279,6 +1293,27 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
     }
 
     if (adjust) {
+      // The catalog sample is bounded and re-drawn every call, so the previous plan's exercises (and a swap target) are often
+      // missing from it — the model then cannot keep what the user did not ask to change (swap eval 2026-11-11: 0-4 of 14 kept).
+      // Add them back from the authoritative catalog by id.
+      const wanted = [...new Set([...(previousPlan ?? []).flatMap((day) => day.exercises.map((e) => e.exerciseId ?? "")), swap?.toExerciseId ?? ""])]
+        .filter((id) => id && !allowedExercises.some((exercise) => exercise.id === id));
+      if (wanted.length) {
+        try {
+          const resp = await requestService({
+            service: "fitness", method: "POST", path: "/internal/exercises/muscle-profiles",
+            body: { exerciseIds: wanted.slice(0, 200) }, timeoutMs: 8000,
+            headers: { "x-internal-token": internalSecret ?? "", "x-user-id": userId },
+          });
+          const rows: any[] = resp?.data?.data?.exercises ?? [];
+          for (const row of rows) {
+            allowedExercises.push({ id: row.id, exerciseName: row.name, bodyPart: row.bodyPart, muscleGroupsActivated: row.muscleGroups ?? [] } as AllowedExercise);
+          }
+          logger.info({ planId, requested: wanted.length, added: rows.length }, "Previous-plan / swap-target exercises added to the adjustment pool");
+        } catch (err) {
+          logger.warn({ err, planId }, "Could not load previous-plan exercises; adjustment continues with the sampled pool");
+        }
+      }
       const before = allowedExercises.length;
       allowedExercises = allowedExercises.filter((exercise) => !exerciseViolates(exercise, adjust));
       logger.info({ planId, before, after: allowedExercises.length, excluded: adjust.excludeLabels, equipmentOnly: adjust.equipmentOnly ?? null }, "Adjustment constraints applied to the exercise pool");
@@ -1375,6 +1410,8 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       const byId = new Map(allowedExercises.map((exercise) => [exercise.id, exercise]));
       for (const day of perDayCatalogs) {
         const extra: AllowedExercise[] = [];
+        const swapTarget = swap?.toExerciseId ? byId.get(swap.toExerciseId) : undefined;
+        if (swapTarget && (previousPlan?.[day.dayIndex]?.exercises ?? []).some((e) => swap!.fromNames.includes(e.name ?? ""))) extra.push(swapTarget);
         for (const prev of previousPlan?.[day.dayIndex]?.exercises ?? []) {
           const kept = prev.exerciseId ? byId.get(prev.exerciseId) : undefined;
           if (kept) extra.push(kept);
@@ -1496,7 +1533,14 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       bodyCompText: bodyCompText || undefined,
       evidenceText,
       catalogLimit: adjust ? PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT + 6 : undefined,
-      adjustmentRules: adjust ? adjustmentPromptLines(adjust) : undefined,
+      adjustmentRules: adjust
+        ? [
+            ...(swap
+              ? [`- EXACT SWAP: replace ${swap.fromNames.join(" / ")} ${swap.toName ? `with ${swap.toName} (exerciseId ${swap.toExerciseId}) on the SAME day and position` : "with ONE suitable exercise for the same muscle group from that day's catalog"}. Every other exercise, its day, sets and reps must stay EXACTLY as in CURRENT PLAN.`]
+              : []),
+            ...adjustmentPromptLines(adjust).filter((line) => !swap || !line.startsWith("- The user asked to REMOVE")),
+          ]
+        : undefined,
       previousPlan: adjust ? previousPlan : undefined,
     });
     const generationRepairReasons: string[] = [];
@@ -2009,6 +2053,32 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         }
       });
       if (focusRepairs.length) appendTrackedPlanWarnings(parseResult.content, focusRepairs);
+    }
+
+    // "Đổi X thành Y": the explicit swap is guaranteed. Wherever X was in the previous plan, that day must hold Y (replacing X if
+    // the model kept it, otherwise the exercise the model put in X's slot). Labelled repair.
+    if (swap?.toExerciseId) {
+      const target = allowedExercises.find((exercise) => exercise.id === swap.toExerciseId);
+      const schedule: any[] = (parseResult.content as any).weeklySchedule ?? [];
+      const swapRepairs: Array<Record<string, unknown>> = [];
+      if (target) {
+        (previousPlan ?? []).forEach((prevDay, dayIndex) => {
+          const slot = prevDay.exercises.findIndex((e) => swap.fromNames.includes(e.name ?? ""));
+          const day = schedule[dayIndex];
+          if (slot < 0 || !Array.isArray(day?.exercises) || !day.exercises.length) return;
+          if (day.exercises.some((e: any) => e.exerciseId === target.id)) return;
+          const xAt = day.exercises.findIndex((e: any) => swap.fromNames.includes(String(e.name ?? "")));
+          const at = xAt >= 0 ? xAt : Math.min(slot, day.exercises.length - 1);
+          const from = day.exercises[at]?.name;
+          const prev = prevDay.exercises[slot];
+          const replacement = buildExercisePrescription(target, at + 1, "Đổi theo yêu cầu");
+          if (prev?.sets) (replacement as any).sets = prev.sets;
+          if (prev?.reps) (replacement as any).reps = prev.reps;
+          day.exercises[at] = replacement;
+          swapRepairs.push({ type: "adjustment_swap_guarantee", reason: "adjustment_swap", day: dayIndex + 1, from, to: target.exerciseName });
+        });
+      }
+      if (swapRepairs.length) appendTrackedPlanWarnings(parseResult.content, swapRepairs);
     }
 
     // "Tập nhẹ hơn / ít hiệp hơn": the explicit request is guaranteed (max 2 sets) even if the model kept the old volume.

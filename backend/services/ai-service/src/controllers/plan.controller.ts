@@ -14,6 +14,47 @@ import { llmService } from "../services/llm.service";
 import { ExplainUnavailableError, EXPLAIN_UNAVAILABLE_MESSAGE_VI, generateAiExplanation, nutritionExplanationRequest, workoutExplanationRequest } from "../services/plan-explanation";
 import { extractNutritionConstraints, unsupportedRestrictionMessage, isKnownExclusionKey } from "../services/nutrition-food-constraints";
 import { getActiveNutritionGoal } from "../services/enterprise-data/nutrition.reader";
+import { parseSubstituteSavedExerciseRequest } from "../services/revision/substitute-saved-exercise";
+import { fitnessAgentTools } from "../services/fitness-agent-tools";
+import { normalizeAgentText } from "../services/fitness-agent-intent";
+
+export interface ExerciseSwap { fromNames: string[]; toExerciseId?: string; toName?: string }
+
+const tokensOf = (s: string) => normalizeAgentText(s).split(/[^a-z0-9]+/).filter(Boolean).map((t) => t.replace(/s$/, ""));
+/** "một bài khác", "bài khác cho ngực": no specific target — the model chooses the replacement. */
+const GENERIC_TARGET = /^(?:mot\s+)?(?:bai\s+)?(?:khac|tuong tu|phu hop|de hon|nhe hon)\b|^bai khac\b/;
+
+/**
+ * Resolves "đổi X thành Y" against the plan being adjusted (X) and the real catalog (Y). Returns "none" when the text is not a
+ * named swap; an honest error when X is not in the plan, is ambiguous, or Y does not exist — never a guess.
+ */
+export async function resolveExerciseSwap(
+  adjustments: string,
+  planContent: unknown,
+  identity: { userId: string; authorizationHeader?: string },
+  search: (identity: { userId: string; authorizationHeader?: string }, name: string) => Promise<{ id: string; exerciseName: string } | null> = (i, n) => fitnessAgentTools.searchExerciseByName(i, n),
+): Promise<{ kind: "none" } | { kind: "swap"; swap: ExerciseSwap } | { kind: "error"; message: string }> {
+  let parsed = parseSubstituteSavedExerciseRequest(adjustments);
+  if (!parsed) {
+    // "Tôi không thích bài X, đổi sang Y nhé" — X comes BEFORE the swap verb.
+    const m = /\b(?:khong thich|bo|ngan)\s+(?:bai\s+(?:tap\s+)?)?(.+?)[,.;]?\s+(?:doi|thay)\s+(?:sang|thanh|bang)\s+(?:bai\s+(?:tap\s+)?)?(.+)$/.exec(normalizeAgentText(adjustments));
+    if (m && m[1].split(" ").length <= 6) parsed = { oldKeyword: m[1].trim(), newKeyword: m[2].trim() };
+  }
+  if (!parsed) return { kind: "none" };
+  const names = [...new Set(((planContent as any)?.weeklySchedule ?? []).flatMap((d: any) => (d?.exercises ?? []).map((e: any) => String(e?.name ?? ""))))].filter(Boolean) as string[];
+  const want = tokensOf(parsed.oldKeyword);
+  if (!want.length) return { kind: "none" };
+  const exact = names.filter((n) => normalizeAgentText(n) === normalizeAgentText(parsed.oldKeyword));
+  const partial = names.filter((n) => { const have = new Set(tokensOf(n)); return want.every((t) => have.has(t)); });
+  const fromNames = exact.length ? exact : partial;
+  if (!fromNames.length) return { kind: "error", message: `Mình không thấy bài "${parsed.oldKeyword}" trong kế hoạch này nên chưa đổi gì. Bạn kiểm tra lại tên bài giúp mình nhé.` };
+  if (fromNames.length > 1) return { kind: "error", message: `Có nhiều bài khớp với "${parsed.oldKeyword}": ${fromNames.join(", ")}. Bạn ghi đúng tên đầy đủ của bài muốn đổi giúp mình nhé.` };
+  const target = parsed.newKeyword.replace(/\s*(?:nhe|nha|di|giup toi|giup minh|duoc khong)\s*$/, "").trim();
+  if (!target || GENERIC_TARGET.test(target)) return { kind: "swap", swap: { fromNames } };
+  const found = await search(identity, target).catch(() => null);
+  if (!found) return { kind: "error", message: `Mình không tìm thấy bài "${target}" trong thư viện bài tập nên chưa đổi gì. Bạn thử tên khác (tên tiếng Anh của bài) nhé.` };
+  return { kind: "swap", swap: { fromNames, toExerciseId: found.id, toName: found.exerciseName } };
+}
 
 /**
  * P1 fix (2026-11-11, adjust eval): a nutrition plan generated without an explicit calorie target used the processor's
@@ -705,6 +746,13 @@ export const planController = {
 
       if (!(await ensureLlmAvailable(res))) return;
 
+      // "Đổi bài X thành Y" / "Thay X bằng Y": X must be one exercise of THIS plan and Y a real catalog exercise.
+      const swapResolution = await resolveExerciseSwap(adjustments, plan.plan, { userId, authorizationHeader: req.headers.authorization });
+      if (swapResolution.kind === "error") {
+        res.status(422).json(formatErrorResponse("VALIDATION_ERROR", swapResolution.message));
+        return;
+      }
+
       const result = await conversationService.queuePlanAdjustment({
         originalPlanId: planId,
         userId,
@@ -712,6 +760,7 @@ export const planController = {
         adjustments,
         daysPerWeek,
         exercisesPerDay,
+        swap: swapResolution.kind === "swap" ? swapResolution.swap : undefined,
       });
       aiPlanGenerationsTotal.inc({ status: "queued" });
       res.status(202).json(formatSuccessResponse(result));
