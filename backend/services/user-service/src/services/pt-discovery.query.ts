@@ -151,34 +151,23 @@ function priceAggregateJoinSql(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
   `;
 }
 
-function offlineEligibleSql(): Prisma.Sql {
-  return Prisma.sql`(
-    pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-    AND EXISTS (
-      SELECT 1 FROM pt_training_locations tl
-      WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
-    )
-    AND EXISTS (
-      SELECT 1 FROM pt_service_packages pkg
-      WHERE pkg.pt_user_id = p."userId"
-        AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
-    )
-  )`;
+function buildPkgFlagsCteSql(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
+  return Prisma.sql`
+    SELECT
+      pkg.pt_user_id,
+      bool_or(pkg.session_mode = 'OFFLINE'::"SessionMode") AS has_offline_pkg,
+      bool_or(pkg.session_mode = 'ONLINE'::"SessionMode")  AS has_online_pkg
+    FROM pt_service_packages pkg
+    WHERE ${Prisma.join(forSalePackagePredicates(packageMode), " AND ")}
+    GROUP BY pkg.pt_user_id
+  `;
 }
 
-function onlineEligibleSql(): Prisma.Sql {
-  return Prisma.sql`(
-    pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-    AND EXISTS (
-      SELECT 1 FROM pt_service_packages pkg
-      WHERE pkg.pt_user_id = p."userId"
-        AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
-    )
+function hasActiveLocationSql(): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1 FROM pt_training_locations tl
+    WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
   )`;
-}
-
-function anyModeEligibleSql(): Prisma.Sql {
-  return Prisma.sql`(${offlineEligibleSql()} OR ${onlineEligibleSql()})`;
 }
 
 function currentStatsJoinSql(): Prisma.Sql {
@@ -418,15 +407,24 @@ export async function findDiscoveryPtPageIds(
     specialties: filters.specialties,
   });
 
+  const hasExplicitLocFilter = filters.provinceCode !== undefined || filters.wardCode !== undefined;
+  const activeLocCond = hasExplicitLocFilter ? Prisma.sql`true` : hasActiveLocationSql();
+
   if (filters.sessionMode === "OFFLINE") {
-    where.push(offlineEligibleSql());
+    where.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+    if (!hasExplicitLocFilter) where.push(hasActiveLocationSql());
   } else if (filters.sessionMode === "ONLINE") {
-    where.push(onlineEligibleSql());
+    where.push(Prisma.sql`pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
   } else if (filters.sessionMode === "HYBRID") {
     where.push(Prisma.sql`pa.service_mode = 'HYBRID'::"ServiceMode"`);
-    where.push(anyModeEligibleSql());
+    where.push(Prisma.sql`((pf.has_offline_pkg AND ${activeLocCond}) OR pf.has_online_pkg)`);
   } else {
-    where.push(anyModeEligibleSql());
+    where.push(
+      Prisma.sql`(
+        (pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_offline_pkg AND ${activeLocCond})
+        OR (pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_online_pkg)
+      )`,
+    );
   }
 
   let currentReadyEpoch: number | null = null;
@@ -450,9 +448,13 @@ export async function findDiscoveryPtPageIds(
   const { joinSql, orderBySql } = resolveOrderSql(filters.sortBy, packageMode, viewerGymIds, currentReadyEpoch);
 
   const rows = await prisma.$queryRaw<{ userId: string }[]>(Prisma.sql`
+    WITH pkg_flags AS (
+      ${buildPkgFlagsCteSql(packageMode)}
+    )
     SELECT p."userId" AS "userId"
     FROM user_profiles p
     JOIN pt_applications pa ON pa.user_profile_id = p.id
+    JOIN pkg_flags pf ON pf.pt_user_id = p."userId"
     ${joinSql}
     WHERE ${Prisma.join(where, " AND ")}
     ${orderBySql}
@@ -716,139 +718,125 @@ export async function searchDiscoveryPtPageIds(
         AND wg.centroid_lng BETWEEN ${minLng}::double precision AND ${maxLng}::double precision)
   )`;
 
-  const existsNearBboxSql = Prisma.sql`EXISTS (
-    SELECT 1
-    FROM pt_training_locations tl
-    LEFT JOIN vietnam_ward_geo wg
-      ON (tl.latitude IS NULL OR tl.longitude IS NULL)
-     AND wg.ward_code = tl.ward_code
-    WHERE tl.pt_user_id = p."userId"
-      AND tl.is_active = true
-      AND ${nearBboxFilterSql}
+  const needLoc = mode !== "ONLINE";
+  const locWhereParts: Prisma.Sql[] = [Prisma.sql`tl.is_active = true`];
+  if (appliedScope === "near") locWhereParts.push(nearBboxFilterSql);
+  if (appliedScope === "province") locWhereParts.push(Prisma.sql`tl.province_code = ${safeProvinceCode}::int4`);
+
+  const haversineMinSql = Prisma.sql`MIN(
+    CASE
+      WHEN COALESCE(tl.latitude, wg.centroid_lat) IS NULL
+        OR COALESCE(tl.longitude, wg.centroid_lng) IS NULL
+      THEN NULL::double precision
+      ELSE 6371.0 * 2.0 * ASIN(SQRT(LEAST(1.0,
+        POWER(SIN(RADIANS(COALESCE(tl.latitude, wg.centroid_lat) - ${safeLat}::double precision) / 2.0), 2)
+        + COS(RADIANS(${safeLat}::double precision))
+          * COS(RADIANS(COALESCE(tl.latitude, wg.centroid_lat)))
+          * POWER(SIN(RADIANS(COALESCE(tl.longitude, wg.centroid_lng) - ${safeLng}::double precision) / 2.0), 2)
+      )))
+    END
   )`;
 
-  const existsInProvinceSql = Prisma.sql`EXISTS (
-    SELECT 1 FROM pt_training_locations tlp
-    WHERE tlp.pt_user_id = p."userId"
-      AND tlp.is_active = true
-      AND tlp.province_code = ${safeProvinceCode}::int4
-  )`;
+  const ctes: Prisma.Sql[] = [
+    Prisma.sql`pkg_flags AS (
+      ${buildPkgFlagsCteSql(packageMode)}
+    )`,
+  ];
 
-  // Push mode & scope pre-filters into WHERE directly (avoid `$flag = false OR ...` generic-plan stalls).
-  if (mode === "ONLINE") {
-    baseWhere.push(onlineEligibleSql());
-  } else if (mode === "OFFLINE") {
-    baseWhere.push(offlineEligibleSql());
-    if (appliedScope === "near") baseWhere.push(existsNearBboxSql);
-    else if (appliedScope === "province") baseWhere.push(existsInProvinceSql);
-  } else {
-    baseWhere.push(anyModeEligibleSql());
-    if (appliedScope === "near") {
-      baseWhere.push(Prisma.sql`(${onlineEligibleSql()} OR ${existsNearBboxSql})`);
-    } else if (appliedScope === "province") {
-      baseWhere.push(Prisma.sql`(${onlineEligibleSql()} OR ${existsInProvinceSql})`);
-    }
+  if (needLoc) {
+    // Materialize loc_flags when computing Haversine so Postgres evaluates distances once inside
+    // the grouped bbox CTE instead of expanding Haversine repeatedly into the Sort Key.
+    const matKw = hasViewerPoint ? Prisma.sql`MATERIALIZED` : Prisma.empty;
+    const wgJoin = hasViewerPoint
+      ? Prisma.sql`
+          LEFT JOIN vietnam_ward_geo wg
+            ON (tl.latitude IS NULL OR tl.longitude IS NULL)
+           AND wg.ward_code = tl.ward_code`
+      : Prisma.empty;
+    const distCol = hasViewerPoint ? haversineMinSql : Prisma.sql`NULL::double precision`;
+    const inProvCol = appliedScope === "province" ? Prisma.sql`true` : Prisma.sql`false`;
+
+    ctes.push(Prisma.sql`loc_flags AS ${matKw} (
+      SELECT
+        tl.pt_user_id,
+        true AS has_active_loc,
+        ${inProvCol} AS in_selected_province,
+        ${distCol} AS min_d_km
+      FROM pt_training_locations tl
+      ${wgJoin}
+      WHERE ${Prisma.join(locWhereParts, " AND ")}
+      GROUP BY tl.pt_user_id
+    )`);
   }
 
-  const offlineEligibleSelectSql =
+  if (hasViewerGyms) {
+    ctes.push(Prisma.sql`viewer_gym_pts AS (
+      SELECT DISTINCT tlg.pt_user_id
+      FROM pt_training_locations tlg
+      WHERE tlg.is_active = true
+        AND tlg.gym_id = ANY(${viewerGymIds}::text[])
+    )`);
+  }
+
+  let offlineScopeMatchSql: Prisma.Sql = Prisma.sql`COALESCE(lf.has_active_loc, false)`;
+  if (appliedScope === "near") {
+    offlineScopeMatchSql = Prisma.sql`(lf.min_d_km IS NOT NULL AND lf.min_d_km <= ${radiusKm}::double precision)`;
+  } else if (appliedScope === "province") {
+    offlineScopeMatchSql = Prisma.sql`COALESCE(lf.in_selected_province, false)`;
+  }
+
+  const canOfflineSql =
     mode === "ONLINE"
       ? Prisma.sql`false`
       : mode === "OFFLINE"
-        ? Prisma.sql`true`
-        : Prisma.sql`(
-            pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-            AND EXISTS (
-              SELECT 1 FROM pt_training_locations tl
-              WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
-            )
-            AND EXISTS (
-              SELECT 1 FROM pt_service_packages pkg
-              WHERE pkg.pt_user_id = p."userId"
-                AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
-            )
-          )`;
+        ? offlineScopeMatchSql
+        : Prisma.sql`(pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_offline_pkg AND ${offlineScopeMatchSql})`;
 
-  const onlineEligibleSelectSql =
+  const canOnlineSql =
     mode === "OFFLINE"
       ? Prisma.sql`false`
       : mode === "ONLINE"
         ? Prisma.sql`true`
-        : Prisma.sql`(
-            pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-            AND EXISTS (
-              SELECT 1 FROM pt_service_packages pkg
-              WHERE pkg.pt_user_id = p."userId"
-                AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
-            )
-          )`;
+        : Prisma.sql`(pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_online_pkg)`;
 
-  const inSelectedProvinceSelectSql =
-    appliedScope === "province" && mode !== "ONLINE" ? existsInProvinceSql : Prisma.sql`false`;
-
-  const lateralWhereParts: Prisma.Sql[] = [
-    Prisma.sql`tl.pt_user_id = p."userId"`,
-    Prisma.sql`tl.is_active = true`,
-  ];
-  if (mode !== "OFFLINE") {
-    lateralWhereParts.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+  if (mode === "ONLINE") {
+    baseWhere.push(Prisma.sql`pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+  } else if (mode === "OFFLINE") {
+    baseWhere.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+    if (appliedScope === "near") {
+      baseWhere.push(offlineScopeMatchSql);
+    }
+  } else {
+    baseWhere.push(Prisma.sql`(${canOfflineSql} OR ${canOnlineSql})`);
   }
-  if (appliedScope === "near") lateralWhereParts.push(nearBboxFilterSql);
-  if (appliedScope === "province") lateralWhereParts.push(Prisma.sql`tl.province_code = ${safeProvinceCode}::int4`);
 
-  const runLateral = hasViewerPoint && mode !== "ONLINE";
-  const lateralJoinSql = runLateral
-    ? Prisma.sql`
-        LEFT JOIN LATERAL (
-          SELECT MIN(
-            CASE
-              WHEN COALESCE(tl.latitude, wg.centroid_lat) IS NULL
-                OR COALESCE(tl.longitude, wg.centroid_lng) IS NULL
-              THEN NULL::double precision
-              ELSE 6371.0 * 2.0 * ASIN(SQRT(LEAST(1.0,
-                POWER(SIN(RADIANS(COALESCE(tl.latitude, wg.centroid_lat) - ${safeLat}::double precision) / 2.0), 2)
-                + COS(RADIANS(${safeLat}::double precision))
-                  * COS(RADIANS(COALESCE(tl.latitude, wg.centroid_lat)))
-                  * POWER(SIN(RADIANS(COALESCE(tl.longitude, wg.centroid_lng) - ${safeLng}::double precision) / 2.0), 2)
-              )))
-            END
-          ) AS min_d_km
-          FROM pt_training_locations tl
-          LEFT JOIN vietnam_ward_geo wg
-            ON (tl.latitude IS NULL OR tl.longitude IS NULL)
-           AND wg.ward_code = tl.ward_code
-          WHERE ${Prisma.join(lateralWhereParts, " AND ")}
-        ) loc ON true
-      `
+  const locJoinSql = needLoc
+    ? mode === "OFFLINE"
+      ? Prisma.sql`JOIN loc_flags lf ON lf.pt_user_id = p."userId"`
+      : Prisma.sql`LEFT JOIN loc_flags lf ON lf.pt_user_id = p."userId"`
     : Prisma.empty;
-  const minDistSelectSql = runLateral ? Prisma.sql`loc.min_d_km` : Prisma.sql`NULL::double precision`;
-
-  let offlineScopeMatchSql: Prisma.Sql = Prisma.sql`true`;
-  if (appliedScope === "near") {
-    offlineScopeMatchSql = Prisma.sql`(c.min_d_km IS NOT NULL AND c.min_d_km <= ${radiusKm}::double precision)`;
-  } else if (appliedScope === "province") {
-    offlineScopeMatchSql = Prisma.sql`c.in_selected_province`;
-  }
+  const viewerGymJoinSql = hasViewerGyms
+    ? Prisma.sql`LEFT JOIN viewer_gym_pts vgp ON vgp.pt_user_id = p."userId"`
+    : Prisma.empty;
 
   let tierExprSql: Prisma.Sql;
   let distExprSql: Prisma.Sql;
   if (mode === "ONLINE") {
-    tierExprSql = Prisma.sql`CASE WHEN c.online_eligible THEN 1 ELSE NULL::int4 END`;
+    tierExprSql = Prisma.sql`1`;
     distExprSql = Prisma.sql`NULL::double precision`;
   } else if (mode === "OFFLINE") {
-    tierExprSql = Prisma.sql`CASE WHEN c.offline_eligible AND ${offlineScopeMatchSql} THEN 0 ELSE NULL::int4 END`;
-    distExprSql = hasViewerPoint
-      ? Prisma.sql`CASE WHEN c.offline_eligible AND ${offlineScopeMatchSql} THEN c.min_d_km ELSE NULL::double precision END`
-      : Prisma.sql`NULL::double precision`;
+    tierExprSql = Prisma.sql`0`;
+    distExprSql = hasViewerPoint ? Prisma.sql`lf.min_d_km` : Prisma.sql`NULL::double precision`;
   } else {
     tierExprSql = Prisma.sql`
       CASE
-        WHEN c.offline_eligible AND ${offlineScopeMatchSql} THEN 0
-        WHEN c.online_eligible THEN 1
+        WHEN ${canOfflineSql} THEN 0
+        WHEN ${canOnlineSql} THEN 1
         ELSE NULL::int4
       END
     `;
     distExprSql = hasViewerPoint
-      ? Prisma.sql`CASE WHEN c.offline_eligible AND ${offlineScopeMatchSql} THEN c.min_d_km ELSE NULL::double precision END`
+      ? Prisma.sql`CASE WHEN ${canOfflineSql} THEN lf.min_d_km ELSE NULL::double precision END`
       : Prisma.sql`NULL::double precision`;
   }
 
@@ -892,41 +880,23 @@ export async function searchDiscoveryPtPageIds(
     }
 
     const queryRows = await tx.$queryRaw<RawSearchRow[]>(Prisma.sql`
-      WITH base_candidates AS MATERIALIZED (
-        SELECT
-          p."userId" AS pt_user_id,
-          p."firstName" AS first_name,
-          p.is_accepting_clients,
-          ${
-            hasViewerGyms
-              ? Prisma.sql`EXISTS (
-                  SELECT 1 FROM pt_training_locations tlg
-                  WHERE tlg.pt_user_id = p."userId"
-                    AND tlg.is_active = true
-                    AND tlg.gym_id = ANY(${viewerGymIds}::text[])
-                )`
-              : Prisma.sql`false`
-          } AS same_gym,
-          ${offlineEligibleSelectSql} AS offline_eligible,
-          ${onlineEligibleSelectSql} AS online_eligible,
-          ${minDistSelectSql} AS min_d_km,
-          ${inSelectedProvinceSelectSql} AS in_selected_province
-        FROM user_profiles p
-        JOIN pt_applications pa ON pa.user_profile_id = p.id
-        ${lateralJoinSql}
-        WHERE ${Prisma.join(baseWhere, " AND ")}
-      ),
+      WITH ${Prisma.join(ctes, ", ")},
       tiered AS (
         SELECT
-          c.pt_user_id AS "userId",
-          c.first_name,
-          c.is_accepting_clients,
-          c.same_gym,
+          p."userId" AS "userId",
+          p."firstName" AS first_name,
+          p.is_accepting_clients,
+          ${hasViewerGyms ? Prisma.sql`(vgp.pt_user_id IS NOT NULL)` : Prisma.sql`false`} AS same_gym,
           ${tierExprSql} AS tier,
           ${distExprSql} AS distance_km
-        FROM base_candidates c
+        FROM user_profiles p
+        JOIN pt_applications pa ON pa.user_profile_id = p.id
+        JOIN pkg_flags pf ON pf.pt_user_id = p."userId"
+        ${locJoinSql}
+        ${viewerGymJoinSql}
+        WHERE ${Prisma.join(baseWhere, " AND ")}
       ),
-      bucketed AS MATERIALIZED (
+      bucketed AS (
         SELECT
           t."userId",
           t.first_name,

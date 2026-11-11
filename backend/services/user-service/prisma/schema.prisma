@@ -224,6 +224,8 @@ model UserProfile {
   // Partial index that lives ONLY in migration SQL (the schema DSL cannot express a WHERE predicate):
   // user_profiles_active_pt_idx ("is_accepting_clients" DESC, "createdAt" DESC, "userId")
   // WHERE "isPT" = true AND "pt_suspended" = false  (migration 20261111100000_pt_discovery_geo_and_stats).
+  // user_profiles_active_pt_lookup_idx ("userId") INCLUDE ("id", "is_accepting_clients", "firstName")
+  // WHERE "isPT" = true AND "pt_suspended" = false  (migration 20261111150000_pt_search_covering_indexes).
   @@map("user_profiles")
 }
 
@@ -2612,7 +2614,8 @@ model PtDiscoveryStat {
   @@index([epoch, fromPriceOverall, ptUserId])
   @@index([epoch, fromPriceOnline, ptUserId])
   @@index([epoch, fromPriceOffline, ptUserId])
-  // Additional sort index in migration SQL (DESC NULLS LAST cannot be expressed in Prisma DSL):
+  // Additional sort/covering indexes in migration SQL (DESC NULLS LAST and INCLUDE cannot be expressed in Prisma DSL):
   // pt_discovery_stats_epoch_rating_desc_idx ("epoch", "rating_avg" DESC NULLS LAST, "pt_user_id" ASC)
+  // pt_discovery_stats_epoch_pt_cover_idx ("epoch", "pt_user_id") INCLUDE ("quality", "rating_avg", "from_price_overall", "from_price_online", "from_price_offline")
   @@map("pt_discovery_stats")
 }
