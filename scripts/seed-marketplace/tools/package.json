@@ -1,0 +1,21 @@
+{
+  "name": "gymini-seed-marketplace-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated offline GIS, OSM, and DiceBear avatar tools for scripts/seed-marketplace (outside pnpm workspace)",
+  "dependencies": {
+    "@dicebear/core": "9.4.3",
+    "@dicebear/lorelei": "9.4.2",
+    "@dicebear/notionists": "9.4.2",
+    "@dicebear/open-peeps": "9.4.2",
+    "@turf/bbox": "7.4.0",
+    "@turf/boolean-point-in-polygon": "7.4.0",
+    "@turf/distance": "7.4.0",
+    "@turf/helpers": "7.4.0",
+    "@turf/point-to-line-distance": "7.4.0",
+    "polylabel": "2.1.0",
+    "rbush": "4.0.1"
+  }
+}
+
