@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { invokeHttpLambda, throwForLambdaHttpError } from './lambda-http.client';
+import type { EntityOrigin } from '../services/synthetic-guard';
 
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
 const INTERNAL_SERVICE_SECRET =
@@ -67,6 +68,7 @@ export const paymentClient = {
     orderInfo?: string;
     platform?: 'web' | 'mobile';
     returnBaseUrl?: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<CheckoutResult> {
     const platformRateNum = Number(params.platformRate);
     try {
@@ -92,6 +94,7 @@ export const paymentClient = {
           orderInfo: params.orderInfo,
           platform: params.platform,
           returnBaseUrl: params.returnBaseUrl,
+          ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
         },
       });
     } catch (e: any) {
@@ -111,6 +114,7 @@ export const paymentClient = {
     idempotencyKey: string;
     initiatedBy: string;
     gymId?: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<WalletTransferResult> {
     return paymentRequest<WalletTransferResult>({
       method: 'POST',
@@ -130,6 +134,7 @@ export const paymentClient = {
         sourceService: 'gym-service',
         gymId: params.gymId,
         membershipId: params.relatedEntityId,
+        ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
       },
     });
   },
@@ -144,7 +149,7 @@ export const paymentClient = {
   },
 
   /** Move a referral commission from the gym's pending bucket into the referring PT's. */
-  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
+  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string; entityOrigin?: EntityOrigin }) {
     return paymentRequest<{ moved: string; shortfall: string }>({
       method: 'POST',
       path: '/internal/contracts/referral',
@@ -154,7 +159,7 @@ export const paymentClient = {
   },
 
   /** Reclaim a proportional share of a referral commission when an admin refunds a membership. */
-  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
+  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string; entityOrigin?: EntityOrigin }) {
     return paymentRequest<{ recovered: string; shortfall: string }>({
       method: 'POST',
       path: '/internal/contracts/referral/clawback',
@@ -173,6 +178,7 @@ export const paymentClient = {
     membershipStatus: 'CANCELLED' | 'EXPIRED' | 'PENDING_ISSUE';
     label: string;
     idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
   }) {
     return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
@@ -194,6 +200,7 @@ export const paymentClient = {
     ptUserId?: string | null;
     label: string;
     idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
   }) {
     return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
@@ -214,6 +221,7 @@ export const paymentClient = {
     idempotencyKey: string;
     initiatedBy: string;
     reason: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<{ transactionId: string; status: string; refundAmount: number; commissionAmount: number; netToReceiver: number }> {
     try {
       return await paymentRequest<{
@@ -231,6 +239,7 @@ export const paymentClient = {
           idempotencyKey: params.idempotencyKey,
           initiatedBy: params.initiatedBy,
           reason: params.reason,
+          ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
         },
       });
     } catch (e: any) {
@@ -264,12 +273,12 @@ export const paymentClient = {
   // owner.routes.ts's /gyms/:gymId/withdrawals) before ever reaching here; payment-service
   // trusts the gymId because this call only comes over the service-secret-gated /internal
   // boundary, never from a browser.
-  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string): Promise<any> {
+  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string, entityOrigin?: EntityOrigin): Promise<any> {
     return paymentRequest<any>({
       method: 'POST',
       path: `/internal/withdrawals/gym/${gymId}`,
       timeout: 10_000,
-      body: { amount, payoutInfo },
+      body: { amount, payoutInfo, ...(entityOrigin ? { entityOrigin } : {}) },
     });
   },
 

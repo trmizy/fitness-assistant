@@ -29,7 +29,7 @@ export const transactionRepository = {
    * Scoped by BOTH provider and providerTransactionId — a webhook claiming to be
    * from provider X must only ever be able to match a transaction that was
    * actually created under provider X. Without the provider filter, a webhook
-   * event from one provider (e.g. a forged MoMo event) could match — and
+   * event from one provider (e.g. a forged ZaloPay event) could match — and
    * fraudulently complete — a real transaction created under a different
    * provider (e.g. VNPAY) if the attacker knows/guesses its providerTransactionId.
    */
@@ -106,7 +106,7 @@ export const transactionRepository = {
    * A checkout is created with status PENDING and never moves to PROCESSING anywhere in this
    * codebase (only the old wallet-topup path used PROCESSING) — filtering on PROCESSING alone
    * would never match a real purchase. Fed to webhook.service.pollAndSettle every
-   * reconciliation cycle so a gateway with no reachable IPN (ZaloPay, MoMo, PayOS on this
+   * reconciliation cycle so a gateway with no reachable IPN (ZaloPay on this
    * deployment) still gets confirmed before findStaleProcessing's timeout sweeps it to FAILED.
    */
   async findProcessingNonTopup() {

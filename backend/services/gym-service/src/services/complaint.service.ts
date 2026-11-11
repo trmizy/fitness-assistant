@@ -8,6 +8,7 @@ import { prisma } from '../repositories/prisma';
 import { assertRealAdmin } from './complaint-case/case.service';
 import { COMPLAINT_ISSUE_TYPES, COMPLAINT_SOURCES, COMPLAINT_STATUSES } from './complaint-case/schemas';
 import type { ComplaintSource, ComplaintIssueType, ComplaintStatus } from '../generated/prisma';
+import { assertNotSynthetic, syntheticNotTransactableError } from './synthetic-guard';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
@@ -49,9 +50,13 @@ export const complaintService = {
 
     const gym = await gymRepository.findById(gymId);
     if (!gym) throw err('Không tìm thấy phòng gym', 404);
+    assertNotSynthetic(gym);
 
     const eligible = await membershipRepository.hasRecentOrActiveMembership(clientId, gymId, ELIGIBILITY_WINDOW_DAYS);
     if (!eligible) {
+      if (await membershipRepository.hasRecentOrActiveMembership(clientId, gymId, ELIGIBILITY_WINDOW_DAYS, 'SYNTHETIC')) {
+        throw syntheticNotTransactableError();
+      }
       throw err('Chỉ hội viên đang có gói hoặc vừa hết hạn trong 30 ngày mới báo cáo được vấn đề tại chi nhánh này', 403);
     }
 

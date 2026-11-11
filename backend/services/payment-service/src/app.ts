@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 });
 
 // Webhook MUST be mounted before express.json() so raw body is preserved for
-// HMAC signature verification (MoMo, VNPay require the original bytes).
+// HMAC signature verification (ZaloPay, VNPay require the original bytes).
 app.use('/payments/webhook', express.raw({ type: '*/*' }), webhookRoutes);
 
 // VNPay return-URL (browser redirect after checkout) — GET, no body, no auth; the query

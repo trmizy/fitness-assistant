@@ -22,7 +22,7 @@ describe("normalizeMethods", () => {
   const live = {
     methods: [
       { provider: "VNPAY", label: "VNPay", description: "Thẻ ATM", configured: true, unavailableReason: null },
-      { provider: "MOMO", label: "MoMo", description: "Ví", configured: false, unavailableReason: "Chưa cấu hình khoá" },
+      { provider: "ZALOPAY", label: "ZaloPay", description: "Ví", configured: false, unavailableReason: "Chưa cấu hình khoá" },
     ],
     defaultProvider: "VNPAY",
   };
@@ -36,7 +36,7 @@ describe("normalizeMethods", () => {
   });
 
   it("không chọn sẵn một cổng mà chính server nói không dùng được", () => {
-    assert.equal(normalizeMethods({ ...live, defaultProvider: "MOMO" }).defaultProvider, null);
+    assert.equal(normalizeMethods({ ...live, defaultProvider: "ZALOPAY" }).defaultProvider, null);
     assert.equal(normalizeMethods({ ...live, defaultProvider: "PAYPAL" }).defaultProvider, null);
   });
 

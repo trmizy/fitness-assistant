@@ -31,7 +31,8 @@ router.get("/users", ...adminOnly, async (req: AuthRequest, res: Response) => {
     const [usersRes, contractsRes] = await Promise.allSettled([
       authServiceClient.forward("get", "/auth/users", authHeader, undefined, { timeoutMs: 8000 }),
       (async () => {
-        const all = await contractRepository.findAll(0, 10000);
+        // [seed-discovery X] findAll/countByUsers filter dataOrigin="REAL"; drop 10k truncation
+        const all = await contractRepository.findAll(0);
         const ids = [...new Set([...all.map((c) => c.ptUserId), ...all.map((c) => c.clientUserId)])];
         return contractRepository.countByUsers(ids);
       })(),

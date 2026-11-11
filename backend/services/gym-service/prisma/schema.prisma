@@ -1023,6 +1023,7 @@ model Gym {
   createdFlowVersion Int?      @map("created_flow_version")
   legacyNoAmenities  Boolean   @default(false) @map("legacy_no_amenities")
   legacyClientAt     DateTime? @map("legacy_client_at") @db.Timestamptz(6)
+  dataOrigin         DataOrigin @default(REAL) @map("data_origin")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 

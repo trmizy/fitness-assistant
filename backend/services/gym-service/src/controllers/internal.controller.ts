@@ -16,7 +16,7 @@ export const internalController = {
         return;
       }
       logger.error(e, 'internal activate error');
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), message: e.message } });
     }
   },
 

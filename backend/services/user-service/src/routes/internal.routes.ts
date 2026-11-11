@@ -199,14 +199,16 @@ router.get("/profile/:userId", async (req, res) => {
 router.get("/pt-marketplace-eligibility/:userId", async (req, res) => {
   const profile = await profileRepository.findPtMarketplaceEligibilityByUserId(req.params.userId);
   const application = profile?.ptApplication ?? null;
-  // A PT who is restricted right now (temporarily suspended, or banned) is NOT offered for new business:
+  // A PT who is restricted right now (temporarily suspended, or banned) — or marked SYNTHETIC — is NOT offered for new business:
   // ai-service gates personalized-service publishing, browsing and purchase on this flag.
-  const restriction = profile?.isPT === true ? await getActiveRestriction(req.params.userId) : null;
-  const isApprovedPt = profile?.isPT === true && application?.status === "APPROVED" && restriction === null;
+  const isSyntheticPt = profile?.dataOrigin === "SYNTHETIC";
+  const restriction = profile?.isPT === true && !isSyntheticPt ? await getActiveRestriction(req.params.userId) : null;
+  const isApprovedPt = !isSyntheticPt && profile?.isPT === true && application?.status === "APPROVED" && restriction === null;
 
   res.json({
     userId: req.params.userId,
     isApprovedPt,
+    isSynthetic: isSyntheticPt,
     ptRestricted: restriction !== null,
     ptRestrictionType: restriction?.type ?? null,
     isPT: profile?.isPT === true,
@@ -250,7 +252,7 @@ router.get("/profile/by-referral-code/:code", async (req, res) => {
     res.status(404).json({ error: "REFERRAL_CODE_NOT_FOUND" });
     return;
   }
-  res.json({ userId: profile.userId });
+  res.json({ userId: profile.userId, dataOrigin: profile.dataOrigin });
 });
 
 // Gym-onboarding project — fitness-service calls this after every write to

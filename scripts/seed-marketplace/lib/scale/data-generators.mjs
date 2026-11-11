@@ -1538,6 +1538,7 @@ export function buildScaleUniverse({ counts, namespace = "gymini-scale-v1", mast
           listing_version: b.listingVersion,
           listing_published_at: isPub ? b.createdAt : null,
           created_flow_version: 2,
+          data_origin: "SYNTHETIC",
           created_at: b.createdAt,
           updated_at: b.createdAt,
         });
@@ -2013,6 +2014,7 @@ export const COLS = Object.freeze({
     { name: "listing_version", cast: "int4" },
     { name: "listing_published_at", cast: "timestamptz" },
     { name: "created_flow_version", cast: "int4" },
+    { name: "data_origin", cast: '"DataOrigin"' },
     { name: "created_at", cast: "timestamp" },
     { name: "updated_at", cast: "timestamp" },
   ],

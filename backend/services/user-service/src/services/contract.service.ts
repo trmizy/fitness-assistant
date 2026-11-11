@@ -30,6 +30,7 @@ import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFi
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
+import { assertAllNotSynthetic, assertNotSynthetic, isSynthetic, originOf } from "./synthetic-guard.util";
 import {
   activeRestrictedContractIds,
   activeRestrictedPtUserIds,
@@ -565,6 +566,14 @@ export const contractService = {
     if (pkg.ptUserId !== data.ptUserId)
       throw err("Gói dịch vụ không thuộc PT này", 400);
 
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(data.ptUserId),
+      profileRepository.findByUserId(clientUserId),
+    ]);
+    if (!ptProfile || !ptProfile.isPT)
+      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
+
     // expectedPackageVersion: fail fast on the cheap read (a stale buyer should not wait for the slow checks below);
     // the AUTHORITATIVE comparison is repeated inside the transaction against the locked row (step 6).
     const expectedPackageVersion = data.expectedPackageVersion;
@@ -584,10 +593,7 @@ export const contractService = {
       });
     }
 
-    // 2. Check PT profile
-    const ptProfile = await profileRepository.findByUserId(data.ptUserId);
-    if (!ptProfile || !ptProfile.isPT)
-      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    // 2. Check PT business status
     // A restricted PT (temporarily suspended OR banned) takes no new business. The restriction record
     // decides (pt-restriction.service.ts); the profile flag is only its mirror and fails closed there.
     await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
@@ -821,6 +827,12 @@ export const contractService = {
     price: number;
     paymentTransactionId?: string;
   }) {
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(data.ptUserId),
+      profileRepository.findByUserId(data.clientUserId),
+    ]);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
+
     // The order is ALREADY PAID when this runs, so a conflicting PT contract is never refused here (that would strand
     // the money): the conflict check lives before payment (ai-service purchaseService -> hasStandingPtContract).
     // What this does guarantee, under the pair lock: a retry of the same paid order returns its contract instead of
@@ -863,6 +875,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     // Restricted mode: a suspended PT cannot take on a new contract (the request waits, the client may cancel it).
     await assertPtMayAct(ptUserId);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
@@ -1026,6 +1039,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     await assertPtMayAct(ptUserId); // restricted mode
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err("Không thể từ chối hợp đồng ở trạng thái hiện tại", 400);
@@ -1071,6 +1085,7 @@ export const contractService = {
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
+    assertNotSynthetic(contract);
     // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
     if (contract.ptUserId === userId) await assertPtMayAct(userId);
     if (
@@ -1198,6 +1213,12 @@ export const contractService = {
       notes?: string;
     },
   ) {
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(ptUserId),
+      profileRepository.findByUserId(data.clientUserId),
+    ]);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
+
     return contractRepository.create({
       ...data,
       ptUserId,
@@ -1285,6 +1306,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     await assertPtMayActOnContract(ptUserId, contractId); // restricted mode: no coaching messages while suspended (account or this contract)
     if (contract.status !== ContractStatus.ACTIVE) {
       throw err("Chỉ gửi được nhận xét khi hợp đồng đang hoạt động", 409);
@@ -1319,6 +1341,7 @@ export const contractService = {
     ) {
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
+    assertNotSynthetic(contract);
 
     // Admin fail-safe: force past a broken e-sign (PENDING_SIGNATURE/PENDING_REVIEW →
     // PENDING_PAYMENT, NOT ACTIVE — payment is still required; this bypass only skips the
@@ -1361,9 +1384,13 @@ export const contractService = {
       return this.cancelContract(id, userId, "Status changed to cancelled");
     }
 
-    // PT or admin can mark expired
-    if (newStatus === "EXPIRED" && (contract.ptUserId === userId || isAdmin)) {
-      return contractRepository.updateStatus(id, ContractStatus.EXPIRED);
+    // Bỏ đặt EXPIRED thủ công (quyết định 11/11): hết hạn do hệ thống tự xử lý khi qua
+    // ngày kết thúc (kèm quyết toán); kết thúc sớm phải đi qua luồng chấm dứt hợp đồng.
+    if (typeof newStatus === "string" && newStatus.trim().toUpperCase() === "EXPIRED") {
+      throw err(
+        "Không thể đặt trạng thái hết hạn thủ công — hết hạn do hệ thống tự xử lý khi qua ngày kết thúc; muốn kết thúc sớm vui lòng dùng chức năng chấm dứt hợp đồng.",
+        400,
+      );
     }
 
     throw err(
@@ -1386,6 +1413,7 @@ export const contractService = {
   ): Promise<{ requestId: string; provider: string }> {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+    assertNotSynthetic(contract);
     if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
       throw err("Hợp đồng không ở bước chờ ký", 400);
     }
@@ -1475,6 +1503,7 @@ export const contractService = {
     if (contract.ptUserId !== ptUserId) {
       throw err("Chỉ huấn luyện viên mới sửa được hợp đồng này", 403);
     }
+    assertNotSynthetic(contract);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err("Chỉ sửa được hợp đồng khi đang chờ huấn luyện viên xem xét", 400);
     }
@@ -1492,6 +1521,7 @@ export const contractService = {
     if (contract.ptUserId !== ptUserId) {
       throw err("Chỉ huấn luyện viên mới ghi nhận được buổi tập", 403);
     }
+    assertNotSynthetic(contract);
     if (contract.status !== "ACTIVE") {
       throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
     }
@@ -1740,7 +1770,7 @@ export const contractService = {
 
   // ── PT earnings aggregate ──────────────────────────────────────────
   async getEarnings(ptUserId: string) {
-    const contracts = await contractRepository.findByPT(ptUserId);
+    const contracts = (await contractRepository.findByPT(ptUserId)).filter((c) => !isSynthetic(c));
     const active = contracts.filter((c) => c.status === "ACTIVE");
     const completed = contracts.filter((c) => c.status === "COMPLETED");
 
@@ -1777,6 +1807,7 @@ export const contractService = {
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.clientUserId !== clientUserId)
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     if (
       contract.status === ContractStatus.ACTIVE ||
       contract.paymentTransactionId
@@ -1832,6 +1863,7 @@ export const contractService = {
       orderInfo: `Hop dong PT ${contract.packageName}`.slice(0, 100),
       platform,
       returnBaseUrl,
+      entityOrigin: originOf(contract),
     });
 
     // Checkout đã khởi tạo thành công: từ giờ học viên có thể trả tiền thêm một lúc nữa, nên dời

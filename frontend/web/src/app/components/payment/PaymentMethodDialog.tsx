@@ -17,7 +17,6 @@ export interface PaymentMethod {
 const BADGE: Record<string, { text: string; className: string }> = {
   VNPAY: { text: "VN", className: "bg-[#0a4f9e] text-white" },
   ZALOPAY: { text: "ZP", className: "bg-[#0068ff] text-white" },
-  MOMO: { text: "M", className: "bg-[#a50064] text-white" },
 };
 
 /**
@@ -26,7 +25,7 @@ const BADGE: Record<string, { text: string; className: string }> = {
  * The list comes from the server, not from a constant here: which gateways work depends on
  * the credentials the deployment holds, and a hard-coded list starts lying the moment an
  * operator adds or drops one. Unusable gateways are shown greyed out with the reason instead
- * of being hidden, so "where did MoMo go?" has a visible answer.
+ * of being hidden, so "why can't I pick ZaloPay?" has a visible answer.
  */
 export function PaymentMethodDialog({
   amount,

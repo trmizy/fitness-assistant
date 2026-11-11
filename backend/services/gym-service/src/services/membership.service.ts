@@ -14,6 +14,7 @@ import { proratedRefundAmount } from './complaint-case/rules';
 import { isPlanOnSale } from './plan.service';
 import { partnerGuard } from './partner-guard.service';
 import { commissionRateService } from './commission-rate.service';
+import { assertNotSynthetic, isSynthetic, originOf } from './synthetic-guard';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -55,12 +56,13 @@ export type AdminRefundReason = (typeof ADMIN_REFUND_REASONS)[number];
  * activating on this response would mean trusting the browser about whether money moved.
  */
 async function attemptPayment(
-  contract: { id: string; gymId: string; planId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null },
+  contract: { id: string; gymId: string; planId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null; dataOrigin?: string | null },
   clientId: string,
   provider?: string,
   platform?: 'web' | 'mobile',
   returnBaseUrl?: string,
 ) {
+  assertNotSynthetic(contract);
   if (contract.status === 'ACTIVE' || contract.paymentTxnId) {
     throw err('ALREADY_PAID', 409);
   }
@@ -74,6 +76,7 @@ async function attemptPayment(
   // doc comment) — sau đây không ai đọc lại cấu hình để tính lại nữa, kể cả khi mức chung
   // đổi trước lúc webhook xác nhận về.
   const gymForRate = await gymRepository.findById(contract.gymId);
+  assertNotSynthetic(gymForRate);
   const platformRate = await commissionRateService.resolveEffectiveRateForOwner(gymForRate!.ownerId);
   const plan = await planRepository.findById(contract.planId);
 
@@ -88,6 +91,7 @@ async function attemptPayment(
     orderInfo: membershipOrderInfo(plan?.name, gymForRate!.approvedName ?? gymForRate!.name),
     platform,
     returnBaseUrl,
+    entityOrigin: isSynthetic(contract) || isSynthetic(gymForRate) ? 'SYNTHETIC' : 'REAL',
   });
 
   logger.info(`[Membership] Checkout started for ${contract.id} via ${result.provider}`);
@@ -126,7 +130,11 @@ export const membershipService = {
     // Vòng 4 / Phase C3: a gym can also be APPROVED but temporarily/permanently closed by its
     // own owner — that axis is independent of `status` and must gate here too.
     const gym = await gymRepository.findById(gymId);
-    if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
+    if (!gym) {
+      throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
+    }
+    assertNotSynthetic(gym);
+    if (gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       throw err('Phòng tập hiện không hoạt động, không thể mua gói', 409);
     }
     // Phase 5 mục 5.1 — đối tác bị tạm khoá thì ngừng bán gói mới, dù bản thân gym vẫn
@@ -228,6 +236,7 @@ export const membershipService = {
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
+    assertNotSynthetic(contract);
     if (contract.status === 'ACTIVE' || contract.paymentTxnId) throw err('ALREADY_PAID', 409);
     if (contract.status !== 'PENDING_PAYMENT') throw err(`Cannot pay for membership in ${contract.status} status`, 400);
     // P0 cluster E1: purchase() checks the gym is APPROVED at order-creation time, but that
@@ -236,7 +245,11 @@ export const membershipService = {
     // (and activate a membership at) a gym that is no longer allowed to accept money.
     // Vòng 4 / Phase C3: same OPEN gate as purchase() above.
     const gym = await gymRepository.findById(contract.gymId);
-    if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
+    if (!gym) {
+      throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
+    }
+    assertNotSynthetic(gym);
+    if (gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       throw err('Phòng tập hiện không hoạt động, không thể thanh toán', 409);
     }
     // Gia hạn/thanh toán lại = bán mới — cùng cổng chặn với purchase() ở trên.
@@ -248,6 +261,7 @@ export const membershipService = {
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
+    assertNotSynthetic(contract);
     if (contract.status !== 'PENDING_PAYMENT') throw err(`Cannot cancel membership in ${contract.status} status`, 400);
     const after = await membershipRepository.cancelIfPending(membershipId);
     // FH-5: the cancel is a conditional write. If it lost a race with a payment that just activated (or parked) the
@@ -286,6 +300,7 @@ export const membershipService = {
     const contract = await membershipRepository.findByIdWithReferral(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
+    assertNotSynthetic(contract);
     if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {
       await membershipRepository.expireIfPastEndDate(contract);
       throw err('Membership has already expired', 409);
@@ -312,6 +327,7 @@ export const membershipService = {
         // membership only ever reaches ONE of the three terminal release triggers, never more
         // than one, so the shared key cannot conflate two different real events.
         idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
+        entityOrigin: originOf(contract),
       });
     }
 
@@ -345,6 +361,7 @@ export const membershipService = {
 
     const contract = await membershipRepository.findByIdWithReferral(membershipId);
     if (!contract) throw err('Membership not found', 404);
+    assertNotSynthetic(contract);
     const fixed = opts.fixedAmount;
     if (fixed === undefined) {
       if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {
@@ -379,6 +396,7 @@ export const membershipService = {
             amount: String(clawbackAmount),
             label: `Membership ${contract.id} admin refund (${reason})`,
             idempotencyKey: `REFERRAL_CLAWBACK:${contract.id}`,
+            entityOrigin: originOf(contract),
           });
           await referralRepository.recordClawback(contract.id, clawback.recovered);
         }
@@ -398,6 +416,7 @@ export const membershipService = {
       membershipStatus: 'CANCELLED',
       label: `Membership ${contract.id} admin refund (${reason})`,
       idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
+      entityOrigin: originOf(contract),
     });
 
     const cancelled = await membershipRepository.cancelAfterRefund(contract.id);
@@ -460,12 +479,14 @@ export const membershipService = {
    * (listPendingIssues/resolvePendingIssueByAdmin below) once that sweep gives up.
    */
   async activateViaTransaction(membershipId: string, transactionId: string) {
+    const before = await membershipRepository.findById(membershipId);
+    if (before) assertNotSynthetic(before);
+
     const txn = await paymentClient.getTransaction(transactionId);
     if (!txn || txn.status !== 'PAID' || txn.relatedEntityType !== 'GYM_MEMBERSHIP' || txn.relatedEntityId !== membershipId) {
       throw err('Transaction verification failed', 400);
     }
 
-    const before = await membershipRepository.findById(membershipId);
     if (!before) throw err('Membership not found', 404);
 
     // A retry (the sweep above, or a duplicate webhook delivery) of a membership whose first
@@ -495,6 +516,7 @@ export const membershipService = {
     // webhook must be treated exactly like a gym that got SUSPENDED in that same window: the
     // membership goes to PENDING_ISSUE and gets refunded in full, never silently activated.
     const gym = await gymRepository.findById(before.gymId);
+    assertNotSynthetic(gym);
     if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       const { affected, contract: marked } = await membershipRepository.markPendingIssueIfPending(membershipId, transactionId);
       if (affected === 0 || !marked) {
@@ -533,6 +555,7 @@ export const membershipService = {
           // most once, ever — a retry after this committed but the caller failed to record
           // it (e.g. markReleased below throwing) must not move the commission twice.
           idempotencyKey: `MEMBERSHIP_REFERRAL:${membershipId}`,
+          entityOrigin: originOf(before),
         });
         await referralRepository.markReleased(membershipId);
       } catch (e) {
@@ -559,9 +582,10 @@ export const membershipService = {
    * once that sweep gives up).
    */
   async refundPendingIssue(
-    contract: { id: string; gymId: string; clientId: string; priceAtPurchase: any },
+    contract: { id: string; gymId: string; clientId: string; priceAtPurchase: any; dataOrigin?: string | null },
     transactionId: string,
   ) {
+    assertNotSynthetic(contract);
     await paymentClient.releaseMembershipPending({
       transactionId,
       gymId: contract.gymId,
@@ -574,6 +598,7 @@ export const membershipService = {
       membershipStatus: 'PENDING_ISSUE',
       label: `Membership ${contract.id} could not activate — gym unavailable`,
       idempotencyKey: `MEMBERSHIP_RELEASE:${contract.id}`,
+      entityOrigin: originOf(contract),
     });
     await membershipRepository.cancelAfterRefund(contract.id);
     await membershipRepository.markPayoutReleased(contract.id);
@@ -596,6 +621,7 @@ export const membershipService = {
   async resolvePendingIssueByAdmin(membershipId: string, adminId: string) {
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
+    assertNotSynthetic(contract);
     if (contract.status !== 'PENDING_ISSUE') throw err(`Membership is not PENDING_ISSUE (status ${contract.status})`, 409);
     if (!contract.paymentTxnId) throw err('No payment transaction on record — cannot refund', 409);
 

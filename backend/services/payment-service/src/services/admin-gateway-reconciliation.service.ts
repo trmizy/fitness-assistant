@@ -11,18 +11,18 @@
  * gateway-reported whole-VND integer with ".00" appended by string concatenation, never through a float).
  *
  * How each gateway's event is stored (read from webhook.routes.ts, vnpay-callback.service.ts, webhook.service.ts and the
- * four providers' verifyWebhookSignature):
- *   - the row is upserted by handleEvent() (and, for MoMo, once more before the 204 ack) with
+ * live providers' verifyWebhookSignature):
+ *   - the row is upserted by handleEvent() with
  *     payload = normalized.raw, providerTransactionId = the reference WE gave the gateway;
  *   - VNPAY    payload = the vnp_* query params. Paid  <=> vnp_ResponseCode = '00' AND vnp_TransactionStatus = '00'.
  *              Amount = vnp_Amount, a figure x100 (vnpayMinorToVnd). providerEventId 'vnpay_ipn:...' / 'vnpay_return:...'.
  *              A callback refused for amount (RspCode 04) is NOT stored as an event - only as metadata.gatewayDiscrepancy.
  *   - ZALOPAY  payload = the decoded `data`. ZaloPay calls back only for a successful charge, so every stored callback
  *              is a success. Amount = `amount`, plain VND.
- *   - PAYOS    payload = the webhook `data` (the envelope's own code/success are NOT stored). Success is read from
+ *   - PAYOS    (RETIRED 2026-11-11, history only - no new rows; still read so old rows display) payload = the webhook `data` (the envelope's own code/success are NOT stored). Success is read from
  *              data.code = '00'; code says a paid notice needs envelope AND data to be '00', so a payload that disagrees
  *              with its own envelope would be misread - not a shape PayOS produces. Amount = `amount`, plain VND.
- *   - MOMO     payload = the full IPN. Paid <=> resultCode = 0. Amount = `amount`, plain VND.
+ *   - MOMO     (RETIRED 2026-11-11, history only - no new rows; still read so old rows display) payload = the full IPN. Paid <=> resultCode = 0. Amount = `amount`, plain VND.
  *   - the active poll (pollAndSettle) ALSO stores a row (providerEventId 'poll_<txn>_<ms>') whose payload is the gateway
  *     QUERY response, a different shape per provider: a poll row is never parsed (success/amount stay NULL) and it does
  *     not count as a gateway callback.
@@ -42,7 +42,7 @@
  *                             that differs from transaction.amount, and the transaction carries NO
  *                             metadata.gatewayDiscrepancy (same reason). Transactions skipped for that reason are counted
  *                             in counts.coveredByGatewayDiscrepancies.
- *   PAID_WITHOUT_GATEWAY_EVENT transaction PAID, provider in (VNPAY, ZALOPAY, PAYOS, MOMO), purpose is one a gateway pays
+ *   PAID_WITHOUT_GATEWAY_EVENT transaction PAID, provider in (VNPAY, ZALOPAY, plus retired PAYOS, MOMO for old rows), purpose is one a gateway pays
  *                             for (the same set vnpay-callback.service.ts settles), COALESCE(paidAt, createdAt) in window,
  *                             and NO non-poll event with the same provider + providerTransactionId. Severity info: the
  *                             confirmation may legitimately have come from the active poll (pollAndSettle) - the item note
@@ -146,7 +146,7 @@ const statusVi = (s: string | null) => (s ? STATUS_VI[s] ?? 'không rõ' : 'khô
 const money = (d: Prisma.Decimal | string | null): string | null => (d === null ? null : new Prisma.Decimal(d).toFixed(2));
 const reported = (digits: string | null): string | null => (digits === null ? null : `${digits}.00`);
 
-// The four gateways that have a verifier + a stored-event path (see the header comment).
+// Gateways with a stored-event path: the two live ones plus the retired PAYOS/MOMO, kept so old rows still display (see the header comment).
 const GATEWAYS_SQL = Prisma.sql`('VNPAY', 'ZALOPAY', 'PAYOS', 'MOMO')`;
 // Purposes a gateway checkout pays for - the same set vnpay-callback.service.ts GATEWAY_PURPOSES settles.
 const GATEWAY_PURPOSES_SQL = Prisma.sql`('WALLET_TOPUP', 'PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE', 'PERSONALIZED_SERVICE_PURCHASE')`;

@@ -484,8 +484,6 @@ test('production gate: with NODE_ENV=production and no ZALOPAY_PRODUCTION_VERIFI
     const status = m.paymentService.providerConfigStatus('ZALOPAY');
     assert.equal(status.configured, false);
     assert.match(status.missing.join(' '), /ZALOPAY_PRODUCTION_VERIFIED/);
-    assert.equal(m.paymentService.providerConfigStatus('MOMO').configured, false, 'MoMo and PayOS are gated too');
-    assert.equal(m.paymentService.providerConfigStatus('PAYOS').configured, false);
 
     const c = await newCheckout(m);
     const r = await callback(m, zpBody(c));
@@ -513,11 +511,11 @@ test('production gate: with NODE_ENV=production and no ZALOPAY_PRODUCTION_VERIFI
 
 // ═════════════════════════════ other doors on the same router ═════════════════════════════
 
-test('the generic POST door serves only ZaloPay / PayOS / MoMo: VNPAY (its IPN is a GET), MOCK and anything else are 404 and settle nothing', skipOpts, async () => {
+test('the generic POST door serves only ZaloPay: VNPAY (its IPN is a GET), MOCK, MOMO, PAYOS and anything else are 404 and settle nothing', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const c = await checkout(m, 'VNPAY', {});
-  for (const name of ['vnpay', 'VNPAY', 'mock', 'stripe', 'manual_bank_transfer', 'whatever']) {
+  for (const name of ['vnpay', 'VNPAY', 'mock', 'momo', 'payos', 'stripe', 'manual_bank_transfer', 'whatever']) {
     const r = await post(m, `/payments/webhook/${name}`, `vnp_TxnRef=${c.ref}&vnp_Amount=500000000&vnp_ResponseCode=00&vnp_TransactionStatus=00`, 'text/plain');
     assert.equal(r.status, 404, name);
   }

@@ -35,7 +35,7 @@ export const referralRepository = {
   async listFailed() {
     return prisma.gymMembershipReferral.findMany({
       where: { status: 'FAILED' },
-      include: { membershipContract: { select: { id: true, paymentTxnId: true, status: true } } },
+      include: { membershipContract: { select: { id: true, paymentTxnId: true, status: true, dataOrigin: true } } },
     });
   },
 

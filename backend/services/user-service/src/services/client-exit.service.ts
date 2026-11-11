@@ -30,6 +30,7 @@ import {
   isLivePaidContract,
   lockPt,
 } from "./pt-restriction.service";
+import { assertNotSynthetic } from "./synthetic-guard.util";
 
 /**
  * PT-suspension slice 4 — a client ends their own contract while its PT is restricted.
@@ -139,6 +140,7 @@ export class ClientExitError extends Error {
 export async function previewClientExit(contractId: string): Promise<Record<string, any> | null> {
   const contract = await contractRepository.findById(contractId);
   if (!contract) return null;
+  assertNotSynthetic(contract);
   const active = contract.status === ContractStatus.ACTIVE;
   const override = active ? await clientExitOverrideWhilePtRestricted(contract, "CLIENT_CANCELLED", contract.clientUserId) : null;
   const reasonIfCancelledNow: TerminationReason | null = active ? (override ? CLIENT_EXIT_DUE_TO_PT_RESTRICTION : "CLIENT_CANCELLED") : null;
@@ -261,6 +263,7 @@ export async function terminateAsClient(
   const first = await contractRepository.findById(contractId);
   if (!first) throw new ClientExitError("Contract not found", 404);
   if (first.clientUserId !== clientUserId) throw new ClientExitError("Not the client of this contract", 403);
+  assertNotSynthetic(first);
 
   const replay = await replayIfAlreadyExited(first);
   if (replay) return replay;

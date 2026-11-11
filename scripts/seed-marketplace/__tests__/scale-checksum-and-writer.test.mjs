@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PT_TERMS_VERSION, scaledCounts } from "../lib/scale/config.mjs";
-import { buildScaleUniverse } from "../lib/scale/data-generators.mjs";
+import { buildScaleUniverse, COLS } from "../lib/scale/data-generators.mjs";
 import { loadUsableMasterPools } from "../lib/scale/media.mjs";
 import {
   BatchReconciliationError,
@@ -62,6 +62,19 @@ test("buildUnnestInsertSql encodes array and enum[] columns safely without N-row
   assert.equal(params.length, 3);
   assert.match(sql, /UNNEST\(\$1::text\[\], \$2::jsonb\[\], \$3::jsonb\[\]\)/);
   assert.match(sql, /::"GymFacility"/);
+});
+
+test("buildGymStaticTables marks every generated gym SYNTHETIC and COLS.gyms includes data_origin DataOrigin cast", () => {
+  const pools = loadUsableMasterPools();
+  const u = buildScaleUniverse({ counts: scaledCounts(0.01), masterPools: pools });
+  const gData = u.buildGymStaticTables();
+  assert.ok(gData.gyms.length > 0);
+  assert.equal(gData.gyms.every((g) => g.data_origin === "SYNTHETIC"), true);
+  const col = COLS.gyms.find((c) => c.name === "data_origin");
+  assert.deepEqual(col, { name: "data_origin", cast: '"DataOrigin"' });
+  const { sql } = buildUnnestInsertSql("gyms", COLS.gyms, gData.gyms.slice(0, 2));
+  assert.match(sql, /data_origin/);
+  assert.match(sql, /::"DataOrigin"\[\]/);
 });
 
 test("writeBatchWithReconciliation backfills once on partial drop and throws BatchReconciliationError on persistent mismatch", async () => {

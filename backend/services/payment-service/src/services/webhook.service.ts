@@ -6,7 +6,7 @@ import type { PaymentTransaction } from '../generated/prisma';
 import type { ProviderTxnStatus } from '../providers/payment-provider.interface';
 import { walletService } from './wallet.service';
 import { settleContractPayment } from './contract-ledger.service';
-import { getProvider } from './payment.service';
+import { getProvider, isRemovedProvider } from './payment.service';
 import { compareGatewayAmount, recordGatewayDiscrepancy } from './gateway-amount';
 import { isGatewayEnabledForRealMoney, isLegacyWalletTopupSettlementAllowed, productionVerificationEnvName } from './gateway-policy';
 
@@ -39,7 +39,6 @@ export type HandleEventOutcome =
   | 'NOT_FOUND'          // no transaction of this provider with that reference
   | 'PROVIDER_MISMATCH'  // (unreachable via the scoped lookup; kept as defence in depth)
   | 'AMOUNT_MISMATCH'    // the gateway-reported amount differs from the price — recorded, nothing moved
-  | 'REFERENCE_MISMATCH' // the callback names a different gateway payment link than the one created for this transaction
   | 'GATEWAY_DISABLED'   // this provider may not settle real money in this deployment (gateway-policy.ts) — nothing moved, retryable
   | 'NOT_PAYABLE';       // the transaction is in a terminal state a payment must not revive (REFUNDED), or a retired flow
 
@@ -50,8 +49,6 @@ function gatewayTransactionNoOf(provider: PaymentProviderType, payload: Record<s
   switch (provider) {
     case 'VNPAY': return pick('vnp_TransactionNo');
     case 'ZALOPAY': return pick('zp_trans_id');
-    case 'PAYOS': return pick('reference');
-    case 'MOMO': return pick('transId');
     default: return null;
   }
 }
@@ -60,14 +57,6 @@ function gatewayTransactionNoOf(provider: PaymentProviderType, payload: Record<s
 function rawReportedAmountOf(provider: PaymentProviderType, payload: Record<string, unknown> | undefined): string | null {
   const v = (payload ?? {})[provider === 'VNPAY' ? 'vnp_Amount' : 'amount'];
   return typeof v === 'string' || typeof v === 'number' ? String(v) : null;
-}
-
-/** True when the callback names a gateway payment link other than the one stored on the transaction at checkout. */
-function referenceBindingMismatch(provider: PaymentProviderType, txnMetadata: unknown, payload: Record<string, unknown> | undefined): boolean {
-  if (provider !== 'PAYOS') return false;
-  const stored = ((txnMetadata ?? {}) as Record<string, unknown>).paymentLinkId;
-  const received = (payload ?? {}).paymentLinkId;
-  return typeof stored === 'string' && stored !== '' && typeof received === 'string' && received !== '' && stored !== received;
 }
 
 /**
@@ -130,8 +119,8 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<HandleEv
   // Enforced here, not only in the HTTP routes, so every route into settlement (IPN, browser
   // return, querydr poll, /sync) is covered by the same rule and a future caller cannot forget it.
   //
-  // This applies to EVERY provider (VNPay, ZaloPay, PayOS, MoMo): each provider converts its own wire format and
-  // unit to whole VND before calling here (VNPay x100, the rest plain VND).
+  // This applies to EVERY provider (VNPay, ZaloPay): each provider converts its own wire format and
+  // unit to whole VND before calling here (VNPay x100, ZaloPay plain VND).
   {
     const verdict = compareGatewayAmount(txn.amount, event.paidAmountVnd);
     if (!verdict.ok) {
@@ -145,14 +134,6 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<HandleEv
       await webhookRepository.markProcessed(webhookRecord.id);
       return 'AMOUNT_MISMATCH';
     }
-  }
-
-  // The callback must be about the payment link created for THIS transaction (PayOS has no merchant id in its webhook;
-  // the paymentLinkId PayOS returned at checkout is the binding). Only checked where both sides state one.
-  if (referenceBindingMismatch(providerEnum, txn.metadata, event.payload)) {
-    logger.error({ error: '[WebhookService] callback names a different gateway payment link than the one created for this transaction — refusing', transactionId: txn.id, provider: providerEnum });
-    await webhookRepository.markProcessed(webhookRecord.id);
-    return 'REFERENCE_MISMATCH';
   }
 
   // A gateway nobody has verified against its production system may not book real money (see gateway-policy.ts).
@@ -308,7 +289,7 @@ async function settlePurchase(txn: {
  * Actively confirms one PROCESSING transaction at its own gateway instead of waiting on a
  * webhook.
  *
- * Every provider (VNPay querydr, ZaloPay /v2/query, MoMo /query, PayOS payment-requests)
+ * Every live provider (VNPay querydr, ZaloPay /v2/query)
  * implements queryTransactionStatus() for exactly this "local/dev confirmation path" — see
  * each provider file — but until now nothing ever called it. VNPay alone had a working
  * confirmation route (the signed vnpay/return redirect); every other gateway's PROCESSING
@@ -352,6 +333,10 @@ export async function pollAndSettle(txn: PaymentTransaction): Promise<'PAID' | '
   const TERMINAL = new Set(['PAID', 'FAILED', 'CANCELLED', 'REFUNDED']);
   if (TERMINAL.has(txn.status)) return txn.status === 'PAID' ? 'PAID' : 'FAILED';
 
+  // A stray row of a retired gateway (MOCK / MOMO / PAYOS) has nobody to ask: skip it instead of letting getProvider()
+  // throw on every reconciliation cycle / every /sync. The stale sweep still closes it out by age.
+  if (isRemovedProvider(txn.provider)) return 'UNSUPPORTED';
+
   // Do not even ask a gateway that may not settle real money here (gateway-policy.ts).
   if (!isGatewayEnabledForRealMoney(txn.provider)) return 'UNSUPPORTED';
 
@@ -393,7 +378,7 @@ export async function pollAndSettle(txn: PaymentTransaction): Promise<'PAID' | '
     // The gateway said "paid" but for a different amount: the transaction was NOT settled, so do not
     // tell the caller (reconciliation log, /sync response) that it was.
     if (outcome === 'AMOUNT_MISMATCH') return 'FAILED';
-    if (outcome === 'REFERENCE_MISMATCH' || outcome === 'GATEWAY_DISABLED') return 'PENDING';
+    if (outcome === 'GATEWAY_DISABLED') return 'PENDING';
   }
   return result;
 }

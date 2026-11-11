@@ -193,8 +193,8 @@ export async function runScaleIntegrity({
     return { examined: ptTotal[0].n, violations: v };
   });
 
-  // 3. Gym Hierarchy, Mirror, Hours, Photos, Compat Writer & Cap <= 40 (Set-based SQL in gym_db)
-  await runCheck("3. Gym hierarchy, facilities mirror, 7h, photos <=40 cap & compat_writer", async () => {
+  // 3. Gym Hierarchy, Mirror, data_origin, Hours, Photos, Compat Writer & Cap <= 40 (Set-based SQL in gym_db)
+  await runCheck("3. Gym hierarchy, facilities mirror, data_origin, 7h, photos <=40 cap & compat_writer", async () => {
     const [
       brandDup,
       partnerMismatch,
@@ -206,6 +206,7 @@ export async function runScaleIntegrity({
       draftPubPhoto,
       photoCapOver,
       writerAbsent,
+      gymOriginBad,
       gymTotal,
     ] = await Promise.all([
       rows(pools.gym, `SELECT owner_id, count(*)::int AS n FROM gym_brands GROUP BY owner_id HAVING count(*) > 1 LIMIT 20`),
@@ -253,6 +254,22 @@ export async function runScaleIntegrity({
            AND ((e.entity_type::text = 'GYM' AND e.entity_id IN (SELECT id FROM gyms WHERE email LIKE ${SCALE_LIKE}))
              OR (e.entity_type::text = 'GYM_PARTNER' AND e.entity_id IN (SELECT id FROM gym_partners WHERE contact_email LIKE ${SCALE_LIKE}))) LIMIT 20`
       ),
+      rows(
+        pools.gym,
+        `SELECT g.id, g.data_origin::text AS data_origin FROM gyms g
+         WHERE (
+           g.email LIKE ${SCALE_LIKE}
+           OR EXISTS (
+             SELECT 1 FROM gym_brands b
+             JOIN gym_partners p ON p.brand_id = b.id
+             WHERE b.id = g.brand_id AND p.contact_email LIKE ${SCALE_LIKE}
+           )
+           OR EXISTS (SELECT 1 FROM gym_membership_contracts m WHERE m.gym_id = g.id AND m.data_origin = 'SYNTHETIC'::"DataOrigin")
+           OR EXISTS (SELECT 1 FROM gym_reviews r WHERE r.gym_id = g.id AND r.data_origin = 'SYNTHETIC'::"DataOrigin")
+         )
+         AND g.data_origin <> 'SYNTHETIC'::"DataOrigin"
+         LIMIT 20`
+      ),
       rows(pools.gym, `SELECT count(*)::int AS n FROM gyms WHERE email LIKE ${SCALE_LIKE}`),
     ]);
 
@@ -267,6 +284,7 @@ export async function runScaleIntegrity({
       ...draftPubPhoto.map((r) => ({ ...r, why: "DRAFT gym has PUBLISHED photos" })),
       ...photoCapOver.map((r) => ({ ...r, why: `gym photo exceeded reuse cap ${PHOTO_REUSE_CAP}` })),
       ...writerAbsent.map((r) => ({ ...r, why: "WRITER_ABSENT logged for scale gym/partner" })),
+      ...gymOriginBad.map((r) => ({ ...r, why: "scale gym data_origin != SYNTHETIC" })),
     ];
     return { examined: gymTotal[0].n, violations: v };
   });
@@ -362,8 +380,8 @@ export async function runScaleIntegrity({
   });
 
   // 5. Contract/Session/Review & Affiliation Relational Integrity (Set-based SQL)
-  await runCheck("5. Contracts <-> Sessions <-> Reviews & PT-Gym Affiliations parity", async () => {
-    const [sessMismatch, revMismatch, gymRevBad, ciBad, reviewTotal] = await Promise.all([
+  await runCheck("5. Contracts <-> Sessions <-> Reviews, SYNTHETIC gym origin & PT-Gym Affiliations parity", async () => {
+    const [sessMismatch, revMismatch, gymRevBad, ciBad, revGymOriginBad, memGymOriginBad, reviewTotal, gymRevMemTotal] = await Promise.all([
       rows(
         pools.user,
         `SELECT c.id FROM contracts c LEFT JOIN sessions s ON s.contract_id = c.id
@@ -384,15 +402,42 @@ export async function runScaleIntegrity({
         `SELECT ci.id FROM gym_check_ins ci JOIN gym_membership_contracts m ON m.id = ci.membership_id
          WHERE m.data_origin = 'SYNTHETIC'::"DataOrigin" AND (ci.gym_id <> m.gym_id OR ci.client_id <> m.client_id) LIMIT 20`
       ),
+      rows(
+        pools.gym,
+        `SELECT r.id, r.gym_id, g.data_origin::text AS gym_data_origin
+         FROM gym_reviews r
+         LEFT JOIN gyms g ON g.id = r.gym_id
+         WHERE r.data_origin = 'SYNTHETIC'::"DataOrigin"
+           AND (g.id IS NULL OR g.data_origin <> 'SYNTHETIC'::"DataOrigin")
+         LIMIT 20`
+      ),
+      rows(
+        pools.gym,
+        `SELECT m.id, m.gym_id, g.data_origin::text AS gym_data_origin
+         FROM gym_membership_contracts m
+         LEFT JOIN gyms g ON g.id = m.gym_id
+         WHERE m.data_origin = 'SYNTHETIC'::"DataOrigin"
+           AND (g.id IS NULL OR g.data_origin <> 'SYNTHETIC'::"DataOrigin")
+         LIMIT 20`
+      ),
       rows(pools.user, `SELECT count(*)::int AS n FROM session_reviews r JOIN contracts c ON c.id = r.contract_id WHERE c.data_origin = 'SYNTHETIC'`),
+      rows(
+        pools.gym,
+        `SELECT (
+           (SELECT count(*)::int FROM gym_reviews WHERE data_origin = 'SYNTHETIC'::"DataOrigin") +
+           (SELECT count(*)::int FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin")
+         ) AS n`
+      ),
     ]);
     const v = [
       ...sessMismatch.map((r) => ({ ...r, why: "contract used_sessions != completed sessions" })),
       ...revMismatch.map((r) => ({ ...r, why: "session_review mismatches session/contract/client" })),
       ...gymRevBad.map((r) => ({ ...r, why: "duplicate (gym_id, client_id) review" })),
       ...ciBad.map((r) => ({ ...r, why: "gym_check_in mismatches membership gym/client" })),
+      ...revGymOriginBad.map((r) => ({ ...r, why: "SYNTHETIC gym_reviews points to missing/non-SYNTHETIC gym" })),
+      ...memGymOriginBad.map((r) => ({ ...r, why: "SYNTHETIC gym_membership_contracts points to missing/non-SYNTHETIC gym" })),
     ];
-    return { examined: reviewTotal[0].n, violations: v };
+    return { examined: reviewTotal[0].n + gymRevMemTotal[0].n, violations: v };
   });
 
   // 6. Geo Bounds, C3 Province Quotas, Chains 700/180/20, Ward >=40%, Review Distribution C5.5

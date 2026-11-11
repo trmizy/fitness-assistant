@@ -3,6 +3,7 @@ import { membershipRepository } from '../repositories/membership.repository';
 import { paymentClient } from '../clients/payment.client';
 import { prisma } from '../repositories/prisma';
 import { membershipHolds } from './complaint-case/refund-guard';
+import { isSynthetic, originOf } from './synthetic-guard';
 
 /**
  * Money-flow plan §2.3①: a membership's gym/platform/referral share sits in the pending
@@ -84,6 +85,7 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
     held += heldNow.size;
     const due = await membershipRepository.findExpiredNotReleased(BATCH_SIZE, [...heldNow]);
     for (const m of due) {
+      if (isSynthetic(m)) continue;
       try {
         // Decide "hold or release" under the membership row lock: opening a case / an appeal takes the same lock, so none can slip between this check and the release.
         const skipped = await prisma.$transaction(
@@ -103,6 +105,7 @@ export async function runSweep(): Promise<{ cancelledStale: number; expired: num
           // AFTER this call returns, so a crash between the two used to risk a second release
           // on the next tick before this key existed.
           idempotencyKey: `MEMBERSHIP_RELEASE:${m.id}`,
+          entityOrigin: originOf(m),
             });
             await tx.gymMembershipContract.update({ where: { id: m.id }, data: { payoutReleasedAt: new Date() } });
             return null;

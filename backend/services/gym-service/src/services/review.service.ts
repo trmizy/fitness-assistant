@@ -3,6 +3,7 @@ import { reviewRepository } from '../repositories/review.repository';
 import { isGymPubliclyVisible } from './gym-public';
 import { resolveDisplayNames } from './display-name.service';
 import { reviewerLabel } from './reviewer-label';
+import { assertNotSynthetic, syntheticNotTransactableError } from './synthetic-guard';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
@@ -59,16 +60,24 @@ export const reviewService = {
 
     // B46: a review is written about a branch that is open to the public - APPROVED and operationally OPEN (and whose
     // partner is not hidden). A suspended / closed / unapproved branch refuses it.
-    const gym = await prisma.gym.findUnique({ where: { id: gymId }, select: { id: true } });
+    const gym = await prisma.gym.findUnique({ where: { id: gymId }, select: { id: true, dataOrigin: true } });
     if (!gym) throw err('Không tìm thấy phòng gym', 404, 'GYM_NOT_FOUND');
+    assertNotSynthetic(gym);
     if (!(await isGymPubliclyVisible(gymId))) {
       throw err('Phòng gym hiện không nhận đánh giá (đang đóng cửa hoặc chưa hoạt động)', 409, 'GYM_NOT_ACCEPTING_REVIEWS');
     }
 
     const paid = await prisma.gymMembershipContract.findFirst({
-      where: { gymId, clientId, status: { in: ['ACTIVE', 'EXPIRED'] } },
+      where: { gymId, clientId, dataOrigin: 'REAL', status: { in: ['ACTIVE', 'EXPIRED'] } },
     });
-    if (!paid) throw err('NOT_A_MEMBER', 403);
+    if (!paid) {
+      const syntheticPaid = await prisma.gymMembershipContract.findFirst({
+        where: { gymId, clientId, dataOrigin: 'SYNTHETIC', status: { in: ['ACTIVE', 'EXPIRED'] } },
+        select: { id: true },
+      });
+      if (syntheticPaid) throw syntheticNotTransactableError();
+      throw err('NOT_A_MEMBER', 403);
+    }
 
     // B46: tell the caller whether this created a review (201) or edited their existing one (200).
     const existing = await reviewRepository.findOwn(gymId, clientId);
@@ -78,6 +87,10 @@ export const reviewService = {
 
   /** B46: deleting a review that does not exist is a 404, not a silent 200. */
   async remove(gymId: string, clientId: string) {
+    const gym = await prisma.gym.findUnique({ where: { id: gymId }, select: { dataOrigin: true } });
+    assertNotSynthetic(gym);
+    const own = await reviewRepository.findOwn(gymId, clientId);
+    if (own) assertNotSynthetic(own);
     const { count } = await reviewRepository.deleteOwn(gymId, clientId);
     if (count === 0) throw err('Bạn chưa có đánh giá nào cho phòng gym này', 404, 'REVIEW_NOT_FOUND');
     return { ok: true };

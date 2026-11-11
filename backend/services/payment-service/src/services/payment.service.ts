@@ -1,8 +1,6 @@
 import type { PaymentProvider } from '../providers/payment-provider.interface';
-import { MoMoProvider } from '../providers/momo.provider';
 import { VNPayProvider } from '../providers/vnpay.provider';
 import { ZaloPayProvider } from '../providers/zalopay.provider';
-import { PayOSProvider } from '../providers/payos.provider';
 import { isGatewayEnabledForRealMoney, productionVerificationEnvName } from './gateway-policy';
 
 /**
@@ -16,13 +14,17 @@ import { isGatewayEnabledForRealMoney, productionVerificationEnvName } from './g
  *
  * MOCK is still a value of the PaymentProviderType DB enum: transactions created before
  * the removal reference it and must remain readable. Nothing produces it any more.
+ *
+ * MOMO and PAYOS were retired the same way (owner decision 2026-11-11): the provider code is gone, the
+ * enum values stay so old rows (and their webhook events) remain readable, and they are refused here.
+ * The live gateways are VNPAY and ZALOPAY.
  */
 export const DEFAULT_PROVIDER = 'VNPAY';
 
-const REMOVED_PROVIDERS = new Set(['MOCK']);
+const REMOVED_PROVIDERS = new Set(['MOCK', 'MOMO', 'PAYOS']);
 
 function removedMessage(name: string): string {
-  return `Payment provider ${name} has been removed — use a sandbox gateway (VNPAY, ZALOPAY)`;
+  return `Payment provider ${name} has been removed — use VNPAY or ZALOPAY`;
 }
 
 export function getProvider(override?: string): PaymentProvider {
@@ -31,10 +33,8 @@ export function getProvider(override?: string): PaymentProvider {
     throw Object.assign(new Error(removedMessage(name)), { status: 400 });
   }
   switch (name) {
-    case 'MOMO':    return new MoMoProvider();
     case 'VNPAY':   return new VNPayProvider();
     case 'ZALOPAY': return new ZaloPayProvider();
-    case 'PAYOS':   return new PayOSProvider();
     default: throw new Error(`Unknown payment provider: ${name}`);
   }
 }
@@ -60,13 +60,12 @@ export function providerConfigStatus(name: string): { configured: boolean; missi
       return VNPayProvider.configStatus();
     case 'ZALOPAY':
       return ZaloPayProvider.configStatus();
-    case 'PAYOS':
-      return PayOSProvider.configStatus();
-    case 'MOMO': {
-      const missing = ['MOMO_PARTNER_CODE', 'MOMO_ACCESS_KEY', 'MOMO_SECRET_KEY'].filter((k) => !process.env[k]);
-      return { configured: missing.length === 0, missing };
-    }
     default:
       return { configured: false, missing: [`unknown provider ${name}`] };
   }
+}
+
+/** True for a gateway that was retired (MOCK, MOMO, PAYOS): its DB rows are still readable, but nothing may call it. */
+export function isRemovedProvider(name: string): boolean {
+  return REMOVED_PROVIDERS.has(name.toUpperCase());
 }
