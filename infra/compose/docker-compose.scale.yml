@@ -22,6 +22,8 @@ x-secrets: &secrets
   JWT_REFRESH_SECRET: scale_jwt_refresh_secret_0123456789abcdef0123456789
   INTERNAL_SERVICE_SECRET: scale_internal_service_secret_0123456789abcdef
   INTERNAL_API_SECRET: scale_internal_api_secret_0123456789abcdef01
+  PT_DISCOVERY_CURSOR_SECRET: scale_pt_discovery_cursor_secret_0123456789abcdef
+  GYM_SEARCH_CURSOR_SECRET: scale_gym_search_cursor_secret_0123456789abcdef
 
 x-hc: &hc
   interval: 10s
@@ -212,6 +214,8 @@ services:
       PT_MEDIA_S3_SECRET_ACCESS_KEY: scale_minio_secret_isolated
       PT_MEDIA_S3_BUCKET: gymini-user-media
       GYMINI_DEMO_ENVIRONMENT: "true"
+    volumes:
+      - ../../scripts/seed-marketplace/.runtime/scale-profile-photos:/app/backend/services/user-service/uploads/profile-photos
     depends_on:
       postgres-scale: { condition: service_healthy }
       redis-scale: { condition: service_healthy }

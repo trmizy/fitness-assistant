@@ -11,6 +11,8 @@ export interface User {
   goal?: string;
   fitnessLevel?: "beginner" | "intermediate" | "advanced";
   isPT?: boolean;
+  searchProvinceCode?: number | null;
+  searchWardCode?: number | null;
   /** True only for an admin-created account (currently just gym owners) still on its random
    * temporary password. AppShell blocks all navigation behind a forced change-password
    * screen while this is true; cleared server-side the moment any password change succeeds. */
@@ -1059,4 +1061,98 @@ export interface GymDirectEditSource {
   published: GymListingPayload;
   amenities: AdminGymPublishedListing["amenities"];
   photos: ListingPhoto[];
+}
+
+// ── U1 Discovery search & location contracts (D0b-2 / D1 / D2) ─────────────────────────────────
+export type DiscoveryScope = "near" | "province" | "national";
+export type DiscoveryDistanceBasis = "GPS" | "WARD_CENTER" | null;
+
+export interface PtSearchRequest {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  areaProvince?: number;
+  areaWard?: number;
+  scope?: DiscoveryScope;
+  mode?: "ANY" | "ONLINE" | "OFFLINE" | "HYBRID";
+  sortBy?: "default" | "distance" | "ratingDesc" | "ratingAsc" | "priceAsc" | "priceDesc" | "nameAsc";
+  filters?: {
+    q?: string;
+    specialties?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+    gymId?: string;
+  };
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface PtSearchResponse {
+  pts: Array<Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis }>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  appliedScope: DiscoveryScope;
+}
+
+export interface GymSearchRequest {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  scope?: DiscoveryScope;
+  areaProvince?: number;
+  areaWard?: number;
+  q?: string;
+  amenityIds?: string[];
+  priceMax?: number;
+  sort?: "relevance" | "distance" | "rating" | "price";
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface GymSearchResultItem extends Gym {
+  distanceKm?: number | null;
+  amenities?: Array<{
+    id?: string;
+    slug?: string;
+    name?: string;
+    category?: string;
+    iconKey?: string | null;
+  }>;
+  coverPhotoUrl?: string | null;
+}
+
+export interface GymSearchResponse {
+  gyms: GymSearchResultItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  appliedScope: DiscoveryScope;
+}
+
+export interface BrandOptionBranch {
+  id: string;
+  name: string;
+  city: string | null;
+  closed: boolean;
+}
+
+export interface BrandOptionDto {
+  scope: "BRAND" | "BRANCH";
+  brandId: string;
+  brandName: string;
+  branches: BrandOptionBranch[];
+  proposeBranchId: string;
+}
+
+export interface BrandOptionsResponse {
+  options: BrandOptionDto[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface WardGeoDto {
+  code: number;
+  provinceCode: number;
+  name: string;
+  centroid: { lat: number; lng: number } | null;
+  bbox: { minLat: number; maxLat: number; minLng: number; maxLng: number } | null;
 }

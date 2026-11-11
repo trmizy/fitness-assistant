@@ -43,6 +43,8 @@ export interface DescribeOptions {
 interface CodeEntry {
   message: string;
   stale?: boolean;
+  /** A server-side failure code: on a write the outcome is unknown (view.ambiguous), and `serverHint` is appended. */
+  ambiguousOnWrite?: boolean;
 }
 
 /** Codes of payment-service, ai-service (personalized refund) and gym-service, by stable code or (gym) by raw message. */
@@ -57,6 +59,38 @@ export const ADMIN_ERROR_CODES: Record<string, CodeEntry> = {
   },
   REASON_REQUIRED: { message: "Cần nhập lý do." },
   BANK_REFERENCE_REQUIRED: { message: "Cần nhập mã tham chiếu chuyển khoản." },
+  // payment-service G-13 — stable codes of the withdrawal write endpoints (409 wallet refusals, 500 unknown)
+  INSUFFICIENT_BALANCE: { message: "Số dư khả dụng của ví không đủ — yêu cầu cần xem lại. Danh sách đã được tải lại.", stale: true },
+  WALLET_NOT_ACTIVE: { message: "Ví này hiện không hoạt động nên chưa thao tác được. Danh sách đã được tải lại.", stale: true },
+  INTERNAL_ERROR: {
+    message: "Máy chủ gặp lỗi khi xử lý. Chưa xác nhận được kết quả — hãy tải lại trạng thái để kiểm tra trước khi thử lại.",
+    ambiguousOnWrite: true,
+  },
+  // payment-service manual retry-activation (502): the downstream call failed, whether it took effect is unknown -> re-read first
+  RETRY_FAILED: {
+    message: "Chưa thử lại được khoản hoàn tiền. Hãy tải lại và kiểm tra trạng thái trước khi thử lại.",
+    stale: true,
+    ambiguousOnWrite: true,
+  },
+  // payment-service finance screens (BE-1 transactions, G-06 reconciliation runs, G-08 history, G-09/10 wallets, B8 VNPay L3)
+  INVALID_QUERY: { message: "Bộ lọc không hợp lệ. Hãy đặt lại bộ lọc rồi thử lại." },
+  INVALID_ID: { message: "Mã không hợp lệ. Hãy mở lại từ danh sách." },
+  TRANSACTION_NOT_FOUND: { message: "Không tìm thấy giao dịch này (có thể đã bị xoá)." },
+  WALLET_NOT_FOUND: { message: "Không tìm thấy ví này (có thể đã bị xoá)." },
+  RECONCILIATION_RUN_TOO_SOON: { message: "Vừa chạy đối soát xong. Hãy đợi ít giây rồi chạy lại." },
+  RECONCILIATION_FAILED: {
+    message: "Không chạy được đối soát sổ ví. Hãy tải lại lịch sử đối soát để kiểm tra trước khi chạy lại.",
+    ambiguousOnWrite: true,
+  },
+  RECONCILIATION_RUNS_FAILED: { message: "Không tải được lịch sử đối soát. Vui lòng thử lại sau ít phút." },
+  GATEWAY_RECONCILIATION_FAILED: { message: "Không tải được đối chiếu cổng thanh toán. Vui lòng thử lại sau ít phút." },
+  VNPAY_L3_FAILED: { message: "Không hỏi được VNPay lúc này. Vui lòng thử lại sau ít phút." },
+  WITHDRAWAL_HISTORY_FAILED: { message: "Không tải được lịch sử rút tiền. Vui lòng thử lại sau ít phút." },
+  TRANSACTIONS_LIST_FAILED: { message: "Không tải được danh sách giao dịch. Vui lòng thử lại sau ít phút." },
+  TRANSACTION_DETAIL_FAILED: { message: "Không tải được chi tiết giao dịch. Vui lòng thử lại sau ít phút." },
+  WALLETS_LIST_FAILED: { message: "Không tải được danh sách ví. Vui lòng thử lại sau ít phút." },
+  WALLET_DETAIL_FAILED: { message: "Không tải được chi tiết ví. Vui lòng thử lại sau ít phút." },
+  OBLIGATIONS_REPORT_FAILED: { message: "Không tải được báo cáo nghĩa vụ. Vui lòng thử lại sau ít phút." },
   // ai-service personalized-service refund (A3)
   PERSONALIZED_SERVICE_ADMIN_ONLY: { message: "Chỉ quản trị viên mới xử lý được hoàn tiền dịch vụ." },
   PERSONALIZED_SERVICE_ORDER_NOT_FOUND: { message: "Không tìm thấy đơn hàng này. Danh sách đã được tải lại.", stale: true },
@@ -118,7 +152,13 @@ export function describeAdminError(error: unknown, opts: DescribeOptions = {}): 
   // 1. Known code (or gym's English message-as-code)
   if (code) {
     const known = ADMIN_ERROR_CODES[code];
-    if (known) return view(known.message, { stale: !!known.stale });
+    if (known) {
+      if (known.ambiguousOnWrite && write) {
+        const hint = opts.serverHint ? ` ${opts.serverHint}` : "";
+        return view(`${known.message}${hint}`, { ambiguous: true });
+      }
+      return view(known.message, { stale: !!known.stale });
+    }
     const cannotRefund = /^Cannot refund a membership in (\w+) status$/.exec(code);
     if (cannotRefund) {
       const st = MEMBERSHIP_STATUS_VI[cannotRefund[1]];

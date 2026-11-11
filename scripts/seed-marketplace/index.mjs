@@ -20,6 +20,8 @@ import { checkFreshTarget } from "./lib/preflight.mjs";
 import { buildWorld, summarize } from "./lib/world/index.mjs";
 import { makeClient, redact } from "./lib/tierB/client.mjs";
 import { describeTierB, makeTierBContext, runTierB } from "./lib/tierB/run.mjs";
+import { runScaleSeed } from "./lib/scale/runner.mjs";
+import { SCALE_NAMESPACE } from "./lib/scale/config.mjs";
 
 const args = process.argv.slice(2);
 const flag = (n, d) => {
@@ -63,8 +65,23 @@ async function main() {
       console.log(JSON.stringify(await seedCounts(pools), null, 2));
       return;
     }
+    if (tier === "scale") {
+      if (target.kind === "dev" || target.kind === "fresh" || target.kind === "partner") {
+        throw new SeedGuardError("TARGET_REFUSED", `--tier scale only supports --target scale (isolated 55440) or --target test (55433), never "${target.kind}".`);
+      }
+      const scaleFactorRaw = flag("scale-factor", target.kind === "test" ? "0.01" : "1");
+      const scaleFactor = Number(scaleFactorRaw);
+      const batchSize = Number(flag("batch", "1000"));
+      const resume = !!flag("resume", false);
+      const only = typeof flag("only", null) === "string" ? flag("only", null) : null;
+      const skipMedia = flag("with-media", false) ? false : flag("skip-media", target.kind === "test");
+      const namespace = typeof flag("namespace", SCALE_NAMESPACE) === "string" ? flag("namespace", SCALE_NAMESPACE) : SCALE_NAMESPACE;
+      const out = await runScaleSeed({ target, pools, scaleFactor, batchSize, namespace, resume, only, skipMedia, log });
+      console.log(JSON.stringify({ scaleMetrics: out.metrics }, null, 2));
+      return;
+    }
     if (!["a", "b", "all"].includes(tier)) {
-      throw new SeedGuardError("UNKNOWN_TIER", `Unsupported --tier "${tier}" (expected a, b, or all; scale generator lands in phase S1).`);
+      throw new SeedGuardError("UNKNOWN_TIER", `Unsupported --tier "${tier}" (expected a, b, all, or scale).`);
     }
     if (guard.kind === "fresh") await checkFreshTarget(target, pools, { reseed: gopts.reseed });
     await assertNoCollisions(pools, world);

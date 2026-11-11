@@ -9,6 +9,16 @@ function ptDocumentContentType(file: File): string {
   return "application/pdf";
 }
 
+/** The backend's "no upload bucket on this deployment" refusal: 503 + code UPLOAD_STORAGE_NOT_CONFIGURED. */
+export function isUploadStorageNotConfigured(e: any): boolean {
+  if (e?.response?.status !== 503) return false;
+  const data = e.response.data;
+  return (
+    data?.code === "UPLOAD_STORAGE_NOT_CONFIGURED" ||
+    /not configured/i.test(String(data?.error ?? ""))
+  );
+}
+
 export interface PTApplicationCertificate {
   id?: string;
   certificateName: string;
@@ -149,10 +159,26 @@ export const ptApplicationService = {
     file: File,
   ): Promise<{ url: string; previewUrl?: string; filename: string }> => {
     const contentType = ptDocumentContentType(file);
-    const { data: target } = await api.post<PresignedUploadTarget>(
-      "/pt-applications/me/upload/presign",
-      { contentType },
-    );
+    let target: PresignedUploadTarget;
+    try {
+      const res = await api.post<PresignedUploadTarget>(
+        "/pt-applications/me/upload/presign",
+        { contentType },
+      );
+      target = res.data;
+    } catch (e: any) {
+      // Local dev stack has no upload bucket (503 UPLOAD_STORAGE_NOT_CONFIGURED /
+      // "USER_UPLOAD_BUCKET is not configured"); the multipart route is the only one that works
+      // there. AWS never hits this branch (presign succeeds, and the multipart route is disabled
+      // there), and any other error is still thrown.
+      if (!isUploadStorageNotConfigured(e)) throw e;
+      const form = new FormData();
+      form.append("document", file);
+      const { data } = await api.post("/pt-applications/me/upload", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return { ...data, filename: file.name };
+    }
     await uploadFileToPresignedUrl(target, file, contentType);
     const { data } = await api.post("/pt-applications/me/upload/confirm", {
       key: target.key,

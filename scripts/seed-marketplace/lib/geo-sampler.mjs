@@ -129,8 +129,9 @@ export function samplePointInWard(wardCode, rngOrSeed, opts = {}) {
     : [{ lat: ward.centroidLat, lng: ward.centroidLng, src: ward.pointSource }];
 
   const anchor = anchors[Math.floor(rng() * anchors.length)];
-  const polys = loadRuntimePolygons(opts.runtimeDir ?? DEFAULT_RUNTIME_GEO_DIR);
-  const canVerifyLivePip = polys.available && Boolean(polys.wards[String(ward.wardCode)]);
+  const wantJitter = opts.maxJitterDeg === undefined || opts.maxJitterDeg > 0;
+  const polys = wantJitter ? loadRuntimePolygons(opts.runtimeDir ?? DEFAULT_RUNTIME_GEO_DIR) : null;
+  const canVerifyLivePip = Boolean(polys?.available && polys.wards[String(ward.wardCode)]);
 
   // Tiny footprint micro-jitter (~3.5m) avoids riverbank hop while giving distinct pins
   const defaultJitter = ward.urbanClass === "urban" ? 0.00003 : 0.00003;

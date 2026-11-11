@@ -480,11 +480,28 @@ export const profileService = {
     return data;
   },
 
+  /** Location-aware cursor search (D0b-2). Sends rounded GPS only in POST body, never on URL. */
+  searchPTs: async (body: Record<string, any>) => {
+    const { data } = await api.post("/profile/pts/search", body);
+    return data as {
+      pts: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: "near" | "province" | "national";
+    };
+  },
+
   /** One PT's public profile for the discovery detail modal — adds avgRating/ratingCount
    *  (already on the list rows too) plus recentReviews: the last 5 commented reviews, which
    *  the list endpoint never sends. */
-  getPTDetail: async (ptUserId: string) => {
-    const { data } = await api.get(`/profile/pts/${ptUserId}`);
+  getPTDetail: async (ptUserId: string, region?: { areaProvince?: number; areaWard?: number }) => {
+    const params = region?.areaProvince
+      ? {
+          areaProvince: region.areaProvince,
+          ...(region.areaWard ? { areaWard: region.areaWard } : {}),
+        }
+      : undefined;
+    const { data } = await api.get(`/profile/pts/${ptUserId}`, { params });
     return data;
   },
 
@@ -5525,6 +5542,16 @@ export const locationService = {
     );
     return data as { code: number; name: string; codename?: string }[];
   },
+  getWardGeo: async (wardCode: number) => {
+    const { data } = await api.get(`/locations/wards/${wardCode}`);
+    return data as {
+      code: number;
+      provinceCode: number;
+      name: string;
+      centroid: { lat: number; lng: number } | null;
+      bbox: { minLat: number; maxLat: number; minLng: number; maxLng: number } | null;
+    };
+  },
 };
 
 export const trainingLocationService = {
@@ -5685,6 +5712,36 @@ export const gymService = {
   listGyms: async () => {
     const { data } = await api.get('/gyms');
     return data?.data ?? data;
+  },
+  /** Distance/region/filter cursor search (D2). Never puts GPS coordinates in query string. */
+  searchGyms: async (body: Record<string, any>) => {
+    const { data } = await api.post('/gyms/search', body);
+    return (data?.data ?? data) as {
+      gyms: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: 'near' | 'province' | 'national';
+    };
+  },
+  /** Brand / standalone options for CollaborationPanel PT proposal modal (D2). */
+  getBrandOptions: async (params?: { q?: string; cursor?: string | null; limit?: number }) => {
+    const cleanParams = {
+      ...(params?.q ? { q: params.q } : {}),
+      ...(params?.cursor ? { cursor: params.cursor } : {}),
+      ...(params?.limit ? { limit: params.limit } : {}),
+    };
+    const { data } = await api.get('/gyms/brand-options', { params: cleanParams });
+    return (data?.data ?? data) as {
+      options: Array<{
+        scope: 'BRAND' | 'BRANCH';
+        brandId: string;
+        brandName: string;
+        branches: { id: string; name: string; city: string | null; closed: boolean }[];
+        proposeBranchId: string;
+      }>;
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
   },
   getGym: async (gymId: string) => {
     const { data } = await api.get(`/gyms/${gymId}`);
