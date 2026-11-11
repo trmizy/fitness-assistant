@@ -12,6 +12,7 @@
  *    became redirects). Nothing here is a 404.
  *  - "Giao dịch" (finance transactions, B7) sits between "Đối soát" and "Rút tiền"; it is read-only
  *    (backend G-04/G-05). It reuses the finance overview icon key (no new icon key = no change to adminNavIcons).
+ *  - "Ví" (wallet explorer, G-09/G-10) sits right after "Giao dịch"; read-only, same icon-key reuse.
  */
 
 export type AdminIconKey =
@@ -86,6 +87,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { id: "finance-overview", label: "Tổng quan tài chính", crumb: "Tổng quan", to: ADMIN_FINANCE_PATH, iconKey: "financeOverview", end: true },
       { id: "finance-reconciliation", label: "Đối soát", to: `${ADMIN_FINANCE_PATH}/reconciliation`, iconKey: "reconciliation", badge: "reconciliation" },
       { id: "finance-transactions", label: "Giao dịch", to: `${ADMIN_FINANCE_PATH}/transactions`, iconKey: "financeOverview" },
+      { id: "finance-wallets", label: "Ví", to: `${ADMIN_FINANCE_PATH}/wallets`, iconKey: "financeOverview" },
       { id: "finance-withdrawals", label: "Rút tiền", to: `${ADMIN_FINANCE_PATH}/withdrawals`, iconKey: "withdrawals", badge: "withdrawals" },
       { id: "finance-refunds", label: "Hoàn tiền", to: `${ADMIN_FINANCE_PATH}/refunds`, iconKey: "refunds", badge: "serviceRefunds" },
     ],
@@ -128,7 +130,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV.flatMap((g) => g.items)
 
 /** Tabs of the only level-2 surface (Tài chính). Keys double as the legacy `?tab=` values. */
 export interface AdminFinanceTab {
-  key: "overview" | "reconciliation" | "transactions" | "withdrawals" | "refunds";
+  key: "overview" | "reconciliation" | "transactions" | "wallets" | "withdrawals" | "refunds";
   label: string;
   to: string;
   end?: boolean;
@@ -138,6 +140,7 @@ export const ADMIN_FINANCE_TABS: AdminFinanceTab[] = [
   { key: "overview", label: "Tổng quan", to: ADMIN_FINANCE_PATH, end: true },
   { key: "reconciliation", label: "Đối soát", to: `${ADMIN_FINANCE_PATH}/reconciliation` },
   { key: "transactions", label: "Giao dịch", to: `${ADMIN_FINANCE_PATH}/transactions` },
+  { key: "wallets", label: "Ví", to: `${ADMIN_FINANCE_PATH}/wallets` },
   { key: "withdrawals", label: "Rút tiền", to: `${ADMIN_FINANCE_PATH}/withdrawals` },
   { key: "refunds", label: "Hoàn tiền", to: `${ADMIN_FINANCE_PATH}/refunds` },
 ];

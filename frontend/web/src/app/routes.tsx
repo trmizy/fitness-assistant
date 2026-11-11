@@ -139,6 +139,7 @@ const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").the
 const AdminFinanceOverviewTab = lazy(() => import("./pages/admin/AdminFinanceOverviewTab").then((m) => ({ default: m.AdminFinanceOverviewTab })));
 const AdminReconciliationPanel = lazy(() => import("./pages/admin/AdminReconciliationPanel").then((m) => ({ default: m.AdminReconciliationPanel })));
 const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions").then((m) => ({ default: m.AdminTransactions })));
+const AdminWallets = lazy(() => import("./pages/admin/finance/wallets/AdminWallets").then((m) => ({ default: m.AdminWallets })));
 const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals").then((m) => ({ default: m.AdminWithdrawals })));
 const PTServiceRefunds = lazy(() => import("./pages/admin/PTServiceRefunds").then((m) => ({ default: m.PTServiceRefunds })));
 // Listing Management D1 - PT + branch listing revisions, amenity catalogue and proposals.
@@ -400,6 +401,7 @@ export const router = createBrowserRouter([
               { index: true, Component: AdminFinanceOverviewTab },
               { path: "reconciliation", Component: AdminReconciliationPanel },
               { path: "transactions", Component: AdminTransactions },
+              { path: "wallets", Component: AdminWallets },
               { path: "withdrawals", Component: AdminWithdrawals },
               { path: "refunds", Component: PTServiceRefunds },
               // Đường dẫn con không tồn tại → Tổng quan, không 404.
