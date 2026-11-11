@@ -1,6 +1,7 @@
 import { logger } from '@gym-coach/shared';
 import { referralRepository } from '../repositories/referral.repository';
 import { paymentClient } from '../clients/payment.client';
+import { isSynthetic, originOf } from './synthetic-guard';
 
 /**
  * P0 cluster E4 — activateViaTransaction's referral-settlement step used to swallow a
@@ -37,6 +38,7 @@ export async function runReferralSettlementSweep(): Promise<{ scanned: number; s
 
     logger.info(`[ReferralSettlementSweep] ${scanned} failed referral settlement(s) to retry`);
     for (const referral of failed) {
+      if (isSynthetic(referral.membershipContract)) continue;
       try {
         // The membership must have actually activated (paymentTxnId set) for there to be
         // anything to settle — a defensive check, not expected to ever fail in practice since
@@ -52,6 +54,7 @@ export async function runReferralSettlementSweep(): Promise<{ scanned: number; s
           amount: referral.amount.toString(),
           label: `Membership ${referral.membershipContractId} referral (retry)`,
           idempotencyKey: `MEMBERSHIP_REFERRAL:${referral.membershipContractId}`,
+          entityOrigin: originOf(referral.membershipContract),
         });
         await referralRepository.markReleased(referral.membershipContractId);
         settled++;

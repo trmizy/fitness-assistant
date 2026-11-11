@@ -48,6 +48,7 @@ import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
 import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 import { enrichProfilesWithAuthNames } from "./profile.service";
+import { assertNotSynthetic } from "./synthetic-guard.util";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -382,6 +383,8 @@ export async function resolveDisputeCore(
 
   const session = await sessionRepository.findById(sessionId);
   if (!session) throw err("Không tìm thấy buổi tập", 404);
+  const contractHead = await contractRepository.findById(session.contractId);
+  assertNotSynthetic(contractHead);
   if (session.status !== SessionStatus.DISPUTED) {
     throw err("Buổi tập này không ở trạng thái đang khiếu nại", 400);
   }
@@ -557,6 +560,7 @@ export const bookingService = {
     if (contract.clientUserId !== clientUserId) {
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
+    assertNotSynthetic(contract);
 
     // A restricted PT (temporarily suspended, or banned) takes no new sessions: the contract stays
     // ACTIVE but is PAUSED_BY_ADMIN. Machine-readable refusal; re-checked under the PT's lock below.
@@ -1366,6 +1370,7 @@ export const bookingService = {
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.clientUserId !== clientUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(await contractRepository.findById(session.contractId));
     if (session.status !== SessionStatus.COMPLETED) {
       throw err("Chỉ đánh giá được buổi tập đã hoàn thành", 400);
     }
@@ -1396,6 +1401,7 @@ export const bookingService = {
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(await contractRepository.findById(session.contractId));
     await assertPtMayActOnContract(ptUserId, session.contractId); // restricted mode
     if (session.status !== SessionStatus.COMPLETED) {
       throw err("Chỉ đánh giá được buổi tập đã hoàn thành", 400);

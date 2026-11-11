@@ -420,6 +420,7 @@ exports.Prisma.GymScalarFieldEnum = {
   createdFlowVersion: 'createdFlowVersion',
   legacyNoAmenities: 'legacyNoAmenities',
   legacyClientAt: 'legacyClientAt',
+  dataOrigin: 'dataOrigin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1238,6 +1239,11 @@ exports.GymOperationalStatus = exports.$Enums.GymOperationalStatus = {
   PERMANENTLY_CLOSED: 'PERMANENTLY_CLOSED'
 };
 
+exports.DataOrigin = exports.$Enums.DataOrigin = {
+  REAL: 'REAL',
+  SYNTHETIC: 'SYNTHETIC'
+};
+
 exports.GymFacility = exports.$Enums.GymFacility = {
   FREE_WEIGHTS: 'FREE_WEIGHTS',
   CARDIO_MACHINES: 'CARDIO_MACHINES',
@@ -1270,11 +1276,6 @@ exports.GymMembershipContractStatus = exports.$Enums.GymMembershipContractStatus
   EXPIRED: 'EXPIRED',
   CANCELLED: 'CANCELLED',
   PENDING_ISSUE: 'PENDING_ISSUE'
-};
-
-exports.DataOrigin = exports.$Enums.DataOrigin = {
-  REAL: 'REAL',
-  SYNTHETIC: 'SYNTHETIC'
 };
 
 exports.AffiliationStatus = exports.$Enums.AffiliationStatus = {

@@ -1,10 +1,15 @@
 import axios from 'axios';
+import type { EntityOrigin } from '../services/synthetic-guard.util';
 
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
+
+function withEntityOrigin(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Record<string, unknown> {
+  return opts?.entityOrigin ? { ...body, entityOrigin: opts.entityOrigin } : body;
+}
 
 export interface WalletTransferResult {
   status: 'PAID' | 'FAILED';
@@ -70,6 +75,7 @@ export const paymentClient = {
     orderInfo?: string;
     platform?: 'web' | 'mobile';
     returnBaseUrl?: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<CheckoutResult> {
     try {
       const { data } = await axios.post(
@@ -88,6 +94,7 @@ export const paymentClient = {
           orderInfo: params.orderInfo,
           platform: params.platform,
           returnBaseUrl: params.returnBaseUrl,
+          ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
         },
         { headers, timeout: 20_000 },
       );
@@ -102,30 +109,30 @@ export const paymentClient = {
   },
 
   /** Money movements for a contract, all owned by payment-service. */
-  async releaseSession(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-session`, body, { headers, timeout: 15_000 });
+  async releaseSession(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-session`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
-  async noShow(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show`, body, { headers, timeout: 15_000 });
+  async noShow(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
   /** READ-ONLY (final safety gate): what the ledger holds for the late-arrival obligation `PT_LATE_ARRIVAL:<sessionId>` of a contract. Writes nothing. */
-  async readLateOpenState(body: { transactionId: string; lateKey: string; parties: Record<string, unknown> }): Promise<{
+  async readLateOpenState(body: { transactionId: string; lateKey: string; parties: Record<string, unknown> }, opts?: { entityOrigin?: EntityOrigin }): Promise<{
     contractEnded: boolean;
     lateOperation: { exists: boolean; chargedTotal: string | null };
     obligation: null | { id: string; key: string; kind: string; status: string; owed: string; paid: string; unpaid: string; verifiedPaid: string; externallyPaid: string; openPayments: number };
     ownPending: { pt: string; gym: string | null; platform: string };
   }> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-open-state`, body, { headers, timeout: 15_000 });
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-open-state`, withEntityOrigin(body as Record<string, unknown>, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
   /** Open-room online session — PT joined after the grace window (half a no-show's rate). */
-  async lateArrival(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival`, body, { headers, timeout: 15_000 });
+  async lateArrival(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
@@ -135,8 +142,8 @@ export const paymentClient = {
    * (owed = the late-arrival formula, paid = 0, `reason` in words). NO MONEY MOVES. Idempotent per key; if the compensation had in
    * fact been performed the stored real result comes back instead (no `recordedOnly: true`).
    */
-  async recordLateArrivalObligation(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival-obligation`, body, { headers, timeout: 15_000 });
+  async recordLateArrivalObligation(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival-obligation`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
@@ -145,8 +152,8 @@ export const paymentClient = {
    * performed by the ledger and the contract has ended. One OPEN unpaid obligation of kind NO_SHOW (owed = one session's value, paid 0)
    * under the ORIGINAL key; no money moves. Idempotent per key.
    */
-  async recordNoShowObligation(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show-obligation`, body, { headers, timeout: 15_000 });
+  async recordNoShowObligation(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show-obligation`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
@@ -155,16 +162,16 @@ export const paymentClient = {
    * decided: DELIVERED releases it to PT/gym/platform like a completed session, NOT_DELIVERED refunds it to
    * the client. Idempotent per `UNRESOLVED_SESSION:<sessionId>`; a session is never resolved twice or both ways.
    */
-  async resolveUnresolvedSession(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/resolve-unresolved-session`, body, { headers, timeout: 15_000 });
+  async resolveUnresolvedSession(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/resolve-unresolved-session`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
   /**
    * E5: the FORMAL obligation after a won appeal whose approved finding ESTABLISHED an amount and a responsible party. Idempotent per consequence (APPEAL_OBLIGATION:<consequenceId>); moves no money.
    */
-  async createAppealObligation(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation`, body, { headers, timeout: 15_000 });
+  async createAppealObligation(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/appeal-obligation`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
@@ -174,14 +181,14 @@ export const paymentClient = {
     return data.data;
   },
 
-  async terminate(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, body, { headers, timeout: 20_000 });
+  async terminate(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, withEntityOrigin(body, opts), { headers, timeout: 20_000 });
     return data.data;
   },
 
   /** Idle contract: hand the PT the amount held back on it (payment-service reads the amount from its ledger). */
-  async releaseHoldback(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-holdback`, body, { headers, timeout: 15_000 });
+  async releaseHoldback(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-holdback`, withEntityOrigin(body, opts), { headers, timeout: 15_000 });
     return data.data;
   },
 
@@ -208,8 +215,8 @@ export const paymentClient = {
     return data.data as { operations: LedgerOperationRecord[]; missing: string[] };
   },
 
-  async moneyBreakdown(body: Record<string, unknown>): Promise<any> {
-    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/money-breakdown`, body, { headers, timeout: 10_000 });
+  async moneyBreakdown(body: Record<string, unknown>, opts?: { entityOrigin?: EntityOrigin }): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/money-breakdown`, withEntityOrigin(body, opts), { headers, timeout: 10_000 });
     return data.data;
   },
 
@@ -221,6 +228,7 @@ export const paymentClient = {
     idempotencyKey: string;
     initiatedBy: string;
     ptId: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<WalletTransferResult> {
     const { data } = await axios.post(
       `${PAYMENT_SERVICE_URL}/internal/payments/wallet-transfer`,
@@ -238,6 +246,7 @@ export const paymentClient = {
         sourceService: 'user-service',
         ptId: params.ptId,
         ptContractId: params.relatedEntityId,
+        ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
       },
       { headers, timeout: 15_000 },
     );

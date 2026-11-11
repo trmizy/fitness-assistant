@@ -727,6 +727,14 @@ export const GymOperationalStatus: {
 export type GymOperationalStatus = (typeof GymOperationalStatus)[keyof typeof GymOperationalStatus]
 
 
+export const DataOrigin: {
+  REAL: 'REAL',
+  SYNTHETIC: 'SYNTHETIC'
+};
+
+export type DataOrigin = (typeof DataOrigin)[keyof typeof DataOrigin]
+
+
 export const GymFacility: {
   FREE_WEIGHTS: 'FREE_WEIGHTS',
   CARDIO_MACHINES: 'CARDIO_MACHINES',
@@ -768,14 +776,6 @@ export const GymMembershipContractStatus: {
 };
 
 export type GymMembershipContractStatus = (typeof GymMembershipContractStatus)[keyof typeof GymMembershipContractStatus]
-
-
-export const DataOrigin: {
-  REAL: 'REAL',
-  SYNTHETIC: 'SYNTHETIC'
-};
-
-export type DataOrigin = (typeof DataOrigin)[keyof typeof DataOrigin]
 
 
 export const AffiliationStatus: {
@@ -1189,6 +1189,10 @@ export type GymOperationalStatus = $Enums.GymOperationalStatus
 
 export const GymOperationalStatus: typeof $Enums.GymOperationalStatus
 
+export type DataOrigin = $Enums.DataOrigin
+
+export const DataOrigin: typeof $Enums.DataOrigin
+
 export type GymFacility = $Enums.GymFacility
 
 export const GymFacility: typeof $Enums.GymFacility
@@ -1200,10 +1204,6 @@ export const GymMembershipPlanStatus: typeof $Enums.GymMembershipPlanStatus
 export type GymMembershipContractStatus = $Enums.GymMembershipContractStatus
 
 export const GymMembershipContractStatus: typeof $Enums.GymMembershipContractStatus
-
-export type DataOrigin = $Enums.DataOrigin
-
-export const DataOrigin: typeof $Enums.DataOrigin
 
 export type AffiliationStatus = $Enums.AffiliationStatus
 
@@ -25500,6 +25500,7 @@ export namespace Prisma {
     createdFlowVersion: number | null
     legacyNoAmenities: boolean | null
     legacyClientAt: Date | null
+    dataOrigin: $Enums.DataOrigin | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -25540,6 +25541,7 @@ export namespace Prisma {
     createdFlowVersion: number | null
     legacyNoAmenities: boolean | null
     legacyClientAt: Date | null
+    dataOrigin: $Enums.DataOrigin | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -25581,6 +25583,7 @@ export namespace Prisma {
     createdFlowVersion: number
     legacyNoAmenities: number
     legacyClientAt: number
+    dataOrigin: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -25643,6 +25646,7 @@ export namespace Prisma {
     createdFlowVersion?: true
     legacyNoAmenities?: true
     legacyClientAt?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -25683,6 +25687,7 @@ export namespace Prisma {
     createdFlowVersion?: true
     legacyNoAmenities?: true
     legacyClientAt?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -25724,6 +25729,7 @@ export namespace Prisma {
     createdFlowVersion?: true
     legacyNoAmenities?: true
     legacyClientAt?: true
+    dataOrigin?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -25852,6 +25858,7 @@ export namespace Prisma {
     createdFlowVersion: number | null
     legacyNoAmenities: boolean
     legacyClientAt: Date | null
+    dataOrigin: $Enums.DataOrigin
     createdAt: Date
     updatedAt: Date
     _count: GymCountAggregateOutputType | null
@@ -25912,6 +25919,7 @@ export namespace Prisma {
     createdFlowVersion?: boolean
     legacyNoAmenities?: boolean
     legacyClientAt?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -25967,6 +25975,7 @@ export namespace Prisma {
     createdFlowVersion?: boolean
     legacyNoAmenities?: boolean
     legacyClientAt?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -26009,6 +26018,7 @@ export namespace Prisma {
     createdFlowVersion?: boolean
     legacyNoAmenities?: boolean
     legacyClientAt?: boolean
+    dataOrigin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -26175,6 +26185,7 @@ export namespace Prisma {
       createdFlowVersion: number | null
       legacyNoAmenities: boolean
       legacyClientAt: Date | null
+      dataOrigin: $Enums.DataOrigin
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gym"]>
@@ -26619,6 +26630,7 @@ export namespace Prisma {
     readonly createdFlowVersion: FieldRef<"Gym", 'Int'>
     readonly legacyNoAmenities: FieldRef<"Gym", 'Boolean'>
     readonly legacyClientAt: FieldRef<"Gym", 'DateTime'>
+    readonly dataOrigin: FieldRef<"Gym", 'DataOrigin'>
     readonly createdAt: FieldRef<"Gym", 'DateTime'>
     readonly updatedAt: FieldRef<"Gym", 'DateTime'>
   }
@@ -66962,6 +66974,7 @@ export namespace Prisma {
     createdFlowVersion: 'createdFlowVersion',
     legacyNoAmenities: 'legacyNoAmenities',
     legacyClientAt: 'legacyClientAt',
+    dataOrigin: 'dataOrigin',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -68185,6 +68198,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'DataOrigin'
+   */
+  export type EnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin'>
+    
+
+
+  /**
+   * Reference to a field of type 'DataOrigin[]'
+   */
+  export type ListEnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin[]'>
+    
+
+
+  /**
    * Reference to a field of type 'GymMembershipPlanStatus'
    */
   export type EnumGymMembershipPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymMembershipPlanStatus'>
@@ -68209,20 +68236,6 @@ export namespace Prisma {
    * Reference to a field of type 'GymMembershipContractStatus[]'
    */
   export type ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymMembershipContractStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'DataOrigin'
-   */
-  export type EnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin'>
-    
-
-
-  /**
-   * Reference to a field of type 'DataOrigin[]'
-   */
-  export type ListEnumDataOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DataOrigin[]'>
     
 
 
@@ -70301,6 +70314,7 @@ export namespace Prisma {
     createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
     legacyNoAmenities?: BoolFilter<"Gym"> | boolean
     legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    dataOrigin?: EnumDataOriginFilter<"Gym"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -70355,6 +70369,7 @@ export namespace Prisma {
     createdFlowVersion?: SortOrderInput | SortOrder
     legacyNoAmenities?: SortOrder
     legacyClientAt?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     brand?: GymBrandOrderByWithRelationInput
@@ -70412,6 +70427,7 @@ export namespace Prisma {
     createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
     legacyNoAmenities?: BoolFilter<"Gym"> | boolean
     legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    dataOrigin?: EnumDataOriginFilter<"Gym"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -70466,6 +70482,7 @@ export namespace Prisma {
     createdFlowVersion?: SortOrderInput | SortOrder
     legacyNoAmenities?: SortOrder
     legacyClientAt?: SortOrderInput | SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymCountOrderByAggregateInput
@@ -70515,6 +70532,7 @@ export namespace Prisma {
     createdFlowVersion?: IntNullableWithAggregatesFilter<"Gym"> | number | null
     legacyNoAmenities?: BoolWithAggregatesFilter<"Gym"> | boolean
     legacyClientAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
+    dataOrigin?: EnumDataOriginWithAggregatesFilter<"Gym"> | $Enums.DataOrigin
     createdAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
   }
@@ -75839,6 +75857,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -75893,6 +75912,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -75945,6 +75965,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -75999,6 +76020,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -76052,6 +76074,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -76092,6 +76115,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -76133,6 +76157,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -81836,6 +81861,13 @@ export namespace Prisma {
     not?: NestedEnumGymOperationalStatusFilter<$PrismaModel> | $Enums.GymOperationalStatus
   }
 
+  export type EnumDataOriginFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
+  }
+
   export type GymBrandNullableRelationFilter = {
     is?: GymBrandWhereInput | null
     isNot?: GymBrandWhereInput | null
@@ -81998,6 +82030,7 @@ export namespace Prisma {
     createdFlowVersion?: SortOrder
     legacyNoAmenities?: SortOrder
     legacyClientAt?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -82048,6 +82081,7 @@ export namespace Prisma {
     createdFlowVersion?: SortOrder
     legacyNoAmenities?: SortOrder
     legacyClientAt?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -82088,6 +82122,7 @@ export namespace Prisma {
     createdFlowVersion?: SortOrder
     legacyNoAmenities?: SortOrder
     legacyClientAt?: SortOrder
+    dataOrigin?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -82136,6 +82171,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
     _max?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
+  }
+
+  export type EnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDataOriginFilter<$PrismaModel>
+    _max?: NestedEnumDataOriginFilter<$PrismaModel>
   }
 
   export type EnumGymMembershipPlanStatusFilter<$PrismaModel = never> = {
@@ -82222,13 +82267,6 @@ export namespace Prisma {
     in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
-  }
-
-  export type EnumDataOriginFilter<$PrismaModel = never> = {
-    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
-    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
   }
 
   export type GymMembershipPlanRelationFilter = {
@@ -82339,16 +82377,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
-  }
-
-  export type EnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
-    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDataOriginFilter<$PrismaModel>
-    _max?: NestedEnumDataOriginFilter<$PrismaModel>
   }
 
   export type EnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -86023,6 +86051,10 @@ export namespace Prisma {
     set?: $Enums.GymOperationalStatus
   }
 
+  export type EnumDataOriginFieldUpdateOperationsInput = {
+    set?: $Enums.DataOrigin
+  }
+
   export type GymBrandUpdateOneWithoutBranchesNestedInput = {
     create?: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
     connectOrCreate?: GymBrandCreateOrConnectWithoutBranchesInput
@@ -86469,10 +86501,6 @@ export namespace Prisma {
 
   export type EnumGymMembershipContractStatusFieldUpdateOperationsInput = {
     set?: $Enums.GymMembershipContractStatus
-  }
-
-  export type EnumDataOriginFieldUpdateOperationsInput = {
-    set?: $Enums.DataOrigin
   }
 
   export type GymUpdateOneRequiredWithoutMembershipsNestedInput = {
@@ -89032,6 +89060,13 @@ export namespace Prisma {
     not?: NestedEnumGymOperationalStatusFilter<$PrismaModel> | $Enums.GymOperationalStatus
   }
 
+  export type NestedEnumDataOriginFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
+  }
+
   export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel> | null
     in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
@@ -89068,6 +89103,16 @@ export namespace Prisma {
     _max?: NestedEnumGymOperationalStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
+    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
+    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDataOriginFilter<$PrismaModel>
+    _max?: NestedEnumDataOriginFilter<$PrismaModel>
+  }
+
   export type NestedEnumGymMembershipPlanStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.GymMembershipPlanStatus | EnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     in?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
@@ -89092,13 +89137,6 @@ export namespace Prisma {
     not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
   }
 
-  export type NestedEnumDataOriginFilter<$PrismaModel = never> = {
-    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
-    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    not?: NestedEnumDataOriginFilter<$PrismaModel> | $Enums.DataOrigin
-  }
-
   export type NestedEnumGymMembershipContractStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
     in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
@@ -89107,16 +89145,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
-  }
-
-  export type NestedEnumDataOriginWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DataOrigin | EnumDataOriginFieldRefInput<$PrismaModel>
-    in?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DataOrigin[] | ListEnumDataOriginFieldRefInput<$PrismaModel>
-    not?: NestedEnumDataOriginWithAggregatesFilter<$PrismaModel> | $Enums.DataOrigin
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDataOriginFilter<$PrismaModel>
-    _max?: NestedEnumDataOriginFilter<$PrismaModel>
   }
 
   export type NestedEnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -89771,6 +89799,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -89824,6 +89853,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -89891,6 +89921,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -89944,6 +89975,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -89995,6 +90027,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -90048,6 +90081,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -90115,6 +90149,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -90168,6 +90203,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -90219,6 +90255,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -90272,6 +90309,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -90339,6 +90377,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -90392,6 +90431,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -90443,6 +90483,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -90496,6 +90537,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -90563,6 +90605,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -90616,6 +90659,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -90667,6 +90711,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -90720,6 +90765,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -90860,6 +90906,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -90913,6 +90960,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -93519,6 +93567,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
@@ -93571,6 +93620,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -93779,6 +93829,7 @@ export namespace Prisma {
     createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
     legacyNoAmenities?: BoolFilter<"Gym"> | boolean
     legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    dataOrigin?: EnumDataOriginFilter<"Gym"> | $Enums.DataOrigin
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
   }
@@ -95067,6 +95118,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -95120,6 +95172,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
@@ -95283,6 +95336,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -95336,6 +95390,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
@@ -95495,6 +95550,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -95548,6 +95604,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -95615,6 +95672,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -95668,6 +95726,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -95827,6 +95886,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -95880,6 +95940,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -95947,6 +96008,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -96000,6 +96062,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -96051,6 +96114,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -96104,6 +96168,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -96222,6 +96287,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -96275,6 +96341,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -97155,6 +97222,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -97208,6 +97276,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -97397,6 +97466,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -97450,6 +97520,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -97625,6 +97696,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -97678,6 +97750,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -97784,6 +97857,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -97837,6 +97911,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -97933,6 +98008,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -97986,6 +98062,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -98053,6 +98130,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -98106,6 +98184,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -102448,6 +102527,7 @@ export namespace Prisma {
     createdFlowVersion?: number | null
     legacyNoAmenities?: boolean
     legacyClientAt?: Date | string | null
+    dataOrigin?: $Enums.DataOrigin
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -102533,6 +102613,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
@@ -102585,6 +102666,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -102637,6 +102719,7 @@ export namespace Prisma {
     createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
     legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
     legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dataOrigin?: EnumDataOriginFieldUpdateOperationsInput | $Enums.DataOrigin
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

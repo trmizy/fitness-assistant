@@ -714,9 +714,9 @@ export const profileController = {
         res.status(403).json({ error: "Forbidden: admin role required" });
         return;
       }
-      // Fetch all contracts and group counts in the repository
-      // We pass an empty array to get ALL users (repository handles it)
-      const allContracts = await contractRepository.findAll(0, 10000);
+      // Fetch all REAL contracts and group counts in the repository (no 10k truncation)
+      // We pass all active user IDs extracted from REAL contracts
+      const allContracts = await contractRepository.findAll(0);
       const userIds = [
         ...new Set([
           ...allContracts.map((c) => c.ptUserId),

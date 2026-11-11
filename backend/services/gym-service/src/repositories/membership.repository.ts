@@ -67,26 +67,27 @@ export const membershipRepository = {
     return prisma.gymMembershipContract.findMany({ where: { gymId }, orderBy: { createdAt: 'desc' } });
   },
 
-  /** Phase 5 — mọi hội viên đang ACTIVE trên NHIỀU chi nhánh cùng lúc, cho màn xác nhận
+  /** Phase 5 — mọi hội viên REAL đang ACTIVE trên NHIỀU chi nhánh cùng lúc, cho màn xác nhận
    * "Chấm dứt hợp tác" đếm số người + tổng giá trị chưa dùng across cả đối tác. */
   async findActiveByGyms(gymIds: string[]) {
     if (gymIds.length === 0) return [];
-    return prisma.gymMembershipContract.findMany({ where: { gymId: { in: gymIds }, status: 'ACTIVE' } });
+    return prisma.gymMembershipContract.findMany({ where: { gymId: { in: gymIds }, status: 'ACTIVE', dataOrigin: 'REAL' } });
   },
 
   /**
    * GYM_MANAGEMENT master spec, Phase 5 (Complaints) — eligibility guard for "Báo cáo vấn
-   * đề": only a client with a membership at this gym that's currently ACTIVE, or EXPIRED
+   * đề": only a client with a REAL membership at this gym that's currently ACTIVE, or EXPIRED
    * within the last `withinDays` days, may report an issue about it. Deliberately stricter
    * than the review system's "ever paid, any time" rule (reviewService.submit) — a report
    * is meant to be timely, not a channel for airing an arbitrarily old grievance.
    */
-  async hasRecentOrActiveMembership(clientId: string, gymId: string, withinDays: number): Promise<boolean> {
+  async hasRecentOrActiveMembership(clientId: string, gymId: string, withinDays: number, dataOrigin: 'REAL' | 'SYNTHETIC' = 'REAL'): Promise<boolean> {
     const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
     const count = await prisma.gymMembershipContract.count({
       where: {
         clientId,
         gymId,
+        dataOrigin,
         OR: [{ status: 'ACTIVE' }, { status: 'EXPIRED', endDate: { gte: cutoff } }],
       },
     });
@@ -101,7 +102,7 @@ export const membershipRepository = {
   },
 
   /**
-   * How many currently-ACTIVE members each gym has — same groupBy shape as
+   * How many currently-ACTIVE REAL members each gym has — same groupBy shape as
    * `reviewRepository.aggregateForGyms`, used for the owner's "Phòng gym của tôi" dashboard.
    * `endDate > now` mirrors `findOtherActiveMemberships`'s guard: a row can be ACTIVE in the
    * database but already past its own endDate if nothing has lazily expired it yet.
@@ -111,7 +112,7 @@ export const membershipRepository = {
     if (gymIds.length === 0) return map;
     const rows = await prisma.gymMembershipContract.groupBy({
       by: ['gymId'],
-      where: { gymId: { in: gymIds }, status: 'ACTIVE', endDate: { gt: new Date() } },
+      where: { gymId: { in: gymIds }, status: 'ACTIVE', dataOrigin: 'REAL', endDate: { gt: new Date() } },
       _count: true,
     });
     for (const r of rows) map.set(r.gymId, r._count);
@@ -217,13 +218,13 @@ export const membershipRepository = {
    */
   async expirePastEndDateBatch(limit: number): Promise<number> {
     const due = await prisma.gymMembershipContract.findMany({
-      where: { status: 'ACTIVE', endDate: { lt: new Date() } },
+      where: { status: 'ACTIVE', dataOrigin: 'REAL', endDate: { lt: new Date() } },
       take: limit,
       select: { id: true },
     });
     if (due.length === 0) return 0;
     const { count } = await prisma.gymMembershipContract.updateMany({
-      where: { id: { in: due.map((d) => d.id) }, status: 'ACTIVE' },
+      where: { id: { in: due.map((d) => d.id) }, status: 'ACTIVE', dataOrigin: 'REAL' },
       data: { status: 'EXPIRED' },
     });
     return count;
@@ -233,7 +234,7 @@ export const membershipRepository = {
    * cancelled either, older than the given cutoff. */
   async findStalePendingPayments(cutoff: Date, limit: number) {
     return prisma.gymMembershipContract.findMany({
-      where: { status: 'PENDING_PAYMENT', createdAt: { lt: cutoff } },
+      where: { status: 'PENDING_PAYMENT', dataOrigin: 'REAL', createdAt: { lt: cutoff } },
       take: limit,
       orderBy: { createdAt: 'asc' },
       select: { id: true },
@@ -244,7 +245,7 @@ export const membershipRepository = {
   /** `excludeIds`: memberships a Gym Case holds (B1) - excluded in the query so a held row never starves the batch. */
   async findExpiredNotReleased(limit: number, excludeIds: string[] = []) {
     return prisma.gymMembershipContract.findMany({
-      where: { status: 'EXPIRED', payoutReleasedAt: null, paymentTxnId: { not: null }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
+      where: { status: 'EXPIRED', dataOrigin: 'REAL', payoutReleasedAt: null, paymentTxnId: { not: null }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
       include: { referral: true },
       take: limit,
       orderBy: { endDate: 'asc' },

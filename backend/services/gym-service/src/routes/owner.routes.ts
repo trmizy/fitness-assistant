@@ -223,11 +223,18 @@ router.post('/gyms/:gymId/withdrawals', requirePartnerOwner, asyncHandler(async 
   try {
     const ownerId = principalId(req);
     const gym = await gymService.getOwnedGym(req.params.gymId, ownerId);
+    if (gym.dataOrigin === 'SYNTHETIC') {
+      res.status(409).json({
+        success: false,
+        error: { code: 'SYNTHETIC_RECORD_NOT_TRANSACTABLE', message: 'Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị, không thể rút tiền' },
+      });
+      return;
+    }
     // Phase 5 mục 5.1 — "Yêu cầu rút tiền ❌ đóng băng", điểm quan trọng nhất của tạm khoá:
     // tiền vẫn được ghi nhận vào ví bình thường, chỉ không rút ra được trong lúc điều tra.
     await partnerGuard.assertWithdrawalsAllowed(ownerId);
     const { amount, payoutInfo } = req.body ?? {};
-    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo);
+    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo, gym.dataOrigin);
     res.status(201).json({ success: true, data: request });
   } catch (e: any) {
     const status = e.response?.status || e.status || 500;

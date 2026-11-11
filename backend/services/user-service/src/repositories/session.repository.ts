@@ -235,7 +235,7 @@ export const sessionRepository = {
 
   findDisputed: (opts: { take?: number } = {}) =>
     prisma.session.findMany({
-      where: { status: SessionStatus.DISPUTED },
+      where: { status: SessionStatus.DISPUTED, contract: { dataOrigin: "REAL" } },
       orderBy: { disputedAt: "asc" },
       include: { contract: true },
       ...(opts.take ? { take: opts.take } : {}),

@@ -173,6 +173,7 @@ export const profileRepository = {
       select: {
         userId: true,
         isPT: true,
+        dataOrigin: true,
         firstName: true,
         lastName: true,
         ptApplication: {

@@ -6,6 +6,7 @@ import { contentHashOf } from './canonical';
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from './errors';
 import { gymCaseEnabled, replacementEnabled } from './flags';
 import { replacedApprovalIds } from './decision-replacement.service';
+import { assertNotSynthetic } from '../synthetic-guard';
 import {
   INVESTIGATION_STATUSES,
   PARTY_SUBMIT_STATUSES,
@@ -436,12 +437,15 @@ export const complaintCaseService = {
       throw caseError(409, 'REPORTER_REQUIRED', 'Khiếu nại chưa có người phản ánh nên chưa mở được hồ sơ. Hãy gắn người phản ánh trước');
     }
     await assertNotParty(prisma, { gymId: complaint.gymId, reporterUserId: complaint.reporterUserId }, actor.id);
+    const gymOrigin = await prisma.gym.findUnique({ where: { id: complaint.gymId }, select: { dataOrigin: true } });
+    assertNotSynthetic(gymOrigin);
 
     if (b.caseClass === 'GYM_GENERAL' && b.membershipId) throw caseError(400, 'MEMBERSHIP_NOT_ALLOWED', 'Loại hồ sơ này không gắn với gói hội viên');
     if (hasMoneyExit(b.caseClass) && !b.membershipId) throw caseError(400, 'MEMBERSHIP_REQUIRED', 'Loại hồ sơ này cần chọn gói hội viên liên quan');
     if (b.membershipId) {
-      const m = await prisma.gymMembershipContract.findUnique({ where: { id: b.membershipId }, select: { gymId: true, clientId: true } });
+      const m = await prisma.gymMembershipContract.findUnique({ where: { id: b.membershipId }, select: { gymId: true, clientId: true, dataOrigin: true } });
       if (!m) throw caseError(404, 'MEMBERSHIP_NOT_FOUND', 'Không tìm thấy gói hội viên');
+      assertNotSynthetic(m);
       if (m.gymId !== complaint.gymId || m.clientId !== complaint.reporterUserId) {
         throw caseError(409, 'MEMBERSHIP_MISMATCH', 'Gói hội viên không thuộc người phản ánh hoặc không thuộc chi nhánh của khiếu nại');
       }

@@ -35,6 +35,7 @@ import { paymentGateVerdict } from '../services/late-open-settlement-flag';
 import ledgerOperationRoutes from './ledger-operations.routes';
 import { AppealObligationError, createAppealAwardObligation, readAppealAwardObligation } from '../services/appeal-obligation.service';
 import { withdrawalService } from '../services/withdrawal.service';
+import { entityOriginSchema, rejectIfSyntheticOrigin } from '../services/synthetic-guard';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
@@ -103,6 +104,7 @@ const walletTransferSchema = z.object({
   ptId: z.string().optional(),
   membershipId: z.string().optional(),
   ptContractId: z.string().optional(),
+  entityOrigin: entityOriginSchema,
 });
 
 function statusResponse(txn: { id: string; status: string; failedAt?: Date | null }) {
@@ -119,6 +121,7 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const data = parsed.data;
+  if (rejectIfSyntheticOrigin(data.entityOrigin, res)) return;
 
   const fingerprint = computeFingerprint({
     amount: data.amount,
@@ -210,6 +213,7 @@ const refundSchema = z.object({
   initiatedBy: z.string().min(1),
   reason: z.string().min(1),
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 // POST /internal/payments/:id/refund — partial (prorated) refund initiated by a service on the
@@ -223,7 +227,8 @@ router.post('/payments/:id/refund', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
-  const { refundAmount, initiatedBy, reason, idempotencyKey } = parsed.data;
+  const { refundAmount, initiatedBy, reason, idempotencyKey, entityOrigin } = parsed.data;
+  if (rejectIfSyntheticOrigin(entityOrigin, res)) return;
 
   const original = await transactionRepository.findById(req.params.id);
   if (!original) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
@@ -368,6 +373,7 @@ const checkoutSchema = z.object({
   // whatever door the request came through — LAN IP, 10.0.2.2, or a cloudflared tunnel);
   // ZaloPay/PayOS redirect straight to `platform`'s destination without a hop back here.
   returnBaseUrl: z.string().url().optional(),
+  entityOrigin: entityOriginSchema,
 });
 
 /**
@@ -387,6 +393,7 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
 
   let rates: RateTable;
   try {
@@ -504,6 +511,7 @@ const releaseSchema = z.object({
   // D77 final: the caller (user-service) confirms the late arrival of THIS session is verified (settlement SETTLED, no contested case, not D-NEW-12). Without it a session
   // with an OPEN late-arrival obligation is refused (409 LATE_OPEN_FLAG_REQUIRED) - the ledger cannot know that by itself. Not part of the request fingerprint.
   settleLateOpen: z.boolean().optional(),
+  entityOrigin: entityOriginSchema,
 });
 
 // The PT holdback rate frozen onto THIS contract when it was created — a decimal string like
@@ -531,6 +539,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await releaseSession({
       transactionId: d.transactionId,
@@ -559,6 +568,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await compensateNoShow({
       transactionId: d.transactionId,
@@ -586,6 +596,7 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await compensateLateArrival({
       transactionId: d.transactionId,
@@ -622,6 +633,7 @@ router.post('/contracts/no-show-obligation', async (req: Request, res: Response)
     });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await recordNoShowObligation({
       transactionId: d.transactionId,
@@ -645,10 +657,12 @@ const lateOpenStateSchema = z.object({
   transactionId: z.string().min(1),
   lateKey: z.string().min(1).startsWith('PT_LATE_ARRIVAL:'),
   parties: partiesSchema,
+  entityOrigin: entityOriginSchema,
 });
 router.post('/contracts/late-open-state', async (req: Request, res: Response) => {
   const parsed = lateOpenStateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   try {
     return res.json({ success: true, data: await readLateOpenState(parsed.data) });
   } catch (err) {
@@ -665,6 +679,7 @@ router.post('/contracts/late-arrival-obligation', async (req: Request, res: Resp
     });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await recordLateArrivalObligation({
       transactionId: d.transactionId,
@@ -742,6 +757,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await terminateContract({
       transactionId: d.transactionId,
@@ -784,11 +800,13 @@ const appealObligationSchema = z
     responsibleParty: z.enum(['PT', 'GYM', 'PLATFORM']),
     decidedBy: z.string().min(1),
     reason: z.string().min(10).max(2000),
+    entityOrigin: entityOriginSchema,
   })
   .strict();
 router.post('/contracts/appeal-obligation', async (req: Request, res: Response) => {
   const parsed = appealObligationSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   try {
     const out = await createAppealAwardObligation(parsed.data);
     return res.status(out.created ? 201 : 200).json({ success: true, data: out });
@@ -825,6 +843,7 @@ router.post('/contracts/resolve-unresolved-session', async (req: Request, res: R
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await resolveUnresolvedSession({
       transactionId: d.transactionId,
@@ -855,6 +874,7 @@ const releaseHoldbackSchema = z.object({
   label: z.string().min(1),
   // HOLDBACK_RELEASE:<contractId> — a retry replays the first result instead of releasing twice.
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 // POST /internal/contracts/release-holdback - FH-9: what is still held for the PT on an ENDED contract goes to their available
@@ -866,6 +886,7 @@ router.post('/contracts/release-holdback', async (req: Request, res: Response) =
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await releasePtHoldback({
       transactionId: d.transactionId,
@@ -901,11 +922,13 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     // D77: when the contract's payment transaction is named, the preview accounts for the late-arrival compensations
     // the ledger holds for it - the very facts terminate uses - so the quote equals what is credited.
     transactionId: z.string().min(1).optional(),
+    entityOrigin: entityOriginSchema,
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
+  if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   try {
     const lateArrival = parsed.data.transactionId
       ? await loadLateArrivalDeductions(ledgerPrisma, parsed.data.transactionId, parsed.data.unresolvedSessions ?? 0, parsed.data.unresolvedSessionIds)
@@ -940,6 +963,7 @@ const referralSettleSchema = z.object({
   // Money-flow redesign plan 1.1: MEMBERSHIP_REFERRAL:<membershipId> on /referral,
   // REFERRAL_CLAWBACK:<membershipId> on /referral/clawback.
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 // POST /internal/contracts/referral — ① move a referral commission from the gym's pending
@@ -950,6 +974,7 @@ router.post('/contracts/referral', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await settleMembershipReferral({
       transactionId: d.transactionId,
@@ -974,6 +999,7 @@ router.post('/contracts/referral/clawback', async (req: Request, res: Response) 
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await clawbackMembershipReferral({
       transactionId: d.transactionId,
@@ -1009,6 +1035,7 @@ const membershipReleaseSchema = z.object({
   // /membership-release and /membership-cancel-forfeit, since a membership only ever
   // reaches one of those two terminal release paths, never both.
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 async function handleMembershipRelease(req: Request, res: Response) {
@@ -1017,6 +1044,7 @@ async function handleMembershipRelease(req: Request, res: Response) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await releaseMembershipPending({
       transactionId: d.transactionId,
@@ -1076,6 +1104,7 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
 const internalWithdrawalRequestSchema = z.object({
   amount: z.string().min(1),
   payoutInfo: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
@@ -1083,6 +1112,7 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
+  if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   if (!isValidWithdrawalAmount(parsed.data.amount)) return res.status(400).json(INVALID_AMOUNT_BODY);
   try {
     const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
@@ -1127,6 +1157,7 @@ const personalizedReleaseSchema = z.object({
   label: z.string().min(1),
   // Business key `PERSONALIZED_RELEASE:<orderId>` — an order is only ever accepted once.
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 // POST /internal/personalized-service/release — the buyer accepted (or auto-accept did): the
@@ -1137,6 +1168,7 @@ router.post('/personalized-service/release', async (req: Request, res: Response)
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await releaseOrder({
       transactionId: d.transactionId,
@@ -1162,6 +1194,7 @@ const personalizedRefundSchema = z.object({
   // Business key `PERSONALIZED_REFUND:<orderId>:<refundAmount>` — amount-scoped because an
   // order can be legitimately refunded more than once (partial-refund-ceiling admin flow).
   idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
 });
 
 // POST /internal/personalized-service/refund — hands the client back refundAmount out of THIS
@@ -1174,6 +1207,7 @@ router.post('/personalized-service/refund', async (req: Request, res: Response) 
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
   try {
     const result = await refundOrder({
       transactionId: d.transactionId,

@@ -26,6 +26,7 @@ import {
 import { invalidMoneyFigures, ledgerRefusalOf, settlingD65bEnabled } from "./session-settlement-answers";
 import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
 import { declaredEndingNoticeHooks, platformEndingNoticeHooks } from "./contract-termination-notices";
+import { assertNotSynthetic, isSynthetic, originOf } from "./synthetic-guard.util";
 
 /** Every termination reason ends the contract in exactly one of these two final states. */
 function statusFor(reason: string): ContractStatus {
@@ -94,6 +95,7 @@ function partiesOf(c: ContractRow) {
  */
 function payableOrNull(c: ContractRow | null): ContractRow | null {
   if (!c) return null;
+  if (isSynthetic(c)) return null;
   if (!c.paymentTransactionId) return null;
   if (c.price == null || c.totalSessions <= 0) return null;
   return c;
@@ -447,7 +449,7 @@ export async function resolveUnresolvedSessionMoney(
           outcome,
           ...holdbackArgOf(contract),
           ...(lateGate.settle ? { settleLateOpen: true } : {}),
-        })) as ResolveAnswer;
+        }, { entityOrigin: originOf(contract) })) as ResolveAnswer;
       } catch (e: any) {
         // A definite answer, not a failure: the ledger holds nothing for this session (the contract ended before
         // holds existed, or every hold it made is already resolved). The ending settled the whole value then, so
@@ -644,7 +646,10 @@ export async function hasApprovedLateOpenReconciliation(sessionId: string): Prom
 export async function readLateOpenLedgerState(contractId: string, sessionId: string) {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return null;
-  const state = await paymentClient.readLateOpenState({ transactionId: contract.paymentTransactionId!, lateKey: `PT_LATE_ARRIVAL:${sessionId}`, parties: partiesOf(contract) as unknown as Record<string, unknown> });
+  const state = await paymentClient.readLateOpenState(
+    { transactionId: contract.paymentTransactionId!, lateKey: `PT_LATE_ARRIVAL:${sessionId}`, parties: partiesOf(contract) as unknown as Record<string, unknown> },
+    { entityOrigin: originOf(contract) },
+  );
   return { state, price: contract.price!.toString(), totalSessions: contract.totalSessions };
 }
 
@@ -690,7 +695,7 @@ export async function releaseSessionMoney(contractId: string, sessionId: string,
         // `result.released.pt` below can be less than a full session (0 for the first one).
         ...holdbackArgOf(contract),
         ...(lateGate.settle ? { settleLateOpen: true } : {}),
-      }),
+      }, { entityOrigin: originOf(contract) }),
     undefined,
     {
       takeover: mode.takeover ?? true,
@@ -744,7 +749,7 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
         label: `Contract ${contract.id} no-show ${sessionId}`,
         idempotencyKey,
         ...(lateGate.settle ? { settleLateOpen: true } : {}),
-      }),
+      }, { entityOrigin: originOf(contract) }),
     undefined,
     {
       takeover: mode.takeover ?? true,
@@ -779,7 +784,7 @@ export async function compensateLateArrivalMoney(contractId: string, sessionId: 
         parties: partiesOf(contract),
         label: `Contract ${contract.id} PT late arrival ${sessionId}`,
         idempotencyKey,
-      }),
+      }, { entityOrigin: originOf(contract) }),
     undefined,
     {
       takeover: mode.takeover ?? true,
@@ -1133,7 +1138,7 @@ async function recordUnperformedCompensation(
       label: `Contract ${contract.id} ${isNoShow ? "no-show" : "PT late arrival"} ${sessionId}`,
       idempotencyKey: row.idempotencyKey,
       reason: compensationObligationReason(row.kind, sessionId),
-    });
+    }, { entityOrigin: originOf(contract) });
   } catch (e) {
     const refusal = ledgerRefusalOf(e);
     if (refusal) {
@@ -1412,6 +1417,7 @@ export async function beginContractTermination(
       outcome = await withContractLock(contractId, async (tx) => {
         const raw = await contractRepository.findById(contractId, tx);
         if (!raw) return { kind: "NOT_FOUND" as const };
+        assertNotSynthetic(raw);
         const ended = isContractEnded(raw);
         let holds: UnsettledRow[] = [];
         if (!ended) {
@@ -1606,6 +1612,7 @@ export async function completeContractTermination(
 
   const fresh = await contractRepository.findById(contractId);
   if (!fresh) throw new Error(`Contract ${contractId} no longer exists`);
+  assertNotSynthetic(fresh);
   let contract = payableOrNull(fresh);
   // Counters are frozen while the ending is recorded (every money step is refused), so the terms are the same on every attempt - except right after a
   // TERMINATE_SNAPSHOT_STALE refusal (a step already past the freeze committed at the ledger): then both are re-read (see the loop below).
@@ -1661,7 +1668,7 @@ export async function completeContractTermination(
         // compensation on a PT-fault one - payment-service decides, from its own ledger.
         ...holdbackArgOf(contract),
         ...unresolvedArg(terms),
-      });
+      }, { entityOrigin: originOf(contract) });
       break;
     } catch (e) {
       const refusal = ledgerRefusalOf(e);
@@ -1878,7 +1885,7 @@ export async function releaseHoldbackMoney(
     parties: partiesOf(contract),
     label: `Contract ${contract.id} holdback`,
     idempotencyKey: `HOLDBACK_RELEASE:${contract.id}`,
-  });
+  }, { entityOrigin: originOf(contract) });
 }
 
 /** What the client would get back if they cancelled right now, and where the money stands. */
@@ -1888,7 +1895,9 @@ export async function moneyBreakdown(
   terms?: TerminationTerms,
 ): Promise<any> {
   const contract = await contractRepository.findById(contractId);
-  if (!contract || contract.price == null || contract.totalSessions <= 0) return null;
+  if (!contract) return null;
+  assertNotSynthetic(contract);
+  if (contract.price == null || contract.totalSessions <= 0) return null;
 
   const breakdown = await paymentClient.moneyBreakdown({
     // D77: naming the payment transaction lets payment-service account for the late-arrival compensations the ledger holds for it
@@ -1902,7 +1911,7 @@ export async function moneyBreakdown(
     compensatedSessions: terms?.compensatedPaid ?? (await compensatedPaidFor(contract.id, contract.compensatedSessions)),
     rates: ratesOf(contract),
     ...(terms ? { reason: terms.reason, ...unresolvedArg(terms) } : {}),
-  });
+  }, { entityOrigin: originOf(contract) });
 
   return {
     ...breakdown,

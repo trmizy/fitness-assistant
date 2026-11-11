@@ -14,6 +14,7 @@ import { appealsEnabled, decisionReplacementEnabled } from "./flags";
 import { currentApprovalWhere, dbChecks as replacementDbChecks } from "./decision-replacement.service";
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
 import { deadlineDueAt, satisfyDeadlines } from "./party-notices";
+import { isSynthetic, syntheticNotTransactableError } from "../synthetic-guard.util";
 import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
 import {
   D77_BLOCK_REASON,
@@ -335,8 +336,12 @@ export const disputeCaseService = {
     const prior = await findReplay<{ created: boolean; case: ReturnType<typeof summary> }>(key, contentHashOf({ sessionId }));
     if (prior) return prior;
 
-    const session = await prisma.session.findUnique({ where: { id: sessionId }, select: { id: true, status: true, disputeType: true, clientUserId: true, ptUserId: true } });
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { id: true, status: true, disputeType: true, clientUserId: true, ptUserId: true, contract: { select: { dataOrigin: true } } },
+    });
     if (!session) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
+    if (isSynthetic(session.contract)) throw syntheticNotTransactableError();
     if (session.status !== "DISPUTED" && session.status !== "PT_NO_SHOW_REPORTED") {
       throw caseError(409, "SESSION_NOT_DISPUTED", "Chỉ mở hồ sơ cho buổi tập đang bị khiếu nại hoặc đang chờ PT phản hồi báo vắng mặt", { status: session.status });
     }

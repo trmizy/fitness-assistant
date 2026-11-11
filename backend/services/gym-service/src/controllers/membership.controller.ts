@@ -104,7 +104,7 @@ export const membershipController = {
       const result = await membershipService.cancelPending(req.params.id, clientId);
       res.json({ success: true, data: result });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e?.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -124,7 +124,7 @@ export const membershipController = {
         return res.status(e.status || 409).json({ success: false, error: { code: e.code, message: e.message }, message: e.message });
       }
       logger.error(e, 'membership self-cancel error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
@@ -147,7 +147,7 @@ export const membershipController = {
         return res.status(409).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
       }
       logger.error(e, 'membership admin refund error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
@@ -165,7 +165,7 @@ export const membershipController = {
       return res.json({ success: true, data: result });
     } catch (e: any) {
       logger.error(e, 'resolve pending-issue membership error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
