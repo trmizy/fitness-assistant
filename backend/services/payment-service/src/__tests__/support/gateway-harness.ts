@@ -1,5 +1,5 @@
 /**
- * Shared scaffolding for the per-gateway callback tests (zalopay / payos / momo / vnpay-querydr).
+ * Shared scaffolding for the per-gateway callback tests (zalopay / vnpay-querydr).
  *
  * BACKEND INTEGRATION: the real Express webhook routes are served over real HTTP, backed by the isolated *_test
  * database, with the real ledger. The GATEWAY itself and the owning services (user/gym/ai activation endpoints) are a
@@ -45,7 +45,7 @@ const gatewayServer = http.createServer((req, res) => {
     }
     const url = req.url ?? '';
     calls.push({ path: url, method: req.method ?? 'GET', body });
-    const isGateway = /^\/(zp|payos|momo|querydr)/.test(url);
+    const isGateway = /^\/(zp|querydr)/.test(url);
     const answer = isGateway ? stub.gateway(url, body) : stub.activation(url);
     res.writeHead(answer.status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(answer.body));
@@ -79,8 +79,6 @@ export async function load(): Promise<Mods> {
   process.env.AI_SERVICE_URL = gw;
   process.env.VNPAY_API_URL = `${gw}/querydr`;
   process.env.ZALOPAY_ENDPOINT = `${gw}/zp`;
-  process.env.PAYOS_BASE_URL = `${gw}/payos`;
-  process.env.MOMO_ENDPOINT = `${gw}/momo/create`;
   delete process.env.USER_LAMBDA_NAME;
   delete process.env.GYM_LAMBDA_NAME;
   delete process.env.AI_LAMBDA_NAME;
@@ -125,11 +123,11 @@ export async function resetLedger(m: Mods) {
 }
 
 export type Purpose = 'PT_CONTRACT' | 'GYM_MEMBERSHIP' | 'PERSONALIZED_SERVICE_PURCHASE' | 'TRAINING_PACKAGE_PURCHASE' | 'WALLET_TOPUP';
-export type Provider = 'VNPAY' | 'ZALOPAY' | 'PAYOS' | 'MOMO';
+export type Provider = 'VNPAY' | 'ZALOPAY';
 
 export interface Checkout {
   txnId: string;
-  /** What the gateway calls this order (app_trans_id / orderCode / orderId / vnp_TxnRef). */
+  /** What the gateway calls this order (app_trans_id / vnp_TxnRef). */
   ref: string;
   entityId: string;
   price: number;
@@ -236,7 +234,7 @@ export async function post(m: Mods, path: string, body: string | object, content
   return { status: res.status, json, text };
 }
 
-/** Waits (polling the DB) until `predicate` is true - for MoMo, whose IPN is acknowledged before it is processed. */
+/** Waits (polling the DB) until `predicate` is true - for a callback that is acknowledged before it is processed. */
 export async function waitFor(predicate: () => Promise<boolean>, what: string, timeoutMs = 8000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {

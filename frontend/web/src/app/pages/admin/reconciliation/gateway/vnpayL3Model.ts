@@ -27,7 +27,7 @@ export const L3_NOT_CONFIGURED_TEXT = "Chưa cấu hình tài khoản VNPay ở 
 export const L3_CLEAN_TEXT = "Không phát hiện lệch ở các giao dịch đã hỏi VNPay (mức L3, chỉ VNPay)";
 /** Replaces the old "L3 — chưa có nguồn độc lập (BLOCKED)" line of the gateway view. */
 export const L3_STATUS_NOTE =
-  "Mức L3 (hỏi trực tiếp VNPay) đã có cho VNPay, chạy theo yêu cầu ở phần bên dưới. Các cổng khác (ZaloPay, PayOS, MoMo) chưa được đối chiếu độc lập; Gymini không hiện số liệu giả thay cho phần này.";
+  "Mức L3 (hỏi trực tiếp VNPay) đã có cho VNPay, chạy theo yêu cầu ở phần bên dưới. Cổng ZaloPay chưa được đối chiếu độc lập (MoMo, PayOS đã ngừng dùng, chỉ còn giao dịch cũ); Gymini không hiện số liệu giả thay cho phần này.";
 
 export type VnpayL3Result = "MATCHED" | "NOT_FOUND_AT_VNPAY" | "STATUS_MISMATCH" | "AMOUNT_MISMATCH" | "QUERY_FAILED";
 const RESULTS: readonly VnpayL3Result[] = ["MATCHED", "NOT_FOUND_AT_VNPAY", "STATUS_MISMATCH", "AMOUNT_MISMATCH", "QUERY_FAILED"];

@@ -158,20 +158,21 @@ test('internal checkout: 400 INVALID_RATE_TABLE keeps status and code, fixed mes
 });
 
 test('internal checkout: 400 PROVIDER_NOT_CONFIGURED keeps status and code, no env-var names in the body, names logged', async () => {
-  const saved = { t: process.env.VNPAY_TMN_CODE, h: process.env.VNPAY_HASH_SECRET };
-  // VNPay reads its config at module load, so use a provider whose status is read at call time: MOMO has no env set in this test
-  delete process.env.MOMO_PARTNER_CODE;
+  const saved = { t: process.env.VNPAY_TMN_CODE, h: process.env.VNPAY_HASH_SECRET, z: process.env.ZALOPAY_APP_ID };
+  // VNPay reads its config at module load, so use a provider whose status is read at call time: ZALOPAY has no env set in this test
+  delete process.env.ZALOPAY_APP_ID;
   logged.length = 0;
   try {
-    const r = await call('POST', '/internal/payments/checkout', SERVICE, { ...CHECKOUT_BODY, provider: 'MOMO' });
+    const r = await call('POST', '/internal/payments/checkout', SERVICE, { ...CHECKOUT_BODY, provider: 'ZALOPAY' });
     assert.equal(r.status, 400);
     assert.equal(r.json.error?.code, 'PROVIDER_NOT_CONFIGURED');
     assert.equal(r.json.error?.message, failureMessage('PROVIDER_NOT_CONFIGURED'));
-    assert.doesNotMatch(r.text, /MOMO_|missing env|VNPAY_/);
-    assert.ok(logged.some((l) => l.includes('MOMO_PARTNER_CODE')), 'missing env names were not logged');
+    assert.doesNotMatch(r.text, /ZALOPAY_|missing env|VNPAY_/);
+    assert.ok(logged.some((l) => l.includes('ZALOPAY_APP_ID')), 'missing env names were not logged');
   } finally {
     process.env.VNPAY_TMN_CODE = saved.t;
     process.env.VNPAY_HASH_SECRET = saved.h;
+    if (saved.z === undefined) delete process.env.ZALOPAY_APP_ID; else process.env.ZALOPAY_APP_ID = saved.z;
   }
 });
 
@@ -281,12 +282,28 @@ test('me payments sync: failure -> SYNC_FAILED keeps status (500 and a thrown 40
     assertNoLeak(a.text, 'sync');
     assert.ok(logged.some((l) => l.toLowerCase().includes('w12-secret')));
 
-    // a removed provider throws an error WITH status 400: that status is kept, the message is still fixed
-    repo.findById = async () => ({ id: 'W12-txn', payerId: 'W12-user', status: 'PENDING', provider: 'MOCK', amount: 1000, createdAt: new Date(), metadata: {} });
-    const b = await call('POST', '/me/payments/W12-txn/sync', CLIENT);
-    assert.equal(b.status, 400);
-    assert.equal(b.json.error?.code, 'SYNC_FAILED');
-    assert.equal(b.json.error?.message, failureMessage('SYNC_FAILED'));
+    // a gateway poll that throws an error WITH status 400: that status is kept, the message is still fixed.
+    // (A retired provider - MOCK / MOMO / PAYOS - no longer gets that far: pollAndSettle answers UNSUPPORTED for it.)
+    const { VNPayProvider } = await import('../providers/vnpay.provider');
+    const getProviderSpy = mock.method(VNPayProvider.prototype, 'queryGatewayResult', async () => {
+      throw Object.assign(new Error('W12-SECRET gateway query failed'), { status: 400 });
+    });
+    repo.findById = async () => ({ id: 'W12-txn', payerId: 'W12-user', status: 'PENDING', provider: 'VNPAY', amount: 1000, createdAt: new Date(), metadata: {} });
+    try {
+      const b = await call('POST', '/me/payments/W12-txn/sync', CLIENT);
+      assert.equal(b.status, 400);
+      assert.equal(b.json.error?.code, 'SYNC_FAILED');
+      assert.equal(b.json.error?.message, failureMessage('SYNC_FAILED'));
+      assertNoLeak(b.text, 'sync 400');
+    } finally {
+      getProviderSpy.mock.restore();
+    }
+
+    // a stray row of a retired gateway is not an error any more: UNSUPPORTED, nothing thrown
+    repo.findById = async () => ({ id: 'W12-txn', payerId: 'W12-user', status: 'PENDING', provider: 'MOMO', amount: 1000, createdAt: new Date(), metadata: {} });
+    const c = await call('POST', '/me/payments/W12-txn/sync', CLIENT);
+    assert.equal(c.status, 200);
+    assert.equal((c.json.data as { gatewayResult?: string }).gatewayResult, 'UNSUPPORTED');
   } finally {
     repo.findById = saved;
   }

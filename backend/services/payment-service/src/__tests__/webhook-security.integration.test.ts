@@ -65,7 +65,7 @@ test.after(async () => {
 
 async function seedWalletAndTxn(
   db: PrismaClientLike,
-  opts: { provider: 'VNPAY' | 'MOMO' | 'ZALOPAY'; providerTransactionId: string; amount: number; payerId: string },
+  opts: { provider: 'VNPAY' | 'ZALOPAY'; providerTransactionId: string; amount: number; payerId: string },
 ) {
   const wallet = await db.wallet.upsert({
     where: { ownerType_ownerId: { ownerType: 'CLIENT', ownerId: opts.payerId } },
@@ -104,7 +104,7 @@ async function cleanup(db: PrismaClientLike, payerId: string) {
 }
 
 test(
-  'SECURITY: a MOMO webhook cannot complete a transaction that was really created under a different provider (VNPAY)',
+  'SECURITY: a ZALOPAY webhook cannot complete a transaction that was really created under a different provider (VNPAY)',
   skipOpts,
   async () => {
     const { prisma: db, handleEvent: handle } = await loadModules();
@@ -119,9 +119,9 @@ test(
         payerId,
       });
 
-      // Attacker forges a MoMo webhook citing the REAL VNPay transaction's id.
+      // Attacker forges a ZaloPay webhook citing the REAL VNPay transaction's id.
       await handle({
-        provider: 'MOMO',
+        provider: 'ZALOPAY',
         providerEventId: `forged_${randomUUID()}`,
         providerTransactionId,
         payload: { forged: true },
@@ -303,7 +303,21 @@ test('SECURITY: a stale PAYMENT_PROVIDER=MOCK env does not resurrect the mock pr
 
 test('the sandbox gateways are still constructible', async () => {
   const { paymentService } = await loadModules();
-  for (const name of ['VNPAY', 'ZALOPAY', 'PAYOS', 'MOMO']) {
+  for (const name of ['VNPAY', 'ZALOPAY']) {
     assert.doesNotThrow(() => paymentService.getProvider(name), `${name} must still resolve`);
   }
 });
+
+// MOMO and PAYOS were retired like MOCK: the enum values stay for old rows, nothing resolves a provider for them.
+for (const name of ['MOMO', 'PAYOS']) {
+  test(`${name} is retired: getProvider throws 400 and providerConfigStatus reports not configured`, async () => {
+    const { paymentService } = await loadModules();
+    assert.throws(
+      () => paymentService.getProvider(name),
+      (e: any) => e.status === 400 && /has been removed — use VNPAY or ZALOPAY/.test(e.message),
+    );
+    const status = paymentService.providerConfigStatus(name);
+    assert.equal(status.configured, false);
+    assert.match(status.missing.join(' '), /has been removed/);
+  });
+}

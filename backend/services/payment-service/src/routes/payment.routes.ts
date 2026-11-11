@@ -33,7 +33,6 @@ router.get('/methods', async (_req: Request, res: Response) => {
   const catalogue: { provider: string; label: string; description: string }[] = [
     { provider: 'VNPAY', label: 'VNPay', description: 'Thẻ ATM nội địa, Internet Banking, thẻ quốc tế' },
     { provider: 'ZALOPAY', label: 'ZaloPay', description: 'Quét mã QR bằng ứng dụng ZaloPay' },
-    { provider: 'MOMO', label: 'MoMo', description: 'Ví điện tử MoMo' },
   ];
 
   const methods = catalogue.map((m) => {
@@ -71,7 +70,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /me/payments/:id/sync — actively check this transaction at its own gateway instead
 // of waiting for the 5-minute reconciliation sweep or an IPN that cannot reach this
-// deployment (ZaloPay/MoMo/PayOS). Owner-only, same 404-not-403 rule as GET above.
+// deployment (ZaloPay). Owner-only, same 404-not-403 rule as GET above.
 // pollAndSettle itself is the one no-op guard for anything already terminal (PAID/FAILED/
 // CANCELLED/REFUNDED) — it must NOT be duplicated here as a PROCESSING-only check: a
 // checkout is created PENDING and never moves to PROCESSING, so that used to skip every
