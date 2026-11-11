@@ -1,0 +1,97 @@
+# i (U2): client (pham-thu-uyen) — "Tìm PT": the "Khu vực tìm kiếm" card, province + ward picker with
+# "~x km từ trung tâm <phường>", the GPS button (permission asked ONLY when tapped, "~x km (đường chim bay)"), "Xem thêm"
+# cursor paging, back to "Toàn quốc". NOT RUN YET (written at the U2 code stage; the device run is the next stage).
+#
+# Run: run.sh i-client-pt-area-gps.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test -e PROVINCE_TYPE="Ho Chi Minh" -e PROVINCE_LABEL="H. Ch. Minh" -e WARD_TYPE="<ASCII part of a ward name>" -e WARD_LABEL="<the same with . for each accented letter>"
+#      (PASSWORD injected by the runner; -e values must be ASCII. *_TYPE is typed into the picker, whose search folds accents; *_LABEL is a
+#       regex for the accented row to tap, "." standing for each non-ASCII letter. Pick a ward that has seeded PTs with coordinates.)
+# Device: the phone's location must be inside Vietnam (emulator: `adb emu geo fix 106.70 10.78`); outside it the app shows
+#         "Tọa độ hiện tại nằm ngoài phạm vi hỗ trợ tại Việt Nam" and no GPS badge appears (the flow then fails on purpose).
+# NOTE: multi-word labels are matched with "." between the words (non-breaking spaces on the ROG).
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ"
+    timeout: 40000
+- tapOn: "Dịch vụ"
+- extendedWaitUntil:
+    visible: "Tìm PT"
+    timeout: 20000
+# 1. Opening the screen never asks for the location: no system dialog, the card says what it is searching.
+- extendedWaitUntil:
+    visible: "Khu.vực.tìm.kiếm"
+    timeout: 20000
+- assertNotVisible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- assertVisible: "Dùng.vị.trí.hiện.tại"
+- takeScreenshot: i-01-area-card
+# 2. Province + ward (saved on the profile as codes) -> distance from the ward centre
+- tapOn: "Khu.vực.tìm.kiếm"
+- tapOn: "Tỉnh./.Thành.phố"
+- tapOn: "Tìm…"
+- inputText: ${PROVINCE_TYPE}
+- tapOn:
+    text: ".*${PROVINCE_LABEL}.*"
+- tapOn: "Phường./.Xã"
+- tapOn: "Tìm…"
+- inputText: ${WARD_TYPE}
+- tapOn:
+    text: ".*${WARD_LABEL}.*"
+- extendedWaitUntil:
+    visible: "~.* km từ trung tâm .*"
+    timeout: 30000
+- takeScreenshot: i-02-ward-distance
+# 3. The GPS button is the only thing that asks for the location
+- tapOn: "Dùng.vị.trí.hiện.tại"
+- runFlow:
+    when:
+      visible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+    commands:
+      - tapOn: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- extendedWaitUntil:
+    visible: "Đang.dùng.GPS"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "~.* km \\(đường chim bay\\)"
+    timeout: 30000
+- assertVisible: "Bán.kính.tìm.kiếm"
+- takeScreenshot: i-03-gps-distance
+# 4. Cursor paging: "Xem thêm" loads the next page without duplicating a card
+- scrollUntilVisible:
+    element: "Xem.thêm"
+    optional: true
+- runFlow:
+    when:
+      visible: "Xem.thêm"
+    commands:
+      - tapOn: "Xem.thêm"
+      - takeScreenshot: i-04-next-page
+# 5. Back to "Toàn quốc": no distance anywhere
+- scrollUntilVisible:
+    element: "Toàn.quốc"
+    direction: UP
+- tapOn: "Toàn.quốc"
+- assertNotVisible: "~.* km \\(đường chim bay\\)"
+- assertNotVisible: "~.* km từ trung tâm .*"
+- takeScreenshot: i-05-national
+# log out (client workspace)
+- tapOn: "Cá nhân"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn: "ĐĂNG XUẤT"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

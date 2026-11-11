@@ -7,6 +7,7 @@ import { fetch as streamingFetch } from "expo/fetch";
 import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
 import Constants from "expo-constants";
 import { listingFlowHeaders } from "./listingFlow";
+import { currentClientHeaders } from "./clientHeader";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { aiStreamUrl, apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -158,7 +159,7 @@ export type TranslateRequest = {
 // eslint-disable-next-line import/no-named-as-default-member -- axios.create() is axios's documented API
 const refreshClient = axios.create({
   baseURL: API_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", ...currentClientHeaders() },
   timeout: 10000,
 });
 
@@ -251,6 +252,8 @@ api.interceptors.request.use(async (config) => {
   const request = config as typeof config & RetriableRequestConfig;
   if (request._sessionGeneration !== undefined) sessionGuard.assertCurrent(request._sessionGeneration);
   request._sessionGeneration = sessionGuard.current();
+  // U2: X-Gymini-Client on every gateway request (measurement only; see services/clientHeader.ts).
+  for (const [name, value] of Object.entries(currentClientHeaders())) config.headers[name] = value;
   // Vòng 4 / Phase D3 — was `await Preferences.get({ key: "accessToken" })` here: a
   // native-bridge round-trip on EVERY single request. tokenStore is kept in sync with
   // storage on every write (see tokenStore.ts's doc comment) — reading it is synchronous.
@@ -480,11 +483,24 @@ export const profileService = {
     return data;
   },
 
-  /** One PT's public profile for the discovery detail modal — adds avgRating/ratingCount
-   *  (already on the list rows too) plus recentReviews: the last 5 commented reviews, which
-   *  the list endpoint never sends. */
-  getPTDetail: async (ptUserId: string) => {
-    const { data } = await api.get(`/profile/pts/${ptUserId}`);
+  /**
+   * Location-aware cursor search (D0b-2). GPS, when the user chose it, travels ONLY in this POST body (rounded to
+   * 3 decimals by discoverySearch.buildPtSearchBody) — never in the URL — and is not logged or stored.
+   */
+  searchPTs: async (body: Record<string, any>) => {
+    const { data } = await api.post("/profile/pts/search", body);
+    return data as {
+      pts: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: "near" | "province" | "national";
+    };
+  },
+
+  /** One PT's public profile (D1): the full discovery fields (ptApplication, availableSlotsNext28Days, trainingLocations,
+   *  avgRating) plus recentReviews and ratingDistribution. A PT with no package on sale still answers 200; a hidden PT 404. */
+  getPTDetail: async (ptUserId: string, region?: { areaProvince?: number; areaWard?: number }) => {
+    const { data } = await api.get(`/profile/pts/${ptUserId}`, region?.areaProvince ? { params: region } : undefined);
     return data;
   },
 
@@ -3826,6 +3842,7 @@ export const coachService = {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              ...currentClientHeaders(),
               ...(hasUsableToken(token)
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
@@ -6121,6 +6138,37 @@ export const gymService = {
   listGyms: async () => {
     const { data } = await api.get('/gyms');
     return data?.data ?? data;
+  },
+  /** Region / distance / filter cursor search (D2). Coordinates only in the POST body, never in the URL. */
+  searchGyms: async (body: Record<string, any>) => {
+    const { data } = await api.post('/gyms/search', body);
+    return (data?.data ?? data) as {
+      gyms: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: 'near' | 'province' | 'national';
+    };
+  },
+  /** Brand / standalone options for the PT's "Đề nghị hợp tác" picker (D2), cursor paged. */
+  getBrandOptions: async (params?: { q?: string; cursor?: string | null; limit?: number }) => {
+    const { data } = await api.get('/gyms/brand-options', {
+      params: {
+        ...(params?.q ? { q: params.q } : {}),
+        ...(params?.cursor ? { cursor: params.cursor } : {}),
+        ...(params?.limit ? { limit: params.limit } : {}),
+      },
+    });
+    return (data?.data ?? data) as {
+      options: Array<{
+        scope: 'BRAND' | 'BRANCH';
+        brandId: string;
+        brandName: string;
+        branches: { id: string; name: string; city: string | null; closed: boolean }[];
+        proposeBranchId: string;
+      }>;
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
   },
   getGym: async (gymId: string) => {
     const { data } = await api.get(`/gyms/${gymId}`);

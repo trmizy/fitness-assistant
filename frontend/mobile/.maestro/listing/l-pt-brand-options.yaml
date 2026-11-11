@@ -1,0 +1,56 @@
+# l (U2): PT (tran-minh-khoa) — "Hợp tác phòng gym" -> "Đề nghị hợp tác": brand options come from GET /gyms/brand-options
+# (searched and paged on the server): "Tìm thương hiệu / phòng gym" narrows the list, "Tải thêm thương hiệu" loads the next page.
+# Nothing is sent (the sheet is closed without proposing). NOT RUN YET (written at the U2 code stage; the device run is the next stage).
+#
+# Run: run.sh l-pt-brand-options.yaml -e EMAIL=tran-minh-khoa@seed.gymini.test -e BRAND_QUERY="<part of a seeded brand name>"
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ|Tổng quan"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Trang chủ"
+    commands:
+      - tapOn: "Cá nhân"
+      - scrollUntilVisible:
+          element: "Vào không gian Huấn luyện viên"
+      - tapOn: "Vào không gian Huấn luyện viên"
+- tapOn: "Hồ sơ"
+- scrollUntilVisible:
+    element: "Hợp.tác.phòng.gym"
+- tapOn: "Hợp.tác.phòng.gym"
+- extendedWaitUntil:
+    visible: "Đề.nghị.hợp.tác"
+    timeout: 20000
+- tapOn: "Đề.nghị.hợp.tác"
+- extendedWaitUntil:
+    visible: "Tìm.thương.hiệu./.phòng.gym"
+    timeout: 20000
+- takeScreenshot: l-01-brand-sheet
+# page 2 of the options
+- runFlow:
+    when:
+      visible: "Tải.thêm.thương.hiệu"
+    commands:
+      - tapOn: "Tải.thêm.thương.hiệu"
+      - takeScreenshot: l-02-brand-more
+# server-side search
+- tapOn: "Tên.thương.hiệu,.chi.nhánh.hoặc.thành.phố…"
+- inputText: ${BRAND_QUERY}
+- tapOn: "Hợp.tác.với.*"
+- extendedWaitUntil:
+    visible: ".*${BRAND_QUERY}.*"
+    timeout: 20000
+- takeScreenshot: l-03-brand-search
+- back
+- back
+- runFlow: _pt-logout.yaml

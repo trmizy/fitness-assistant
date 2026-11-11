@@ -627,6 +627,7 @@ export function gymListingInvalidationKeys(uid: string, gymId: string): (readonl
     ["owned-gyms", uid],
     ["owned-gym-photos", uid, gymId],
     ["gyms"],
+    ["gym-discovery"], // U2: the gym search pages clients read
     ["gym", gymId],
   ];
 }

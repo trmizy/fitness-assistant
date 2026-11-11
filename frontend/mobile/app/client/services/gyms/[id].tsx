@@ -36,6 +36,7 @@ import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMe
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
 import { AmenityBadgeGroups } from "../../../../src/features/gymListing/AmenityWidgets";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { GymReviews } from "../../../../src/features/services/GymReviews";
 import {
   aboutText,
@@ -255,6 +256,7 @@ export default function GymDetailScreen() {
             </Card>
 
             <GymPhotoGallery photos={gym.photos} title={gym.name} />
+            {gym.photos.length > 0 ? <PhotoAttribution /> : null}
 
             <Card className="gap-2.5 p-4">
               {address ? (

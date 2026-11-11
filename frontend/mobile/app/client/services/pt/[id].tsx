@@ -45,7 +45,6 @@ import {
   lowAvailabilityMessage,
   mergePtSources,
   normalizePackages,
-  normalizePts,
   pricePerSession,
   readLowAvailability,
   readPackageChanged,
@@ -56,6 +55,7 @@ import {
 } from "../../../../src/features/services/ptDiscovery";
 import { usePtArea } from "../../../../src/features/services/usePtArea";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { contractRequestError } from "../../../../src/features/services/contracts";
 import {
   normalizeGymOptions,
@@ -114,21 +114,12 @@ export default function TrainerDetailScreen() {
     enabled: !!ptUserId,
   });
 
-  // The detail endpoint does not return `ptApplication` or the free-slot count — only the list
-  // does (see mergePtSources). This shares the list screen's own query key, so arriving from an
-  // unfiltered list costs nothing; arriving from a filtered one fetches the list once.
-  const listQuery = useQuery({
-    queryKey: ["pts-list", {}],
-    queryFn: () => profileService.listPTs({}),
-    staleTime: 60_000,
-  });
+  // D1: `GET /profile/pts/:id` now answers the full discovery shape (ptApplication, availableSlotsNext28Days, trainingLocations,
+  // avgRating) on its own, so the screen no longer downloads the whole trainer list just to find this one row — which also
+  // could not open a trainer with no package on sale (hidden from the list, still public by id). A hidden one answers 404.
 
   const raw = (detailQuery.data as any)?.pt ?? (detailQuery.data as any)?.profile ?? detailQuery.data;
-  const listRow = useMemo(
-    () => normalizePts(listQuery.data).find((row) => row.userId === ptUserId) ?? null,
-    [listQuery.data, ptUserId],
-  );
-  const pt = useMemo(() => mergePtSources(raw, listRow), [raw, listRow]);
+  const pt = useMemo(() => mergePtSources(raw, null), [raw]);
   const area = usePtArea(pt ?? { area: null });
   const packages = useMemo(() => normalizePackages(packagesQuery.data), [packagesQuery.data]);
   const selected = packages.find((p) => p.id === packageId) ?? null;
@@ -335,6 +326,7 @@ export default function TrainerDetailScreen() {
                     photos={pt.physiquePhotos.map((photo) => ({ id: photo.id, url: photo.url, category: null }))}
                   />
                 ) : null}
+                {pt.physiquePhotos.length > 0 ? <PhotoAttribution /> : null}
                 {pt.bio ? (
                   <Text className="font-body text-sm leading-6 text-foreground">{pt.bio}</Text>
                 ) : (

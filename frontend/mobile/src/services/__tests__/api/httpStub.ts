@@ -21,6 +21,8 @@ export type RecordedRequest = {
   /** Path without the query string, for readable assertions. */
   path: string;
   query: Record<string, string>;
+  /** axios `params` (merged into the URL by the real adapter) — a GET's query lives here when the service passes `{ params }`. */
+  params?: any;
   body: any;
   headers: Record<string, any>;
   timeout?: number;
@@ -56,6 +58,7 @@ function record(config: any): RecordedRequest {
     url: rawUrl,
     path,
     query,
+    params: config.params,
     body,
     headers: config.headers ?? {},
     timeout: config.timeout,

@@ -1,0 +1,89 @@
+# j (U2): client (pham-thu-uyen) — "Phòng gym" tab uses POST /gyms/search: the same "Khu vực tìm kiếm" card, nearest gyms
+# with a distance on each card, "Gần nhất" sort, "Xem thêm" paging, and the membership list naming its gym from `gymName`.
+# NOT RUN YET (written at the U2 code stage; the device run is the next stage).
+#
+# Run: run.sh j-client-gyms-nearby.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test -e PROVINCE_TYPE="Ha Noi" -e PROVINCE_LABEL="H. N.i" -e WARD_TYPE="<ASCII part of a ward name with seeded gyms>" -e WARD_LABEL="<regex, . for accented letters>" -e MEMBER_GYM="<gym name of an existing membership>"
+# Device: location inside Vietnam (emulator: `adb emu geo fix 105.85 21.03`). Opening the tab must NOT prompt for it.
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ"
+    timeout: 40000
+- tapOn: "Dịch vụ"
+- extendedWaitUntil:
+    visible: "Tìm PT"
+    timeout: 20000
+- tapOn: "Phòng gym"
+- extendedWaitUntil:
+    visible: "Khu.vực.tìm.kiếm"
+    timeout: 20000
+# no GPS prompt when the tab opens
+- assertNotVisible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- extendedWaitUntil:
+    visible: "Xem.gói"
+    timeout: 30000
+- takeScreenshot: j-01-gyms-default
+# area: province + ward -> distance from the ward centre
+- tapOn: "Khu.vực.tìm.kiếm"
+- tapOn: "Tỉnh./.Thành.phố"
+- tapOn: "Tìm…"
+- inputText: ${PROVINCE_TYPE}
+- tapOn:
+    text: ".*${PROVINCE_LABEL}.*"
+- tapOn: "Phường./.Xã"
+- tapOn: "Tìm…"
+- inputText: ${WARD_TYPE}
+- tapOn:
+    text: ".*${WARD_LABEL}.*"
+- tapOn: "Gần.nhất"
+- extendedWaitUntil:
+    visible: "~.* km từ trung tâm .*"
+    timeout: 30000
+- takeScreenshot: j-02-gym-ward-distance
+# GPS -> "đường chim bay"
+- tapOn: "Dùng.vị.trí.hiện.tại"
+- runFlow:
+    when:
+      visible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+    commands:
+      - tapOn: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- extendedWaitUntil:
+    visible: "~.* km \\(đường chim bay\\)"
+    timeout: 30000
+- takeScreenshot: j-03-gym-gps-distance
+- runFlow:
+    when:
+      visible: "Xem.thêm"
+    commands:
+      - tapOn: "Xem.thêm"
+      - takeScreenshot: j-04-gyms-next-page
+# memberships name their gym without reading the whole directory
+- scrollUntilVisible:
+    element: "Hội.viên"
+    direction: UP
+- tapOn: "Hội.viên"
+- extendedWaitUntil:
+    visible: ".*${MEMBER_GYM}.*"
+    timeout: 30000
+- takeScreenshot: j-05-membership-gym-name
+- tapOn: "Cá nhân"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn: "ĐĂNG XUẤT"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

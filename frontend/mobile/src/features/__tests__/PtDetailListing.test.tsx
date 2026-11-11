@@ -136,6 +136,24 @@ describe("trainer detail — Listing Management (client side)", () => {
     expect(view.getByText("08:00")).toBeTruthy();
   });
 
+  it("U2: opens a trainer by id alone — never downloads the trainer list, even for a trainer with 0 packages on sale", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([]);
+    const view = await renderScreen();
+    expect(await view.findByText("Bio của Lan")).toBeTruthy();
+    expect(mocked.detail).toHaveBeenCalledWith("pt-1");
+    expect(mocked.list).not.toHaveBeenCalled();
+  });
+
+  it("U2: the physique photos carry the 'Ảnh minh hoạ' attribution line", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg()]);
+    const view = await renderScreen();
+    expect(await view.findByText("1/2")).toBeTruthy();
+    expect(view.getByText("Ảnh minh hoạ ·")).toBeTruthy();
+    expect(view.getByText("Nguồn ảnh & giấy phép")).toBeTruthy();
+  });
+
   it("a trainer with no public photos has no gallery", async () => {
     mocked.detail.mockResolvedValue(detail({ physiquePhotos: [], coverPhotoUrl: null }));
     mocked.packages.mockResolvedValue([pkg()]);

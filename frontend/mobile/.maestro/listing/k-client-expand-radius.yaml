@@ -1,0 +1,68 @@
+# k (U2): client (pham-thu-uyen) — "Mở rộng bán kính" 10 -> 20 -> 50 km on an area with nothing close, then "Tìm toàn quốc".
+# NOT RUN YET (written at the U2 code stage; the device run is the next stage).
+#
+# Run: run.sh k-client-expand-radius.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test -e PROVINCE_TYPE="<remote province, ASCII>" -e PROVINCE_LABEL="<regex, . for accented letters>" -e WARD_TYPE="<ASCII part of a ward with no PT within 10 km>" -e WARD_LABEL="<regex>"
+# Pick a remote ward (the seed's rural wards) so the first search is empty; the PT list is used (the gym list behaves the same).
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Trang chủ"
+    timeout: 40000
+- tapOn: "Dịch vụ"
+- extendedWaitUntil:
+    visible: "Khu.vực.tìm.kiếm"
+    timeout: 20000
+- tapOn: "Khu.vực.tìm.kiếm"
+- tapOn: "Tỉnh./.Thành.phố"
+- tapOn: "Tìm…"
+- inputText: ${PROVINCE_TYPE}
+- tapOn:
+    text: ".*${PROVINCE_LABEL}.*"
+- tapOn: "Phường./.Xã"
+- tapOn: "Tìm…"
+- inputText: ${WARD_TYPE}
+- tapOn:
+    text: ".*${WARD_LABEL}.*"
+- extendedWaitUntil:
+    visible: "Không.tìm.thấy.huấn.luyện.viên.trong.bán.kính.10.km"
+    timeout: 30000
+- takeScreenshot: k-01-empty-10km
+- tapOn: "Mở.rộng.bán.kính.lên.20.km"
+- extendedWaitUntil:
+    visible: "Không.tìm.thấy.huấn.luyện.viên.trong.bán.kính.20.km|~.* km từ trung tâm .*"
+    timeout: 30000
+- takeScreenshot: k-02-20km
+- runFlow:
+    when:
+      visible: "Mở.rộng.bán.kính.lên.50.km"
+    commands:
+      - tapOn: "Mở.rộng.bán.kính.lên.50.km"
+      - takeScreenshot: k-03-50km
+- runFlow:
+    when:
+      visible: "Tìm.toàn.quốc"
+    commands:
+      - tapOn: "Tìm.toàn.quốc"
+      - assertNotVisible: "Không.tìm.thấy.huấn.luyện.viên.*"
+      - takeScreenshot: k-04-national
+- tapOn: "Cá nhân"
+- scrollUntilVisible:
+    element: "Đăng xuất"
+- tapOn: "Đăng xuất"
+- tapOn: "ĐĂNG XUẤT"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại"
+    timeout: 20000

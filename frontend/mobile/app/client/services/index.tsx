@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -7,7 +7,10 @@ import {
   Building2,
   CalendarClock,
   FileText,
+  Globe,
+  Info,
   MapPin,
+  Navigation,
   QrCode,
   Search,
   ShieldCheck,
@@ -15,6 +18,7 @@ import {
   Star,
   Ticket,
   UserSearch,
+  X,
 } from "lucide-react-native";
 import { GymCard } from "../../../src/features/services/GymCard";
 
@@ -33,6 +37,7 @@ import {
 } from "../../../src/components/ui";
 import { Image } from "expo-image";
 import { absolutePhotoUrl, contractService, gymService, profileService } from "../../../src/services/api";
+import { designTokens } from "../../../src/theme/colors";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
@@ -40,12 +45,9 @@ import { QUICK_FILTERS } from "../../../src/constants/specialties";
 import {
   canReportMembership,
   daysRemaining,
-  groupByBrand,
   membershipStatusLabel,
-  normalizeGyms,
+  normalizeGym,
   normalizeMemberships,
-  searchGyms,
-  type GymRow,
   type MembershipRow,
 } from "../../../src/features/services/gymDirectory";
 import { Notice, PaymentMethodSheet } from "../../../src/components/payment/PaymentMethodSheet";
@@ -74,16 +76,34 @@ import {
   EMPTY_PT_FILTERS,
   SESSION_MODES,
   activeFilterCount,
-  buildListParams,
   filterError,
-  PT_PAGE_SIZE,
-  matchesSpecialty,
-  mergePtPages,
-  nextPtPage,
+  normalizePt,
   type PtFilters,
   type PtRow,
 } from "../../../src/features/services/ptDiscovery";
 import { usePtArea } from "../../../src/features/services/usePtArea";
+import {
+  LIST_UPDATED_BANNER,
+  buildGymSearchBody,
+  buildPtSearchBody,
+  emptyResultTitle,
+  formatGymDistanceBadge,
+  formatPtDistanceBadge,
+  gymDiscoveryKeys,
+  isCursorResetError,
+  mergeUniquePages,
+  nextCursorParam,
+  nextRadiusStep,
+  ptDiscoveryKeys,
+  shouldResetCursor,
+  withCursor,
+  type DistanceBadgeView,
+  type GymSortBy,
+  type PtServiceMode,
+  type PtSortBy,
+} from "../../../src/features/services/discoverySearch";
+import { useSearchArea, type SearchArea } from "../../../src/features/services/useSearchArea";
+import { AreaPicker } from "../../../src/features/services/AreaPicker";
 
 const TABS = ["Tìm PT", "Phòng gym", "Hội viên", "Hợp đồng"] as const;
 const TAB_FROM_PARAM: Record<string, (typeof TABS)[number]> = {
@@ -105,6 +125,8 @@ type Tab = (typeof TABS)[number];
 export default function ClientServicesScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
+  // One "Khu vực tìm kiếm" for both discovery tabs (area codes saved on the profile; a GPS fix stays in memory only).
+  const area = useSearchArea();
 
   // `?tab=memberships|contracts` — where the payment result screen sends a settled purchase.
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
@@ -154,9 +176,9 @@ export default function ClientServicesScreen() {
       </View>
 
       {tab === "Tìm PT" ? (
-        <FindPtTab />
+        <FindPtTab area={area} />
       ) : tab === "Phòng gym" ? (
-        <GymsTab />
+        <GymsTab area={area} />
       ) : tab === "Hội viên" ? (
         <MembershipsTab onBrowseGyms={() => setTab("Phòng gym")} />
       ) : (
@@ -166,36 +188,102 @@ export default function ClientServicesScreen() {
   );
 }
 
-/** CL-10's list half — the search, the chips and the trainer cards. */
-function FindPtTab() {
+/**
+ * CL-10's list half — the search area, the search box, the chips and the trainer cards.
+ *
+ * U2: the list is `POST /profile/pts/search` (cursor paging, server-side specialty / mode / price / sort). The area comes
+ * from the shared "Khu vực tìm kiếm" card; a GPS fix, when the client tapped for one, is sent in the POST body only.
+ * A 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH reloads from page 1 with the notice "Danh sách đã cập nhật".
+ */
+const PT_SORT_OPTIONS: { value: PtSortBy; label: string }[] = [
+  { value: "default", label: "Đề xuất cho bạn" },
+  { value: "distance", label: "Gần nhất" },
+  { value: "ratingDesc", label: "Đánh giá cao nhất" },
+  { value: "priceAsc", label: "Giá thấp nhất" },
+  { value: "priceDesc", label: "Giá cao nhất" },
+  { value: "nameAsc", label: "Tên A–Z" },
+];
+
+function FindPtTab({ area }: { area: SearchArea }) {
   const accent = useWorkspaceAccent();
 
   const [query, setQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
   const [chip, setChip] = useState("Tất cả");
   const [filters, setFilters] = useState<PtFilters>(EMPTY_PT_FILTERS);
+  const [sortBy, setSortBy] = useState<PtSortBy>("default");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [resetSeq, setResetSeq] = useState(0);
+  // The search the "Danh sách đã cập nhật" notice belongs to — it disappears as soon as the search changes.
+  const [noticeFor, setNoticeFor] = useState<string | null>(null);
 
-  // The query text is a filter like any other, but it is applied on its own so typing does not
-  // reopen the sheet's draft state.
-  const applied = useMemo<PtFilters>(() => ({ ...filters, q: query }), [filters, query]);
-  const params = useMemo(() => buildListParams(applied), [applied]);
+  const mode = (filters.sessionMode || "ANY") as PtServiceMode;
+  const searchBody = useMemo(
+    () =>
+      buildPtSearchBody({
+        gpsCoords: area.gpsCoords,
+        provinceCode: area.provinceCode,
+        wardCode: area.wardCode,
+        national: area.national,
+        radiusKm: area.radiusKm,
+        mode,
+        sortBy,
+        q: debouncedQ,
+        specialties: chip === "Tất cả" ? [] : [chip],
+        minPrice: filters.minPrice.trim() ? Number(filters.minPrice) : null,
+        maxPrice: filters.maxPrice.trim() ? Number(filters.maxPrice) : null,
+        limit: 20,
+      }),
+    [area.gpsCoords, area.provinceCode, area.wardCode, area.national, area.radiusKm, mode, sortBy, debouncedQ, chip, filters.minPrice, filters.maxPrice],
+  );
+  const bodyKey = JSON.stringify(searchBody);
 
-  // Its own key: the detail screen keeps an unpaged copy under ["pts-list", {}].
+  const keys = ptDiscoveryKeys(area.uid);
   const ptsQuery = useInfiniteQuery({
-    queryKey: ["pts-list-pages", params],
-    queryFn: ({ pageParam }) => profileService.listPTs({ ...params, page: pageParam, limit: PT_PAGE_SIZE }),
-    initialPageParam: 1,
-    getNextPageParam: (_last, pages) => nextPtPage(pages),
+    queryKey: keys.search(searchBody, resetSeq),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => nextCursorParam(lastPage),
+    queryFn: ({ pageParam }: { pageParam: string | null }) => profileService.searchPTs(withCursor(searchBody, pageParam)),
+    enabled: area.ready,
   });
 
-  const { refreshing, onRefresh } = usePullToRefresh([["pts-list-pages", params]]);
+  // 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH → reload from page 1 (a new key restarts the query) and say so.
+  const { error, isError, isFetchNextPageError } = ptsQuery;
+  useEffect(() => {
+    if (!shouldResetCursor(error, { isError, isFetchNextPageError })) return;
+    setNoticeFor(bodyKey);
+    setResetSeq((seq) => seq + 1);
+  }, [error, isError, isFetchNextPageError, bodyKey]);
 
-  const trainers = useMemo(() => mergePtPages(ptsQuery.data?.pages), [ptsQuery.data]);
-  const visible = useMemo(
-    () => trainers.filter((pt) => matchesSpecialty(pt, chip)),
-    [trainers, chip],
+  const { refreshing, onRefresh } = usePullToRefresh([[...keys.all]]);
+
+  const rows = useMemo(
+    () => mergeUniquePages(ptsQuery.data?.pages, (page) => page?.pts, (pt: any) => String(pt?.userId ?? "")),
+    [ptsQuery.data],
   );
-  const badge = activeFilterCount(filters);
+  const appliedScope = ptsQuery.data?.pages?.[ptsQuery.data.pages.length - 1]?.appliedScope ?? area.scope;
+  const trainers = useMemo(
+    () =>
+      rows.map((raw: any) => ({
+        pt: normalizePt(raw),
+        badge: formatPtDistanceBadge(raw, { selectedWardName: area.wardName, appliedScope, requestedMode: mode }),
+      })),
+    [rows, area.wardName, appliedScope, mode],
+  );
+
+  const expandToKm = area.scope === "near" ? nextRadiusStep(area.radiusKm) : null;
+  const badge = activeFilterCount(filters) + (sortBy !== "default" ? 1 : 0);
+  const hasSecondaryFilters = badge > 0 || chip !== "Tất cả";
+  const clearFilters = () => {
+    setFilters({ ...EMPTY_PT_FILTERS });
+    setSortBy("default");
+    setChip("Tất cả");
+  };
+  const loading = ptsQuery.isLoading || !area.ready;
 
   return (
     <>
@@ -223,17 +311,19 @@ function FindPtTab() {
             onPress={() => setSheetOpen(true)}
             accessibilityLabel="Bộ lọc"
           >
-            <SlidersHorizontal size={18} color={badge > 0 ? accent.primary : "#8b9299"} />
+            <SlidersHorizontal size={18} color={badge > 0 ? accent.primary : designTokens.mutedForeground} />
             {badge > 0 ? (
               <View
                 className="absolute -right-1.5 -top-1.5 h-5 min-w-5 items-center justify-center rounded-full px-1"
                 style={{ backgroundColor: accent.primary }}
               >
-                <Text className="font-body-medium text-[10px] text-background">{badge}</Text>
+                <Text className="font-body-medium text-[10px] text-on-primary">{badge}</Text>
               </View>
             ) : null}
           </Tappable>
         </View>
+
+        <AreaPicker area={area} />
 
         <View className="mt-3">
           <ScrollView
@@ -254,7 +344,7 @@ function FindPtTab() {
                 >
                   <Text
                     className={`font-body-medium text-xs ${
-                      active ? "text-background" : "text-muted-foreground"
+                      active ? "text-on-primary" : "text-muted-foreground"
                     }`}
                   >
                     {item}
@@ -265,32 +355,55 @@ function FindPtTab() {
           </ScrollView>
         </View>
 
-        {ptsQuery.isLoading ? (
+        {noticeFor === bodyKey ? <ListUpdatedBanner onClose={() => setNoticeFor(null)} /> : null}
+
+        {loading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={accent.primary} />
           </View>
-        ) : ptsQuery.isError ? (
+        ) : ptsQuery.isError && trainers.length === 0 && !isCursorResetError(ptsQuery.error) ? (
           <EmptyState
             icon={UserSearch}
             title="Không tải được danh sách huấn luyện viên"
             description="Kiểm tra kết nối rồi kéo xuống để thử lại."
+            actionLabel="Thử lại"
+            onAction={() => setResetSeq((seq) => seq + 1)}
           />
-        ) : visible.length === 0 ? (
-          <EmptyState
-            icon={UserSearch}
-            title="Không tìm thấy PT phù hợp"
-            description="Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm."
-          />
+        ) : trainers.length === 0 ? (
+          <View>
+            <EmptyState
+              icon={UserSearch}
+              title={emptyResultTitle("pt", area.scope, area.radiusKm)}
+              description="Thử mở rộng phạm vi bán kính, chuyển sang Toàn quốc hoặc xoá bớt bộ lọc."
+            />
+            <View className="items-center gap-2 px-5">
+              {expandToKm ? (
+                <Button variant="primary" onPress={() => area.setRadiusKm(expandToKm)}>
+                  {`Mở rộng bán kính lên ${expandToKm} km`}
+                </Button>
+              ) : null}
+              {!area.national ? (
+                <Button variant="secondary" onPress={area.selectNational}>
+                  Tìm toàn quốc
+                </Button>
+              ) : null}
+              {hasSecondaryFilters ? (
+                <Button variant="ghost" onPress={clearFilters}>
+                  Xoá bộ lọc
+                </Button>
+              ) : null}
+            </View>
+          </View>
         ) : (
           <Stagger className="mt-4 gap-3 px-5">
-            {visible.map((pt) => (
+            {trainers.map(({ pt, badge: distance }) => (
               <StaggerItem key={pt.userId}>
-                <TrainerCard pt={pt} onPress={() => router.push(`/client/services/pt/${pt.userId}`)} />
+                <TrainerCard pt={pt} distance={distance} onPress={() => router.push(`/client/services/pt/${pt.userId}`)} />
               </StaggerItem>
             ))}
           </Stagger>
         )}
-        {ptsQuery.hasNextPage && !ptsQuery.isLoading && !ptsQuery.isError ? (
+        {ptsQuery.hasNextPage && !loading && !ptsQuery.isError ? (
           <View className="mt-4 px-5">
             <Button
               variant="secondary"
@@ -298,7 +411,7 @@ function FindPtTab() {
               disabled={ptsQuery.isFetchingNextPage}
               onPress={() => void ptsQuery.fetchNextPage()}
             >
-              {ptsQuery.isFetchingNextPage ? "Đang tải…" : "Xem thêm huấn luyện viên"}
+              {ptsQuery.isFetchingNextPage ? "Đang tải thêm…" : "Xem thêm"}
             </Button>
           </View>
         ) : null}
@@ -308,13 +421,31 @@ function FindPtTab() {
         key={sheetOpen ? "filters-open" : "filters-closed"}
         open={sheetOpen}
         initial={filters}
+        initialSort={sortBy}
         onClose={() => setSheetOpen(false)}
-        onApply={(next) => {
+        onApply={(next, nextSort) => {
           setFilters(next);
+          setSortBy(nextSort);
           setSheetOpen(false);
         }}
       />
     </>
+  );
+}
+
+/** "Danh sách đã cập nhật — đã tải lại từ đầu." — after a cursor 409 reloaded the list from page 1. */
+function ListUpdatedBanner({ onClose }: { onClose: () => void }) {
+  return (
+    <View
+      testID="list-updated-banner"
+      className="mx-5 mt-3 flex-row items-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5"
+    >
+      <Info size={15} color={designTokens.warning} />
+      <Text className="flex-1 font-body text-xs text-foreground">{LIST_UPDATED_BANNER}</Text>
+      <Tappable onPress={onClose} accessibilityLabel="Đóng thông báo">
+        <X size={14} color={designTokens.mutedForeground} />
+      </Tappable>
+    </View>
   );
 }
 
@@ -338,7 +469,7 @@ function TrainerCover({ uri }: { uri: string }) {
   );
 }
 
-function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
+function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: DistanceBadgeView; onPress: () => void }) {
   const accent = useWorkspaceAccent();
   const cover = absolutePhotoUrl(pt.coverPhotoUrl);
   const area = usePtArea(pt);
@@ -379,6 +510,23 @@ function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
                 </View>
               ) : null}
             </View>
+            {distance?.text ? (
+              <View
+                testID={`pt-badge-${distance.kind.toLowerCase()}`}
+                className="mt-1.5 flex-row items-center gap-1 self-start rounded-full border border-border bg-panel px-2 py-0.5"
+              >
+                {distance.kind === "ONLINE" ? (
+                  <Globe size={11} color={accent.primary} />
+                ) : distance.kind === "GPS" ? (
+                  <Navigation size={11} color={accent.primary} />
+                ) : (
+                  <MapPin size={11} color={accent.primary} />
+                )}
+                <Text className="shrink font-body-medium text-[11px] text-foreground" numberOfLines={1}>
+                  {distance.text}
+                </Text>
+              </View>
+            ) : null}
           </View>
           <View className="items-end">
             {pt.lowestPrice != null ? (
@@ -406,18 +554,21 @@ function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
 function FilterSheet({
   open,
   initial,
+  initialSort,
   onClose,
   onApply,
 }: {
   open: boolean;
   initial: PtFilters;
+  initialSort: PtSortBy;
   onClose: () => void;
-  onApply: (filters: PtFilters) => void;
+  onApply: (filters: PtFilters, sortBy: PtSortBy) => void;
 }) {
   const accent = useWorkspaceAccent();
   // Mounted fresh every time the sheet opens (see the key on the call site), so the draft starts
   // from the live filters without an effect that writes state on open.
   const [draft, setDraft] = useState<PtFilters>(initial);
+  const [draftSort, setDraftSort] = useState<PtSortBy>(initialSort);
   const error = filterError(draft);
 
   return (
@@ -454,6 +605,26 @@ function FilterSheet({
         </View>
 
         <View className="gap-2">
+          <Text className="font-body-medium text-xs text-muted-foreground">Sắp xếp</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {PT_SORT_OPTIONS.map((option) => {
+              const active = draftSort === option.value;
+              return (
+                <Tappable
+                  key={option.value}
+                  className={`rounded-full border px-3 py-1.5 ${active ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                  onPress={() => setDraftSort(option.value)}
+                >
+                  <Text className="font-body-medium text-xs" style={{ color: active ? accent.primary : designTokens.mutedForeground }}>
+                    {option.label}
+                  </Text>
+                </Tappable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View className="gap-2">
           <Text className="font-body-medium text-xs text-muted-foreground">Giá mỗi buổi (đ)</Text>
           <View className="flex-row gap-2">
             <View className="flex-1">
@@ -480,11 +651,14 @@ function FilterSheet({
           <Button
             variant="secondary"
             className="flex-1"
-            onPress={() => setDraft({ ...EMPTY_PT_FILTERS, q: draft.q })}
+            onPress={() => {
+              setDraft({ ...EMPTY_PT_FILTERS, q: draft.q });
+              setDraftSort("default");
+            }}
           >
             Xoá lọc
           </Button>
-          <Button className="flex-1" disabled={!!error} onPress={() => onApply(draft)}>
+          <Button className="flex-1" disabled={!!error} onPress={() => onApply(draft, draftSort)}>
             Áp dụng
           </Button>
         </View>
@@ -493,19 +667,92 @@ function FilterSheet({
   );
 }
 
-/** CL-09's list half — branches gathered under their brand, which is how the data model has them. */
-function GymsTab() {
+const GYM_SORT_OPTIONS: { value: GymSortBy; label: string }[] = [
+  { value: "relevance", label: "Phù hợp nhất" },
+  { value: "distance", label: "Gần nhất" },
+  { value: "rating", label: "Đánh giá cao nhất" },
+  { value: "price", label: "Giá thấp nhất" },
+];
+
+const GYM_PRICE_OPTIONS = [
+  { value: 299_999, label: "Dưới 300k" },
+  { value: 500_000, label: "Dưới 500k" },
+  { value: 1_000_000, label: "Dưới 1 triệu" },
+] as const;
+
+/**
+ * CL-09's list half — `POST /gyms/search` (U2): the shared "Khu vực tìm kiếm" area, server-side search / price / sort, cursor
+ * paging ("Xem thêm") and a distance on each branch. Opening the tab never asks for the location — only the GPS button
+ * in the area card does. The result is one flat list in the server's order (nearest first when a point is known), so the
+ * brand moves onto the card instead of grouping the list under brand headings.
+ */
+function GymsTab({ area }: { area: SearchArea }) {
   const accent = useWorkspaceAccent();
   const [query, setQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const [sort, setSort] = useState<GymSortBy>("relevance");
+  const [priceMax, setPriceMax] = useState<number | null>(null);
+  const [resetSeq, setResetSeq] = useState(0);
+  const [noticeFor, setNoticeFor] = useState<string | null>(null);
 
-  const gymsQuery = useQuery({
-    queryKey: ["gyms"],
-    queryFn: () => gymService.listGyms(),
+  const searchBody = useMemo(
+    () =>
+      buildGymSearchBody({
+        gpsCoords: area.gpsCoords,
+        provinceCode: area.provinceCode,
+        wardCode: area.wardCode,
+        national: area.national,
+        radiusKm: area.radiusKm,
+        q: debouncedQ,
+        priceMax,
+        sort,
+        limit: 20,
+      }),
+    [area.gpsCoords, area.provinceCode, area.wardCode, area.national, area.radiusKm, debouncedQ, priceMax, sort],
+  );
+  const bodyKey = JSON.stringify(searchBody);
+
+  const keys = gymDiscoveryKeys(area.uid);
+  const gymsQuery = useInfiniteQuery({
+    queryKey: keys.search(searchBody, resetSeq),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => nextCursorParam(lastPage),
+    queryFn: ({ pageParam }: { pageParam: string | null }) => gymService.searchGyms(withCursor(searchBody, pageParam)),
+    enabled: area.ready,
   });
-  const { refreshing, onRefresh } = usePullToRefresh([["gyms"]]);
 
-  const gyms = useMemo(() => normalizeGyms(gymsQuery.data), [gymsQuery.data]);
-  const groups = useMemo(() => groupByBrand(searchGyms(gyms, query)), [gyms, query]);
+  const { error, isError, isFetchNextPageError } = gymsQuery;
+  useEffect(() => {
+    if (!shouldResetCursor(error, { isError, isFetchNextPageError })) return;
+    setNoticeFor(bodyKey);
+    setResetSeq((seq) => seq + 1);
+  }, [error, isError, isFetchNextPageError, bodyKey]);
+
+  const { refreshing, onRefresh } = usePullToRefresh([[...keys.all]]);
+
+  const appliedScope = gymsQuery.data?.pages?.[gymsQuery.data.pages.length - 1]?.appliedScope ?? area.scope;
+  const gyms = useMemo(
+    () =>
+      mergeUniquePages(gymsQuery.data?.pages, (page) => page?.gyms, (g: any) => String(g?.id ?? "")).map((raw: any) => {
+        const gym = normalizeGym(raw);
+        const badge = formatGymDistanceBadge({
+          distanceKm: gym.distanceKm,
+          appliedScope,
+          hasGps: !!area.gpsCoords,
+          selectedWardName: area.wardName,
+        });
+        return { gym, distanceText: badge.text };
+      }),
+    [gymsQuery.data, appliedScope, area.gpsCoords, area.wardName],
+  );
+
+  const expandToKm = area.scope === "near" ? nextRadiusStep(area.radiusKm) : null;
+  const hasSecondaryFilters = priceMax != null || sort !== "relevance";
+  const loading = gymsQuery.isLoading || !area.ready;
 
   return (
     <ScrollView
@@ -525,48 +772,124 @@ function GymsTab() {
         />
       </View>
 
-      {gymsQuery.isLoading ? (
+      <AreaPicker area={area} />
+
+      <View className="mt-3 gap-2">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
+        >
+          {GYM_SORT_OPTIONS.map((option) => {
+            const active = option.value === sort;
+            return (
+              <Tappable
+                key={option.value}
+                className={`rounded-full border px-3.5 py-1.5 ${active ? "border-primary" : "border-border bg-card"}`}
+                style={active ? { backgroundColor: accent.primary } : undefined}
+                onPress={() => setSort(option.value)}
+              >
+                <Text className={`font-body-medium text-xs ${active ? "text-on-primary" : "text-muted-foreground"}`}>
+                  {option.label}
+                </Text>
+              </Tappable>
+            );
+          })}
+        </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
+        >
+          {GYM_PRICE_OPTIONS.map((option) => {
+            const active = option.value === priceMax;
+            return (
+              <Tappable
+                key={option.value}
+                className={`rounded-full border px-3.5 py-1.5 ${active ? "border-primary" : "border-border bg-card"}`}
+                style={active ? { backgroundColor: accent.primary } : undefined}
+                onPress={() => setPriceMax(active ? null : option.value)}
+              >
+                <Text className={`font-body-medium text-xs ${active ? "text-on-primary" : "text-muted-foreground"}`}>
+                  {option.label}
+                </Text>
+              </Tappable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {noticeFor === bodyKey ? <ListUpdatedBanner onClose={() => setNoticeFor(null)} /> : null}
+
+      {loading ? (
         <View className="items-center py-16">
           <ActivityIndicator color={accent.primary} />
         </View>
-      ) : groups.length === 0 ? (
+      ) : gymsQuery.isError && gyms.length === 0 && !isCursorResetError(gymsQuery.error) ? (
         <EmptyState
           icon={Building2}
-          title="Không tìm thấy phòng gym phù hợp"
-          description="Thử từ khoá khác, hoặc kéo xuống để tải lại."
+          title="Không tải được danh sách phòng gym"
+          description="Kiểm tra kết nối rồi kéo xuống để thử lại."
+          actionLabel="Thử lại"
+          onAction={() => setResetSeq((seq) => seq + 1)}
         />
+      ) : gyms.length === 0 ? (
+        <View>
+          <EmptyState
+            icon={Building2}
+            title={emptyResultTitle("gym", area.scope, area.radiusKm)}
+            description="Thử mở rộng phạm vi bán kính, chuyển sang Toàn quốc, đổi từ khoá hoặc xoá bớt bộ lọc."
+          />
+          <View className="items-center gap-2 px-5">
+            {expandToKm ? (
+              <Button variant="primary" onPress={() => area.setRadiusKm(expandToKm)}>
+                {`Mở rộng bán kính lên ${expandToKm} km`}
+              </Button>
+            ) : null}
+            {!area.national ? (
+              <Button variant="secondary" onPress={area.selectNational}>
+                Tìm toàn quốc
+              </Button>
+            ) : null}
+            {hasSecondaryFilters ? (
+              <Button
+                variant="ghost"
+                onPress={() => {
+                  setPriceMax(null);
+                  setSort("relevance");
+                }}
+              >
+                Xoá bộ lọc
+              </Button>
+            ) : null}
+          </View>
+        </View>
       ) : (
-        <Stagger className="mt-4 gap-6 px-5">
-          {groups.map((group) => (
-            <StaggerItem key={group.brandId || group.brandName}>
-              <View className="mb-2.5 flex-row items-center gap-2">
-                <View className="h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
-                  <Building2 size={16} color={accent.primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="font-display text-base text-foreground" numberOfLines={1}>
-                    {group.brandName}
-                  </Text>
-                  <Text className="font-body text-[11px] text-muted-foreground">
-                    {group.branches.length} chi nhánh
-                  </Text>
-                </View>
-              </View>
-              <View className="gap-3">
-                {group.branches.map((gym) => (
-                  <GymCard
-                    key={gym.id}
-                    gym={gym}
-                    onPress={() =>
-                      router.push({ pathname: "/client/services/gyms/[id]", params: { id: gym.id } })
-                    }
-                  />
-                ))}
-              </View>
+        <Stagger className="mt-4 gap-3 px-5">
+          {gyms.map(({ gym, distanceText }) => (
+            <StaggerItem key={gym.id}>
+              <GymCard
+                gym={gym}
+                distanceText={distanceText}
+                showBrand
+                onPress={() => router.push({ pathname: "/client/services/gyms/[id]", params: { id: gym.id } })}
+              />
             </StaggerItem>
           ))}
         </Stagger>
       )}
+      {gymsQuery.hasNextPage && !loading && !gymsQuery.isError ? (
+        <View className="mt-4 px-5">
+          <Button
+            variant="secondary"
+            full
+            disabled={gymsQuery.isFetchingNextPage}
+            onPress={() => void gymsQuery.fetchNextPage()}
+          >
+            {gymsQuery.isFetchingNextPage ? "Đang tải thêm…" : "Xem thêm"}
+          </Button>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -581,22 +904,13 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
     queryKey: ["my-memberships"],
     queryFn: () => gymService.listMyMemberships(),
   });
-  // A membership row carries a gymId but no gym name, so the directory is read alongside to name it.
-  const gymsQuery = useQuery({
-    queryKey: ["gyms"],
-    queryFn: () => gymService.listGyms(),
-  });
-  const { refreshing, onRefresh } = usePullToRefresh([["my-memberships"], ["gyms"]]);
+  // D2: the membership itself carries `gymName`, so the whole gym directory is no longer read to name it.
+  const { refreshing, onRefresh } = usePullToRefresh([["my-memberships"]]);
 
   const memberships = useMemo(
     () => normalizeMemberships(membershipsQuery.data),
     [membershipsQuery.data],
   );
-  const gymsById = useMemo(() => {
-    const map = new Map<string, GymRow>();
-    for (const gym of normalizeGyms(gymsQuery.data)) map.set(gym.id, gym);
-    return map;
-  }, [gymsQuery.data]);
 
   // Phase 14.1 — a membership waiting for payment is paid from here (web: GymMembershipsPage).
   const checkout = useGatewayCheckout<MembershipRow>({
@@ -653,7 +967,6 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
       ) : (
         <Stagger className="gap-3 px-5">
           {memberships.map((membership) => {
-            const gym = gymsById.get(membership.gymId);
             const status = membershipStatusLabel(membership.status);
             const left = daysRemaining(membership);
             return (
@@ -662,10 +975,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-1">
                       <Text className="font-display text-base text-foreground" numberOfLines={1}>
-                        {gym?.name ?? "Phòng gym"}
-                      </Text>
-                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
-                        {gym?.brandName ?? ""}
+                        {membership.gymName ?? "Phòng gym"}
                       </Text>
                     </View>
                     <Badge tone={status.tone}>{status.label}</Badge>
@@ -694,7 +1004,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onPress={() => router.push({ pathname: "/client/services/report-issue", params: { gymId: membership.gymId, gymName: gym?.name ?? "" } })}
+                      onPress={() => router.push({ pathname: "/client/services/report-issue", params: { gymId: membership.gymId, gymName: membership.gymName ?? "" } })}
                     >
                       Báo cáo vấn đề
                     </Button>

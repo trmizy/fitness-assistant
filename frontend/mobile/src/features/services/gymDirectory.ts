@@ -33,6 +33,8 @@ export type GymRow = {
   rating: number | null;
   reviewCount: number;
   fromPrice: number | null;
+  /** `POST /gyms/search` only: km from the viewer's point (GPS or ward centre); null / absent when the server gave none. */
+  distanceKm?: number | null;
   status: string;
   operationalStatus: string;
   closureReason: string | null;
@@ -79,6 +81,7 @@ export function normalizeGym(raw: any): GymRow {
     rating: typeof raw?.averageRating === "number" && raw.averageRating > 0 ? raw.averageRating : null,
     reviewCount: Number(raw?.reviewCount) || 0,
     fromPrice: raw?.fromPrice != null ? Number(raw.fromPrice) : null,
+    distanceKm: typeof raw?.distanceKm === "number" && Number.isFinite(raw.distanceKm) ? raw.distanceKm : null,
     status: String(raw?.status ?? ""),
     operationalStatus: String(raw?.operationalStatus ?? (raw?.isTemporarilyClosed === true ? "TEMPORARILY_CLOSED" : "")),
     closureReason: text(raw?.closureReason),
@@ -321,6 +324,8 @@ export function planVisitsLabel(plan: PlanRow): string {
 export type MembershipRow = {
   id: string;
   gymId: string;
+  /** The gym's public name, sent on the membership itself (D2) so the list never reads the whole gym directory. */
+  gymName?: string | null;
   planId: string;
   status: string;
   price: number;
@@ -336,6 +341,7 @@ export function normalizeMembership(raw: any): MembershipRow {
   return {
     id: String(raw?.id ?? ""),
     gymId: String(raw?.gymId ?? ""),
+    gymName: text(raw?.gymName),
     planId: String(raw?.planId ?? ""),
     status: String(raw?.status ?? ""),
     price: Number(raw?.priceAtPurchase) || 0,

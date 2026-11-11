@@ -31,6 +31,7 @@ const PT_LISTING_LISTS: string[][] = [
   ["pt-listing-preview"],
   ["pts-list"],
   ["pts-list-pages"],
+  ["pt-discovery"], // U2: POST /profile/pts/search pages
   ["pt-detail"],
   ["pt-packages"],
   ["pt-service-packages"],
@@ -51,6 +52,7 @@ const GYM_LISTING_LISTS: string[][] = [
   ["owned-gym-photos"],
   ["partner-application"],
   ["gyms"],
+  ["gym-discovery"], // U2: POST /gyms/search pages
   ["gym"],
 ];
 

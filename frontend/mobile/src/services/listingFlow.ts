@@ -48,6 +48,18 @@ export function isListingFlowRequest(method: string | null | undefined, url: str
   return false;
 }
 
+/**
+ * U2 (discovery): `X-Gymini-Client` on EVERY request to the gateway, so the server can count which client versions
+ * still call the legacy endpoints (`client_compat_events`). Measurement only — it never changes behaviour. Unlike
+ * `listingFlowHeaders` (compat routes only) this one is unconditional.
+ */
+export function clientIdentityHeaders(client: {
+  version: string | null | undefined;
+  build: string | number | null | undefined;
+}): Record<string, string> {
+  return { [CLIENT_HEADER]: clientHeaderValue(client.version, client.build) };
+}
+
 /** The headers to add, or null when the request is not a listing-flow request. */
 export function listingFlowHeaders(
   method: string | null | undefined,

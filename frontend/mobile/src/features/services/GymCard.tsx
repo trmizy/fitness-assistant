@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import { Image } from "expo-image";
-import { ChevronRight, MapPin } from "lucide-react-native";
+import { Building2, ChevronRight, MapPin, Navigation } from "lucide-react-native";
 
 import { Badge, Card, Tappable } from "../../components/ui";
 import { absolutePhotoUrl } from "../../services/api";
@@ -12,8 +12,22 @@ import { amenityChips, gymBlockedReason, type GymRow } from "./gymDirectory";
 /**
  * One branch in the gym directory: cover photo (the published cover, `coverPhotoUrl`), up to four amenity chips with their icons
  * (+N for the rest), the cheapest plan and why it cannot be bought, if it cannot. Moved out of the services screen so it can be tested.
+ *
+ * U2: `distanceText` is the already-worded distance badge ("~x km (đường chim bay)" / "~x km từ trung tâm <phường>") from
+ * `formatGymDistanceBadge`, absent when the search gave none; `showBrand` adds the brand line (the search list is flat,
+ * not grouped under brand headings). A branch with no cover photo gets a neutral building tile instead of a blank card.
  */
-export function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) {
+export function GymCard({
+  gym,
+  onPress,
+  distanceText,
+  showBrand,
+}: {
+  gym: GymRow;
+  onPress: () => void;
+  distanceText?: string | null;
+  showBrand?: boolean;
+}) {
   const accent = useWorkspaceAccent();
   const closed = gymBlockedReason(gym);
   const cover = absolutePhotoUrl(gym.coverPhotoUrl);
@@ -30,10 +44,20 @@ export function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) 
           />
         ) : null}
         <View className="flex-row items-start justify-between gap-3">
+          {!cover ? (
+            <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+              <Building2 size={20} color={accent.primary} />
+            </View>
+          ) : null}
           <View className="flex-1">
             <Text className="font-display text-base text-foreground" numberOfLines={1}>
               {gym.name}
             </Text>
+            {showBrand && gym.brandName ? (
+              <Text className="font-body text-[11px] text-muted-foreground" numberOfLines={1}>
+                {gym.brandName}
+              </Text>
+            ) : null}
             {gym.city || gym.address ? (
               <View className="mt-0.5 flex-row items-center gap-1">
                 <MapPin size={12} color="#8b9299" />
@@ -45,6 +69,13 @@ export function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) 
           </View>
           {gym.rating != null ? <Badge tone="warning">{`★ ${gym.rating.toFixed(1)}`}</Badge> : null}
         </View>
+
+        {distanceText ? (
+          <View testID="gym-distance-badge" className="flex-row items-center gap-1 self-start rounded-full border border-border bg-panel px-2 py-1">
+            <Navigation size={11} color={accent.primary} />
+            <Text className="font-body-medium text-[11px] text-foreground">{distanceText}</Text>
+          </View>
+        ) : null}
 
         {chips.shown.length > 0 ? (
           <View className="flex-row flex-wrap gap-1.5">

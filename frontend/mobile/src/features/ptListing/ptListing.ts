@@ -747,6 +747,7 @@ export function ptListingInvalidationKeys(uid: string): (readonly unknown[])[] {
     ptListingPreviewKey(uid),
     ["pts-list"],
     ["pts-list-pages"],
+    ["pt-discovery"], // U2: the search pages clients read (prefix; every account's key starts with its own id)
     ["pt-detail", uid],
     ["pt-packages", uid],
     ["pt-service-packages", uid],
