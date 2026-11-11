@@ -83,7 +83,7 @@ export const LEVEL_EXPLAIN: Record<ReconLevel, string> = {
 };
 export const GATEWAY_CHIP_LABEL = "Đối chiếu cổng ↔ Gymini";
 /** What is still missing behind the L2 gateway chip: an independent settlement report (shown as a note inside the gateway view). */
-export const GATEWAY_CHIP_REASON = "L3 có cho VNPay; ZaloPay, PayOS, MoMo chưa có nguồn quyết toán độc lập";
+export const GATEWAY_CHIP_REASON = "L3 có cho VNPay; ZaloPay chưa có nguồn quyết toán độc lập (MoMo, PayOS đã ngừng dùng)";
 export const NO_PROCEDURE_TEXT = "chưa có quy trình (G-15)";
 
 // ───────────────────────────────────────────────────── 22 nhóm ngoại lệ + P2 ──

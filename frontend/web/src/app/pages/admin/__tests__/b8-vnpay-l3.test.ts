@@ -166,7 +166,9 @@ describe("L3 labels", () => {
 
   it("the L3 status line says L3 exists for VNPay only and no longer says BLOCKED", () => {
     assert.match(L3_STATUS_NOTE, /VNPay/);
-    assert.match(L3_STATUS_NOTE, /ZaloPay, PayOS, MoMo/);
+    assert.match(L3_STATUS_NOTE, /ZaloPay/);
+    assert.match(L3_STATUS_NOTE, /MoMo, PayOS đã ngừng dùng/);
+    assert.doesNotMatch(L3_STATUS_NOTE, /ZaloPay, PayOS, MoMo/);
     assert.doesNotMatch(L3_STATUS_NOTE, /BLOCKED/);
   });
 

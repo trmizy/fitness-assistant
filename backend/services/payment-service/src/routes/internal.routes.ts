@@ -36,6 +36,8 @@ import ledgerOperationRoutes from './ledger-operations.routes';
 import { AppealObligationError, createAppealAwardObligation, readAppealAwardObligation } from '../services/appeal-obligation.service';
 import { withdrawalService } from '../services/withdrawal.service';
 import { entityOriginSchema, rejectIfSyntheticOrigin } from '../services/synthetic-guard';
+import { failureMessage, withdrawalErrorResponse, GENERIC_FAILURE_MESSAGE } from '../utils/safe-error';
+import { ADMIN_INSUFFICIENT_BALANCE_MESSAGE, ADMIN_WALLET_NOT_ACTIVE_MESSAGE } from '../utils/admin-error';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
@@ -197,11 +199,18 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
     const isBusinessError = err instanceof InsufficientBalanceError || err instanceof WalletNotActiveError;
     if (!isBusinessError) {
       logger.error({ error: 'wallet-transfer failed', message: (err as Error).message, transactionId: txn.id });
+    } else {
+      logger.warn({ error: 'wallet-transfer refused', message: (err as Error).message, transactionId: txn.id });
     }
     await transactionRepository.markFailed(txn.id);
+    // W12: the raw error text stays in the log; the caller gets a fixed Vietnamese reason.
+    const failureReason =
+      err instanceof InsufficientBalanceError ? ADMIN_INSUFFICIENT_BALANCE_MESSAGE
+      : err instanceof WalletNotActiveError ? ADMIN_WALLET_NOT_ACTIVE_MESSAGE
+      : GENERIC_FAILURE_MESSAGE;
     return res.json({
       success: true,
-      data: { status: 'FAILED' as const, transactionId: txn.id, failureReason: (err as Error).message },
+      data: { status: 'FAILED' as const, transactionId: txn.id, failureReason },
     });
   }
 });
@@ -399,7 +408,8 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
   try {
     rates = toRates(d.rates);
   } catch (e) {
-    return res.status(400).json({ success: false, error: { code: 'INVALID_RATE_TABLE', message: (e as Error).message } });
+    logger.warn({ error: 'checkout rate table invalid', message: (e as Error).message });
+    return res.status(400).json({ success: false, error: { code: 'INVALID_RATE_TABLE', message: failureMessage('INVALID_RATE_TABLE') } });
   }
   if (rates.gymRate.greaterThan(0) && !d.parties.gymId) {
     return res.status(400).json({
@@ -411,12 +421,11 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
   const providerName = (d.provider ?? process.env.PAYMENT_PROVIDER ?? DEFAULT_PROVIDER).toUpperCase();
   const providerConfig = providerConfigStatus(providerName);
   if (!providerConfig.configured) {
+    // W12: the missing env-var names (and a removed-provider text) are operator detail - logged, not sent.
+    logger.warn({ error: 'checkout refused: provider not configured', provider: providerName, missing: providerConfig.missing });
     return res.status(400).json({
       success: false,
-      error: {
-        code: 'PROVIDER_NOT_CONFIGURED',
-        message: `Payment provider ${providerName} is not configured — missing env: ${providerConfig.missing.join(', ')}`,
-      },
+      error: { code: 'PROVIDER_NOT_CONFIGURED', message: failureMessage('PROVIDER_NOT_CONFIGURED') },
     });
   }
 
@@ -493,7 +502,7 @@ router.post('/payments/checkout', async (req: Request, res: Response) => {
     });
   } catch (err) {
     logger.error({ error: 'checkout failed', relatedEntityId: d.relatedEntityId, message: (err as Error).message });
-    return res.status(502).json({ success: false, error: { code: 'GATEWAY_ERROR', message: (err as Error).message } });
+    return res.status(502).json({ success: false, error: { code: 'GATEWAY_ERROR', message: failureMessage('GATEWAY_ERROR') } });
   }
 });
 
@@ -556,7 +565,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'release-session failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: failureMessage('RELEASE_FAILED') } });
   }
 });
 
@@ -584,7 +593,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'no-show compensation failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: failureMessage('COMPENSATION_FAILED') } });
   }
 });
 
@@ -611,7 +620,7 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'late-arrival compensation failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: failureMessage('COMPENSATION_FAILED') } });
   }
 });
 
@@ -649,7 +658,7 @@ router.post('/contracts/no-show-obligation', async (req: Request, res: Response)
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'no-show obligation record failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: failureMessage('OBLIGATION_RECORD_FAILED') } });
   }
 });
 // POST /internal/contracts/late-open-state - READ-ONLY (final safety gate): what the ledger holds for ONE late-arrival obligation (`PT_LATE_ARRIVAL:<sessionId>`) of a contract. Writes nothing.
@@ -667,7 +676,7 @@ router.post('/contracts/late-open-state', async (req: Request, res: Response) =>
     return res.json({ success: true, data: await readLateOpenState(parsed.data) });
   } catch (err) {
     logger.error({ error: 'late-open state read failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'LATE_OPEN_STATE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'LATE_OPEN_STATE_FAILED', message: failureMessage('LATE_OPEN_STATE_FAILED') } });
   }
 });
 router.post('/contracts/late-arrival-obligation', async (req: Request, res: Response) => {
@@ -695,7 +704,7 @@ router.post('/contracts/late-arrival-obligation', async (req: Request, res: Resp
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'late-arrival obligation record failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: failureMessage('OBLIGATION_RECORD_FAILED') } });
   }
 });
 
@@ -783,7 +792,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'termination failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: failureMessage('TERMINATION_FAILED') } });
   }
 });
 
@@ -813,7 +822,7 @@ router.post('/contracts/appeal-obligation', async (req: Request, res: Response) 
   } catch (err) {
     if (err instanceof AppealObligationError) return res.status(err.status).json({ success: false, error: { code: err.code, message: err.message } });
     logger.error({ error: 'appeal obligation failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_FAILED', message: failureMessage('APPEAL_OBLIGATION_FAILED') } });
   }
 });
 // READ-ONLY: the live state of the obligation created for a consequence (user-service reads it to know whether the money axis may ever show "done").
@@ -822,7 +831,7 @@ router.get('/contracts/appeal-obligation/:consequenceId', async (req: Request, r
     return res.json({ success: true, data: await readAppealAwardObligation(String(req.params.consequenceId)) });
   } catch (err) {
     logger.error({ error: 'appeal obligation read failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_READ_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'APPEAL_OBLIGATION_READ_FAILED', message: failureMessage('APPEAL_OBLIGATION_READ_FAILED') } });
   }
 });
 
@@ -864,7 +873,7 @@ router.post('/contracts/resolve-unresolved-session', async (req: Request, res: R
     }
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'resolve-unresolved-session failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'RESOLVE_UNRESOLVED_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'RESOLVE_UNRESOLVED_FAILED', message: failureMessage('RESOLVE_UNRESOLVED_FAILED') } });
   }
 });
 
@@ -898,7 +907,7 @@ router.post('/contracts/release-holdback', async (req: Request, res: Response) =
   } catch (err) {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'holdback release failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'HOLDBACK_RELEASE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'HOLDBACK_RELEASE_FAILED', message: failureMessage('HOLDBACK_RELEASE_FAILED') } });
   }
 });
 
@@ -946,7 +955,8 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
       }, parsed.data.reason ?? 'CLIENT_CANCELLED'),
     });
   } catch (err) {
-    return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: (err as Error).message } });
+    logger.warn({ error: 'money-breakdown rejected', message: (err as Error).message });
+    return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: failureMessage('INVALID_INPUT') } });
   }
 });
 
@@ -987,7 +997,7 @@ router.post('/contracts/referral', async (req: Request, res: Response) => {
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'referral settlement failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'REFERRAL_SETTLE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'REFERRAL_SETTLE_FAILED', message: failureMessage('REFERRAL_SETTLE_FAILED') } });
   }
 });
 
@@ -1012,7 +1022,7 @@ router.post('/contracts/referral/clawback', async (req: Request, res: Response) 
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'referral clawback failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'REFERRAL_CLAWBACK_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'REFERRAL_CLAWBACK_FAILED', message: failureMessage('REFERRAL_CLAWBACK_FAILED') } });
   }
 });
 
@@ -1058,7 +1068,7 @@ async function handleMembershipRelease(req: Request, res: Response) {
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'membership release failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'MEMBERSHIP_RELEASE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'MEMBERSHIP_RELEASE_FAILED', message: failureMessage('MEMBERSHIP_RELEASE_FAILED') } });
   }
 }
 
@@ -1118,8 +1128,8 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
     const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
     return res.status(201).json({ success: true, data: request });
   } catch (e) {
-    const err = e as { status?: number; code?: string; message?: string };
-    return res.status(err.status ?? 500).json({ success: false, error: { code: err.code ?? 'INTERNAL_ERROR', message: err.message } });
+    const out = withdrawalErrorResponse(e, 'internal gym withdrawal request');
+    return res.status(out.status).json(out.body);
   }
 });
 
@@ -1181,7 +1191,7 @@ router.post('/personalized-service/release', async (req: Request, res: Response)
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'personalized-service release failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: failureMessage('RELEASE_FAILED') } });
   }
 });
 
@@ -1220,7 +1230,7 @@ router.post('/personalized-service/refund', async (req: Request, res: Response) 
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'personalized-service refund failed', message: (err as Error).message });
-    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED', message: (err as Error).message } });
+    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED', message: failureMessage('REFUND_FAILED') } });
   }
 });
 

@@ -3,6 +3,8 @@ import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { pollAndSettle } from '../services/webhook.service';
+import { failureMessage } from '../utils/safe-error';
+import { logger } from '@gym-coach/shared';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -31,7 +33,6 @@ router.get('/methods', async (_req: Request, res: Response) => {
   const catalogue: { provider: string; label: string; description: string }[] = [
     { provider: 'VNPAY', label: 'VNPay', description: 'Thẻ ATM nội địa, Internet Banking, thẻ quốc tế' },
     { provider: 'ZALOPAY', label: 'ZaloPay', description: 'Quét mã QR bằng ứng dụng ZaloPay' },
-    { provider: 'MOMO', label: 'MoMo', description: 'Ví điện tử MoMo' },
   ];
 
   const methods = catalogue.map((m) => {
@@ -69,7 +70,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /me/payments/:id/sync — actively check this transaction at its own gateway instead
 // of waiting for the 5-minute reconciliation sweep or an IPN that cannot reach this
-// deployment (ZaloPay/MoMo/PayOS). Owner-only, same 404-not-403 rule as GET above.
+// deployment (ZaloPay). Owner-only, same 404-not-403 rule as GET above.
 // pollAndSettle itself is the one no-op guard for anything already terminal (PAID/FAILED/
 // CANCELLED/REFUNDED) — it must NOT be duplicated here as a PROCESSING-only check: a
 // checkout is created PENDING and never moves to PROCESSING, so that used to skip every
@@ -97,7 +98,8 @@ router.post('/:id/sync', async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
-    res.status(e.status || 500).json({ success: false, error: { code: 'SYNC_FAILED', message: e.message } });
+    logger.error({ err: e?.message, transactionId: txn.id }, '[payment-service] payment sync failed');
+    res.status(e.status || 500).json({ success: false, error: { code: 'SYNC_FAILED', message: failureMessage('SYNC_FAILED') } });
   }
 });
 

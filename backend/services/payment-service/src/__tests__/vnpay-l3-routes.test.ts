@@ -105,7 +105,7 @@ const BAD: Array<[string, string]> = [
   ['to=2026-13-45', 'bad to'],
   ['from=2026-01-01&from=2026-01-02', 'repeated key'],
   ['limit=5', 'unknown key limit'],
-  ['provider=MOMO', 'unknown key provider'],
+  ['provider=VNPAY', 'unknown key provider'],
 ];
 for (const [qs, why] of BAD) {
   test(`${why} (?${qs}) -> 400 INVALID_QUERY and the service is not called`, async () => {

@@ -14,7 +14,7 @@ function destinationFor(relatedEntityType: RelatedEntityType): { path: string; l
 }
 
 /**
- * Landing page for gateway return-URLs (VNPay, ZaloPay, MoMo — every provider's checkout
+ * Landing page for gateway return-URLs (VNPay, ZaloPay — every provider's checkout
  * redirect ends up here: gym membership purchases, PT contract payments, not just the old
  * wallet top-up). The `status` query param from the gateway is DISPLAY-ONLY and never
  * trusted: we ALWAYS call the server sync endpoint and only show success when the server

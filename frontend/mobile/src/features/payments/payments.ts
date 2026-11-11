@@ -46,7 +46,6 @@ export function normalizeMethods(raw: unknown): PaymentMethods {
 export const PROVIDER_BADGE: Record<string, { text: string; background: string }> = {
   VNPAY: { text: "VN", background: "#0a4f9e" },
   ZALOPAY: { text: "ZP", background: "#0068ff" },
-  MOMO: { text: "M", background: "#a50064" },
 };
 
 export interface CheckoutStart {

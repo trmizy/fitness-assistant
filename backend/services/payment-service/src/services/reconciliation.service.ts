@@ -47,7 +47,7 @@ async function recordBalanceRun(): Promise<void> {
 
 /**
  * Actively confirms every PROCESSING purchase at its own gateway before the stale sweep can
- * mark it FAILED. Must run before sweepStaleProcessing: without this, ZaloPay/MoMo/PayOS
+ * mark it FAILED. Must run before sweepStaleProcessing: without this, ZaloPay
  * purchases (no reachable IPN on this deployment) always time out at NON_TOPUP_STALE_MINUTES
  * even when the gateway genuinely captured the money — see webhook.service.pollAndSettle.
  */
