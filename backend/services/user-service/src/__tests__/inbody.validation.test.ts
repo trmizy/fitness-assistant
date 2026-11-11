@@ -57,3 +57,11 @@ test("rejects shell injection characters", () => {
 test("accepts normal filename", () => {
   assert.strictEqual(validateUploadFilename("inbody_scan_2024.jpg"), null);
 });
+
+// 2026-11-11: optional visceral fat / BMR from the scan confirm form must never break the save.
+test("sanitizeOptionalMetrics drops NaN/empty values and rounds BMR to the Int column", async () => {
+  const { sanitizeOptionalMetrics } = await import("../services/inbody.service");
+  assert.deepEqual(sanitizeOptionalMetrics({ weight: 80, bmr: 1650.5, visceralFat: 9.04 }), { weight: 80, bmr: 1651, visceralFat: 9 });
+  assert.deepEqual(sanitizeOptionalMetrics({ weight: 80, bmr: Number.NaN, visceralFat: "" }), { weight: 80 });
+  assert.deepEqual(sanitizeOptionalMetrics({ weight: 80 }), { weight: 80 });
+});

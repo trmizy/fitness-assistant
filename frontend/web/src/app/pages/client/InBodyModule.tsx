@@ -18,6 +18,7 @@ import { inbodyService, profileService, trainingCycleService } from "../../servi
 import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.utils";
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
+import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
 function CurrentCycleWidget() {
@@ -476,6 +477,8 @@ export function InBodyModule() {
       {tab === "overview" && (
         <div className="space-y-4">
           <CurrentCycleWidget />
+
+          {history.length > 0 && <InBodyExplanationCard key={history[0]?.id} entryId={history[0]?.id} />}
 
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1217,6 +1220,16 @@ export function InBodyModule() {
                         value: extractedData?.bodyFatPct,
                       },
                       { label: "BMI", field: "bmi", value: extractedData?.bmi },
+                      {
+                        label: "Mỡ nội tạng (mức)",
+                        field: "visceralFat",
+                        value: extractedData?.visceralFat,
+                      },
+                      {
+                        label: "BMR (kcal)",
+                        field: "bmr",
+                        value: extractedData?.bmr,
+                      },
                     ].map(
                       (f: {
                         label: string;

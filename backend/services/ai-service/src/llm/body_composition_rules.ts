@@ -30,10 +30,11 @@ export interface BodyCompAnalysis {
 
 // ── Reference values ──────────────────────────────────────────────────────────
 
-const BF_OBESE_M = 25; // % body fat thresholds
-const BF_OBESE_F = 32;
-const BF_HIGH_M = 20;
-const BF_HIGH_F = 28;
+// Exported so the InBody interpretation (inbody-interpretation.ts) classifies with the SAME thresholds as plan generation.
+export const BF_OBESE_M = 25; // % body fat thresholds
+export const BF_OBESE_F = 32;
+export const BF_HIGH_M = 20;
+export const BF_HIGH_F = 28;
 
 const BMI_OVERWEIGHT = 25;
 
@@ -54,8 +55,8 @@ function isModerateHighBF(bfPct: number, gender?: string): boolean {
 // <5% is normal side-to-side variation (measurement noise + natural
 // handedness), 5-10% is a mild but noticeable imbalance worth a small
 // training bias, >=10% is a significant imbalance worth explicit correction.
-const LIMB_ASYMMETRY_MILD_PCT = 5;
-const LIMB_ASYMMETRY_SIGNIFICANT_PCT = 10;
+export const LIMB_ASYMMETRY_MILD_PCT = 5;
+export const LIMB_ASYMMETRY_SIGNIFICANT_PCT = 10;
 
 interface LimbAsymmetryResult {
   adjustment: AdjustmentReason;

@@ -7,6 +7,7 @@ import { clientPlanDraftController } from "../controllers/client-plan-draft.cont
 import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { dayMacroEstimateController } from "../controllers/day-macro-estimate.controller";
+import { inbodyExplanationController } from "../controllers/inbody-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { askRateLimiter, expensiveRateLimiter, internalAiRateLimiter } from "../middleware/ai-rate-limiters";
 import { bindRequestIdentity } from "../services/request-identity";
@@ -53,6 +54,9 @@ router.post(
 
 // "Tính macro cả ngày" from a free-text description (day-macro-estimate.ts) — read-only; one LLM extraction call per request.
 router.post("/nutrition/day-estimate", expensiveRateLimiter, dayMacroEstimateController.estimate);
+
+// "Giải thích thể trạng" for an InBody entry (docs/ai-product/inbody-interpretation-design.md) — read-only; one LLM call per request.
+router.post("/inbody/interpret", expensiveRateLimiter, inbodyExplanationController.interpret);
 
 router.get(
   "/conversations",

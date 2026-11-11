@@ -47,6 +47,23 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Visceral fat level (Float) and BMR (Int) are optional. The confirm form sends parseFloat() of whatever is typed, so an emptied
+ * field arrives as NaN and a BMR like 1650.5 would be rejected by the Int column — drop non-finite values, round BMR.
+ */
+export function sanitizeOptionalMetrics<T extends Record<string, any>>(data: T): T {
+  const out: Record<string, any> = { ...data };
+  for (const key of ["visceralFat", "bmr"] as const) {
+    if (!(key in out)) continue;
+    const v = out[key];
+    if (v === null || v === undefined || v === "") { delete out[key]; continue; }
+    const num = Number(v);
+    if (!Number.isFinite(num) || num <= 0) delete out[key];
+    else out[key] = key === "bmr" ? Math.round(num) : Math.round(num * 10) / 10;
+  }
+  return out as T;
+}
+
 export const inbodyService = {
   async getHistory(userId: string) {
     return inbodyRepository.findByUserId(userId);
@@ -113,7 +130,7 @@ export const inbodyService = {
       throw err("Cần nhập Cơ bắp (kg)", 400);
     }
 
-    const payload = { ...data, bodyFat, date: measuredDate, dateOnly };
+    const payload = { ...sanitizeOptionalMetrics(data), bodyFat, date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
       userId,
@@ -141,7 +158,7 @@ export const inbodyService = {
     if (!existing || existing.userId !== userId) {
       throw err("InBody entry not found", 404);
     }
-    const patch: Record<string, any> = { ...data };
+    const patch: Record<string, any> = { ...sanitizeOptionalMetrics(data) };
     if (data.date !== undefined) {
       const newDate = new Date(data.date);
       patch.date = newDate;
@@ -209,6 +226,9 @@ export const inbodyService = {
         bodyFat,
         bmi,
         bodyFatPct,
+        // Already columns on InBodyEntry; previously never filled from a scan.
+        ...(result.visceral_fat_level != null ? { visceralFat: result.visceral_fat_level } : {}),
+        ...(result.bmr != null ? { bmr: Math.round(result.bmr) } : {}),
 
         rightArmMuscle: result.segmental_lean_analysis?.right_arm,
         leftArmMuscle: result.segmental_lean_analysis?.left_arm,

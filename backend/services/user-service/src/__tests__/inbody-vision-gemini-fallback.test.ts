@@ -164,3 +164,15 @@ test("LIVE Gemini (RUN_LIVE_GEMINI=1)", { skip: process.env.RUN_LIVE_GEMINI !== 
   console.log("LIVE_RESULT", JSON.stringify(r));
   assert.ok(r.weight && r.weight > 20);
 });
+
+// 2026-11-11 "Giải thích thể trạng": visceral fat level and BMR are extracted when printed; implausible readings are dropped.
+test("visceral fat level and BMR are normalised and range-checked", async () => {
+  const { __testing } = await import("../services/inbody-vision.service");
+  if (!__testing?.normalizeVisionResult) return; // helper not exported in this build
+  const ok = __testing.normalizeVisionResult({ weight: 80, visceral_fat_level: 9, bmr: 1650.4 });
+  assert.equal(ok.visceral_fat_level, 9);
+  assert.equal(ok.bmr, 1650.4);
+  const bad = __testing.normalizeVisionResult({ weight: 80, visceral_fat_level: 120, bmr: 90 });
+  assert.equal(bad.visceral_fat_level, null, "visceral fat AREA (cm²) misread as the level");
+  assert.equal(bad.bmr, null);
+});

@@ -12,6 +12,10 @@ export interface VisionResult {
   height: number | null;
   skeletal_muscle_mass: number | null;
   body_fat_mass: number | null;
+  /** InBody "Visceral Fat Level" (unitless, ~1-20) when printed on the report; stored in InBodyEntry.visceralFat. */
+  visceral_fat_level?: number | null;
+  /** Basal Metabolic Rate (kcal) when printed; stored in InBodyEntry.bmr. */
+  bmr?: number | null;
   segmental_lean_analysis: {
     right_arm: number | null;
     left_arm: number | null;
@@ -49,6 +53,11 @@ const INBODY_JSON_SCHEMA = {
       description: "Skeletal muscle mass in kg",
     },
     body_fat_mass: { type: ["number", "null"], description: "Body fat mass in kg" },
+    visceral_fat_level: {
+      type: ["number", "null"],
+      description: "Visceral Fat Level (unitless index, usually 1-20) if printed on the report; null if not shown. NOT the visceral fat area in cm².",
+    },
+    bmr: { type: ["number", "null"], description: "Basal Metabolic Rate in kcal if printed on the report; null if not shown." },
     segmental_lean_analysis: {
       type: "object",
       description:
@@ -98,7 +107,7 @@ const INBODY_TOOL: Anthropic.Tool = {
 };
 
 const EXTRACTION_PROMPT =
-  "Extract all body composition metrics from this InBody report. IMPORTANT: Also extract the measurement_date printed on the report (the date when the test was taken) — it may appear near the patient name, header, or footer in formats like YYYY.MM.DD, MM/DD/YYYY, or similar. Convert it to YYYY-MM-DD format. The Segmental Lean Analysis and Segmental Fat Analysis sections show a body silhouette with kg values labeled per body part (right arm, left arm, trunk, right leg, left leg). Use null for any value that is not visible or cannot be read. Respond with ONLY the JSON object matching the schema — no extra commentary.";
+  "Extract all body composition metrics from this InBody report, including the Visceral Fat Level and the BMR (kcal) when they are printed. IMPORTANT: Also extract the measurement_date printed on the report (the date when the test was taken) — it may appear near the patient name, header, or footer in formats like YYYY.MM.DD, MM/DD/YYYY, or similar. Convert it to YYYY-MM-DD format. The Segmental Lean Analysis and Segmental Fat Analysis sections show a body silhouette with kg values labeled per body part (right arm, left arm, trunk, right leg, left leg). Use null for any value that is not visible or cannot be read. Respond with ONLY the JSON object matching the schema — no extra commentary.";
 
 // Product decision (2026-09-01): InBody extraction defaulted to a LOCAL
 // vision model via Ollama, not the Claude API — no image or health data
@@ -152,6 +161,13 @@ function normalizeSegment(value: unknown): VisionResult["segmental_lean_analysis
 // already schema-validated server-side by Anthropic; Ollama's `format`
 // schema is a strong steering hint, not a hard guarantee, so this app
 // re-validates on the way in rather than trusting either provider blindly.
+function inRangeOrNull(v: number | null, min: number, max: number): number | null {
+  return v != null && v >= min && v <= max ? v : null;
+}
+
+/** Unit-test seam only. */
+export const __testing = { normalizeVisionResult: (raw: unknown) => normalizeVisionResult(raw) };
+
 function normalizeVisionResult(raw: unknown): VisionResult {
   const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const date = typeof source.measurement_date === "string" ? source.measurement_date : null;
@@ -161,6 +177,9 @@ function normalizeVisionResult(raw: unknown): VisionResult {
     height: toFiniteNumberOrNull(source.height),
     skeletal_muscle_mass: toFiniteNumberOrNull(source.skeletal_muscle_mass),
     body_fat_mass: toFiniteNumberOrNull(source.body_fat_mass),
+    // Plausibility-bounded: a value outside these ranges is a misread (e.g. visceral fat AREA read as the level), not data.
+    visceral_fat_level: inRangeOrNull(toFiniteNumberOrNull(source.visceral_fat_level), 1, 30),
+    bmr: inRangeOrNull(toFiniteNumberOrNull(source.bmr), 700, 4000),
     segmental_lean_analysis: normalizeSegment(source.segmental_lean_analysis),
     segmental_fat_analysis: normalizeSegment(source.segmental_fat_analysis),
   };

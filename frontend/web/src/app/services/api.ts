@@ -607,7 +607,31 @@ export const inbodyService = {
     });
     return data;
   },
+
+  /** "Giải thích thể trạng": deterministic facts + an AI-written explanation (null when the AI could not answer — never canned). */
+  interpret: async (entryId?: string): Promise<InBodyInterpretationResult> => {
+    const { data } = await api.post("/ai/inbody/interpret", entryId ? { entryId } : {}, { timeout: 35000 });
+    return (data?.data ?? data) as InBodyInterpretationResult;
+  },
 };
+
+export type InBodyMetricStatus = "low" | "good" | "slightly_high" | "high" | "info";
+export interface InBodyInterpretationResult {
+  entryId: string | null;
+  explanation: string | null;
+  source: "llm" | null;
+  explanationError?: string;
+  facts: {
+    measuredAt: string | null;
+    daysSincePrevious: number | null;
+    metrics: Array<{ key: string; labelVi: string; value: number; unit: string; source: "MEASURED" | "COMPUTED"; status: InBodyMetricStatus; statusVi: string; noteVi?: string }>;
+    bodyType: { code: "C" | "I" | "D"; labelVi: string; explanationVi: string } | null;
+    balance: Array<{ partVi: string; leftKg: number; rightKg: number; diffPct: number; status: "normal" | "mild" | "significant" }>;
+    changes: Array<{ key: string; labelVi: string; from: number; to: number; delta: number; unit: string; meaningful: boolean }>;
+    flags: Array<{ code: string; messageVi: string }>;
+    dataQuality: string[];
+  } | null;
+}
 
 export interface WorkoutSessionPr {
   exerciseId: string;
