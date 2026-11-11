@@ -2,7 +2,18 @@ import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { gymService } from '../services/gym.service';
 import { principalId } from '../middleware/partner-context.middleware';
-import { LISTING_REVIEW_REQUIRED, sendListingReviewRequired } from '../services/client-compat.service';
+import {
+  clientHeaderOf,
+  LISTING_REVIEW_REQUIRED,
+  recordClientCompatEvent,
+  sendListingReviewRequired,
+} from '../services/client-compat.service';
+import {
+  gymSearchService,
+  GymSearchValidationError,
+  isStatementTimeoutError,
+} from '../services/gym-search.service';
+import { GymCursorError } from '../services/gym-search-cursor';
 import { ListingError, MIN_ADMIN_REASON_LENGTH } from '../services/gym-listing.schemas';
 import { sendListingError } from './gym-listing.controller';
 import { listingCompatOf } from '../services/legacy-compat.service';
@@ -12,9 +23,100 @@ import { prisma } from '../repositories/prisma';
 import { amenityDto, proposalDto } from '../services/gym-amenity-catalog.service';
 
 export const gymController = {
-  async listPublic(_req: Request, res: Response) {
+  async listPublic(req: Request, res: Response) {
+    await recordClientCompatEvent({
+      route: 'GET /gyms',
+      actorUserId: req.user?.userId ?? null,
+      clientHeader: clientHeaderOf(req),
+      outcome: 'LEGACY_GET_GYMS_READ',
+    });
     const gyms = await gymService.listApproved();
     res.json({ success: true, data: gyms });
+  },
+
+  async searchPublic(req: Request, res: Response) {
+    try {
+      const data = await gymSearchService.searchPublicGyms(req.body);
+      res.json({ success: true, data });
+    } catch (e: unknown) {
+      if (e instanceof GymSearchValidationError || e instanceof GymCursorError) {
+        res.status(e.status).json({
+          success: false,
+          error: { code: e.code, message: e.message },
+        });
+        return;
+      }
+      const errObj = e as { status?: number; code?: string; name?: string } | null;
+      if (errObj?.code === 'CURSOR_SECRET_UNAVAILABLE') {
+        logger.error({ code: errObj.code }, 'Gym search cursor key missing');
+        res.status(503).json({
+          success: false,
+          error: { code: 'CURSOR_SECRET_UNAVAILABLE', message: 'Tìm kiếm tạm thời chưa khả dụng' },
+        });
+        return;
+      }
+      if (isStatementTimeoutError(e)) {
+        // Never log raw error / SQL params (may carry viewer coordinates).
+        logger.warn({ code: 'QUERY_TIMEOUT', path: '/gyms/search' }, 'Gym search timed out');
+        res.status(503).json({
+          success: false,
+          error: { code: 'QUERY_TIMEOUT', message: 'Truy vấn tìm kiếm quá thời gian cho phép' },
+        });
+        return;
+      }
+      logger.error(
+        { code: errObj?.code ?? null, name: e instanceof Error ? e.name : 'Error', path: '/gyms/search' },
+        'Search gyms error',
+      );
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Hệ thống đang gặp lỗi. Vui lòng thử lại sau.' },
+      });
+    }
+  },
+
+  async listBrandOptions(req: Request, res: Response) {
+    try {
+      const data = await gymSearchService.listBrandOptions({
+        q: req.query.q,
+        cursor: req.query.cursor,
+        limit: req.query.limit,
+      });
+      res.json({ success: true, data });
+    } catch (e: unknown) {
+      if (e instanceof GymSearchValidationError || e instanceof GymCursorError) {
+        res.status(e.status).json({
+          success: false,
+          error: { code: e.code, message: e.message },
+        });
+        return;
+      }
+      const errObj = e as { code?: string } | null;
+      if (errObj?.code === 'CURSOR_SECRET_UNAVAILABLE') {
+        logger.error({ code: errObj.code }, 'Brand options cursor key missing');
+        res.status(503).json({
+          success: false,
+          error: { code: 'CURSOR_SECRET_UNAVAILABLE', message: 'Tìm kiếm tạm thời chưa khả dụng' },
+        });
+        return;
+      }
+      if (isStatementTimeoutError(e)) {
+        logger.warn({ code: 'QUERY_TIMEOUT', path: '/gyms/brand-options' }, 'Brand options query timed out');
+        res.status(503).json({
+          success: false,
+          error: { code: 'QUERY_TIMEOUT', message: 'Truy vấn quá thời gian cho phép' },
+        });
+        return;
+      }
+      logger.error(
+        { code: errObj?.code ?? null, name: e instanceof Error ? e.name : 'Error', path: '/gyms/brand-options' },
+        'List brand options error',
+      );
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Hệ thống đang gặp lỗi. Vui lòng thử lại sau.' },
+      });
+    }
   },
 
   async getPublicById(req: Request, res: Response) {

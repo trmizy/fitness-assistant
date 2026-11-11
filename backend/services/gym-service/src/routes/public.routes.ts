@@ -11,7 +11,10 @@ import { extractUser } from '../middleware/auth.middleware';
 const router = Router();
 
 // Public — only ever return APPROVED gyms / ACTIVE plans / ACTIVE+PUBLIC trainers.
+// Specific routes MUST precede /gyms/:id so "search" and "brand-options" never match :id.
 router.get('/gyms', asyncHandler(gymController.listPublic));
+router.post('/gyms/search', asyncHandler(gymController.searchPublic));
+router.get('/gyms/brand-options', asyncHandler(gymController.listBrandOptions));
 router.get('/gyms/:id', asyncHandler(gymController.getPublicById));
 router.get('/gyms/:gymId/plans', asyncHandler(planController.listPublic));
 router.get('/gyms/:gymId/trainers', asyncHandler(affiliationController.listPublic));

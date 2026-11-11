@@ -10,6 +10,13 @@ export const membershipRepository = {
     return prisma.gymMembershipContract.findUnique({ where: { id } });
   },
 
+  async findByIdWithGymName(id: string) {
+    return prisma.gymMembershipContract.findUnique({
+      where: { id },
+      include: { gym: { select: { name: true, approvedName: true } } },
+    });
+  },
+
   /** Includes the referral row, when this membership was bought with a referral code. */
   async findByIdWithReferral(id: string) {
     return prisma.gymMembershipContract.findUnique({ where: { id }, include: { referral: true } });
@@ -49,7 +56,11 @@ export const membershipRepository = {
   },
 
   async findByClient(clientId: string) {
-    return prisma.gymMembershipContract.findMany({ where: { clientId }, orderBy: { createdAt: 'desc' } });
+    return prisma.gymMembershipContract.findMany({
+      where: { clientId },
+      include: { gym: { select: { name: true, approvedName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
   },
 
   async findByGym(gymId: string) {

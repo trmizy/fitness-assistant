@@ -29,6 +29,12 @@ export const locationRepository = {
   findWardByCode: (code: number) =>
     prisma.vietnamWard.findUnique({ where: { code } }),
 
+  findWardWithGeoByCode: (code: number) =>
+    prisma.vietnamWard.findUnique({
+      where: { code },
+      include: { geo: true },
+    }),
+
   searchLocations: (q: string) => {
     const normalized = normalizeVietnamese(q);
     const normalizedUnderscore = normalized.replace(/\s+/g, "_");

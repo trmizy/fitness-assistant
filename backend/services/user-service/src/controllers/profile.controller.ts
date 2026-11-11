@@ -66,6 +66,35 @@ function isStatementTimeoutError(err: unknown): boolean {
   return /statement timeout/i.test(msg);
 }
 
+function parseStrictQueryInt(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!/^-?\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return Number.isSafeInteger(n) && Math.abs(n) <= 2_147_483_647 ? n : null;
+}
+
+function parseAreaParamsFromQuery(
+  query: Record<string, unknown>,
+): { areaProvince?: number; areaWard?: number } | { error: string } {
+  let areaProvince: number | undefined;
+  let areaWard: number | undefined;
+  if (query.areaProvince !== undefined) {
+    const parsed = parseStrictQueryInt(query.areaProvince);
+    if (parsed === null) return { error: "areaProvince phải là số nguyên" };
+    areaProvince = parsed;
+  }
+  if (query.areaWard !== undefined) {
+    const parsed = parseStrictQueryInt(query.areaWard);
+    if (parsed === null) return { error: "areaWard phải là số nguyên" };
+    if (areaProvince === undefined) {
+      return { error: "areaWard phải đi kèm areaProvince" };
+    }
+    areaWard = parsed;
+  }
+  return { areaProvince, areaWard };
+}
+
 function parseSearchPtsBody(
   raw: unknown,
 ): { value: PtSearchQueryInput } | { error: string } {
@@ -296,6 +325,13 @@ export const profileController = {
           .json({ error: "Validation failed", details: error.errors });
         return;
       }
+      if (error?.status === 400) {
+        res.status(400).json({
+          error: error.message,
+          ...(error.code ? { code: error.code } : {}),
+        });
+        return;
+      }
       logger.error(error, "Update profile error");
       res.status(500).json({ error: "Internal server error" });
     }
@@ -371,21 +407,13 @@ export const profileController = {
 
   async listPTs(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const parseStrictInt = (raw: unknown): number | null => {
-        if (typeof raw !== "string") return null;
-        const trimmed = raw.trim();
-        if (!/^-?\d+$/.test(trimmed)) return null;
-        const n = Number(trimmed);
-        return Number.isSafeInteger(n) && Math.abs(n) <= 2_147_483_647 ? n : null;
-      };
-
       const q = typeof req.query.q === "string" ? req.query.q : undefined;
       const sessionMode = typeof req.query.sessionMode === "string" ? req.query.sessionMode : undefined;
       const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy.trim() || undefined : undefined;
 
       let page = 1;
       if (req.query.page !== undefined) {
-        const parsedPage = parseStrictInt(req.query.page);
+        const parsedPage = parseStrictQueryInt(req.query.page);
         if (parsedPage === null || parsedPage < 1) {
           res.status(400).json({ error: "page phải là số nguyên >= 1" });
           return;
@@ -453,7 +481,7 @@ export const profileController = {
         return;
       }
       if (req.query.provinceCode !== undefined) {
-        const parsed = parseStrictInt(req.query.provinceCode);
+        const parsed = parseStrictQueryInt(req.query.provinceCode);
         if (parsed === null) {
           res.status(400).json({ error: "provinceCode phải là số nguyên" });
           return;
@@ -461,7 +489,7 @@ export const profileController = {
         provinceCode = parsed;
       }
       if (req.query.wardCode !== undefined) {
-        const parsed = parseStrictInt(req.query.wardCode);
+        const parsed = parseStrictQueryInt(req.query.wardCode);
         if (parsed === null) {
           res.status(400).json({ error: "wardCode phải là số nguyên" });
           return;
@@ -478,28 +506,13 @@ export const profileController = {
           return;
         }
       }
-      if (req.query.areaProvince !== undefined) {
-        const parsed = parseStrictInt(req.query.areaProvince);
-        if (parsed === null) {
-          res.status(400).json({ error: "areaProvince phải là số nguyên" });
-          return;
-        }
-        areaProvince = parsed;
+      const parsedArea = parseAreaParamsFromQuery(req.query);
+      if ("error" in parsedArea) {
+        res.status(400).json({ error: parsedArea.error });
+        return;
       }
-      if (req.query.areaWard !== undefined) {
-        const parsed = parseStrictInt(req.query.areaWard);
-        if (parsed === null) {
-          res.status(400).json({ error: "areaWard phải là số nguyên" });
-          return;
-        }
-        areaWard = parsed;
-        if (areaProvince === undefined) {
-          res
-            .status(400)
-            .json({ error: "areaWard phải đi kèm areaProvince" });
-          return;
-        }
-      }
+      areaProvince = parsedArea.areaProvince;
+      areaWard = parsedArea.areaWard;
 
       const searchCity = typeof req.query.searchCity === "string" ? req.query.searchCity : undefined;
       const searchDistrict = typeof req.query.searchDistrict === "string" ? req.query.searchDistrict : undefined;
@@ -597,10 +610,16 @@ export const profileController = {
     }
   },
 
-  /** One PT's public profile, with their rating and the latest commented reviews. */
+  /** One PT's public profile, with full discovery fields + rating and the latest commented reviews. */
   async getPTDetail(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
+      const parsedArea = parseAreaParamsFromQuery(req.query);
+      if ("error" in parsedArea) {
+        res.status(400).json({ error: parsedArea.error });
+        return;
+      }
+
       // Same visibility rule as the list (ptPublicWhere): a suspended / restricted / not-approved trainer is a
       // 404 here too, so an id typed into the URL cannot get past the filter the list applies.
       const source = await profileRepository.findPublicPtByUserId(userId);
@@ -609,17 +628,20 @@ export const profileController = {
         return;
       }
 
-      // A profile row is created lazily and may still lack the name (auth-service has it).
-      const named: any = source;
-      if (!named.firstName && !named.lastName) await enrichProfilesWithAuthNames([named]);
-      const [rating, recentReviews, ratingDistribution] = await Promise.all([
-        ptReviewRepository.aggregateForPt(userId),
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
+      const [[hydratedPt], recentReviews, ratingDistribution] = await Promise.all([
+        hydrateDiscoveryPublicPts(
+          [source],
+          req.user?.id,
+          { areaProvince: parsedArea.areaProvince, areaWard: parsedArea.areaWard },
+          activeViewerGymIds,
+        ),
         ptReviewRepository.recentCommentsForPt(userId, 5),
         ptReviewRepository.ratingDistributionForPt(userId),
       ]);
 
       res.json({
-        ...((await withSignedProfilePhoto(toPublicPtDto(source, rating))) as any),
+        ...(hydratedPt as any),
         recentReviews,
         ratingDistribution,
       });

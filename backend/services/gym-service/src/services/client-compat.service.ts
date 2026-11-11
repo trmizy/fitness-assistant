@@ -13,7 +13,8 @@ export type ClientCompatOutcome =
   | 'LEGACY_ACCEPTED'
   | 'REVIEW_REQUIRED_409'
   | 'UPLOAD_RETIRED_410'
-  | 'PACKAGE_VERSION_MISSING';
+  | 'PACKAGE_VERSION_MISSING'
+  | 'LEGACY_GET_GYMS_READ';
 
 export const LISTING_REVIEW_REQUIRED_MESSAGE = 'Thay đổi này cần gửi duyệt. Hãy cập nhật ứng dụng để dùng mục Tin đăng.';
 export const UPLOAD_ROUTE_RETIRED_MESSAGE = 'Cách tải ảnh này đã ngừng hoạt động. Hãy cập nhật ứng dụng để tải ảnh trong mục Tin đăng.';

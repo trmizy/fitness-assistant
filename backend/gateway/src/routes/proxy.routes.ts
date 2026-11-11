@@ -1793,6 +1793,10 @@ router.use(
 
 // Public — browse gyms/plans/trainers (gym-service itself filters to APPROVED/ACTIVE/PUBLIC)
 router.get('/gyms', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+// [seed-discovery] Route cụ thể đặt TRƯỚC /gyms/:id để params matcher không nuốt /gyms/search và /gyms/brand-options.
+router.post('/gyms/search', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/brand-options', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+// [/seed-discovery]
 router.get('/gyms/:id', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/plans', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/trainers', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));

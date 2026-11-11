@@ -14,6 +14,7 @@ import { profileNameFields } from "../utils/profileName.util";
 import { ptTermsService, PT_TERMS_NOT_ACCEPTED } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
 import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from "../utils/phone.util";
+import { parseOptionalVnCoords } from "../utils/vn-coords.util";
 
 /** An error the controller can answer with its own HTTP status and a machine-readable code. */
 function httpError(message: string, status: number, code: string): Error & { status: number; code: string } {
@@ -157,6 +158,11 @@ async function validateLocationData(data: any): Promise<void> {
     }
     if (loc.addressLine && String(loc.addressLine).length > 255) {
       throw new Error("addressLine tối đa 255 ký tự");
+    }
+    const coords = parseOptionalVnCoords(loc.latitude, loc.longitude);
+    if (coords.present) {
+      loc.latitude = coords.latitude;
+      loc.longitude = coords.longitude;
     }
   }
 }
@@ -489,17 +495,22 @@ export const ptApplicationService = {
           const resolvedPrimaryIdx = primaryIdx >= 0 ? primaryIdx : 0;
 
           await tx.pTTrainingLocation.createMany({
-            data: rawLocations.map((loc: any, i: number) => ({
-              ptUserId: app.userProfile.userId,
-              provinceCode: Number(loc.provinceCode),
-              wardCode: loc.wardCode ? Number(loc.wardCode) : null,
-              gymName: loc.gymName ?? null,
-              addressLine: loc.addressLine ?? null,
-              legacyDistrictName: loc.legacyDistrictName ?? null,
-              isPrimary: i === resolvedPrimaryIdx,
-              isActive: true,
-              note: loc.note ?? null,
-            })),
+            data: rawLocations.map((loc: any, i: number) => {
+              const coords = parseOptionalVnCoords(loc.latitude, loc.longitude);
+              return {
+                ptUserId: app.userProfile.userId,
+                provinceCode: Number(loc.provinceCode),
+                wardCode: loc.wardCode ? Number(loc.wardCode) : null,
+                gymName: loc.gymName ?? null,
+                addressLine: loc.addressLine ?? null,
+                legacyDistrictName: loc.legacyDistrictName ?? null,
+                latitude: coords.present ? coords.latitude : null,
+                longitude: coords.present ? coords.longitude : null,
+                isPrimary: i === resolvedPrimaryIdx,
+                isActive: true,
+                note: loc.note ?? null,
+              };
+            }),
           });
         });
       }

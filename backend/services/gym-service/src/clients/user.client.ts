@@ -163,4 +163,35 @@ export const userClient = {
       logger.warn({ err: (e as Error).message, eventType: params.eventType }, '[gym-service] admin realtime broadcast failed');
     }
   },
+
+  /**
+   * D2.5: Resolve a Vietnam ward's centroid from user-service `GET /locations/wards/:code`.
+   * Fail-soft: returns null if user-service is unreachable, times out, or has no centroid row,
+   * so caller can degrade to province-level search without logging any coordinates.
+   */
+  async getWardGeoFailSoft(
+    wardCode: number,
+  ): Promise<{ code: number; provinceCode: number; centroid: { lat: number; lng: number } | null } | null> {
+    try {
+      const baseUrl = process.env.USER_SERVICE_URL || USER_SERVICE_URL;
+      const { data } = await axios.get(`${baseUrl}/locations/wards/${wardCode}`, {
+        timeout: 1200,
+      });
+      if (!data || typeof data !== 'object') return null;
+      const provinceCode = Number(data.provinceCode);
+      const centroidRaw = data.centroid;
+      const centroid =
+        centroidRaw &&
+        typeof centroidRaw === 'object' &&
+        typeof centroidRaw.lat === 'number' &&
+        Number.isFinite(centroidRaw.lat) &&
+        typeof centroidRaw.lng === 'number' &&
+        Number.isFinite(centroidRaw.lng)
+          ? { lat: centroidRaw.lat, lng: centroidRaw.lng }
+          : null;
+      return { code: Number(data.code), provinceCode, centroid };
+    } catch {
+      return null;
+    }
+  },
 };

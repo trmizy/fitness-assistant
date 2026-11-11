@@ -27,6 +27,17 @@ const app = express();
 // Mounted ahead of the body parser so a malformed JSON body (400) is seen too.
 app.use(legacyCompatRefusalGuard);
 app.use(express.json());
+// Catch malformed JSON early with 400 INVALID_JSON so body-parser messages/snippets never reach logger.error.
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_JSON', message: 'Dữ liệu JSON không hợp lệ' },
+    });
+    return;
+  }
+  next(err);
+});
 // N09C-02 / N-A-01: Vietnamese error messages (codes kept) and no Prisma text / file paths in any 5xx - see utils/error-messages.vi.ts.
 app.use(localizeErrors);
 // Địa chỉ công khai người gọi đang dùng — cho link tệp ký theo đúng cửa họ đi vào (partner-s3.service.ts).

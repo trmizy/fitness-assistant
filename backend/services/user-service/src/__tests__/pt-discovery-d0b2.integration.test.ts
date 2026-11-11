@@ -404,6 +404,11 @@ test.before(async () => {
   for (const b of chunkArray(sessions, 1000)) await prisma.session.createMany({ data: b });
   for (const b of chunkArray(reviews, 1000)) await prisma.sessionReview.createMany({ data: b });
 
+  // Cập nhật thống kê planner sau chèn hàng loạt 5.000 PT (mô phỏng autovacuum/ANALYZE ở hệ thật).
+  await prisma.$executeRawUnsafe(
+    "ANALYZE user_profiles, pt_applications, pt_training_locations, pt_service_packages, pt_discovery_stats, pt_discovery_epochs, pt_restrictions, vietnam_ward_geo",
+  );
+
   app = await startApp();
   viewerToken = tokenFor(viewerId, "CUSTOMER");
 });
@@ -959,32 +964,40 @@ test("9. Privacy: real user-service pino stdout/stderr logs emit zero GPS coordi
   const userServiceRoot = path.resolve(__dirname, "../..");
   const childCode = `
     import { createServer } from "node:http";
+    const authMod = await import("./src/clients/auth-service.client.ts");
+    const authClient = authMod.authServiceClient ?? authMod.default?.authServiceClient;
+    authClient.verifyToken = async () => ({ status: 200, data: { user: { id: "${viewerId}", email: "v@test.local", role: "CUSTOMER" } } });
     const appMod = await import("./src/app.ts");
     const userApp = appMod.default?.default ?? appMod.default;
-    const helperMod = await import("./src/__tests__/pt-contract-scope.test-helpers.ts");
-    const tokenFor = helperMod.tokenFor ?? helperMod.default?.tokenFor;
     process.env.NODE_ENV = "test";
     const s = createServer(userApp);
     await new Promise((r) => s.listen(0, "127.0.0.1", r));
     const url = "http://127.0.0.1:" + s.address().port + "/profile/pts/search";
-    const tok = tokenFor("${viewerId}", "CUSTOMER");
-    await fetch(url, {
+    const r200 = await fetch(url, {
       method: "POST",
-      headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer probe-tok", "Content-Type": "application/json" },
       body: JSON.stringify({ lat: 16.43912, lng: 107.58923, radiusKm: 10, filters: { q: "${focusedTag}" } }),
     });
-    await fetch(url, {
+    if (r200.status !== 200) throw new Error("expected 200 got " + r200.status);
+    const r400a = await fetch(url, {
       method: "POST",
-      headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer probe-tok", "Content-Type": "application/json" },
       body: JSON.stringify({ lat: 29.99912, lng: 107.58923, radiusKm: 10 }),
     });
-    await fetch(url, {
+    if (r400a.status !== 400) throw new Error("expected 400a got " + r400a.status);
+    const r400b = await fetch(url, {
       method: "POST",
-      headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer probe-tok", "Content-Type": "application/json" },
       body: '{"lat": 16.43912, "lng": BAD}',
     });
+    if (r400b.status !== 400) throw new Error("expected 400b got " + r400b.status);
+    const repoMod = await import("./src/repositories/profile.repository.ts");
+    const repoPrisma = repoMod.prisma ?? repoMod.default?.prisma;
+    s.closeAllConnections?.();
     await new Promise((r) => s.close(r));
-    setTimeout(() => process.exit(0), 50);
+    if (repoPrisma) await repoPrisma.$disconnect();
+    await new Promise((r) => setTimeout(r, 80));
+    setTimeout(() => process.exit(0), 500).unref();
   `;
 
   const res = spawnSync(

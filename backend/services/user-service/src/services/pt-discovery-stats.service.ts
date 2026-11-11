@@ -416,6 +416,8 @@ export async function buildDiscoveryStatsEpoch(
       if (candidates.length < batchSize) break;
     }
 
+    // Làm mới thống kê planner ngay sau khi nạp batch mới trước khi đổi epoch hiện hành.
+    await prisma.$executeRawUnsafe("ANALYZE pt_discovery_stats").catch(() => {});
     await promoteEpochToCurrent(epoch);
     await pruneExpiredDiscoveryEpochs();
 

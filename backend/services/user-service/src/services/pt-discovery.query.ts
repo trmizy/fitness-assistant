@@ -719,7 +719,9 @@ export async function searchDiscoveryPtPageIds(
   const existsNearBboxSql = Prisma.sql`EXISTS (
     SELECT 1
     FROM pt_training_locations tl
-    LEFT JOIN vietnam_ward_geo wg ON wg.ward_code = tl.ward_code
+    LEFT JOIN vietnam_ward_geo wg
+      ON (tl.latitude IS NULL OR tl.longitude IS NULL)
+     AND wg.ward_code = tl.ward_code
     WHERE tl.pt_user_id = p."userId"
       AND tl.is_active = true
       AND ${nearBboxFilterSql}
@@ -751,30 +753,34 @@ export async function searchDiscoveryPtPageIds(
   const offlineEligibleSelectSql =
     mode === "ONLINE"
       ? Prisma.sql`false`
-      : Prisma.sql`(
-          pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-          AND EXISTS (
-            SELECT 1 FROM pt_training_locations tl
-            WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
-          )
-          AND EXISTS (
-            SELECT 1 FROM pt_service_packages pkg
-            WHERE pkg.pt_user_id = p."userId"
-              AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
-          )
-        )`;
+      : mode === "OFFLINE"
+        ? Prisma.sql`true`
+        : Prisma.sql`(
+            pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
+            AND EXISTS (
+              SELECT 1 FROM pt_training_locations tl
+              WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
+            )
+            AND EXISTS (
+              SELECT 1 FROM pt_service_packages pkg
+              WHERE pkg.pt_user_id = p."userId"
+                AND ${Prisma.join(forSalePackagePredicates("OFFLINE"), " AND ")}
+            )
+          )`;
 
   const onlineEligibleSelectSql =
     mode === "OFFLINE"
       ? Prisma.sql`false`
-      : Prisma.sql`(
-          pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
-          AND EXISTS (
-            SELECT 1 FROM pt_service_packages pkg
-            WHERE pkg.pt_user_id = p."userId"
-              AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
-          )
-        )`;
+      : mode === "ONLINE"
+        ? Prisma.sql`true`
+        : Prisma.sql`(
+            pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")
+            AND EXISTS (
+              SELECT 1 FROM pt_service_packages pkg
+              WHERE pkg.pt_user_id = p."userId"
+                AND ${Prisma.join(forSalePackagePredicates("ONLINE"), " AND ")}
+            )
+          )`;
 
   const inSelectedProvinceSelectSql =
     appliedScope === "province" && mode !== "ONLINE" ? existsInProvinceSql : Prisma.sql`false`;
@@ -783,6 +789,9 @@ export async function searchDiscoveryPtPageIds(
     Prisma.sql`tl.pt_user_id = p."userId"`,
     Prisma.sql`tl.is_active = true`,
   ];
+  if (mode !== "OFFLINE") {
+    lateralWhereParts.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+  }
   if (appliedScope === "near") lateralWhereParts.push(nearBboxFilterSql);
   if (appliedScope === "province") lateralWhereParts.push(Prisma.sql`tl.province_code = ${safeProvinceCode}::int4`);
 
@@ -804,7 +813,9 @@ export async function searchDiscoveryPtPageIds(
             END
           ) AS min_d_km
           FROM pt_training_locations tl
-          LEFT JOIN vietnam_ward_geo wg ON wg.ward_code = tl.ward_code
+          LEFT JOIN vietnam_ward_geo wg
+            ON (tl.latitude IS NULL OR tl.longitude IS NULL)
+           AND wg.ward_code = tl.ward_code
           WHERE ${Prisma.join(lateralWhereParts, " AND ")}
         ) loc ON true
       `
@@ -881,7 +892,7 @@ export async function searchDiscoveryPtPageIds(
     }
 
     const queryRows = await tx.$queryRaw<RawSearchRow[]>(Prisma.sql`
-      WITH base_candidates AS (
+      WITH base_candidates AS MATERIALIZED (
         SELECT
           p."userId" AS pt_user_id,
           p."firstName" AS first_name,
@@ -915,9 +926,10 @@ export async function searchDiscoveryPtPageIds(
           ${distExprSql} AS distance_km
         FROM base_candidates c
       ),
-      with_stats AS (
+      bucketed AS MATERIALIZED (
         SELECT
           t."userId",
+          t.first_name,
           t.tier,
           t.is_accepting_clients,
           CASE
@@ -926,17 +938,24 @@ export async function searchDiscoveryPtPageIds(
             ELSE 0
           END AS bucket,
           t.same_gym,
+          t.distance_km
+        FROM tiered t
+        WHERE t.tier IS NOT NULL
+      ),
+      with_stats AS (
+        SELECT
+          t."userId",
+          t.tier,
+          t.is_accepting_clients,
+          t.bucket,
+          t.same_gym,
           t.distance_km,
           ${sortNumExpr} AS sort_num,
           ${sortStrExpr} AS sort_str
-        FROM tiered t
+        FROM bucketed t
         LEFT JOIN pt_discovery_stats ds
           ON ds.epoch = ${resolvedEpoch}::int4
          AND ds.pt_user_id = t."userId"
-        WHERE t.tier IS NOT NULL
-      ),
-      bucketed AS (
-        SELECT * FROM with_stats
       )
       SELECT
         b."userId",
@@ -947,7 +966,7 @@ export async function searchDiscoveryPtPageIds(
         b.distance_km,
         b.sort_num,
         b.sort_str
-      FROM bucketed b
+      FROM with_stats b
       WHERE ${keysetWhere}
       ${orderBySql}
       LIMIT ${limit + 1}
