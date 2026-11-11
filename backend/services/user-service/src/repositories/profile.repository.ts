@@ -10,8 +10,13 @@ import {
 } from "../services/pt-public-dto";
 import {
   findDiscoveryPtPageIds,
+  searchDiscoveryPtPageIds,
   type PtDiscoveryQueryFilters,
+  type PtSearchPageItem,
+  type PtSearchQueryInput,
+  type PtSearchQueryOptions,
 } from "../services/pt-discovery.query";
+import type { DiscoveryScope } from "../services/pt-discovery-cursor";
 
 export const prisma = new PrismaClient();
 
@@ -103,22 +108,41 @@ export const profileRepository = {
    * database, so a column added to UserProfile later cannot leak into discovery by accident. The rows are
    * `PublishedPtSource` - the only input toPublicPtDto accepts.
    */
-  findPTsPaged: async (
-    filters: PtDiscoveryQueryFilters = {},
-  ): Promise<{ pts: PublishedPtSource[]; hasMore: boolean }> => {
-    const { userIds, hasMore } = await findDiscoveryPtPageIds(filters);
-    if (userIds.length === 0) return { pts: [], hasMore: false };
-
+  /** Hydrates public PT rows in the exact ID order produced by discovery SQL. */
+  hydratePublicPtsByIds: async (userIds: string[]): Promise<PublishedPtSource[]> => {
+    if (userIds.length === 0) return [];
     const rows = await prisma.userProfile.findMany({
       where: { userId: { in: userIds } },
       select: PT_PUBLIC_PROFILE_SELECT,
     });
     const byUserId = new Map(rows.map((r) => [r.userId, asPublishedPtSource(r)]));
-    const pts = userIds
+    return userIds
       .map((id) => byUserId.get(id))
       .filter((r): r is PublishedPtSource => r !== undefined);
+  },
 
+  findPTsPaged: async (
+    filters: PtDiscoveryQueryFilters = {},
+  ): Promise<{ pts: PublishedPtSource[]; hasMore: boolean }> => {
+    const { userIds, hasMore } = await findDiscoveryPtPageIds(filters);
+    const pts = await profileRepository.hydratePublicPtsByIds(userIds);
     return { pts, hasMore };
+  },
+
+  searchPTsCursor: async (
+    input: PtSearchQueryInput = {},
+    options: PtSearchQueryOptions = {},
+  ): Promise<{
+    pts: PublishedPtSource[];
+    metaByUserId: Map<string, PtSearchPageItem>;
+    nextCursor: string | null;
+    hasMore: boolean;
+    appliedScope: DiscoveryScope;
+  }> => {
+    const result = await searchDiscoveryPtPageIds(input, options);
+    const pts = await profileRepository.hydratePublicPtsByIds(result.items.map((item) => item.userId));
+    const metaByUserId = new Map(result.items.map((item) => [item.userId, item]));
+    return { pts, metaByUserId, nextCursor: result.nextCursor, hasMore: result.hasMore, appliedScope: result.appliedScope };
   },
 
   findPTs: async (filters: PtDiscoveryQueryFilters = {}): Promise<PublishedPtSource[]> => {

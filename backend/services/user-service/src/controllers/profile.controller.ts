@@ -13,7 +13,20 @@ import {
   attachPtRatings,
 } from "../repositories/ptReview.repository";
 import { enrichForDiscovery, viewerGymIds } from "../services/pt-discovery.service";
-import { PT_DISCOVERY_DEFAULT_LIMIT, PT_DISCOVERY_MAX_LIMIT } from "../services/pt-discovery.query";
+import {
+  PT_DISCOVERY_DEFAULT_LIMIT,
+  PT_DISCOVERY_MAX_LIMIT,
+  type PtSearchPageItem,
+} from "../services/pt-discovery.query";
+import {
+  CursorExpiredError,
+  CursorFilterMismatchError,
+  CursorSecretUnavailableError,
+  InvalidCursorError,
+  type DiscoveryMode,
+  type DiscoveryScope,
+  type DiscoverySortKey,
+} from "../services/pt-discovery-cursor";
 import { toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
 import { auditService, auditMeta } from "../services/audit.service";
 import { profileNameFields } from "../utils/profileName.util";
@@ -27,6 +40,218 @@ import {
   keyFromS3Ref,
   profilePhotoUrlForKey,
 } from "../services/s3-upload.service";
+import type { PtSearchQueryInput } from "../services/pt-discovery.query";
+
+const VALID_SEARCH_SCOPES = new Set<DiscoveryScope>(["near", "province", "national"]);
+const VALID_SEARCH_MODES = new Set<DiscoveryMode>(["ANY", "ONLINE", "OFFLINE", "HYBRID"]);
+const VALID_SEARCH_SORTS = new Set<DiscoverySortKey>([
+  "default",
+  "distance",
+  "ratingDesc",
+  "ratingAsc",
+  "priceAsc",
+  "priceDesc",
+  "nameAsc",
+]);
+
+function isPositivePgInt(v: unknown): v is number {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 1 && v <= 2_147_483_647;
+}
+
+function isStatementTimeoutError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as Record<string, any>;
+  if (e.code === "57014" || e.meta?.code === "57014") return true;
+  const msg = String(e.meta?.message ?? e.message ?? "");
+  return /statement timeout/i.test(msg);
+}
+
+function parseSearchPtsBody(
+  raw: unknown,
+): { value: PtSearchQueryInput } | { error: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: "Body tìm kiếm phải là JSON object" };
+  }
+  const b = raw as Record<string, unknown>;
+
+  let lat: number | undefined;
+  let lng: number | undefined;
+  if (b.lat != null || b.lng != null) {
+    if (typeof b.lat !== "number" || !Number.isFinite(b.lat) || typeof b.lng !== "number" || !Number.isFinite(b.lng)) {
+      return { error: "lat và lng phải đi cùng nhau và là số hợp lệ" };
+    }
+    if (b.lat < 8 || b.lat > 24 || b.lng < 102 || b.lng > 110) {
+      return { error: "Tọa độ ngoài phạm vi cho phép (lat 8-24, lng 102-110)" };
+    }
+    lat = b.lat;
+    lng = b.lng;
+  }
+
+  let radiusKm: number | undefined;
+  if (b.radiusKm != null) {
+    if (typeof b.radiusKm !== "number" || !Number.isFinite(b.radiusKm) || b.radiusKm < 1 || b.radiusKm > 100) {
+      return { error: "radiusKm phải nằm trong khoảng 1-100" };
+    }
+    radiusKm = b.radiusKm;
+  }
+
+  let limit: number | undefined;
+  if (b.limit != null) {
+    if (typeof b.limit !== "number" || !Number.isSafeInteger(b.limit) || b.limit < 1 || b.limit > PT_DISCOVERY_MAX_LIMIT) {
+      return { error: `limit phải là số nguyên trong khoảng 1-${PT_DISCOVERY_MAX_LIMIT}` };
+    }
+    limit = b.limit;
+  }
+
+  let areaProvince: number | undefined;
+  if (b.areaProvince != null) {
+    if (!isPositivePgInt(b.areaProvince)) return { error: "areaProvince phải là số nguyên dương" };
+    areaProvince = b.areaProvince;
+  }
+
+  let areaWard: number | undefined;
+  if (b.areaWard != null) {
+    if (!isPositivePgInt(b.areaWard)) return { error: "areaWard phải là số nguyên dương" };
+    if (areaProvince === undefined) return { error: "areaWard phải đi kèm areaProvince" };
+    areaWard = b.areaWard;
+  }
+
+  let scope: DiscoveryScope | undefined;
+  if (b.scope != null) {
+    if (typeof b.scope !== "string" || !VALID_SEARCH_SCOPES.has(b.scope as DiscoveryScope)) {
+      return { error: "scope không hợp lệ (near | province | national)" };
+    }
+    scope = b.scope as DiscoveryScope;
+    if (scope === "province" && areaProvince === undefined) {
+      return { error: "scope='province' phải đi kèm areaProvince" };
+    }
+  }
+
+  let mode: DiscoveryMode | undefined;
+  if (b.mode != null) {
+    if (typeof b.mode !== "string" || !VALID_SEARCH_MODES.has(b.mode as DiscoveryMode)) {
+      return { error: "mode không hợp lệ (ANY | ONLINE | OFFLINE | HYBRID)" };
+    }
+    mode = b.mode as DiscoveryMode;
+  }
+
+  let sortBy: DiscoverySortKey | undefined;
+  if (b.sortBy != null) {
+    if (typeof b.sortBy !== "string" || !VALID_SEARCH_SORTS.has(b.sortBy as DiscoverySortKey)) {
+      return { error: "sortBy không hợp lệ" };
+    }
+    sortBy = b.sortBy as DiscoverySortKey;
+  }
+
+  let cursor: string | undefined;
+  if (b.cursor != null) {
+    if (typeof b.cursor !== "string" || b.cursor.trim().length === 0) {
+      return { error: "cursor không hợp lệ" };
+    }
+    cursor = b.cursor;
+  }
+
+  let q: string | undefined;
+  let specialties: string[] | undefined;
+  let minPrice: number | undefined;
+  let maxPrice: number | undefined;
+  let gymId: string | undefined;
+  if (b.filters != null) {
+    if (typeof b.filters !== "object" || Array.isArray(b.filters)) {
+      return { error: "filters phải là JSON object" };
+    }
+    const f = b.filters as Record<string, unknown>;
+    if (f.q != null) {
+      if (typeof f.q !== "string") return { error: "filters.q phải là chuỗi" };
+      q = f.q;
+    }
+    if (f.gymId != null) {
+      if (typeof f.gymId !== "string") return { error: "filters.gymId phải là chuỗi" };
+      if (f.gymId.trim()) gymId = f.gymId.trim();
+    }
+    if (f.specialties != null) {
+      if (!Array.isArray(f.specialties) || f.specialties.some((s) => typeof s !== "string")) {
+        return { error: "filters.specialties phải là mảng chuỗi" };
+      }
+      const cleaned = f.specialties.map((s) => s.trim()).filter(Boolean);
+      if (cleaned.length > 0) specialties = cleaned;
+    }
+    if (f.minPrice != null) {
+      if (typeof f.minPrice !== "number" || !Number.isFinite(f.minPrice) || f.minPrice < 0) {
+        return { error: "filters.minPrice phải là số không âm" };
+      }
+      minPrice = f.minPrice;
+    }
+    if (f.maxPrice != null) {
+      if (typeof f.maxPrice !== "number" || !Number.isFinite(f.maxPrice) || f.maxPrice < 0) {
+        return { error: "filters.maxPrice phải là số không âm" };
+      }
+      maxPrice = f.maxPrice;
+    }
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      return { error: "filters.minPrice phải <= filters.maxPrice" };
+    }
+  }
+
+  return {
+    value: {
+      lat,
+      lng,
+      radiusKm,
+      areaProvince,
+      areaWard,
+      scope,
+      mode,
+      sortBy,
+      q,
+      specialties,
+      minPrice,
+      maxPrice,
+      gymId,
+      cursor,
+      limit,
+    },
+  };
+}
+
+/** Shared page hydration (auth-name backfill, rating attach, slots/matchReason, optional distance, allowlisted DTO). */
+async function hydrateDiscoveryPublicPts(
+  profiles: PublishedPtSource[],
+  viewerUserId: string | undefined,
+  viewerArea: { areaProvince?: number; areaWard?: number },
+  activeViewerGymIds: Set<string>,
+  distanceMetaByUserId?: Map<string, PtSearchPageItem>,
+) {
+  const nameless = new Set((profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId));
+  if (nameless.size > 0) {
+    const namelessProfiles = (profiles as any[]).filter((p) => nameless.has(p.userId));
+    await enrichProfilesWithAuthNames(namelessProfiles);
+    void Promise.all(
+      namelessProfiles.map((p) => {
+        const names = profileNameFields(p.firstName, p.lastName);
+        return names ? profileRepository.backfillNames(p.userId, names) : null;
+      }),
+    ).catch(() => undefined);
+  }
+
+  const rated = await attachPtRatings(profiles as any[]);
+  const enriched = await enrichForDiscovery(rated, viewerUserId, viewerArea, activeViewerGymIds);
+
+  return Promise.all(
+    (enriched as any[]).map((row) => {
+      const distMeta = distanceMetaByUserId?.get(row.userId);
+      return withSignedProfilePhoto(
+        toPublicPtDto(row as PublishedPtSource, {
+          avgRating: row.avgRating,
+          ratingCount: row.ratingCount,
+          availableSlotsNext28Days: row.availableSlotsNext28Days,
+          matchReason: row.matchReason,
+          ...(distMeta ? { distanceKm: distMeta.distanceKm, distanceBasis: distMeta.distanceBasis } : {}),
+        }),
+      );
+    }),
+  );
+}
 
 export const profileController = {
   async getProfile(req: AuthRequest, res: Response): Promise<void> {
@@ -310,48 +535,64 @@ export const profileController = {
         limit,
       });
 
-      // Trainers approved before names were copied at approval time still have empty name
-      // columns, so `q` cannot find them. Only the current page's nameless rows go to auth-service.
-      const nameless = new Set((profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId));
-      if (nameless.size > 0) {
-        const namelessProfiles = (profiles as any[]).filter((p) => nameless.has(p.userId));
-        await enrichProfilesWithAuthNames(namelessProfiles);
-        void Promise.all(
-          namelessProfiles.map((p) => {
-            const names = profileNameFields(p.firstName, p.lastName);
-            return names ? profileRepository.backfillNames(p.userId, names) : null;
-          }),
-        ).catch(() => undefined);
-      }
-
-      // One grouped query for the current page only, preserving the SQL sort order.
-      const rated = await attachPtRatings(profiles as any[]);
-
-      // Phase 1 layer 2 + Phase 2 VĐ6: slots + matchReason for the current page, without re-sorting.
-      const enriched = await enrichForDiscovery(
-        rated,
-        req.user?.id,
-        { areaProvince, areaWard },
-        activeViewerGymIds,
-      );
-      // Everything below this line is the public allowlist: rows came from the public finder (visibility rule
-      // applied), and only the fields toPublicPtDto names are emitted.
-      const signed = await Promise.all(
-        (enriched as any[]).map((row) =>
-          withSignedProfilePhoto(
-            toPublicPtDto(row as PublishedPtSource, {
-              avgRating: row.avgRating,
-              ratingCount: row.ratingCount,
-              availableSlotsNext28Days: row.availableSlotsNext28Days,
-              matchReason: row.matchReason,
-            }),
-          ),
-        ),
-      );
+      const signed = await hydrateDiscoveryPublicPts(profiles, req.user?.id, { areaProvince, areaWard }, activeViewerGymIds);
 
       res.json({ pts: signed, hasMore });
     } catch (error) {
       logger.error(error, "List PTs error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** Geo / epoch-cursor PT search via POST body so GPS coordinates never appear on URLs or logs. */
+  async searchPTs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = parseSearchPtsBody(req.body);
+      if ("error" in parsed) {
+        res.status(400).json({ error: parsed.error, code: "VALIDATION_ERROR" });
+        return;
+      }
+
+      const activeViewerGymIds = await viewerGymIds(req.user?.id);
+      const { pts: profiles, metaByUserId, nextCursor, hasMore, appliedScope } =
+        await profileRepository.searchPTsCursor({
+          ...parsed.value,
+          viewerGymIds: activeViewerGymIds.size > 0 ? [...activeViewerGymIds] : undefined,
+        });
+
+      const signed = await hydrateDiscoveryPublicPts(
+        profiles,
+        req.user?.id,
+        { areaProvince: parsed.value.areaProvince, areaWard: parsed.value.areaWard },
+        activeViewerGymIds,
+        metaByUserId,
+      );
+
+      res.json({ pts: signed, nextCursor, hasMore, appliedScope });
+    } catch (err: unknown) {
+      if (err instanceof InvalidCursorError) {
+        res.status(err.status).json({ error: err.message, code: err.code });
+        return;
+      }
+      if (err instanceof CursorExpiredError || err instanceof CursorFilterMismatchError) {
+        res.status(err.status).json({ error: err.message, code: err.code });
+        return;
+      }
+      if (err instanceof CursorSecretUnavailableError) {
+        logger.error({ code: err.code }, "PT search cursor key missing");
+        res.status(err.status).json({ error: "Tìm kiếm tạm thời chưa khả dụng", code: err.code });
+        return;
+      }
+      if (isStatementTimeoutError(err)) {
+        // Never log raw error / params in case SQL parameters contain viewer coordinates.
+        logger.warn({ code: "QUERY_TIMEOUT" }, "PT search timed out");
+        res.status(503).json({ error: "Truy vấn tìm kiếm quá thời gian cho phép", code: "QUERY_TIMEOUT" });
+        return;
+      }
+      logger.error(
+        { code: (err as any)?.code ?? null, name: err instanceof Error ? err.name : "Error" },
+        "Search PTs error",
+      );
       res.status(500).json({ error: "Internal server error" });
     }
   },

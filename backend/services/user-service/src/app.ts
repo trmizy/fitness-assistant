@@ -147,4 +147,14 @@ app.use("/internal", internalRoutes);
 // PT Service Package management — /me/service-packages (PT) and /pts/:ptUserId/service-packages (client)
 app.use("/me/service-packages", ptServicePackageRoutes);
 
+// Handle malformed JSON request bodies cleanly without leaking raw body strings (e.g. GPS coordinates) into logs.
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && (err as any)?.status === 400 && "body" in (err as any)) {
+    logger.warn({ code: "INVALID_JSON" }, "Malformed JSON request body rejected");
+    res.status(400).json({ error: "Dữ liệu JSON không hợp lệ", code: "INVALID_JSON" });
+    return;
+  }
+  next(err);
+});
+
 export default app;

@@ -199,6 +199,8 @@ export interface PtPublicExtras {
   ratingCount?: number;
   availableSlotsNext28Days?: number;
   matchReason?: string | null;
+  distanceKm?: number | null;
+  distanceBasis?: "GPS" | "WARD_CENTER" | null;
 }
 
 export function toPublicPtPackageDto(p: {
@@ -326,6 +328,8 @@ export function toPublicPtDto(source: PublishedPtSource, extras: PtPublicExtras 
     ratingCount: extras.ratingCount ?? 0,
     ...(extras.availableSlotsNext28Days !== undefined ? { availableSlotsNext28Days: extras.availableSlotsNext28Days } : {}),
     ...(extras.matchReason !== undefined ? { matchReason: extras.matchReason } : {}),
+    ...(extras.distanceKm !== undefined ? { distanceKm: extras.distanceKm } : {}),
+    ...(extras.distanceBasis !== undefined ? { distanceBasis: extras.distanceBasis } : {}),
   };
 }
 
