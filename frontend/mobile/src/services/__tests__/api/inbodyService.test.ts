@@ -168,6 +168,7 @@ describe("what the domain deliberately cannot do", () => {
   it("offers no delete, because the backend has no route for one (GAP-9)", () => {
     // A guard, not a wish: if this ever starts failing it means someone added a call for a route
     // the gateway does not serve, and the screen would 404 on the device.
-    expect(Object.keys(inbodyService).sort()).toEqual(["create", "getHistory", "getLatest", "upload"]);
+    // `interpret` (2026-11-11) calls POST /ai/inbody/interpret, a real ai-service route served under the gateway's /ai prefix.
+    expect(Object.keys(inbodyService).sort()).toEqual(["create", "getHistory", "getLatest", "interpret", "upload"]);
   });
 });

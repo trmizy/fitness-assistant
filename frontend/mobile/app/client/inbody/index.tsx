@@ -30,6 +30,7 @@ import {
 import { inbodyService, profileService } from "../../../src/services/api";
 import { useApp } from "../../../src/context/AppContext";
 import { bodyBalance, gaugePosition, type BalanceRow } from "../../../src/features/inbody/bodyBalance";
+import { InBodyExplanationCard } from "../../../src/features/inbody/InBodyExplanationCard";
 import { darkColors, designTokens } from "../../../src/theme/colors";
 import { haptics } from "../../../src/lib/haptics";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
@@ -323,6 +324,8 @@ function Overview({
       ) : null}
 
       {latest ? <BodyBalanceCard entry={latest} profile={profile} /> : null}
+
+      {latest ? <InBodyExplanationCard key={(latest as any).id} entryId={(latest as any).id} /> : null}
 
       {/* Segmental lean/fat — web shows this and mobile did not, which was a parity hole, not a
           decision. Only drawn when the sheet actually carried the numbers: a manual entry or a

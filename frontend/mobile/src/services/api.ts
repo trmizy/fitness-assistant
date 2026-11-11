@@ -590,6 +590,26 @@ export const inbodyService = {
     return data;
   },
 
+  /** "Giải thích thể trạng" — same endpoint and contract as the web InBodyExplanationCard. */
+  interpret: async (entryId?: string) => {
+    const { data } = await api.post("/ai/inbody/interpret", entryId ? { entryId } : {}, { timeout: 35000 });
+    return (data?.data ?? data) as {
+      entryId: string | null;
+      explanation: string | null;
+      source: "llm" | null;
+      explanationError?: string;
+      facts: {
+        daysSincePrevious: number | null;
+        metrics: Array<{ key: string; labelVi: string; value: number; unit: string; source: "MEASURED" | "COMPUTED"; status: "low" | "good" | "slightly_high" | "high" | "info"; statusVi: string; noteVi?: string }>;
+        bodyType: { code: string; labelVi: string; explanationVi: string } | null;
+        balance: Array<{ partVi: string; leftKg: number; rightKg: number; diffPct: number; status: "normal" | "mild" | "significant" }>;
+        changes: Array<{ key: string; labelVi: string; from: number; to: number; delta: number; unit: string; meaningful: boolean }>;
+        flags: Array<{ code: string; messageVi: string }>;
+        dataQuality: string[];
+      } | null;
+    };
+  },
+
   getHistory: async () => {
     const { data } = await api.get("/inbody");
     return Array.isArray(data)
