@@ -214,11 +214,18 @@ function base(t: L3Txn, o: Pick<VnpayL3Item, 'result' | 'vnpayStatusCode' | 'vnp
 
 /** Maps one VNPay answer (possibly forged / odd) to a result for the transaction. Pure; exported for tests. */
 export function classifyQuerydrAnswer(t: L3Txn, txnRef: string, data: QuerydrAnswer): VnpayL3Item {
-  // Nothing in an answer is read before its signature verifies - not "not found", not a status, not an amount.
+  const code = asStr(data.vnp_ResponseCode);
+  // An ERROR reply (any code other than 00 / 91) is never used for a match / mismatch decision, so it is explained by its code
+  // (and short message) even when unsigned - the sandbox answers 99 "Unexpected error" with no vnp_SecureHash when the querydr API
+  // is not enabled for the merchant. Only codes 00 and 91 (which DO decide something) must carry a valid signature.
+  if (code !== null && code !== '00' && code !== '91') {
+    const message = typeof data.vnp_Message === 'string' ? data.vnp_Message.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 100) : '';
+    return failed(t, `VNPay trả về mã lỗi ${code.slice(0, 20)}${message ? ` (${message})` : ''} nên chưa đối chiếu được.`);
+  }
+  // Nothing else in an answer is read before its signature verifies - not "not found", not a status, not an amount.
   if (!isQuerydrResponseSigned(data as Record<string, unknown>)) {
     return failed(t, 'Phản hồi của VNPay không có chữ ký hợp lệ nên không dùng để đối chiếu.');
   }
-  const code = asStr(data.vnp_ResponseCode);
   if (code === '91') {
     const paidLike = t.status === 'PAID' || t.status === 'REFUNDED';
     return base(t, {

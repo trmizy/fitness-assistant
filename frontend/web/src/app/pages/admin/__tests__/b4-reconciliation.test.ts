@@ -397,9 +397,13 @@ describe("B4 balance chip", () => {
 
 // ──────────────────────────────────────────────────────── ghi chú mức / nguồn ──
 describe("B4 level labels and source rules", () => {
-  it("the gateway chip is L2 (B8); what is still missing behind it is L3 BLOCKED — never 'partial'", () => {
+  it("the gateway chip is L2 (B8); L3 exists for VNPay only (ZaloPay/PayOS/MoMo not yet) — never 'BLOCKED', never 'partial'", () => {
     assert.match(GATEWAY_CHIP_REASON, /L3/);
-    assert.match(GATEWAY_CHIP_REASON, /BLOCKED/);
+    assert.match(GATEWAY_CHIP_REASON, /VNPay/);
+    assert.match(GATEWAY_CHIP_REASON, /ZaloPay/);
+    assert.match(GATEWAY_CHIP_REASON, /PayOS/);
+    assert.match(GATEWAY_CHIP_REASON, /MoMo/);
+    assert.doesNotMatch(GATEWAY_CHIP_REASON, /BLOCKED/);
     assert.doesNotMatch(GATEWAY_CHIP_REASON.toLowerCase(), /một phần|partial/);
   });
 
