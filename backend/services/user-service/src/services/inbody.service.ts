@@ -147,7 +147,12 @@ export const inbodyService = {
       throw err("Cần nhập Cơ bắp (kg)", 400);
     }
 
-    const payload = { ...sanitizeOptionalMetrics(data), bodyFat, date: measuredDate, dateOnly };
+    // The reverse direction too: fat mass without a percentage left bodyFatPct null, shown as "null%" on the InBody page.
+    const pctMissing = data.bodyFatPct === undefined || data.bodyFatPct === null || Number.isNaN(Number(data.bodyFatPct));
+    const bodyFatPct = pctMissing && Number(data.weight) > 0 && Number(bodyFat) > 0
+      ? Math.round((Number(bodyFat) / Number(data.weight)) * 1000) / 10
+      : data.bodyFatPct;
+    const payload = { ...sanitizeOptionalMetrics(data), bodyFat, ...(bodyFatPct != null && !Number.isNaN(Number(bodyFatPct)) ? { bodyFatPct } : {}), date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
       userId,

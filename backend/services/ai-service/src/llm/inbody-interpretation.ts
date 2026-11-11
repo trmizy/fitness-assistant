@@ -51,12 +51,16 @@ export const VISCERAL_HIGH = 10;
 /** FFMI medians, Schutz 2002 (young adults): men 18.9, women 15.4 kg/m². ±1.5 is used as a coarse "lower / higher than typical" band. */
 export const FFMI_MEDIAN = { male: 18.9, female: 15.4 } as const;
 
+/**
+ * Same bands AND the same words as the page's existing "Cân bằng cơ thể" panel (frontend body-balance.utils.ts, mirrored in the
+ * mobile app): InBody normal band men 10–20 %, women 18–28 %; "rất cao" from 25 % / 32 %. One vocabulary on one page.
+ */
 function bodyFatStatus(pct: number, isFemale: boolean): { status: MetricStatus; statusVi: string } {
-  const [low, high, obese] = isFemale ? [15, BF_HIGH_F, BF_OBESE_F] : [8, BF_HIGH_M, BF_OBESE_M];
-  if (pct < low) return { status: "low", statusVi: "thấp hơn mức khuyến nghị" };
-  if (pct < high) return { status: "good", statusVi: "trong khoảng tốt" };
-  if (pct < obese) return { status: "slightly_high", statusVi: "hơi cao" };
-  return { status: "high", statusVi: "cao" };
+  const [low, high, obese] = isFemale ? [18, BF_HIGH_F, BF_OBESE_F] : [10, BF_HIGH_M, BF_OBESE_M];
+  if (pct < low) return { status: "low", statusVi: `thấp (khoảng chuẩn InBody ${low}–${high}%)` };
+  if (pct <= high) return { status: "good", statusVi: `bình thường (khoảng chuẩn ${low}–${high}%)` };
+  if (pct < obese) return { status: "slightly_high", statusVi: `cao (trên khoảng chuẩn ${low}–${high}%)` };
+  return { status: "high", statusVi: `rất cao (từ ${obese}% trở lên)` };
 }
 
 export function interpretInBody(latest: InBodyEntryInput, previous: InBodyEntryInput | null, trainee: TraineeInput): InBodyInterpretation {
@@ -101,9 +105,12 @@ export function interpretInBody(latest: InBodyEntryInput, previous: InBodyEntryI
   // Muscle–fat type, after InBody's C/I/D idea, from the two levels above (heuristic, labelled as such in the copy).
   if (fatStatus && muscleLevel) {
     const fatHigh = fatStatus === "slightly_high" || fatStatus === "high";
-    if (fatHigh && muscleLevel !== "high") out.bodyType = { code: "C", labelVi: "Mỡ nhiều hơn so với cơ", explanationVi: "Lượng mỡ cao so với lượng cơ. Hướng phù hợp: giảm mỡ từ từ và tăng cơ bằng tập kháng lực." };
+    // Like InBody's C-shape: fat clearly high, or only slightly high but with LOW muscle. Slightly-high fat with typical muscle is
+    // still a balanced (I) profile — real InBody270 sheets with PBF 22-24% and normal SMM are evaluated that way.
+    const cShape = fatStatus === "high" ? muscleLevel !== "high" : fatStatus === "slightly_high" && muscleLevel === "low";
+    if (cShape) out.bodyType = { code: "C", labelVi: "Mỡ nhiều hơn so với cơ", explanationVi: "Lượng mỡ cao so với lượng cơ. Hướng phù hợp: giảm mỡ từ từ và tăng cơ bằng tập kháng lực." };
     else if (muscleLevel === "high" && !fatHigh) out.bodyType = { code: "D", labelVi: "Nhiều cơ, mỡ trong khoảng tốt", explanationVi: "Lượng cơ nổi trội và mỡ không cao — dáng thể thao. Hướng phù hợp: duy trì và tiếp tục tập có tiến độ." };
-    else out.bodyType = { code: "I", labelVi: "Cơ và mỡ tương đối cân đối", explanationVi: fatHigh ? "Cơ và mỡ cân đối nhưng mỡ vẫn hơi cao; giảm mỡ nhẹ sẽ cải thiện sức khoẻ." : "Cơ và mỡ cân đối. Hướng phù hợp: tăng cơ dần nếu muốn khoẻ và săn chắc hơn." };
+    else out.bodyType = { code: "I", labelVi: "Cơ và mỡ tương đối cân đối", explanationVi: fatHigh ? "Cơ và mỡ cân đối nhưng tỷ lệ mỡ cao hơn khoảng chuẩn; giảm mỡ nhẹ sẽ cải thiện sức khoẻ." : "Cơ và mỡ cân đối. Hướng phù hợp: tăng cơ dần nếu muốn khoẻ và săn chắc hơn." };
   }
 
   // Left/right balance — same thresholds as plan generation.

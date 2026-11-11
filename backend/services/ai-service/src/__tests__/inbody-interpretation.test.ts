@@ -47,6 +47,18 @@ test("visceral fat, limb balance and the low-limb-muscle check are flags, never 
 test("missing data is said plainly; women use their own thresholds", () => {
   const sparse = interpretInBody({ date: "2026-11-01", weight: 60 }, null, { gender: "FEMALE" });
   assert.ok(sparse.dataQuality.some((q) => /thiếu một số chỉ số/.test(q)));
-  const w = interpretInBody({ date: "2026-11-01", weight: 55, height: 160, bodyFat: 15.4, muscleMass: 22 }, null, { gender: "FEMALE", age: 26 });
+  const w = interpretInBody({ date: "2026-11-01", weight: 55, height: 160, bodyFat: 16, muscleMass: 22 }, null, { gender: "FEMALE", age: 26 }); // 29.1% > the 18-28% band
   assert.equal(w.metrics.find((m) => m.key === "bodyFatPct")!.status, "slightly_high");
+});
+
+test("slightly high fat with typical muscle is balanced (I), like the InBody sheet; high fat or low muscle is C", () => {
+  const real = interpretInBody({ date: "2026-01-19", weight: 74.8, height: 173, bodyFat: 16.8, muscleMass: 32.9 }, null, { gender: "MALE", age: 21 });
+  assert.equal(real.metrics.find((m) => m.key === "bodyFatPct")!.status, "slightly_high");
+  assert.equal(real.bodyType?.code, "I");
+  assert.match(real.bodyType!.explanationVi, /cao hơn khoảng chuẩn/);
+  // 82 kg / 25.1% fat but FFMI 20.5 (muscular): every InBody bar is "Over" -> still balanced, not C.
+  const muscular = interpretInBody({ date: "2026-07-23", weight: 82, height: 173, bodyFat: 20.6, muscleMass: 35 }, null, { gender: "MALE", age: 22 });
+  assert.equal(muscular.bodyType?.code, "I");
+  const over = interpretInBody({ date: "2026-07-23", weight: 85, height: 175, bodyFat: 23.8, muscleMass: 34 }, null, { gender: "MALE", age: 30 });
+  assert.equal(over.bodyType?.code, "C", "28% fat with typical muscle");
 });

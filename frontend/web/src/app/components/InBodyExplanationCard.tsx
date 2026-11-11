@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { SparkleIcon as Sparkles, CircleNotchIcon as Loader2, WarningIcon as AlertTriangle, InfoIcon as Info } from "@phosphor-icons/react";
 import { inbodyService, type InBodyInterpretationResult, type InBodyMetricStatus } from "../services/api";
@@ -32,12 +32,18 @@ function RichLine({ text }: { text: string }) {
   );
 }
 
-export function InBodyExplanationCard({ entryId }: { entryId?: string }) {
+export function InBodyExplanationCard({ entryId, autoStart = false, title = "Giải thích thể trạng" }: { entryId?: string; autoStart?: boolean; title?: string }) {
   const [result, setResult] = useState<InBodyInterpretationResult | null>(null);
   const mutation = useMutation({
     mutationFn: () => inbodyService.interpret(entryId),
     onSuccess: (r) => setResult(r),
   });
+  // Right after a scan is saved the user should not have to look for the button; run once (StrictMode-safe).
+  const started = useRef(false);
+  useEffect(() => {
+    if (autoStart && !started.current) { started.current = true; mutation.mutate(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
   const facts = result?.facts;
   const errorMessage = mutation.isError
     ? (mutation.error as any)?.response?.data?.error?.message ?? "Không lấy được phần giải thích lúc này. Bạn thử lại sau nhé."
@@ -47,8 +53,8 @@ export function InBodyExplanationCard({ entryId }: { entryId?: string }) {
     <div className="glass-panel rounded-xl p-4 space-y-3">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h4 className="text-sm font-bold text-zinc-200">Giải thích thể trạng</h4>
-          <p className="text-xs text-zinc-500 mt-0.5">Các chỉ số trong lần đo gần nhất nghĩa là gì và nên tập trung vào đâu.</p>
+          <h4 className="text-sm font-bold text-zinc-200">{title}</h4>
+          <p className="text-xs text-zinc-500 mt-0.5">Các chỉ số trong lần đo này nghĩa là gì và nên tập trung vào đâu.</p>
         </div>
         <button
           onClick={() => mutation.mutate()}

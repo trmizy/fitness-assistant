@@ -207,6 +207,10 @@ export function InBodyModule() {
   });
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
+  /** Entry just saved (scan or manual) — explained automatically on the "Đã lưu" screen. */
+  const [justSavedId, setJustSavedId] = useState<string | undefined>(undefined);
+  /** History row whose explanation is open. */
+  const [explainEntryId, setExplainEntryId] = useState<string | undefined>(undefined);
   const [uploadStep, setUploadStep] = useState<UploadStep>("drop");
   const [manualStep, setManualStep] = useState<ManualStep>("form");
   const [dragOver, setDragOver] = useState(false);
@@ -255,7 +259,15 @@ export function InBodyModule() {
 
   const history = useMemo(
     () =>
-      [...historyRaw].sort((a: any, b: any) => {
+      [...historyRaw]
+        // Older manual entries stored fat mass (kg) without the percentage, which rendered as "null%". The percentage is exact
+        // arithmetic on the two measured values, so fill it in for display.
+        .map((e: any) =>
+          (e?.bodyFatPct == null || Number.isNaN(Number(e.bodyFatPct))) && Number(e?.weight) > 0 && Number(e?.bodyFat) > 0
+            ? { ...e, bodyFatPct: Math.round((Number(e.bodyFat) / Number(e.weight)) * 1000) / 10 }
+            : e,
+        )
+        .sort((a: any, b: any) => {
         const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
         if (cmp !== 0) return cmp;
         return (
@@ -269,7 +281,9 @@ export function InBodyModule() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: inbodyService.create,
-    onSuccess: () => {
+    onSuccess: (saved: any) => {
+      // The "Đã lưu" screens explain the entry that was just saved.
+      setJustSavedId((saved?.data ?? saved)?.id ?? undefined);
       queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
       // Sync profile.currentWeight: backend already updated it, we just bust the cache
       if (user?.id) {
@@ -760,6 +774,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -1453,6 +1472,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1480,6 +1504,15 @@ export function InBodyModule() {
               ),
             )}
           </div>
+
+          {explainEntryId && (
+            <InBodyExplanationCard
+              key={explainEntryId}
+              entryId={explainEntryId}
+              autoStart
+              title={`Giải thích lần đo ${(() => { const e = history.find((h: any) => h.id === explainEntryId); return e?.date ? new Date(e.date).toLocaleDateString("vi-VN") : ""; })()}`}
+            />
+          )}
 
           <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
@@ -1546,7 +1579,12 @@ export function InBodyModule() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <button className="text-zinc-600 hover:text-green-400 transition-colors">
+                            <button
+                              onClick={() => setExplainEntryId(explainEntryId === r.id ? undefined : r.id)}
+                              title="Giải thích lần đo này"
+                              aria-label="Giải thích lần đo này"
+                              className={`transition-colors ${explainEntryId === r.id ? "text-green-400" : "text-zinc-600 hover:text-green-400"}`}
+                            >
                               <Eye className="w-4 h-4" />
                             </button>
                           </td>
