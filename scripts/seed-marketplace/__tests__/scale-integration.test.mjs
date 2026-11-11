@@ -117,9 +117,14 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
     assert.equal(out.integrityResults.length, 7);
     assert.equal(out.integrityResults.every((r) => r.status === "PASS"), true);
 
-    // Generated member_code populated by PostgreSQL
+    // Generated member_code populated by PostgreSQL & all scale gyms marked SYNTHETIC
     const { rows: mcRows } = await pools.gym.query(`SELECT count(*)::int AS n FROM gym_membership_contracts WHERE member_code IS NOT NULL AND length(member_code) = 8`);
     assert.ok(mcRows[0].n > 0);
+    const { rows: synGyms } = await pools.gym.query(
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE data_origin = 'SYNTHETIC'::"DataOrigin")::int AS syn FROM gyms WHERE email LIKE '%@scale.gymini.test'`
+    );
+    assert.ok(synGyms[0].total > 0);
+    assert.equal(synGyms[0].total, synGyms[0].syn);
 
     // Non-resume re-run MUST be refused cleanly
     await assert.rejects(
@@ -142,6 +147,37 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
     badRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
     assert.equal(badRes.find((r) => r.name.startsWith("4.")).status, "FAIL");
     await pools.payment.query(`DELETE FROM payment_transactions WHERE id = 'it-pay-bad'`);
+
+    // Fault injection 3: scale gym flipped to REAL fails check 3 AND check 5 (SYNTHETIC reviews/memberships pointing to non-SYNTHETIC gym)
+    const revGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_reviews WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);
+    const memGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);
+    assert.ok(revGymRow.rows.length > 0 && memGymRow.rows.length > 0);
+    const faultGymIds = [...new Set([revGymRow.rows[0].id, memGymRow.rows[0].id])];
+    const updateGymOrigin = async (origin) => {
+      const c = await pools.gym.connect();
+      try {
+        await c.query("BEGIN");
+        await c.query("SET LOCAL gymini.compat_writer = 'seed'");
+        await c.query(`UPDATE gyms SET data_origin = $1::"DataOrigin" WHERE id = ANY($2::text[])`, [origin, faultGymIds]);
+        await c.query("COMMIT");
+      } catch (e) {
+        await c.query("ROLLBACK").catch(() => {});
+        throw e;
+      } finally {
+        c.release();
+      }
+    };
+    await updateGymOrigin("REAL");
+    badRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
+    const badCheck3 = badRes.find((r) => r.name.startsWith("3."));
+    const badCheck5 = badRes.find((r) => r.name.startsWith("5."));
+    assert.equal(badCheck3.status, "FAIL");
+    assert.equal(badCheck3.violations.some((v) => v.why === "scale gym data_origin != SYNTHETIC"), true);
+    assert.equal(badCheck5.status, "FAIL");
+    assert.equal(badCheck5.violations.some((v) => v.why === "SYNTHETIC gym_reviews points to missing/non-SYNTHETIC gym"), true);
+    assert.equal(badCheck5.violations.some((v) => v.why === "SYNTHETIC gym_membership_contracts points to missing/non-SYNTHETIC gym"), true);
+    await updateGymOrigin("SYNTHETIC");
+
     const cleanRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
     assert.equal(cleanRes.every((r) => r.status === "PASS"), true);
   } finally {
