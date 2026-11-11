@@ -643,3 +643,26 @@ model PaymentWebhookEvent {
   @@index([processedAt, retryCount])
   @@map("payment_webhook_events")
 }
+
+/// G-06 (11/11/2026). One row per run of the wallet invariant check (ESCROW = sum of claims).
+/// ADMIN = an admin opened the balance view; JOB = the 5-minute reconciliation job. Append-only history:
+/// nothing here is ever read back to change a balance. `summary` holds whitelisted figures only (breakdown strings + counts), no PII.
+model ReconciliationRun {
+  id            String    @id @default(uuid())
+  startedAt     DateTime  @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  /// "ADMIN" | "JOB"
+  trigger       String
+  /// Admin user id for ADMIN runs; NULL for JOB.
+  triggeredBy   String?   @map("triggered_by")
+  /// "BALANCED" | "DRIFT" | "ERROR"
+  status        String
+  escrowBalance Decimal?  @map("escrow_balance") @db.Decimal(14, 2)
+  claimsTotal   Decimal?  @map("claims_total") @db.Decimal(14, 2)
+  drift         Decimal?  @db.Decimal(14, 2)
+  summary       Json
+  errorCode     String?   @map("error_code")
+
+  @@index([startedAt])
+  @@map("reconciliation_runs")
+}

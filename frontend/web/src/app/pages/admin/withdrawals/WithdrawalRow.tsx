@@ -53,7 +53,7 @@ function formatDateTime(iso: string) {
   );
 }
 
-function CopyId({ id, label }: { id: string; label: string }) {
+export function CopyId({ id, label }: { id: string; label: string }) {
   if (!id) return null;
   async function copy() {
     try {

@@ -126,6 +126,13 @@ export type ContractUnpaidObligationPayment = $Result.DefaultSelection<Prisma.$C
  * 
  */
 export type PaymentWebhookEvent = $Result.DefaultSelection<Prisma.$PaymentWebhookEventPayload>
+/**
+ * Model ReconciliationRun
+ * G-06 (11/11/2026). One row per run of the wallet invariant check (ESCROW = sum of claims).
+ * ADMIN = an admin opened the balance view; JOB = the 5-minute reconciliation job. Append-only history:
+ * nothing here is ever read back to change a balance. `summary` holds whitelisted figures only (breakdown strings + counts), no PII.
+ */
+export type ReconciliationRun = $Result.DefaultSelection<Prisma.$ReconciliationRunPayload>
 
 /**
  * Enums
@@ -679,6 +686,16 @@ export class PrismaClient<
     * ```
     */
   get paymentWebhookEvent(): Prisma.PaymentWebhookEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.reconciliationRun`: Exposes CRUD operations for the **ReconciliationRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReconciliationRuns
+    * const reconciliationRuns = await prisma.reconciliationRun.findMany()
+    * ```
+    */
+  get reconciliationRun(): Prisma.ReconciliationRunDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1133,7 +1150,8 @@ export namespace Prisma {
     PartnerReceivableEvent: 'PartnerReceivableEvent',
     ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
     ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
-    PaymentWebhookEvent: 'PaymentWebhookEvent'
+    PaymentWebhookEvent: 'PaymentWebhookEvent',
+    ReconciliationRun: 'ReconciliationRun'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1149,7 +1167,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "ptHoldbackReview" | "ptHoldbackReviewEvent" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "contractUnpaidObligationPayment" | "paymentWebhookEvent"
+      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "ptHoldbackReview" | "ptHoldbackReviewEvent" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "contractUnpaidObligationPayment" | "paymentWebhookEvent" | "reconciliationRun"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2130,6 +2148,76 @@ export namespace Prisma {
           count: {
             args: Prisma.PaymentWebhookEventCountArgs<ExtArgs>
             result: $Utils.Optional<PaymentWebhookEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReconciliationRun: {
+        payload: Prisma.$ReconciliationRunPayload<ExtArgs>
+        fields: Prisma.ReconciliationRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReconciliationRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReconciliationRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          findFirst: {
+            args: Prisma.ReconciliationRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReconciliationRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          findMany: {
+            args: Prisma.ReconciliationRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>[]
+          }
+          create: {
+            args: Prisma.ReconciliationRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          createMany: {
+            args: Prisma.ReconciliationRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReconciliationRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>[]
+          }
+          delete: {
+            args: Prisma.ReconciliationRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          update: {
+            args: Prisma.ReconciliationRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReconciliationRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReconciliationRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ReconciliationRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconciliationRunPayload>
+          }
+          aggregate: {
+            args: Prisma.ReconciliationRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReconciliationRun>
+          }
+          groupBy: {
+            args: Prisma.ReconciliationRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReconciliationRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReconciliationRunCountArgs<ExtArgs>
+            result: $Utils.Optional<ReconciliationRunCountAggregateOutputType> | number
           }
         }
       }
@@ -18098,6 +18186,1003 @@ export namespace Prisma {
 
 
   /**
+   * Model ReconciliationRun
+   */
+
+  export type AggregateReconciliationRun = {
+    _count: ReconciliationRunCountAggregateOutputType | null
+    _avg: ReconciliationRunAvgAggregateOutputType | null
+    _sum: ReconciliationRunSumAggregateOutputType | null
+    _min: ReconciliationRunMinAggregateOutputType | null
+    _max: ReconciliationRunMaxAggregateOutputType | null
+  }
+
+  export type ReconciliationRunAvgAggregateOutputType = {
+    escrowBalance: Decimal | null
+    claimsTotal: Decimal | null
+    drift: Decimal | null
+  }
+
+  export type ReconciliationRunSumAggregateOutputType = {
+    escrowBalance: Decimal | null
+    claimsTotal: Decimal | null
+    drift: Decimal | null
+  }
+
+  export type ReconciliationRunMinAggregateOutputType = {
+    id: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    trigger: string | null
+    triggeredBy: string | null
+    status: string | null
+    escrowBalance: Decimal | null
+    claimsTotal: Decimal | null
+    drift: Decimal | null
+    errorCode: string | null
+  }
+
+  export type ReconciliationRunMaxAggregateOutputType = {
+    id: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    trigger: string | null
+    triggeredBy: string | null
+    status: string | null
+    escrowBalance: Decimal | null
+    claimsTotal: Decimal | null
+    drift: Decimal | null
+    errorCode: string | null
+  }
+
+  export type ReconciliationRunCountAggregateOutputType = {
+    id: number
+    startedAt: number
+    finishedAt: number
+    trigger: number
+    triggeredBy: number
+    status: number
+    escrowBalance: number
+    claimsTotal: number
+    drift: number
+    summary: number
+    errorCode: number
+    _all: number
+  }
+
+
+  export type ReconciliationRunAvgAggregateInputType = {
+    escrowBalance?: true
+    claimsTotal?: true
+    drift?: true
+  }
+
+  export type ReconciliationRunSumAggregateInputType = {
+    escrowBalance?: true
+    claimsTotal?: true
+    drift?: true
+  }
+
+  export type ReconciliationRunMinAggregateInputType = {
+    id?: true
+    startedAt?: true
+    finishedAt?: true
+    trigger?: true
+    triggeredBy?: true
+    status?: true
+    escrowBalance?: true
+    claimsTotal?: true
+    drift?: true
+    errorCode?: true
+  }
+
+  export type ReconciliationRunMaxAggregateInputType = {
+    id?: true
+    startedAt?: true
+    finishedAt?: true
+    trigger?: true
+    triggeredBy?: true
+    status?: true
+    escrowBalance?: true
+    claimsTotal?: true
+    drift?: true
+    errorCode?: true
+  }
+
+  export type ReconciliationRunCountAggregateInputType = {
+    id?: true
+    startedAt?: true
+    finishedAt?: true
+    trigger?: true
+    triggeredBy?: true
+    status?: true
+    escrowBalance?: true
+    claimsTotal?: true
+    drift?: true
+    summary?: true
+    errorCode?: true
+    _all?: true
+  }
+
+  export type ReconciliationRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReconciliationRun to aggregate.
+     */
+    where?: ReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconciliationRuns to fetch.
+     */
+    orderBy?: ReconciliationRunOrderByWithRelationInput | ReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReconciliationRuns
+    **/
+    _count?: true | ReconciliationRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReconciliationRunAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReconciliationRunSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReconciliationRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReconciliationRunMaxAggregateInputType
+  }
+
+  export type GetReconciliationRunAggregateType<T extends ReconciliationRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateReconciliationRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReconciliationRun[P]>
+      : GetScalarType<T[P], AggregateReconciliationRun[P]>
+  }
+
+
+
+
+  export type ReconciliationRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReconciliationRunWhereInput
+    orderBy?: ReconciliationRunOrderByWithAggregationInput | ReconciliationRunOrderByWithAggregationInput[]
+    by: ReconciliationRunScalarFieldEnum[] | ReconciliationRunScalarFieldEnum
+    having?: ReconciliationRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReconciliationRunCountAggregateInputType | true
+    _avg?: ReconciliationRunAvgAggregateInputType
+    _sum?: ReconciliationRunSumAggregateInputType
+    _min?: ReconciliationRunMinAggregateInputType
+    _max?: ReconciliationRunMaxAggregateInputType
+  }
+
+  export type ReconciliationRunGroupByOutputType = {
+    id: string
+    startedAt: Date
+    finishedAt: Date | null
+    trigger: string
+    triggeredBy: string | null
+    status: string
+    escrowBalance: Decimal | null
+    claimsTotal: Decimal | null
+    drift: Decimal | null
+    summary: JsonValue
+    errorCode: string | null
+    _count: ReconciliationRunCountAggregateOutputType | null
+    _avg: ReconciliationRunAvgAggregateOutputType | null
+    _sum: ReconciliationRunSumAggregateOutputType | null
+    _min: ReconciliationRunMinAggregateOutputType | null
+    _max: ReconciliationRunMaxAggregateOutputType | null
+  }
+
+  type GetReconciliationRunGroupByPayload<T extends ReconciliationRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReconciliationRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReconciliationRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReconciliationRunGroupByOutputType[P]>
+            : GetScalarType<T[P], ReconciliationRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReconciliationRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    trigger?: boolean
+    triggeredBy?: boolean
+    status?: boolean
+    escrowBalance?: boolean
+    claimsTotal?: boolean
+    drift?: boolean
+    summary?: boolean
+    errorCode?: boolean
+  }, ExtArgs["result"]["reconciliationRun"]>
+
+  export type ReconciliationRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    trigger?: boolean
+    triggeredBy?: boolean
+    status?: boolean
+    escrowBalance?: boolean
+    claimsTotal?: boolean
+    drift?: boolean
+    summary?: boolean
+    errorCode?: boolean
+  }, ExtArgs["result"]["reconciliationRun"]>
+
+  export type ReconciliationRunSelectScalar = {
+    id?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    trigger?: boolean
+    triggeredBy?: boolean
+    status?: boolean
+    escrowBalance?: boolean
+    claimsTotal?: boolean
+    drift?: boolean
+    summary?: boolean
+    errorCode?: boolean
+  }
+
+
+  export type $ReconciliationRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReconciliationRun"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      startedAt: Date
+      finishedAt: Date | null
+      /**
+       * "ADMIN" | "JOB"
+       */
+      trigger: string
+      /**
+       * Admin user id for ADMIN runs; NULL for JOB.
+       */
+      triggeredBy: string | null
+      /**
+       * "BALANCED" | "DRIFT" | "ERROR"
+       */
+      status: string
+      escrowBalance: Prisma.Decimal | null
+      claimsTotal: Prisma.Decimal | null
+      drift: Prisma.Decimal | null
+      summary: Prisma.JsonValue
+      errorCode: string | null
+    }, ExtArgs["result"]["reconciliationRun"]>
+    composites: {}
+  }
+
+  type ReconciliationRunGetPayload<S extends boolean | null | undefined | ReconciliationRunDefaultArgs> = $Result.GetResult<Prisma.$ReconciliationRunPayload, S>
+
+  type ReconciliationRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ReconciliationRunFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ReconciliationRunCountAggregateInputType | true
+    }
+
+  export interface ReconciliationRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReconciliationRun'], meta: { name: 'ReconciliationRun' } }
+    /**
+     * Find zero or one ReconciliationRun that matches the filter.
+     * @param {ReconciliationRunFindUniqueArgs} args - Arguments to find a ReconciliationRun
+     * @example
+     * // Get one ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReconciliationRunFindUniqueArgs>(args: SelectSubset<T, ReconciliationRunFindUniqueArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ReconciliationRun that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ReconciliationRunFindUniqueOrThrowArgs} args - Arguments to find a ReconciliationRun
+     * @example
+     * // Get one ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReconciliationRunFindUniqueOrThrowArgs>(args: SelectSubset<T, ReconciliationRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ReconciliationRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunFindFirstArgs} args - Arguments to find a ReconciliationRun
+     * @example
+     * // Get one ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReconciliationRunFindFirstArgs>(args?: SelectSubset<T, ReconciliationRunFindFirstArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ReconciliationRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunFindFirstOrThrowArgs} args - Arguments to find a ReconciliationRun
+     * @example
+     * // Get one ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReconciliationRunFindFirstOrThrowArgs>(args?: SelectSubset<T, ReconciliationRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ReconciliationRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReconciliationRuns
+     * const reconciliationRuns = await prisma.reconciliationRun.findMany()
+     * 
+     * // Get first 10 ReconciliationRuns
+     * const reconciliationRuns = await prisma.reconciliationRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const reconciliationRunWithIdOnly = await prisma.reconciliationRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReconciliationRunFindManyArgs>(args?: SelectSubset<T, ReconciliationRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ReconciliationRun.
+     * @param {ReconciliationRunCreateArgs} args - Arguments to create a ReconciliationRun.
+     * @example
+     * // Create one ReconciliationRun
+     * const ReconciliationRun = await prisma.reconciliationRun.create({
+     *   data: {
+     *     // ... data to create a ReconciliationRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReconciliationRunCreateArgs>(args: SelectSubset<T, ReconciliationRunCreateArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ReconciliationRuns.
+     * @param {ReconciliationRunCreateManyArgs} args - Arguments to create many ReconciliationRuns.
+     * @example
+     * // Create many ReconciliationRuns
+     * const reconciliationRun = await prisma.reconciliationRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReconciliationRunCreateManyArgs>(args?: SelectSubset<T, ReconciliationRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReconciliationRuns and returns the data saved in the database.
+     * @param {ReconciliationRunCreateManyAndReturnArgs} args - Arguments to create many ReconciliationRuns.
+     * @example
+     * // Create many ReconciliationRuns
+     * const reconciliationRun = await prisma.reconciliationRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReconciliationRuns and only return the `id`
+     * const reconciliationRunWithIdOnly = await prisma.reconciliationRun.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReconciliationRunCreateManyAndReturnArgs>(args?: SelectSubset<T, ReconciliationRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ReconciliationRun.
+     * @param {ReconciliationRunDeleteArgs} args - Arguments to delete one ReconciliationRun.
+     * @example
+     * // Delete one ReconciliationRun
+     * const ReconciliationRun = await prisma.reconciliationRun.delete({
+     *   where: {
+     *     // ... filter to delete one ReconciliationRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReconciliationRunDeleteArgs>(args: SelectSubset<T, ReconciliationRunDeleteArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ReconciliationRun.
+     * @param {ReconciliationRunUpdateArgs} args - Arguments to update one ReconciliationRun.
+     * @example
+     * // Update one ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReconciliationRunUpdateArgs>(args: SelectSubset<T, ReconciliationRunUpdateArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ReconciliationRuns.
+     * @param {ReconciliationRunDeleteManyArgs} args - Arguments to filter ReconciliationRuns to delete.
+     * @example
+     * // Delete a few ReconciliationRuns
+     * const { count } = await prisma.reconciliationRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReconciliationRunDeleteManyArgs>(args?: SelectSubset<T, ReconciliationRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReconciliationRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReconciliationRuns
+     * const reconciliationRun = await prisma.reconciliationRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReconciliationRunUpdateManyArgs>(args: SelectSubset<T, ReconciliationRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ReconciliationRun.
+     * @param {ReconciliationRunUpsertArgs} args - Arguments to update or create a ReconciliationRun.
+     * @example
+     * // Update or create a ReconciliationRun
+     * const reconciliationRun = await prisma.reconciliationRun.upsert({
+     *   create: {
+     *     // ... data to create a ReconciliationRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReconciliationRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReconciliationRunUpsertArgs>(args: SelectSubset<T, ReconciliationRunUpsertArgs<ExtArgs>>): Prisma__ReconciliationRunClient<$Result.GetResult<Prisma.$ReconciliationRunPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ReconciliationRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunCountArgs} args - Arguments to filter ReconciliationRuns to count.
+     * @example
+     * // Count the number of ReconciliationRuns
+     * const count = await prisma.reconciliationRun.count({
+     *   where: {
+     *     // ... the filter for the ReconciliationRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReconciliationRunCountArgs>(
+      args?: Subset<T, ReconciliationRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReconciliationRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReconciliationRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReconciliationRunAggregateArgs>(args: Subset<T, ReconciliationRunAggregateArgs>): Prisma.PrismaPromise<GetReconciliationRunAggregateType<T>>
+
+    /**
+     * Group by ReconciliationRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconciliationRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReconciliationRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReconciliationRunGroupByArgs['orderBy'] }
+        : { orderBy?: ReconciliationRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReconciliationRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReconciliationRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReconciliationRun model
+   */
+  readonly fields: ReconciliationRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReconciliationRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReconciliationRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReconciliationRun model
+   */ 
+  interface ReconciliationRunFieldRefs {
+    readonly id: FieldRef<"ReconciliationRun", 'String'>
+    readonly startedAt: FieldRef<"ReconciliationRun", 'DateTime'>
+    readonly finishedAt: FieldRef<"ReconciliationRun", 'DateTime'>
+    readonly trigger: FieldRef<"ReconciliationRun", 'String'>
+    readonly triggeredBy: FieldRef<"ReconciliationRun", 'String'>
+    readonly status: FieldRef<"ReconciliationRun", 'String'>
+    readonly escrowBalance: FieldRef<"ReconciliationRun", 'Decimal'>
+    readonly claimsTotal: FieldRef<"ReconciliationRun", 'Decimal'>
+    readonly drift: FieldRef<"ReconciliationRun", 'Decimal'>
+    readonly summary: FieldRef<"ReconciliationRun", 'Json'>
+    readonly errorCode: FieldRef<"ReconciliationRun", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReconciliationRun findUnique
+   */
+  export type ReconciliationRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter, which ReconciliationRun to fetch.
+     */
+    where: ReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * ReconciliationRun findUniqueOrThrow
+   */
+  export type ReconciliationRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter, which ReconciliationRun to fetch.
+     */
+    where: ReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * ReconciliationRun findFirst
+   */
+  export type ReconciliationRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter, which ReconciliationRun to fetch.
+     */
+    where?: ReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconciliationRuns to fetch.
+     */
+    orderBy?: ReconciliationRunOrderByWithRelationInput | ReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReconciliationRuns.
+     */
+    cursor?: ReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReconciliationRuns.
+     */
+    distinct?: ReconciliationRunScalarFieldEnum | ReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * ReconciliationRun findFirstOrThrow
+   */
+  export type ReconciliationRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter, which ReconciliationRun to fetch.
+     */
+    where?: ReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconciliationRuns to fetch.
+     */
+    orderBy?: ReconciliationRunOrderByWithRelationInput | ReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReconciliationRuns.
+     */
+    cursor?: ReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReconciliationRuns.
+     */
+    distinct?: ReconciliationRunScalarFieldEnum | ReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * ReconciliationRun findMany
+   */
+  export type ReconciliationRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter, which ReconciliationRuns to fetch.
+     */
+    where?: ReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconciliationRuns to fetch.
+     */
+    orderBy?: ReconciliationRunOrderByWithRelationInput | ReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReconciliationRuns.
+     */
+    cursor?: ReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconciliationRuns.
+     */
+    skip?: number
+    distinct?: ReconciliationRunScalarFieldEnum | ReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * ReconciliationRun create
+   */
+  export type ReconciliationRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * The data needed to create a ReconciliationRun.
+     */
+    data: XOR<ReconciliationRunCreateInput, ReconciliationRunUncheckedCreateInput>
+  }
+
+  /**
+   * ReconciliationRun createMany
+   */
+  export type ReconciliationRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReconciliationRuns.
+     */
+    data: ReconciliationRunCreateManyInput | ReconciliationRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReconciliationRun createManyAndReturn
+   */
+  export type ReconciliationRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ReconciliationRuns.
+     */
+    data: ReconciliationRunCreateManyInput | ReconciliationRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReconciliationRun update
+   */
+  export type ReconciliationRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * The data needed to update a ReconciliationRun.
+     */
+    data: XOR<ReconciliationRunUpdateInput, ReconciliationRunUncheckedUpdateInput>
+    /**
+     * Choose, which ReconciliationRun to update.
+     */
+    where: ReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * ReconciliationRun updateMany
+   */
+  export type ReconciliationRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReconciliationRuns.
+     */
+    data: XOR<ReconciliationRunUpdateManyMutationInput, ReconciliationRunUncheckedUpdateManyInput>
+    /**
+     * Filter which ReconciliationRuns to update
+     */
+    where?: ReconciliationRunWhereInput
+  }
+
+  /**
+   * ReconciliationRun upsert
+   */
+  export type ReconciliationRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * The filter to search for the ReconciliationRun to update in case it exists.
+     */
+    where: ReconciliationRunWhereUniqueInput
+    /**
+     * In case the ReconciliationRun found by the `where` argument doesn't exist, create a new ReconciliationRun with this data.
+     */
+    create: XOR<ReconciliationRunCreateInput, ReconciliationRunUncheckedCreateInput>
+    /**
+     * In case the ReconciliationRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReconciliationRunUpdateInput, ReconciliationRunUncheckedUpdateInput>
+  }
+
+  /**
+   * ReconciliationRun delete
+   */
+  export type ReconciliationRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Filter which ReconciliationRun to delete.
+     */
+    where: ReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * ReconciliationRun deleteMany
+   */
+  export type ReconciliationRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReconciliationRuns to delete
+     */
+    where?: ReconciliationRunWhereInput
+  }
+
+  /**
+   * ReconciliationRun without action
+   */
+  export type ReconciliationRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconciliationRun
+     */
+    select?: ReconciliationRunSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -18415,6 +19500,23 @@ export namespace Prisma {
   };
 
   export type PaymentWebhookEventScalarFieldEnum = (typeof PaymentWebhookEventScalarFieldEnum)[keyof typeof PaymentWebhookEventScalarFieldEnum]
+
+
+  export const ReconciliationRunScalarFieldEnum: {
+    id: 'id',
+    startedAt: 'startedAt',
+    finishedAt: 'finishedAt',
+    trigger: 'trigger',
+    triggeredBy: 'triggeredBy',
+    status: 'status',
+    escrowBalance: 'escrowBalance',
+    claimsTotal: 'claimsTotal',
+    drift: 'drift',
+    summary: 'summary',
+    errorCode: 'errorCode'
+  };
+
+  export type ReconciliationRunScalarFieldEnum = (typeof ReconciliationRunScalarFieldEnum)[keyof typeof ReconciliationRunScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -20393,6 +21495,90 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"PaymentWebhookEvent"> | Date | string
   }
 
+  export type ReconciliationRunWhereInput = {
+    AND?: ReconciliationRunWhereInput | ReconciliationRunWhereInput[]
+    OR?: ReconciliationRunWhereInput[]
+    NOT?: ReconciliationRunWhereInput | ReconciliationRunWhereInput[]
+    id?: StringFilter<"ReconciliationRun"> | string
+    startedAt?: DateTimeFilter<"ReconciliationRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"ReconciliationRun"> | Date | string | null
+    trigger?: StringFilter<"ReconciliationRun"> | string
+    triggeredBy?: StringNullableFilter<"ReconciliationRun"> | string | null
+    status?: StringFilter<"ReconciliationRun"> | string
+    escrowBalance?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    drift?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonFilter<"ReconciliationRun">
+    errorCode?: StringNullableFilter<"ReconciliationRun"> | string | null
+  }
+
+  export type ReconciliationRunOrderByWithRelationInput = {
+    id?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    trigger?: SortOrder
+    triggeredBy?: SortOrderInput | SortOrder
+    status?: SortOrder
+    escrowBalance?: SortOrderInput | SortOrder
+    claimsTotal?: SortOrderInput | SortOrder
+    drift?: SortOrderInput | SortOrder
+    summary?: SortOrder
+    errorCode?: SortOrderInput | SortOrder
+  }
+
+  export type ReconciliationRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ReconciliationRunWhereInput | ReconciliationRunWhereInput[]
+    OR?: ReconciliationRunWhereInput[]
+    NOT?: ReconciliationRunWhereInput | ReconciliationRunWhereInput[]
+    startedAt?: DateTimeFilter<"ReconciliationRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"ReconciliationRun"> | Date | string | null
+    trigger?: StringFilter<"ReconciliationRun"> | string
+    triggeredBy?: StringNullableFilter<"ReconciliationRun"> | string | null
+    status?: StringFilter<"ReconciliationRun"> | string
+    escrowBalance?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    drift?: DecimalNullableFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonFilter<"ReconciliationRun">
+    errorCode?: StringNullableFilter<"ReconciliationRun"> | string | null
+  }, "id">
+
+  export type ReconciliationRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    trigger?: SortOrder
+    triggeredBy?: SortOrderInput | SortOrder
+    status?: SortOrder
+    escrowBalance?: SortOrderInput | SortOrder
+    claimsTotal?: SortOrderInput | SortOrder
+    drift?: SortOrderInput | SortOrder
+    summary?: SortOrder
+    errorCode?: SortOrderInput | SortOrder
+    _count?: ReconciliationRunCountOrderByAggregateInput
+    _avg?: ReconciliationRunAvgOrderByAggregateInput
+    _max?: ReconciliationRunMaxOrderByAggregateInput
+    _min?: ReconciliationRunMinOrderByAggregateInput
+    _sum?: ReconciliationRunSumOrderByAggregateInput
+  }
+
+  export type ReconciliationRunScalarWhereWithAggregatesInput = {
+    AND?: ReconciliationRunScalarWhereWithAggregatesInput | ReconciliationRunScalarWhereWithAggregatesInput[]
+    OR?: ReconciliationRunScalarWhereWithAggregatesInput[]
+    NOT?: ReconciliationRunScalarWhereWithAggregatesInput | ReconciliationRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReconciliationRun"> | string
+    startedAt?: DateTimeWithAggregatesFilter<"ReconciliationRun"> | Date | string
+    finishedAt?: DateTimeNullableWithAggregatesFilter<"ReconciliationRun"> | Date | string | null
+    trigger?: StringWithAggregatesFilter<"ReconciliationRun"> | string
+    triggeredBy?: StringNullableWithAggregatesFilter<"ReconciliationRun"> | string | null
+    status?: StringWithAggregatesFilter<"ReconciliationRun"> | string
+    escrowBalance?: DecimalNullableWithAggregatesFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: DecimalNullableWithAggregatesFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    drift?: DecimalNullableWithAggregatesFilter<"ReconciliationRun"> | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonWithAggregatesFilter<"ReconciliationRun">
+    errorCode?: StringNullableWithAggregatesFilter<"ReconciliationRun"> | string | null
+  }
+
   export type WalletCreateInput = {
     id?: string
     ownerType: $Enums.WalletOwnerType
@@ -22271,6 +23457,104 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ReconciliationRunCreateInput = {
+    id?: string
+    startedAt: Date | string
+    finishedAt?: Date | string | null
+    trigger: string
+    triggeredBy?: string | null
+    status: string
+    escrowBalance?: Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: Decimal | DecimalJsLike | number | string | null
+    drift?: Decimal | DecimalJsLike | number | string | null
+    summary: JsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+  }
+
+  export type ReconciliationRunUncheckedCreateInput = {
+    id?: string
+    startedAt: Date | string
+    finishedAt?: Date | string | null
+    trigger: string
+    triggeredBy?: string | null
+    status: string
+    escrowBalance?: Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: Decimal | DecimalJsLike | number | string | null
+    drift?: Decimal | DecimalJsLike | number | string | null
+    summary: JsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+  }
+
+  export type ReconciliationRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trigger?: StringFieldUpdateOperationsInput | string
+    triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    escrowBalance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    drift?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ReconciliationRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trigger?: StringFieldUpdateOperationsInput | string
+    triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    escrowBalance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    drift?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ReconciliationRunCreateManyInput = {
+    id?: string
+    startedAt: Date | string
+    finishedAt?: Date | string | null
+    trigger: string
+    triggeredBy?: string | null
+    status: string
+    escrowBalance?: Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: Decimal | DecimalJsLike | number | string | null
+    drift?: Decimal | DecimalJsLike | number | string | null
+    summary: JsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+  }
+
+  export type ReconciliationRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trigger?: StringFieldUpdateOperationsInput | string
+    triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    escrowBalance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    drift?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ReconciliationRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trigger?: StringFieldUpdateOperationsInput | string
+    triggeredBy?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    escrowBalance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    claimsTotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    drift?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    summary?: JsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -23948,6 +25232,58 @@ export namespace Prisma {
 
   export type PaymentWebhookEventSumOrderByAggregateInput = {
     retryCount?: SortOrder
+  }
+
+  export type ReconciliationRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    trigger?: SortOrder
+    triggeredBy?: SortOrder
+    status?: SortOrder
+    escrowBalance?: SortOrder
+    claimsTotal?: SortOrder
+    drift?: SortOrder
+    summary?: SortOrder
+    errorCode?: SortOrder
+  }
+
+  export type ReconciliationRunAvgOrderByAggregateInput = {
+    escrowBalance?: SortOrder
+    claimsTotal?: SortOrder
+    drift?: SortOrder
+  }
+
+  export type ReconciliationRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    trigger?: SortOrder
+    triggeredBy?: SortOrder
+    status?: SortOrder
+    escrowBalance?: SortOrder
+    claimsTotal?: SortOrder
+    drift?: SortOrder
+    errorCode?: SortOrder
+  }
+
+  export type ReconciliationRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    trigger?: SortOrder
+    triggeredBy?: SortOrder
+    status?: SortOrder
+    escrowBalance?: SortOrder
+    claimsTotal?: SortOrder
+    drift?: SortOrder
+    errorCode?: SortOrder
+  }
+
+  export type ReconciliationRunSumOrderByAggregateInput = {
+    escrowBalance?: SortOrder
+    claimsTotal?: SortOrder
+    drift?: SortOrder
   }
 
   export type WalletLedgerEntryCreateNestedManyWithoutWalletInput = {
@@ -28047,6 +29383,10 @@ export namespace Prisma {
      * @deprecated Use PaymentWebhookEventDefaultArgs instead
      */
     export type PaymentWebhookEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PaymentWebhookEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ReconciliationRunDefaultArgs instead
+     */
+    export type ReconciliationRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ReconciliationRunDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

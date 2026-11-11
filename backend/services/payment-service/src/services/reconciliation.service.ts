@@ -6,6 +6,7 @@ import { pollAndSettle } from './webhook.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import { refundUnactivatedContractPayment } from './contract-ledger.service';
 import { notifyClientOfAutoRefund } from './refund-notification.service';
+import { recordJobRunIfChanged } from './reconcile.service';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 10;
@@ -29,6 +30,19 @@ export async function runReconciliation(): Promise<void> {
   await reconcilePendingActivations();
   await reconcilePendingRefundCancellations();
   await sweepStaleProcessing();
+  await recordBalanceRun();
+}
+
+/**
+ * G-06: a pass of the job leaves a wallet-invariant run (trigger JOB) only when the status or the drift differs from the latest
+ * run, or when the latest JOB run is older than 60 minutes. A history failure (e.g. the table is not migrated yet) never breaks the job.
+ */
+async function recordBalanceRun(): Promise<void> {
+  try {
+    await recordJobRunIfChanged();
+  } catch (err) {
+    logger.error({ error: 'Balance run failed', message: (err as Error).message });
+  }
 }
 
 /**

@@ -82,9 +82,21 @@ describe("ADMIN_NAV structure", () => {
 
   it("has the read-only Transactions entry (B7: backend G-04/G-05) in the Tài chính group, between Đối soát and Rút tiền", () => {
     const fin = ADMIN_NAV.find((g) => g.id === "finance")!;
-    assert.deepEqual(fin.items.map((i) => i.to.split("/").pop()), ["finance", "reconciliation", "transactions", "withdrawals", "refunds"]);
+    assert.deepEqual(fin.items.map((i) => i.to.split("/").pop()), ["finance", "reconciliation", "transactions", "wallets", "withdrawals", "refunds"]);
     assert.equal(fin.items.find((i) => i.id === "finance-transactions")?.label, "Giao dịch");
     assert.ok(ADMIN_FINANCE_TABS.some((t) => t.key === "transactions" && t.to === "/admin/finance/transactions"));
+  });
+
+  it("has the read-only Wallets entry (G-09/G-10) in the Tài chính group, right after Giao dịch, as a finance tab too", () => {
+    const fin = ADMIN_NAV.find((g) => g.id === "finance")!;
+    const ids = fin.items.map((i) => i.id);
+    assert.equal(ids.indexOf("finance-wallets"), ids.indexOf("finance-transactions") + 1);
+    const item = fin.items.find((i) => i.id === "finance-wallets")!;
+    assert.equal(item.label, "Ví");
+    assert.equal(item.to, "/admin/finance/wallets");
+    assert.equal(item.badge, undefined, "a read-only lookup has no count badge");
+    assert.ok(ADMIN_FINANCE_TABS.some((t) => t.key === "wallets" && t.to === "/admin/finance/wallets" && t.label === "Ví"));
+    assert.equal(findActiveNavItem("/admin/finance/wallets")?.item.id, "finance-wallets");
   });
 
   it("the disputes item is a plain link (no badge — owned by another workstream)", () => {
@@ -165,9 +177,9 @@ describe("findActiveNavItem / breadcrumb", () => {
 });
 
 describe("finance tabs", () => {
-  it("five tabs whose keys are the legacy ?tab= values and paths are unique", () => {
-    assert.deepEqual(ADMIN_FINANCE_TABS.map((t) => t.key), ["overview", "reconciliation", "transactions", "withdrawals", "refunds"]);
-    assert.equal(new Set(ADMIN_FINANCE_TABS.map((t) => t.to)).size, 5);
+  it("six tabs whose keys are the legacy ?tab= values (plus the new transactions / wallets) and paths are unique", () => {
+    assert.deepEqual(ADMIN_FINANCE_TABS.map((t) => t.key), ["overview", "reconciliation", "transactions", "wallets", "withdrawals", "refunds"]);
+    assert.equal(new Set(ADMIN_FINANCE_TABS.map((t) => t.to)).size, 6);
     assert.equal(ADMIN_FINANCE_TABS.filter((t) => t.end).length, 1);
   });
 

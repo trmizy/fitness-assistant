@@ -1,4 +1,5 @@
 import { useId, useRef } from "react";
+import { AdminLink } from "../../../../components/layout/admin/AdminLink";
 import { XIcon } from "@phosphor-icons/react";
 import { useModalA11y } from "../../shared/useModalA11y";
 import { formatMoneyExact } from "../../adminFinanceOverview.utils";
@@ -8,6 +9,8 @@ import { buildMoneyJourney, shortId, type JourneyEvent } from "./moneyJourney";
 import { useTransactionDetail } from "./useTransactionsData";
 import { activationLabel, bucketLabel, entryTypeLabel, ownerLabel, providerLabel, purposeLabel } from "./transactionsLabels";
 import type { LedgerEntryDto, TxnDetailResponse, TxnSummary } from "./transactionsTypes";
+import { platformWalletLabel } from "../wallets/walletLabels";
+import { walletLink } from "../wallets/walletsUrlState";
 
 const DOT: Record<JourneyEvent["tone"], string> = {
   success: "bg-st-success",
@@ -73,10 +76,18 @@ function LedgerTable({ entries, paid }: { entries: LedgerEntryDto[]; paid: boole
           {entries.map((e) => (
             <tr key={e.id} className="border-t border-adm-border-soft align-top">
               <td className="px-3 py-2">
-                <div className="text-adm-text">{ownerLabel(e.walletOwnerType)}</div>
+                {/* G-09: the wallet name opens that wallet in the wallet explorer (read only) */}
+                <AdminLink
+                  to={walletLink(e.walletId)}
+                  aria-label={`Xem ví ${ownerLabel(e.walletOwnerType)}`}
+                  data-testid="admin-transaction-ledger-wallet-link"
+                  className={`inline-flex min-h-11 items-center rounded-md text-adm-text underline underline-offset-4 xl:min-h-7 ${FOCUS}`}
+                >
+                  {ownerLabel(e.walletOwnerType)}
+                </AdminLink>
                 {/* platform wallets use fixed internal ids (payment-service wallet.service: ESCROW / REVENUE), never show them as a user id */}
                 {e.walletOwnerType === "PLATFORM" ? (
-                  <div className="text-xs text-adm-text-2">{PLATFORM_WALLET_LABEL[e.walletOwnerId] ?? "Ví nội bộ"}</div>
+                  <div className="text-xs text-adm-text-2">{platformWalletLabel(e.walletOwnerId)}</div>
                 ) : (
                   <ShortIdCopy id={e.walletOwnerId} label="mã chủ ví" />
                 )}
@@ -149,8 +160,6 @@ function Summary({ t }: { t: TxnSummary }) {
  * Right-hand drawer (full screen on a phone) opened by `?id=`. Read only: it shows what the server returned and has no
  * write control. `useModalA11y` moves focus in, traps Tab, closes on Esc and gives focus back to what opened it.
  */
-const PLATFORM_WALLET_LABEL: Record<string, string> = { ESCROW: "Ví giữ hộ (tiền chưa chi cho đối tác)", REVENUE: "Ví doanh thu nền tảng" };
-
 export function TransactionDrawer({ id, onClose, onOpenTransaction }: { id: string; onClose: () => void; onOpenTransaction: (id: string) => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
