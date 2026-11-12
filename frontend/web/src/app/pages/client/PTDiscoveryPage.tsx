@@ -29,6 +29,7 @@ import {
   buildPtSearchBody,
   formatPtDistanceBadge,
   isCursorResetError,
+  isSearchRegionReady,
   nextRadiusStep,
   normalizeVnCoords,
   ptDiscoveryKeys,
@@ -141,6 +142,9 @@ export function PTDiscoveryPage() {
   const [cursorResetSeq, setCursorResetSeq] = useState(0);
   const [listUpdatedNotice, setListUpdatedNotice] = useState(false);
   const hydratedUserRef = useRef<string | null>(null);
+  // The user id whose saved region has been applied to the state above. The first search waits for it so a
+  // stale scope:"national" request is never sent before the saved area resolves.
+  const [regionHydratedFor, setRegionHydratedFor] = useState<string | null>(null);
   const userChangedRegionRef = useRef(false);
   // Mirrors this page's own `lg` (1024px) breakpoint exactly (the list/detail layout
   // switches from flex-col to flex-row there) — deliberately not the shared useIsMobile
@@ -207,7 +211,11 @@ export function PTDiscoveryPage() {
     staleTime: 24 * 60 * 60_000,
   });
 
-  const { data: profileRegion } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
+  const {
+    data: profileRegion,
+    isSuccess: profileRegionLoaded,
+    isError: profileRegionFailed,
+  } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
     queryKey: ptKeys.profileRegion(),
     queryFn: async () => (await profileService.getProfile())?.profile ?? null,
     enabled: !!userId,
@@ -215,11 +223,12 @@ export function PTDiscoveryPage() {
   });
 
   useEffect(() => {
-    if (!userId || !profileRegion || hydratedUserRef.current === userId) return;
+    if (!userId || !profileRegionLoaded || hydratedUserRef.current === userId) return;
     hydratedUserRef.current = userId;
+    setRegionHydratedFor(userId);
     if (userChangedRegionRef.current) return;
-    const pCode = typeof profileRegion.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
-    const wCode = pCode && typeof profileRegion.searchWardCode === "number" ? profileRegion.searchWardCode : null;
+    const pCode = typeof profileRegion?.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
+    const wCode = pCode && typeof profileRegion?.searchWardCode === "number" ? profileRegion.searchWardCode : null;
     setProvinceCode(pCode);
     setWardCode(wCode);
     setNational(!pCode);
@@ -228,7 +237,9 @@ export function PTDiscoveryPage() {
     } else {
       setWards([]);
     }
-  }, [userId, profileRegion]);
+  }, [userId, profileRegion, profileRegionLoaded]);
+
+  const regionReady = isSearchRegionReady({ userId, hydratedForUserId: regionHydratedFor, profileRegionFailed });
 
   const saveRegionMutation = useMutation({
     mutationFn: (payload: { searchProvinceCode: number | null; searchWardCode: number | null }) =>
@@ -540,7 +551,7 @@ export function PTDiscoveryPage() {
 
   const {
     data: ptsData,
-    isLoading,
+    isLoading: searchLoading,
     isError,
     error,
     hasNextPage,
@@ -549,6 +560,7 @@ export function PTDiscoveryPage() {
     isFetchNextPageError,
   } = useInfiniteQuery({
     queryKey: ptKeys.search(searchBody, cursorResetSeq),
+    enabled: regionReady,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage: any) => nextCursorParam(lastPage),
     queryFn: ({ pageParam }) =>
@@ -557,6 +569,9 @@ export function PTDiscoveryPage() {
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
   });
+
+  // While the saved region is still resolving the query is disabled (not "loading"): show the skeleton, never "no results".
+  const isLoading = searchLoading || !regionReady;
 
   // 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH: reload from page 1 cleanly + notify user
   useEffect(() => {

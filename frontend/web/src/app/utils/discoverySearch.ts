@@ -127,6 +127,25 @@ export function formatGymDistanceBadge(params: {
   return { kind: "NONE", text: null };
 }
 
+/**
+ * Whether the saved search region has been resolved well enough to fire the FIRST discovery search.
+ *
+ * The pages start in "national" state and then hydrate the user's saved province/ward from the profile.
+ * Firing the search before that produced a stale `scope:"national"` request followed by the real one
+ * (two requests, and the first response could race the second). The first search waits until the saved
+ * region has been applied for THIS user (or the profile read failed, in which case "national" is correct).
+ * An unauthenticated viewer has no saved region, so there is nothing to wait for.
+ */
+export function isSearchRegionReady(opts: {
+  userId?: string | null;
+  hydratedForUserId?: string | null;
+  profileRegionFailed?: boolean;
+}): boolean {
+  if (!opts.userId) return true;
+  if (opts.profileRegionFailed) return true;
+  return opts.hydratedForUserId === opts.userId;
+}
+
 export function resolveEffectiveScope(opts: {
   national: boolean;
   hasGps: boolean;

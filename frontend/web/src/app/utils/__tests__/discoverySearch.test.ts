@@ -10,6 +10,7 @@ import {
   formatPtDistanceBadge,
   gymDiscoveryKeys,
   isCursorResetError,
+  isSearchRegionReady,
   nextRadiusStep,
   normalizeVnCoords,
   ptDiscoveryKeys,
@@ -164,3 +165,37 @@ describe("discoverySearch 409 cursor handling & user isolation keys", () => {
   });
 });
 
+
+describe("isSearchRegionReady (no stale national search before the saved area resolves)", () => {
+  it("waits for the saved region of THIS user before the first search", () => {
+    assert.equal(isSearchRegionReady({ userId: "u1", hydratedForUserId: null }), false);
+    assert.equal(isSearchRegionReady({ userId: "u1", hydratedForUserId: "u1" }), true);
+  });
+
+  it("never reuses the previous account's hydration after an account switch", () => {
+    assert.equal(isSearchRegionReady({ userId: "u2", hydratedForUserId: "u1" }), false);
+  });
+
+  it("does not block when the profile read failed (national is then the right scope) or when logged out", () => {
+    assert.equal(isSearchRegionReady({ userId: "u1", hydratedForUserId: null, profileRegionFailed: true }), true);
+    assert.equal(isSearchRegionReady({ userId: null, hydratedForUserId: null }), true);
+    assert.equal(isSearchRegionReady({ userId: undefined }), true);
+  });
+
+  it("first fired request carries the saved area, not scope:national (simulated page sequence)", () => {
+    const fired: unknown[] = [];
+    const render = (s: { hydratedFor: string | null; provinceCode: number | null; national: boolean }) => {
+      if (!isSearchRegionReady({ userId: "u1", hydratedForUserId: s.hydratedFor })) return;
+      fired.push(
+        buildGymSearchBody({ gpsCoords: null, provinceCode: s.provinceCode, wardCode: null, national: s.national, limit: 20 }),
+      );
+    };
+    // render 1: defaults, profile still loading -> nothing fires
+    render({ hydratedFor: null, provinceCode: null, national: true });
+    // render 2: saved province 79 applied together with the hydration marker -> the single, correct search
+    render({ hydratedFor: "u1", provinceCode: 79, national: false });
+    assert.equal(fired.length, 1);
+    assert.equal((fired[0] as any).scope, "province");
+    assert.equal((fired[0] as any).areaProvince, 79);
+  });
+});
