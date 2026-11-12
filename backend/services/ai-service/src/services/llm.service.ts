@@ -3,6 +3,7 @@ import axios, { AxiosError } from "axios";
 import { logger } from "@gym-coach/shared";
 import type { LLMResponse } from "../models/ai.models";
 import { LlmError } from "../errors/api-error";
+import { currentClientRequestId } from "./request-identity";
 import {
   BEDROCK_CHAT_MODEL,
   BEDROCK_EMBEDDING_MODEL,
@@ -508,13 +509,13 @@ export const llmService = {
     const timeoutMs = opts?.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS;
     try {
       const r = await this.callLLMCore(prompt, opts);
-      logger.info({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome: "ok", promptTokens: r.promptTokens, completionTokens: r.completionTokens }, "llm_call");
+      logger.info({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome: "ok", promptTokens: r.promptTokens, completionTokens: r.completionTokens, clientRequestId: currentClientRequestId() }, "llm_call");
       return r;
     } catch (err) {
       const name = (err as { name?: string })?.name ?? "Error";
       const message = (err as Error)?.message ?? "";
       const outcome = /timeout|timedout|aborted|ETIMEDOUT/i.test(`${name} ${message}`) ? "timeout" : "error";
-      logger.warn({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome, errorName: name }, "llm_call");
+      logger.warn({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome, errorName: name, clientRequestId: currentClientRequestId() }, "llm_call");
       throw err;
     }
   },

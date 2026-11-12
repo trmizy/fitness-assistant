@@ -1,4 +1,5 @@
 import { AgentPreferencesSchema, type AgentPreferences } from "@gym-coach/shared";
+import { classifyAgentTurnAct, mayStartMutation, type AgentTurnAct } from "./agent-turn-act";
 
 export function normalizeAgentText(text: string): string {
   // Found 2026-09-07 (docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md,
@@ -38,18 +39,50 @@ export function parseConstraintPhrase(text: string): Partial<AgentPreferences> {
   return preferences;
 }
 
-export function parseFitnessAgentIntent(text: string): {
-  kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
-    | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
-    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
-    | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
-    | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL" | null;
+export type FitnessAgentIntentKind = "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
+  | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
+  | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
+  | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
+  | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL";
+
+export interface FitnessAgentIntent {
+  kind: FitnessAgentIntentKind | null;
   preferences: Partial<AgentPreferences>;
   candidateNumber?: number;
   /** kind === "REVIEW" only — which pending recommendation and which way. */
   reviewDecision?: "ACCEPT" | "REJECT";
   reviewTarget?: "TRAINING" | "NUTRITION";
-} {
+  /** Set when the text names a data-changing intent but the turn only ASKS about it (see agent-turn-act.ts). */
+  advisory?: { act: AgentTurnAct; about: FitnessAgentIntentKind };
+}
+
+/**
+ * Intents that start creating/changing the user's data (each ends in a preview + explicit confirmation). Read-only intents
+ * (PT/PROGRAM search, EVALUATE, ROADMAP_STATUS) and SELECT (only shows a confirmation card) are not gated: a question is exactly
+ * how those are asked.
+ */
+const MUTATING_KINDS = new Set<FitnessAgentIntentKind>([
+  "CREATE_PLAN_BUNDLE", "SAVE_GENERATED_PLAN", "CREATE_WORKOUT_PLAN", "CREATE_NUTRITION_PLAN",
+  "ROADMAP_ADVANCE", "ROADMAP_REBUILD", "ROADMAP_ARCHIVE", "CYCLE_COMPLETE", "CYCLE_CANCEL",
+  "WORKOUT_START", "WORKOUT_SKIP", "WORKOUT_CANCEL", "REVIEW",
+]);
+
+/**
+ * Speech-act gate (V1 stabilization 2026-11-12, B1-13): the agent runs before the chat router, so this parser is where a
+ * QUESTION or HYPOTHETICAL about a plan change ("Đổi lên 5 buổi được không?", "Nếu tập 5 buổi thì sao?") must be told apart
+ * from a COMMAND/REQUEST to make it. Advisory turns return kind null — the normal chat path answers them. Every caller of this
+ * parser (fitness-agent tryTurn, the CI-V2 router, the interpreter) gets the same gate.
+ */
+export function parseFitnessAgentIntent(text: string): FitnessAgentIntent {
+  const parsed = parseFitnessAgentIntentUngated(text);
+  if (parsed.kind && MUTATING_KINDS.has(parsed.kind)) {
+    const act = classifyAgentTurnAct(text);
+    if (!mayStartMutation(act)) return { kind: null, preferences: parsed.preferences, advisory: { act, about: parsed.kind } };
+  }
+  return parsed;
+}
+
+function parseFitnessAgentIntentUngated(text: string): FitnessAgentIntent {
   const s = normalizeAgentText(text);
   const preferences: Partial<AgentPreferences> = parseConstraintPhrase(text);
   const select = (/\b(chon|dang ky|ap|apply|choose|select)\b/.test(s) && /\b(pt|plan|chuong trinh|huan luyen vien)\b/.test(s))
@@ -110,14 +143,17 @@ export function parseFitnessAgentIntent(text: string): {
   // the conversation. Checked AFTER CREATE_PLAN_BUNDLE/SAVE_GENERATED_PLAN
   // (both already returned above) so a "lộ trình" or save-verb request
   // always keeps its existing, more specific meaning.
-  const mentionsCreateWorkoutPlan = (/\b(tao|len|xay|thiet ke)\b/.test(s)
-    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap|workout plan|training plan|workout program)\b/.test(s))
+  // "lên" is the verb "lên lịch" only when no number follows: in "từ 3 buổi lên 5 buổi" it means "up to" (B1-13, 2026-11-12).
+  const mentionsCreateWorkoutPlan = (/\b(tao|xay|thiet ke)\b|\blen\b(?!\s*\d)/.test(s)
+    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap|workout plan|training plan|workout program)\b|\blich\s+\d+\s*buoi\b/.test(s))
     // "đổi/chuyển giúp tôi sang lịch upper/lower 4 buổi": switching to a differently-shaped schedule = a new draft to review.
-    || /\b(doi|chuyen|lam lai)\b.{0,20}\b(sang|thanh|qua)\b.{0,10}\blich\b/.test(s);
+    || /\b(doi|chuyen|lam lai)\b.{0,20}\b(sang|thanh|qua)\b.{0,10}\blich\b/.test(s)
+    // "đổi lịch của tôi lên 5 buổi": a different weekly frequency is also a new draft to review (never an in-place write).
+    || /\b(doi|chuyen|tang|giam)\b.{0,30}\blich\b.{0,30}\b(len|xuong|thanh|sang|con)\s*\d+\s*buoi\b/.test(s);
   if (mentionsCreateWorkoutPlan) {
     return { kind: "CREATE_WORKOUT_PLAN", preferences: {} };
   }
-  const mentionsCreateNutritionPlan = (/\b(tao|len|thiet ke)\b/.test(s)
+  const mentionsCreateNutritionPlan = (/\b(tao|thiet ke)\b|\blen\b(?!\s*\d)/.test(s)
     && /\b(thuc don|ke hoach dinh duong|meal plan)\b/.test(s))
     // a menu request that states how many meals it should have ("thực đơn giảm mỡ 4 bữa") is a creation request; lookups
     // ("thực đơn hôm nay", "thực đơn của tôi") and questions never state a meal count.

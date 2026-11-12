@@ -265,6 +265,9 @@ function isAdviceNotLookup(q: string, hasDateOrDay: boolean): boolean {
   if (hasHardAnchor) return false;
   // A long conditional ("khách sạn không có phòng gym thì tập gì?") is a coaching question; a SHORT "thế thì tập gì?" stays a follow-up.
   if (q.split(/\s+/).length > 7 && /\bthi (?:nen )?tap gi\b/.test(q)) return true;
+  // "Vậy tôi nên tăng tạ thế nào?" (eval B4-46, 2026-11-11) is a progression question, not "what is on my schedule": the short
+  // "vậy … thế nào" form passed as a schedule follow-up and was answered "no saved workout for Wednesday".
+  if (/\bnen\b.{1,30}\b(the nao|ra sao)\b/.test(q) || /\b(tang|giam|nang|day|cai thien|tien bo)\b.{0,12}\b(ta|muc ta|trong luong|khoi luong|kg|reps?|hiep|set)\b/.test(q)) return true;
   return /\btap gi (?:de|cho)\b|\bchi (tap|co) duoc\b|\bban qua\b|lam sao|lam the nao|tai sao|\bnen thay doi\b/.test(q);
 }
 

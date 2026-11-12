@@ -16,6 +16,15 @@ import {
 } from "@gym-coach/shared";
 import { inputParser } from "./input_parser";
 import { intentRouter } from "./intent_router";
+import { selectPromptMemories } from "./memory_selection";
+import { removeUnsupportedUserClaims } from "./context_fidelity_guard";
+import { applyTurnFacts, extractTurnFacts, formatTurnFactsForPrompt } from "./turn_facts";
+import { enforceExerciseConstraints } from "./exercise_constraint_guard";
+import { groundBmiClaims } from "./bmi_claim_guard";
+import { groundIntakeClaims } from "./intake_claim_guard";
+import { stripInternalReferences } from "./output_hygiene";
+import { fitToBudget, planContext } from "./context_plan";
+import { detectMythClaims, formatClaimRulesForPrompt } from "./claim_rules";
 import { languageGuard } from "./language_guard";
 import { safetyGuard } from "./safety_guard";
 import { profileExtractor } from "./profile_extractor";
@@ -31,6 +40,7 @@ import {
 import { responseFormatter } from "./response_formatter";
 import { appendMedicalReferralNote, appendMinorSupervisionNote, minorGeneralInfoPromptNote } from "./medical-referral";
 import { isMinorGeneralKnowledgeQuestion } from "./safety_guard";
+import { needsProfileAgeForMinorPolicy } from "./minor_safety_policy";
 import {
   isDirectNutritionQuestion,
   formatDirectNutritionAnswer,
@@ -57,6 +67,7 @@ import { isPtProposalRequest } from "../services/pt-copilot-proposals";
 import { traceLogger } from "./trace_logger";
 import {
   analyzeBodyComposition,
+  computeBmi,
   formatBodyCompAnalysis,
 } from "./body_composition_rules";
 import type {
@@ -169,6 +180,41 @@ function scopeRetryNote(lang: string): string {
 
 /** Folded text: a weight-loss / diet goal. Read with the profile age too, so a minor who does not state their age still gets the minor guidance (eval B2-44). */
 const WEIGHT_LOSS_GOAL = /\b(giam can|giam mo|giam ky|giam beo|an kieng|weight loss|lose weight|fat loss)\b/;
+
+/**
+ * The question-only safety detector cannot see the profile. A user who is a MINOR by profile age gets the minors' triage
+ * (parent + paediatric professional) when the turn is one the minor policy never answers personally:
+ *  - energy restriction / weight loss (SF-D1/SF-D2, 2026-11-08: a 16-year-old got the adult deficit answer);
+ *  - V1 RC 2026-11-12 (minor_safety_policy.ts): personal frequency/intensity/load advice, a plan request or high-risk wording —
+ *    "Tạo lịch tập 6 buổi cường độ cao cho tôi" from a 16-year-old profile used to be "safe" and reached the plan agent, and
+ *    "Tôi 19 tuổi, …" against a 16-year-old profile must keep the minor reading (conservative).
+ * The profile is only read on such turns (`getProfileAge` is never called for anything else). A failed lookup keeps the
+ * question-only result (logged).
+ */
+export async function resolveProfileAwareSafety(
+  question: string,
+  safetyCheck: ReturnType<typeof safetyGuard.check>,
+  getProfileAge: () => Promise<number | null | undefined>,
+): Promise<ReturnType<typeof safetyGuard.check>> {
+  if (safetyCheck.type === "minor_age_nutrition_request") return safetyCheck;
+  const folded = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
+  const isSafe = safetyCheck.type === "safe";
+  const aggressiveWeightLossPlan = isSafe && (AGGRESSIVE_WEIGHT_LOSS_PLAN.test(folded) || WEIGHT_LOSS_GOAL.test(folded));
+  const minorPolicyTurn = isSafe && needsProfileAgeForMinorPolicy(question);
+  if (!PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(safetyCheck.type) && !aggressiveWeightLossPlan && !minorPolicyTurn) return safetyCheck;
+  try {
+    const age = await getProfileAge();
+    if (typeof age === "number" && age > 0 && age < 18) return safetyGuard.minorAgeResult();
+  } catch (err) {
+    logger.warn({ err: (err as Error)?.message }, "[safety] profile age lookup failed; question-only safety result kept");
+  }
+  return safetyCheck;
+}
+
+/** Minor prompt note + supervision line: a minor by the MESSAGE asking a general question, or a minor by PROFILE/TurnFacts. */
+export function shouldAddMinorSupervision(question: string, minorProtected: boolean): boolean {
+  return isMinorGeneralKnowledgeQuestion(question) || minorProtected;
+}
 
 export function buildAiUnavailableFallback(language: LanguageDecision): string {
   if (language.responseLanguage === "vi") {
@@ -440,20 +486,8 @@ async function runInner(
     // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
     let safetyCheck = safetyGuard.check(question);
-    // The question-only detector cannot see the profile: a user who is a MINOR by profile age and asks to cut calories /
-    // lose weight gets the minor-age guidance (parent + paediatric professional), not the adult energy-restriction answer
-    // (found by test/ai-quality-eval SF-D1, 2026-11-08). The profile is only read on these rare safety turns.
-    // Also a "safe"-classified but aggressive self weight-loss plan ("Em muốn uống whey và nhịn bữa tối để giảm 7kg trong 1 tháng",
-    // SF-D2 2026-11-08: a 16-year-old got adult advice, no parent/doctor) — skipping meals, N kg in a short time, "cấp tốc".
-    const foldedQuestion = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
-    const aggressiveWeightLossPlan = safetyCheck.type === "safe" && (AGGRESSIVE_WEIGHT_LOSS_PLAN.test(foldedQuestion) || WEIGHT_LOSS_GOAL.test(foldedQuestion));
-    if ((PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(safetyCheck.type) || aggressiveWeightLossPlan) && userId) {
-      try {
-        const age = (await profileExtractor.extract(userId, authHeader)).profile?.age;
-        if (typeof age === "number" && age > 0 && age < 18) safetyCheck = safetyGuard.minorAgeResult();
-      } catch (err) {
-        logger.warn({ err: (err as Error)?.message, userId }, "[safety] profile age lookup failed; adult safety answer kept");
-      }
+    if (userId) {
+      safetyCheck = await resolveProfileAwareSafety(question, safetyCheck, async () => (await profileExtractor.extract(userId, authHeader)).profile?.age);
     }
 
     // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
@@ -627,7 +661,11 @@ async function runInner(
         return [];
       }),
     ]);
-    context.memories = memories;
+    // Saved memories are NOT injected wholesale any more: memory_selection.ts quarantines rows the current write policy would
+    // reject (questions/hypotheticals saved by the old keyword policy) and keeps only rows whose domain matches this turn,
+    // once the intent is known (below). Nothing is deleted.
+    const storedMemories = memories;
+    context.memories = [];
     // Coaching question about a client: answer without the ASKER's personal context, so nothing of the PT's own profile, goal or
     // history is presented as the client's (pt-r1: "học viên của bạn… với cân nặng hiện tại 70kg").
     if (thirdParty) {
@@ -667,6 +705,17 @@ async function runInner(
     if (weightResolution.conflict) {
       nutritionWeightConflictTotal.inc();
     }
+
+    // TurnFacts (turn_facts.ts): age / equipment / experience / time / injuries the user STATED in this message or earlier in
+    // this session win over the saved profile for THIS answer only (in memory, never persisted) — the same precedence the
+    // weight already had. The deterministic engines below then build from the stated constraints too.
+    const sessionUserMessages = Array.isArray(chatHistory) ? chatHistory.map((e: any) => String(e?.question ?? "")).filter(Boolean) : [];
+    const turnFacts = thirdParty ? { conflicts: [] } : extractTurnFacts(question, { sessionUserMessages, profile: context.profile });
+    // Injury on record for the fidelity guard: saved profile injuries or one the user ASSERTED (never a hypothetical, never memory).
+    const injuryOnRecord = (context.profile?.training?.injuries?.length ?? 0) > 0
+      || Boolean((turnFacts as any).injuries && (turnFacts as any).injuries.source !== "profile" && ((turnFacts as any).injuries.status ?? "ASSERTED") === "ASSERTED" && (turnFacts as any).injuries.value?.length);
+    if (!thirdParty) context.profile = applyTurnFacts(context.profile, turnFacts);
+    const turnFactsText = formatTurnFactsForPrompt(turnFacts);
 
     // "Còn protein thì sao?" asks for the user's own target, not for the saved meal plan (expert review H22, 2026-11-08).
     const nutritionIntent = isFollowUpMacroQuestion(question) ? { ...detectNutritionLookupIntent(question, chatHistory), enabled: false } : detectNutritionLookupIntent(question, chatHistory);
@@ -915,8 +964,9 @@ async function runInner(
     const coachContextText = JSON.stringify(
       sanitizeCoachContextForPrompt(coachContext),
     );
-    const bodyCompAndCoachText = [
-      bodyCompText,
+    // Deterministic "source of truth" notes — always kept (small, correctness-critical). The body-composition analysis and the
+    // CoachContext JSON are added below only when the context plan asks for them (context_plan.ts).
+    const deterministicNotes = [
       weightResolution.conflictNote
         ? `[Xung đột cân nặng] ${weightResolution.conflictNote} Dùng ${weightResolution.weightKg}kg (nguồn: ${weightResolution.source}) cho mọi tính toán trong câu trả lời này, và nêu rõ xung đột này với người dùng — không tự ý chọn số khác mà không giải thích.`
         : undefined,
@@ -929,14 +979,11 @@ async function runInner(
       tdeeEstimate
         ? `[Ước tính TDEE — nguồn sự thật, KHÔNG tự tính lại]: Theo công thức ${tdeeEstimate.formulaVersion}, BMR ≈ ${tdeeEstimate.bmrKcal} kcal, TDEE ≈ ${tdeeEstimate.tdeeKcal} kcal/ngày (khoảng ${tdeeEstimate.tdeeRangeLowKcal}-${tdeeEstimate.tdeeRangeHighKcal} kcal, hệ số vận động ${tdeeEstimate.activityMultiplier}). Đây là ƯỚC TÍNH, PHẢI trình bày dưới dạng khoảng (không phải một số chính xác tuyệt đối) và nêu rõ đây là công thức dự đoán, nên hiệu chỉnh dần theo cân nặng thực tế theo dõi 2-4 tuần.${tdeeEstimate.applicabilityWarnings.length > 0 ? ` LƯU Ý PHẠM VI ÁP DỤNG: ${tdeeEstimate.applicabilityWarnings.join(" ")}` : ""}`
         : undefined,
-      `CoachContext JSON (sanitized, no user identity):\n${coachContextText}`,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    ].filter((x): x is string => Boolean(x));
 
-    // Retrieve evidence from fitness_evidence collection using body-comp-specific queries.
-    // Runs after profile so queries can be shaped by the analysis. Best-effort: no throw.
-    const evidenceDocs = await timeAsync(timing, "evidenceMs", () =>
+    // Evidence from fitness_evidence with body-comp-specific queries (shaped by the PROFILE, not the question). Best-effort,
+    // and only fetched when the context plan needs it (below) — not for "Plank nên giữ bao lâu?".
+    const fetchBodyCompEvidence = () => timeAsync(timing, "evidenceMs", () =>
       withTimeout(
         retriever.retrieveEvidence(bodyCompAnalysis.evidenceQueries),
         EVIDENCE_TIMEOUT_MS,
@@ -966,6 +1013,10 @@ async function runInner(
     const parsedInput = inputParser.parse(question, context.profile);
     parsedInput.routeIntent = routedIntent.intent;
     parsedInput.goalHint = routedIntent.goalHint || parsedInput.goalHint;
+    const memorySelection = thirdParty
+      ? { selected: [], quarantined: 0, irrelevant: storedMemories.length }
+      : selectPromptMemories(storedMemories, { question, intent: routedIntent.intent });
+    context.memories = memorySelection.selected;
     // An impersonal knowledge question that merely mentions a goal ("Nhịn ăn 16:8 có giảm mỡ tốt hơn…?") is not a personal
     // what-if: without this the calculator recomputed fat-loss targets and the answer presented them as the user's current
     // numbers (Opus judge, KN-08 2026-11-08: "calo hiện tại của bạn là 1630 kcal" while the saved goal was 1852 kcal).
@@ -1041,7 +1092,7 @@ async function runInner(
 
     let llmAnswer = deterministicAnswer;
     let prompt = "";
-    const minorGeneralInfo = isMinorGeneralKnowledgeQuestion(question);
+    const minorGeneralInfo = shouldAddMinorSupervision(question, Boolean((turnFacts as { minorProtected?: boolean }).minorProtected));
     let promptTokens = 0;
     let completionTokens = 0;
     let totalTokens = 0;
@@ -1066,6 +1117,24 @@ async function runInner(
     const bodyCompositionQuestion = isBodyCompositionQuestion(question);
     let usedDeterministicFallbackBecauseOfValidation = false;
 
+    // Context-on-demand (context_plan.ts): the intent and question signals decide which blocks the prompt carries.
+    const contextPlan = planContext({
+      intent: routedIntent.intent,
+      question,
+      personalQuestion: isPersonalQuestion(question),
+      bodyCompositionQuestion,
+      mentionsInjury: Boolean(parsedInput.mentionsInjury),
+      hasSessionHistory: Array.isArray(chatHistory) && chatHistory.length > 0,
+    });
+    const evidenceDocs = contextPlan.blocks.has("body_comp_evidence") ? await fetchBodyCompEvidence() : [];
+    const bodyCompAndCoachText = [
+      contextPlan.blocks.has("body_composition") ? fitToBudget(bodyCompText, "body_composition") : undefined,
+      ...deterministicNotes,
+      contextPlan.blocks.has("coach_context") ? `CoachContext JSON (sanitized, no user identity):\n${coachContextText}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
     // Merge evidence docs into retrieval so compactRetrieval() can format citations
     const mergedRetrieval =
       evidenceDocs.length > 0
@@ -1088,6 +1157,21 @@ async function runInner(
           language.responseLanguage,
           chatHistory,
           bodyCompAndCoachText || undefined,
+          {
+            turnFactsText: turnFactsText || undefined,
+            knowledgeRulesText: formatClaimRulesForPrompt(question) || undefined,
+            contextPlan,
+            // Block names + token estimates only — never the context text itself.
+            onManifest: (manifest) => {
+              // retrievalDocs: knowledge-base document ids + source collection only (no text, nothing about the user) — B3-41's
+              // "đau gối" could not be traced because which chunks were in the prompt was never recorded.
+              const retrievalDocs = (mergedRetrieval.documents ?? []).slice(0, 8).map((d: any) => `${String(d.source ?? "").replace(/^[a-z]+:/, "")}#${d.metadata?.chunk_id ?? d.id}`);
+              const meta = { request_id: trace.traceId, contextManifest: { ...manifest, entries: manifest.entries.map((e) => ({ block: e.block, tokens: e.tokens })) }, retrievalDocs, memoryQuarantined: memorySelection.quarantined, memoryIrrelevant: memorySelection.irrelevant };
+              // over the whole-prompt guard rail → warn (visible in ops), nothing is cut here
+              if (manifest.overBudget) logger.warn(meta, "[context] prompt over token budget");
+              else logger.info(meta, "[context] prompt context manifest");
+            },
+          },
         ),
       );
       // A minor's general safety question reaches the model (instead of the flat redirect) with a hard guardrail.
@@ -1247,6 +1331,69 @@ async function runInner(
       language.responseLanguage,
       Array.isArray(chatHistory) ? chatHistory.slice(0, 4).map((e: any) => String(e?.question ?? "")) : [],
     );
+    // Claims about the user nothing in THIS conversation supports ("Bạn đã đạt mục tiêu 78kg" for a stated goal, a birth taken
+    // from another question) are removed — context_fidelity_guard.ts. Session history only, never memories.
+    if (needsLlm && llmAnswer !== deterministicAnswer) {
+      const fidelity = removeUnsupportedUserClaims(llmAnswer, {
+        question,
+        sessionUserMessages: Array.isArray(chatHistory) ? chatHistory.map((e: any) => String(e?.question ?? "")) : [],
+        verifiedProfileFacts: { injury: injuryOnRecord },
+        // provenance: what the assistant said earlier is a suggestion; figures on record (profile / InBody) are real
+        assistantTurns: Array.isArray(chatHistory) ? chatHistory.map((e: any) => String(e?.answer ?? "")) : [],
+        verifiedNumbers: [
+          context.profile?.currentWeightKg, context.profile?.targetWeightKg, context.profile?.inBody?.weightKg,
+          ...(Array.isArray(context.inBodyHistory) ? context.inBodyHistory.flatMap((h: any) => [h?.weight, h?.weightKg, h?.bodyFatPct, h?.skeletalMuscleMassKg]) : []),
+        ].filter((n): n is number => typeof n === "number" && Number.isFinite(n)),
+      });
+      if (fidelity.removed.length) {
+        llmAnswer = fidelity.answer;
+        logger.info({ request_id: trace.traceId, removedCount: fidelity.removed.length }, "[context-fidelity] unsupported user claim removed");
+      }
+      // Removal would have gutted the answer → the guard kept it and only reported (never an empty answer). Counts only, no text.
+      if (fidelity.warnings?.length) {
+        logger.warn({ request_id: trace.traceId, suppressedCount: fidelity.suppressed?.length ?? 0 }, "[context-fidelity] unsupported claim kept because removal would empty the answer");
+      }
+      // Known outdated claims (claim_rules.ts) — observability only, the answer is not rewritten.
+      const myths = detectMythClaims(llmAnswer);
+      if (myths.length) logger.warn({ request_id: trace.traceId, myths: myths.map((m) => m.id) }, "[claim-check] answer contains a known outdated claim");
+      // Exercises the user cannot do with what they said they have / their stated experience (catalog-based check).
+      const constrained = enforceExerciseConstraints(llmAnswer, turnFacts);
+      if (constrained.violations.length) {
+        llmAnswer = constrained.answer;
+        logger.info({ request_id: trace.traceId, violations: constrained.violations.map((v) => `${v.reason}:${v.exercise.catalogId}`), removedLines: constrained.removedLines }, "[exercise-constraints] answer adjusted to stated constraints");
+      }
+      // exercises the catalog cannot judge (missing/contradictory metadata) — never removed, only counted for catalog hygiene
+      if ((constrained as any).unverified?.length) {
+        logger.info({ request_id: trace.traceId, unverifiedCount: (constrained as any).unverified.length }, "[exercise-constraints] exercises with unverifiable catalog metadata");
+      }
+      // Personal BMI figures are grounded on the one deterministic computation over the resolved profile (bmi_claim_guard.ts).
+      const bmiGrounding = groundBmiClaims(llmAnswer, {
+        bmi: computeBmi({ heightCm: context.profile.heightCm, weightKg: context.profile.currentWeightKg, age: context.profile.age }),
+        lang: language.responseLanguage,
+      });
+      if (bmiGrounding.answer !== llmAnswer) {
+        llmAnswer = bmiGrounding.answer;
+        logger.info({ request_id: trace.traceId, corrected: bmiGrounding.corrected, removed: bmiGrounding.removed, minorNote: bmiGrounding.minorNoteAdded }, "[bmi-grounding] personal BMI figure grounded");
+      }
+      // A TARGET is never stated as current intake when nothing is logged (intake_claim_guard.ts, H-13).
+      const loggedIntake = (context.nutritionHistory ?? []).length > 0
+        || ((context as any).dailyConsumptionHistory ?? []).some((d: any) => (d?.consumedCalories ?? 0) > 0 || (d?.consumedProtein ?? 0) > 0);
+      const intake = groundIntakeClaims(llmAnswer, {
+        proteinTargetG: (context.profile as any).nutritionGoal?.protein ?? recommendation.nutrition?.proteinGrams ?? null,
+        loggedIntake,
+        lang: language.responseLanguage,
+      });
+      if (intake.rewritten) {
+        llmAnswer = intake.answer;
+        logger.info({ request_id: trace.traceId, rewritten: intake.rewritten }, "[intake-grounding] target stated as intake rewritten");
+      }
+      // Internal evidence labels (E1…) and references to material the user never saw ("các mẫu ở trên") — output_hygiene.ts.
+      const hygiene = stripInternalReferences(llmAnswer);
+      if (hygiene.labels || hygiene.removedSentences) {
+        llmAnswer = hygiene.answer;
+        logger.info({ request_id: trace.traceId, labels: hygiene.labels, removedSentences: hygiene.removedSentences }, "[output-hygiene] internal reference removed");
+      }
+    }
 
     const validation = await timeAsync(timing, "validationMs", async () =>
       answerValidator.validate(

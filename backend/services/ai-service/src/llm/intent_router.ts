@@ -1,4 +1,5 @@
 import type { IntentRoute, RoutedIntentType, UserProfile } from "./types";
+import { classifyMessageSpeechAct, foldVi, type SpeechAct } from "./speech_act";
 
 function normalize(text: string): string {
   return text
@@ -207,8 +208,22 @@ function inferIntent(question: string): RoutedIntentType {
   // verification). A question that refers to the user ("của tôi", "tôi cần") or asks to build/suggest a plan
   // still reaches meal_plan_request.
   const isKnowledgeQuestion =
-    /(l[aà] g[iì]|vai tr[oò]|c[oó] (b[aắ]t bu[oộ]c|c[aầ]n thi[eế]t|t[oố]t|h[aạ]i|t[aá]c d[uụ]ng|hi[eệ]u qu[aả])|bao nhi[eê]u l[aà] (đ[uủ]|an to[aà]n|t[oố]t)|t[aạ]i sao|v[iì] sao|kh[aá]c (g[iì]|nhau)|what is|why)/i.test(q) &&
+    // "…có giúp đốt mỡ (thật sự) không?" asks whether something WORKS (B2-38, 2026-11-12: "fat burner" matched the bare
+    // `fat` keyword below and the answer came out as a meal plan with an unrequested workout table).
+    /(l[aà] g[iì]|vai tr[oò]|c[oó] (b[aắ]t bu[oộ]c|c[aầ]n thi[eế]t|t[oố]t|h[aạ]i|t[aá]c d[uụ]ng|hi[eệ]u qu[aả]|gi[uú]p|th[aậ]t)|bao nhi[eê]u l[aà] (đ[uủ]|an to[aà]n|t[oố]t)|t[aạ]i sao|v[iì] sao|kh[aá]c (g[iì]|nhau)|what is|why)/i.test(q) &&
     !/(c[uủ]a t[oô]i|t[oô]i c[aầ]n|cho t[oô]i|m[iì]nh c[aầ]n|c[uủ]a m[iì]nh|t[aạ]o |l[eê]n |x[aâ]y d[uự]ng|thi[eế]t k[eế]|g[oợ]i [yý]|[dđ][eề] xu[aấ]t|meal plan|th[uự]c [dđ][oơ]n)/i.test(q);
+  // V1 RC1 (H-03, Nova Pro rc-verify-v1b): a COMPARISON asked as a question or a hypothetical ("3 bữa hay 5 bữa tốt hơn?",
+  // "Nếu tạo thực đơn 5 bữa thì có tốt hơn 3 bữa không?", "eat clean và keto cái nào tốt hơn?") wants knowledge, even when it
+  // contains "thực đơn" — it was answered with a full 5-meal plan. An explicit request for the user ("tạo/gợi ý … cho tôi")
+  // stays a request.
+  const fq = foldVi(q);
+  const comparisonAsked = /\b(hay|hoac|voi|va|so voi)\b.{0,50}\b(tot hon|hieu qua hon|hon|nao tot|nao hon|khac gi|khac nhau)\b|\bso sanh\b|\b(cai|loai|kieu|cach) nao\b.{0,20}\b(tot|hon|hieu qua)\b|\bco (tot|hieu qua|loi) hon\b/.test(fq);
+  const asksForMe = /\b(tao|len|lap|goi y|de xuat|xay dung|thiet ke|soan)\b.{0,30}\b(cho|giup|ho)\s+(toi|minh|em)\b|\b(giup|ho)\s+(toi|minh|em)\b.{0,10}\b(tao|len|lap|goi y)\b/.test(fq);
+  const act = classifyMessageSpeechAct(q);
+  if (comparisonAsked && !asksForMe && (act === "QUESTION" || act === "HYPOTHETICAL" || /\bso sanh\b/.test(fq)) && !isSpecificExerciseRequest) {
+    return "general_fitness_knowledge";
+  }
+
   if (isKnowledgeQuestion && !isSpecificExerciseRequest) {
     return "general_fitness_knowledge";
   }
@@ -308,12 +323,52 @@ function computeMissingFields(profile?: UserProfile): string[] {
   return missing;
 }
 
+// Intents whose answer is a deterministic plan/routine TEMPLATE (orchestrator: not in llmIntents → responseFormatter).
+const TEMPLATE_INTENTS: ReadonlySet<RoutedIntentType> = new Set<RoutedIntentType>([
+  "workout_plan_request",
+  "frequency_change_request",
+  "muscle_group_routine_request",
+  "specific_exercise_request",
+]);
+// The user asks for a LIST of exercises ("có những bài nào", "nên tập bài gì") — a routine answer is the right shape.
+const ASKS_FOR_EXERCISE_LIST = /\b(nhung bai|bai (tap )?nao|bai gi|tap (bai )?gi|nen tap gi|liet ke|which exercises?|what exercises?)\b/;
+// An explicit creation request or a stated wish for a plan ("lên giúp em…", "cho tôi lịch…", "em muốn một lịch tập…").
+const ASKS_FOR_PLAN = /\b(len|tao|lap|xay dung|thiet ke|soan|goi y|de xuat|cho (toi|em|minh)|xin)\b.{0,40}\b(lich|ke hoach|giao an|chuong trinh|buoi tap|bai tap|routine|plan|split)\b|\b(muon|can|thich) (co )?(mot |1 )?(lich|ke hoach|giao an|chuong trinh|buoi tap|routine)\b|^(lich tap|chuong trinh tap|ke hoach tap|giao an|workout plan|plan tap|buoi tap|bai tap)\b|\b(muon|can) tap (chan|nguc|lung|vai|tay|bung|mong|day du|full body|toan than)\b/;
+
+/**
+ * Speech-act gate in front of the template intents (eval 2026-11-11): the keyword rules alone decided "4 buổi một tuần, chia
+ * lịch thế nào…?" (B1-10), "Tập 5 buổi mỗi tuần có quá nhiều không?" (B2-14) and "…chưa thấy cơ bụng đâu, nản quá" (B3-44)
+ * were plan requests and answered them with a default template that ignored the question. A template is used only when the
+ * user asks for a plan or a list of exercises; otherwise the router ABSTAINS and the model answers the actual question.
+ * Explicit plan commands keep their deterministic path (day count / minimum exercises stay enforced there).
+ */
+export function gateTemplateIntent(question: string, intent: RoutedIntentType): { intent: RoutedIntentType; speechAct: SpeechAct; abstainedFrom?: RoutedIntentType } {
+  const speechAct = classifyMessageSpeechAct(question);
+  if (!TEMPLATE_INTENTS.has(intent)) return { intent, speechAct };
+  const f = foldVi(question);
+  // A STATEMENT keeps the template ("Chi tiết lịch tập 5 ngày tăng cơ bodyweight", "Tôi muốn giảm mỡ bụng, tập bụng mỗi ngày")
+  // unless it is venting / reporting a problem ("…chưa thấy cơ bụng đâu, nản quá") — that needs a reasoned reply, not a plan.
+  if (speechAct === "STATEMENT") {
+    const venting = /\b(nan|chan|met moi|that vong|buon|chua thay|khong thay|van chua|mai khong|khong tien bo|khong len|bi dung|plateau|stuck)\b/.test(f);
+    return venting && !ASKS_FOR_PLAN.test(f) ? { intent: "general_fitness_knowledge", speechAct, abstainedFrom: intent } : { intent, speechAct };
+  }
+  if (speechAct === "COMMAND" || ASKS_FOR_PLAN.test(f) || ASKS_FOR_EXERCISE_LIST.test(f)) {
+    // …unless it is an evaluation question about a plan ("…có nhiều không", "…được không") rather than a request for one
+    const evaluates = speechAct === "QUESTION" && /\b(co (qua )?(nhieu|it|du|nang|hop ly|on|tot|nen)|duoc khong|duoc chua|co sao|co hai|lieu)\b/.test(f) && !ASKS_FOR_EXERCISE_LIST.test(f) && !/\b(len|tao|lap|xay dung|thiet ke|soan)\b/.test(f);
+    if (!evaluates) return { intent, speechAct };
+  }
+  return { intent: "general_fitness_knowledge", speechAct, abstainedFrom: intent };
+}
+
 export const intentRouter = {
   route(question: string, profile?: UserProfile): IntentRoute {
     const normalizedQuestion = normalize(question);
+    const gated = gateTemplateIntent(question, inferIntent(normalizedQuestion));
     return {
       normalizedQuestion,
-      intent: inferIntent(normalizedQuestion),
+      intent: gated.intent,
+      speechAct: gated.speechAct,
+      ...(gated.abstainedFrom ? { abstainedFrom: gated.abstainedFrom } : {}),
       goalHint: inferGoal(normalizedQuestion, profile),
       muscleGroupHint: inferMuscleGroup(normalizedQuestion),
       parsedTrainingDays: parseTrainingDays(normalizedQuestion),

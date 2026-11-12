@@ -1,5 +1,6 @@
 import type { UnsafeGuidance } from "./types";
 import { resolveSafetySignals, type SafetySignalClass } from "./safety-signals";
+import { classifyMinorRequest, isFirstPersonAboutSelf } from "./minor_safety_policy";
 
 // ── Rapid / extreme weight-loss ───────────────────────────────────────────────
 function detectUnsafeWeightLoss(question: string): boolean {
@@ -196,7 +197,16 @@ export function isMinorGeneralKnowledgeQuestion(question: string): boolean {
   // Supplements belong behind the gate too: "Em 16 tuổi uống whey có hại không?" reached the model and was told whey is
   // "hoàn toàn an toàn" with no parent/doctor (eval B4-39, 2026-11-11).
   const personalPlanOrDiet = /giảm cân|giam can|giảm mỡ|giảm ký|ăn kiêng|nhịn ăn|calo|calories|protein|đạm|thực đơn|bao nhiêu kg|\d+\s*kg|tăng cân|lịch tập|kế hoạch|giáo án|tạo |lên lịch|nên ăn|nên tập (gì|bài)|bài tập nào|whey|creatine|bcaa|pre.?workout|caffeine|cà phê|thực phẩm chức năng|thực phẩm bổ sung|bổ sung|supplement|thuốc|vitamin|uống gì/.test(q);
-  return asksGeneralSafety && !personalPlanOrDiet;
+  // V1 RC minor policy (minor_safety_policy.ts): only a GENERAL question is answered generally — the user's own frequency /
+  // intensity / load / recovery, any plan request and any high-risk wording (pain, max effort, 7-day, supplements, cutting)
+  // keep the triage ("Tôi 16 tuổi, có nên tập gym mỗi ngày không?" is personal advice). An IMPERSONAL general question
+  // ("Người 16 tuổi có được tập gym không?") is answered generally too, still with the minor prompt note + supervision line.
+  if (classifyMinorRequest(question) !== "GENERAL_KNOWLEDGE" || personalPlanOrDiet) return false;
+  return asksGeneralSafety || !isFirstPersonAboutSelf(foldMinor(question));
+}
+
+function foldMinor(text: string): string {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /** Supplements / drugs mentioned by a minor ("Em 16 tuổi uống whey có hại không?", eval B4-39) also need the minors' gate. */

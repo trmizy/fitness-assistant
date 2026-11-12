@@ -1,6 +1,7 @@
 import { nutritionCalculator, isNutritionWhatIf } from "./nutrition_calculator";
 import { workoutPlanSelector } from "./workout_plan_selector";
 import { mealPlanLoader } from "./meal_plan_loader";
+import { enumLabel } from "./enum_labels";
 import type {
   DayPlan,
   ExercisePrescription,
@@ -410,9 +411,20 @@ const BODYWEIGHT_SUBS: Record<string, string> = {
   "Seated Calf Raise": "Bodyweight Calf Raise",
 };
 
+// Bodyweight substitutes that are too hard for someone who is not advanced (catalog difficulty "advanced") — eval B1-12 /
+// metamorphic MR1 (2026-11-12): "Leg Curl" → "Nordic Curl" reached beginners in a no-equipment leg day.
+const BODYWEIGHT_SUBS_NON_ADVANCED: Record<string, string> = {
+  "Nordic Curl": "Single-Leg Glute Bridge",
+};
+// Template names with no bodyweight entry above ("Lateral Raise" stayed in a no-equipment shoulder day — MR1).
+const BODYWEIGHT_SUBS_EXTRA: Record<string, string> = {
+  "Lateral Raise": "Plank Shoulder Tap",
+};
+
 function filterExercisesByEquipment(
   exercises: ExercisePrescription[],
   equipment: string[],
+  level?: string,
 ): ExercisePrescription[] {
   if (equipment.length === 0) return exercises;
 
@@ -421,10 +433,11 @@ function filterExercisesByEquipment(
   if (hasGymAccess) return exercises;
 
   const hasDumbbell = eq.some((e) => /dumbbell/.test(e));
-  const subs = hasDumbbell ? DUMBBELL_SUBS : BODYWEIGHT_SUBS;
+  const subs = hasDumbbell ? DUMBBELL_SUBS : { ...BODYWEIGHT_SUBS_EXTRA, ...BODYWEIGHT_SUBS };
 
   return exercises.map((ex) => {
-    const sub = subs[ex.name];
+    let sub = subs[ex.name];
+    if (!hasDumbbell && level !== "ADVANCED") sub = BODYWEIGHT_SUBS_NON_ADVANCED[sub ?? ex.name] ?? sub;
     return sub ? { ...ex, name: sub } : ex;
   });
 }
@@ -568,6 +581,7 @@ function buildWorkoutPlanTemplate(
     exercises: filterExercisesByEquipment(
       day.exercises,
       profile.training.availableEquipment,
+      profile.experienceLevel,
     ),
   }));
   const days = intent.requestsCardio
@@ -734,6 +748,7 @@ function buildArmsRoutine(): SpecificRoutineTemplate {
 function buildSpecificRoutineByIntent(
   intent: InputIntent,
   equipment: string[] = [],
+  level?: string,
 ): SpecificRoutineTemplate {
   const q = intent.normalizedQuestion.toLowerCase();
   const plain = q
@@ -772,24 +787,31 @@ function buildSpecificRoutineByIntent(
   else routine = buildGeneralSpecificRoutine();
 
   if (equipment.length === 0) return routine;
+  const exercises = filterExercisesByEquipment(routine.exercises, equipment, level);
+  // A technique note about an exercise that was substituted away ("Lateral Raise: giơ nhẹ khuỷu tay…" in a no-equipment
+  // shoulder day — metamorphic MR1, 2026-11-12) contradicts the list: drop it.
+  const removed = routine.exercises.map((e) => e.name).filter((n) => !exercises.some((e) => e.name === n));
+  const mentionsRemoved = (note: string) => removed.some((n) => note.toLowerCase().includes(n.toLowerCase()));
   return {
     ...routine,
-    exercises: filterExercisesByEquipment(routine.exercises, equipment),
+    exercises,
+    techniqueNotes: routine.techniqueNotes.filter((n) => !mentionsRemoved(n)),
+    overloadGuide: routine.overloadGuide.filter((n) => !mentionsRemoved(n)),
   };
 }
 
 function buildPersonalizationSummary(profile: UserProfile): string[] {
   const notes: string[] = [];
-  if (profile.gender) notes.push(`Giới tính: ${profile.gender}`);
+  if (profile.gender) notes.push(`Giới tính: ${enumLabel(profile.gender, "vi")}`);
   if (profile.age) notes.push(`Tuổi: ${profile.age}`);
   if (profile.currentWeightKg || profile.inBody?.weightKg)
     notes.push(
       `Cân nặng: ${profile.currentWeightKg || profile.inBody?.weightKg}kg`,
     );
   if (profile.heightCm) notes.push(`Chiều cao: ${profile.heightCm}cm`);
-  if (profile.goal) notes.push(`Mục tiêu: ${profile.goal}`);
+  if (profile.goal) notes.push(`Mục tiêu: ${enumLabel(profile.goal, "vi")}`);
   if (profile.experienceLevel)
-    notes.push(`Kinh nghiệm: ${profile.experienceLevel}`);
+    notes.push(`Kinh nghiệm: ${enumLabel(profile.experienceLevel, "vi")}`);
   if (profile.training.injuries.length > 0)
     notes.push(
       `Chấn thương cần tránh: ${profile.training.injuries.join(", ")}`,
@@ -1230,6 +1252,7 @@ export const recommendationEngine = {
         ? buildSpecificRoutineByIntent(
             intent,
             profile.training.availableEquipment,
+            profile.experienceLevel,
           )
         : undefined;
 

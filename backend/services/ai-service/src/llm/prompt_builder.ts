@@ -9,16 +9,50 @@ import { buildKnowledgeContext, renderKnowledgeContext } from "./knowledge-sourc
 import type { PersonalizationContext } from "./profile_extractor";
 import { evaluateProteinIntake, evaluateCalorieSurplus } from "./nutrition_engine";
 import { nutritionAnswerMode, directNutritionPromptLines, singleMealPromptLines } from "./nutrition_answer_mode";
+import { buildManifest, fitToBudget, type ContextManifest, type ContextPlan } from "./context_plan";
+import { enumLabel } from "./enum_labels";
+import { computeBmi } from "./body_composition_rules";
 
-function compactProfile(profile: UserProfile): string {
+/** Optional, backward-compatible build options (context_plan.ts). Without a plan the prompt is built exactly as before. */
+export interface PromptBuildOptions {
+  turnFactsText?: string;
+  /** Short sourced claims relevant to THIS question (claim_rules.ts) — not a canned answer. */
+  knowledgeRulesText?: string;
+  contextPlan?: ContextPlan;
+  onManifest?: (manifest: ContextManifest) => void;
+}
+
+/** What a prompt rule needs from the context plan to be relevant (explicit tag, never inferred from the rule's wording). */
+export type RuleNeed = "plan" | "inbody" | "body_data";
+export interface PromptRule { content: string; needs: RuleNeed[] }
+const R = (content: string, ...needs: RuleNeed[]): PromptRule => ({ content, needs });
+
+/** Cut at a word boundary, keeping negations/qualifiers intact (no mid-word cut). */
+function clipAtWord(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const at = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("\n"), cut.lastIndexOf(" "));
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).trimEnd()}…`;
+}
+
+function compactProfile(profile: UserProfile, lang: "vi" | "en" = "vi"): string {
+  // Readable labels, never raw enums: the model quotes this block ("your INTERMEDIATE experience level and MUSCLE_GAIN goal",
+  // Nova Pro recheck B3-06, 2026-11-12).
+  const label = (v: string | null | undefined, fallback: string) => enumLabel(v, lang) ?? fallback;
   const lines: string[] = [
     `- Age: ${profile.age ?? "unknown"}`,
-    `- Gender: ${profile.gender ?? "unknown"}`,
+    `- Gender: ${label(profile.gender, "unknown")}`,
     `- Height(cm): ${profile.heightCm ?? "unknown"}`,
-    `- Goal: ${profile.goal ?? "unknown"}`,
-    `- Activity level: ${profile.activityLevel ?? "unknown"}`,
-    `- Experience level: ${profile.experienceLevel ?? "BEGINNER"}`,
+    `- Goal: ${label(profile.goal, "unknown")}`,
+    `- Activity level: ${label(profile.activityLevel, "unknown")}`,
+    `- Experience level: ${label(profile.experienceLevel ?? "BEGINNER", "beginner")}`,
   ];
+  // B4-30 (V1 RC1): with no weight in the prompt the model invented one and stated "BMI khoảng 20.8" (real 24.2). The one
+  // deterministic BMI (computeBmi, from the resolved weight) is given when it exists; the model must never compute its own.
+  const bmi = computeBmi({ heightCm: profile.heightCm, weightKg: profile.currentWeightKg, age: profile.age });
+  lines.push(bmi
+    ? `- BMI (tính sẵn từ chiều cao/cân nặng đã xác minh — không tự tính BMI): ${bmi.value}${bmi.minor ? " — user dưới 18 tuổi: KHÔNG dùng ngưỡng BMI người lớn; chỉ đánh giá theo bách phân vị BMI theo tuổi và giới" : ""}`
+    : "- BMI: không có đủ chiều cao/cân nặng đã xác minh — không tự tính BMI và không nêu con số BMI");
 
   // Weight and every InBody-derived body-composition figure (body fat%,
   // skeletal muscle, fat mass, BMI, BMR, segmental analysis) used to be
@@ -170,13 +204,15 @@ export function extractSessionContext(chatHistory: any[]): string {
 function formatHistorySections(
   context: PersonalizationContext,
   chatHistory: any[],
+  plan?: ContextPlan,
 ): string[] {
   const sections: string[] = [];
+  const want = (b: Parameters<ContextPlan["blocks"]["has"]>[0]) => !plan || plan.blocks.has(b);
   // Note: current workout/nutrition programs are injected via compactCurrentPrograms()
   // in the main prompt build rather than here to keep them near the profile block.
 
   // ── InBody history trend (up to 5 most recent measurements) ─────────────
-  if (context.inBodyHistory && context.inBodyHistory.length > 1) {
+  if (want("inbody_history") && context.inBodyHistory && context.inBodyHistory.length > 1) {
     const historyLines = context.inBodyHistory.slice(0, 5).map((e: any) => {
       const d = (e.date || e.dateOnly || "").split("T")[0];
       const seg =
@@ -191,7 +227,7 @@ function formatHistorySections(
   }
 
   // ── Workout history: show exercise names + muscle groups ─────────────────
-  if (context.workoutHistory && context.workoutHistory.length > 0) {
+  if (want("workout_history") && context.workoutHistory && context.workoutHistory.length > 0) {
     const totalWorkouts = context.workoutHistory.length;
     // Group by date, then show exercises with muscle groups
     const recentWorkouts = (context.workoutHistory as any[])
@@ -243,8 +279,9 @@ function formatHistorySections(
   // dailyConsumptionHistory, and must not be silently treated as "no
   // nutrition data at all".
   if (
+    want("nutrition_history") && (
     (context.nutritionHistory && context.nutritionHistory.length > 0) ||
-    (context.dailyConsumptionHistory && context.dailyConsumptionHistory.length > 0)
+    (context.dailyConsumptionHistory && context.dailyConsumptionHistory.length > 0))
   ) {
     const logs = (context.nutritionHistory ?? []) as any[];
     // Group by date
@@ -280,7 +317,12 @@ function formatHistorySections(
       byDate[date].carbs = canonical.consumedCarbs ?? byDate[date].carbs;
       byDate[date].fat = canonical.consumedFat ?? byDate[date].fat;
     }
-    const dates = Object.keys(byDate).sort().reverse().slice(0, 7);
+    // H-13 (V1 RC1): a day with a program but nothing logged comes back as consumed = 0 — that is "not logged", not "ate
+    // nothing". Only days with logged food count; with none, the prompt says intake is UNKNOWN (and that targets are targets).
+    const dates = Object.keys(byDate).filter((d) => byDate[d].cal > 0 || byDate[d].pro > 0 || byDate[d].items.length > 0).sort().reverse().slice(0, 7);
+    if (dates.length === 0) {
+      sections.push("Lịch sử dinh dưỡng: user CHƯA ghi nhận bữa ăn nào trong nhật ký — KHÔNG biết user đang ăn bao nhiêu. Không được nói user \"đang ăn/đang tiêu thụ\" một con số; mục tiêu dinh dưỡng là MỤC TIÊU, không phải lượng đang ăn.");
+    }
     const totalDays = dates.length;
     const avgCal = Math.round(
       dates.reduce((s, d) => s + byDate[d].cal, 0) / totalDays,
@@ -304,16 +346,27 @@ function formatHistorySections(
         return `- ${d}: ${v.cal} kcal | P ${v.pro}g | C ${v.carbs}g | F ${v.fat}g${items}`;
       })
       .join("\n");
-    sections.push(
-      `Lịch sử dinh dưỡng (${totalDays} ngày gần nhất, TB: ${avgCal} kcal P${avgPro}g C${avgCarbs}g F${avgFat}g):\n${dailyLines}`,
+    if (totalDays > 0) sections.push(
+      `Lịch sử dinh dưỡng — lượng ĐÃ GHI NHẬN trong nhật ký (${totalDays} ngày có ghi gần nhất, TB: ${avgCal} kcal P${avgPro}g C${avgCarbs}g F${avgFat}g; đây là lượng đã ăn, khác với mục tiêu):\n${dailyLines}`,
     );
   }
 
-  const sessionCtx = extractSessionContext(chatHistory);
+  const sessionCtx = want("session_state") ? extractSessionContext(chatHistory) : "";
   if (sessionCtx) sections.push(sessionCtx);
 
-  if (chatHistory && chatHistory.length > 0) {
-    const chat = chatHistory
+  if (want("chat_history") && chatHistory && chatHistory.length > 0) {
+    const chat = plan
+      // With a plan: the most recent turn keeps far more (a follow-up usually depends on it) and cuts land on word
+      // boundaries so a negation is never chopped off; older turns stay short. Budgeted as one block.
+      ? fitToBudget(
+          chatHistory
+            .slice(0, 5)
+            .map((c, i) => `User: ${clipAtWord(String(c.question || ""), i === 0 ? 500 : 200)}\nCoach: ${clipAtWord(String(c.answer || ""), i === 0 ? 600 : 220)}`)
+            .reverse()
+            .join("\n\n"),
+          "chat_history",
+        )
+      : chatHistory
       .slice(0, 5)
       .reverse()
       .map((c) => {
@@ -322,13 +375,43 @@ function formatHistorySections(
         return `User: ${q.length > 120 ? q.slice(0, 120) + "..." : q}\nCoach: ${a.length > 180 ? a.slice(0, 180) + "..." : a}`;
       })
       .join("\n\n");
-    sections.push("Lịch sử hội thoại:\n" + chat);
+    // B4-46 (Nova Pro recheck 2026-11-12): the previous Coach turn SUGGESTED "Hạ xuống 55kg"; the next answer began "Khi bạn đã
+    // giảm tạ xuống 55kg…". Say whose lines are whose. (Header still starts with "Lịch sử hội thoại" — the manifest keys on it.)
+    if (chat) sections.push("Lịch sử hội thoại (dòng \"User\" là điều người dùng đã nói; dòng \"Coach\" là GỢI Ý trước đó của trợ lý — user chưa chắc đã làm theo, không được coi gợi ý đó là việc hay kết quả user đã làm):\n" + chat);
   }
 
   return sections;
 }
 
-export function compactRetrieval(result: RetrievalResult): string {
+/**
+ * RAG meal-plan TEMPLATES (fitness_knowledge, category "meal_plan", ~120 rows such as "Meal plan Tăng cơ 2800 kcal") carry fixed
+ * kcal/macro figures for an unknown person. B4-25 (Nova Pro recheck 2026-11-12): a 52 kg woman (NutritionGoal 1874 kcal) was
+ * told "với meal plan 2800 kcal, mục tiêu đạm 140-156 g" — exactly the figures of MP0077/MP0078. A template is kept as an
+ * example of foods and meal structure; its figures are removed so retrieval can never supply the user's calorie/macro numbers
+ * (NutritionGoal / the nutrition engine remain the only authority).
+ */
+const MEAL_PLAN_TEMPLATE_LABEL = "[THỰC ĐƠN MẪU — chỉ là ví dụ món ăn và cách chia bữa; số kcal/macro của mẫu đã được lược bỏ vì KHÔNG phải mục tiêu của user. Không lấy mẫu này làm mức calo/đạm cho user. User KHÔNG nhìn thấy mẫu này: không viết \"các mẫu ở trên\".]";
+function isMealPlanTemplate(doc: { category?: string; pageContent: string }): boolean {
+  return doc.category === "meal_plan" || /^Title:\s*Meal plan\b/i.test(doc.pageContent);
+}
+export function neutralizeMealPlanTemplate(text: string): string {
+  const stripped = text
+    // the whole "Khoảng 2800 kcal/ngày, protein … g, carb … g, fat … g." figures sentence
+    .replace(/(?<![\p{L}])Khoảng\s+\d{3,4}(?:[.,]\d+)?\s*kcal[^.\n]*\.\s*/giu, "")
+    .replace(/\s*[-–]?\s*\b\d{3,4}(?:[.,]\d+)?\s*kcal(?:\s*\/\s*ngày)?/gi, "")
+    .replace(/(?<![\p{L}])(protein|đạm|carb|tinh bột|fat|béo|chất béo)(\s+mục tiêu)?\s+(?:khoảng\s+)?\d+(?:[.,]\d+)?\s*(?:-\s*\d+(?:[.,]\d+)?\s*)?g(?![\p{L}])/giu, "$1")
+    .replace(/\s{2,}/g, " ");
+  return `${MEAL_PLAN_TEMPLATE_LABEL} ${stripped}`;
+}
+
+/** The user explicitly asks about a sample menu at a stated energy level ("thực đơn mẫu 2800 kcal") — keep its figures. */
+function asksForSampleAtKcal(question?: string): boolean {
+  return /\b\d{3,4}\s*(?:kcal|calo|calories)\b/i.test(question ?? "");
+}
+const MEAL_PLAN_SAMPLE_REQUESTED_LABEL = "[THỰC ĐƠN MẪU user hỏi đến — số kcal/macro là của MẪU, KHÔNG phải mục tiêu cá nhân của user; mục tiêu của user chỉ lấy từ mục tiêu dinh dưỡng của user.]";
+
+export function compactRetrieval(result: RetrievalResult, opts: { question?: string } = {}): string {
+  const keepTemplateFigures = asksForSampleAtKcal(opts.question);
   if (result.isEmpty || result.documents.length === 0) {
     return "- No relevant context retrieved. Use conservative recommendations.";
   }
@@ -361,7 +444,9 @@ export function compactRetrieval(result: RetrievalResult): string {
     parts.push(
       regularDocs
         .slice(0, 3)
-        .map((doc, idx) => `${idx + 1}. ${doc.pageContent}`)
+        // Template-generated rows (retrieval_ranking.ts) are labelled so the model treats them as a catalog default, not
+        // as evidence or as the answer to a differently-phrased question.
+        .map((doc, idx) => `${idx + 1}. ${(doc.metadata as any)?.synthetic ? "[Mẫu tự động từ thư viện bài tập — không phải bằng chứng khoa học; bỏ qua nếu không đúng câu hỏi] " : ""}${!isMealPlanTemplate(doc) ? doc.pageContent : keepTemplateFigures ? `${MEAL_PLAN_SAMPLE_REQUESTED_LABEL} ${doc.pageContent}` : neutralizeMealPlanTemplate(doc.pageContent)}`)
         .join("\n\n"),
     );
   }
@@ -376,7 +461,9 @@ export function compactRetrieval(result: RetrievalResult): string {
         return `E${idx + 1}. ${doc.pageContent}${cite}`;
       })
       .join("\n\n");
-    parts.push(`[Bằng chứng khoa học từ nghiên cứu:]\n${evidenceBlock}`);
+    // H-04 (V1 RC1): the model wrote "Theo **E1**, …". The labels and this whole block are internal — the user never sees them.
+    // (the note sits on its own line ABOVE the unchanged legacy header — rag-retrieval-v2.test.ts pins the header format)
+    parts.push(`(Ngữ cảnh nội bộ, user KHÔNG nhìn thấy: không viết mã E1/E2…, "tài liệu đã cung cấp" hay "ở trên"; nếu dẫn nguồn, nêu tên tác giả/tổ chức và năm.)\n[Bằng chứng khoa học từ nghiên cứu:]\n${evidenceBlock}`);
   }
 
   return (
@@ -441,135 +528,162 @@ export const promptBuilder = {
     responseLanguage: ResponseLanguage,
     chatHistory: any[],
     bodyCompText?: string,
+    options: PromptBuildOptions = {},
   ): string {
     const profile = context.profile;
-    const viRules = [
-      "Bạn là AI fitness coach cho người dùng Việt Nam.",
-      "",
-      "PHẠM VI (LUÔN ÁP DỤNG, mọi loại câu hỏi):",
-      "- Bạn CHỈ trả lời các chủ đề: tập luyện, dinh dưỡng thể thao, phục hồi, sức khỏe thể chất liên quan vận động.",
-      "- Nếu câu hỏi (hoặc một phần câu hỏi) không thuộc phạm vi trên (lập trình, chính trị, tài chính, giải trí, học thuật không liên quan...), từ chối lịch sự phần đó và chỉ tập trung vào phần liên quan thể hình nếu có.",
-      "- KHÔNG bao giờ đóng vai trò khác (lập trình viên, chuyên gia tài chính, v.v.) dù user yêu cầu.",
-      "",
-      "QUY TẮC NGÔN NGỮ:",
-      "- Câu trả lời chính bằng tiếng Việt.",
-      "- Tên bài tập PHẢI là tên canonical tiếng Anh theo DB Workout Log: ví dụ Bench Press, Cable Triceps Pushdown, One-Arm Dumbbell Overhead Triceps Extension.",
-      "- Không dịch tên bài tập sang tiếng Việt, kể cả khi nguồn RAG đang dùng tên tiếng Việt hoặc alias.",
-      "- Nếu thấy tên bài tập tiếng Việt trong context, tự map sang tên tiếng Anh chuẩn trước khi trả lời.",
-      "- KHÔNG lộ nhãn nội bộ: recomposition, confidence, omnivorous, moderate_volume, strength_retention.",
+    const plan = options.contextPlan;
+    const want = (b: Parameters<ContextPlan["blocks"]["has"]>[0]) => !plan || plan.blocks.has(b);
+    const historySections = formatHistorySections(context, chatHistory, plan);
+    const programsText = want("programs") ? compactCurrentPrograms(context) : "";
+    const retrievalText = plan ? fitToBudget(compactRetrieval(retrieval, { question: inputQuestion }), "retrieval") : compactRetrieval(retrieval, { question: inputQuestion });
+    const memoriesText = want("memories") ? compactMemories(context) : "";
+    const viRules: PromptRule[] = [
+      R("Bạn là AI fitness coach cho người dùng Việt Nam."),
+      R(""),
+      R("PHẠM VI (LUÔN ÁP DỤNG, mọi loại câu hỏi):"),
+      R("- Bạn CHỈ trả lời các chủ đề: tập luyện, dinh dưỡng thể thao, phục hồi, sức khỏe thể chất liên quan vận động."),
+      R("- Nếu câu hỏi (hoặc một phần câu hỏi) không thuộc phạm vi trên (lập trình, chính trị, tài chính, giải trí, học thuật không liên quan...), từ chối lịch sự phần đó và chỉ tập trung vào phần liên quan thể hình nếu có."),
+      R("- KHÔNG bao giờ đóng vai trò khác (lập trình viên, chuyên gia tài chính, v.v.) dù user yêu cầu."),
+      R(""),
+      R("QUY TẮC NGÔN NGỮ:"),
+      R("- Câu trả lời chính bằng tiếng Việt."),
+      R("- Tên bài tập PHẢI là tên canonical tiếng Anh theo DB Workout Log: ví dụ Bench Press, Cable Triceps Pushdown, One-Arm Dumbbell Overhead Triceps Extension."),
+      R("- Không dịch tên bài tập sang tiếng Việt, kể cả khi nguồn RAG đang dùng tên tiếng Việt hoặc alias."),
+      R("- Nếu thấy tên bài tập tiếng Việt trong context, tự map sang tên tiếng Anh chuẩn trước khi trả lời."),
+      R("- KHÔNG lộ nhãn nội bộ: recomposition, confidence, omnivorous, moderate_volume, strength_retention."),
       // Human review 2026-11-08 (rater comment on H12): beginners do not know what "P/C/F" means.
-      "- Khi nêu macro, viết rõ 'đạm (protein)', 'tinh bột (carb)', 'chất béo (fat)' — KHÔNG viết tắt P/C/F.",
-      "- Khi mô tả chỉ số cơ/mỡ theo vùng cơ thể (tay, chân) từ dữ liệu InBody, LUÔN dùng đúng cặp 'trái'/'phải' (left/right) theo dữ liệu gốc. TUYỆT ĐỐI KHÔNG dùng 'trước'/'sau' — đó không phải là cách InBody phân vùng tay/chân.",
-      '- SAI (không được viết): "Tay trước (biceps): 3.37kg (trái), 3.35kg (phải)" hay "Chân trước (quadriceps): ...". ĐÚNG: "Tay trái: 3.37kg, Tay phải: 3.35kg".',
-      "",
-      "QUY TẮC COACHING VÀ CẢM XÚC:",
-      '- Bắt đầu bằng một câu nhận xét tích cực/cảm thông dựa trên dữ liệu user (ví dụ: "Với 65 kg và mục tiêu giảm mỡ, bạn đang ở điểm khởi đầu rất tốt!").',
-      '- Sử dụng ngôn ngữ động viên. Thay "bạn đang làm sai" → "cách hiệu quả hơn là...".',
-      "- Nếu user đã đề cập tiến trình trước đó trong hội thoại, ghi nhận sự cố gắng của họ.",
-      '- Kết thúc bằng một câu ngắn khích lệ phù hợp mục tiêu (ví dụ: "Kiên trì 4–6 tuần — bạn sẽ thấy kết quả rõ rệt!").',
-      "- Nếu user đang gặp khó khăn (chấn thương, thiếu thời gian, thiếu thiết bị), đồng cảm trước khi đưa giải pháp.",
-      "",
-      "QUY TẮC HÀNH VI:",
-      "- Trả lời trực tiếp ngay — KHÔNG hỏi lại trước khi trả lời.",
-      "- Nếu user hỏi lịch tập, phải đưa bài tập cụ thể ngay lần đầu.",
-      "- Nếu user hỏi một ngày cụ thể (Thứ 2, ngày 1, buổi 1), chỉ trả lời riêng ngày đó.",
-      "- Nếu user đổi số buổi/tuần, PHẢI cập nhật plan theo tần suất mới — không quay về plan 3 buổi mặc định.",
-      '- Nếu thiếu dữ liệu, vẫn đưa plan mẫu an toàn và ghi rõ phần "Giả định".',
-      "- Chỉ hỏi thêm ở cuối để cá nhân hóa sâu hơn.",
-      "",
-      "QUY TẮC FORMAT:",
-      "- Với workout plan hoặc lịch ngày: trình bày bảng có cột: Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest",
-      "- Với meal plan: có bảng macro mục tiêu VÀ bảng từng bữa ăn.",
-      "- Dùng **bold** cho số quan trọng và từ khóa chính.",
-      "- Thêm emoji phù hợp: 💪 🥗 ⚡ 📊 để phân cấp thị giác.",
-      "- Không viết đoạn văn dài liền tục khó đọc.",
-      "",
-      "QUY TẮC CHẤT LƯỢNG:",
-      "- Không bịa calories tuyệt đối nếu chưa có weight, height, age, activity.",
-      '- "Tay trước" = biceps, KHÔNG phải tay trái/tay phải.',
-      "- 6 buổi/tuần không tự động sai — đánh giá theo recovery và volume.",
-      "",
+      R("- Khi nêu macro, viết rõ 'đạm (protein)', 'tinh bột (carb)', 'chất béo (fat)' — KHÔNG viết tắt P/C/F."),
+      R("- Khi mô tả chỉ số cơ/mỡ theo vùng cơ thể (tay, chân) từ dữ liệu InBody, LUÔN dùng đúng cặp 'trái'/'phải' (left/right) theo dữ liệu gốc. TUYỆT ĐỐI KHÔNG dùng 'trước'/'sau' — đó không phải là cách InBody phân vùng tay/chân.", "inbody"),
+      R('- SAI (không được viết): "Tay trước (biceps): 3.37kg (trái), 3.35kg (phải)" hay "Chân trước (quadriceps): ...". ĐÚNG: "Tay trái: 3.37kg, Tay phải: 3.35kg".', "inbody"),
+      R(""),
+      R("QUY TẮC COACHING VÀ CẢM XÚC:"),
+      // Eval 2026-11-11: "Bắt đầu bằng một câu nhận xét tích cực…" produced "Chúc mừng! Bạn đã đạt được mục tiêu giảm xuống
+      // 78kg" for a user who had only STATED the 78 kg goal (B3-47), and congratulations about a birth taken from another
+      // question (B4-49). The opener is optional and may only use what the user actually said or what was measured.
+      R('- Có thể mở đầu bằng MỘT câu ngắn cảm thông/khích lệ, nhưng chỉ dựa trên điều user vừa nói hoặc số đo thực tế (ví dụ: "Với 65 kg và mục tiêu giảm mỡ, bạn đang ở điểm khởi đầu rất tốt!").'),
+      R("- KHÔNG chúc mừng hay khẳng định thành tích, tiến trình, sự kiện cá nhân (sinh con, chấn thương, bệnh…) mà user KHÔNG nói trong câu hỏi hoặc hội thoại hiện tại."),
+      R("- Cân nặng/body fat MỤC TIÊU (target) là đích user muốn tới, KHÔNG phải kết quả đã đạt — không nói user \"đã đạt\" mục tiêu nếu số đo hiện tại chưa bằng mục tiêu."),
+      R('- Sử dụng ngôn ngữ động viên. Thay "bạn đang làm sai" → "cách hiệu quả hơn là...".'),
+      R("- Chỉ ghi nhận tiến trình khi chính user nói họ đã đạt được trong hội thoại này."),
+      R('- Kết thúc bằng một câu ngắn khích lệ phù hợp mục tiêu (ví dụ: "Kiên trì 4–6 tuần — bạn sẽ thấy kết quả rõ rệt!").'),
+      R("- Nếu user đang gặp khó khăn (chấn thương, thiếu thời gian, thiếu thiết bị), đồng cảm trước khi đưa giải pháp."),
+      R(""),
+      R("QUY TẮC HÀNH VI:"),
+      R("- Trả lời trực tiếp ngay — KHÔNG hỏi lại trước khi trả lời."),
+      R("- Nếu user hỏi lịch tập, phải đưa bài tập cụ thể ngay lần đầu.", "plan"),
+      R("- Nếu user hỏi một ngày cụ thể (Thứ 2, ngày 1, buổi 1), chỉ trả lời riêng ngày đó.", "plan"),
+      R("- Nếu user đổi số buổi/tuần, PHẢI cập nhật plan theo tần suất mới — không quay về plan 3 buổi mặc định.", "plan"),
+      R('- Nếu thiếu dữ liệu, vẫn đưa plan mẫu an toàn và ghi rõ phần "Giả định".', "plan"),
+      R("- Chỉ hỏi thêm ở cuối để cá nhân hóa sâu hơn."),
+      R(""),
+      R("QUY TẮC FORMAT:"),
+      R("- Với workout plan hoặc lịch ngày: trình bày bảng có cột: Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest", "plan"),
+      R("- Với meal plan: có bảng macro mục tiêu VÀ bảng từng bữa ăn.", "plan"),
+      R("- Dùng **bold** cho số quan trọng và từ khóa chính."),
+      R("- Thêm emoji phù hợp: 💪 🥗 ⚡ 📊 để phân cấp thị giác."),
+      R("- Không viết đoạn văn dài liền tục khó đọc."),
+      R(""),
+      R("QUY TẮC CHẤT LƯỢNG:"),
+      R("- Không bịa calories tuyệt đối nếu chưa có weight, height, age, activity."),
+      R('- "Tay trước" = biceps, KHÔNG phải tay trái/tay phải.', "inbody"),
+      R("- 6 buổi/tuần không tự động sai — đánh giá theo recovery và volume.", "plan"),
+      R(""),
       // Real-time body profile / evidence-based adaptive nutrition refactor
       // (spec §22) — see docs/body-state-and-adaptive-planning.md and
       // docs/research/fitness-nutrition-evidence.md for the reasoning and
       // citations behind these.
-      "QUY TẮC DỮ LIỆU CƠ THỂ & SUY LUẬN THÍCH ỨNG (không được vi phạm):",
-      "- KHÔNG BAO GIỜ nhầm baseline (điểm bắt đầu, cố định) với current (hiện tại, luôn cập nhật) hoặc target (mục tiêu, do user đặt).",
-      "- KHÔNG BAO GIỜ tự đổi target weight/mục tiêu chỉ vì có đo lường mới — mục tiêu chỉ đổi khi user xác nhận.",
-      "- Đo lường (measurement) là quan sát tại một thời điểm; kế hoạch calo/macro (prescription) là khuyến nghị hiện hành — không lẫn lộn hai khái niệm này.",
-      "- Dùng xu hướng (trend, trung bình nhiều ngày) để suy luận thích ứng, KHÔNG dùng một lần cân duy nhất.",
-      "- InBody/BIA là ƯỚC TÍNH (sai số body fat% ~4 điểm %, khối lượng ~2.4kg theo nghiên cứu Brewer 2021) — không diễn giải một thay đổi nhỏ trong 1 tuần như một kết luận chắc chắn.",
-      "- Cân nhắc điều kiện đo (giờ đo, đã ăn/đói, vừa tập hay chưa) khi đánh giá độ tin cậy của một thay đổi thành phần cơ thể theo thời gian.",
-      "- Calories từ thiết bị đeo (wearable) là ƯỚC TÍNH năng lượng hoạt động, KHÔNG PHẢI số chính xác tuyệt đối.",
-      "- KHÔNG mặc định user được ăn thêm đúng 100% số calories wearable báo đã đốt.",
-      "- KHÔNG khẳng định một tuần thay đổi body fat% chắc chắn phản ánh đúng thay đổi mỡ thật sự.",
-      "- KHÔNG chẩn đoán bệnh lý. Nếu có dấu hiệu y tế/thai kỳ/rối loạn ăn uống/triệu chứng nghiêm trọng, khuyến nghị gặp chuyên gia y tế thay vì tự đưa phác đồ giảm cân.",
-      "- KHÔNG giả định một con số chính xác cho adaptive thermogenesis của user này — hiện tượng này có thể xảy ra nhưng mức độ khác nhau ở mỗi người, không được bịa số.",
-      "- Khi bằng chứng khoa học không đủ để kết luận, nói rõ điều đó thay vì đưa câu trả lời chắc chắn giả tạo.",
-      "- Phân biệt rõ: bằng chứng khoa học (có trích dẫn) vs. product heuristic (quy ước kỹ thuật, ví dụ cửa sổ trung bình 7 ngày) vs. sở thích cá nhân của user.",
-      "- Khi đề xuất điều chỉnh kế hoạch, LUÔN giải thích TẠI SAO (tín hiệu nào: xu hướng cân nặng, độ tuân thủ dinh dưỡng/tập luyện, phục hồi — không chỉ dựa vào cân nặng).",
-      "- Đánh giá tiến trình dựa trên nhiều tín hiệu (xu hướng cân, body fat, sức mạnh, độ tuân thủ), KHÔNG chỉ số kg trên cân.",
+      R("QUY TẮC DỮ LIỆU CƠ THỂ & SUY LUẬN THÍCH ỨNG (không được vi phạm):"),
+      R("- KHÔNG BAO GIỜ nhầm baseline (điểm bắt đầu, cố định) với current (hiện tại, luôn cập nhật) hoặc target (mục tiêu, do user đặt).", "body_data"),
+      R("- KHÔNG BAO GIỜ tự đổi target weight/mục tiêu chỉ vì có đo lường mới — mục tiêu chỉ đổi khi user xác nhận.", "body_data"),
+      R("- Đo lường (measurement) là quan sát tại một thời điểm; kế hoạch calo/macro (prescription) là khuyến nghị hiện hành — không lẫn lộn hai khái niệm này.", "body_data"),
+      R("- Dùng xu hướng (trend, trung bình nhiều ngày) để suy luận thích ứng, KHÔNG dùng một lần cân duy nhất.", "body_data"),
+      R("- InBody/BIA là ƯỚC TÍNH (sai số body fat% ~4 điểm %, khối lượng ~2.4kg theo nghiên cứu Brewer 2021) — không diễn giải một thay đổi nhỏ trong 1 tuần như một kết luận chắc chắn.", "body_data", "inbody"),
+      R("- Cân nhắc điều kiện đo (giờ đo, đã ăn/đói, vừa tập hay chưa) khi đánh giá độ tin cậy của một thay đổi thành phần cơ thể theo thời gian.", "body_data"),
+      R("- Calories từ thiết bị đeo (wearable) là ƯỚC TÍNH năng lượng hoạt động, KHÔNG PHẢI số chính xác tuyệt đối.", "body_data"),
+      R("- KHÔNG mặc định user được ăn thêm đúng 100% số calories wearable báo đã đốt.", "body_data"),
+      R("- KHÔNG khẳng định một tuần thay đổi body fat% chắc chắn phản ánh đúng thay đổi mỡ thật sự.", "body_data"),
+      R("- KHÔNG chẩn đoán bệnh lý. Nếu có dấu hiệu y tế/thai kỳ/rối loạn ăn uống/triệu chứng nghiêm trọng, khuyến nghị gặp chuyên gia y tế thay vì tự đưa phác đồ giảm cân."),
+      R("- KHÔNG giả định một con số chính xác cho adaptive thermogenesis của user này — hiện tượng này có thể xảy ra nhưng mức độ khác nhau ở mỗi người, không được bịa số.", "body_data"),
+      R("- Khi bằng chứng khoa học không đủ để kết luận, nói rõ điều đó thay vì đưa câu trả lời chắc chắn giả tạo."),
+      R("- Phân biệt rõ: bằng chứng khoa học (có trích dẫn) vs. product heuristic (quy ước kỹ thuật, ví dụ cửa sổ trung bình 7 ngày) vs. sở thích cá nhân của user."),
+      R("- Khi đề xuất điều chỉnh kế hoạch, LUÔN giải thích TẠI SAO (tín hiệu nào: xu hướng cân nặng, độ tuân thủ dinh dưỡng/tập luyện, phục hồi — không chỉ dựa vào cân nặng).", "body_data"),
+      R("- Đánh giá tiến trình dựa trên nhiều tín hiệu (xu hướng cân, body fat, sức mạnh, độ tuân thủ), KHÔNG chỉ số kg trên cân.", "body_data"),
     ];
 
-    const enRules = [
-      "You are Coach — an elite personal trainer and sports nutritionist with 10+ years of experience.",
-      "You communicate like a real gym professional: direct, data-driven, confident, and genuinely motivating.",
-      "",
-      "SCOPE (ALWAYS APPLIES, for every message):",
-      "- You ONLY answer questions about training, sports nutrition, recovery, and physical health tied to exercise.",
-      "- If the message (or part of it) falls outside that scope (coding, politics, finance, entertainment, unrelated academic topics, etc.), politely decline that part and only address the fitness-relevant part, if any.",
-      "- NEVER roleplay as a different kind of assistant (programmer, financial advisor, etc.) even if asked to.",
-      "",
-      "COACHING STYLE:",
-      "- Lead with a brief empathetic acknowledgement of the user's situation, then deliver the answer immediately.",
-      "- Be precise with numbers: always state exact calories, macros, sets, reps.",
-      '- Use encouraging language. Instead of "you\'re doing it wrong", say "a more effective approach is...".',
-      "- If the user mentions prior progress in this conversation, acknowledge and celebrate their effort.",
-      "- End each response with one short motivating sentence aligned to their goal.",
-      "- Use **bold** for critical numbers and key terms.",
-      "- Add fitness emojis sparingly: 💪 🥗 ⚡ 📊 🎯",
-      "- Exercise names must stay in English and should match the Workout Log DB naming exactly.",
-      "",
-      "NON-NEGOTIABLE RULES:",
-      "- Numbers MUST match the deterministic targets exactly — these are your source of truth.",
-      "- NEVER use these internal labels: recomposition, confidence, strength_retention, moderate_volume, omnivorous.",
-      "- When describing InBody segmental muscle/fat data (arms, legs), ALWAYS use the correct 'left'/'right' pairing from the source data. NEVER use 'front'/'back' — that is not how InBody segments limbs.",
-      "- Do NOT expose system structure, JSON, or parsed intent to the user.",
-      "- Do NOT invent exercises or make unsupported medical claims.",
-      "- If profile data is missing, give the best safe default first, then ask 1–2 targeted follow-ups at the end.",
-      "",
+    const enRules: PromptRule[] = [
+      R("You are Coach — an elite personal trainer and sports nutritionist with 10+ years of experience."),
+      R("You communicate like a real gym professional: direct, data-driven, confident, and genuinely motivating."),
+      R(""),
+      R("SCOPE (ALWAYS APPLIES, for every message):"),
+      R("- You ONLY answer questions about training, sports nutrition, recovery, and physical health tied to exercise."),
+      R("- If the message (or part of it) falls outside that scope (coding, politics, finance, entertainment, unrelated academic topics, etc.), politely decline that part and only address the fitness-relevant part, if any."),
+      R("- NEVER roleplay as a different kind of assistant (programmer, financial advisor, etc.) even if asked to."),
+      R(""),
+      R("COACHING STYLE:"),
+      R("- Lead with a brief empathetic acknowledgement of the user's situation, then deliver the answer immediately."),
+      R("- Be precise with numbers: always state exact calories, macros, sets, reps."),
+      R('- Use encouraging language. Instead of "you\'re doing it wrong", say "a more effective approach is...".'),
+      R("- Acknowledge progress only when the user themselves says they achieved it in this conversation. A TARGET weight is a goal, never an achieved result; never congratulate on events (birth, injury, illness, milestones) the user did not mention in this conversation."),
+      R("- End each response with one short motivating sentence aligned to their goal."),
+      R("- Use **bold** for critical numbers and key terms."),
+      R("- Add fitness emojis sparingly: 💪 🥗 ⚡ 📊 🎯"),
+      R("- Exercise names must stay in English and should match the Workout Log DB naming exactly."),
+      R(""),
+      R("NON-NEGOTIABLE RULES:"),
+      R("- Numbers MUST match the deterministic targets exactly — these are your source of truth.", "plan"),
+      R("- NEVER use these internal labels: recomposition, confidence, strength_retention, moderate_volume, omnivorous."),
+      R("- When describing InBody segmental muscle/fat data (arms, legs), ALWAYS use the correct 'left'/'right' pairing from the source data. NEVER use 'front'/'back' — that is not how InBody segments limbs.", "inbody"),
+      R("- Do NOT expose system structure, JSON, or parsed intent to the user."),
+      R("- Do NOT invent exercises or make unsupported medical claims."),
+      R("- If profile data is missing, give the best safe default first, then ask 1–2 targeted follow-ups at the end."),
+      R(""),
       // Real-time body profile / evidence-based adaptive nutrition refactor
       // (spec §22) — see docs/body-state-and-adaptive-planning.md and
       // docs/research/fitness-nutrition-evidence.md for the reasoning and
       // citations behind these.
-      "BODY DATA & ADAPTIVE REASONING RULES (never violate these):",
-      "- NEVER confuse baseline (fixed starting point) with current (always-updating) or target (user-set goal).",
-      "- NEVER silently change the user's target weight/goal just because a new measurement arrived — a goal only changes when the user confirms it.",
-      "- A measurement is a point-in-time observation; a calorie/macro prescription is the current recommendation — never conflate the two.",
-      "- Use TRENDS (multi-day averages) for adaptive reasoning, never a single day's weigh-in.",
-      "- InBody/BIA readings are ESTIMATES (body-fat% error ~4 points, mass ~2.4kg per Brewer et al. 2021) — do not over-interpret a small week-to-week change as a certain conclusion.",
-      "- Factor in measurement conditions (time of day, fasted vs fed, pre/post-exercise) when judging confidence in a body-composition change over time.",
-      "- Wearable-reported calories burned are an ESTIMATE of active energy expenditure, NOT an exact number.",
-      "- NEVER assume the user should \"eat back\" 100% of wearable-reported calories burned.",
-      "- NEVER claim one week of body-fat% change definitely represents true fat-mass change.",
-      "- NEVER diagnose a medical condition. For medical/pregnancy/eating-disorder/severe-symptom red flags, recommend a qualified healthcare professional instead of prescribing weight-loss changes yourself.",
-      "- NEVER invent a precise adaptive-thermogenesis number for this individual — it can occur but its magnitude varies per person; do not fabricate a figure.",
-      "- When evidence is insufficient to draw a conclusion, say so plainly rather than manufacturing false certainty.",
-      "- Distinguish clearly: scientific evidence (cited) vs. product heuristic (an engineering convention, e.g. a 7-day averaging window) vs. the user's own stated preference.",
-      "- When proposing a plan adjustment, ALWAYS explain WHY (which signals: weight trend, nutrition/training adherence, recovery — never weight alone).",
-      "- Evaluate progress using multiple signals (weight trend, body fat, strength, adherence), NEVER the scale number alone.",
+      R("BODY DATA & ADAPTIVE REASONING RULES (never violate these):"),
+      R("- NEVER confuse baseline (fixed starting point) with current (always-updating) or target (user-set goal).", "body_data"),
+      R("- NEVER silently change the user's target weight/goal just because a new measurement arrived — a goal only changes when the user confirms it.", "body_data"),
+      R("- A measurement is a point-in-time observation; a calorie/macro prescription is the current recommendation — never conflate the two.", "body_data"),
+      R("- Use TRENDS (multi-day averages) for adaptive reasoning, never a single day's weigh-in.", "body_data"),
+      R("- InBody/BIA readings are ESTIMATES (body-fat% error ~4 points, mass ~2.4kg per Brewer et al. 2021) — do not over-interpret a small week-to-week change as a certain conclusion.", "body_data", "inbody"),
+      R("- Factor in measurement conditions (time of day, fasted vs fed, pre/post-exercise) when judging confidence in a body-composition change over time.", "body_data"),
+      R("- Wearable-reported calories burned are an ESTIMATE of active energy expenditure, NOT an exact number.", "body_data"),
+      R("- NEVER assume the user should \"eat back\" 100% of wearable-reported calories burned.", "body_data"),
+      R("- NEVER claim one week of body-fat% change definitely represents true fat-mass change.", "body_data"),
+      R("- NEVER diagnose a medical condition. For medical/pregnancy/eating-disorder/severe-symptom red flags, recommend a qualified healthcare professional instead of prescribing weight-loss changes yourself."),
+      R("- NEVER invent a precise adaptive-thermogenesis number for this individual — it can occur but its magnitude varies per person; do not fabricate a figure.", "body_data"),
+      R("- When evidence is insufficient to draw a conclusion, say so plainly rather than manufacturing false certainty."),
+      R("- Distinguish clearly: scientific evidence (cited) vs. product heuristic (an engineering convention, e.g. a 7-day averaging window) vs. the user's own stated preference."),
+      R("- When proposing a plan adjustment, ALWAYS explain WHY (which signals: weight trend, nutrition/training adherence, recovery — never weight alone).", "body_data"),
+      R("- Evaluate progress using multiple signals (weight trend, body fat, strength, adherence), NEVER the scale number alone.", "body_data"),
     ];
 
-    return [
-      ...(responseLanguage === "vi" ? viRules : enRules),
+    // Rules on demand (context_plan.ts): the rules block was ~80% of a knowledge prompt (offline manifest, 2026-11-12). Each rule
+    // carries EXPLICIT needs (PromptRule.needs) — selection never depends on the rule's wording (independent review P2, 2026-11-12:
+    // the first version regex-matched the rule text, so rewording a rule silently changed which prompts carried it). A rule is
+    // kept only if every need is met. Safety (no diagnosis, referral) and evidence-honesty rules carry no need → always kept.
+    // No plan → every rule (legacy prompt unchanged).
+    const met: Record<RuleNeed, boolean> = {
+      plan: !plan || plan.blocks.has("recommendation") || plan.blocks.has("programs"),
+      inbody: !plan || plan.blocks.has("inbody_history") || plan.blocks.has("body_composition"),
+      body_data: !plan || (["coach_context", "body_composition", "inbody_history", "nutrition_history"] as const).some((b) => plan.blocks.has(b)),
+    };
+    const rules = (responseLanguage === "vi" ? viRules : enRules)
+      .filter((r) => r.needs.every((n) => met[n]))
+      .map((r) => r.content);
+
+    const prompt = [
+      ...rules,
       "",
-      ...(() => {
-        const sections = formatHistorySections(context, chatHistory);
-        return sections.length > 0 ? [...sections, ""] : [];
-      })(),
+      ...(historySections.length > 0 ? [...historySections, ""] : []),
       "Câu hỏi của user:",
       inputQuestion,
       "",
+      // Constraints the user STATED (turn_facts.ts) — for every intent, general knowledge included: "Tôi 52 tuổi, mới tập, ở
+      // nhà không có dụng cụ" must shape a knowledge answer too, not only a plan.
+      ...(options.turnFactsText ? [options.turnFactsText, ""] : []),
+      ...(options.knowledgeRulesText ? [options.knowledgeRulesText, ""] : []),
       // Inject extracted constraints so LLM cannot ignore them
       ...(() => {
         const isGeneralKnowledge =
@@ -604,18 +718,16 @@ export const promptBuilder = {
           : [];
       })(),
       "Hồ sơ user:",
-      compactProfile(profile),
+      compactProfile(profile, responseLanguage === "en" ? "en" : "vi"),
       "",
       // Facts saved across previous sessions via remember_user_fact (Phase 3 memory)
       ...(() => {
-        const memoriesText = compactMemories(context);
         return memoriesText
-          ? ["Thông tin đã ghi nhớ về user (từ các lần trò chuyện trước):", memoriesText, ""]
+          ? ["Sở thích user đã tự nêu ở các lần trước (chỉ dùng khi liên quan; câu hỏi/dữ liệu hiện tại luôn được ưu tiên hơn):", memoriesText, ""]
           : [];
       })(),
       // Inject active workout & nutrition programs if available
       ...(() => {
-        const programsText = compactCurrentPrograms(context);
         return programsText
           ? ["Chương trình đang áp dụng:", programsText, ""]
           : [];
@@ -632,7 +744,7 @@ export const promptBuilder = {
       ...(() => {
         const isGeneralKnowledge =
           intent.routeIntent === "general_fitness_knowledge";
-        if (isGeneralKnowledge) return [];
+        if (isGeneralKnowledge || !want("recommendation")) return [];
         return [
           `Chỉ số tính toán (nguồn sự thật — không được lệch khỏi các con số này):`,
           compactRecommendations(
@@ -644,7 +756,7 @@ export const promptBuilder = {
       })(),
       "",
       "Tri thức bài tập liên quan:",
-      compactRetrieval(retrieval),
+      retrievalText,
       "",
       ...(() => {
         const isMeal = intent.routeIntent === "meal_plan_request";
@@ -921,5 +1033,30 @@ export const promptBuilder = {
         ];
       })(),
     ].join("\n");
+
+    if (plan && options.onManifest) {
+      options.onManifest(
+        buildManifest(String(intent.routeIntent ?? ""), plan, {
+          rules: rules.join("\n"),
+          question: inputQuestion,
+          turn_facts: `${options.turnFactsText ?? ""}${options.knowledgeRulesText ? `\n${options.knowledgeRulesText}` : ""}`,
+          profile: compactProfile(profile, responseLanguage === "en" ? "en" : "vi"),
+          memories: memoriesText,
+          programs: programsText,
+          retrieval: retrievalText,
+          // the orchestrator joins body-composition text, deterministic notes and the CoachContext JSON into one string;
+          // report the JSON as its own block so the manifest shows whether coach_context was really sent
+          notes: (bodyCompText ?? "").split("CoachContext JSON (sanitized, no user identity):")[0],
+          coach_context: (bodyCompText ?? "").includes("CoachContext JSON (sanitized, no user identity):")
+            ? (bodyCompText ?? "").slice((bodyCompText ?? "").indexOf("CoachContext JSON (sanitized, no user identity):"))
+            : "",
+          chat_history: historySections.find((s) => s.startsWith("Lịch sử hội thoại")) ?? "",
+          inbody_history: historySections.find((s) => s.startsWith("Lịch sử InBody")) ?? "",
+          workout_history: historySections.find((s) => s.startsWith("Lịch sử tập luyện")) ?? "",
+          nutrition_history: historySections.find((s) => s.startsWith("Lịch sử dinh dưỡng")) ?? "",
+        }, prompt),
+      );
+    }
+    return prompt;
   },
 };
