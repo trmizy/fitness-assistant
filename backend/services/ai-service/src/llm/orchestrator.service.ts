@@ -167,6 +167,9 @@ const PROFILE_AGE_SENSITIVE_SAFETY_TYPES = new Set<string>([
   "severe_energy_restriction_warning",
   "unsafe_weight_loss_behavior",
   "prolonged_extreme_calorie_disclosure",
+  // 2026-11-12 safety hotfix: the rapid-loss guidance is ADULT advice (calorie deficit, 0.3-0.8 kg/week); a profile minor gets the
+  // minor result instead. Before the hotfix an unaccented rapid-loss message reached a profile minor with the adult guidance.
+  "unsafe_weight_loss",
 ]);
 /** Folded text: skipping meals / fasting, "N kg in <short time>", crash wording, slimming pills — read with the profile age above. */
 const AGGRESSIVE_WEIGHT_LOSS_PLAN = /\b(nhin (an|bua|doi|toi|sang|trua)|bo bua|giam \d{1,2} ?kg (trong|sau|chi) (\d|mot|hai|ba|1)|cap toc|that nhanh|thuoc giam can|tra giam can|an kieng khat khe|chi an (1|mot) bua)\b/;
