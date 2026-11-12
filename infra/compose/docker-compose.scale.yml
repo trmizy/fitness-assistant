@@ -312,6 +312,12 @@ services:
       PARTNER_APPLICATION_START_RATE_MAX: "200"
       PARTNER_APPLICATION_RATE_MAX: "600"
       GYMINI_DEMO_ENVIRONMENT: "true"
+      # TEST-STACK-ONLY rate-limit override (Ngài approved 12/11). The code defaults stay 100 req/min
+      # (RATE_LIMIT_MAX_REQUESTS) and 20 auth attempts / 15 min (AUTH_RATE_LIMIT_MAX_REQUESTS); dev compose is
+      # untouched. Raised here only so the combined Playwright run (10 cases, repeated logins) and the discovery
+      # benchmark are not throttled by the gateway. Never copy these values to a dev/prod compose file.
+      RATE_LIMIT_MAX_REQUESTS: "100000"
+      AUTH_RATE_LIMIT_MAX_REQUESTS: "1000"
     depends_on:
       redis-scale: { condition: service_healthy }
       minio-scale-init: { condition: service_completed_successfully }
