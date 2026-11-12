@@ -82,7 +82,12 @@ export function isTrainingAdviceQuestion(q: string): boolean {
   const asksComparison = /c[aá]i n[aà]o|n[aà]o (?:t[oố]t|hi[eệ]u qu[aả]|hay) h[oơ]n|t[oố]t h[oơ]n/.test(lower);
   const asksDiagnosis =
     /(?:c[oơ]|c[aâ]n|s[uứ]c m[aạ]nh|ti[eế]n b[oộ]).{0,15}kh[oô]ng (?:l[eê]n|t[aă]ng|ti[eế]n|gi[aả]m)|n[eê]n thay [dđ][oổ]i|thay [dđ][oổ]i g[iì]|\bplateau\b/.test(lower);
-  if (!asksComparison && !asksDiagnosis) return false;
+  // Technique / how-to / readiness questions ("Bulgarian split squat bị mất thăng bằng, sửa thế nào?", "vòng ba to hơn nhưng
+  // không muốn đùi to, tập sao?", "vừa sinh con 6 tuần, tập bụng được chưa?") were answered with a default session template
+  // (eval B4-16 / B4-49 / B4-37, 2026-11-11).
+  const asksHow =
+    /s[uử]a (?:th[eế] n[aà]o|sao|l[aạ]i)|t[aậ]p (?:sao|th[eế] n[aà]o)\s*[?.!]*$|l[aà]m sao|m[aấ]t th[aă]ng b[aằ]ng|[dđ][uư][oợ]c ch[uư]a|c[oó] sao kh[oô]ng|c[oó] h[aạ]i kh[oô]ng|sinh con|sau sinh|mang thai|c[oó] th[aậ]t s[uự]|t[aạ]i sao|v[iì] sao/.test(lower);
+  if (!asksComparison && !asksDiagnosis && !asksHow) return false;
   const asksCreation =
     /l[eê]n (?:gi[uúp]+|cho|l[iị]ch|m[oộ]t|1|k[eế] ho[aạ]ch)|(?:^|\s)(?:t[aạ]o|l[aậ]p|thi[eế]t k[eế]|x[aâ]y d[uự]ng|g[oợ]i [yý]|[dđ][eề] xu[aấ]t)\s/.test(lower);
   const isNutrition = /calo|calories|protein|macro|th[uự]c [dđ][oơ]n|[aă]n u[oố]ng|b[uữ]a [aă]n/.test(lower);

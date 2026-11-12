@@ -35,7 +35,11 @@ export function tryExplainUnsupportedPermanentSwap(
   question: string, hasPendingWorkoutDraft: boolean, extractExerciseRevisionKeyword: (text: string) => string | null,
 ): { answer: string; blocks: AgentBlock[] } | null {
   if (hasPendingWorkoutDraft) return null;
-  if (!SWAP_CUE_RE.test(normalizeAgentText(question))) return null;
+  const s = normalizeAgentText(question);
+  if (!SWAP_CUE_RE.test(s)) return null;
+  // A QUESTION about whether to drop an exercise ("Vậy tôi có nên bỏ squat không?") asks for advice, not a plan edit; it was
+  // answered with "can't change your program via chat" (eval B4-44, 2026-11-11). Let the coach answer it.
+  if (/\bco nen\b.*\bkhong\b|\bco can\b.*\bkhong\b|\bnen .*\bhay khong\b|\bco duoc khong\b|\?\s*$/.test(s) && !/\b(hay|giup|xin)\s+(doi|thay|bo)\b/.test(s)) return null;
   if (resolveOrdinalReference(question) !== null) return null;
   if (!extractExerciseRevisionKeyword(question)) return null;
   return { answer: LIMITATION_ANSWER, blocks: [] };

@@ -20,7 +20,7 @@ const RISK_GROUP = /(?<![a-z0-9])(man kinh|menopaus\w*)(?![a-z0-9])/;
 
 // The user reports THEIR OWN pain / injury ("tôi bị đau lưng", "bị bong gân") — not a general "có bị chấn thương không?".
 const OWN_PAIN_OR_INJURY =
-  /(?<![a-z0-9])(?<!co )bi (?:dau|bong gan|chan thuong|cang co|trat|thoat vi)|(?<![a-z0-9])(?:toi|em|minh|tui) (?:dang |van |hay )?dau (?:lung|goi|vai|co|hong|khop|bap chan|dau)/;
+  /(?<![a-z0-9])(?<!co )bi (?:dau|bong gan|chan thuong|cang co|trat|thoat vi|chuot rut|vop be)|(?<![a-z0-9])(?:toi|em|minh|tui) (?:dang |van |hay )?dau (?:lung|goi|vai|co|hong|khop|bap chan|dau)/;
 
 // "Tôi sắp 60 tuổi", "bà tôi 65 tuổi": people 60+ starting or changing a program are usually told to get a health check first (ACSM preparticipation screening).
 function isSixtyOrOlder(foldedQuestion: string): boolean {
@@ -28,7 +28,10 @@ function isSixtyOrOlder(foldedQuestion: string): boolean {
   return m !== null && Number(m[1]) >= 60 && Number(m[1]) <= 110;
 }
 
-type Reason = "CONDITION" | "RISK_GROUP" | "PAIN" | null;
+/** Returning to training after giving birth (eval B4-37): clearance + diastasis/pelvic-floor check before ab work (ACOG). */
+const POSTPARTUM = /(?<![a-z0-9])(sinh con|sau sinh|vua sinh|moi sinh|de xong|postpartum|post-?natal|tach co bung)(?![a-z0-9])/;
+
+type Reason = "CONDITION" | "RISK_GROUP" | "PAIN" | "POSTPARTUM" | null;
 
 function reasonFor(question: string, answer: string, recentUserTurns: string[]): Reason {
   if (ALREADY_REFERS.test(fold(answer))) return null;
@@ -36,6 +39,7 @@ function reasonFor(question: string, answer: string, recentUserTurns: string[]):
   if (OWN_PAIN_OR_INJURY.test(q) && !GENERAL_QUESTION.test(q) && !CHRONIC_CONDITION.test(q)) return "PAIN";
   const reports = (text: string) => CHRONIC_CONDITION.test(text) && SELF_REPORT.test(text) && !GENERAL_QUESTION.test(text);
   if (!GENERAL_QUESTION.test(q) && (reports(q) || recentUserTurns.some((t) => reports(fold(t))))) return "CONDITION";
+  if (POSTPARTUM.test(q)) return "POSTPARTUM";
   if (RISK_GROUP.test(q) || isSixtyOrOlder(q)) return "RISK_GROUP";
   return null;
 }
@@ -54,7 +58,7 @@ const NOTE_RISK_EN =
   "⚠️ If you have been diagnosed with osteoporosis or have an underlying condition (heart, blood pressure, joints), check with your doctor before starting or increasing training, and stop right away if you feel pain, dizziness or shortness of breath.";
 
 const NOTE_PAIN_VI =
-  "⚠️ Nếu cơn đau tăng, kèm sưng, tê, yếu hoặc không đỡ sau vài ngày, hãy đi khám bác sĩ hoặc chuyên gia vật lý trị liệu; trong lúc đó tránh các động tác làm đau tăng.";
+  "⚠️ Khi đang đau hoặc bị chuột rút, hãy dừng tập và nghỉ. Nếu cơn đau tăng, kèm sưng, tê, yếu hoặc không đỡ sau vài ngày (chuột rút lặp lại thường xuyên cũng vậy), hãy đi khám bác sĩ hoặc chuyên gia vật lý trị liệu; trong lúc đó tránh các động tác làm đau tăng.";
 const NOTE_PAIN_EN =
   "⚠️ If the pain gets worse, comes with swelling, numbness or weakness, or does not improve within a few days, see a doctor or physiotherapist; until then avoid movements that increase it.";
 
@@ -68,7 +72,10 @@ export function appendMedicalReferralNote(
   if (!reason) return answer;
   const en = language === "en";
   const note =
-    reason === "CONDITION" ? (en ? NOTE_CONDITION_EN : NOTE_CONDITION_VI)
+    reason === "POSTPARTUM" ? (en
+      ? "⚠️ After giving birth, get clearance from your obstetrician before ab work or intense training, and have abdominal separation (diastasis recti) and the pelvic floor checked; start with breathing and pelvic-floor exercises."
+      : "⚠️ Sau sinh, hãy được bác sĩ sản khoa cho phép trước khi tập bụng hoặc tập nặng, và kiểm tra tách cơ bụng, sàn chậu; nên bắt đầu bằng bài thở và bài sàn chậu.")
+    : reason === "CONDITION" ? (en ? NOTE_CONDITION_EN : NOTE_CONDITION_VI)
     : reason === "PAIN" ? (en ? NOTE_PAIN_EN : NOTE_PAIN_VI)
     : en ? NOTE_RISK_EN : NOTE_RISK_VI;
   return `${answer.trimEnd()}\n\n${note}`;
