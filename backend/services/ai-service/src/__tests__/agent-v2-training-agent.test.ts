@@ -69,10 +69,12 @@ const call = (name: string, input: unknown, id = `tu_${++seq}`): AgentBlock => (
 const use = (...blocks: AgentBlock[]): AgentModelResponse => ({ stopReason: "tool_use", rawStopReason: "tool_use", content: blocks, usage: U });
 const T = (id: string) => id.replace(/\./g, "__");
 
+/** Gate 1: these scenarios are about an adult user (verified profile age 30); the minor gate has its own suite. */
+const ADULT_PROFILE = async () => ({ status: "OK" as const, age: 30 });
 function agent(provider: AgentModelProvider, opts: { deps?: TrainingToolDeps; limits?: Partial<TrainingAgentLimits>; enabled?: boolean } = {}) {
   const registry = createTrainingToolRegistry({ enabled: true, deps: opts.deps ?? mockDeps().deps, traceSink: () => {} });
   return (question: string, context: unknown = CTX) =>
-    runTrainingAgentTurn({ question, context }, { provider, registry, policy: TRAINING_AGENT_PILOT_POLICY, limits: opts.limits, enabled: opts.enabled ?? true });
+    runTrainingAgentTurn({ question, context }, { provider, registry, policy: TRAINING_AGENT_PILOT_POLICY, limits: opts.limits, enabled: opts.enabled ?? true, getVerifiedProfileAge: ADULT_PROFILE });
 }
 const toolResultsOf = (req: AgentModelRequest) => req.messages.at(-1)!.content.filter((b) => b.type === "toolResult") as Array<Extract<AgentBlock, { type: "toolResult" }>>;
 

@@ -1,0 +1,128 @@
+/**
+ * Gymini V2 (EXPERIMENTAL) — minor (<18) safety gate for the Training Agent (P4 prerequisite, Gate 1).
+ *
+ * Runs in the controller BEFORE any model round and BEFORE any tool is offered; the model never sees or decides the age.
+ * Reuses the V1 policy, no copies of its rules:
+ *   - who is a minor: V1 TurnFacts semantics (llm/turn_facts.ts) — profile age, an age stated in this turn, an age stated
+ *     earlier in this conversation; the MINOR reading wins whenever any source says < 18 (profile 16 + "tôi 20" → minor,
+ *     profile 20 + "tôi 15" → minor). A HYPOTHETICAL minor age ("giả sử em 16 tuổi") also counts (conservative, as V1's
+ *     minor_safety_policy). NEGATED / UNKNOWN ages never count.
+ *   - what kind of request: classifyMinorRequest (llm/minor_safety_policy.ts) — GENERAL_KNOWLEDGE / PERSONAL_ADVICE /
+ *     PLAN_REQUEST / HIGH_RISK.
+ *   - the answers: safetyGuard.minorAgeResult() (minors' triage) and minorGeneralInfoPromptNote / appendMinorSupervisionNote
+ *     (llm/medical-referral.ts) for a general question.
+ *
+ * Age sources and their trust:
+ *   PROFILE       the user's saved profile, read server-side with the caller's OWN Authorization header (user-service
+ *                 GET /profile/me via V1 profileExtractor; see readVerifiedProfileAge). The only verified source.
+ *   CURRENT_TURN / HISTORY   what the user typed. Self-reported: it can only make the gate STRICTER (a stated minor age), never
+ *                 lift a minor profile age.
+ *   MODEL         never read. The verdict is fixed before the first model round; tool results carry no age.
+ *
+ * Decision (pure, `decideMinorGate`):
+ *   MINOR       + GENERAL_KNOWLEDGE that needs none of the user's own data → general answer: non-personal tools only, the V1
+ *                 minor prompt note, supervision line appended to the answer.
+ *   MINOR       + anything else (PERSONAL_ADVICE / PLAN_REQUEST / HIGH_RISK, or a question about their own plan/schedule)
+ *                 → minorAgeResult(), no model call, no tool call.
+ *   UNVERIFIED  (profile read failed / not permitted / malformed, and no stated minor age)
+ *                 + GENERAL_KNOWLEDGE without own-data needs → general answer with non-personal tools only.
+ *                 + anything else → refuse personal advice until the profile can be read (fail closed — stricter than V1,
+ *                   which keeps the question-only result when the lookup fails).
+ *   ADULT / UNKNOWN (profile read OK; profile age ≥ 18 or not set, no stated minor age) → normal agent (V1 parity: V1 also
+ *                 treats a user without any age as not-a-minor).
+ */
+import { profileExtractor } from "../llm/profile_extractor";
+import { safetyGuard } from "../llm/safety_guard";
+import { classifyMinorRequest, type MinorRequestCategory } from "../llm/minor_safety_policy";
+import { extractFactsFromText } from "../llm/turn_facts";
+
+export type ProfileAgeRead =
+  | { status: "OK"; age: number | null }
+  | { status: "FAILED"; reason: string };
+
+/** Reads the age from the authenticated user's own profile. Must never throw (a throw is treated as FAILED anyway). */
+export type VerifiedProfileAgeReader = (ctx: { userId: string; authorizationHeader?: string }) => Promise<ProfileAgeRead>;
+
+const validAge = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 120 ? v : null);
+
+/**
+ * Default reader: the EXISTING V1 read V1's own minor policy uses (orchestrator `resolveProfileAwareSafety` →
+ * `profileExtractor.extract(userId, authHeader).profile.age` = user-service GET /profile/me with the caller's own token).
+ * agent-v2 has no HTTP of its own (static isolation rule), so it goes through that V1 function.
+ * KNOWN LIMIT (stated, not hidden): profileExtractor swallows a failed /profile/me (allSettled) and returns no age, so with this
+ * default a 401/403/outage reads as "no age set" (UNKNOWN → V1 parity), not as UNVERIFIED. Missing credentials and a thrown
+ * extractor ARE reported as FAILED. A reader that reports the failure (FAILED → fail closed) is injected via
+ * `TrainingAgentDeps.getVerifiedProfileAge`; a V1-side failure-reporting read is a P4 wiring item (V1 change, needs approval).
+ */
+export const readVerifiedProfileAge: VerifiedProfileAgeReader = async (ctx) => {
+  if (typeof ctx.authorizationHeader !== "string" || !ctx.authorizationHeader) return { status: "FAILED", reason: "no_credentials" };
+  try {
+    const personal = await profileExtractor.extract(ctx.userId, ctx.authorizationHeader);
+    if (!personal || typeof personal !== "object" || !personal.profile || typeof personal.profile !== "object") return { status: "FAILED", reason: "malformed_profile" };
+    return { status: "OK", age: validAge(personal.profile.age) };
+  } catch {
+    return { status: "FAILED", reason: "unavailable" };
+  }
+};
+
+export type AgeGateStatus = "MINOR" | "ADULT" | "UNKNOWN" | "UNVERIFIED";
+export type AgeSource = "PROFILE" | "CURRENT_TURN" | "HISTORY";
+
+export interface AgeVerdict {
+  status: AgeGateStatus;
+  /** Which sources said < 18 (empty unless MINOR). */
+  minorBy: AgeSource[];
+  /** The profile and a stated age disagree across the 18 boundary. */
+  conflict: boolean;
+  profileRead: "OK" | "FAILED";
+}
+
+function statedAges(text: string): number[] {
+  const f = extractFactsFromText(String(text ?? "")).ageYears;
+  if (!f || f.status === "NEGATED" || f.status === "UNKNOWN") return [];
+  return [f.value];
+}
+
+/** Pure. `historyUserTexts` = earlier USER turns of this conversation only (assistant text is never an age source). */
+export function resolveAgeVerdict(profile: ProfileAgeRead, question: string, historyUserTexts: readonly string[] = []): AgeVerdict {
+  const profileAge = profile.status === "OK" ? profile.age : null;
+  const current = statedAges(question);
+  const history = historyUserTexts.flatMap(statedAges);
+  const minorBy: AgeSource[] = [];
+  if (profileAge !== null && profileAge < 18) minorBy.push("PROFILE");
+  if (current.some((a) => a < 18)) minorBy.push("CURRENT_TURN");
+  if (history.some((a) => a < 18)) minorBy.push("HISTORY");
+  const stated = [...current, ...history];
+  const conflict = profileAge !== null && stated.some((a) => (a < 18) !== (profileAge < 18));
+  const status: AgeGateStatus = minorBy.length ? "MINOR" : profile.status === "FAILED" ? "UNVERIFIED" : profileAge === null ? "UNKNOWN" : "ADULT";
+  return { status, minorBy, conflict, profileRead: profile.status };
+}
+
+export type MinorGateDecision =
+  | { action: "PROCEED" }
+  | { action: "GENERAL_ONLY"; addMinorNote: boolean }
+  | { action: "BLOCK"; status: "MINOR_PROTECTED" | "PROFILE_UNVERIFIED"; message: string };
+
+export const PROFILE_UNVERIFIED_MESSAGE =
+  "Mình chưa xác minh được hồ sơ của bạn nên chưa thể tư vấn cá nhân về tập luyện lúc này. Bạn có thể hỏi kiến thức tập luyện chung, hoặc thử lại sau ít phút nhé.";
+
+/** Tools a general-information answer may use: catalog / evidence only — nothing about the user. */
+export const NON_PERSONAL_TOOL_IDS: ReadonlySet<string> = new Set([
+  "training.search_exercise", "training.list_exercises", "training.get_exercise_muscle_profiles", "training.get_scientific_evidence",
+]);
+
+/** Pure. `needsOwnData` = the question asks about the user's own plan / schedule / cycle / equipment. */
+export function decideMinorGate(verdict: AgeVerdict, category: MinorRequestCategory, needsOwnData: boolean): MinorGateDecision {
+  const general = category === "GENERAL_KNOWLEDGE" && !needsOwnData;
+  if (verdict.status === "MINOR") {
+    return general
+      ? { action: "GENERAL_ONLY", addMinorNote: true }
+      : { action: "BLOCK", status: "MINOR_PROTECTED", message: (safetyGuard.minorAgeResult() as { messageVi: string }).messageVi };
+  }
+  if (verdict.status === "UNVERIFIED") {
+    return general ? { action: "GENERAL_ONLY", addMinorNote: false } : { action: "BLOCK", status: "PROFILE_UNVERIFIED", message: PROFILE_UNVERIFIED_MESSAGE };
+  }
+  return { action: "PROCEED" };
+}
+
+export { classifyMinorRequest };

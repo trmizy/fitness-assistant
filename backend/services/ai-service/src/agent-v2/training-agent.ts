@@ -22,7 +22,12 @@ import {
 import type { AgentToolPolicy, ToolResult } from "./tool-contract";
 import type { ToolRegistry } from "./tool-registry";
 import { zodToJsonSchema } from "./zod-json-schema";
-import { fingerprintText, type ModelRoundTrace, type ToolCallTrace, type TurnTrace } from "./turn-trace";
+import type { ModelRoundTrace, ToolCallTrace, TurnTrace } from "./turn-trace";
+import {
+  classifyMinorRequest, decideMinorGate, NON_PERSONAL_TOOL_IDS, readVerifiedProfileAge, resolveAgeVerdict,
+  type AgeVerdict, type MinorGateDecision, type VerifiedProfileAgeReader,
+} from "./minor-gate";
+import { appendMinorSupervisionNote, minorGeneralInfoPromptNote } from "../llm/medical-referral";
 
 // ── limits ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 export interface TrainingAgentLimits {
@@ -64,7 +69,7 @@ const CHARS_PER_TOKEN = 3;
 export type TrainingTurnStatus =
   | "ANSWERED" | "DISABLED" | "UNAUTHENTICATED" | "INVALID_INPUT" | "SAFETY_BLOCKED" | "CONFIRMATION_REQUIRED"
   | "BUDGET_EXHAUSTED" | "DEADLINE_EXCEEDED" | "PROVIDER_ERROR" | "MODEL_REFUSED" | "INCOMPLETE" | "MALFORMED_MODEL_OUTPUT"
-  | "CONTEXT_EXCEEDED" | "UNGROUNDED";
+  | "CONTEXT_EXCEEDED" | "UNGROUNDED" | "MINOR_PROTECTED" | "PROFILE_UNVERIFIED";
 
 export interface TrainingAgentUsage {
   modelRounds: number;
@@ -105,6 +110,8 @@ export interface TrainingAgentDeps {
   now?: () => number;
   /** P3: receives exactly one TurnTrace per turn (default: structured log line "agent_v2_turn"). Must not throw into the turn. */
   traceSink?: (trace: TurnTrace) => void;
+  /** Gate 1: verified profile age of the authenticated user (default: user-service GET /profile/me as the user). */
+  getVerifiedProfileAge?: VerifiedProfileAgeReader;
 }
 
 export interface TrainingAgentTurn {
@@ -127,7 +134,7 @@ export const SYSTEM_PROMPT = [
   "Số lượt gọi công cụ và thời gian có giới hạn: chỉ gọi công cụ thật sự cần, rồi trả lời ngắn gọn.",
 ].join("\n");
 
-const MSG: Record<Exclude<TrainingTurnStatus, "ANSWERED" | "SAFETY_BLOCKED">, string> = {
+const MSG: Record<Exclude<TrainingTurnStatus, "ANSWERED" | "SAFETY_BLOCKED" | "MINOR_PROTECTED" | "PROFILE_UNVERIFIED">, string> = {
   DISABLED: "Tính năng Training Agent thử nghiệm đang tắt.",
   UNAUTHENTICATED: "Bạn cần đăng nhập để dùng trợ lý tập luyện.",
   INVALID_INPUT: "Câu hỏi quá dài hoặc không hợp lệ. Hãy hỏi ngắn gọn hơn.",
@@ -203,7 +210,9 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
   const roundTraces: ModelRoundTrace[] = [];
   const toolTraces: ToolCallTrace[] = [];
   const sink = deps.traceSink ?? ((t: TurnTrace) => logger.info(t, "agent_v2_turn"));
-  const done = (status: TrainingTurnStatus, answer: string, extra: Partial<TrainingAgentResult> = {}): TrainingAgentResult => {
+  let ageVerdict: AgeVerdict | null = null;
+  let gate: MinorGateDecision | null = null;
+  const done =(status: TrainingTurnStatus, answer: string, extra: Partial<TrainingAgentResult> = {}): TrainingAgentResult => {
     usage.wallTimeMs = now() - started;
     usage.inFlightAtEnd = inFlight.n;
     usage.estimatedCostUsd = Number(costOf(usage.inputTokens, usage.outputTokens).toFixed(6));
@@ -212,9 +221,11 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
       sink({
         turnId, agentId: deps.policy.agentId, policyTools: deps.policy.allowedTools.length, modelId: deps.provider.modelId,
         startedAt: new Date(started).toISOString(), durationMs: usage.wallTimeMs, status, stopDetail: result.stopDetail ?? null,
-        question: { length: typeof turn.question === "string" ? turn.question.length : 0, fingerprint: fingerprintText(typeof turn.question === "string" ? turn.question : "") },
+        question: { length: typeof turn.question === "string" ? turn.question.length : 0 },
         answerLength: answer.length, rounds: roundTraces, tools: toolTraces,
         totals: { ...usage }, guardActions: result.guardActions,
+        // verdict + decision only — never the age value itself
+        ageGate: ageVerdict ? { status: ageVerdict.status, minorBy: ageVerdict.minorBy, conflict: ageVerdict.conflict, profileRead: ageVerdict.profileRead, decision: gate?.action ?? null } : null,
       });
     } catch { /* tracing must never change the turn's outcome */ }
     return result;
@@ -231,12 +242,32 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
   if (!safety.safe) return done("SAFETY_BLOCKED", safety.message ?? MSG.MODEL_REFUSED, { stopDetail: safety.type });
 
   const folded = foldVi(question);
+
+  // Gate 1 (minor safety): decided from the VERIFIED profile age + what the user typed, BEFORE any model round or tool.
+  // Nothing the model produces later can change it.
+  const historyUserTexts = (turn.history ?? []).filter((h) => h.role === "user").map((h) => String(h.text ?? ""));
+  const authCtx = turn.context as { userId: string; authorizationHeader?: string };
+  let profileRead: Awaited<ReturnType<VerifiedProfileAgeReader>>;
+  try {
+    profileRead = await (deps.getVerifiedProfileAge ?? readVerifiedProfileAge)({ userId: authCtx.userId, authorizationHeader: authCtx.authorizationHeader });
+    if (!profileRead || (profileRead.status !== "OK" && profileRead.status !== "FAILED")) profileRead = { status: "FAILED", reason: "malformed_reader_result" };
+  } catch {
+    profileRead = { status: "FAILED", reason: "reader_threw" };
+  }
+  ageVerdict = resolveAgeVerdict(profileRead, question, historyUserTexts);
+  gate = decideMinorGate(ageVerdict, classifyMinorRequest(question), NEEDS_USER_DATA.test(folded));
+  if (gate.action === "BLOCK") return done(gate.status, gate.message, { stopDetail: `age:${ageVerdict.status}` });
+
   if (mayStartMutation(classifyAgentTurnAct(question)) && CHANGE_VERB.test(folded)) {
     return done("CONFIRMATION_REQUIRED", MSG.CONFIRMATION_REQUIRED);
   }
 
   // 2. bounded loop
-  const offered = deps.registry.toolsFor(deps.policy);
+  const generalOnly = gate.action === "GENERAL_ONLY";
+  const minorNote = gate.action === "GENERAL_ONLY" && gate.addMinorNote;
+  // a general-information turn is offered catalog/evidence tools only — personal tools are not even visible to the model
+  const offered = deps.registry.toolsFor(deps.policy).filter((c) => !generalOnly || NON_PERSONAL_TOOL_IDS.has(c.id));
+  const systemPrompt = minorNote ? `${SYSTEM_PROMPT}\n${minorGeneralInfoPromptNote("vi")}` : SYSTEM_PROMPT;
   const nameToId = new Map(offered.map((c) => [toProviderName(c.id), c.id]));
   const toolSpecs: AgentToolSpec[] = offered.map((c) => ({ name: toProviderName(c.id), description: c.description, inputSchema: zodToJsonSchema(c.input as any) }));
 
@@ -261,7 +292,7 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
       // ── admission: every limit is checked BEFORE the next model round ──
       if (usage.modelRounds >= L.maxModelCalls) return done("BUDGET_EXHAUSTED", MSG.BUDGET_EXHAUSTED, { stopDetail: "maxModelCalls" });
       if (remaining() < L.minModelWindowMs) { usage.deadlineHit = true; return done("DEADLINE_EXCEEDED", MSG.DEADLINE_EXCEEDED, { stopDetail: "deadline" }); }
-      const estIn = estimateTokens(SYSTEM_PROMPT, messages, toolSpecs);
+      const estIn = estimateTokens(systemPrompt, messages, toolSpecs);
       const maxOut = Math.min(L.perCallMaxOutputTokens, L.maxTotalOutputTokens - usage.outputTokens);
       if (maxOut < 64) return done("BUDGET_EXHAUSTED", MSG.BUDGET_EXHAUSTED, { stopDetail: "maxTotalOutputTokens" });
       if (usage.inputTokens + estIn > L.maxTotalInputTokens) return done("BUDGET_EXHAUSTED", MSG.BUDGET_EXHAUSTED, { stopDetail: "maxTotalInputTokens" });
@@ -277,7 +308,7 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
       let resp: AgentModelResponse;
       try {
         resp = await waitAtMost(
-          deps.provider.converse({ system: SYSTEM_PROMPT, messages: structuredClone(messages), tools: toolSpecs, maxOutputTokens: maxOut, temperature: 0.2, signal: turnAbort.signal }),
+          deps.provider.converse({ system: systemPrompt, messages: structuredClone(messages), tools: toolSpecs, maxOutputTokens: maxOut, temperature: 0.2, signal: turnAbort.signal }),
           remaining(), inFlight);
       } catch (err) {
         traceRound(err instanceof Deadline ? "deadline" : `error:${err instanceof AgentProviderError ? err.kind : "unknown"}`);
@@ -313,7 +344,7 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
           if (NEEDS_USER_DATA.test(folded) && !personalDataRead) return done("UNGROUNDED", MSG.UNGROUNDED, { stopDetail: "no_user_data_read" });
           const guarded = guardTrainingAnswer(text, { question, sessionUserMessages: (turn.history ?? []).filter((h) => h.role === "user").map((h) => h.text), verifiedNumbers, injuriesOnRecord });
           if (!guarded.answer) return done("MODEL_REFUSED", MSG.MODEL_REFUSED, { stopDetail: "guards_removed_everything", guardActions: guarded.actions });
-          return done("ANSWERED", guarded.answer, { guardActions: guarded.actions });
+          return done("ANSWERED", minorNote ? appendMinorSupervisionNote(guarded.answer, "vi") : guarded.answer, { guardActions: minorNote ? [...guarded.actions, "minor_supervision"] : guarded.actions });
         }
         case "tool_use":
           break;

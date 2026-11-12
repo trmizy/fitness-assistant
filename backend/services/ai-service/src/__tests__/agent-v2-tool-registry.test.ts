@@ -293,7 +293,8 @@ test("every execution emits one trace event without raw arguments or user data",
   assert.equal(traces.length, 2);
   assert.equal(traces[0].outcome, "ok"); assert.equal(traces[0].kind, "READ"); assert.equal(traces[0].agentId, "training-agent-pilot");
   assert.equal(traces[1].outcome, "IDENTITY_IN_ARGUMENTS");
-  assert.match(traces[0].argsFingerprint, /^[0-9a-f]{16}$/);
+  assert.deepEqual(traces[0].argsShape, { keys: ["name"], keyCount: 1 }, "argument key names only — no value and no hash of the value");
+  assert.ok(!("argsFingerprint" in traces[0]), "no reversible hash of user input");
   assert.doesNotMatch(JSON.stringify(traces), /Bulgarian|2222|1111|Bearer/);
 });
 

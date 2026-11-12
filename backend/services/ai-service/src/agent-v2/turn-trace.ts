@@ -3,10 +3,10 @@
  *
  * One TurnTrace per agent turn, emitted for EVERY outcome (including early exits such as DISABLED / SAFETY_BLOCKED). The
  * registry's per-tool trace events carry the same turnId, so a turn can be joined with its tool calls.
- * Privacy: no question text, answer text, tool arguments or tool data — only lengths, a 16-hex SHA-256 fingerprint of the
- * question (to correlate repeats, not to recover text), ids, counts, timings and outcomes.
+ * Privacy: no question text, answer text, tool arguments or tool data — only lengths, random ids, counts, timings and outcomes.
+ * (A truncated unkeyed SHA-256 of the question was removed 2026-11-12: short, frequent questions are recoverable by hashing a
+ * dictionary of candidates; turnId already correlates a turn with its tool calls.)
  */
-import { createHash } from "node:crypto";
 
 export interface ModelRoundTrace {
   round: number;
@@ -36,7 +36,7 @@ export interface TurnTrace {
   durationMs: number;
   status: string;
   stopDetail: string | null;
-  question: { length: number; fingerprint: string };
+  question: { length: number };
   answerLength: number;
   rounds: ModelRoundTrace[];
   tools: ToolCallTrace[];
@@ -46,9 +46,10 @@ export interface TurnTrace {
     deadlineHit: boolean; inFlightAtEnd: number;
   };
   guardActions: string[];
+  /** Gate 1 (minor safety) verdict + decision. Never the age value. null when the turn ended before the gate ran. */
+  ageGate?: { status: string; minorBy: string[]; conflict: boolean; profileRead: string; decision: string | null } | null;
 }
 
-export const fingerprintText = (text: string) => createHash("sha256").update(String(text ?? "")).digest("hex").slice(0, 16);
 
 function percentile(sorted: number[], p: number): number | null {
   if (!sorted.length) return null;

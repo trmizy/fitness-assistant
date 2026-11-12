@@ -11,7 +11,7 @@
  *
  * Deliberately small: one registry, per-agent policies, Training first. No plugin system, no multi-agent routing.
  */
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { isAgentV2Enabled } from "./flag";
@@ -29,8 +29,11 @@ export interface ToolTraceEvent {
   kind: ToolKind | "UNKNOWN";
   outcome: "ok" | ToolErrorCode;
   durationMs: number;
-  /** sha256 of the canonical arguments, 16 hex chars — correlates calls without storing what the user typed. */
-  argsFingerprint: string;
+  /**
+   * Shape of the arguments only: sorted key names (any depth) and their count — never values. (P1 used an unkeyed, truncated
+   * SHA-256 of the arguments; small value spaces such as exercise names made it reversible by dictionary, removed 2026-11-12.)
+   */
+  argsShape: { keys: string[]; keyCount: number };
   at: string;
 }
 
@@ -80,10 +83,11 @@ const contextSchema = z.object({
   authorizationHeader: z.string().optional(),
 });
 
-function fingerprint(args: unknown): string {
-  let canonical: string;
-  try { canonical = JSON.stringify(args, Object.keys(typeof args === "object" && args ? flattenKeys(args) : {}).sort()); } catch { canonical = String(args); }
-  return createHash("sha256").update(canonical ?? "undefined").digest("hex").slice(0, 16);
+function argsShape(args: unknown): { keys: string[]; keyCount: number } {
+  if (!args || typeof args !== "object") return { keys: [], keyCount: 0 };
+  // Key names come from the tool schemas (or are rejected by them); capped so a hostile argument object cannot bloat a log line.
+  const keys = Object.keys(flattenKeys(args)).map((k) => k.slice(0, 40)).sort().slice(0, 20);
+  return { keys, keyCount: Object.keys(flattenKeys(args)).length };
 }
 function flattenKeys(o: object, acc: Record<string, true> = {}, depth = 0): Record<string, true> {
   if (depth > 12) return acc;
@@ -120,7 +124,7 @@ export function createToolRegistry<D = unknown>(options: ToolRegistryOptions<D> 
     const finish = (outcome: "ok" | ToolErrorCode) => {
       try {
         sink({ traceId: randomUUID(), ...(callOptions.turnId ? { turnId: callOptions.turnId } : {}), agentId: policy.agentId, toolId, kind: contract?.kind ?? "UNKNOWN", outcome,
-          durationMs: Date.now() - started, argsFingerprint: fingerprint(rawArgs), at: new Date().toISOString() });
+          durationMs: Date.now() - started, argsShape: argsShape(rawArgs), at: new Date().toISOString() });
       } catch { /* tracing must never break a call */ }
     };
     const fail = (code: ToolErrorCode): ToolResult => {

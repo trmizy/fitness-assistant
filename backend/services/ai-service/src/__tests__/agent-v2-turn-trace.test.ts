@@ -5,13 +5,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { runTrainingAgentTurn } from "../agent-v2/training-agent";
 import { createTrainingToolRegistry, TRAINING_AGENT_PILOT_POLICY, type TrainingToolDeps } from "../agent-v2/training-tools";
-import { summarizeTurnTraces, fingerprintText, type TurnTrace } from "../agent-v2/turn-trace";
+import { summarizeTurnTraces, type TurnTrace } from "../agent-v2/turn-trace";
 import type { ToolTraceEvent } from "../agent-v2/tool-registry";
 import type { AgentBlock, AgentModelProvider, AgentModelRequest, AgentModelResponse } from "../agent-v2/model-provider";
 
 const ME = "11111111-1111-4111-8111-111111111111";
 const CTX = { userId: ME, authorizationHeader: "Bearer secret-token-value" };
 const CYCLE = "33333333-3333-4333-8333-333333333333";
+const ADULT_PROFILE = async () => ({ status: "OK" as const, age: 30 });
 const deps = {
   getActiveCycle: async () => ({ cycle: { id: CYCLE, userId: ME, status: "ACTIVE", startDate: "2026-11-02", endDate: "2026-11-29", weekNumber: 2 }, summary: {} }),
   getTodaySchedule: async () => [{ id: "s-1", userId: ME, scheduledDate: "2026-11-12", status: "SCHEDULED", title: "Upper", exercises: [{}] }],
@@ -30,7 +31,7 @@ async function turn(question: string, steps: AgentModelResponse[], opts: { enabl
   const toolEvents: ToolTraceEvent[] = [];
   const registry = createTrainingToolRegistry({ enabled: true, deps, traceSink: (e) => toolEvents.push(e) });
   const result = await runTrainingAgentTurn({ question, context: opts.context ?? CTX },
-    { provider: provider(steps), registry, policy: TRAINING_AGENT_PILOT_POLICY, enabled: opts.enabled ?? true, traceSink: (t) => turns.push(t) });
+    { provider: provider(steps), registry, policy: TRAINING_AGENT_PILOT_POLICY, enabled: opts.enabled ?? true, traceSink: (t) => turns.push(t), getVerifiedProfileAge: ADULT_PROFILE });
   return { result, turns, toolEvents };
 }
 
@@ -70,7 +71,7 @@ test("refused tool calls and provider errors appear in the trace", async () => {
   const failing = provider([() => { throw Object.assign(new Error("x"), { name: "AgentProviderError", kind: "server" }); }]);
   const traces: TurnTrace[] = [];
   const reg = createTrainingToolRegistry({ enabled: true, deps, traceSink: () => {} });
-  await runTrainingAgentTurn({ question: "Mỗi tuần nên tập bao nhiêu set?", context: CTX }, { provider: failing, registry: reg, policy: TRAINING_AGENT_PILOT_POLICY, enabled: true, traceSink: (t) => traces.push(t) });
+  await runTrainingAgentTurn({ question: "Mỗi tuần nên tập bao nhiêu set?", context: CTX }, { provider: failing, registry: reg, policy: TRAINING_AGENT_PILOT_POLICY, enabled: true, traceSink: (t) => traces.push(t), getVerifiedProfileAge: ADULT_PROFILE });
   assert.equal(traces[0].status, "PROVIDER_ERROR"); assert.match(traces[0].rounds[0].outcome, /^error:/);
 });
 
@@ -80,21 +81,21 @@ test("privacy: no question text, answer text, token, user id or tool data in the
   const json = JSON.stringify(turns[0]);
   for (const forbidden of ["Chu kỳ", "tuần mấy", "Bạn đang", "secret-token-value", "Bearer", ME, CYCLE, "2026-11-29"]) assert.ok(!json.includes(forbidden), forbidden);
   assert.equal(turns[0].question.length, q.length);
-  assert.equal(turns[0].question.fingerprint, fingerprintText(q));
-  assert.match(turns[0].question.fingerprint, /^[0-9a-f]{16}$/);
+  assert.deepEqual(turns[0].question, { length: q.length }, "length only — no (dictionary-reversible) hash of the question");
+  assert.doesNotMatch(json, /[0-9a-f]{16}/, "no 16-hex hash anywhere in the trace");
 });
 
 test("a throwing trace sink never changes the turn's outcome", async () => {
   const reg = createTrainingToolRegistry({ enabled: true, deps, traceSink: () => {} });
   const r = await runTrainingAgentTurn({ question: "Mỗi tuần nên tập bao nhiêu set?", context: CTX },
-    { provider: provider([say("Khoảng 10–20 set mỗi nhóm cơ mỗi tuần.")]), registry: reg, policy: TRAINING_AGENT_PILOT_POLICY, enabled: true, traceSink: () => { throw new Error("sink down"); } });
+    { provider: provider([say("Khoảng 10–20 set mỗi nhóm cơ mỗi tuần.")]), registry: reg, policy: TRAINING_AGENT_PILOT_POLICY, enabled: true, traceSink: () => { throw new Error("sink down"); }, getVerifiedProfileAge: ADULT_PROFILE });
   assert.equal(r.status, "ANSWERED");
 });
 
 test("summarizeTurnTraces: status mix, rates, latency percentiles, tool usage, cost, guard actions", () => {
   const base = (over: Partial<TurnTrace>): TurnTrace => ({
     turnId: "t", agentId: "a", policyTools: 11, modelId: "m", startedAt: "2026-11-12T00:00:00Z", durationMs: 100, status: "ANSWERED", stopDetail: null,
-    question: { length: 10, fingerprint: "0".repeat(16) }, answerLength: 50, rounds: [], tools: [],
+    question: { length: 10 }, answerLength: 50, rounds: [], tools: [],
     totals: { modelRounds: 1, providerAttempts: 1, retries: 0, toolInvocations: 0, toolRefusals: 0, inputTokens: 1000, outputTokens: 100, usageEstimated: false, estimatedCostUsd: 0.00112, deadlineHit: false, inFlightAtEnd: 0 },
     guardActions: [], ...over,
   });
