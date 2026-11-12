@@ -128,6 +128,8 @@ export interface SupervisorDecision {
   strategy: string;
   agents: AgentId[];
   reasonCodes: string[];
+  /** M4: the routing plan behind the selection (codes only): needs, relevance, deferred agents, coverage, uncertainty. */
+  plan?: import("./routing-planner").RoutingPlan;
 }
 
 export interface DecisionInput {
@@ -135,6 +137,8 @@ export interface DecisionInput {
   /** Diacritic-folded question. */
   folded: string;
   available: readonly AgentId[];
+  /** M4: agents whose facts are already FRESH in the session context (a follow-up need not re-run them). */
+  satisfiedFromSession?: ReadonlySet<AgentId>;
 }
 
 /** Swappable routing strategy (deterministic in M1; an LLM-backed provider can implement the same interface later). */

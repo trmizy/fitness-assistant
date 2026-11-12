@@ -308,12 +308,14 @@ test("P-19/P-20 provenance per delegation + prompt injection in an exercise name
 
 test("P-21 three-agent request: limit not raised, the excluded part is SAID, status PARTIAL; budget unchanged", async () => {
   assert.deepEqual({ ...SUPERVISOR_BUDGET }, { maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08 });
-  const h = harness({ p: [use(call(T("progress.get_strength_progression"))), say("Ước tính sức mạnh squat giảm nhẹ.")],
-    r: [use(call(T("recovery.get_training_load"))), say("Quan sát từ dữ liệu: RPE gần đây tăng.")] });
+  // M4 (intent planner, updated expectation): the ASK is "hôm nay nên tập gì" → Training is primary; Recovery is its preferred
+  // supporting evidence; Progress is deferred and SAID (M3 used to cut Training by fixed execution order)
+  const h = harness({ r: [use(call(T("recovery.get_training_load"))), say("Quan sát từ dữ liệu: RPE gần đây tăng.")],
+    t: [use(call(T("training.get_today_schedule"))), say("Hôm nay buổi Lower, giảm tạ nhẹ.")] });
   const r = await h.run("Sức mạnh của tôi giảm và tôi thấy mệt, hôm nay nên tập gì?");
-  assert.deepEqual(r.decision!.agents, ["progress", "recovery"]); assert.deepEqual(h.supTraces[0].decision!.dropped, ["training:max_agents"]);
-  assert.equal(r.status, "PARTIAL"); assert.match(r.answer, /Phần tập luyện của câu hỏi chưa được xử lý trong lượt này vì mỗi lượt chỉ tham vấn tối đa 2 trợ lý/);
-  assert.equal(h.tProv.requests.length, 0);
+  assert.deepEqual(r.decision!.agents, ["recovery", "training"]); assert.deepEqual(h.supTraces[0].decision!.dropped, ["progress:max_agents"]);
+  assert.equal(r.status, "PARTIAL"); assert.match(r.answer, /Phần tiến độ của câu hỏi chưa được xử lý trong lượt này vì mỗi lượt chỉ tham vấn tối đa 2 trợ lý/);
+  assert.equal(h.pProv.requests.length, 0);
   const st = h.supTraces[0]; assert.ok(st.totals.modelCallCount <= 8 && st.totals.toolCallCount <= 6); assert.deepEqual(st.budget.overrun, []);
 });
 
@@ -335,7 +337,13 @@ test("P-22/P-23 Progress timeout → partial; late output never used", async () 
 test("P-24 trace privacy: no question, answer, ids, token, measurements, goal or handoff in any trace", async () => {
   const h = harness({ p: [use(call(T("progress.get_body_measurements")), call(T("progress.get_roadmap_forecast"))), say("Theo số đo, cân nặng đi từ 74 kg xuống 72.4 kg.")] });
   await h.run(MONTH_Q);
-  const json = JSON.stringify([h.supTraces, h.agentTraces]);
+  // timing fields (ISO timestamps with ms, durations, latencies) are measurements of the run, not user data: a substring
+  // check on them is random ("…:20.680Z" contains "68") — M4 root cause of the intermittent privacy-test failure
+  const TIMING = new Set(["startedAt", "durationMs", "latencyMs", "at", "wallTimeMs"]);
+  assert.ok(!JSON.stringify([h.supTraces, h.agentTraces]).includes(ME), "user id (checked on the raw trace)");
+  // random UUIDs (turn / trace / delegation ids) contain digits too: "…68…" in an id is not user data
+  const json = JSON.stringify([h.supTraces, h.agentTraces], (k, v) => (TIMING.has(k) ? undefined : v))
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<uuid>");
   for (const s of ["tiến bộ", "72.4", "70.4", "68", "18.5", ME, "secret-token-prog", "Bearer", "rm-secret", "OBSERVED_MEASUREMENT", "WEIGHT_LOSS"]) assert.ok(!json.includes(s), s);
   assert.equal(h.agentTraces[0].links?.supervisorTraceId, h.supTraces[0].supervisorTraceId);
 });

@@ -44,7 +44,10 @@ export const PROGRESS_PROFILE: Readonly<AgentProfile> = Object.freeze<AgentProfi
   nonPersonalTools: PROGRESS_NON_PERSONAL_TOOLS,
   needsUserData: PROGRESS_NEEDS_USER_DATA,
   guard: (answer, ev) => {
-    const forecast = numbersOf(ev.toolData.get("progress.get_roadmap_forecast"));
+    // M4: forecast figures from this turn's tool AND from FORECAST entries of the session (e.g. a forecast the user mentioned
+    // last turn) — never stated as achieved
+    const sessionEntries = ((ev.handoff.sessionContext as any)?.entries ?? []) as Array<{ kind: string; value: unknown }>;
+    const forecast = [...numbersOf(ev.toolData.get("progress.get_roadmap_forecast")), ...sessionEntries.filter((e) => e.kind === "FORECAST").flatMap((e) => numbersOf(e.value))];
     const observed = new Set(["progress.get_body_measurements", "progress.get_strength_progression", "progress.get_cycle_status"].flatMap((id) => numbersOf(ev.toolData.get(id))));
     const body = ev.toolData.get("progress.get_body_measurements") as any;
     return guardProgressAnswer(answer, {
@@ -55,6 +58,8 @@ export const PROGRESS_PROFILE: Readonly<AgentProfile> = Object.freeze<AgentProfi
       bodyFatObserved: typeof body?.latest?.bodyFatPct === "number",
     });
   },
+  // data-change verbs only: "giảm / tăng" describe body change here, not a request to edit saved data
+  changeVerb: /\b(doi|thay|xoa|bo qua|huy|luu|tao|cap nhat|sua|chinh|chuyen)\b/,
   messages: {
     DISABLED: "Tính năng Progress Agent thử nghiệm đang tắt.",
     UNAUTHENTICATED: "Bạn cần đăng nhập để xem tiến độ.",

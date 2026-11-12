@@ -153,6 +153,8 @@ export interface AgentGuardEvidence {
   verifiedNumbers: number[];
   /** Successful tool projections of this turn, by tool id (last one wins). */
   toolData: ReadonlyMap<string, unknown>;
+  /** M4: the supervisor's typed handoff for this delegation (incl. labelled session context); {} when none. */
+  handoff: Readonly<Record<string, unknown>>;
 }
 
 /** Everything domain-specific about one agent. The engine never branches on an agent's name. */
@@ -166,6 +168,9 @@ export interface AgentProfile {
   needsUserData: RegExp;
   guard: (answer: string, ev: AgentGuardEvidence) => { answer: string; actions: string[] };
   messages?: Partial<Record<MessageKey, string>>;
+  /** Folded: verbs that make a COMMAND/REQUEST a change request (default CHANGE_VERB). M4: Progress excludes giảm/tăng
+   * ("dự báo tôi giảm 2 kg" describes a body change, it does not ask to change saved data). */
+  changeVerb?: RegExp;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -273,7 +278,7 @@ export async function runBoundedAgentTurn(turn: AgentTurn, deps: BoundedAgentDep
   gate = decideMinorGate(ageVerdict, classifyMinorRequest(question), profile.needsUserData.test(folded));
   if (gate.action === "BLOCK") return done(gate.status, gate.message, { stopDetail: `age:${ageVerdict.status}` });
 
-  if (mayStartMutation(classifyAgentTurnAct(question)) && CHANGE_VERB.test(folded)) {
+  if (mayStartMutation(classifyAgentTurnAct(question)) && (profile.changeVerb ?? CHANGE_VERB).test(folded)) {
     return done("CONFIRMATION_REQUIRED", MSG.CONFIRMATION_REQUIRED);
   }
 
@@ -360,7 +365,7 @@ export async function runBoundedAgentTurn(turn: AgentTurn, deps: BoundedAgentDep
           const text = texts.map((t) => t.text).join("\n").trim();
           if (!text) return done("MALFORMED_MODEL_OUTPUT", MSG.MALFORMED_MODEL_OUTPUT, { stopDetail: "empty_answer" });
           if (profile.needsUserData.test(folded) && !personalDataRead) return done("UNGROUNDED", MSG.UNGROUNDED, { stopDetail: "no_user_data_read" });
-          const guarded = profile.guard(text, { question, sessionUserMessages: historyUserTexts, verifiedNumbers, toolData });
+          const guarded = profile.guard(text, { question, sessionUserMessages: historyUserTexts, verifiedNumbers, toolData, handoff: deps.handoffData ?? {} });
           if (!guarded.answer) return done("MODEL_REFUSED", MSG.MODEL_REFUSED, { stopDetail: "guards_removed_everything", guardActions: guarded.actions });
           return done("ANSWERED", minorNote ? appendMinorSupervisionNote(guarded.answer, "vi") : guarded.answer, { guardActions: minorNote ? [...guarded.actions, "minor_supervision"] : guarded.actions });
         }

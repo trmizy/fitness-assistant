@@ -331,7 +331,13 @@ test("R-19/R-20 evidence provenance + prompt injection in logged data / agent te
 test("R-21 trace privacy: supervisor + agent traces carry no question, answer, user id, token, logged data or handoff", async () => {
   const h = harness({ r: [use(call(T("recovery.get_training_load"))), say("Quan sát từ dữ liệu: RPE đang tăng.")], t: [say("Tập nhẹ hôm nay.")] });
   await h.run(TIRED_Q);
-  const json = JSON.stringify([h.supTraces, h.agentTraces]);
+  // timing fields (ISO timestamps with ms, durations, latencies) are measurements of the run, not user data: a substring
+  // check on them is random ("…:20.680Z" contains "68") — M4 root cause of the intermittent privacy-test failure
+  const TIMING = new Set(["startedAt", "durationMs", "latencyMs", "at", "wallTimeMs"]);
+  assert.ok(!JSON.stringify([h.supTraces, h.agentTraces]).includes(ME), "user id (checked on the raw trace)");
+  // random UUIDs (turn / trace / delegation ids) contain digits too: "…68…" in an id is not user data
+  const json = JSON.stringify([h.supTraces, h.agentTraces], (k, v) => (TIMING.has(k) ? undefined : v))
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<uuid>");
   for (const s of ["quá mệt", "RPE đang tăng", "Tập nhẹ", ME, "secret-token-rec", "Bearer", "quadriceps", "user_statement", "NO_DATA", "8.2"]) assert.ok(!json.includes(s), s);
   assert.equal(h.agentTraces.length, 2); for (const t of h.agentTraces) assert.equal(t.links?.supervisorTraceId, h.supTraces[0].supervisorTraceId);
 });

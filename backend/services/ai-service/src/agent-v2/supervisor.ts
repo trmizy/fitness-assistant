@@ -23,6 +23,11 @@ import type { AgentModelProvider } from "./model-provider";
 import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
 import { progressEvidenceOf } from "./progress-tools";
+import { createIntentDecisionProvider } from "./routing-planner";
+import {
+  agentsSatisfiedBySession, entriesFromFacts, invalidate, mergeEntries, reusableContext, userStatement,
+  type ContextEntry, type SessionContextStore,
+} from "./session-context";
 import type {
   AgentBudget, AgentCapability, AgentCompletion, AgentEvidence, AgentExecutionPolicy, AgentId, AgentRequest, AgentResult,
   AgentRunner, AgentRuntime, DecisionInput, DecisionProvider, ProfileReadResult, SupervisorDecision, SupervisorProfileReader,
@@ -56,7 +61,7 @@ export const ROUTING_SIGNALS: Readonly<Partial<Record<AgentId, RegExp>>> = Objec
   training: /\b((?<!tai )tap(?! trung)|lich tap|buoi tap|bai tap|nhom co|chu ky|hiep|squat|deadlift|bench|gym|khoi dong|gian co|cardio|chay bo)\b/,
   nutrition: /\b(an(?! toan| tam| ninh)|uong|bua|dinh duong|protein|dam|calo|kcal|macro|carb|tinh bot|chat beo|thuc don|thuc pham|mon an|whey|che do an)\b/,
   // M2. "phục hồi cơ" alone is NOT a recovery signal (e.g. "protein có vai trò gì trong phục hồi cơ" is a nutrition question).
-  recovery: /\b(nghi ngoi|ngay nghi|nghi (bao lau|may ngay|giua)|met|qua met|kiet suc|uong co|dau moi|nhuc moi|doms|qua tai|hoi suc|giam khoi luong|deload|chua hoi phuc|da hoi phuc|hoi phuc (chua|du|hoan toan|sau buoi|giua)|giac ngu|ngu du)\b|\btap\b.{0,25}\bhom qua\b/,
+  recovery: /\b(nghi ngoi|ngay nghi|nghi (bao lau|may ngay|giua)|met|qua met|kiet suc|uong co|dau moi|nhuc moi|doms|qua tai|hoi suc|giam khoi luong|deload|chua hoi phuc|da hoi phuc|hoi phuc (chua|du|hoan toan|sau buoi|giua)|giac ngu|ngu du)\b|\btap\b.{0,25}\bhom qua\b|\bhom qua\b.{0,25}\btap\b/,
   // M3
   progress: /\b(tien bo|tien do|tien trien|ket qua (tap|do|inbody)|xu huong|manh hon|yeu di|suc manh|1 ?rm|can nang|giam duoc|tang duoc|body fat|mo co the|ti le mo|inbody|du bao|dat muc tieu|muc tieu can nang|hieu suat)\b/,
 });
@@ -264,6 +269,10 @@ export interface SupervisorTrace {
   conflicts: string[];
   totals: { modelCallCount: number; toolCallCount: number; tokenUsage: { input: number; output: number }; estimatedCost: number; latencyMs: number };
   budget: { limit: AgentBudget; spent: AgentBudget; overrun: string[] };
+  /** M4: routing plan summary (codes only). */
+  routing?: { coverage: string; uncertainty: string; primaryNeed: string | null; deferred: Array<{ agentId: AgentId; needs: string[]; reason: string }> } | null;
+  /** M4: session-context counts (never values, subjects of user data or the session id). */
+  session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number } | null;
 }
 
 export interface SupervisorResult {
@@ -288,6 +297,8 @@ export interface SupervisorDeps {
   traceSink?: (trace: SupervisorTrace) => void;
   agentTraceSink?: (trace: TurnTrace) => void;
   limitOverrides?: Partial<AgentLimits>;
+  /** M4: multi-turn context (in-memory in tests). Absent → single-turn behaviour (M1–M3). */
+  sessionStore?: SessionContextStore;
 }
 
 export interface SupervisorTurn {
@@ -295,6 +306,8 @@ export interface SupervisorTurn {
   /** Built by the HTTP boundary from the verified request — never from model output. */
   context: unknown;
   history?: Array<{ role: "user" | "assistant"; text: string }>;
+  /** M4: a client-provided conversation id. Only a HINT: the scope is (authenticated userId, sessionId). */
+  sessionId?: string;
 }
 
 const TEXT: Record<string, string> = {
@@ -322,6 +335,11 @@ const PART_UNAVAILABLE: Record<Exclude<AgentCompletion, "COMPLETE" | "BLOCKED">,
 /** Folded: the user asserts a workout today ("hôm nay tôi có buổi tập chân"). */
 /** M2, folded: the user says they trained (a body part) yesterday. Group 1 = the named part, if any. */
 const CLAIMS_TRAINED_YESTERDAY = /\btap\s*(chan|mong|dui|nguc|lung|vai|tay|bung|full body|toan than)?\b.{0,20}\bhom qua\b/;
+const CLAIMS_TRAINED_YESTERDAY_REVERSED = /\bhom qua\b.{0,20}\btap\s*(chan|mong|dui|nguc|lung|vai|tay|bung|full body|toan than)?\b/;
+/** M4, folded: a forecast the user mentions ("dự báo tôi giảm 2 kg") — stored as a FORECAST user statement, never a result. */
+const FORECAST_MENTION = /\bdu bao\b.{0,40}?\b(giam|tang)\s+(\d+(?:[.,]\d+)?)\s*(?:kg|ky|ki)\b/;
+/** M4, folded: "how much have I lost / gained (so far)?". */
+const ACHIEVED_ASK = /\b(da|duoc) (giam|tang)\b|\b(giam|tang) duoc\b/;
 const CLAIMED_PART: Record<string, string> = { chan: "LOWER_BODY", mong: "LOWER_BODY", dui: "LOWER_BODY", nguc: "UPPER_BODY", lung: "UPPER_BODY", vai: "UPPER_BODY", tay: "UPPER_BODY", bung: "CORE", "full body": "FULL_BODY", "toan than": "FULL_BODY" };
 /** M2, folded: first-person fatigue — a SELF-REPORT handed to agents as such, never as a measurement. */
 const SELF_REPORTED_FATIGUE = /\b(toi|minh|em)\b.{0,50}\b(met|qua met|kiet suc|uong co|nhuc moi|dau moi|ue oai)\b/;
@@ -357,6 +375,8 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let dropped: string[] = [];
   let profileStatus: SupervisorTrace["profileRead"] = "NOT_READ";
   let ageGate: SupervisorTrace["ageGate"] = null;
+  let routingSummary: SupervisorTrace["routing"] = null;
+  let sessionCounts: SupervisorTrace["session"] = null;
 
   const finish = (status: SupervisorStatus, answer: string): SupervisorResult => {
     const durationMs = now() - started;
@@ -371,6 +391,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
           estimatedCost: Number(spent.maxCostUsd.toFixed(6)), latencyMs: durationMs,
         },
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
+        routing: routingSummary, session: sessionCounts,
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };
@@ -388,14 +409,28 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   if (!safety.safe) return finish("SAFETY_BLOCKED", safety.message ?? TEXT.FAILED);
   const folded = foldVi(question);
 
-  // 2. route, then validate: a decision can only select registered, allowed agents (never tools/budgets/identity)
+  // M4: session context — scope = (authenticated userId, sessionId); the client's sessionId alone authorizes nothing
+  const sessionId = typeof turn.sessionId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(turn.sessionId) ? turn.sessionId : null;
+  const store = deps.sessionStore && sessionId ? deps.sessionStore : null;
+  let sessionAll: ContextEntry[] = [];
+  let reuse: ReturnType<typeof reusableContext>["reuse"] | null = null;
+  if (store) {
+    let loadedRaw: unknown[] = [];
+    try { loadedRaw = store.load(identity.userId, sessionId!); } catch { loadedRaw = []; }
+    const loaded = reusableContext(loadedRaw, identity.userId, sessionId!, now());
+    sessionAll = loaded.all; reuse = loaded.reuse;
+    sessionCounts = { used: true, ...loaded.reuse.counts, stored: 0 };
+  }
+
+  // 2. route (M4 default: intent planner), then validate: a decision can only select registered, allowed agents
   const byId = new Map<AgentId, AgentRunner>();
   for (const r of deps.runners) if (!byId.has(r.capability.agentId)) byId.set(r.capability.agentId, r);
   const available = AGENT_ORDER.filter((a) => byId.has(a) && policy.allowedAgents.includes(a));
-  const provider = deps.decisionProvider ?? keywordDecisionProvider;
+  const provider = deps.decisionProvider ?? createIntentDecisionProvider({ maxAgents: policy.maxAgentsPerTurn, domainSignals: ROUTING_SIGNALS });
+  const satisfiedFromSession = reuse ? agentsSatisfiedBySession(reuse.freshSubjects) : new Set<AgentId>();
   let raw: SupervisorDecision;
   try {
-    raw = await provider.decide({ question, folded, available });
+    raw = await provider.decide({ question, folded, available, satisfiedFromSession });
   } catch {
     raw = { strategy: provider.name, agents: [], reasonCodes: ["decision_provider_error"] };
   }
@@ -404,7 +439,12 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   dropped = [...new Set(requested.filter((a) => !valid.includes(a as AgentId)))].slice(0, 10).map((a) => a.slice(0, 40));
   const selected = valid.slice(0, Math.max(0, policy.maxAgentsPerTurn));
   if (valid.length > selected.length) dropped.push(...valid.slice(selected.length).map((a) => `${a}:max_agents`));
-  decision = { strategy: String(raw?.strategy ?? provider.name).slice(0, 40), agents: selected, reasonCodes: (raw?.reasonCodes ?? []).map((c) => String(c).slice(0, 40)).slice(0, 10) };
+  // the plan's own deferrals (intent ranking / fresh session facts) are recorded the same way — never silent
+  const plan = raw?.plan && Array.isArray(raw.plan.deferred) ? raw.plan : null;
+  const planDeferred = (plan?.deferred ?? []).filter((d) => available.includes(d.agentId) && !selected.includes(d.agentId));
+  for (const d of planDeferred) dropped.push(`${d.agentId}:${d.reason === "MAX_AGENTS" ? "max_agents" : "from_session"}`);
+  routingSummary = plan ? { coverage: plan.coverage, uncertainty: plan.uncertainty, primaryNeed: plan.primaryNeed, deferred: planDeferred.map((d) => ({ agentId: d.agentId, needs: d.needs, reason: d.reason })) } : null;
+  decision = { strategy: String(raw?.strategy ?? provider.name).slice(0, 40), agents: selected, reasonCodes: (raw?.reasonCodes ?? []).map((c) => String(c).slice(0, 40)).slice(0, 10), ...(plan ? { plan } : {}) };
   if (!selected.length) return finish("OUT_OF_SCOPE", TEXT.OUT_OF_SCOPE);
 
   // 3. Gate 1 over the WHOLE turn, before any delegation — one read, shared by every agent (they cannot loosen it)
@@ -435,6 +475,15 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // 4. delegations — sequential, each bounded by a slice of the REMAINING turn budget
   // the user's own fatigue statement travels as a labelled self-report (the question itself is never handed over)
   let handoff: Record<string, unknown> = SELF_REPORTED_FATIGUE.test(folded) ? { selfReport: { fatigue: true, source: "user_statement" } } : {};
+  // M4: fresh session facts (typed, labelled by kind) — never model text; stale subjects are listed so agents re-read them
+  if (reuse && (reuse.entries.length || reuse.staleSubjects.length)) {
+    handoff.sessionContext = { entries: reuse.entries, staleSubjects: reuse.staleSubjects };
+    for (const e of reuse.entries) {
+      if (e.kind !== "TOOL_EVIDENCE") continue;
+      const [domain, name] = e.subject.split(".");
+      if (satisfiedFromSession.has(domain as AgentId) && !selected.includes(domain as AgentId)) handoff[name] = { ...e.value, source: "session", ageMin: e.ageMin };
+    }
+  }
   for (const [i, agentId] of selected.entries()) {
     const runner = byId.get(agentId)!;
     const delegationId = randomUUID();
@@ -478,6 +527,14 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
         if (spent[k] > policy.budget[k] + 1e-9 && !overrun.includes(k)) overrun.push(k);
       }
 
+      // M4: an agent selected only to SUPPLY data (no need of its own in the plan) whose personal reads all failed has
+      // nothing grounded to add — its text is withheld (e.g. a follow-up whose schedule refresh failed must not still say
+      // "you have Leg day today")
+      const ownNeed = plan ? plan.intents.some((c) => c.agentId === agentId) : true;
+      const personalReads = result.evidence.filter((e) => e.personal);
+      if (!ownNeed && selected.length > 1 && result.completion === "COMPLETE" && personalReads.length && !personalReads.some((e) => e.outcome === "ok")) {
+        result = { ...result, completion: "INSUFFICIENT_DATA", answer: "" };
+      }
       // evidence reconciliation: an agent may only have used its own tools, and only non-personal ones on a general-only turn
       const foreign = result.evidence.some((e) => e.outcome === "ok" && !runner.capability.toolPolicy.allowedTools.includes(e.toolId));
       const personalOnGeneral = generalOnly && result.evidence.some((e) => e.outcome === "ok" && e.personal);
@@ -500,18 +557,20 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   if (scheduleConflict) conflicts.push("user_claims_session_not_in_schedule");
   // M2: the user's account of yesterday vs the training log — both are kept (uncertainty + provenance), neither is erased
   const recent = handoff.recentSessions as { known?: boolean; yesterdayBodyParts?: string[] | null } | undefined;
-  const yesterdayClaim = CLAIMS_TRAINED_YESTERDAY.exec(folded);
+  const yesterdayClaim = yesterdayClaimOf(folded);
   let historyNote = "";
   if (yesterdayClaim && recent?.known === true) {
-    const claimedPart = yesterdayClaim[1] ? CLAIMED_PART[yesterdayClaim[1]] : undefined;
+    const claimedPart = yesterdayClaim.part;
     if (!recent.yesterdayBodyParts) { conflicts.push("user_claims_session_not_in_history"); historyNote = TEXT.HISTORY_CONFLICT; }
     else if (claimedPart && !recent.yesterdayBodyParts.includes(claimedPart) && !recent.yesterdayBodyParts.includes("FULL_BODY")) {
       conflicts.push("user_claim_differs_from_logged_body_part"); historyNote = TEXT.BODY_PART_CONFLICT;
     }
   }
 
-  // M3: a forecast figure taken for a measured result — always corrected, whatever the agents wrote
-  const forecastNote = selected.includes("progress") && FORECAST_CONFUSION.test(folded) ? TEXT.FORECAST_NOTE : "";
+  // M3: a forecast figure taken for a measured result — always corrected, whatever the agents wrote.
+  // M4: also across turns — a forecast mentioned/read earlier in the session followed by "how much have I lost?"
+  const sessionForecast = !!reuse?.entries.some((e) => e.kind === "FORECAST");
+  const forecastNote = selected.includes("progress") && (FORECAST_CONFUSION.test(folded) || (sessionForecast && ACHIEVED_ASK.test(folded))) ? TEXT.FORECAST_NOTE : "";
   if (forecastNote) conflicts.push("user_conflates_forecast_with_measurement");
   // M3: Progress + Recovery observe co-occurring changes only — no causal claim survives composition
   const correlationOnly = results.some((r) => r.agentId === "progress" && r.completion === "COMPLETE") && results.some((r) => r.agentId === "recovery" && r.completion === "COMPLETE");
@@ -541,13 +600,27 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     }
   }
   if (causalRemoved) { conflicts.push("causal_claim_removed"); notes.push(TEXT.CAUSAL_NOTE); }
-  // M3: agents the question needed but the per-turn cap excluded are SAID, never silently dropped
-  const cappedOut = valid.slice(selected.length);
+  // M3/M4: agents the question needed but the per-turn cap excluded (by the cap or by the intent plan) are SAID
+  const cappedOut = [...new Set([...valid.slice(selected.length), ...planDeferred.filter((d) => d.reason === "MAX_AGENTS").map((d) => d.agentId)])];
   if (cappedOut.length) {
     notes.push(`Phần ${cappedOut.map((a) => AGENT_LABEL[a].toLowerCase()).join(", ")} của câu hỏi chưa được xử lý trong lượt này vì mỗi lượt chỉ tham vấn tối đa ${policy.maxAgentsPerTurn} trợ lý — bạn hỏi riêng phần này nhé.`);
   }
+  // M4: no sentence twice across sections (agents sharing a fact restate it)
+  const seenSentences = new Set<string>();
+  const deduped = sections.map((sec) => {
+    const [head, ...body] = multi ? sec.split("\n") : ["", sec];
+    const kept = splitSentences(body.join("\n")).filter((s) => {
+      const k = foldVi(s).replace(/[^a-z0-9]+/g, " ").trim();
+      if (k.length < 12) return true;
+      if (seenSentences.has(k)) return false;
+      seenSentences.add(k); return true;
+    }).join("").trim();
+    return multi ? (kept ? `${head}\n${kept}` : "") : kept;
+  }).filter(Boolean);
+  // M4: what the answer rests on — by evidence class, from provenance and session (codes → fixed wording, no data)
+  const basis = evidenceBasis(results, handoff, yesterdayClaim !== null || SELF_REPORTED_FATIGUE.test(folded));
   const completes = results.filter((r) => r.completion === "COMPLETE").length;
-  let answer = [scheduleConflict ? TEXT.SCHEDULE_CONFLICT : "", historyNote, forecastNote, ...sections, ...notes].filter(Boolean).join("\n\n");
+  let answer = [scheduleConflict ? TEXT.SCHEDULE_CONFLICT : "", historyNote, forecastNote, ...deduped, ...notes, basis].filter(Boolean).join("\n\n");
   if (generalOnly && "addMinorNote" in gate && gate.addMinorNote && answer) answer = appendMinorSupervisionNote(answer, "vi");
 
   let status: SupervisorStatus;
@@ -559,5 +632,65 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   else if (results.some((r) => r.completion === "BUDGET_EXHAUSTED" || r.completion === "SKIPPED")) status = "BUDGET_EXHAUSTED";
   else status = "FAILED";
   if (!answer) answer = status === "BUDGET_EXHAUSTED" ? TEXT.BUDGET_EXHAUSTED : TEXT.FAILED;
+
+  // M4: session write — tool-derived typed facts, parsed user statements and conflicts only (never agent text)
+  if (store) {
+    const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
+    let incoming: ContextEntry[] = [];
+    let entries = sessionAll;
+    for (const r of results) {
+      if (r.completion === "POLICY_VIOLATION") continue;
+      const okTools = r.evidence.filter((e) => e.outcome === "ok").map((e) => e.toolId);
+      incoming.push(...entriesFromFacts(r.agentId, r.facts, { ...at, toolIds: okTools }));
+      // a failed refresh invalidates the previous value of that subject (it must not be reused as current)
+      for (const e of r.evidence) if (e.outcome !== "ok" && TOOL_SUBJECT[e.toolId]) entries = invalidate(entries, TOOL_SUBJECT[e.toolId]);
+    }
+    if (yesterdayClaim) incoming.push(userStatement("user.trainedYesterday", { part: yesterdayClaim.part ?? "UNSPECIFIED" }, at));
+    if (SELF_REPORTED_FATIGUE.test(folded)) incoming.push(userStatement("user.fatigue", { reported: true }, at));
+    const fm = FORECAST_MENTION.exec(folded);
+    if (fm) incoming.push(userStatement("user.mentionedForecast", { direction: fm[1] === "giam" ? "DOWN" : "UP", kg: Number(fm[2].replace(",", ".")) }, at, "FORECAST"));
+    for (const c of conflicts) incoming.push({ ...userStatement("user.conflict", { code: c }, at), kind: "CONFLICT", subject: `conflict.${c}`, source: { producer: "supervisor", turnId } });
+    incoming = incoming.filter((e) => e.kind === "CONFLICT" || validateIncoming(e));
+    try { store.save(identity.userId, sessionId!, mergeEntries(entries, incoming)); } catch { /* the answer never depends on the save */ }
+    if (sessionCounts) sessionCounts.stored = incoming.length;
+  }
   return finish(status, answer);
+}
+
+/** Tool → session subject it refreshes (a failed read invalidates that subject). */
+const TOOL_SUBJECT: Readonly<Record<string, string>> = Object.freeze({
+  "training.get_today_schedule": "training.todaySchedule",
+  "recovery.get_recent_sessions": "recovery.recentSessions",
+  "recovery.get_training_load": "recovery.trainingLoad",
+  "progress.get_body_measurements": "progress.measurementAvailability",
+  "progress.get_strength_progression": "progress.strengthTrend",
+  "progress.get_cycle_status": "progress.assessmentFreshness",
+  "progress.get_roadmap_forecast": "progress.observedVsForecast",
+  "nutrition.get_target": "nutrition.nutritionTarget",
+});
+const validateIncoming = (e: ContextEntry) => e.kind !== "AGENT_HYPOTHESIS" && !(e.kind === "USER_STATEMENT" && e.verification === "VERIFIED");
+
+/** M4: one fixed-wording line on what the answer rests on (evidence classes only — no values, no data). */
+function evidenceBasis(results: AgentResult[], handoff: Record<string, unknown>, userStated: boolean): string {
+  const ok = (id: string) => results.some((r) => r.evidence.some((e) => e.toolId === id && e.outcome === "ok"));
+  const logged = results.some((r) => r.evidence.some((e) => e.outcome === "ok" && e.personal && e.toolId !== "progress.get_strength_progression" && e.toolId !== "progress.get_roadmap_forecast"));
+  const fromSession = Object.values(handoff).some((v) => (v as any)?.source === "session");
+  const sessionForecast = Array.isArray((handoff.sessionContext as any)?.entries) && (handoff.sessionContext as any).entries.some((e: any) => e.kind === "FORECAST");
+  const parts = [
+    logged ? "dữ liệu đã ghi trong ứng dụng" : "",
+    ok("progress.get_strength_progression") ? "ước tính (1RM ước tính từ các set đã ghi)" : "",
+    ok("progress.get_roadmap_forecast") || sessionForecast ? "dự báo của ứng dụng (kịch bản, không phải số đo)" : "",
+    userStated ? "điều bạn kể (chưa được ghi nhận như số liệu)" : "",
+    fromSession ? "dữ liệu đã đọc trước đó trong cuộc trò chuyện" : "",
+  ].filter(Boolean);
+  return parts.length ? `_Cơ sở: ${parts.join("; ")}._` : "";
+}
+
+/** M2/M4, folded: "tập (chân) hôm qua" or "hôm qua (tôi) tập (chân)". */
+function yesterdayClaimOf(folded: string): { part: string | undefined } | null {
+  const a = CLAIMS_TRAINED_YESTERDAY.exec(folded);
+  if (a) return { part: a[1] ? CLAIMED_PART[a[1]] : undefined };
+  const b = CLAIMS_TRAINED_YESTERDAY_REVERSED.exec(folded);
+  if (b) return { part: b[1] ? CLAIMED_PART[b[1]] : undefined };
+  return null;
 }

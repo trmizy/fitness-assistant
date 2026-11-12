@@ -26,7 +26,7 @@ export const RECOVERY_PERSONAL_TOOLS: ReadonlySet<string> = new Set(["recovery.g
 /** No catalog/evidence tool in this domain: a general-only turn (minor / unverified profile) answers from principles only. */
 export const RECOVERY_NON_PERSONAL_TOOLS: ReadonlySet<string> = new Set();
 /** Folded: the user asks about THEIR OWN recovery / fatigue / load (general "why is rest important" is not). */
-export const RECOVERY_NEEDS_USER_DATA = /\b(toi|minh|em)\b.{0,40}\b(met|qua met|kiet suc|uong co|dau moi|nhuc moi|qua tai|chua hoi phuc|da hoi phuc|hoi phuc chua|can nghi|nen nghi|giam khoi luong|tap qua nhieu|tap qua suc|nghi may ngay|deload)\b|\btap\b.{0,25}\bhom qua\b|\blich su tap cua (toi|minh)\b|\bkhoi luong tap cua (toi|minh)\b/;
+export const RECOVERY_NEEDS_USER_DATA = /\b(toi|minh|em)\b.{0,40}\b(met|qua met|kiet suc|uong co|dau moi|nhuc moi|qua tai|chua hoi phuc|da hoi phuc|hoi phuc chua|can nghi|nen nghi|giam khoi luong|tap qua nhieu|tap qua suc|nghi may ngay|deload)\b|\btap\b.{0,25}\bhom qua\b|\bhom qua\b.{0,25}\btap\b|\blich su tap cua (toi|minh)\b|\bkhoi luong tap cua (toi|minh)\b/;
 
 export const RECOVERY_PROFILE: Readonly<AgentProfile> = Object.freeze<AgentProfile>({
   systemPrompt: RECOVERY_SYSTEM_PROMPT,
