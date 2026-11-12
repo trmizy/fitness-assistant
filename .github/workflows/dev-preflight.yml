@@ -130,6 +130,8 @@ jobs:
         shell: bash
         run: |
           set +x
+          # GitHub runs `shell: bash` as `bash -eo pipefail`: a failed read must be CLASSIFIED below, not abort the step silently.
+          set +e
           set -uo pipefail
           RECEIVER=fitness-assistant-dev-fitness
           FUNCS="fitness-assistant-dev-fitness fitness-assistant-dev-fitness-jobs fitness-assistant-dev-ai fitness-assistant-dev-ai-jobs fitness-assistant-dev-ai-worker"
