@@ -10,6 +10,8 @@
  * turn. Tools and the model only receive the remaining turn time; work that cannot be cancelled is counted as in-flight
  * and its late result is never used.
  */
+import { randomUUID } from "node:crypto";
+import { logger } from "@gym-coach/shared";
 import { foldVi } from "../llm/speech_act";
 import { classifyAgentTurnAct, mayStartMutation } from "../services/agent-turn-act";
 import { checkInputSafety, guardTrainingAnswer } from "./answer-guards";
@@ -20,6 +22,7 @@ import {
 import type { AgentToolPolicy, ToolResult } from "./tool-contract";
 import type { ToolRegistry } from "./tool-registry";
 import { zodToJsonSchema } from "./zod-json-schema";
+import { fingerprintText, type ModelRoundTrace, type ToolCallTrace, type TurnTrace } from "./turn-trace";
 
 // ── limits ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 export interface TrainingAgentLimits {
@@ -81,6 +84,8 @@ export interface TrainingAgentUsage {
 }
 
 export interface TrainingAgentResult {
+  /** P3: correlates this result with its TurnTrace and the registry's tool trace events. */
+  turnId: string;
   status: TrainingTurnStatus;
   answer: string;
   /** Which limit/condition ended the turn, when it did not end with an answer. */
@@ -98,6 +103,8 @@ export interface TrainingAgentDeps {
   /** Default: AI_AGENT_V2 from the environment (OFF). */
   enabled?: boolean;
   now?: () => number;
+  /** P3: receives exactly one TurnTrace per turn (default: structured log line "agent_v2_turn"). Must not throw into the turn. */
+  traceSink?: (trace: TurnTrace) => void;
 }
 
 export interface TrainingAgentTurn {
@@ -192,11 +199,25 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
   };
   const tools: TrainingAgentResult["tools"] = [];
   const inFlight = { n: 0 };
+  const turnId = randomUUID();
+  const roundTraces: ModelRoundTrace[] = [];
+  const toolTraces: ToolCallTrace[] = [];
+  const sink = deps.traceSink ?? ((t: TurnTrace) => logger.info(t, "agent_v2_turn"));
   const done = (status: TrainingTurnStatus, answer: string, extra: Partial<TrainingAgentResult> = {}): TrainingAgentResult => {
     usage.wallTimeMs = now() - started;
     usage.inFlightAtEnd = inFlight.n;
     usage.estimatedCostUsd = Number(costOf(usage.inputTokens, usage.outputTokens).toFixed(6));
-    return { status, answer, usage, tools, guardActions: [], ...extra };
+    const result: TrainingAgentResult = { turnId, status, answer, usage, tools, guardActions: [], ...extra };
+    try {
+      sink({
+        turnId, agentId: deps.policy.agentId, policyTools: deps.policy.allowedTools.length, modelId: deps.provider.modelId,
+        startedAt: new Date(started).toISOString(), durationMs: usage.wallTimeMs, status, stopDetail: result.stopDetail ?? null,
+        question: { length: typeof turn.question === "string" ? turn.question.length : 0, fingerprint: fingerprintText(typeof turn.question === "string" ? turn.question : "") },
+        answerLength: answer.length, rounds: roundTraces, tools: toolTraces,
+        totals: { ...usage }, guardActions: result.guardActions,
+      });
+    } catch { /* tracing must never change the turn's outcome */ }
+    return result;
   };
 
   // 1. gates that never cost anything
@@ -248,12 +269,18 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
 
       usage.modelRounds++;
       usage.providerAttempts++;
+      const roundStarted = now();
+      const traceRound = (outcome: string, r?: AgentModelResponse, inTok = 0, outTok = 0, estimated = false) => roundTraces.push({
+        round: usage.modelRounds, latencyMs: now() - roundStarted, outcome, inputTokens: inTok, outputTokens: outTok, usageEstimated: estimated,
+        toolUseCount: r ? r.content.filter((b) => b.type === "toolUse").length : 0,
+      });
       let resp: AgentModelResponse;
       try {
         resp = await waitAtMost(
           deps.provider.converse({ system: SYSTEM_PROMPT, messages: structuredClone(messages), tools: toolSpecs, maxOutputTokens: maxOut, temperature: 0.2, signal: turnAbort.signal }),
           remaining(), inFlight);
       } catch (err) {
+        traceRound(err instanceof Deadline ? "deadline" : `error:${err instanceof AgentProviderError ? err.kind : "unknown"}`);
         if (err instanceof Deadline || (err instanceof AgentProviderError && err.kind === "aborted")) {
           usage.deadlineHit = true;
           turnAbort.abort();
@@ -263,11 +290,15 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
       }
 
       // ── usage accounting (provider-reported; own estimate when missing) ──
-      if (resp.usage) { usage.inputTokens += resp.usage.inputTokens; usage.outputTokens += resp.usage.outputTokens; }
-      else {
+      if (resp.usage) {
+        usage.inputTokens += resp.usage.inputTokens; usage.outputTokens += resp.usage.outputTokens;
+        traceRound(resp.stopReason, resp, resp.usage.inputTokens, resp.usage.outputTokens, false);
+      } else {
         usage.usageEstimated = true;
+        const outEst = estimateTokens(resp.content.map((b) => (b.type === "text" ? b.text : b)));
         usage.inputTokens += estIn;
-        usage.outputTokens += estimateTokens(resp.content.map((b) => (b.type === "text" ? b.text : b)));
+        usage.outputTokens += outEst;
+        traceRound(resp.stopReason, resp, estIn, outEst, true);
       }
 
       const texts = resp.content.filter((b): b is Extract<AgentBlock, { type: "text" }> => b.type === "text");
@@ -318,6 +349,7 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
         const refuse = (code: string) => {
           usage.toolRefusals++;
           tools.push({ toolId: nameToId.get(u.name) ?? "(unknown)", outcome: code });
+          toolTraces.push({ toolId: nameToId.get(u.name) ?? "(unknown)", outcome: code, durationMs: 0, round: usage.modelRounds });
           results.push({ type: "toolResult", toolUseId: u.toolUseId, status: "error", json: { error: code } });
         };
         const toolId = nameToId.get(u.name);
@@ -328,6 +360,8 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
         if ([...argIds].some((i) => !seenIds.has(i))) { refuse("UNVERIFIED_ID"); continue; }
 
         usage.toolInvocations++;
+        const toolStarted = now();
+        const traceTool = (outcome: string) => toolTraces.push({ toolId, outcome, durationMs: now() - toolStarted, round: usage.modelRounds });
         let r: ToolResult;
         try {
           r = await waitAtMost(
@@ -335,26 +369,31 @@ export async function runTrainingAgentTurn(turn: TrainingAgentTurn, deps: Traini
               timeoutMs: Math.max(1, remaining() - 250),
               // counts the UNDERLYING domain call until it really settles (V1 tools cannot be cancelled)
               onStart: () => { inFlight.n++; }, onSettled: () => { inFlight.n--; },
+              turnId,
             }),
             remaining(), inFlight);
         } catch {
           usage.deadlineHit = true;
           tools.push({ toolId, outcome: "DEADLINE" });
+          traceTool("DEADLINE");
           results.push({ type: "toolResult", toolUseId: u.toolUseId, status: "error", json: { error: "DEADLINE" } });
           continue;
         }
         if (!r.ok) {
           tools.push({ toolId, outcome: r.error.code });
+          traceTool(r.error.code);
           results.push({ type: "toolResult", toolUseId: u.toolUseId, status: "error", json: { tool: toolId, error: r.error.code, message: r.error.message } });
           continue;
         }
         const payload = { tool: toolId, untrustedData: true, data: r.data };
         if (JSON.stringify(payload).length > L.maxToolResultChars) {
           tools.push({ toolId, outcome: "RESULT_TOO_LARGE" });
+          traceTool("RESULT_TOO_LARGE");
           results.push({ type: "toolResult", toolUseId: u.toolUseId, status: "error", json: { tool: toolId, error: "RESULT_TOO_LARGE", message: "Result exceeded the context budget and was withheld. Ask for less data." } });
           continue;
         }
         tools.push({ toolId, outcome: "ok" });
+        traceTool("ok");
         collectIds(r.data).forEach((i) => seenIds.add(i));
         verifiedNumbers.push(...collectNumbers(r.data));
         if (PERSONAL_TOOLS.has(toolId)) personalDataRead = true;

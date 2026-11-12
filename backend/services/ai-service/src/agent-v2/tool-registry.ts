@@ -22,6 +22,8 @@ import {
 
 export interface ToolTraceEvent {
   traceId: string;
+  /** P3: the agent turn this call belongs to (joins with the TurnTrace); absent for direct registry use. */
+  turnId?: string;
   agentId: string;
   toolId: string;
   kind: ToolKind | "UNKNOWN";
@@ -112,12 +114,12 @@ export function createToolRegistry<D = unknown>(options: ToolRegistryOptions<D> 
    * contract's own. The timeout stops WAITING; V1 domain calls take no AbortSignal, so the underlying request may still
    * finish — the caller tracks that as in-flight work and never uses a late result.
    */
-  async function execute(policy: AgentToolPolicy, toolId: string, rawArgs: unknown, rawCtx: unknown, callOptions: { timeoutMs?: number; onStart?: () => void; onSettled?: () => void } = {}): Promise<ToolResult> {
+  async function execute(policy: AgentToolPolicy, toolId: string, rawArgs: unknown, rawCtx: unknown, callOptions: { timeoutMs?: number; onStart?: () => void; onSettled?: () => void; turnId?: string } = {}): Promise<ToolResult> {
     const started = Date.now();
     const contract = contracts.get(toolId);
     const finish = (outcome: "ok" | ToolErrorCode) => {
       try {
-        sink({ traceId: randomUUID(), agentId: policy.agentId, toolId, kind: contract?.kind ?? "UNKNOWN", outcome,
+        sink({ traceId: randomUUID(), ...(callOptions.turnId ? { turnId: callOptions.turnId } : {}), agentId: policy.agentId, toolId, kind: contract?.kind ?? "UNKNOWN", outcome,
           durationMs: Date.now() - started, argsFingerprint: fingerprint(rawArgs), at: new Date().toISOString() });
       } catch { /* tracing must never break a call */ }
     };
