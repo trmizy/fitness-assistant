@@ -45,7 +45,7 @@ export function loadUsableMasterPools() {
   return { ptMale, ptFemale, gymByCategory };
 }
 
-const GYM_PHOTO_CATEGORY_MAP = Object.freeze({
+export const GYM_PHOTO_CATEGORY_MAP = Object.freeze({
   exterior: "EXTERIOR",
   "gym-interior": "MAIN_TRAINING_AREA",
   "fitness-center": "MAIN_TRAINING_AREA",
@@ -123,10 +123,10 @@ export function allocateMediaAssignments({ pts, gyms, pools = loadUsableMasterPo
     const canPublish = pt.hasPublishedListing;
     if (!canPublish) continue;
 
-    // 10%: 0, 22%: 1, 28%: 2, 24%: 3, 10%: 4, 6%: 5 -> avg 2.20 photos/PT
+    // Every PT with a published listing gets >= 1 photo (production-like coverage; decision Ngài 12/11):
+    // 30%: 1, 30%: 2, 24%: 3, 10%: 4, 6%: 5 -> avg 2.32 photos/PT. Same single rng() draw per PT as before.
     const r = rng();
-    const count = r < 0.1 ? 0 : r < 0.32 ? 1 : r < 0.6 ? 2 : r < 0.84 ? 3 : r < 0.94 ? 4 : 5;
-    if (count === 0) continue;
+    const count = r < 0.3 ? 1 : r < 0.6 ? 2 : r < 0.84 ? 3 : r < 0.94 ? 4 : 5;
 
     const pickBase = pt.gender === "FEMALE" ? pickPtFemale : pickPtMale;
     const pickBox = pt.specialties.includes("Boxing & MMA") ? (pt.gender === "FEMALE" ? pickPtFemaleBox : pickPtMaleBox) : null;

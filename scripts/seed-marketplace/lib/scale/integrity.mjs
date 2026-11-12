@@ -575,5 +575,52 @@ export async function runScaleIntegrity({
     });
   }
 
+  // 8. Public-media coverage (decision Ngài 12/11): every PUBLIC PT has >=1 PUBLISHED photo + an avatar,
+  // every APPROVED/SUSPENDED gym has a PUBLISHED cover. "Public PT" = ptPublicWhere in user-service
+  // (isPT, APPROVED application, not ptSuspended, no open ACCOUNT-scope restriction).
+  await runCheck("8. Public media coverage (PT >=1 PUBLISHED photo + avatar, gym PUBLISHED cover)", async () => {
+    const [ptNoPhoto, ptNoAvatar, ptTotal, gymNoCover, gymTotal] = await Promise.all([
+      rows(
+        pools.user,
+        `SELECT p."userId" AS uid FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')
+           AND NOT EXISTS (SELECT 1 FROM pt_physique_photos ph WHERE ph.pt_user_id = p."userId" AND ph.status = 'PUBLISHED')
+         LIMIT 20`
+      ),
+      rows(
+        pools.user,
+        `SELECT p."userId" AS uid FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')
+           AND (p.photo_url IS NULL OR p.photo_url = '')
+         LIMIT 20`
+      ),
+      rows(
+        pools.user,
+        `SELECT count(*)::int AS n FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')`
+      ),
+      rows(
+        pools.gym,
+        `SELECT g.id FROM gyms g
+         WHERE g.email LIKE ${SCALE_LIKE} AND g.status IN ('APPROVED','SUSPENDED')
+           AND NOT EXISTS (SELECT 1 FROM gym_photos ph WHERE ph.gym_id = g.id AND ph.status = 'PUBLISHED' AND ph.is_cover = true)
+         LIMIT 20`
+      ),
+      rows(pools.gym, `SELECT count(*)::int AS n FROM gyms g WHERE g.email LIKE ${SCALE_LIKE} AND g.status IN ('APPROVED','SUSPENDED')`),
+    ]);
+    const v = [
+      ...ptNoPhoto.map((r) => ({ ...r, why: "public PT without a PUBLISHED physique photo" })),
+      ...ptNoAvatar.map((r) => ({ ...r, why: "public PT without avatar (photo_url)" })),
+      ...gymNoCover.map((r) => ({ ...r, why: "APPROVED/SUSPENDED gym without a PUBLISHED cover" })),
+    ];
+    return { examined: ptTotal[0].n + gymTotal[0].n, violations: v };
+  });
+
   return results;
 }

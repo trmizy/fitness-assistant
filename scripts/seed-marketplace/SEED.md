@@ -253,3 +253,8 @@ node scripts/seed-marketplace/index.mjs --target scale --tier scale --batch 1000
 # After S1-run finishes, restart user-service scale so its startup background job builds PT discovery stats epoch #1 automatically:
 docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml restart user-service
 ```
+
+## Photo coverage (decision Ngài 12/11, thesis project: faces OK, PT photo gender must match the PT)
+
+* **Scale generator**: every PT with a published listing gets >= 1 PUBLISHED photo (1: 30%, 2: 30%, 3: 24%, 4: 10%, 5: 6%, avg 2.32), gender/discipline-matched, reuse cap 40. At `scaleFactor=1`: 10,153 PTs with listing, 23,472 placements, 0 PTs without photo; per-gender need 11,668 male / 11,804 female vs cap capacity 13,480 / 12,640 (93.4% of the female capacity: ~7% headroom, a different namespace/seed that skews gender >=7% would need more masters). `lib/scale/integrity.mjs` check 8: every public PT has >= 1 PUBLISHED photo + avatar, every APPROVED/SUSPENDED gym has a PUBLISHED cover.
+* **Dev backfill** `backfill-dev-photos.mjs` (one-off, idempotent): `node scripts/seed-marketplace/backfill-dev-photos.mjs --target dev --confirm dev [--dry-run] [--plan-out f.json]`. Only fills gaps for public PTs/gyms (seed-domain accounts with a MALE/FEMALE gender), never touches existing PUBLISHED photos, STAGED/RETIRED rows, `huytronh4@gmail.com`, or non-seed accounts. Refuses any DB except dev `localhost:5433` `gymcoach_user`/`gymcoach_gym` (+ `--confirm dev`) or `--target test` (`*_seed_test` on 55433, in-memory object store). Dev avatars are written to the user-service uploads volume (`docker cp`) as `/uploads/profile-photos/<userId>.webp`, because dev has no `USER_UPLOAD_BUCKET`. Test: `__tests__/backfill-dev-photos.test.mjs`.

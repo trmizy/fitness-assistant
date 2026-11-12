@@ -25,6 +25,15 @@ test("allocateMediaAssignments enforces <=40 reuse cap, strict gender match, C7 
   for (const m of masterPools.ptMale) masterGender.set(m.id, "MALE");
   for (const m of masterPools.ptFemale) masterGender.set(m.id, "FEMALE");
 
+  // Production-like coverage: EVERY PT with a published listing has >= 1 PUBLISHED photo and an avatar url.
+  const photoCountByPt = new Map();
+  for (const ph of ptPhotos) photoCountByPt.set(ph.ptUserId, (photoCountByPt.get(ph.ptUserId) ?? 0) + 1);
+  const listed = u.pts.filter((p) => p.hasPublishedListing);
+  assert.ok(listed.length > 0);
+  assert.deepEqual(listed.filter((p) => !photoCountByPt.get(p.userId)).map((p) => p.userId), [], "PT with published listing but 0 photos");
+  assert.deepEqual(u.pts.filter((p) => p.isPublic && !p.photoUrl).map((p) => p.userId), [], "public PT without avatar");
+  assert.ok(ptPhotos.every((p) => p.status === "PUBLISHED"));
+
   const ptHashes = new Map();
   const ptCovers = new Map();
   for (const ph of ptPhotos) {
@@ -55,6 +64,10 @@ test("allocateMediaAssignments enforces <=40 reuse cap, strict gender match, C7 
     if (cat === "boxing") assert.ok(g.facilities.includes("FUNCTIONAL_TRAINING_AREA"), "boxing photo on gym without functional area");
     if (g.status === "DRAFT") assert.notEqual(ph.status, "PUBLISHED");
   }
+  const coverGyms = new Set(gymPhotos.filter((p) => p.status === "PUBLISHED" && p.isCover).map((p) => p.gymId));
+  const publicGyms = u.branches.filter((g) => g.status === "APPROVED" || g.status === "SUSPENDED");
+  assert.ok(publicGyms.length > 0);
+  assert.deepEqual(publicGyms.filter((g) => !coverGyms.has(g.id)).map((g) => g.id), [], "APPROVED/SUSPENDED gym without a PUBLISHED cover");
 });
 
 test("syncMediaToMinio (mock S3 adapter) uploads each master once, server-side CopyObjects all targets, supports resume, and passes verify", async () => {
