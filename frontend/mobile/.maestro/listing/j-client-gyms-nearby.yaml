@@ -6,7 +6,12 @@
 # Device: location inside Vietnam (emulator: `adb emu geo fix 105.85 21.03`). Opening the tab must NOT prompt for it.
 appId: vn.fitnessassistant.app
 ---
-- launchApp
+# Maestro's plain launchApp grants EVERY permission (including location), which would hide the "asked only on tap" rule:
+# revoke them so the system location dialog really appears when (and only when) the GPS button is tapped.
+- launchApp:
+    permissions:
+      all: deny
+      notifications: allow
 - runFlow:
     when:
       visible: "Bỏ qua"
@@ -31,7 +36,7 @@ appId: vn.fitnessassistant.app
     visible: "Khu.vực.tìm.kiếm"
     timeout: 20000
 # no GPS prompt when the tab opens
-- assertNotVisible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- assertNotVisible: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
 - extendedWaitUntil:
     visible: "Xem.gói"
     timeout: 30000
@@ -43,11 +48,25 @@ appId: vn.fitnessassistant.app
 - inputText: ${PROVINCE_TYPE}
 - tapOn:
     text: ".*${PROVINCE_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${PROVINCE_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${PROVINCE_LABEL}.*"
 - tapOn: "Phường./.Xã"
 - tapOn: "Tìm…"
 - inputText: ${WARD_TYPE}
 - tapOn:
     text: ".*${WARD_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${WARD_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${WARD_LABEL}.*"
 - tapOn: "Gần.nhất"
 - extendedWaitUntil:
     visible: "~.* km từ trung tâm .*"
@@ -57,12 +76,12 @@ appId: vn.fitnessassistant.app
 - tapOn: "Dùng.vị.trí.hiện.tại"
 - runFlow:
     when:
-      visible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+      visible: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
     commands:
-      - tapOn: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
-- extendedWaitUntil:
-    visible: "~.* km \\(đường chim bay\\)"
-    timeout: 30000
+      - tapOn: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+# the distance badge sits at the bottom of the first gym card, below the fold on a 1080x2400 phone: scroll to it
+- scrollUntilVisible:
+    element: "~.* km \\(đường chim bay\\)"
 - takeScreenshot: j-03-gym-gps-distance
 - runFlow:
     when:

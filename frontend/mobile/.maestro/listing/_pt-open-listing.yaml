@@ -16,6 +16,6 @@ appId: vn.fitnessassistant.app
 - scrollUntilVisible:
     element: "Tin đăng"
 - tapOn: "Tin đăng"
-- extendedWaitUntil:
-    visible: "Trạng thái tin đăng"
-    timeout: 20000
+# U2-era retune: the "Lịch làm việc" card now sits above the status card, so on a 1080x2400 phone "Trạng thái tin đăng" is below the fold
+- scrollUntilVisible:
+    element: "Trạng thái tin đăng"

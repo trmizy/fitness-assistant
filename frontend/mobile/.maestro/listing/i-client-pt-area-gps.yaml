@@ -2,15 +2,21 @@
 # "~x km từ trung tâm <phường>", the GPS button (permission asked ONLY when tapped, "~x km (đường chim bay)"), "Xem thêm"
 # cursor paging, back to "Toàn quốc". NOT RUN YET (written at the U2 code stage; the device run is the next stage).
 #
-# Run: run.sh i-client-pt-area-gps.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test -e PROVINCE_TYPE="Ho Chi Minh" -e PROVINCE_LABEL="H. Ch. Minh" -e WARD_TYPE="<ASCII part of a ward name>" -e WARD_LABEL="<the same with . for each accented letter>"
+# Run: run.sh i-client-pt-area-gps.yaml -e EMAIL=pham-thu-uyen@seed.gymini.test -e PROVINCE_TYPE="Ho Chi Minh" -e PROVINCE_LABEL="Th.nh.ph..H. Ch. Minh" -e WARD_TYPE="<ASCII part of a ward name>" -e WARD_LABEL="<the same with . for each accented letter>"
 #      (PASSWORD injected by the runner; -e values must be ASCII. *_TYPE is typed into the picker, whose search folds accents; *_LABEL is a
 #       regex for the accented row to tap, "." standing for each non-ASCII letter. Pick a ward that has seeded PTs with coordinates.)
+# CAUTION: *_LABEL must not also match the text typed into the picker's search box ("Ho Chi Minh" matches "H.*Ch.*Minh"): start it with "Th.nh.ph.." / "Ph..ng ".
 # Device: the phone's location must be inside Vietnam (emulator: `adb emu geo fix 106.70 10.78`); outside it the app shows
 #         "Tọa độ hiện tại nằm ngoài phạm vi hỗ trợ tại Việt Nam" and no GPS badge appears (the flow then fails on purpose).
 # NOTE: multi-word labels are matched with "." between the words (non-breaking spaces on the ROG).
 appId: vn.fitnessassistant.app
 ---
-- launchApp
+# Maestro's plain launchApp grants EVERY permission (including location), which would hide the "asked only on tap" rule:
+# revoke them so the system location dialog really appears when (and only when) the GPS button is tapped.
+- launchApp:
+    permissions:
+      all: deny
+      notifications: allow
 - runFlow:
     when:
       visible: "Bỏ qua"
@@ -34,7 +40,7 @@ appId: vn.fitnessassistant.app
 - extendedWaitUntil:
     visible: "Khu.vực.tìm.kiếm"
     timeout: 20000
-- assertNotVisible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+- assertNotVisible: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
 - assertVisible: "Dùng.vị.trí.hiện.tại"
 - takeScreenshot: i-01-area-card
 # 2. Province + ward (saved on the profile as codes) -> distance from the ward centre
@@ -44,11 +50,25 @@ appId: vn.fitnessassistant.app
 - inputText: ${PROVINCE_TYPE}
 - tapOn:
     text: ".*${PROVINCE_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${PROVINCE_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${PROVINCE_LABEL}.*"
 - tapOn: "Phường./.Xã"
 - tapOn: "Tìm…"
 - inputText: ${WARD_TYPE}
 - tapOn:
     text: ".*${WARD_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${WARD_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${WARD_LABEL}.*"
 - extendedWaitUntil:
     visible: "~.* km từ trung tâm .*"
     timeout: 30000
@@ -57,9 +77,9 @@ appId: vn.fitnessassistant.app
 - tapOn: "Dùng.vị.trí.hiện.tại"
 - runFlow:
     when:
-      visible: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+      visible: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
     commands:
-      - tapOn: "While using the app|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
+      - tapOn: "While using the app|Trong khi dùng ứng dụng|Khi dùng ứng dụng|Chỉ trong lúc dùng ứng dụng"
 - extendedWaitUntil:
     visible: "Đang.dùng.GPS"
     timeout: 30000

@@ -13,14 +13,17 @@ appId: vn.fitnessassistant.app
 - runFlow: _pt-open-listing.yaml
 - takeScreenshot: a1-01-listing
 # a draft may already exist; if not, start one
+# the "Lịch làm việc" card pushes the draft button below the fold on a 1080x2400 phone
+- scrollUntilVisible:
+    element: "Soạn bản sửa mới"
+    optional: true
 - runFlow:
     when:
       visible: "Soạn bản sửa mới"
     commands:
       - tapOn: "Soạn bản sửa mới"
-- extendedWaitUntil:
-    visible: "Giới thiệu & chuyên môn"
-    timeout: 20000
+- scrollUntilVisible:
+    element: "Giới thiệu & chuyên môn"
 - scrollUntilVisible:
     element: "Chuyên môn chính"
 - tapOn: "Yoga"

@@ -68,8 +68,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
-          "locationWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
+          "locationAlwaysAndWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym, và để tìm PT và phòng gym gần bạn khi bạn bấm \"Dùng vị trí hiện tại\".",
+          "locationWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym, và để tìm PT và phòng gym gần bạn khi bạn bấm \"Dùng vị trí hiện tại\".",
           "isAndroidBackgroundLocationEnabled": false,
           "isIosBackgroundLocationEnabled": false
         }

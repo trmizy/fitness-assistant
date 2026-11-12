@@ -47,10 +47,13 @@ appId: vn.fitnessassistant.app
 - tapOn: "Tên.thương.hiệu,.chi.nhánh.hoặc.thành.phố…"
 - inputText: ${BRAND_QUERY}
 - tapOn: "Hợp.tác.với.*"
+# the picker list shows the matching option ("<brand> (N chi nhánh)"); the parentheses keep the typed query itself from satisfying this
 - extendedWaitUntil:
-    visible: ".*${BRAND_QUERY}.*"
+    visible: ".*${BRAND_QUERY}.*\\(.*\\)"
     timeout: 20000
 - takeScreenshot: l-03-brand-search
+# three backs: soft keyboard, the brand picker, the "Đề nghị hợp tác" sheet (nothing is sent)
+- back
 - back
 - back
 - runFlow: _pt-logout.yaml

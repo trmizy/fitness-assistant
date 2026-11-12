@@ -5,7 +5,12 @@
 # Pick a remote ward (the seed's rural wards) so the first search is empty; the PT list is used (the gym list behaves the same).
 appId: vn.fitnessassistant.app
 ---
-- launchApp
+# Maestro's plain launchApp grants EVERY permission (including location), which would hide the "asked only on tap" rule:
+# revoke them so the system location dialog really appears when (and only when) the GPS button is tapped.
+- launchApp:
+    permissions:
+      all: deny
+      notifications: allow
 - runFlow:
     when:
       visible: "Bỏ qua"
@@ -23,6 +28,12 @@ appId: vn.fitnessassistant.app
     timeout: 40000
 - tapOn: "Dịch vụ"
 - extendedWaitUntil:
+    visible: "Tìm PT"
+    timeout: 20000
+# 12/11 device run: the dev PT search keeps province-level PTs that have no coordinates even for a remote ward
+# (never empty), so this flow runs on the "Phòng gym" tab, where an empty 10 km radius is reachable.
+- tapOn: "Phòng gym"
+- extendedWaitUntil:
     visible: "Khu.vực.tìm.kiếm"
     timeout: 20000
 - tapOn: "Khu.vực.tìm.kiếm"
@@ -31,32 +42,55 @@ appId: vn.fitnessassistant.app
 - inputText: ${PROVINCE_TYPE}
 - tapOn:
     text: ".*${PROVINCE_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${PROVINCE_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${PROVINCE_LABEL}.*"
 - tapOn: "Phường./.Xã"
 - tapOn: "Tìm…"
 - inputText: ${WARD_TYPE}
 - tapOn:
     text: ".*${WARD_LABEL}.*"
+# the first tap can only close the soft keyboard (the sheet then slides down): tap again while the typed text is still on screen
+- runFlow:
+    when:
+      visible: "${WARD_TYPE}"
+    commands:
+      - tapOn:
+          text: ".*${WARD_LABEL}.*"
 - extendedWaitUntil:
-    visible: "Không.tìm.thấy.huấn.luyện.viên.trong.bán.kính.10.km"
+    visible: "Không.tìm.thấy.phòng.gym.trong.bán.kính.10.km"
     timeout: 30000
 - takeScreenshot: k-01-empty-10km
+# the expand buttons sit under the empty-state text, below the fold on a 1080x2400 phone
+- scrollUntilVisible:
+    element: "Mở.rộng.bán.kính.lên.20.km"
 - tapOn: "Mở.rộng.bán.kính.lên.20.km"
 - extendedWaitUntil:
-    visible: "Không.tìm.thấy.huấn.luyện.viên.trong.bán.kính.20.km|~.* km từ trung tâm .*"
+    visible: "Không.tìm.thấy.phòng.gym.trong.bán.kính.20.km|~.* km từ trung tâm .*"
     timeout: 30000
 - takeScreenshot: k-02-20km
+- scrollUntilVisible:
+    element: "Mở.rộng.bán.kính.lên.50.km"
+    optional: true
 - runFlow:
     when:
       visible: "Mở.rộng.bán.kính.lên.50.km"
     commands:
       - tapOn: "Mở.rộng.bán.kính.lên.50.km"
       - takeScreenshot: k-03-50km
+- scrollUntilVisible:
+    element: "Tìm.toàn.quốc"
+    optional: true
 - runFlow:
     when:
       visible: "Tìm.toàn.quốc"
     commands:
       - tapOn: "Tìm.toàn.quốc"
-      - assertNotVisible: "Không.tìm.thấy.huấn.luyện.viên.*"
+      - assertNotVisible: "Không.tìm.thấy.phòng.gym.*"
       - takeScreenshot: k-04-national
 - tapOn: "Cá nhân"
 - scrollUntilVisible:
