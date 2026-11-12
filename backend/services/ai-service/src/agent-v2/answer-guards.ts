@@ -20,6 +20,15 @@ import { enforceExerciseConstraints } from "../llm/exercise_constraint_guard";
 import { extractTurnFacts } from "../llm/turn_facts";
 import { groundIntakeClaims } from "../llm/intake_claim_guard";
 
+/**
+ * Sentence splitter for the deterministic guards: breaks after . ! ? only when followed by whitespace / end, and at line
+ * breaks — so decimals ("70.4 kg", "1.6 kg") stay inside their sentence (M3 found "70." / "4 kg." splits hiding a figure).
+ * Joining the parts with "" restores the original text exactly.
+ */
+export function splitSentences(text: string): string[] {
+  return text.split(/(?<=[.!?])(?=\s|$)|(?<=\n)/u);
+}
+
 export interface InputSafetyVerdict { safe: boolean; type: string; message?: string }
 
 export function checkInputSafety(question: string): InputSafetyVerdict {
@@ -120,7 +129,7 @@ export function guardNutritionAnswer(answer: string, ev: NutritionAnswerEvidence
   // is fabricated (M1 test MA-3: "Bạn đang ăn 60g protein mỗi ngày" passed the V1 fidelity guard). Conditionals are kept.
   const userText = foldVi([ev.question, ...(ev.sessionUserMessages ?? [])].join(" "));
   let intakeRemoved = 0;
-  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+  out = splitSentences(out).filter((sentence) => {
     const f = foldVi(sentence);
     const m = CURRENT_INTAKE.exec(f);
     if (!m || /\b(neu|gia su|vi du)\b/.test(f)) return true;
@@ -132,7 +141,7 @@ export function guardNutritionAnswer(answer: string, ev: NutritionAnswerEvidence
 
   const verified = new Set(ev.verifiedNumbers);
   let floorRemoved = 0;
-  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+  out = splitSentences(out).filter((sentence) => {
     for (const m of sentence.matchAll(KCAL_FIGURE)) {
       const v = Number(m[1].replace(/[.,]/g, ""));
       if (Number.isFinite(v) && v > 0 && v < MIN_DAILY_KCAL && !verified.has(v) && DAILY_CONTEXT.test(foldVi(sentence))) {
@@ -191,7 +200,7 @@ export function guardRecoveryAnswer(answer: string, ev: RecoveryAnswerEvidence):
   const userRaisedBiometrics = BIOMETRIC_TOPIC.test(foldVi([ev.question, ...(ev.sessionUserMessages ?? [])].join(" ")));
   const removed: Record<string, number> = {};
   let diagnosisRemoved = false;
-  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+  out = splitSentences(out).filter((sentence) => {
     const f = foldVi(sentence);
     const hit = (k: string) => { removed[k] = (removed[k] ?? 0) + 1; return false; };
     if (!userRaisedBiometrics && BIOMETRIC_CLAIM.test(f)) return hit("biometric");
@@ -202,6 +211,91 @@ export function guardRecoveryAnswer(answer: string, ev: RecoveryAnswerEvidence):
   }).join("").trim();
   for (const [k, n] of Object.entries(removed)) actions.push(`${k}:${n}`);
   if (diagnosisRemoved && !out.includes(RECOVERY_REFERRAL)) out = `${out}${out ? "\n\n" : ""}${RECOVERY_REFERRAL}`;
+
+  return { answer: out.trim(), actions };
+}
+
+// ── Progress (M3) ────────────────────────────────────────────────────────────────────────────────────────────────────
+/** Folded: a claim that something was ACHIEVED / measured ("đã giảm 2 kg", "giảm được", "hiện nặng", "đo được"). */
+const ACHIEVED_CLAIM = /\b(da|vua) (giam|tang|dat|xuong|len)\b|\b(giam|tang) duoc\b|\bhien (tai )?(nang|can nang|o muc)\b|\bdo duoc\b|\bthuc te (ban )?(da|dang)\b/;
+const GOAL_ACHIEVED = /\b(da|vua) (dat|hoan thanh|cham) (duoc )?(muc tieu|can nang muc tieu)\b|\bhoan thanh muc tieu\b/;
+const TREND_CLAIM = /\b(xu huong|dang (giam|tang)|giam dan|tang dan|on dinh dan)\b/;
+const BODY_FAT_CLAIM = /\b(mo co the|ti le mo|ty le mo|body fat|% ?mo)\b/;
+const MUSCLE_CLAIM = /\b(khoi co|luong co|co bap|co nac|muscle mass|lean mass)\b.{0,30}\b(cua ban|ban da|da tang|da giam|tang|giam)\b|\b(ban da|ban) (tang|giam) (\d+[.,]?\d* ?kg )?(co|khoi co|co bap)\b/;
+const HEALTH_CLAIM = /\b(suc khoe (cua ban )?(da |dang )?(cai thien|tot hon|tot len)|khoe manh hon|giam nguy co|it nguy co|an toan hon cho tim)\b/;
+const SIGNIFICANCE_CLAIM = /\b(y nghia thong ke|dang ke ve mat thong ke|statistically significant)\b/;
+const RATE_PER_WEEK = /(giam|mat|cat)\s+(\d+(?:[.,]\d+)?)\s*(?:kg|ky|ki)\s*(?:\/|moi|mot|1)\s*tuan/;
+const ONE_RM = /\b1 ?rm\b/i;
+
+export interface ProgressAnswerEvidence {
+  question: string;
+  sessionUserMessages?: string[];
+  verifiedNumbers: number[];
+  /** Numbers that appeared ONLY in a forecast this turn (never in a measurement / estimate / user text). */
+  forecastOnlyNumbers: number[];
+  weightTrendAvailable: boolean;
+  bodyFatTrendAvailable: boolean;
+  bodyFatObserved: boolean;
+}
+
+const numbersIn = (s: string) => [...s.matchAll(/(?<![\d.,])(\d+(?:[.,]\d+)?)(?![\d])/g)].map((m) => Number(m[1].replace(",", ".")));
+
+/**
+ * Final-answer guards for the Progress Agent (M3). V1 hygiene / BMI / fidelity, then deterministic rules on each sentence:
+ * forecast-only figures stated as achieved, goal claimed as achieved, trends without ≥2 data points, body fat without an
+ * observation, any personal muscle-mass change (not exposed), health inference, statistical-significance wording, unsafe
+ * weight-loss rates (> 1 kg/week) or a daily energy figure under MIN_DAILY_KCAL. "1RM" is always labelled as an estimate.
+ */
+export function guardProgressAnswer(answer: string, ev: ProgressAnswerEvidence): { answer: string; actions: string[] } {
+  const actions: string[] = [];
+  let out = answer;
+
+  const hygiene = stripInternalReferences(out);
+  if (hygiene.labels || hygiene.removedSentences) actions.push(`hygiene:${hygiene.labels}/${hygiene.removedSentences}`);
+  out = hygiene.answer;
+
+  const bmi = groundBmiClaims(out, { bmi: null, lang: "vi" }) as { answer: string; corrected?: number; removed?: number };
+  if (bmi.corrected || bmi.removed) actions.push(`bmi:${bmi.corrected ?? 0}/${bmi.removed ?? 0}`);
+  out = bmi.answer;
+
+  const fidelity = removeUnsupportedUserClaims(out, {
+    question: ev.question, sessionUserMessages: ev.sessionUserMessages ?? [], verifiedProfileFacts: {}, verifiedNumbers: ev.verifiedNumbers,
+  });
+  if (fidelity.removed.length) actions.push(`fidelity:${fidelity.removed.length}`);
+  out = fidelity.answer;
+
+  const forecastOnly = new Set(ev.forecastOnlyNumbers);
+  const removed: Record<string, number> = {};
+  let labelled = 0;
+  out = splitSentences(out).filter((sentence) => {
+    const f = foldVi(sentence);
+    const negated = /\b(khong|chua)\b/.test(f);
+    const conditional = /\b(neu|gia su|du kien|du bao|kich ban|co the se)\b/.test(f);
+    const hit = (k: string) => { removed[k] = (removed[k] ?? 0) + 1; return false; };
+    if (ACHIEVED_CLAIM.test(f) && !negated && !conditional && numbersIn(f).some((n) => forecastOnly.has(n))) return hit("forecast_as_actual");
+    if (GOAL_ACHIEVED.test(f) && !negated) return hit("goal_claim");
+    if (TREND_CLAIM.test(f) && !negated) {
+      const aboutFat = BODY_FAT_CLAIM.test(f);
+      const aboutWeight = /\b(can nang|nang|kg)\b/.test(f);
+      if ((aboutFat && !ev.bodyFatTrendAvailable) || (aboutWeight && !aboutFat && !ev.weightTrendAvailable)) return hit("trend_without_history");
+    }
+    if (BODY_FAT_CLAIM.test(f) && !ev.bodyFatObserved && /\d/.test(f) && !conditional && !/\b(chua co|khong co|thieu)\b/.test(f)) return hit("body_fat_unsupported");
+    if (MUSCLE_CLAIM.test(f) && !negated) return hit("muscle_unsupported");
+    if (HEALTH_CLAIM.test(f)) return hit("health_claim");
+    if (SIGNIFICANCE_CLAIM.test(f) && !negated) return hit("significance_claim");
+    const rate = RATE_PER_WEEK.exec(f);
+    if (rate && Number(rate[2].replace(",", ".")) > 1) return hit("extreme_rate");
+    for (const m of sentence.matchAll(KCAL_FIGURE)) {
+      const v = Number(m[1].replace(/[.,]/g, ""));
+      if (v > 0 && v < MIN_DAILY_KCAL && DAILY_CONTEXT.test(f)) return hit("kcal_floor");
+    }
+    return true;
+  }).map((sentence) => {
+    if (ONE_RM.test(sentence) && !/uoc tinh|estimat|e1rm/.test(foldVi(sentence))) { labelled++; return sentence.replace(ONE_RM, (m) => `${m} ước tính`); }
+    return sentence;
+  }).join("").trim();
+  for (const [k, n] of Object.entries(removed)) actions.push(`${k}:${n}`);
+  if (labelled) actions.push(`e1rm_labelled:${labelled}`);
 
   return { answer: out.trim(), actions };
 }

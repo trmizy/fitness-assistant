@@ -15,13 +15,14 @@ import { logger } from "@gym-coach/shared";
 import { foldVi } from "../llm/speech_act";
 import { stripInternalReferences } from "../llm/output_hygiene";
 import { appendMinorSupervisionNote } from "../llm/medical-referral";
-import { checkInputSafety } from "./answer-guards";
+import { checkInputSafety, splitSentences } from "./answer-guards";
 import { isAgentV2Enabled } from "./flag";
 import { PILOT_LIMITS, type AgentLimits, type AgentTurn, type AgentTurnResult, type BoundedAgentDeps } from "./bounded-agent";
 import { classifyMinorRequest, decideMinorGate, resolveAgeVerdict, type ProfileAgeRead, type VerifiedProfileAgeReader } from "./minor-gate";
 import type { AgentModelProvider } from "./model-provider";
 import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
+import { progressEvidenceOf } from "./progress-tools";
 import type {
   AgentBudget, AgentCapability, AgentCompletion, AgentEvidence, AgentExecutionPolicy, AgentId, AgentRequest, AgentResult,
   AgentRunner, AgentRuntime, DecisionInput, DecisionProvider, ProfileReadResult, SupervisorDecision, SupervisorProfileReader,
@@ -36,7 +37,7 @@ export const SUPERVISOR_BUDGET: Readonly<AgentBudget> = Object.freeze({
   maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08,
 });
 export const DEFAULT_EXECUTION_POLICY: Readonly<AgentExecutionPolicy> = Object.freeze({
-  allowedAgents: Object.freeze(["recovery", "training", "nutrition"]) as readonly AgentId[],
+  allowedAgents: Object.freeze(["progress", "recovery", "training", "nutrition"]) as readonly AgentId[],
   maxAgentsPerTurn: 2,
   budget: SUPERVISOR_BUDGET,
   minDelegationWallMs: 2_000,
@@ -45,16 +46,19 @@ export const DEFAULT_EXECUTION_POLICY: Readonly<AgentExecutionPolicy> = Object.f
  * Data producers first, so their typed facts can be handed to later agents: Recovery (logged load) → Training (today's plan,
  * may weigh the recovery evidence) → Progress → Nutrition.
  */
-const AGENT_ORDER: readonly AgentId[] = ["recovery", "training", "progress", "nutrition"];
+const AGENT_ORDER: readonly AgentId[] = ["progress", "recovery", "training", "nutrition"];
 const AGENT_LABEL: Record<AgentId, string> = { training: "Tập luyện", nutrition: "Dinh dưỡng", recovery: "Phục hồi", progress: "Tiến độ" };
 
 // ── routing ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 /** Folded-text signals per agent. A table, not an if/else: adding an agent = adding a row (and registering its runner). */
 export const ROUTING_SIGNALS: Readonly<Partial<Record<AgentId, RegExp>>> = Object.freeze({
-  training: /\b(tap(?! trung)|lich tap|buoi tap|bai tap|nhom co|chu ky|hiep|squat|deadlift|bench|gym|khoi dong|gian co|cardio|chay bo)\b/,
+  // M3: "tải tập" (training load) is a recovery/progress notion, not a request for today's training.
+  training: /\b((?<!tai )tap(?! trung)|lich tap|buoi tap|bai tap|nhom co|chu ky|hiep|squat|deadlift|bench|gym|khoi dong|gian co|cardio|chay bo)\b/,
   nutrition: /\b(an(?! toan| tam| ninh)|uong|bua|dinh duong|protein|dam|calo|kcal|macro|carb|tinh bot|chat beo|thuc don|thuc pham|mon an|whey|che do an)\b/,
   // M2. "phục hồi cơ" alone is NOT a recovery signal (e.g. "protein có vai trò gì trong phục hồi cơ" is a nutrition question).
   recovery: /\b(nghi ngoi|ngay nghi|nghi (bao lau|may ngay|giua)|met|qua met|kiet suc|uong co|dau moi|nhuc moi|doms|qua tai|hoi suc|giam khoi luong|deload|chua hoi phuc|da hoi phuc|hoi phuc (chua|du|hoan toan|sau buoi|giua)|giac ngu|ngu du)\b|\btap\b.{0,25}\bhom qua\b/,
+  // M3
+  progress: /\b(tien bo|tien do|tien trien|ket qua (tap|do|inbody)|xu huong|manh hon|yeu di|suc manh|1 ?rm|can nang|giam duoc|tang duoc|body fat|mo co the|ti le mo|inbody|du bao|dat muc tieu|muc tieu can nang|hieu suat)\b/,
 });
 
 export const keywordDecisionProvider: DecisionProvider = {
@@ -156,6 +160,30 @@ export function recoveryFacts(toolId: string, data: unknown, now: number = Date.
         : { known: true, dataQuality: "NO_DATA" },
     };
   }
+  return null;
+}
+/** M3: enums/counts only, each labelled with its evidence kind (observation vs estimate vs forecast vs goal). */
+export function progressFacts(toolId: string, data: unknown): Record<string, unknown> | null {
+  const d = data as any;
+  const kinds = progressEvidenceOf(toolId, d).map((e) => `${e.subject}:${e.kind}`);
+  if (toolId === "progress.get_body_measurements") {
+    if (!d?.available) return { measurementAvailability: { known: true, weight: "MISSING", bodyFat: "MISSING" }, progressEvidence: kinds };
+    return {
+      measurementAvailability: { known: true, weight: d.latest?.weightKg != null ? "OBSERVED" : "MISSING", bodyFat: d.latest?.bodyFatPct != null ? "OBSERVED" : "MISSING", latestAgeDays: d.observations?.latestAgeDays ?? null, dataQuality: d.dataQuality },
+      bodyTrend: { weightStatus: d.trends?.weight?.status, weightDirection: d.trends?.weight?.direction ?? null, weightDataPoints: d.trends?.weight?.dataPoints ?? 0 },
+      goalStatus: { hasTarget: d.goal?.targetWeightKg != null, gap: d.gap?.state, directionRelativeToGap: d.observedTrajectory?.state === "AVAILABLE" ? d.observedTrajectory.directionRelativeToGap : null, onTrack: "NOT_EVALUABLE" },
+      progressEvidence: kinds,
+    };
+  }
+  if (toolId === "progress.get_strength_progression") {
+    const ex = Array.isArray(d?.exercises) ? d.exercises : [];
+    const sign = (s: number) => ex.filter((e: any) => typeof e.changePct === "number" && Math.sign(e.changePct) === s).length;
+    return { strengthTrend: { kind: "DERIVED_ESTIMATE", available: !!d?.available && ex.length > 0, exercisesUp: sign(1), exercisesDown: sign(-1), exercisesFlat: sign(0), quality: d?.dataQuality ?? "NO_DATA" }, progressEvidence: kinds };
+  }
+  if (toolId === "progress.get_cycle_status") {
+    return { assessmentFreshness: { hasActiveCycle: !!d?.activeCycle, hasAssessment: !!d?.latestAssessment, decision: d?.latestAssessment?.decision ?? null }, progressEvidence: kinds };
+  }
+  if (toolId === "progress.get_roadmap_forecast") return { observedVsForecast: { forecastAvailable: !!d?.available, kind: "FORECAST", isMeasurement: false }, progressEvidence: kinds };
   return null;
 }
 export function nutritionFacts(toolId: string, data: unknown): Record<string, unknown> | null {
@@ -273,7 +301,10 @@ const TEXT: Record<string, string> = {
   DISABLED: "Tính năng trợ lý đa tác tử thử nghiệm đang tắt.",
   UNAUTHENTICATED: "Bạn cần đăng nhập để dùng trợ lý.",
   INVALID_INPUT: "Câu hỏi quá dài hoặc không hợp lệ. Hãy hỏi ngắn gọn hơn.",
-  OUT_OF_SCOPE: "Mình hiện chỉ hỗ trợ câu hỏi về tập luyện, phục hồi và dinh dưỡng. Bạn có thể hỏi cụ thể hơn về một trong các chủ đề này nhé.",
+  OUT_OF_SCOPE: "Mình hiện chỉ hỗ trợ câu hỏi về tập luyện, phục hồi, tiến độ và dinh dưỡng. Bạn có thể hỏi cụ thể hơn về một trong các chủ đề này nhé.",
+  FORECAST_NOTE: "Lưu ý: con số trong dự báo là kịch bản của ứng dụng, không phải kết quả đo. Mức thay đổi thực tế chỉ dựa trên các lần đo đã ghi.",
+  CAUSAL_NOTE: "Lưu ý: dữ liệu chỉ cho thấy các thay đổi xảy ra cùng lúc, chưa đủ để kết luận cái này gây ra cái kia.",
+  AGE_REQUIRED: "Hồ sơ của bạn chưa có tuổi, nên mình chưa thể tư vấn cá nhân cho yêu cầu này (mục tiêu thay đổi cơ thể, cường độ tối đa hoặc các yêu cầu có rủi ro). Bạn hãy cập nhật tuổi trong hồ sơ rồi hỏi lại nhé; câu hỏi kiến thức chung thì mình vẫn trả lời được.",
   HISTORY_CONFLICT: "Lưu ý: nhật ký tập của bạn không có buổi tập nào được ghi vào hôm qua. Mình vẫn tính đến điều bạn kể, nhưng phần nhận xét dựa trên dữ liệu chỉ phản ánh các buổi đã được ghi.",
   BODY_PART_CONFLICT: "Lưu ý: buổi tập được ghi vào hôm qua không phải nhóm cơ bạn nhắc tới. Mình giữ cả hai thông tin như nhau — bạn kiểm tra lại nhật ký tập nhé.",
   FAILED: "Trợ lý tạm thời chưa trả lời được. Bạn thử lại sau ít phút nhé.",
@@ -294,6 +325,10 @@ const CLAIMS_TRAINED_YESTERDAY = /\btap\s*(chan|mong|dui|nguc|lung|vai|tay|bung|
 const CLAIMED_PART: Record<string, string> = { chan: "LOWER_BODY", mong: "LOWER_BODY", dui: "LOWER_BODY", nguc: "UPPER_BODY", lung: "UPPER_BODY", vai: "UPPER_BODY", tay: "UPPER_BODY", bung: "CORE", "full body": "FULL_BODY", "toan than": "FULL_BODY" };
 /** M2, folded: first-person fatigue — a SELF-REPORT handed to agents as such, never as a measurement. */
 const SELF_REPORTED_FATIGUE = /\b(toi|minh|em)\b.{0,50}\b(met|qua met|kiet suc|uong co|nhuc moi|dau moi|ue oai)\b/;
+/** M3, folded: the user treats a forecast figure as an achieved one ("dự báo tôi giảm 2 kg, vậy tôi đã giảm được 2 kg?"). */
+const FORECAST_CONFUSION = /\bdu bao\b.{0,60}\b(da|duoc|vay) (giam|tang|dat)|\b(da|duoc) (giam|tang)\b.{0,60}\bdu bao\b/;
+/** M3, folded: a causal claim ("nguyên nhân là", "là do tải tập") — kept out when only correlations were observed. */
+const CAUSAL_CLAIM = /\b(nguyen nhan (chinh )?(la|cua)|chinh la do|la do (tai|met|khoi luong|tap|thieu ngu)|gay ra boi|chac chan do|vi vay (hieu suat|suc manh) (giam|tang))\b/;
 const CLAIMS_SESSION_TODAY = /\bhom nay\b.{0,30}\b(co|se) (buoi|lich|bai)? ?tap\b|\bbuoi tap\b.{0,20}\bhom nay\b|\bhom nay\b.{0,15}\btap (chan|nguc|lung|vai|tay|mong|full)/;
 /** Folded: a sentence asserting the user's schedule contains a session today. */
 const SCHEDULE_CLAIM = /(trong lich|theo lich|lich (tap )?(hom nay|cua ban)|buoi tap (hom nay )?cua ban)/;
@@ -389,6 +424,12 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   const gate = decideMinorGate(verdict, classifyMinorRequest(question), needsOwnData);
   ageGate = { status: verdict.status, minorBy: verdict.minorBy, conflict: verdict.conflict, decision: gate.action };
   if (gate.action === "BLOCK") return finish(gate.status, gate.message);
+  // M3: AGE_UNKNOWN is never evidence of adulthood — a HIGH_RISK personal request (body-change targets, max effort,
+  // supplements, pain…) fails closed until the profile carries an age (a self-stated adult age cannot unlock it).
+  if (read.status === "AGE_UNKNOWN" && verdict.status === "UNKNOWN" && needsOwnData && classifyMinorRequest(question) === "HIGH_RISK") {
+    ageGate = { ...ageGate, decision: "BLOCK_AGE_UNKNOWN" };
+    return finish("PROFILE_UNVERIFIED", TEXT.AGE_REQUIRED);
+  }
   const generalOnly = gate.action === "GENERAL_ONLY";
 
   // 4. delegations — sequential, each bounded by a slice of the REMAINING turn budget
@@ -450,6 +491,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     if (result.completion !== "POLICY_VIOLATION") handoff = { ...handoff, ...result.facts };
     if (agentId === "training" && !(result.facts as any)?.todaySchedule) handoff = { ...handoff, todaySchedule: { known: false } };
     if (agentId === "recovery" && !(result.facts as any)?.recentSessions) handoff = { ...handoff, recentSessions: { known: false } };
+    if (agentId === "progress" && !Object.keys(result.facts ?? {}).length) handoff = { ...handoff, progressData: { known: false } };
   }
 
   // 5. conflicts between the user's claim and authoritative data
@@ -468,6 +510,13 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     }
   }
 
+  // M3: a forecast figure taken for a measured result — always corrected, whatever the agents wrote
+  const forecastNote = selected.includes("progress") && FORECAST_CONFUSION.test(folded) ? TEXT.FORECAST_NOTE : "";
+  if (forecastNote) conflicts.push("user_conflates_forecast_with_measurement");
+  // M3: Progress + Recovery observe co-occurring changes only — no causal claim survives composition
+  const correlationOnly = results.some((r) => r.agentId === "progress" && r.completion === "COMPLETE") && results.some((r) => r.agentId === "recovery" && r.completion === "COMPLETE");
+  let causalRemoved = 0;
+
   // 6. composition (deterministic) + final guards
   const sections: string[] = [];
   const notes: string[] = [];
@@ -478,7 +527,10 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     if (r.completion === "COMPLETE" || r.completion === "BLOCKED") {
       if (scheduleConflict && r.agentId !== "training") {
         // never let another agent assert the session the schedule does not contain
-        text = text.split(/(?<=[.!?\n])/u).filter((s) => !(SCHEDULE_CLAIM.test(foldVi(s)) && !/\bkhong\b/.test(foldVi(s)))).join("").trim();
+        text = splitSentences(text).filter((s) => !(SCHEDULE_CLAIM.test(foldVi(s)) && !/\bkhong\b/.test(foldVi(s)))).join("").trim();
+      }
+      if (correlationOnly) {
+        text = splitSentences(text).filter((s) => { const keep = !CAUSAL_CLAIM.test(foldVi(s)); if (!keep) causalRemoved++; return keep; }).join("").trim();
       }
       text = text.split("\n").filter((line) => !TOOL_NAME.test(line)).join("\n");
       text = stripInternalReferences(text).answer.trim();
@@ -488,12 +540,19 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       notes.push(PART_UNAVAILABLE[r.completion](label));
     }
   }
+  if (causalRemoved) { conflicts.push("causal_claim_removed"); notes.push(TEXT.CAUSAL_NOTE); }
+  // M3: agents the question needed but the per-turn cap excluded are SAID, never silently dropped
+  const cappedOut = valid.slice(selected.length);
+  if (cappedOut.length) {
+    notes.push(`Phần ${cappedOut.map((a) => AGENT_LABEL[a].toLowerCase()).join(", ")} của câu hỏi chưa được xử lý trong lượt này vì mỗi lượt chỉ tham vấn tối đa ${policy.maxAgentsPerTurn} trợ lý — bạn hỏi riêng phần này nhé.`);
+  }
   const completes = results.filter((r) => r.completion === "COMPLETE").length;
-  let answer = [scheduleConflict ? TEXT.SCHEDULE_CONFLICT : "", historyNote, ...sections, ...notes].filter(Boolean).join("\n\n");
+  let answer = [scheduleConflict ? TEXT.SCHEDULE_CONFLICT : "", historyNote, forecastNote, ...sections, ...notes].filter(Boolean).join("\n\n");
   if (generalOnly && "addMinorNote" in gate && gate.addMinorNote && answer) answer = appendMinorSupervisionNote(answer, "vi");
 
   let status: SupervisorStatus;
-  if (completes === results.length) status = "ANSWERED";
+  if (completes === results.length && !cappedOut.length) status = "ANSWERED";
+  else if (completes === results.length) status = "PARTIAL";
   else if (completes > 0) status = "PARTIAL";
   else if (results.some((r) => r.completion === "BLOCKED")) status = "BLOCKED";
   else if (results.some((r) => r.completion === "INSUFFICIENT_DATA")) status = "INSUFFICIENT_DATA";
