@@ -4,7 +4,7 @@
  *   cd backend/services/ai-service && FITNESS_DISABLE_REDIS=true npx tsx src/__tests__/m5-benchmark/run-benchmark.ts --write
  * Without --write it prints the summary only. Offline: no network, DB, Redis or model.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
 import { ROUTING_CASES_V1, MULTI_TURN_CASES_V1, type RoutingCase } from "./dataset-v1";
@@ -123,7 +123,7 @@ export function buildReport(r: Result, meta: { head: string; date: string }): st
 
   L.push(`## 5. So sánh routing (keyword-v1 vs intent-v1 vs single-agent)`, "");
   L.push(`Mỗi ca chạy qua \`runSupervisorTurn\` thật (input safety → routing → validate → cap 2 agent → deferral → compose) với runner giả không gọi model/tool. Giữ cố định: dataset, budget, capability, tiêu chí. single-agent = intent planner chỉ giữ agent có relevance cao nhất (maxAgents 1, policy cap 1).`, "");
-  row("Chỉ số", ...ROUTING_CONFIGS); row("---", "---", "---", "---");
+  row("Chỉ số", ...ROUTING_CONFIGS); row(...Array(ROUTING_CONFIGS.length + 1).fill("---"));
   row("Exact agent-set (tất cả, n=" + M["intent-v1"].exactSetAll.d + ")", ...ROUTING_CONFIGS.map((c) => frac(M[c].exactSetAll)));
   row("Exact agent-set ≤2 agent", ...ROUTING_CONFIGS.map((c) => frac(M[c].exactSetLe2)));
   row("Exact agent-set ca ≥3 domain", ...ROUTING_CONFIGS.map((c) => frac(M[c].exactSetMulti)));
@@ -141,7 +141,7 @@ export function buildReport(r: Result, meta: { head: string; date: string }): st
   L.push(`intent-v1 so với keyword-v1 (exact set, theo ca): thắng ${wins.length} ca (${wins.join(", ") || "—"}), thua ${losses.length} ca (${losses.join(", ") || "—"}). Chênh lệch nhỏ so với cỡ mẫu — **không đủ để kết luận intent-v1 tốt hơn có ý nghĩa**; không có kiểm định thống kê.`, "");
   L.push(`## 6. Chỉ số theo agent`, "");
   L.push(`Định nghĩa: TP = agent được chọn và nằm trong hợp các tập chấp nhận; FP = được chọn nhưng không nằm trong tập chấp nhận nào; FN = agent bắt buộc (có trong MỌI tập chấp nhận) mà không được chọn.`, "");
-  row("Agent", ...ROUTING_CONFIGS.map((c) => `${c} P/R/F1 (TP·FP·FN)`)); row("---", "---", "---", "---");
+  row("Agent", ...ROUTING_CONFIGS.map((c) => `${c} P/R/F1 (TP·FP·FN)`)); row(...Array(ROUTING_CONFIGS.length + 1).fill("---"));
   for (const a of ["training", "nutrition", "recovery", "progress"] as const) row(a, ...ROUTING_CONFIGS.map((c) => { const x = M[c].perAgent[a]; return `${f(x.precision)}/${f(x.recall)}/${f(x.f1)} (${x.tp}·${x.fp}·${x.fn})`; }));
   L.push("");
   L.push(`## 7. Bao phủ intent`, "");
@@ -169,7 +169,7 @@ export function buildReport(r: Result, meta: { head: string; date: string }): st
   L.push(`**Không phải** độ trễ/chi phí thật: token là số mock cố định (400 vào / 50 ra mỗi model call), chi phí = token mock × giá niêm yết Nova Pro, độ trễ ảo do kịch bản đặt. Cơ chế race thời gian thực (setTimeout) không đo được dưới đồng hồ ảo.`, "");
 
   L.push(`## 13. Phân loại lỗi`, "");
-  row("Mã lỗi", ...ROUTING_CONFIGS); row("---", "---", "---", "---");
+  row("Mã lỗi", ...ROUTING_CONFIGS); row(...Array(ROUTING_CONFIGS.length + 1).fill("---"));
   for (const e of ROUTING_ERRORS) row(e, ...ROUTING_CONFIGS.map((c) => M[c].errors[e]));
   L.push("", `\`INPUT_SAFETY_FALSE_POSITIVE\` là mã BỔ SUNG (ngoài taxonomy của brief): ca in-scope bị bộ lọc an toàn V1 chặn trước routing.`, "");
   L.push(`### Ca intent-v1 sai (công bố đầy đủ, không sửa nhãn)`, "");
@@ -209,6 +209,11 @@ if (process.argv[1] && /run-benchmark\.ts$/.test(process.argv[1])) {
     console.log(JSON.stringify(summary));
     if (process.argv.includes("--write")) {
       const out = resolve(process.cwd(), "../../../docs/ai-v2/m5");
+      // M5.1: the M5 report is a historical record (its intent-v1 / single-agent columns used the M4 planner) — never overwrite
+      if (existsSync(resolve(out, "M5-EVALUATION-REPORT-vi.md")) && !process.argv.includes("--overwrite-historical")) {
+        console.error("refusing to overwrite the historical M5 report (docs/ai-v2/m5); M5.1 results are written by run-m51.ts");
+        process.exit(1);
+      }
       mkdirSync(out, { recursive: true });
       const json = { generatedAt: "2026-11-13", baseHead: head, dataset: { routingCases: ROUTING_CASES_V1, multiTurn: MULTI_TURN_CASES_V1 }, gates: r.gates, m6Ready: r.m6Ready, values: r.values,
         routing: { metrics: r.routing.metrics, outcomes: r.routing.outcomes }, execution: { summary: r.executionSummary, assertions: r.execution.assertions, turns: r.execution.turns, counters: r.execution.counters },

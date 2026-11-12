@@ -287,11 +287,14 @@ test("R-15 no WRITE: a change request goes to the confirmation flow before any m
 // ── budget / time / partial ──────────────────────────────────────────────────────────────────────────────────────────
 test("R-16 global budget unchanged by the new agent; slices come from what is left; a third agent is dropped, not funded", async () => {
   assert.deepEqual({ ...SUPERVISOR_BUDGET }, { maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08 });
+  // M5.1 (intent-v1.1, contract reviewed): the two EXPLICIT asks ("tập gì", "ăn gì") are served; the self-report
+  // ("tập chân hôm qua, hơi mệt") is background, so Recovery is the deferred third agent — still dropped, not funded,
+  // and disclosed. M4 kept Recovery and dropped Nutrition, leaving an explicit question unanswered.
   const h = harness({ withNutrition: true,
-    r: [use(call(T("recovery.get_recent_sessions"))), say("Quan sát: hôm qua bạn tập chân.")], t: [use(call(T("training.get_today_schedule"))), say("Hôm nay Upper.")] });
+    t: [use(call(T("training.get_today_schedule"))), say("Hôm nay Upper.")], n: [say("Ăn bữa có tinh bột và protein trước khi tập.")] });
   const r = await h.run("Tôi tập chân hôm qua và hơi mệt, hôm nay nên tập gì và ăn gì?");
-  assert.deepEqual(r.decision!.agents, ["recovery", "training"]); assert.deepEqual(h.supTraces[0].decision!.dropped, ["nutrition:max_agents"]);
-  assert.equal(h.nProv.requests.length, 0);
+  assert.deepEqual(r.decision!.agents, ["training", "nutrition"]); assert.deepEqual(h.supTraces[0].decision!.dropped, ["recovery:max_agents"]);
+  assert.equal(h.rProv.requests.length, 0); assert.equal(r.status, "PARTIAL"); assert.match(r.answer, /Phần phục hồi của câu hỏi chưa được xử lý/);
   const [d1, d2] = h.supTraces[0].delegations;
   assert.equal(d1.budgetGranted.maxModelCalls, 4); assert.equal(d1.budgetGranted.maxToolCalls, 3);
   assert.equal(d2.budgetGranted.maxModelCalls, 8 - d1.modelCallCount); assert.equal(d2.budgetGranted.maxToolCalls, 6 - d1.toolCallCount);

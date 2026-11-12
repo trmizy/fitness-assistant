@@ -5,20 +5,23 @@
  *
  * Configurations (everything else held fixed: dataset, budget SUPERVISOR_BUDGET, capabilities, criteria):
  *   keyword-v1   — keywordDecisionProvider (M1–M3 signal table); supervisor caps by its execution order.
- *   intent-v1    — the production default (createIntentDecisionProvider, maxAgents 2).
- *   single-agent — intent planner restricted to the single highest-relevance agent (maxAgents 1, policy cap 1).
+ *   intent-v1    — the M4/M5 planner, FROZEN copy (baseline-intent-v1.ts) — what M5 measured as "intent-v1".
+ *   intent-v1.1  — M5.1 candidate = the production default since M5.1 (createIntentDecisionProvider, maxAgents 2).
+ *   single-agent — the production planner restricted to its single best agent (maxAgents 1, policy cap 1). In M5 this
+ *                  was built on intent-v1; since M5.1 on intent-v1.1.
  */
 import { performance } from "node:perf_hooks";
 import { runSupervisorTurn, keywordDecisionProvider, ROUTING_SIGNALS, type SupervisorTrace, type SupervisorDeps } from "../../agent-v2/supervisor";
 import { createIntentDecisionProvider, planRouting } from "../../agent-v2/routing-planner";
+import { createIntentDecisionProvider as createBaselineIntentV1, planRouting as planRoutingBaselineV1 } from "./baseline-intent-v1";
 import type { AgentId, AgentRunner, AgentResult } from "../../agent-v2/multi-agent-contracts";
 import { foldVi } from "../../llm/speech_act";
 import { checkInputSafety } from "../../agent-v2/answer-guards";
 import { CAP, USER_A, T0 } from "./harness";
 import type { AgentLabel, RoutingCase } from "./dataset-v1";
 
-export type RoutingConfig = "keyword-v1" | "intent-v1" | "single-agent";
-export const ROUTING_CONFIGS: readonly RoutingConfig[] = ["keyword-v1", "intent-v1", "single-agent"];
+export type RoutingConfig = "keyword-v1" | "intent-v1" | "intent-v1.1" | "single-agent";
+export const ROUTING_CONFIGS: readonly RoutingConfig[] = ["keyword-v1", "intent-v1", "intent-v1.1", "single-agent"];
 const AGENTS: readonly AgentId[] = ["training", "nutrition", "recovery", "progress"];
 const LABEL_VI: Record<AgentId, string> = { training: "tập luyện", nutrition: "dinh dưỡng", recovery: "phục hồi", progress: "tiến độ" };
 
@@ -62,8 +65,9 @@ const RUNNERS = AGENTS.map(stubRunner);
 
 function depsFor(config: RoutingConfig): Partial<SupervisorDeps> {
   if (config === "keyword-v1") return { decisionProvider: keywordDecisionProvider };
+  if (config === "intent-v1") return { decisionProvider: createBaselineIntentV1({ maxAgents: 2, domainSignals: ROUTING_SIGNALS }) as unknown as SupervisorDeps["decisionProvider"] };
   if (config === "single-agent") return { decisionProvider: createIntentDecisionProvider({ maxAgents: 1, domainSignals: ROUTING_SIGNALS }), executionPolicy: { maxAgentsPerTurn: 1 } };
-  return {};
+  return {}; // intent-v1.1 = production default
 }
 
 const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
@@ -73,6 +77,7 @@ function routingLatencyUs(config: RoutingConfig, q: string): number {
   const folded = foldVi(q);
   const f = () => config === "keyword-v1"
     ? keywordDecisionProvider.decide({ question: q, folded, available: AGENTS })
+    : config === "intent-v1" ? planRoutingBaselineV1(folded, AGENTS, { maxAgents: 2, domainSignals: ROUTING_SIGNALS })
     : planRouting(folded, AGENTS, { maxAgents: config === "single-agent" ? 1 : 2, domainSignals: ROUTING_SIGNALS });
   const xs: number[] = [];
   for (let i = 0; i < 5; i++) { const s = performance.now(); f(); xs.push((performance.now() - s) * 1000); }
@@ -203,9 +208,9 @@ export function routingMetrics(cases: readonly RoutingCase[], outs: readonly Rou
 }
 function r3(x: number | null): number | null { return x === null || !Number.isFinite(x) ? null : Math.round(x * 1000) / 1000; }
 
-export async function runRoutingBenchmark(cases: readonly RoutingCase[]) {
+export async function runRoutingBenchmark(cases: readonly RoutingCase[], configs: readonly RoutingConfig[] = ROUTING_CONFIGS) {
   const outcomes: RoutingOutcome[] = [];
-  for (const config of ROUTING_CONFIGS) for (const c of cases) outcomes.push(await routeCase(c, config));
-  const metrics = ROUTING_CONFIGS.map((cfg) => routingMetrics(cases, outcomes, cfg));
+  for (const config of configs) for (const c of cases) outcomes.push(await routeCase(c, config));
+  const metrics = configs.map((cfg) => routingMetrics(cases, outcomes, cfg));
   return { outcomes, metrics };
 }

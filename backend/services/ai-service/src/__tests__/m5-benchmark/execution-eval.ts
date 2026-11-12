@@ -43,6 +43,8 @@ export async function runExecutionBenchmark() {
       const t0 = performance.now();
       const r = await s.ask(user, q, extra);
       const wall = performance.now() - t0;
+      // M5.1: scripts are written per turn; whatever an unselected agent did not consume is discarded
+      for (const p of Object.values(s.prov)) p.drain();
       const tr = s.traces[s.traces.length - 1];
       turns.push({
         scenario: current.scenario, group: current.group, user: user === USER_A ? "A" : "B", status: r.status, selected: (tr?.decision?.agents ?? []) as AgentId[], delegated: tr?.delegations.length ?? 0,

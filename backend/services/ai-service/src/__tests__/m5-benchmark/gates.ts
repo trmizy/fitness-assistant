@@ -24,8 +24,22 @@ export const QUALITY_GATES_V1: readonly GateDef[] = Object.freeze([
   { id: "G10", kind: "HARD", description: "Benchmark is deterministic (two runs, identical scored results)", metric: "determinism.identical", op: "==", threshold: 1 },
 ]);
 
-export function evaluateGates(values: Record<string, number>) {
-  return QUALITY_GATES_V1.map((g) => {
+/**
+ * M5.1 gates — DECLARED 2026-11-13 BEFORE the candidate (intent-v1.1) was run on heldout v2. Same metric definitions and
+ * thresholds as M5; routing targets are measured on HELDOUT v2 ONLY (never DEV, never the historical v1 set). G9 passes
+ * only with zero failed execution assertions; a label mismatch counts as resolved only after an APPROVED adjudication
+ * (the M5.1 adjudication records LABEL_REVIEW_REQUIRED, i.e. not approved).
+ */
+export const QUALITY_GATES_M51: readonly GateDef[] = Object.freeze(([
+  ...QUALITY_GATES_V1.filter((g) => !["G6", "G7", "G8", "G9"].includes(g.id)),
+  { id: "G6", kind: "HARD", description: "100% deferred-intent disclosure, every config, on DEV + heldout v2 + historical v1", metric: "routing.disclosurePctMin", op: ">=", threshold: 100 },
+  { id: "G7", kind: "TARGET", description: "Primary intent coverage ≥ 90% (intent-v1.1, heldout v2 in-scope)", metric: "heldout.candidate.primaryCoveragePct", op: ">=", threshold: 90 },
+  { id: "G8", kind: "TARGET", description: "Exact agent-set ≥ 85% on cases needing ≤ 2 agents (intent-v1.1, heldout v2)", metric: "heldout.candidate.exactSetLe2Pct", op: ">=", threshold: 85 },
+  { id: "G9", kind: "HARD", description: "Every execution assertion passes, or each mismatch has an APPROVED adjudication", metric: "execution.unresolvedFailedAssertions", op: "==", threshold: 0 },
+] as GateDef[]).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1))));
+
+export function evaluateGates(values: Record<string, number>, gates: readonly GateDef[] = QUALITY_GATES_V1) {
+  return gates.map((g) => {
     const v = values[g.metric];
     const pass = typeof v === "number" && (g.op === "==" ? v === g.threshold : v >= g.threshold);
     return { ...g, value: v ?? null, pass };

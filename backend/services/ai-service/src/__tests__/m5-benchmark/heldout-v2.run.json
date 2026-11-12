@@ -1,0 +1,10 @@
+{
+  "plannerSha256": "ddc0b2d8d2acfd206587c177043d6c3166a4968930b7409ca43b5e9a4fbc35ed",
+  "heldoutSha256": "5b895745e98303b22e490960cdabe99277a4afa012c89003f125d3b285cfdcbc",
+  "firstScoredAt": "2026-11-12T20:55:16.966Z",
+  "baseHead": "fdc92198",
+  "result": {
+    "exactSetLe2Pct": 95.1,
+    "primaryCoveragePct": 95
+  }
+}

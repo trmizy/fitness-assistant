@@ -28,11 +28,13 @@ const DAY = 86_400_000;
 
 // ── scripted models ──────────────────────────────────────────────────────────────────────────────────────────────────
 export type Step = AgentModelResponse | ((req: AgentModelRequest) => Promise<AgentModelResponse> | AgentModelResponse);
-export type MockProvider = AgentModelProvider & { requests: AgentModelRequest[]; script: (...s: Step[]) => void; pending: () => number };
+export type MockProvider = AgentModelProvider & { requests: AgentModelRequest[]; script: (...s: Step[]) => void; pending: () => number; drain: () => number };
 export function mockProvider(name: string): MockProvider {
   const steps: Step[] = []; const requests: AgentModelRequest[] = [];
   return {
     modelId: `mock-${name}`, supportsCancellation: false, requests, script: (...s) => { steps.push(...s); }, pending: () => steps.length,
+    /** M5.1: a turn's unused script (an agent the router did not select) never leaks into the next turn. */
+    drain: () => steps.splice(0).length,
     async converse(r) { requests.push(structuredClone({ ...r, signal: undefined }) as unknown as AgentModelRequest); const s = steps.shift(); if (!s) throw new Error(`${name}: no step`); return typeof s === "function" ? s(r) : s; },
   };
 }

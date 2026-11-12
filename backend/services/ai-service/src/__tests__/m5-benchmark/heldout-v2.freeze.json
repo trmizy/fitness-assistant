@@ -1,0 +1,9 @@
+{
+  "file": "dataset-heldout-v2.ts",
+  "sha256": "5b895745e98303b22e490960cdabe99277a4afa012c89003f125d3b285cfdcbc",
+  "cases": 96,
+  "frozenAt": "2026-11-12T20:37:18Z",
+  "frozenBeforeRouterChange": true,
+  "routerHeadAtFreeze": "fdc92198 (routing-planner.ts unchanged since 679679e5)",
+  "note": "Labels written and frozen before any M5.1 router change and before the DEV set existed. The candidate router is run on this set ONCE for the final evaluation; re-runs only check determinism."
+}

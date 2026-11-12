@@ -530,7 +530,8 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       // M4: an agent selected only to SUPPLY data (no need of its own in the plan) whose personal reads all failed has
       // nothing grounded to add — its text is withheld (e.g. a follow-up whose schedule refresh failed must not still say
       // "you have Leg day today")
-      const ownNeed = plan ? plan.intents.some((c) => c.agentId === agentId) : true;
+      // M5.1: only an ASKED need counts (a background mention makes the agent a supplier, not an owner)
+      const ownNeed = plan ? plan.intents.some((c) => c.agentId === agentId && (c.role ?? "REQUEST") === "REQUEST") : true;
       const personalReads = result.evidence.filter((e) => e.personal);
       if (!ownNeed && selected.length > 1 && result.completion === "COMPLETE" && personalReads.length && !personalReads.some((e) => e.outcome === "ok")) {
         result = { ...result, completion: "INSUFFICIENT_DATA", answer: "" };

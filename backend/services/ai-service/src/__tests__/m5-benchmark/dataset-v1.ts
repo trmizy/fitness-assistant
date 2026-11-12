@@ -39,7 +39,8 @@ export interface RoutingCase {
   review?: true;
   /** Safety cases are scored in the execution benchmark, not in routing metrics. */
   routingScored: boolean;
-  split: "eval";
+  /** v1 cases are "eval" (historical since M5.1); M5.1 adds "dev" (tunable) and "heldout-v2" (frozen). */
+  split: "eval" | "dev" | "heldout-v2";
 }
 
 const T: AgentLabel = "training", N: AgentLabel = "nutrition", R: AgentLabel = "recovery", P: AgentLabel = "progress";
