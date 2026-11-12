@@ -24,7 +24,7 @@ export interface ToolContract<I = unknown, R = unknown, O = unknown, D = unknown
   title: string;
   /** Shown to the model in P2: what the tool does and when to use it. */
   description: string;
-  domain: "training";
+  domain: "training" | "nutrition";
   /** READ: reads only. DRAFT: builds a proposal, persists nothing. WRITE: mutates — declared for design, never executable by an agent. */
   kind: ToolKind;
   input: z.ZodType<I>;

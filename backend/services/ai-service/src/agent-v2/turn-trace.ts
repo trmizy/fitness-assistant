@@ -48,6 +48,8 @@ export interface TurnTrace {
   guardActions: string[];
   /** Gate 1 (minor safety) verdict + decision. Never the age value. null when the turn ended before the gate ran. */
   ageGate?: { status: string; minorBy: string[]; conflict: boolean; profileRead: string; decision: string | null } | null;
+  /** M1: set when the turn ran as a supervisor delegation (random ids only). */
+  links?: { supervisorTraceId: string; delegationId: string };
 }
 
 

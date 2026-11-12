@@ -6,9 +6,10 @@
  *   output : stripInternalReferences (evidence labels, internal enums), groundBmiClaims (the agent has no BMI source → a
  *            personal BMI figure is removed), removeUnsupportedUserClaims (personal facts/figures not supported by the
  *            question or by tool data), enforceExerciseConstraints (equipment/injury/exclusion constraints stated this turn).
- * Not applied (stated, not hidden): resolveProfileAwareSafety / minor policy by PROFILE age (needs the profile age, which the
- * Training projection does not expose), groundIntakeClaims (nutrition — out of the Training scope), answer_validator
- * (nutrition-number rules).
+ * Minor policy by PROFILE age: Gate 1 (minor-gate.ts), applied by the engine before any model/tool call.
+ * Nutrition (M1, guardNutritionAnswer): the same hygiene / BMI / fidelity guards + V1 groundIntakeClaims (a protein TARGET is
+ * never stated as current intake — the agent has no intake log) + a calorie floor (V1 policy: never below 1200 kcal/day,
+ * safety_guard / nutrition_answer_mode) for any daily figure not taken from a tool result. answer_validator is not applied.
  */
 import { safetyGuard } from "../llm/safety_guard";
 import { foldVi } from "../llm/speech_act";
@@ -17,6 +18,7 @@ import { groundBmiClaims } from "../llm/bmi_claim_guard";
 import { removeUnsupportedUserClaims } from "../llm/context_fidelity_guard";
 import { enforceExerciseConstraints } from "../llm/exercise_constraint_guard";
 import { extractTurnFacts } from "../llm/turn_facts";
+import { groundIntakeClaims } from "../llm/intake_claim_guard";
 
 export interface InputSafetyVerdict { safe: boolean; type: string; message?: string }
 
@@ -67,6 +69,80 @@ export function guardTrainingAnswer(answer: string, ev: AnswerEvidence): { answe
   const constraints = enforceExerciseConstraints(out, facts);
   if (constraints.violations.length) actions.push(`constraints:${constraints.violations.length}`);
   out = constraints.answer;
+
+  return { answer: out.trim(), actions };
+}
+
+/** V1 policy floor (safety_guard / nutrition_answer_mode): a daily energy figure below this is never recommended. */
+export const MIN_DAILY_KCAL = 1200;
+const KCAL_FIGURE = /(\d{3,4}(?:[.,]\d{3})?)\s*(?:kcal|calo|calories|cal)\b/giu;
+/** Folded: "bạn (hiện) đang/đã/vẫn ăn|tiêu thụ|nạp|uống ... <n> g|kcal|calo" — a claim about the user's current intake. */
+const CURRENT_INTAKE = /\b(?:ban|em)\s+(?:hien (?:tai )?)?(?:dang|da|van)\s+(?:an|tieu thu|nap|hap thu|bo sung|uong)\b[^.!?\n]{0,30}?(\d+(?:[.,]\d+)?)\s*(?:g|gam|kcal|calo)\b/;
+/** Folded: the figure is a DAILY amount (a single meal's energy, e.g. "bữa sáng 400 kcal", is not touched). */
+const DAILY_CONTEXT = /(moi ngay|mot ngay|hang ngay|trong ngay|\/ ?ngay|per day|a day|\/ ?day|daily|muc tieu (calo|nang luong)|tong (calo|nang luong))/;
+
+export interface NutritionAnswerEvidence {
+  question: string;
+  sessionUserMessages?: string[];
+  verifiedNumbers: number[];
+  /** g/day protein from the authoritative target tool this turn, when read. */
+  proteinTargetG: number | null;
+}
+
+/**
+ * Final-answer guards for the Nutrition Agent (M1). Order: hygiene → BMI → fidelity → intake grounding → calorie floor.
+ * The floor removes a sentence that states a daily energy figure below MIN_DAILY_KCAL unless that exact number came from a
+ * tool result (the authoritative NutritionGoal is never rewritten by a guard; a professional-review case keeps its value).
+ */
+export function guardNutritionAnswer(answer: string, ev: NutritionAnswerEvidence): { answer: string; actions: string[] } {
+  const actions: string[] = [];
+  let out = answer;
+
+  const hygiene = stripInternalReferences(out);
+  if (hygiene.labels || hygiene.removedSentences) actions.push(`hygiene:${hygiene.labels}/${hygiene.removedSentences}`);
+  out = hygiene.answer;
+
+  const bmi = groundBmiClaims(out, { bmi: null, lang: "vi" }) as { answer: string; corrected?: number; removed?: number };
+  if (bmi.corrected || bmi.removed) actions.push(`bmi:${bmi.corrected ?? 0}/${bmi.removed ?? 0}`);
+  out = bmi.answer;
+
+  const fidelity = removeUnsupportedUserClaims(out, {
+    question: ev.question, sessionUserMessages: ev.sessionUserMessages ?? [], verifiedProfileFacts: {}, verifiedNumbers: ev.verifiedNumbers,
+  });
+  if (fidelity.removed.length) actions.push(`fidelity:${fidelity.removed.length}`);
+  out = fidelity.answer;
+
+  const intake = groundIntakeClaims(out, { proteinTargetG: ev.proteinTargetG, loggedIntake: false, lang: "vi" });
+  if (intake.rewritten) actions.push(`intake:${intake.rewritten}`);
+  out = intake.answer;
+
+  // The agent has no intake log: a sentence asserting what the user CURRENTLY eats, with a figure the user never stated,
+  // is fabricated (M1 test MA-3: "Bạn đang ăn 60g protein mỗi ngày" passed the V1 fidelity guard). Conditionals are kept.
+  const userText = foldVi([ev.question, ...(ev.sessionUserMessages ?? [])].join(" "));
+  let intakeRemoved = 0;
+  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+    const f = foldVi(sentence);
+    const m = CURRENT_INTAKE.exec(f);
+    if (!m || /\b(neu|gia su|vi du)\b/.test(f)) return true;
+    if (new RegExp(`(?<!\\d)${m[1].replace(/[.,]/g, "[.,]?")}(?!\\d)`).test(userText)) return true;
+    intakeRemoved++;
+    return false;
+  }).join("");
+  if (intakeRemoved) actions.push(`intake_unlogged:${intakeRemoved}`);
+
+  const verified = new Set(ev.verifiedNumbers);
+  let floorRemoved = 0;
+  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+    for (const m of sentence.matchAll(KCAL_FIGURE)) {
+      const v = Number(m[1].replace(/[.,]/g, ""));
+      if (Number.isFinite(v) && v > 0 && v < MIN_DAILY_KCAL && !verified.has(v) && DAILY_CONTEXT.test(foldVi(sentence))) {
+        floorRemoved++;
+        return false;
+      }
+    }
+    return true;
+  }).join("");
+  if (floorRemoved) actions.push(`kcal_floor:${floorRemoved}`);
 
   return { answer: out.trim(), actions };
 }
