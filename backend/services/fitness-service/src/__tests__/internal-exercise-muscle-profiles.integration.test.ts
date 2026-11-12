@@ -12,6 +12,9 @@ if (process.env.FITNESS_DATABASE_URL) process.env.DATABASE_URL = process.env.FIT
 process.env.INTERNAL_SERVICE_SECRET = "muscle-profiles-test-secret";
 const skipOpts = { skip: canUseIntegrationDb ? false : "Requires FITNESS_DATABASE_URL or DATABASE_URL pointing at a test database.", timeout: 60_000 };
 
+// Since 2026-11-12 the endpoint returns only exercises visible to the caller (authz: internal-exercise-muscle-profiles-authz.test.ts);
+// "muscle-probe" owns no custom exercise, so the probe rows must be public catalog rows.
+const VISIBLE_PUBLIC = { source: "SYSTEM", status: "PUBLISHED" as const, archivedAt: null };
 let server: import("node:http").Server | undefined;
 let base = "";
 async function start() {
@@ -33,8 +36,8 @@ test("muscle-profiles: returns the catalog's own bodyPart and muscle groups for 
   await start();
   const { prisma } = await import("../repositories/prisma");
   const [squat, bench] = await Promise.all([
-    prisma.exercise.findFirst({ where: { bodyPart: "LOWER_BODY", muscleGroupsActivated: { has: "quadriceps" } }, select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true } }),
-    prisma.exercise.findFirst({ where: { bodyPart: "UPPER_BODY", muscleGroupsActivated: { has: "chest" } }, select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true } }),
+    prisma.exercise.findFirst({ where: { ...VISIBLE_PUBLIC, bodyPart: "LOWER_BODY", muscleGroupsActivated: { has: "quadriceps" } }, select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true } }),
+    prisma.exercise.findFirst({ where: { ...VISIBLE_PUBLIC, bodyPart: "UPPER_BODY", muscleGroupsActivated: { has: "chest" } }, select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true } }),
   ]);
   assert.ok(squat && bench, "the test catalog has leg and chest exercises");
   const res = await call({ exerciseIds: [squat!.id, bench!.id, "00000000-0000-0000-0000-000000000000", squat!.id] });

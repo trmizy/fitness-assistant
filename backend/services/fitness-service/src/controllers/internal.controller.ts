@@ -35,6 +35,20 @@ function shuffleInPlace<T>(arr: T[]): T[] {
   return arr;
 }
 
+/**
+ * Exercises a user may see (user scope): not archived, and a PUBLISHED SYSTEM exercise or the user's OWN USER_CUSTOM one.
+ * Same rule as plan-equipment-validator.service.ts / exercise-reference-resolver.service.ts (visibilityWhere, user scope).
+ */
+export function muscleProfileVisibilityWhere(userId: string) {
+  return {
+    archivedAt: null,
+    OR: [
+      { status: "PUBLISHED" as const, source: "SYSTEM" },
+      { source: "USER_CUSTOM", ownerId: userId },
+    ],
+  };
+}
+
 const MACHINE_ONLY_EQUIPMENT = ["MACHINE", "CABLE"];
 const MIXED_GYM_EQUIPMENT = [
   "MACHINE",
@@ -544,20 +558,33 @@ export const internalController = {
 
   // INTERNAL — canonical muscle data for up to 200 Exercise ids: { exercises: [{ id, name, bodyPart, muscleGroups }] }.
   // Unknown ids are simply absent from the result (the caller must treat "not returned" as "unknown", never as "safe").
+  // Authorization (2026-11-12, V2 Gate 2): only exercises VISIBLE to the caller are returned — the same rule as
+  // plan-equipment-validator.service.ts and exercise-reference-resolver.service.ts (user scope): not archived, and either a
+  // PUBLISHED SYSTEM exercise or the caller's OWN USER_CUSTOM exercise. The caller is req.user.id set by internalAuthMiddleware
+  // (x-user-id from a trusted internal service holding x-internal-token) — never an id from the body. An id the caller may not
+  // see is treated exactly like an id that does not exist (absent, same 200 shape, nothing in the response or log names it).
   async exerciseMuscleProfiles(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = typeof req.user?.id === "string" ? req.user.id.trim() : "";
+      if (!userId) {
+        res.status(401).json({ success: false, error: "Missing user identity in internal headers" });
+        return;
+      }
       const ids = (req.body as { exerciseIds?: unknown })?.exerciseIds;
       if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((x) => typeof x === "string" && x.length > 0 && x.length <= 64)) {
         res.status(400).json({ success: false, error: "exerciseIds must be a non-empty array of at most 200 ids" });
         return;
       }
       const rows = await prisma.exercise.findMany({
-        where: { id: { in: [...new Set(ids as string[])] } },
-        select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true },
+        where: { id: { in: [...new Set(ids as string[])] }, ...muscleProfileVisibilityWhere(userId) },
+        select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true, source: true, ownerId: true, status: true, archivedAt: true },
       });
+      type Row = { id: string; exerciseName: string; bodyPart: string; muscleGroupsActivated: string[]; source: string; ownerId: string | null; status: string; archivedAt: Date | null };
+      // defence in depth: the same rule re-checked on the rows, so a query change can never widen what is returned
+      const visible = (rows as Row[]).filter((r) => r.archivedAt === null && ((r.source === "SYSTEM" && r.status === "PUBLISHED") || (r.source === "USER_CUSTOM" && r.ownerId === userId)));
       res.json({
         success: true,
-        data: { exercises: rows.map((r: { id: string; exerciseName: string; bodyPart: string; muscleGroupsActivated: string[] }) => ({ id: r.id, name: r.exerciseName, bodyPart: r.bodyPart, muscleGroups: r.muscleGroupsActivated })) },
+        data: { exercises: visible.map((r) => ({ id: r.id, name: r.exerciseName, bodyPart: r.bodyPart, muscleGroups: r.muscleGroupsActivated })) },
       });
     } catch (err) {
       logger.error({ err }, "internal.exerciseMuscleProfiles failed");
