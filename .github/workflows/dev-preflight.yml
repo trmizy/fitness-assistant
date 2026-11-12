@@ -119,6 +119,75 @@ jobs:
             [ "$got" = "$want" ] || { echo "::error::S3 object hash mismatch $key"; exit 1; }
           done < running-keys.txt
 
+      # Internal-auth configuration of fitness (receiver of /internal/*) and of the ai Lambdas that call it.
+      # READ-ONLY: lambda get-function only (already granted). Values are held in shell variables of THIS step, compared with
+      # bash builtins, and never printed, hashed, measured, written to a file or passed as a step output / process argument.
+      # The JMESPath query keeps only the three variables needed (no other environment data reaches the runner's output).
+      # Lambda env vars encrypted with a customer-managed KMS key cannot be read by this role (explicit kms:Decrypt Deny)
+      # -> reported as PERMISSION_BLOCKED, never guessed.
+      - name: Internal-auth configuration (presence / classification only; values never printed)
+        if: ${{ contains(steps.svc.outputs.list, 'fitness') }}
+        shell: bash
+        run: |
+          set +x
+          set -uo pipefail
+          RECEIVER=fitness-assistant-dev-fitness
+          FUNCS="fitness-assistant-dev-fitness fitness-assistant-dev-fitness-jobs fitness-assistant-dev-ai fitness-assistant-dev-ai-jobs fitness-assistant-dev-ai-worker"
+          Q='Configuration.{kms:KMSKeyArn,err:Environment.Error.ErrorCode,iss:Environment.Variables.INTERNAL_SERVICE_SECRET,ias:Environment.Variables.INTERNAL_API_SECRET,ne:Environment.Variables.NODE_ENV}'
+          field() { printf '%s' "$1" | jq -r --arg k "$2" '.[$k] // empty' 2>/dev/null; }
+          looks_like_ref() { [[ "$1" =~ ^(arn:aws:(secretsmanager|ssm):|\{\{resolve:|ssm:/|/aws/reference/) ]]; }
+          {
+            echo "### Internal-auth configuration (presence / classification only — no values, hashes or lengths)"
+            echo "| function | role | read | INTERNAL_SERVICE_SECRET_PRESENT | INTERNAL_API_SECRET_PRESENT | NODE_ENV_CLASSIFICATION | AUTH_CONFIG_STATUS | INTERNAL_SERVICE_SECRET vs receiver |"
+            echo "|---|---|---|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          ref_iss=""; ref_state="UNKNOWN"
+          for f in $FUNCS; do
+            role=CALLER; [ "$f" = "$RECEIVER" ] && role=RECEIVER; [ "$f" = "fitness-assistant-dev-fitness-jobs" ] && role=JOBS
+            j=$(aws lambda get-function --function-name "$f" --query "$Q" --output json 2>/dev/null); rc=$?
+            if [ $rc -ne 0 ] || [ -z "$j" ]; then
+              why=$(aws lambda get-function --function-name "$f" --query "Configuration.FunctionName" --output text 2>&1 >/dev/null | grep -oE "AccessDenied[A-Za-z]*|ResourceNotFound[A-Za-z]*|KMS[A-Za-z]*" | head -1 || true)
+              read_s="PERMISSION_BLOCKED${why:+ ($why)}"; iss_p=UNKNOWN; ias_p=UNKNOWN; ne_c=UNKNOWN; iss=""; iss_known=0
+            elif [ -n "$(field "$j" err)" ]; then
+              read_s="PERMISSION_BLOCKED (env $(field "$j" err)$( [ -n "$(field "$j" kms)" ] && echo ', customer-managed KMS key'))"
+              iss_p=UNKNOWN; ias_p=UNKNOWN; ne_c=UNKNOWN; iss=""; iss_known=0
+            else
+              read_s=OK; iss_known=1
+              iss=$(field "$j" iss); ias=$(field "$j" ias); ne=$(field "$j" ne)
+              [ -n "$iss" ] && iss_p=true || iss_p=false
+              [ -n "${ias:-}" ] && ias_p=true || ias_p=false
+              case "$ne" in production) ne_c=PRODUCTION ;; "") ne_c=UNSET ;; *) ne_c=NON_PRODUCTION ;; esac
+              unset ias ne
+            fi
+            # AUTH_CONFIG_STATUS — mirrors fitness-service internalAuthMiddleware / config/lambda-runtime.ts at this commit
+            if [ "$iss_known" -ne 1 ]; then st=UNKNOWN
+            elif [ "$role" = RECEIVER ]; then
+              if [ "$iss_p" = true ]; then st=RECEIVER_TOKEN_CHECK_ACTIVE
+              elif [ "$ne_c" = PRODUCTION ]; then st="FAIL_CLOSED_500 (no INTERNAL_SERVICE_SECRET)"
+              else st="**FAIL_OPEN** (no INTERNAL_SERVICE_SECRET and NODE_ENV not production: bare x-user-id trusted)"; fi
+            elif [ "$role" = CALLER ]; then
+              [ "$iss_p" = true ] && st=CALLER_SENDS_TOKEN || st="**CALLER_TOKEN_MISSING**"
+            else
+              st="N/A (not an HTTP receiver of /internal/*)"
+            fi
+            # comparison with the receiver, in memory only
+            if [ "$role" = RECEIVER ]; then
+              ref_iss="$iss"; [ "$iss_known" -eq 1 ] && { [ -n "$iss" ] && ref_state=SET || ref_state=MISSING; }
+              cmp="(receiver)"
+            elif [ "$role" = JOBS ]; then cmp="N/A"
+            elif [ "$iss_known" -ne 1 ] || [ "$ref_state" = UNKNOWN ]; then cmp=UNKNOWN
+            elif [ -z "$iss" ] || [ "$ref_state" = MISSING ]; then cmp=MISSING
+            elif looks_like_ref "$iss" || looks_like_ref "$ref_iss"; then cmp=NOT_COMPARABLE
+            elif [ "$iss" == "$ref_iss" ]; then cmp=MATCH
+            else cmp="**MISMATCH**"; fi
+            echo "| $f | $role | $read_s | $iss_p | $ias_p | $ne_c | $st | $cmp |" >> "$GITHUB_STEP_SUMMARY"
+            echo "$f role=$role read=${read_s%% *} iss_present=$iss_p ias_present=$ias_p node_env=$ne_c compare=${cmp//\*/}"
+            unset j iss
+          done
+          unset ref_iss
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_Source reference: fitness internalAuthMiddleware reads only INTERNAL_SERVICE_SECRET (exact match of x-internal-token); with it unset it trusts bare x-user-id unless NODE_ENV=production. Startup validation also accepts INTERNAL_API_SECRET alone. ai-service callers send x-internal-token=INTERNAL_SERVICE_SECRET via direct Lambda invoke. Endpoint exposure (API Gateway routes, Function URL, resource policy) is NOT read by this workflow._" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Download rollback-candidate artifact (optional)
         if: ${{ inputs.rollback_build_run_id != '' }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4 (pinned)
