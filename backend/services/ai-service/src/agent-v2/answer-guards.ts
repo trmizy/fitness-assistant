@@ -146,3 +146,62 @@ export function guardNutritionAnswer(answer: string, ev: NutritionAnswerEvidence
 
   return { answer: out.trim(), actions };
 }
+
+// ── Recovery (M2) ────────────────────────────────────────────────────────────────────────────────────────────────────
+/** Folded. Personal sleep / HRV / heart-rate statements — Gymini has no such data for normal users. */
+const BIOMETRIC_CLAIM = /\b(hrv|bien thien nhip tim|nhip tim (khi |luc )?nghi|resting heart|giac ngu cua (ban|em)|(ban|em) (da |dang |chi |moi )?ngu (duoc |khoang |it |nhieu |du |khong du |\d)|chat luong giac ngu cua (ban|em))/;
+const BIOMETRIC_TOPIC = /\b(hrv|nhip tim|ngu|giac ngu)\b/;
+/** Folded. "You have fully recovered / are 100% ready" — never supported by logged training data. */
+const FULL_RECOVERY_CLAIM = /\b(da |hoan toan )?(hoi phuc|phuc hoi) hoan toan\b|\bhoan toan (hoi phuc|phuc hoi)\b|\bsan sang 100\b|\bfully recovered\b/;
+/** Folded. A derived recovery / readiness score — no validated method exists in Gymini. */
+const RECOVERY_SCORE = /\b(diem|chi so|muc) (phuc hoi|hoi phuc|san sang)\b|\brecovery score\b|\breadiness score\b/;
+/** Folded. A diagnosis about the user ("bạn bị viêm gân", "có thể bạn đã rách cơ"). */
+const DIAGNOSIS = /\b(ban|em)\s+(co the |co le |chac la |da |dang )*(bi|mac)\s+(viem|rach|gian|dut|thoat vi|chan thuong|hoi chung|tran dich|nut|bong gan|tieu co van|qua tai man tinh)/;
+export const RECOVERY_REFERRAL = "Nếu đau kéo dài, đau tăng khi tập hoặc có dấu hiệu bất thường, hãy gặp bác sĩ hoặc chuyên gia vật lý trị liệu để được kiểm tra trực tiếp.";
+
+export interface RecoveryAnswerEvidence {
+  question: string;
+  sessionUserMessages?: string[];
+  verifiedNumbers: number[];
+}
+
+/**
+ * Final-answer guards for the Recovery Agent (M2). V1 hygiene / BMI / fidelity, then deterministic removal of: personal
+ * sleep/HRV/heart-rate claims the user did not raise, "fully recovered" assertions, any recovery/readiness score, and
+ * diagnoses (replaced by one referral line). Observations must come from tools; the guard never adds a fact.
+ */
+export function guardRecoveryAnswer(answer: string, ev: RecoveryAnswerEvidence): { answer: string; actions: string[] } {
+  const actions: string[] = [];
+  let out = answer;
+
+  const hygiene = stripInternalReferences(out);
+  if (hygiene.labels || hygiene.removedSentences) actions.push(`hygiene:${hygiene.labels}/${hygiene.removedSentences}`);
+  out = hygiene.answer;
+
+  const bmi = groundBmiClaims(out, { bmi: null, lang: "vi" }) as { answer: string; corrected?: number; removed?: number };
+  if (bmi.corrected || bmi.removed) actions.push(`bmi:${bmi.corrected ?? 0}/${bmi.removed ?? 0}`);
+  out = bmi.answer;
+
+  const fidelity = removeUnsupportedUserClaims(out, {
+    question: ev.question, sessionUserMessages: ev.sessionUserMessages ?? [], verifiedProfileFacts: {}, verifiedNumbers: ev.verifiedNumbers,
+  });
+  if (fidelity.removed.length) actions.push(`fidelity:${fidelity.removed.length}`);
+  out = fidelity.answer;
+
+  const userRaisedBiometrics = BIOMETRIC_TOPIC.test(foldVi([ev.question, ...(ev.sessionUserMessages ?? [])].join(" ")));
+  const removed: Record<string, number> = {};
+  let diagnosisRemoved = false;
+  out = out.split(/(?<=[.!?\n])/u).filter((sentence) => {
+    const f = foldVi(sentence);
+    const hit = (k: string) => { removed[k] = (removed[k] ?? 0) + 1; return false; };
+    if (!userRaisedBiometrics && BIOMETRIC_CLAIM.test(f)) return hit("biometric");
+    if (FULL_RECOVERY_CLAIM.test(f) && !/\bkhong\b|\bchua\b/.test(f)) return hit("full_recovery");
+    if (RECOVERY_SCORE.test(f)) return hit("recovery_score");
+    if (DIAGNOSIS.test(f)) { diagnosisRemoved = true; return hit("diagnosis"); }
+    return true;
+  }).join("").trim();
+  for (const [k, n] of Object.entries(removed)) actions.push(`${k}:${n}`);
+  if (diagnosisRemoved && !out.includes(RECOVERY_REFERRAL)) out = `${out}${out ? "\n\n" : ""}${RECOVERY_REFERRAL}`;
+
+  return { answer: out.trim(), actions };
+}
