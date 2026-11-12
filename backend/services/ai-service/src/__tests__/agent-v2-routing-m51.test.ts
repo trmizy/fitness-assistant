@@ -97,6 +97,7 @@ test("M51-9 final benchmark re-run (same candidate): deterministic, hard gates h
   for (const id of ["G1", "G2", "G3", "G4", "G5", "G6", "G10"]) assert.ok(g[id].pass, `${id} = ${g[id].value}`);
   assert.deepEqual(r.executionSummary.failed.map((a) => `${a.scenario}|${a.name}`).sort(), [...KNOWN_EXECUTION_FAILURES_V1].sort());
   assert.ok(ADJUDICATIONS_M51.every((a) => !a.approved && a.decision === "LABEL_REVIEW_REQUIRED" && a.invariantMet && a.policyCompliant));
-  assert.equal(g.G9.pass, false, "G9 stays FAIL until a human approves the S02/S09 adjudication");
+  // historical M5.1 evaluation (M5.1 records only): G9 FAIL. The owner's M6 approval is applied in run-m6.ts / agent-v2-rc-m6.test.ts.
+  assert.equal(g.G9.pass, false, "the M5.1 evaluation (without the M6 approvals) keeps G9 FAIL");
   assert.equal(r.m6Ready, false);
 });
