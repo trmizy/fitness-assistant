@@ -59,7 +59,7 @@ async function unwrapRead<T>(read: Promise<{ status: string; value?: T }>): Prom
 }
 /** V1 domain() throws {status}; 404 = "none exists" (no active cycle / roadmap), anything else stays an error. */
 async function nullOn404<T>(work: Promise<T>): Promise<T | null> {
-  try { return await work; } catch (err: any) { if (Number(err?.status) === 404) return null; throw Object.assign(new Error("progress data source unavailable"), { status: Number(err?.status) >= 400 && Number(err?.status) < 500 ? err.status : 503 }); }
+  try { return await work; } catch (err: any) { if (Number(err?.status) === 404) return null; throw Object.assign(new Error("progress data source unavailable"), { status: Number(err?.status) >= 400 && Number(err?.status) < 500 ? err.status : 503, ...(typeof err?.kind === "string" ? { kind: err.kind } : {}) }); }
 }
 
 const observation = z.object({

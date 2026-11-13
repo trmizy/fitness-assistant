@@ -58,11 +58,18 @@ const MESSAGES: Record<ToolErrorCode, string> = {
   CROSS_USER_DATA: "The data returned did not belong to the signed-in user and was withheld.",
   DOMAIN_ERROR: "The request was rejected by the fitness service (for example: nothing found, or invalid).",
   DOMAIN_ACCESS_DENIED: "The fitness service did not allow this read for the signed-in user.",
+  DOMAIN_NOT_FOUND: "Nothing of that kind was found for the signed-in user.",
+  CONFIGURATION_ERROR: "The data source is not configured for this environment.",
   TOOL_TIMEOUT: "The tool did not answer in time.",
   OUTPUT_INVALID: "The tool returned data in an unexpected format.",
   SYSTEM_ERROR: "The tool failed because of a system error.",
 };
 const RETRYABLE = new Set<ToolErrorCode>(["TOOL_TIMEOUT", "SYSTEM_ERROR"]);
+/** M7-P2: typed read-transport failure kinds (agent-v2-integration/domain-read-transport.ts DomainReadError). */
+const KIND_CODE: Readonly<Record<string, ToolErrorCode>> = Object.freeze({
+  ACCESS_DENIED: "DOMAIN_ACCESS_DENIED", NOT_FOUND: "DOMAIN_NOT_FOUND", UNAVAILABLE: "SYSTEM_ERROR", TIMEOUT: "TOOL_TIMEOUT",
+  INVALID_RESPONSE: "OUTPUT_INVALID", CONFIGURATION_ERROR: "CONFIGURATION_ERROR",
+});
 
 /** Keys that would let a caller pick (or a response smuggle) another user. Compared case-insensitively, ignoring _ and -. */
 const IDENTITY_KEYS = new Set(["userid", "clientuserid", "owneruserid", "identity", "authorization", "authorizationheader", "xuserid", "token", "accesstoken"]);
@@ -159,8 +166,11 @@ export function createToolRegistry<D = unknown>(options: ToolRegistryOptions<D> 
       raw = await withTimeout(work, timeoutMs);
     } catch (err: any) {
       if (err instanceof ToolTimeout) return fail("TOOL_TIMEOUT");
+      // M7-P2: a typed kind from the V2 read transport wins; otherwise the transport status (never message text)
+      const kind = typeof err?.kind === "string" ? err.kind : null;
+      if (kind) return fail(KIND_CODE[kind] ?? "SYSTEM_ERROR");
       const status = Number(err?.status ?? err?.response?.status);
-      return fail(status === 401 || status === 403 ? "DOMAIN_ACCESS_DENIED" : status >= 400 && status < 500 ? "DOMAIN_ERROR" : "SYSTEM_ERROR");
+      return fail(status === 401 || status === 403 ? "DOMAIN_ACCESS_DENIED" : status === 404 ? "DOMAIN_NOT_FOUND" : status >= 400 && status < 500 ? "DOMAIN_ERROR" : "SYSTEM_ERROR");
     }
 
     // Defence in depth: the domain services already scope by the forwarded identity; if a response ever carries another

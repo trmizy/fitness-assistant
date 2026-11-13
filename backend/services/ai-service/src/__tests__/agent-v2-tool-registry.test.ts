@@ -248,13 +248,14 @@ test("outputs are bounded: long texts are truncated, lists capped, nutrition fie
 });
 
 // ── 9. Timeout + error classes ───────────────────────────────────────────────────────────────────────────────────────
-test("timeout → TOOL_TIMEOUT; domain 4xx → DOMAIN_ERROR with a safe message; 5xx/unknown → SYSTEM_ERROR; never a stack or secret", async () => {
+// M7-P2: 404 is now its own code (DOMAIN_NOT_FOUND); 401/403 DOMAIN_ACCESS_DENIED; other 4xx stay DOMAIN_ERROR.
+test("timeout → TOOL_TIMEOUT; domain 404 → DOMAIN_NOT_FOUND with a safe message; 5xx/unknown → SYSTEM_ERROR; never a stack or secret", async () => {
   const hang = mockDeps({ getCurrentProgram: (() => new Promise(() => {})) as any }).deps;
   const r1 = await createTrainingToolRegistry({ enabled: true, deps: hang, timeoutOverrideMs: 30 }).execute(TRAINING_AGENT_PILOT_POLICY, "training.get_current_program", {}, ctx);
   assert.equal(!r1.ok && r1.error.code, "TOOL_TIMEOUT");
   const e404 = mockDeps({ getActiveCycle: (async () => { throw Object.assign(new Error("No active cycle for user 1111"), { status: 404 }); }) as any }).deps;
   const r2 = await run(registry({ deps: e404 }).reg, "training.get_active_cycle", {});
-  assert.equal(!r2.ok && r2.error.code, "DOMAIN_ERROR");
+  assert.equal(!r2.ok && r2.error.code, "DOMAIN_NOT_FOUND");
   assert.equal(!r2.ok && r2.error.retryable, false);
   assert.doesNotMatch(JSON.stringify(r2), /1111/, "domain error text (may hold ids) is not forwarded verbatim");
   const boom = mockDeps({ getCurrentProgram: (async () => { const e: any = new Error("ECONNREFUSED 10.0.0.1:5432 password=hunter2"); e.stack = "at secret.ts:1"; throw e; }) as any }).deps;

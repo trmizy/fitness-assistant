@@ -51,6 +51,10 @@ export type ToolErrorCode =
   | "DOMAIN_ERROR"
   /** M7-P1: the domain service refused the signed-in user (HTTP 401/403) — distinct from "nothing found" / other 4xx. */
   | "DOMAIN_ACCESS_DENIED"
+  /** M7-P2: the domain service answered 404 for this read (nothing of that kind exists / unknown resource). */
+  | "DOMAIN_NOT_FOUND"
+  /** M7-P2: the CALLER is misconfigured (no internal secret for an /internal read, Lambda not found / not permitted, no region…). */
+  | "CONFIGURATION_ERROR"
   | "TOOL_TIMEOUT"
   | "OUTPUT_INVALID"
   | "SYSTEM_ERROR";
@@ -80,6 +84,8 @@ export const ERROR_CLASS: Record<ToolErrorCode, "policy" | "authorization" | "va
   VALIDATION_ERROR: "validation",
   DOMAIN_ERROR: "domain",
   DOMAIN_ACCESS_DENIED: "authorization",
+  DOMAIN_NOT_FOUND: "domain",
+  CONFIGURATION_ERROR: "system",
   TOOL_TIMEOUT: "system",
   OUTPUT_INVALID: "system",
   SYSTEM_ERROR: "system",
