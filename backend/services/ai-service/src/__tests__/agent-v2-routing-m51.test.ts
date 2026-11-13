@@ -19,6 +19,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { WORKTREE } from "./m5-benchmark/run-m6";
 import { V3_RUN_FILE } from "./m7-benchmark/run-v3";
+import { V4_RUN_FILE } from "./m7-benchmark/run-v4";
 
 const ALL: AgentId[] = ["progress", "recovery", "training", "nutrition"];
 const plan = (q: string, available: AgentId[] = ALL, max = 2) => planRouting(foldVi(q), available, { maxAgents: max });
@@ -83,7 +84,7 @@ test("M51-7 the planner names agents only: no tool, budget, identity; unregister
   assert.deepEqual({ ...SUPERVISOR_BUDGET }, { maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08 });
 });
 
-test("M51-8 protocol: heldout v2 frozen and scored by the M5.1 candidate only; the current candidate is locked to heldout v3; sets disjoint", () => {
+test("M51-8 protocol: heldout v2 frozen and scored by the M5.1 candidate only; v3 by M7-P4; the current candidate is locked to heldout v4; sets disjoint", () => {
   const integ = heldoutIntegrity();
   assert.ok(integ.ok, `heldout v2 changed (${integ.actual} != ${integ.expected})`);
   const run = JSON.parse(readFileSync(RUN_FILE, "utf8")) as { plannerSha256: string; heldoutSha256: string };
@@ -93,7 +94,11 @@ test("M51-8 protocol: heldout v2 frozen and scored by the M5.1 candidate only; t
   const m51 = execFileSync("git", ["show", "099fb449:backend/services/ai-service/src/agent-v2/routing-planner.ts"], { cwd: WORKTREE, encoding: "utf8" });
   assert.equal(createHash("sha256").update(m51.replace(/\r\n/g, "\n")).digest("hex"), run.plannerSha256);
   assert.notEqual(plannerSha(), run.plannerSha256);
-  assert.equal((JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string }).plannerSha256, plannerSha(), "routing-planner.ts changed after heldout v3 was scored — a new candidate needs a NEW heldout set");
+  // M7-P4.1: heldout v3 stays bound to intent-v1.2 (the planner at 0f529657); the current candidate (intent-v1.3) is bound
+  // to heldout v4 — routing-planner.ts may not change after heldout v4 was scored
+  const m7p4 = execFileSync("git", ["show", "0f529657:backend/services/ai-service/src/agent-v2/routing-planner.ts"], { cwd: WORKTREE, encoding: "utf8" });
+  assert.equal(createHash("sha256").update(m7p4.replace(/\r\n/g, "\n")).digest("hex"), (JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string }).plannerSha256);
+  assert.equal((JSON.parse(readFileSync(V4_RUN_FILE, "utf8")) as { plannerSha256: string }).plannerSha256, plannerSha(), "routing-planner.ts changed after heldout v4 was scored — a new candidate needs a NEW heldout set");
   const norm = (s: string) => foldVi(s).replace(/[^a-z0-9 ]/g, "").trim();
   const sets = [ROUTING_CASES_V1, ROUTING_CASES_DEV, ROUTING_CASES_HELDOUT_V2].map((xs) => new Set(xs.map((c) => norm(c.q))));
   for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) for (const q of sets[i]) assert.ok(!sets[j].has(q), `duplicate across sets: ${q}`);

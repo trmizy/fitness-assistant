@@ -16,6 +16,9 @@ import { ROUTING_CASES_DEV } from "./m5-benchmark/dataset-dev";
 import { ROUTING_CASES_HELDOUT_V2 } from "./m5-benchmark/dataset-heldout-v2";
 import { ROUTING_CASES_DEV_V3, ROUTING_CASES_HELDOUT_V3 } from "./m7-benchmark/dataset-v3";
 import { candidateSha, v3Integrity, V3_RUN_FILE } from "./m7-benchmark/run-v3";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { WORKTREE } from "./m5-benchmark/run-m6";
 
 const ALL: AgentId[] = ["progress", "recovery", "training", "nutrition"];
 /** The production path: the raw question reaches the planner (supervisor → provider). */
@@ -100,12 +103,14 @@ test("M7P4-14/15 no privilege escalation, no fabricated data: the plan names reg
   assert.equal(DEFAULT_EXECUTION_POLICY.maxAgentsPerTurn, 2);
   assert.deepEqual({ ...SUPERVISOR_BUDGET }, { maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08 });
   const prov = createIntentDecisionProvider({ maxAgents: 2 });
-  assert.equal(prov.name, "intent-v1.2");
+  // M7-P4.1: the provider is now intent-v1.3 (a later candidate, locked to heldout v4); the contract checked here — the
+  // provider routes on the RAW question — is unchanged
+  assert.equal(prov.name, "intent-v1.3");
   const d = prov.decide({ question: "Mọi người hay ăn gì sau tập?", folded: foldVi("Mọi người hay ăn gì sau tập?"), available: ALL }) as { agents: string[] };
   assert.equal(d.agents.join(), "nutrition", "the provider uses the raw question");
 });
 
-test("M7P4-16 benchmark v3 protocol: frozen before the change, disjoint from every earlier set, scored once by THIS candidate", () => {
+test("M7P4-16 benchmark v3 protocol: frozen before the change, disjoint from every earlier set, scored once by the M7-P4 candidate", () => {
   const integ = v3Integrity();
   assert.ok(integ.ok, `dataset v3 changed (${integ.actual} != ${integ.freeze.sha256})`);
   assert.equal(integ.freeze.plannerSha256AtFreeze.slice(0, 8), "ddc0b2d8", "frozen while the router was still intent-v1.1");
@@ -116,29 +121,21 @@ test("M7P4-16 benchmark v3 protocol: frozen before the change, disjoint from eve
   const all = sets.flat(); assert.equal(new Set(all).size, all.length, "no question appears in two sets");
   assert.ok(existsSync(V3_RUN_FILE), "heldout v3 has been scored");
   const run = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string; datasetSha256: string; strategy: string };
-  assert.equal(run.plannerSha256, candidateSha(), "routing-planner.ts changed after heldout v3 was scored — a new candidate needs a NEW heldout set");
+  // M7-P4.1: the router changed again (intent-v1.3, bound to heldout v4). Heldout v3 stays bound to the M7-P4 candidate,
+  // checked AT ITS COMMIT 0f529657 (the historical lock is kept, never moved to the new candidate)
+  const atM7P4 = execFileSync("git", ["show", "0f529657:backend/services/ai-service/src/agent-v2/routing-planner.ts"], { cwd: WORKTREE, encoding: "utf8" });
+  assert.equal(createHash("sha256").update(atM7P4.replace(/\r\n/g, "\n")).digest("hex"), run.plannerSha256, "heldout v3 was scored by the planner of 0f529657");
+  assert.notEqual(candidateSha(), run.plannerSha256, "the current planner is a later candidate");
   assert.equal(run.datasetSha256, integ.actual); assert.equal(run.strategy, "intent-v1.2");
 });
 
-test("M7P4-17 heldout v3 result (recorded, not re-tuned): G7 FAIL 87.9% → ROUTING NOT READY; G8 and every safety gate PASS; deterministic", async () => {
+// M7-P4.1: the M7-P4 run re-scores heldout v3, which is bound to intent-v1.2 — with intent-v1.3 in the tree it must REFUSE
+// (one-shot protocol). Its recorded historical result is unchanged: G7 FAIL 87.9% → ROUTING NOT READY, G8 88.3% PASS,
+// every safety gate PASS; KD-tagged cases 16/17 (V-O05 wrong). The new candidate is scored on heldout v4 (run-v4.ts).
+test("M7P4-17 the M7-P4 run refuses a different candidate; the recorded heldout v3 result (G7 FAIL 87.9%) is historical", async () => {
   const { runM7P4Evaluation } = await import("./m7-benchmark/run-v3");
-  const ev = await runM7P4Evaluation();
-  const run = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { result: { primaryCoveragePct: number; exactSetLe2Pct: number } };
-  const m = ev.heldoutV3.metrics[0];
-  assert.equal(ev.identical, true, "two runs, identical scored results");
-  assert.deepEqual({ primary: m.primaryCoverage.pct, exactLe2: m.exactSetLe2.pct }, { primary: run.result.primaryCoveragePct, exactLe2: run.result.exactSetLe2Pct }, "re-run = the recorded first scoring");
-  assert.ok(ev.thresholdsUnchanged);
-  const g = Object.fromEntries(ev.gates.map((x) => [x.id, x]));
-  for (const id of ["G1", "G2", "G3", "G4", "G5", "G6", "G9", "G10"]) assert.ok(g[id].pass, `${id} = ${g[id].value}`);
-  assert.deepEqual([g.G7.threshold, g.G8.threshold], [90, 85]);
-  assert.equal(g.G7.pass, false, "primary coverage 87.9% < 90% — routing NOT READY (no re-tuning on heldout v3)");
-  assert.equal(g.G8.pass, true);
-  assert.equal(ev.routingReady, false);
-  // KD-tagged heldout cases: 16/17 exact. V-O05 ("Bài hát nào hay để nghe khi tập?", hay = good) is OUT OF SCOPE but the
-  // background "khi tập" still selects Training — an OOS / framing gap, not the KD-2 alternative rule (recorded, not tuned)
-  const kd = ROUTING_CASES_HELDOUT_V3.filter((c) => c.features.some((f) => f.startsWith("kd"))).map((c) => c.id);
-  const kdWrong = ev.heldoutV3.outcomes.filter((o) => kd.includes(o.caseId) && !o.exactSet).map((o) => o.caseId);
-  assert.equal(kd.length, 17); assert.deepEqual(kdWrong, ["V-O05"]);
-  assert.deepEqual(ev.heldoutV3.outcomes.find((o) => o.caseId === "V-O05")!.errors, ["OUT_OF_SCOPE_FALSE_NEGATIVE", "ROUTING_UNCERTAIN"]);
-  assert.equal(ev.execution.counters.netCalls, 0);
+  await assert.rejects(runM7P4Evaluation(), /HELDOUT_V3_ALREADY_SCORED_BY_ANOTHER_CANDIDATE/);
+  const run = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { result: { primaryCoveragePct: number; exactSetLe2Pct: number; exactSetAllPct: number; macroF1: number; microF1: number } };
+  assert.deepEqual(run.result, { primaryCoveragePct: 87.9, exactSetLe2Pct: 88.3, exactSetAllPct: 87.9, macroF1: 0.926, microF1: 0.926 });
+  assert.equal(ROUTING_CASES_HELDOUT_V3.filter((c) => c.features.some((f) => f.startsWith("kd"))).length, 17);
 });

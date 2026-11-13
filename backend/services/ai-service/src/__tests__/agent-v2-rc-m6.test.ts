@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { RUN_FILE as V2_RUN_FILE } from "./m5-benchmark/run-m51";
 import { candidateSha, V3_RUN_FILE } from "./m7-benchmark/run-v3";
+import { V4_RUN_FILE } from "./m7-benchmark/run-v4";
 
 /** The frozen M6 Local RC (historical baseline; never re-labelled as a later candidate). */
 const M6_RC_COMMIT = "b8e595ddb98b5b218ad77c8e910d161b7c476dbc";
@@ -100,8 +101,12 @@ test("M6-5 RC inventory: 4 READ-only agents with frozen, namespaced policies; ev
   // M7-P4: the M6 component "Intent-v1.1 routing (locked)" is deliberately SUPERSEDED by intent-v1.2 (KD-1/KD-2), which is
   // locked to heldout v3 instead (heldout-v3.run.json). Every other component must still be present.
   assert.equal(comps.length, 16); assert.deepEqual(comps.filter((c) => !c.ok).map((c) => c.component), ["Intent-v1.1 routing (locked)"]);
+  // M7-P4.1: intent-v1.2 is in turn superseded by intent-v1.3, locked to heldout v4; the v3 lock is checked at 0f529657
   const v3 = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string };
-  assert.equal(v3.plannerSha256, candidateSha()); assert.equal(v3.strategy, "intent-v1.2");
+  const m7p4 = execFileSync("git", ["show", "0f529657:backend/services/ai-service/src/agent-v2/routing-planner.ts"], { cwd: WORKTREE, encoding: "utf8" });
+  assert.equal(createHash("sha256").update(m7p4.replace(/\r\n/g, "\n")).digest("hex"), v3.plannerSha256); assert.equal(v3.strategy, "intent-v1.2");
+  const v4 = JSON.parse(readFileSync(V4_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string };
+  assert.equal(v4.plannerSha256, candidateSha()); assert.equal(v4.strategy, "intent-v1.3");
 });
 
 test("M6-6 RC source identity: planner = the heldout-scored candidate, heldout intact, V1 runtime identical to v1.0.0-rc2", (t) => {
