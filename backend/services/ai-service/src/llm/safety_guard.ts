@@ -292,6 +292,65 @@ function detectPurgeOrUnsafeWeightLossBehavior(question: string): boolean {
   );
 }
 
+// ── Self-induced vomiting expressed as "móc họng" / "ép nôn" / "ăn xong mình nôn" (V1 safety correction 2026-11-14) ──
+// Gap found by the V2 policy matrix (PM-25): "Ăn xong mình hay móc họng cho đỡ béo" was `safe` because the purge pattern only
+// knew "gây nôn / nôn sau khi ăn". Same reason code as those phrases (`unsafe_weight_loss_behavior`), no new category.
+// Every pattern needs an INTENTIONAL / FIRST-PERSON context — never a bare "họng", "nôn", "ói": a doctor/parent/first-aid
+// "móc họng" (amidan check, removing a foreign body), a symptom ("nôn mửa sau khi tập", "bị nôn vì say xe") and education
+// ("bulimia là gì?") stay `safe` (the two named-disorder questions are separately caught by the existing eating-disorder
+// detector, unchanged). Patterns run on text folded by `foldInducedVomitingText` (accent-free, lower-case), so one pattern covers
+// accented, unaccented, mixed, NFD and upper-case spellings. Called once with the original question from `check()`.
+const IV_SUBJECT = String.raw`(?:minh|toi|tui|em|tao)`; // "tớ/tô" omitted: "to" also means "big"
+const IV_SUBJECT_HABIT = String.raw`${IV_SUBJECT}(?:\s+(?:hay|thuong|luon|lai|dang|van|deu|da|tung|cu|thinh thoang|thi thoang|doi khi|moi lan|moi khi|sau moi bua|an xong|an roi|sau khi an)){0,4}`;
+const IV_MOC_HONG = String.raw`moc\s+(?:co\s+)?hong`; // "móc họng" / "móc cổ họng"
+// Vomit verb after the fold: "non"; "oiz" = the ACCENTED "ói" and "mxuaz" = the accented "mửa" (marked by the fold, because the
+// unaccented homographs mean "oi"=interjection ơi/ôi and "mua"=buy); a bare unaccented "oi" counts only when it does not directly
+// follow a first-person word ("em ơi", "mình ơi" are vocatives — the V2 adapter re-checks the diacritic-folded question).
+const IV_VOMIT = String.raw`(?:non|(?<!\b${IV_SUBJECT}\s)oi|oiz|mxuaz)`;
+const IV_INTENT = String.raw`(?:tu|co\s+tinh|co\s+y|chu\s+dong|ep(?:\s+minh)?)`; // tự / cố tình / cố ý / chủ động / ép (mình)
+const IV_AFTER_MEAL = String.raw`(?:an\s+xong|an\s+roi|sau\s+khi\s+an|sau\s+(?:moi\s+)?bua\s+an)`;
+const IV_FILLER = String.raw`(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|xong|roi))*`;
+// "móc họng" aimed at someone else / a clinical act ("móc họng bé", "móc họng lấy dị vật", "móc họng kiểm tra amidan") is not a disclosure.
+const IV_NOT_OTHER_PERSON = String.raw`(?!\s+(?:de\s+|cho\s+)?(?:lay|kiem\s+tra|kham|soi|be|con|tre|nguoi|chau|em\s+be|nan\s+nhan|benh\s+nhan|cha|me)\b)`;
+// Reasons that make "móc họng" a purge: to vomit, to empty the stomach, or to lose / not gain weight.
+const IV_PURGE_REASON = String.raw`(?:non|oi|oiz|mxuaz|ra\s+het|het\s+(?:do\s+an|thuc\s+an|bua|com|thuc\s+pham)|do\s+(?:beo|map|tang\s+can)|dep\s+(?:beo|mo)|giam\s+(?:can|beo|mo)|(?:khong|dung)\s+(?:bi\s+)?(?:tang\s+can|beo|map)|(?:de\s+)?khoi\s+(?:tang|beo|map))`;
+const INDUCED_VOMITING_PATTERNS: readonly RegExp[] = [
+  // 1. first-person "(mình/tôi/em…) (hay) (tự) móc họng" — "Ăn xong mình hay móc họng cho đỡ béo"
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+(?:tu\s+|di\s+)?${IV_MOC_HONG}\b${IV_NOT_OTHER_PERSON}`),
+  // 2. "móc họng" + purge reason, any subject — "móc họng cho nôn", "móc họng cho hết đồ ăn", "móc họng cho đỡ béo"
+  new RegExp(String.raw`\b${IV_MOC_HONG}\s+(?:(?:de|cho|vi|nham|la\s+de)\s+)?${IV_PURGE_REASON}\b`),
+  // 3. weight-loss reason BEFORE it (same clause) — "muốn giảm cân bằng cách móc họng"
+  new RegExp(String.raw`\b(?:giam\s+(?:can|beo|mo)|do\s+(?:beo|map)|khong\s+(?:bi\s+)?tang\s+can|dep\s+(?:beo|mo))\b[^.!?;,\n]{0,25}?\b(?:bang\s+cach\s+|la\s+)?${IV_MOC_HONG}\b${IV_NOT_OTHER_PERSON}`),
+  // 4. right after a meal — "ăn xong là móc họng"
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|minh|toi|tui|em|tao))*\s+(?:tu\s+)?${IV_MOC_HONG}\b${IV_NOT_OTHER_PERSON}`),
+  // 5. first-person + explicit intent marker + vomit verb — "mình hay tự nôn", "tôi cố tình ói", "em ép mình nôn", "mình hay ép nôn"
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_INTENT}\s+(?:ban\s+than\s+)?${IV_VOMIT}\b`),
+  // 6. after a meal + intent marker (no subject needed) — "ăn xong ép nôn", "ăn xong là tự ói"
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_INTENT}\s+${IV_VOMIT}\b`),
+  // 7. after a meal + first-person subject + vomit verb — "ăn xong mình nôn", "ăn xong mình hay ói" ("bị nôn" / third person / bare "ăn xong nôn" stay out)
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+(?:${IV_INTENT}\s+)?${IV_VOMIT}\b`),
+  // 8. first-person subject + (intent) vomit verb + "sau khi ăn" — "mình hay nôn ra sau khi ăn" (the existing pattern only knew the adjacent "nôn sau khi ăn")
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+(?:${IV_INTENT}\s+)?${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
+];
+/**
+ * Classification-only fold for the induced-vomiting patterns: NFC → lower-case → the accented words "mửa" / "ói" are marked and the
+ * interjections ôi/ơi/ối ("em ơi") are neutralised, so the diacritic fold cannot turn them into "mua" (buy) / a bare "oi" → then
+ * the shared diacritic fold.
+ */
+function foldInducedVomitingText(text: string): string {
+  const marked = String(text ?? "")
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/mửa/g, "mxuaz")
+    .replace(/(?<![\p{L}])ói(?![\p{L}])/gu, "oiz")
+    .replace(/(?<![\p{L}])[ôơốồổỗộớờởỡợ]i(?![\p{L}])/gu, "oxi");
+  return foldSafetyText(marked);
+}
+function detectInducedVomitingDisclosure(question: string): boolean {
+  const q = foldInducedVomitingText(question);
+  return INDUCED_VOMITING_PATTERNS.some((re) => re.test(q));
+}
+
 // Severe/anaphylaxis-level allergy — deliberately narrow to explicit
 // severe-reaction language, not a bare "dị ứng sữa" (mild food preference/
 // restriction, handled as a normal dietary constraint elsewhere).
@@ -650,7 +709,9 @@ export const safetyGuard = {
       };
     }
 
-    if (hit(detectPurgeOrUnsafeWeightLossBehavior)) {
+    // The induced-vomiting detector takes the ORIGINAL question once (not per form): it must see the accents to tell "ói" from
+    // the interjection "ơi" and "mửa" from "mua" (buy) — the folded form it would otherwise receive has lost that information.
+    if (hit(detectPurgeOrUnsafeWeightLossBehavior) || detectInducedVomitingDisclosure(question)) {
       return {
         type: "unsafe_weight_loss_behavior",
         messageVi: [
