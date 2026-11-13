@@ -1,44 +1,65 @@
 /**
- * Gymini V2 (EXPERIMENTAL) — Vietnamese WRITTEN-age phrases for the Minor Gate ("Em mười lăm tuổi", "muoi lam tuoi").
+ * Gymini V2 (EXPERIMENTAL) — Vietnamese age MENTIONS for the Minor Gate (M7-P5A.2.3 "AGE SEMANTICS", owner policy).
  *
- * Pure, deterministic, offline. NOT an NL parser and NOT a second age model: it only REWRITES a supported written phrase into
- * the digit form V1 already understands ("em mười lăm tuổi" → "em 15 tuoi") inside a COPY of the sentence, so that the SAME V1
- * `extractFactsFromText` (llm/turn_facts.ts — negation "không phải 16 tuổi", "chưa đủ 18 tuổi", hypothetical "giả sử/nếu",
- * approximations "khoảng/sắp/gần …") applies to it unchanged. minor-gate.ts `statedAges` = V1(original text) ∪ V1(each
- * rewritten sentence). A written age is only ever USER_REPORTED (CURRENT_TURN / HISTORY) — nothing here marks anything verified.
+ * Pure, deterministic, offline. NOT an NL parser and NOT a second age model: it LOCATES the age expressions of a text
+ * (digit / written / "mới 13"), decides WHOSE age each one is from the few words directly before it (FIRST person, THIRD
+ * party, or AMBIGUOUS), and hands the supported ones to the SAME V1 `extractFactsFromText` (llm/turn_facts.ts — negation
+ * "không phải 16 tuổi", "chưa đủ 18 tuổi", hypothetical "giả sử/nếu", approximations "khoảng/sắp/gần …" apply unchanged) as a
+ * COPY of the sentence in which every OTHER age expression is blanked and this one is written as digits ("em 15 tuoi").
+ * minor-gate.ts evaluates the mentions (classifyStatedAge). A stated age is only ever USER_REPORTED — nothing here marks
+ * anything verified.
  *
- * SUPPORTED (accented or unaccented, any letter case; text scanned = first 4000 chars):
- *   F1  PRON [ADV]{0,3} NUM "tuổi"      "Em mười lăm tuổi", "Mình mới mười bốn tuổi", "Tôi năm nay mười sáu tuổi",
- *                                       "em đã tròn mười bảy tuổi", "em khoảng mười lăm tuổi", "tôi chưa đủ mười tám tuổi"
- *   F2  PRON MARKER NUM  (no "tuổi")    "Em mới mười ba.", "Tôi đang mười lăm", "Mình hiện mười bốn", "Năm nay em mười lăm"
- *                                       — only with a marker (mới | đang | hiện | hiện tại | hiện nay | năm nay | bây giờ),
- *                                       only 10–99, and only when the number ENDS the clause (end / , . ; ! ? : newline /
- *                                       "rồi nên và nhưng mà thì nhé ạ nha đây đó thôi nè") — so "em mới mười lăm phút / kg / năm" is NOT an age.
- *   F3  "tuổi của" PRON ["là"] NUM       "Tuổi của em là mười lăm"
- *   PRON = tôi | tui | em | mình ("minh" without accent is accepted only when the WHOLE text has no Vietnamese diacritics —
- *   in a text that has accents, "Minh mười lăm tuổi" is a personal name, not "mình").
- *   ADV  = mới đã đang vừa hiện hiện tại hiện nay năm nay tròn đúng được chỉ chưa chưa đủ sắp gần ngoài hơn tầm khoảng.
- *   NUM  = 5–99 in words: năm sáu bảy|bẩy tám chín | mười, mười một … mười chín (5 = lăm|nhăm after mười) |
- *          hai … chín mươi [+ một|mốt, hai, ba, bốn|tư, lăm|nhăm, sáu, bảy, tám, chín]. ("mười năm" is NOT 15 — it is "ten years".)
- *          Words 5–9 need "tuổi" (F1/F3). V1 itself ignores digit ages below 10 ("Em 8 tuổi" is not an age in V1) — inherited.
+ * AGE EXPRESSIONS LOCATED (accented or unaccented, any letter case; text scanned = first 4000 chars, sentence by sentence):
+ *   D1  DIGITS "tuổi"            "15 tuổi" "15 years old" "15yo" (V1's own pattern, mirrored) — 10..99 as V1; 5..9 ONLY with a
+ *                                first/third/ambiguous subject word (V1 ignores digit ages below 10: V2 deliberately does not,
+ *                                "Em 8 tuổi"); below 5 never.
+ *   D2  "tuổi [là] 15" / "tuổi của em [là] 15"   (V1's pattern 2, mirrored; "của X" names the subject)
+ *   D3  MARKER DIGITS            "Em mới 13." "Mình hiện 14" "Năm nay em 15" — marker (mới | đang | hiện | hiện tại | hiện nay |
+ *                                năm nay | bây giờ) + 10..99, only when the number ENDS the clause (end / , . ; ! ? : newline /
+ *                                "rồi nên và nhưng mà thì nhé ạ nha đây đó thôi nè") — "em mới 15 phút / kg / năm" is NOT an age.
+ *                                V1 does not read these at all; V2 does (owner policy).
+ *   W1  WORDS "tuổi"             "Em mười lăm tuổi", "em tám tuổi", "Tôi năm nay mười sáu tuổi", "em khoảng mười lăm tuổi"
+ *   W2  MARKER WORDS             "Em mới mười ba.", "Tôi đang mười lăm" (same marker + clause-end rule as D3)
+ *   W3  "tuổi của em [là] mười lăm"
+ *   NUM = 5–99 in words: năm sáu bảy|bẩy tám chín | mười, mười một … mười chín (5 = lăm|nhăm after mười) | hai … chín mươi [+ một|
+ *         mốt, hai, ba, bốn|tư, lăm|nhăm, sáu, bảy, tám, chín]. ("mười năm" is NOT 15 — it is "ten years".) Words 5–9 need "tuổi".
  *
- * Third person is rejected on purpose (the owner decision: never the authenticated user's age): the pronoun must NOT directly
- * follow a kinship / relation / plural-address word (con, cháu, bạn, anh, chị, em, bé, gái, trai, vợ, chồng, mẹ, bố, ba, bà, cha,
- * thằng, đứa, người, các, của, sinh, yêu) — "Con tôi mười lăm tuổi", "con em mười ba tuổi", "bạn mình mười sáu tuổi", "em gái
- * tôi mười lăm tuổi" are not matched; neither are phrases without a pronoun ("người mười sáu tuổi", "học sinh mười lăm tuổi").
+ * WHOSE AGE (the subject = the last word before the expression, after skipping up to 3 adverbs
+ * mới đã đang vừa hiện hiện tại hiện nay năm nay tròn đúng được chỉ chưa chưa đủ sắp gần ngoài hơn tầm khoảng bây giờ):
+ *   FIRST     the head is a speaker pronoun tôi | tui | em | mình | cháu AND the word before it is not a relation word:
+ *             "Em mười lăm tuổi" "Cháu mười lăm tuổi" "Chào anh, em mười lăm tuổi" (a comma ends the address) "Dạ cháu 15 tuổi"
+ *             "Tôi là học sinh 15 tuổi" (pronoun + "là" + [một] [học] sinh|người|bé … is the speaker). "cháu" is the speaker's
+ *             pronoun only when it is the subject (clause start / after a greeting word); "Cháu tôi …" is a third party.
+ *             "minh/toi" without accents count only when the WHOLE text has no Vietnamese diacritics (otherwise "Minh" is a name).
+ *   THIRD     the pronoun directly follows a relation / possessive word (con, cháu, gái, trai, vợ, chồng, mẹ, bố, ba, bà, cha,
+ *             thằng, đứa, người, các, của, sinh, yêu, bé, em [before tôi/mình]) — "Con tôi 15 tuổi", "Cháu tôi mười lăm tuổi",
+ *             "Em trai tôi 13 tuổi", "Em gái mình mười hai tuổi", "con em 9 tuổi", "Các em mười lăm tuổi", "mỡ của tôi đang 15";
+ *             an address word (anh | chị | bạn) directly before tôi/mình ("Bạn tôi 16 tuổi", "Anh mình 17 tuổi");
+ *             or the head itself is a third-party noun (học sinh, sinh viên, người, bé, trẻ, thằng, đứa, gái, trai, vợ, chồng):
+ *             "học sinh 15 tuổi", "người 16 tuổi có được tập gym không?", "Em gái 12 tuổi".
+ *             An appositive after a comma keeps the previous clause's subject: "Con tôi, 15 tuổi, thích tập" is third.
+ *   AMBIGUOUS (documented, short list — see AMBIGUOUS_PATTERNS):
+ *     A1  address compound + age:   "anh em | chị em | anh chị em" + age    "Chào anh em mười lăm tuổi" ("anh em" the greeting and an
+ *                                   age without subject, OR "anh," + the speaker "em") — also with digits, also "chào bạn em 15 tuổi"
+ *     A2  "bạn | các bạn" + age, no pronoun:   "Chào bạn mười lăm tuổi", "Bạn 16 tuổi nên tập gì?" (the addressee's age, a generic
+ *                                   statement, or a greeting followed by an age?)
+ *     A3  "con" + age, no possessor:   "Con 15 tuổi nên tập gì?" (a child speaking OR a parent: "con 15 tuổi nhà mình")
+ *   OTHER     no recognised subject word: DIGITS keep V1 parity (the age is read as the user's own: "Tập gym 15 tuổi có sao không",
+ *             "15 tuổi tập được không?", "Minh 15 tuổi …"), WORDS are not an age ("mười lăm tuổi" alone, "tập mười lăm tuổi").
  *
- * NOT SUPPORTED (documented, not guessed): "em mười lăm" with no marker and no "tuổi"; "em 15 rồi" / "em mới 13" with DIGITS and no
- * "tuổi" (V1 digit gap — not changed here); "rưỡi"; "mười năm tuổi"; hai-lăm / hai-nhăm style colloquial forms; "đang tuổi mười
- * lăm"; "tuổi mười lăm" alone; roman / mixed forms ("1 lăm"); "cháu"/"anh"/"chị"/"con" used as the SPEAKER's own pronoun;
- * "chúng em/bọn mình mười lăm tuổi" is matched as the speaker's own age (conservative); "các em mười lăm tuổi" is not;
- * ages stated in a past tense ("hồi em mười lăm tuổi") are treated like V1 treats the digit twin (the age is taken at face value —
- * V1 has no tense logic, so this is the same conservative false-positive V1 already has).
+ * NOT AN AGE: experience ("tập 15 năm", "15 năm kinh nghiệm"), weights/reps/sets/durations/dates/money (a unit follows the number), "năm"
+ * as a unit, "em 15" / "em mười lăm" with no marker and no "tuổi", "em 15 rồi" (documented gap, stays no-evidence).
  *
- * Bounded: input sliced to 4000 chars, at most 8 written phrases, linear regexes with bounded repetition, never throws.
+ * Not handled (documented): English third person ("my son is 15 years old" is read by V1's digit rule as before); "rưỡi"; "mười năm
+ * tuổi"; colloquial "hai-lăm"; "đang tuổi mười lăm"; past tense ("hồi em mười lăm tuổi" is taken at face value, as V1 does).
+ *
+ * Bounded: input sliced to 4000 chars, at most 8 age expressions (V1 reads whatever is beyond, as before), at most 100 characters looked back per expression, linear regexes
+ * with bounded repetition, never throws.
  */
 
 const MAX_SCAN_CHARS = 4000;
-const MAX_PHRASES = 8;
+const MAX_MENTIONS = 8;
+const LOOKBACK_CHARS = 100;
 
 const DIACRITIC = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/;
 
@@ -57,18 +78,57 @@ const UNIT_AFTER_TENS = "mot|hai|ba|bon|tu|lam|nham|sau|bay|tam|chin";
 const TENS = "hai|ba|bon|nam|sau|bay|tam|chin";
 const NUM_SRC = `(?:(?:${TENS})\\s+muoi(?:\\s+(?:${UNIT_AFTER_TENS}))?|muoi(?:\\s+(?:${UNIT_AFTER_MUOI}))?|nam|sau|bay|tam|chin)`;
 const ADV_SRC = "hien tai|hien nay|nam nay|chua du|bay gio|moi|da|dang|vua|hien|tron|dung|duoc|chi|chua|sap|gan|ngoai|hon|tam|khoang";
-const PRON_SRC = "toi|tui|em|minh";
-const MARKER = /(?:^|\s)(?:moi|dang|hien|hien tai|hien nay|nam nay|bay gio)(?=\s|$)/;
+const CHAIN_SRC = `(?:${ADV_SRC})(?:\\s+(?:${ADV_SRC})){0,2}`;
+const MARKER_RE = /(?:^|\s)(?:moi|dang|hien|nam nay|bay gio)(?=\s|$)/;
 const LEAD_MARKER = /(?:nam nay|hien tai|hien nay|bay gio)\s*,?\s*$/;
 const TERMINATOR = /^[ \t]*(?:$|[\r\n,.;!?:…)"']|(?:roi|nen|va|nhung|ma|thi|nhe|a|nha|day|do|thoi|ne)(?![a-z0-9]))/;
-const KIN_BEFORE = new Set([
-  "con", "chau", "cháu", "ban", "bạn", "anh", "chi", "chị", "em", "be", "bé", "gai", "gái", "trai", "vo", "vợ", "chong", "chồng",
-  "me", "mẹ", "bo", "bố", "ba", "bà", "cha", "thang", "thằng", "dua", "đứa", "nguoi", "người", "cac", "các", "cua", "của",
-  "sinh", "yeu", "yêu",
-]);
+const ADV1 = new Set(["moi", "da", "dang", "vua", "hien", "tron", "dung", "duoc", "chi", "chua", "sap", "gan", "ngoai", "hon", "tam", "khoang"]);
+const ADV2 = new Set(["hien tai", "hien nay", "nam nay", "chua du", "bay gio"]);
 
-const F1 = new RegExp(`(?<![a-z0-9])(${PRON_SRC})((?:\\s+(?:${ADV_SRC})){0,3})(\\s+)(${NUM_SRC})(?![a-z0-9])(\\s*tuoi(?![a-z0-9]))?`, "g");
-const F3 = new RegExp(`(?<![a-z0-9])(tuoi\\s+cua\\s+)(${PRON_SRC})\\s+(?:la\\s+)?(${NUM_SRC})(?![a-z0-9])`, "g");
+// regexes over the FOLDED sentence (same indices as the raw lower-cased one)
+const D1_RE = /(?<![\d.,])(\d{1,2})\s*(?:tuoi|years? ?old|yo)\b/g; // V1's pattern, verbatim
+const D2_PLAIN_RE = /\btuoi\s*(?:la\s*)?(\d{1,2})(?!\d)/g;
+const TUOI_X_RE = new RegExp(`(?<![a-z0-9])tuoi\\s+cua\\s+([a-z]+)\\s+(?:la\\s+)?(\\d{1,2}(?!\\d)|${NUM_SRC}(?![a-z0-9]))`, "g");
+const W_RE = new RegExp(`(?<![a-z0-9])(?:(${CHAIN_SRC})\\s+)?(${NUM_SRC})(?![a-z0-9])(\\s*tuoi(?![a-z0-9]))?`, "g");
+const D3_RE = new RegExp(`(?<![a-z0-9.,])(?:(${CHAIN_SRC})\\s+)?(\\d{2})(?![a-z0-9])(?![.,]\\d)`, "g");
+
+// ── subject words (RAW lower-case NFC forms, accented and unaccented — "còn" (still) is not "con" (child)) ───────────────────
+/** A relation / possessive word directly before the pronoun makes it a third party ("con tôi", "em trai tôi", "mỡ của tôi"). */
+const THIRD_PREV = new Set([
+  "con", "chau", "cháu", "em", "be", "bé", "gai", "gái", "trai", "vo", "vợ", "chong", "chồng", "me", "mẹ", "bo", "bố", "ba", "bà",
+  "cha", "thang", "thằng", "dua", "đứa", "nguoi", "người", "cac", "các", "cua", "của", "sinh", "yeu", "yêu",
+]);
+/** An address word directly before "tôi/mình" = possessive ("bạn tôi"); directly before "em" = AMBIGUOUS ("anh em", "chị em"). */
+const ADDRESS = new Set(["anh", "chi", "chị", "ban", "bạn"]);
+/** The head itself names a third party ("học sinh 15 tuổi", "người 16 tuổi"). */
+const THIRD_NOUN = new Set([
+  "sinh", "vien", "viên", "nguoi", "người", "be", "bé", "tre", "trẻ", "thang", "thằng", "dua", "đứa", "gai", "gái", "trai", "vo", "vợ", "chong", "chồng",
+]);
+const AMBIGUOUS_NOUN = new Set(["ban", "bạn", "con"]);
+const COPULA_NOUN = new Set(["sinh", "nguoi", "người", "be", "bé", "tre", "trẻ", "vien", "viên", "gai", "gái", "trai"]); // "tôi là (một) (học) sinh 15 tuổi"
+const COPULA_FILL = new Set(["hoc", "học", "mot", "một", "con", "nam", "nu", "nữ"]);
+const COPULA_ADV = new Set(["moi", "mới", "dang", "đang", "van", "vẫn", "cung", "cũng", "gio", "giờ", "da", "đã", "vua", "vừa", "chi", "chỉ"]);
+
+/** The documented ambiguous shapes (see header): exported so tests and reports quote the same list. */
+export const AMBIGUOUS_PATTERNS: readonly string[] = [
+  "A1 anh em | chị em | anh chị em | bạn em (+ age) — greeting compound OR address + the speaker 'em'",
+  "A2 bạn | các bạn (+ age, no pronoun) — addressee / generic / greeting",
+  "A3 con (+ age, no possessor) — child speaking OR parent",
+];
+
+export type AgeSubject = "FIRST" | "THIRD" | "AMBIGUOUS";
+export type AgeMentionKind = "DIGITS" | "MARKER_DIGITS" | "WORDS";
+
+export interface AgeMention {
+  kind: AgeMentionKind;
+  subject: AgeSubject;
+  /** The ONE thing V1's extractFactsFromText is run on: the sentence, every other age expression blanked, this one in digit form. */
+  text: string;
+  /** The age was below 10 and was written as value+60 (V1 ignores digit ages below 10): subtract 60 from V1's value. */
+  sentinel: boolean;
+  /** The text carries ONLY digits V1 itself would read (no rewrite besides the blanking). */
+  native: boolean;
+}
 
 const ONES: Record<string, number> = { mot: 1, hai: 2, ba: 3, bon: 4, tu: 4, nam: 5, lam: 5, nham: 5, sau: 6, bay: 7, tam: 8, chin: 9 };
 
@@ -88,71 +148,212 @@ export function parseVietnameseNumberWords(folded: string): number | null {
   return tens + ONES[w[2]];
 }
 
-interface Phrase { start: number; end: number; replacement: string }
+interface Tok { f: string; raw: string; end: boolean; start: number }
+interface Subject { cls: AgeSubject | "OTHER"; marker: boolean }
+interface Expr { start: number; end: number; value: number; kind: AgeMentionKind; render: string; subject: AgeSubject; native: boolean; sentinel: boolean }
 
-const prevWord = (lower: string, at: number): string | null => {
-  const m = /([\p{L}]+)[ \t]+$/u.exec(lower.slice(Math.max(0, at - 40), at));
-  return m ? m[1] : null;
+const pronounOk = (t: Tok, accented: boolean): boolean => {
+  if (t.f !== "toi" && t.f !== "tui" && t.f !== "em" && t.f !== "minh" && t.f !== "chau") return false;
+  if (!accented) return true;
+  return t.f === "toi" ? t.raw === "tôi" : t.f === "minh" ? t.raw === "mình" : t.f === "chau" ? t.raw === "cháu" : t.f === "em" ? t.raw === "em" : t.raw === "tui";
 };
 
-function sentenceBounds(lower: string, start: number, end: number): [number, number] {
-  let a = start;
-  while (a > 0) { const c = lower[a - 1]; if (c === "\n" || (/\s/.test(c) && /[.!?;…]/.test(lower[a - 2] ?? ""))) break; a--; }
-  let b = end;
-  while (b < lower.length) { const c = lower[b]; if (c === "\n") break; if (/[.!?;…]/.test(c) && /\s/.test(lower[b + 1] ?? " ")) { b++; break; } b++; }
-  return [a, b];
+function tokensBefore(lower: string, f: string, pos: number): Tok[] {
+  const from = Math.max(0, pos - LOOKBACK_CHARS);
+  const seg = f.slice(from, pos);
+  const toks: Tok[] = [];
+  for (const m of seg.matchAll(/\S+/g)) {
+    const a = from + m.index!;
+    const b = a + m[0].length;
+    toks.push({ f: m[0].replace(/[^a-z0-9]/g, ""), raw: lower.slice(a, b).replace(/[^\p{L}\p{N}]/gu, ""), end: /[,;:()"“”]$/.test(m[0]), start: a });
+  }
+  if (from > 0 && toks.length) toks.shift(); // the first token may be cut in half
+  return toks;
 }
 
-function findPhrases(lower: string, f: string): Phrase[] {
-  const out: Phrase[] = [];
-  const accented = DIACRITIC.test(lower);
-  const pronOk = (rawPron: string, foldedPron: string): boolean => (!accented ? true : foldedPron === "minh" ? rawPron === "mình" : foldedPron === "toi" ? rawPron === "tôi" : true);
-  const thirdPerson = (pronStart: number): boolean => { const w = prevWord(lower, pronStart); return w !== null && KIN_BEFORE.has(w); };
-
-  for (const m of f.matchAll(F1)) {
-    if (out.length >= MAX_PHRASES) break;
-    const pron = m[1]; const adv = m[2] ?? ""; const gap = m[3]; const num = m[4]; const hasTuoi = m[5] !== undefined;
-    const at = m.index!;
-    if (!pronOk(lower.slice(at, at + pron.length), pron) || thirdPerson(at)) continue;
-    const value = parseVietnameseNumberWords(num);
-    if (value === null) continue;
-    const numStart = at + pron.length + adv.length + gap.length;
-    const numEnd = numStart + num.length;
-    if (hasTuoi) { out.push({ start: numStart, end: at + m[0].length, replacement: `${value} tuoi` }); continue; }
-    // no "tuổi": only a marked, clause-final 10–99 number
-    if (value < 10 || !(MARKER.test(adv) || LEAD_MARKER.test(f.slice(Math.max(0, at - 14), at)))) continue;
-    if (!TERMINATOR.test(f.slice(numEnd, numEnd + 12))) continue;
-    out.push({ start: numStart, end: numEnd, replacement: `${value} tuoi` });
+/** Class of ONE head word given the tokens before it (t = the tokens up to and including the head). */
+function classifyHead(t: Tok[], accented: boolean): AgeSubject | "OTHER" {
+  const head = t[t.length - 1];
+  const prev = t.length > 1 && !t[t.length - 2].end ? t[t.length - 2] : undefined;
+  if (pronounOk(head, accented)) {
+    if (!prev) return "FIRST";
+    if (THIRD_PREV.has(prev.raw)) return "THIRD";
+    if (ADDRESS.has(prev.raw)) return head.f === "em" ? "AMBIGUOUS" : "THIRD";
+    return "FIRST";
   }
-  for (const m of f.matchAll(F3)) {
-    if (out.length >= MAX_PHRASES) break;
-    const pron = m[2]; const pronStart = m.index! + m[1].length;
-    if (!pronOk(lower.slice(pronStart, pronStart + pron.length), pron)) continue;
-    const value = parseVietnameseNumberWords(m[3]);
-    if (value === null) continue;
-    out.push({ start: pronStart + pron.length, end: m.index! + m[0].length, replacement: ` ${value}` });
+  if (THIRD_NOUN.has(head.raw)) {
+    if (COPULA_NOUN.has(head.raw)) {
+      // pronoun + "là" + [một] [học] NOUN ⇒ the speaker describes herself: "Tôi là học sinh 15 tuổi"
+      let i = t.length - 2;
+      while (i >= 0 && !t[i].end && COPULA_FILL.has(t[i].raw)) i--;
+      if (i >= 0 && !t[i].end && t[i].f === "la") {
+        i--;
+        while (i >= 0 && !t[i].end && COPULA_ADV.has(t[i].raw)) i--;
+        if (i >= 0 && !t[i].end && pronounOk(t[i], accented) && !(i > 0 && !t[i - 1].end && THIRD_PREV.has(t[i - 1].raw))) return "FIRST";
+      }
+    }
+    return "THIRD";
+  }
+  if (AMBIGUOUS_NOUN.has(head.raw)) return "AMBIGUOUS";
+  return "OTHER";
+}
+
+/** Who owns the age expression that starts at `pos`? (the tokens before it, adverbs skipped) */
+function subjectBefore(lower: string, f: string, pos: number, accented: boolean, chain: string): Subject {
+  const t = tokensBefore(lower, f, pos);
+  const stripped: string[] = [];
+  for (let i = 0; i < 3 && t.length; i++) {
+    const l = t[t.length - 1];
+    if (l.end) break;
+    const l2 = t[t.length - 2];
+    if (l2 && !l2.end && ADV2.has(`${l2.f} ${l.f}`)) { stripped.unshift(`${l2.f} ${l.f}`); t.length -= 2; continue; }
+    if (ADV1.has(l.f) && l.raw !== "chị") { stripped.unshift(l.f); t.length -= 1; continue; }
+    break;
+  }
+  const advText = [...stripped, chain].join(" ");
+  const hasMarker = (head?: Tok): boolean => MARKER_RE.test(advText) || (head !== undefined && LEAD_MARKER.test(f.slice(Math.max(0, head.start - 14), head.start)));
+  if (!t.length) return { cls: "OTHER", marker: hasMarker() };
+  const head = t[t.length - 1];
+  if (head.end) {
+    // the expression opens a new clause right after "X," — only a THIRD party carries over (appositive "Con tôi, 15 tuổi,")
+    const c = classifyHead(t, accented);
+    return { cls: c === "THIRD" ? "THIRD" : "OTHER", marker: hasMarker() };
+  }
+  return { cls: classifyHead(t, accented), marker: hasMarker(head) };
+}
+
+/** Subject of "tuổi của X …": X alone decides. */
+function subjectOfX(x: string, rawX: string, accented: boolean): AgeSubject | "OTHER" {
+  const tok: Tok = { f: x, raw: rawX, end: false, start: 0 };
+  if (pronounOk(tok, accented)) return "FIRST";
+  if (THIRD_NOUN.has(rawX) || THIRD_PREV.has(rawX)) return "THIRD";
+  if (AMBIGUOUS_NOUN.has(rawX)) return "AMBIGUOUS";
+  return "OTHER";
+}
+
+const rangeOverlaps = (a: Expr, b: { start: number; end: number }): boolean => a.start < b.end && b.start < a.end;
+
+function detect(lower: string, f: string, accented: boolean, budget: number): Expr[] {
+  const out: Expr[] = [];
+  const add = (e: Expr): boolean => {
+    if (out.length >= budget || out.some((o) => rangeOverlaps(o, e))) return false;
+    out.push(e);
+    return true;
+  };
+  const sentinelOf = (v: number): number => (v < 10 ? v + 60 : v);
+
+  // D1 — digits + tuổi (V1 pattern)
+  for (const m of f.matchAll(D1_RE)) {
+    const v = Number(m[1]);
+    if (v < 5) continue;
+    const start = m.index!;
+    const s = subjectBefore(lower, f, start, accented, "");
+    if (s.cls === "OTHER" && v < 10) continue; // V1 parity: no subject word ⇒ a digit age below 10 is not read
+    const sentinel = v < 10;
+    add({ start, end: start + m[0].length, value: v, kind: "DIGITS", subject: s.cls === "OTHER" ? "FIRST" : s.cls, native: !sentinel, sentinel,
+      render: String(sentinelOf(v)) + lower.slice(start + m[1].length, start + m[0].length) });
+  }
+  // D2 — "tuổi của X 15" / "tuổi [là] 15" / written "tuổi của em là mười lăm"
+  for (const m of f.matchAll(TUOI_X_RE)) {
+    const start = m.index!;
+    const x = m[1];
+    const xStart = start + m[0].indexOf(x, 4 + 3);
+    const cls = subjectOfX(x, lower.slice(xStart, xStart + x.length), accented);
+    if (cls === "OTHER") continue;
+    const numPart = m[2];
+    const numEnd = start + m[0].length;
+    const v = /^\d/.test(numPart) ? Number(numPart) : parseVietnameseNumberWords(numPart);
+    if (v === null || v < 5 || v > 99) continue;
+    const written = !/^\d/.test(numPart);
+    add({ start: xStart + x.length, end: numEnd, value: v, kind: written ? "WORDS" : "DIGITS", subject: cls, native: false, sentinel: v < 10,
+      render: ` ${sentinelOf(v)}` });
+  }
+  for (const m of f.matchAll(D2_PLAIN_RE)) {
+    const v = Number(m[1]);
+    if (v < 10) continue; // no subject word ⇒ V1 parity (below 10 ignored)
+    const start = m.index!;
+    add({ start, end: start + m[0].length, value: v, kind: "DIGITS", subject: "FIRST", native: true, sentinel: false, render: lower.slice(start, start + m[0].length) });
+  }
+  // W1 / W2 — written numbers
+  for (const m of f.matchAll(W_RE)) {
+    if (out.length >= budget) break;
+    const chain = m[1] ?? "";
+    const numFolded = m[2];
+    const hasTuoi = m[3] !== undefined;
+    const at = m.index!;
+    const numStart = at + m[0].indexOf(numFolded, chain.length);
+    const numEnd = numStart + numFolded.length;
+    const v = parseVietnameseNumberWords(numFolded);
+    if (v === null) continue;
+    if (!hasTuoi && v < 10) continue;
+    const s = subjectBefore(lower, f, at, accented, chain);
+    if (s.cls === "OTHER") continue;
+    if (!hasTuoi && (!s.marker || !TERMINATOR.test(f.slice(numEnd, numEnd + 12)))) continue;
+    const end = hasTuoi ? at + m[0].length : numEnd;
+    add({ start: numStart, end, value: v, kind: "WORDS", subject: s.cls, native: false, sentinel: v < 10, render: `${sentinelOf(v)} tuoi` });
+  }
+  // D3 — marker + two digits at the end of the clause
+  for (const m of f.matchAll(D3_RE)) {
+    if (out.length >= budget) break;
+    const v = Number(m[2]);
+    if (v < 10) continue;
+    const at = m.index!;
+    const chain = m[1] ?? "";
+    const numStart = at + m[0].length - m[2].length;
+    const numEnd = at + m[0].length;
+    if (/^\s*tuoi/.test(f.slice(numEnd, numEnd + 8))) continue; // D1 owns "15 tuổi"
+    if (!TERMINATOR.test(f.slice(numEnd, numEnd + 12))) continue;
+    const s = subjectBefore(lower, f, at, accented, chain);
+    if (s.cls === "OTHER" || !s.marker) continue;
+    add({ start: numStart, end: numEnd, value: v, kind: "MARKER_DIGITS", subject: s.cls, native: false, sentinel: false, render: `${v} tuoi` });
   }
   return out.sort((a, b) => a.start - b.start);
 }
 
+/** The sentence with every expression blanked, except `keep` which is replaced by its digit form. */
+function compose(sentence: string, exprs: Expr[], keep: number): string {
+  let out = "";
+  let at = 0;
+  exprs.forEach((e, j) => {
+    out += sentence.slice(at, e.start);
+    out += j === keep ? e.render : " ".repeat(Math.max(1, e.end - e.start));
+    at = e.end;
+  });
+  return out + sentence.slice(at);
+}
+
 /**
- * Each supported written-age phrase, rewritten to its digit form INSIDE its own sentence (the rest of the sentence — negation,
- * hypothetical markers, approximations — is kept verbatim). One entry per phrase, so the caller can run V1 on each separately.
- * Empty when there is none. Never throws.
+ * Every age mention of `text` (≤ 8), each with its subject class and the V1 input text. `residual` = the whole text with all
+ * recognised expressions blanked: V1 run on it can only find an age shape this module does not locate (V1 parity for those).
+ * Never throws.
  */
-export function rewriteWrittenAgeSentences(text: string): string[] {
+export function findAgeMentions(text: string): { mentions: AgeMention[]; residual: string } {
   try {
     const lower = String(text ?? "").slice(0, MAX_SCAN_CHARS).normalize("NFC").toLowerCase();
-    if (lower.length < 6) return [];
-    const f = fold(lower);
-    const phrases = findPhrases(lower, f);
-    const out: string[] = [];
-    for (const p of phrases) {
-      const [a, b] = sentenceBounds(lower, p.start, p.end);
-      out.push(lower.slice(a, p.start) + p.replacement + lower.slice(p.end, b));
+    if (lower.length < 3) return { mentions: [], residual: lower };
+    const accented = DIACRITIC.test(lower);
+    const mentions: AgeMention[] = [];
+    let residual = "";
+    let base = 0;
+    for (const piece of lower.split(/(?<=[.!?;…])\s+|\n+/)) {
+      const at = lower.indexOf(piece, base);
+      residual += lower.slice(base, at < 0 ? base : at);
+      base = at < 0 ? base : at + piece.length;
+      const f = fold(piece);
+      const exprs = MAX_MENTIONS - mentions.length > 0 ? detect(piece, f, accented, MAX_MENTIONS - mentions.length) : [];
+      exprs.forEach((e, i) => mentions.push({ kind: e.kind, subject: e.subject, text: compose(piece, exprs, i), sentinel: e.sentinel, native: e.native }));
+      residual += compose(piece, exprs, -1);
     }
-    return out;
+    return { mentions, residual };
   } catch {
-    return [];
+    return { mentions: [], residual: "" };
   }
+}
+
+/**
+ * Each supported written-age phrase (WORDS, speaker subject) as the sentence copy V1 understands. One entry per phrase. Empty when
+ * there is none (third-party and ambiguous phrases are NOT listed). Never throws.
+ */
+export function rewriteWrittenAgeSentences(text: string): string[] {
+  return findAgeMentions(text).mentions.filter((m) => m.kind === "WORDS" && m.subject === "FIRST").map((m) => m.text);
 }

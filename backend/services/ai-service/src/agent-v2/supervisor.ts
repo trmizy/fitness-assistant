@@ -349,8 +349,12 @@ const TEXT: Record<string, string> = {
   UNAUTHENTICATED: "Bạn cần đăng nhập để dùng trợ lý.",
   INVALID_INPUT: "Câu hỏi quá dài hoặc không hợp lệ. Hãy hỏi ngắn gọn hơn.",
   OUT_OF_SCOPE: "Mình hiện chỉ hỗ trợ câu hỏi về tập luyện, phục hồi, tiến độ và dinh dưỡng. Bạn có thể hỏi cụ thể hơn về một trong các chủ đề này nhé.",
+  /** M7-P5A.2.3: fixed text for an unrouted aggressive body-change request of a verified adult — general guidance, no individual plan or number. */
+  UNSAFE_BODY_CHANGE: "Mình không thể đưa ra kế hoạch hay con số cá nhân cho mục tiêu thay đổi cân nặng quá nhanh như vậy. Nói chung, giảm cân quá nhanh (ví dụ vài kg chỉ trong vài ngày hoặc vài tuần) dễ gây mất nước và mất cơ, mệt mỏi, thiếu chất, và thường lấy lại cân nhanh. Mức giảm cân an toàn thường được khuyến nghị chung vào khoảng 0,25–1 kg mỗi tuần; đây là hướng dẫn chung, không phải chỉ định riêng cho bạn. Để có kế hoạch phù hợp với sức khoẻ của bạn, hãy trao đổi với bác sĩ hoặc chuyên gia dinh dưỡng. Mình vẫn có thể trả lời các câu hỏi chung về cách quản lý cân nặng an toàn.",
   FORECAST_NOTE: "Lưu ý: con số trong dự báo là kịch bản của ứng dụng, không phải kết quả đo. Mức thay đổi thực tế chỉ dựa trên các lần đo đã ghi.",
   CAUSAL_NOTE: "Lưu ý: dữ liệu chỉ cho thấy các thay đổi xảy ra cùng lúc, chưa đủ để kết luận cái này gây ra cái kia.",
+  /** M7-P5A.2.3: the user's own words gave an AMBIGUOUS age ("Chào anh em mười lăm tuổi") — never persisted as a minor restriction, never assumed adult. */
+  AGE_AMBIGUOUS: "Mình chưa chắc câu bạn vừa viết đang nói về tuổi của chính bạn hay của người khác, nên mình chưa thể tư vấn cá nhân cho yêu cầu này. Bạn cho mình biết rõ tuổi của bạn nhé (ví dụ: \"Mình 15 tuổi\" hoặc \"Mình 25 tuổi\"); trong lúc đó mình vẫn trả lời được các câu hỏi kiến thức chung.",
   AGE_REQUIRED: "Hồ sơ của bạn chưa có tuổi, nên mình chưa thể tư vấn cá nhân cho yêu cầu này (mục tiêu thay đổi cơ thể, cường độ tối đa hoặc các yêu cầu có rủi ro). Bạn hãy cập nhật tuổi trong hồ sơ rồi hỏi lại nhé; câu hỏi kiến thức chung thì mình vẫn trả lời được.",
   HISTORY_CONFLICT: "Lưu ý: nhật ký tập của bạn không có buổi tập nào được ghi vào hôm qua. Mình vẫn tính đến điều bạn kể, nhưng phần nhận xét dựa trên dữ liệu chỉ phản ánh các buổi đã được ghi.",
   BODY_PART_CONFLICT: "Lưu ý: buổi tập được ghi vào hôm qua không phải nhóm cơ bạn nhắc tới. Mình giữ cả hai thông tin như nhau — bạn kiểm tra lại nhật ký tập nhé.",
@@ -512,6 +516,11 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // the same bounded history Gate 1 uses (built before routing so the clearance and Gate 1 evaluate identical inputs)
   const history = (turn.history ?? []).slice(-4).map((h) => ({ role: h.role, text: String(h.text ?? "").slice(0, 1_500) }));
   const historyUserTexts = history.filter((h) => h.role === "user").map((h) => h.text);
+  // M7-P5A.2.3: an AMBIGUOUS self-reported age (not explicit, not third-party; a profile / session / explicit minor is MINOR instead) keeps
+  // the turn UNRESOLVED: no routing-model call, no personalised recommendation, general-only answers + clarification. Nothing is
+  // persisted and adulthood is never assumed. `gateVerdict` feeds decideMinorGate the existing UNVERIFIED state for it.
+  const ambiguousUnresolved = (v: ReturnType<typeof resolveAgeVerdict>): boolean => v.ambiguous === true && v.status !== "MINOR";
+  const gateVerdict = (v: ReturnType<typeof resolveAgeVerdict>): ReturnType<typeof resolveAgeVerdict> => (ambiguousUnresolved(v) ? { ...v, status: "UNVERIFIED" } : v);
   let clearanceOnce: Promise<RoutingModelClearance> | null = null;
   const routingModelClearance = (): Promise<RoutingModelClearance> => (clearanceOnce ??= (async (): Promise<RoutingModelClearance> => {
     let result: RoutingModelClearance;
@@ -520,7 +529,8 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       else {
         // same inputs as Gate 1: the single profile read, the current question, the history user texts, the session minor flag
         const v = resolveAgeVerdict(toProfileAgeRead(await readProfileOnce()), question, historyUserTexts, sessionMinor);
-        result = v.status === "ADULT" ? { eligible: true, reason: "VERIFIED_ADULT" }
+        result = ambiguousUnresolved(v) ? { eligible: false, reason: "AGE_UNKNOWN" } // ambiguous self-report: never eligible
+          : v.status === "ADULT" ? { eligible: true, reason: "VERIFIED_ADULT" }
           : v.status === "MINOR" ? { eligible: false, reason: "MINOR_RESTRICTION" }
           : v.status === "UNKNOWN" ? { eligible: false, reason: "AGE_UNKNOWN" }
           : { eligible: false, reason: "PROFILE_UNVERIFIED" };
@@ -559,20 +569,47 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   if (!selected.length) {
     if (decision.reasonCodes.includes("routing_undetermined")) return finish("ROUTING_UNDETERMINED", TEXT.ROUTING_UNDETERMINED);
     if (overrun.length) return finish("BUDGET_EXHAUSTED", TEXT.BUDGET_EXHAUSTED);
+    // M7-P5A.2.3 (owner decision) — SAFETY BEFORE OUT_OF_SCOPE. The router abstaining is not evidence that a request is harmless.
+    // WHICH LAYER BLOCKS "Giảm 5 kg trong 2 tuần thế nào?": NOT V1 input safety (it passes `checkInputSafety`), NOT an earlier V2
+    // guard (the deterministic router names no agent, so Gate 1 below is never reached) — THIS response-precedence layer, the
+    // only place that sees "no agent selected" together with the user's eligibility. The hazard is defined by the existing
+    // helper alone (aggressive body-change: a stated kg/% target, an action + short timeframe, "giảm mỡ/cân nhanh/gấp");
+    // benign OOS and GENERAL EDUCATIONAL fitness questions are not hazards and keep OUT_OF_SCOPE. Eligibility is resolved with
+    // the SAME memoized profile read and the SAME verdict + decideMinorGate logic as Gate 1 (category forced HIGH_RISK / own
+    // data: the hazard itself is a personalised ask, whatever V1's classifier says), so no extra read, and an unreadable
+    // session fails closed. The turn's `decision` is already set above (routing ran): the harness still stages it as REACHED_ROUTING.
+    // No agent, no model, no tool runs here; the adult answer is fixed text with no individual plan or number.
+    if (isAggressiveBodyChangeRequest(question)) {
+      const read = await readProfileOnce();
+      const verdict = resolveAgeVerdict(toProfileAgeRead(read), question, historyUserTexts, sessionMinor);
+      const ambiguous = ambiguousUnresolved(verdict);
+      const gate = decideMinorGate(gateVerdict(verdict), "HIGH_RISK", true);
+      ageGate = { status: verdict.status, minorBy: verdict.minorBy, conflict: verdict.conflict, decision: gate.action };
+      if (gate.action === "BLOCK" && ambiguous) { ageGate = { ...ageGate, decision: "BLOCK_AGE_AMBIGUOUS" }; return finish("PROFILE_UNVERIFIED", TEXT.AGE_AMBIGUOUS); }
+      if (gate.action === "BLOCK") return finish(gate.status, gate.message); // known minor → MINOR_PROTECTED; unverified → PROFILE_UNVERIFIED
+      if (sessionUnavailable) { ageGate = { ...ageGate, decision: "BLOCK_SESSION_UNAVAILABLE" }; return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE); }
+      if (verdict.status === "UNKNOWN") { ageGate = { ...ageGate, decision: "BLOCK_AGE_UNKNOWN" }; return finish("PROFILE_UNVERIFIED", TEXT.AGE_REQUIRED); }
+      ageGate = { ...ageGate, decision: "UNROUTED_HAZARD" }; // verified adult, nothing restricts: safe general guidance only
+      return finish("SAFETY_BLOCKED", TEXT.UNSAFE_BODY_CHANGE);
+    }
     return finish("OUT_OF_SCOPE", TEXT.OUT_OF_SCOPE);
   }
 
   // 3. Gate 1 over the WHOLE turn, before any delegation — one read, shared by every agent (they cannot loosen it)
   const read = await readProfileOnce();
   const ageRead = toProfileAgeRead(read);
-  // M7-P3: with the session unreadable the agents' own gate sees an UNVERIFIED state (general information only)
-  const agentAgeRead: ProfileAgeRead = sessionUnavailable ? { status: "FAILED", reason: "session_unavailable" } : ageRead;
-  const profileAgeReader: VerifiedProfileAgeReader = async () => agentAgeRead;
   const verdict = resolveAgeVerdict(ageRead, question, historyUserTexts, sessionMinor);
+  const ageAmbiguous = ambiguousUnresolved(verdict);
+  // M7-P3: with the session unreadable the agents' own gate sees an UNVERIFIED state (general information only).
+  // M7-P5A.2.3: an ambiguous self-reported age gives the agents the same UNVERIFIED view (their own gate cannot loosen Gate 1).
+  const agentAgeRead: ProfileAgeRead = sessionUnavailable ? { status: "FAILED", reason: "session_unavailable" }
+    : ageAmbiguous ? { status: "FAILED", reason: "age_ambiguous" } : ageRead;
+  const profileAgeReader: VerifiedProfileAgeReader = async () => agentAgeRead;
   const needsOwnData = selected.some((a) => byId.get(a)!.capability.needsUserData.test(folded));
   const category = classifyMinorRequest(question);
-  const gate = decideMinorGate(verdict, category, needsOwnData);
+  const gate = decideMinorGate(gateVerdict(verdict), category, needsOwnData);
   ageGate = { status: verdict.status, minorBy: verdict.minorBy, conflict: verdict.conflict, decision: gate.action };
+  if (gate.action === "BLOCK" && ageAmbiguous) { ageGate = { ...ageGate, decision: "BLOCK_AGE_AMBIGUOUS" }; return finish("PROFILE_UNVERIFIED", TEXT.AGE_AMBIGUOUS); }
   if (gate.action === "BLOCK") return finish(gate.status, gate.message);
   // M7-P3: the session (which may hold a minor restriction) could not be read — anything personal fails closed; a general
   // knowledge question is still answered in general-only mode (non-personal tools, MG-1 output policy). Distinct from
@@ -590,6 +627,11 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     && ((category === "HIGH_RISK" && (needsOwnData || isPersonalizedHighRiskRequest(question))) || isAggressiveBodyChangeRequest(question))) {
     ageGate = { ...ageGate, decision: "BLOCK_AGE_UNKNOWN" };
     return finish("PROFILE_UNVERIFIED", TEXT.AGE_REQUIRED);
+  }
+  // M7-P5A.2.3: an ambiguous age also blocks an aggressive body-change ask that V1 did not rate HIGH_RISK (general education stays answered)
+  if (ageAmbiguous && isAggressiveBodyChangeRequest(question)) {
+    ageGate = { ...ageGate, decision: "BLOCK_AGE_AMBIGUOUS" };
+    return finish("PROFILE_UNVERIFIED", TEXT.AGE_AMBIGUOUS);
   }
   const generalOnly = gate.action === "GENERAL_ONLY" || sessionUnavailable;
 

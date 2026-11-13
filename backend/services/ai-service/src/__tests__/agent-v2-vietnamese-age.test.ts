@@ -123,9 +123,11 @@ PARITY.forEach(([d, w], i) => {
   });
 });
 
-test("VA-5 documented divergence from V1: V1 reads digits in a third-person sentence as the user's age; the written form is NOT (owner decision C)", () => {
-  assert.equal(extractFactsFromText("Con tôi 15 tuổi").ageYears?.value, 15, "V1 has no third-person rule for digits (inherited, unchanged)");
-  assert.equal(statesMinorAge("Con tôi 15 tuổi"), true, "digit behaviour untouched");
+test("VA-5 documented divergence from V1: V1 reads digits in a third-person sentence as the user's age; V2 reads NEITHER the digit nor the written form (owner decision C + M7-P5A.2.3)", () => {
+  assert.equal(extractFactsFromText("Con tôi 15 tuổi").ageYears?.value, 15, "V1 has no third-person rule for digits (V1 itself is unchanged)");
+  // CONTRACT CHANGE (owner decision M7-P5A.2.3): a third party's age — digits too — never becomes the authenticated user's age.
+  // Previously pinned as `true` ("digit behaviour untouched"); V2 now skips a third-person sentence entirely instead of using V1's reading.
+  assert.equal(statesMinorAge("Con tôi 15 tuổi"), false, "third-person digits are no longer the user's age in V2");
   assert.equal(statesMinorAge("Con tôi mười lăm tuổi"), false, "written third person never becomes the user's age");
 });
 

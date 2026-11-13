@@ -98,11 +98,16 @@ for (const mode of ["deterministic", "hybrid"] as const) {
   });
 }
 
-test("G1-8 'Giảm 5 kg trong 2 tuần thế nào?' (owner example): the deterministic router names no agent, so nothing runs for ANY age state (OUT_OF_SCOPE) — no advice, no model call; documented dependency on routing", async () => {
-  for (const reader of [UNKNOWN, ADULT, MINOR]) {
+// CONTRACT CHANGE (owner decision M7-P5A.2.3): this row used to pin OUT_OF_SCOPE for EVERY age state — the router names no agent, so
+// the supervisor answered a hazardous aggressive body-change ask as harmless off-topic chat. Safety now precedes OUT_OF_SCOPE: the
+// unrouted hazard resolves eligibility (one profile read) and answers with the accurate existing outcome; still no agent, no model call,
+// no domain tool call. Full matrix: agent-v2-unrouted-hazard.test.ts / agent-v2-unrouted-hazard-http.test.ts.
+test("G1-8 'Giảm 5 kg trong 2 tuần thế nào?' (owner example): the deterministic router names no agent; safety precedes OUT_OF_SCOPE — unknown age → age-required, verified adult → fixed safe text, minor → protected; never an agent / model / tool call", async () => {
+  const expected: Array<[ProfileReadResult, string]> = [[UNKNOWN, "PROFILE_UNVERIFIED"], [ADULT, "SAFETY_BLOCKED"], [MINOR, "MINOR_PROTECTED"]];
+  for (const [reader, status] of expected) {
     const s = rig(reader, "deterministic");
     const o = await s.ask("Giảm 5 kg trong 2 tuần thế nào?");
-    assert.equal(o.r.status, "OUT_OF_SCOPE"); assert.equal(o.agentCalls, 0); assert.equal(o.reads, 0); assert.deepEqual(o.r.executedAgents, []);
+    assert.equal(o.r.status, status); assert.equal(o.agentCalls, 0); assert.equal(o.reads, 0, "zero domain tool calls"); assert.deepEqual(o.r.executedAgents, []); assert.equal(o.routerCalls, 0);
   }
 });
 
