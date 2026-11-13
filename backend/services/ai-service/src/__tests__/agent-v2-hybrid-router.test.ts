@@ -315,8 +315,11 @@ test("HR-27 V1 /ai/ask unchanged: since the M7-P4.1 baseline only the approved V
   const AI = "backend/services/ai-service/src";
   const changed = execFileSync("git", ["diff", "--name-only", "4898b54d", "--", AI, `:(exclude)${AI}/agent-v2`, `:(exclude)${AI}/__tests__`, `:(exclude)${AI}/generated`], { cwd: WORKTREE, encoding: "utf8" }).split("\n").filter(Boolean);
   // M7-P4.3 wires the hybrid router into the approved integration layer (agent-v2-integration/multi-agent-runtime.ts);
-  // no V1 route, controller, service or app.ts line changed
-  assert.ok(changed.every((f) => f === `${AI}/agent-v2-integration/multi-agent-runtime.ts`), changed.join());
+  // no V1 route, controller, service or app.ts line changed. M7-P5A.2.2 maps the PUBLIC `agents` field of POST /ai/v2/ask to
+  // the agents that actually ran — routes/ai-v2.routes.ts is the V2 endpoint itself (part of the approved integration layer,
+  // see RI-2), not a V1 route; V1 /ai/ask has its own router and is checked in HH-27 / SH-14.
+  const approved = [`${AI}/agent-v2-integration/multi-agent-runtime.ts`, `${AI}/routes/ai-v2.routes.ts`];
+  assert.ok(changed.every((f) => approved.includes(f)), changed.join());
 });
 
 test("HR-28/29 no network and no real Nova call: the hybrid module imports no SDK / adapter; every guard counter is zero", () => {

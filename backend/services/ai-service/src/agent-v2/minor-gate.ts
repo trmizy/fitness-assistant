@@ -35,6 +35,7 @@ import { profileExtractor } from "../llm/profile_extractor";
 import { safetyGuard } from "../llm/safety_guard";
 import { classifyMinorRequest, type MinorRequestCategory } from "../llm/minor_safety_policy";
 import { extractFactsFromText } from "../llm/turn_facts";
+import { rewriteWrittenAgeSentences } from "./vietnamese-age";
 
 export type ProfileAgeRead =
   | { status: "OK"; age: number | null }
@@ -78,9 +79,12 @@ export interface AgeVerdict {
 }
 
 function statedAges(text: string): number[] {
-  const f = extractFactsFromText(String(text ?? "")).ageYears;
-  if (!f || f.status === "NEGATED" || f.status === "UNKNOWN") return [];
-  return [f.value];
+  const usable = (f: { status?: string; value: number } | undefined): number[] => (!f || f.status === "NEGATED" || f.status === "UNKNOWN" ? [] : [f.value]);
+  const original = usable(extractFactsFromText(String(text ?? "")).ageYears);
+  // Written Vietnamese ages ("Em mười lăm tuổi"): a supported phrase is rewritten to its digit form inside a COPY of its own
+  // sentence and given to the SAME V1 extraction (negation / hypothetical / approximation rules unchanged). See vietnamese-age.ts.
+  const written = rewriteWrittenAgeSentences(text).flatMap((s) => usable(extractFactsFromText(s).ageYears));
+  return written.length ? [...original, ...written] : original;
 }
 
 /** M7-P3: the user stated (or hypothesised) an age under 18 in this text. Same parser and rules as the verdict below. */

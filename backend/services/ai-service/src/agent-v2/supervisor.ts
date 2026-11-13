@@ -24,6 +24,7 @@ import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
 import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
+import { isAggressiveBodyChangeRequest, isPersonalizedHighRiskRequest } from "./personalized-request";
 import { sanitizeHybridMeta, sanitizeRoutingUsage, ROUTING_MODEL_LIMITS, type HybridRoutingMeta } from "./hybrid-router";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
@@ -297,6 +298,20 @@ export interface SupervisorResult {
   results: AgentResult[];
   provenance: AgentEvidence[];
   conflicts: string[];
+  /**
+   * M7-P5A.2.2: the agents that ACTUALLY RAN this turn (what the public response lists). Not the selected / planned /
+   * deferred agents (those stay in `decision` and the trace). An agent counts only when its runner returned a result for a
+   * real attempt: not budget-skipped, not blocked before it could answer, not withheld for a policy violation, and not a
+   * runner that threw (never reported as executed after an exception). Whether it SUCCEEDED is the turn `status`.
+   */
+  executedAgents: AgentId[];
+}
+
+/** Agents whose runner actually ran and returned a result (see SupervisorResult.executedAgents). Order = execution order. */
+export function executedAgentsOf(results: readonly AgentResult[]): AgentId[] {
+  return results
+    .filter((r) => r.completion !== "SKIPPED" && r.completion !== "BLOCKED" && r.completion !== "POLICY_VIOLATION" && r.error?.code !== "RUNNER_THREW")
+    .map((r) => r.agentId);
 }
 
 export interface SupervisorDeps {
@@ -425,7 +440,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
         ...(routingClearance ? { routingClearance } : {}),
       });
     } catch { /* tracing must never change the outcome */ }
-    return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };
+    return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts, executedAgents: executedAgentsOf(results) };
   };
 
   // 1. gates that never cost anything
@@ -568,7 +583,11 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   }
   // M3: AGE_UNKNOWN is never evidence of adulthood — a HIGH_RISK personal request (body-change targets, max effort,
   // supplements, pain…) fails closed until the profile carries an age (a self-stated adult age cannot unlock it).
-  if (read.status === "AGE_UNKNOWN" && verdict.status === "UNKNOWN" && needsOwnData && classifyMinorRequest(question) === "HIGH_RISK") {
+  // M7-P5A.2.2: "personal" is the agents' own-data patterns OR a personalised dose / plan / target request — a first-person
+  // pronoun ("của tôi") is not the only way to ask for a personal recommendation ("Uống mấy muỗng whey mỗi ngày?")
+  // An aggressive body-change request is also blocked when V1's classifier did not rate it HIGH_RISK (V1 is not changed here).
+  if (read.status === "AGE_UNKNOWN" && verdict.status === "UNKNOWN"
+    && ((category === "HIGH_RISK" && (needsOwnData || isPersonalizedHighRiskRequest(question))) || isAggressiveBodyChangeRequest(question))) {
     ageGate = { ...ageGate, decision: "BLOCK_AGE_UNKNOWN" };
     return finish("PROFILE_UNVERIFIED", TEXT.AGE_REQUIRED);
   }

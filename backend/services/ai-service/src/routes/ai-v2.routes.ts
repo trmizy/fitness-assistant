@@ -61,7 +61,8 @@ async function askV2(req: Request, res: Response, next: NextFunction): Promise<v
       data: {
         status: result.status,
         answer: result.answer,
-        agents: result.decision?.agents ?? [],
+        // M7-P5A.2.2: the agents that ACTUALLY RAN — never the planned / selected / deferred ones (a blocked turn lists none)
+        agents: result.executedAgents ?? [],
         turnId: result.turnId,
         traceId: result.supervisorTraceId,
       },
