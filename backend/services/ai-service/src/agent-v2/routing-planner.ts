@@ -16,10 +16,19 @@
  *      A bare mention ("trước buổi tập nên ăn gì") never adds an agent.
  *   5. Top `maxAgents` (asked first, in order; then support). Everything required but not run is DEFERRED with its needs
  *      (MAX_AGENTS), or SATISFIED_FROM_SESSION for a support-only agent whose facts are fresh in the session.
+ * M7-P4 "intent-v1.2" — the two known defects of v1.1 (found after heldout v2 was scored), fixed without new rules:
+ *   KD-1 "mọi người" (everyone) and "mỏi người" (sore body) both fold to "moi nguoi". foldForRouting() keeps the
+ *        difference when the question carries diacritics ("mọi" → a neutral token before folding); for unaccented text
+ *        "moi nguoi" is AMBIGUOUS and counts as soreness only with a state marker (toi / bi / hoi / rat / dang … before,
+ *        qua / lam / ghe … after) — an ambiguous spelling is never treated as a symptom on its own.
+ *   KD-2 "hay" = "often" (Tôi hay bị mệt) was read as "or" by the alternative-question rule. "hay / hoặc (là)" now
+ *        joins two options only when it stands right before the second option, is not preceded by a subject / habit
+ *        word and is not followed by "bị / được …" (the frequency construction).
  * Shopping questions ("có nên mua …") are out of scope. The planner only NAMES agents; it never grants tools, budgets or
  * identity, and the supervisor re-validates everything. Execution ORDER is applied by the supervisor after selection.
  */
 import type { AgentId, DecisionInput, DecisionProvider, SupervisorDecision } from "./multi-agent-contracts";
+import { foldVi } from "../llm/speech_act";
 
 export type IntentNeed =
   | "TODAY_TRAINING" | "PROGRAM_ADJUSTMENT" | "EXERCISE_INFO" | "TRAINING_MENTION"
@@ -169,6 +178,44 @@ function isFramed(c: Clause, offset: number): boolean {
   return false;
 }
 
+// ── M7-P4 lexical disambiguation (KD-1 / KD-2) ───────────────────────────────────────────────────────────────────────
+/** "mọi" (every / everyone, dot below) — written with its diacritic it can never be "mỏi" (sore). */
+const MOI_EVERY = /(?<!\p{L})mọi(?!\p{L})/giu;
+const HAS_DIACRITIC = /[À-ɏḀ-ỿ̀-ͯ]/u;
+/** Unaccented "moi nguoi" is soreness only with a state marker around it; otherwise it is read as "everyone". */
+const MOI_NGUOI = /\bmoi nguoi\b/g;
+const SORE_BEFORE = /\b(toi|minh|em|tui|bi|hoi|rat|dang|thay|cu|van|con)\s+$/;
+const SORE_AFTER = /^\s+(qua|lam|ghe|vl|that|het|ra roi|khong chiu)\b/;
+const NEUTRAL_EVERY = "tatca";
+
+/** Fold for routing: like foldVi, but "mọi" (everyone) never becomes "moi" (= "mỏi", sore) when diacritics are present. */
+export function foldForRouting(question: string): string {
+  const nfc = String(question ?? "").normalize("NFC");
+  if (!HAS_DIACRITIC.test(nfc)) return disambiguateUnaccented(foldVi(nfc));
+  return foldVi(nfc.replace(MOI_EVERY, NEUTRAL_EVERY));
+}
+/** For text without diacritics (typed unaccented, or folded by the caller): an ambiguous "moi nguoi" is not a symptom. */
+function disambiguateUnaccented(folded: string): string {
+  return folded.replace(MOI_NGUOI, (m: string, off: number) =>
+    (SORE_BEFORE.test(folded.slice(Math.max(0, off - 16), off)) || SORE_AFTER.test(folded.slice(off + m.length, off + m.length + 16)) ? m : `${NEUTRAL_EVERY} nguoi`));
+}
+
+/**
+ * KD-2: does the gap between two terms join them as alternatives ("A hay B", "A hay giảm B", "A hoặc là B")? Only when the
+ * conjunction is at most two words before option B (its verb: "hay đổi thực đơn"), is not preceded by a subject / habit
+ * word ("tôi hay …", "người ta hay …") and is not followed by the frequency construction ("hay bị …", "hay được …").
+ */
+const ALT_GAP = /^\s*(?:\S+\s+)?(?:(\S+)\s+)?(hay|hoac)(?:\s+la)?((?:\s+\S+){0,2})\s*$/;
+const HABIT_BEFORE = /^(toi|minh|em|tui|ban|anh|chi|ta|ho|nguoi|tatca|thuong|cu|rat|kha|van|de|it|cung|lai)$/;
+const HABIT_AFTER = /^(bi|duoc|phai|quen)$/;
+export function isAlternativeGap(gap: string, optionB: string): boolean {
+  const m = ALT_GAP.exec(gap);
+  if (!m) return false;
+  if (m[1] && HABIT_BEFORE.test(m[1])) return false;
+  const next = (m[3].trim() || optionB.trimStart()).split(/\s+/)[0] ?? "";
+  return !HABIT_AFTER.test(next);
+}
+
 export interface PlanOptions {
   maxAgents: number;
   /** M4 per-agent domain signals. Not used for selection since M5.1 (a domain word alone never selects an agent); kept for the provider signature. */
@@ -176,10 +223,14 @@ export interface PlanOptions {
   /** Agents whose facts are FRESH in the session: a support-only role is satisfied without running them. */
   satisfiedFromSession?: ReadonlySet<AgentId>;
   rules?: readonly IntentRule[];
+  /** M7-P4: the original (accented) question — lets KD-1 tell "mọi người" from "mỏi người". */
+  question?: string;
 }
 
-export function planRouting(folded: string, available: readonly AgentId[], opts: PlanOptions): RoutingPlan {
+export function planRouting(foldedInput: string, available: readonly AgentId[], opts: PlanOptions): RoutingPlan {
   const rules = opts.rules ?? INTENT_RULES;
+  // M7-P4: the raw question (when the caller has it) keeps diacritics for KD-1; folded-only input gets the ambiguity rule
+  const folded = typeof opts.question === "string" ? foldForRouting(opts.question) : disambiguateUnaccented(foldedInput);
   const clauses = clausesOf(folded);
   const terms = termsOf(clauses, rules, available).filter((t) => !clauses[t.clause].purchase);
 
@@ -196,7 +247,7 @@ export function planRouting(folded: string, available: readonly AgentId[], opts:
     let last = pick.t;
     for (const x of free) {
       if (x.t.start <= last.start || x.t.rule.entity) continue;
-      if (/\b(hay|hoac)\b/.test(folded.slice(last.end, x.t.start))) { askedIdx.add(x.i); last = x.t; }
+      if (isAlternativeGap(folded.slice(last.end, x.t.start), folded.slice(x.t.start))) { askedIdx.add(x.i); last = x.t; }
     }
   });
   let fallback = false;
@@ -250,14 +301,14 @@ export function planRouting(folded: string, available: readonly AgentId[], opts:
   const lastSupport = selected.find((a) => !asked.includes(a));
   if (lastSupport && liveSupports.some((b) => b !== lastSupport && supportWeight[b] === supportWeight[lastSupport]) && uncertainty === "LOW") uncertainty = "MEDIUM";
   const coverage: RoutingPlan["coverage"] = !selected.length ? "NONE" : deferred.some((d) => d.reason === "MAX_AGENTS") ? "PARTIAL" : "FULL";
-  return { strategy: "intent-v1.1", intents, primaryNeed: primary?.need ?? null, relevance, selectionReasons: reasons, selected, deferred, coverage, uncertainty };
+  return { strategy: "intent-v1.2", intents, primaryNeed: primary?.need ?? null, relevance, selectionReasons: reasons, selected, deferred, coverage, uncertainty };
 }
 
 /** DecisionProvider over planRouting. The plan travels with the decision (codes only) for the supervisor and its trace. */
 export function createIntentDecisionProvider(opts: Omit<PlanOptions, "satisfiedFromSession">): DecisionProvider & { plan(input: DecisionInput, satisfied?: ReadonlySet<AgentId>): RoutingPlan } {
-  const plan = (input: DecisionInput, satisfied?: ReadonlySet<AgentId>) => planRouting(input.folded, input.available, { ...opts, satisfiedFromSession: satisfied });
+  const plan = (input: DecisionInput, satisfied?: ReadonlySet<AgentId>) => planRouting(input.folded, input.available, { ...opts, satisfiedFromSession: satisfied, ...(typeof input.question === "string" ? { question: input.question } : {}) });
   return {
-    name: "intent-v1.1",
+    name: "intent-v1.2",
     plan,
     decide(input: DecisionInput): SupervisorDecision {
       const p = plan(input, input.satisfiedFromSession);

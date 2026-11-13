@@ -10,11 +10,12 @@ import { WORKTREE } from "./m5-benchmark/run-m6";
 import { heldoutIntegrity, plannerSha, RUN_FILE } from "./m5-benchmark/run-m51";
 import { readFileSync } from "node:fs";
 import { isAgentV2Enabled, isAgentV2HttpEnabled } from "../agent-v2/flag";
+import { V3_RUN_FILE, v3Integrity } from "./m7-benchmark/run-v3";
 
 export const INTEGRATED_CANDIDATE = Object.freeze({
   id: "gymini-multi-agent-local-candidate-m7p1",
   baseM6Rc: "b8e595ddb98b5b218ad77c8e910d161b7c476dbc",
-  includes: Object.freeze(["M7-P0 profile reader 35699390", "MG-1 minor output a7f18a7c", "user calendar 004ca887", "M7-P1 local application integration 5d9bc3ed", "M7-P2 cross-service READ transport ed1508a7", "M7-P3 persistent session context 6686d7f4", "M7-P3.1 DynamoDB session adapter"]),
+  includes: Object.freeze(["M7-P0 profile reader 35699390", "MG-1 minor output a7f18a7c", "user calendar 004ca887", "M7-P1 local application integration 5d9bc3ed", "M7-P2 cross-service READ transport ed1508a7", "M7-P3 persistent session context 6686d7f4", "M7-P3.1 DynamoDB session adapter 329ff0be", "M7-P4 routing intent-v1.2 (KD-1/KD-2) + benchmark v3"]),
   status: "LOCAL CANDIDATE — not benchmarked as M6, not live-verified, not production-ready, deployment on hold",
 });
 const AI_SRC = "backend/services/ai-service/src";
@@ -31,7 +32,7 @@ const ALLOWED_V1 = [`${AI_SRC}/agent-v2-integration/domain-read-transport.ts`, `
 
 test("RI-1 the frozen M6 RC is an ancestor; the post-M6 commits are on top of it (never re-labelled as M6)", () => {
   assert.equal(git("merge-base", "--is-ancestor", INTEGRATED_CANDIDATE.baseM6Rc, "HEAD") === "", true);
-  for (const c of ["35699390", "a7f18a7c", "004ca887", "5d9bc3ed", "ed1508a7", "6686d7f4"]) execFileSync("git", ["merge-base", "--is-ancestor", c, "HEAD"], { cwd: WORKTREE });
+  for (const c of ["35699390", "a7f18a7c", "004ca887", "5d9bc3ed", "ed1508a7", "6686d7f4", "329ff0be", "0f69ec88"]) execFileSync("git", ["merge-base", "--is-ancestor", c, "HEAD"], { cwd: WORKTREE });
   assert.notEqual(git("rev-parse", "HEAD"), INTEGRATED_CANDIDATE.baseM6Rc);
 });
 
@@ -44,11 +45,13 @@ test("RI-2 V1-side changes since the M6 RC are exactly the approved integration 
   assert.ok(diff.every((l) => /aiV2Routes|^\+\s*\/\//.test(l)), diff.join("\n"));
 });
 
-test("RI-3 the heldout-scored router, heldout v2 and the M5/M5.1/M6 benchmark code are unchanged since the M6 RC", () => {
-  assert.deepEqual(changedSinceRc(`${AI_SRC}/agent-v2/routing-planner.ts`), []);
+test("RI-3 the router changed ONLY to the heldout-v3-scored candidate (M7-P4); heldout v2 and the M5/M5.1/M6 benchmark code are unchanged", () => {
+  // M7-P4: routing-planner.ts is now intent-v1.2, bound to heldout v3; heldout v2 stays bound to the M5.1 candidate
+  const v2 = JSON.parse(readFileSync(RUN_FILE, "utf8")) as { plannerSha256: string };
+  const v3 = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string };
+  assert.equal(v3.plannerSha256, plannerSha()); assert.notEqual(v2.plannerSha256, plannerSha()); assert.ok(v3Integrity().ok);
   assert.deepEqual(changedSinceRc(`${AI_SRC}/__tests__/m5-benchmark`), []);
-  const run = JSON.parse(readFileSync(RUN_FILE, "utf8")) as { plannerSha256: string };
-  assert.equal(run.plannerSha256, plannerSha()); assert.ok(heldoutIntegrity().ok);
+  assert.ok(heldoutIntegrity().ok);
 });
 
 test("RI-4 the candidate is not switched on anywhere by default: flag OFF, endpoint OFF, production needs a second explicit approval", () => {

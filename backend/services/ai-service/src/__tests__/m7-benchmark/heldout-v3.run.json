@@ -1,0 +1,14 @@
+{
+  "plannerSha256": "01389a24e1c73dd0cfc31b063ecdea27632671336c456ec806956879cedf927c",
+  "strategy": "intent-v1.2",
+  "datasetSha256": "7fcc0eafc5c984f89db6c031bf4fe3d95940fe287f278552772a9e25e06cb826",
+  "firstScoredAt": "2026-11-13T07:19:57.066Z",
+  "baseHead": "0f69ec88",
+  "result": {
+    "primaryCoveragePct": 87.9,
+    "exactSetLe2Pct": 88.3,
+    "exactSetAllPct": 87.9,
+    "macroF1": 0.926,
+    "microF1": 0.926
+  }
+}

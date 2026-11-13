@@ -11,6 +11,10 @@ import { KNOWN_EXECUTION_FAILURES_V1 } from "./m5-benchmark/run-benchmark";
 import { ROUTING_CASES_V1, type RoutingCase } from "./m5-benchmark/dataset-v1";
 import { capabilityMatrix, componentChecks, sourceIdentity, runM6Evaluation, WORKTREE } from "./m5-benchmark/run-m6";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { RUN_FILE as V2_RUN_FILE } from "./m5-benchmark/run-m51";
+import { candidateSha, V3_RUN_FILE } from "./m7-benchmark/run-v3";
 
 /** The frozen M6 Local RC (historical baseline; never re-labelled as a later candidate). */
 const M6_RC_COMMIT = "b8e595ddb98b5b218ad77c8e910d161b7c476dbc";
@@ -93,14 +97,19 @@ test("M6-5 RC inventory: 4 READ-only agents with frozen, namespaced policies; ev
     assert.ok(x.notOffered.every((t) => t.kind !== "READ"), `${x.agent}: every READ contract is offered, nothing else is`);
   }
   const comps = componentChecks(true);
-  assert.equal(comps.length, 16); assert.deepEqual(comps.filter((c) => !c.ok).map((c) => c.component), []);
+  // M7-P4: the M6 component "Intent-v1.1 routing (locked)" is deliberately SUPERSEDED by intent-v1.2 (KD-1/KD-2), which is
+  // locked to heldout v3 instead (heldout-v3.run.json). Every other component must still be present.
+  assert.equal(comps.length, 16); assert.deepEqual(comps.filter((c) => !c.ok).map((c) => c.component), ["Intent-v1.1 routing (locked)"]);
+  const v3 = JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string };
+  assert.equal(v3.plannerSha256, candidateSha()); assert.equal(v3.strategy, "intent-v1.2");
 });
 
 test("M6-6 RC source identity: planner = the heldout-scored candidate, heldout intact, V1 runtime identical to v1.0.0-rc2", (t) => {
   const id = sourceIdentity();
-  assert.ok(id.plannerLocked, "routing-planner.ts must stay the candidate scored on heldout v2");
   assert.ok(id.heldout.ok);
-  assert.ok(id.manifest.some((m) => m.file === "agent-v2/routing-planner.ts" && m.sha256 === id.plannerLockSha256));
+  // M7-P4: the M6 RC's router is checked AT THE RC COMMIT (the working router is now intent-v1.2, a later candidate)
+  const rcPlanner = execFileSync("git", ["show", `${M6_RC_COMMIT}:backend/services/ai-service/src/agent-v2/routing-planner.ts`], { cwd: WORKTREE, encoding: "utf8" });
+  assert.equal(createHash("sha256").update(rcPlanner.replace(/\r\n/g, "\n")).digest("hex"), id.plannerLockSha256, "the M6 RC router = the candidate scored on heldout v2");
   if (id.v1RuntimeChangedSinceRc2 === null) { t.skip("tag v1.0.0-rc2 not available in this clone"); return; }
   // M7-P1: the M6 RC is the FROZEN commit b8e595dd (historical baseline). Its V1 runtime is checked AT THAT COMMIT; later
   // commits (M7-P0, MG-1, TZ, M7-P1 integration) are a separate integrated candidate — see agent-v2-release-identity.test.ts.
@@ -113,11 +122,11 @@ test("M6-6 RC source identity: planner = the heldout-scored candidate, heldout i
   assert.ok(git("rev-parse", `${M6_RC_COMMIT}:${AI_SRC}/agent-v2`).startsWith("82a6192f"), "M6 agent-v2 tree 82a6192f…");
 });
 
-test("M6-7 gates after adjudication: G1–G10 PASS with the unchanged M5.1 thresholds; before: only G9 failed", async () => {
-  const ev = await runM6Evaluation();
-  assert.deepEqual(ev.before.filter((g) => !g.pass).map((g) => `${g.id}:${g.value}`), ["G9:2"]);
-  assert.deepEqual(ev.after.filter((g) => !g.pass).map((g) => g.id), []);
-  assert.equal(ev.after.find((g) => g.id === "G9")!.value, 0);
-  assert.deepEqual(ev.after.map((g) => [g.id, g.op, g.threshold]), ev.before.map((g) => [g.id, g.op, g.threshold]), "thresholds unchanged");
-  assert.equal(ev.r.execution.counters.netCalls, 0);
+// M7-P4: the M6 gate evaluation re-scores heldout v2, which is locked to the intent-v1.1 candidate. With intent-v1.2 in the
+// tree it must REFUSE (one-shot protocol; the M6 result stays the recorded historical one). The new candidate's gates —
+// same table, same thresholds, G7/G8 on heldout v3 — are checked in agent-v2-routing-m7p4.test.ts (M7P4-17).
+test("M6-7 the M6 gate run refuses a different router candidate (heldout v2 is one-shot); its recorded result is historical", async () => {
+  await assert.rejects(runM6Evaluation(), /HELDOUT_V2_ALREADY_SCORED_BY_ANOTHER_CANDIDATE/);
+  const v2 = JSON.parse(readFileSync(V2_RUN_FILE, "utf8")) as { plannerSha256: string; result: { exactSetLe2Pct: number; primaryCoveragePct: number } };
+  assert.deepEqual(v2.result, { exactSetLe2Pct: 95.1, primaryCoveragePct: 95 }); assert.notEqual(v2.plannerSha256, candidateSha());
 });

@@ -15,6 +15,10 @@ import { ROUTING_CASES_HELDOUT_V2 } from "./m5-benchmark/dataset-heldout-v2";
 import { heldoutIntegrity, plannerSha, RUN_FILE, runM51Final } from "./m5-benchmark/run-m51";
 import { KNOWN_EXECUTION_FAILURES_V1 } from "./m5-benchmark/run-benchmark";
 import { ADJUDICATIONS_M51 } from "./m5-benchmark/adjudication-m51";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { WORKTREE } from "./m5-benchmark/run-m6";
+import { V3_RUN_FILE } from "./m7-benchmark/run-v3";
 
 const ALL: AgentId[] = ["progress", "recovery", "training", "nutrition"];
 const plan = (q: string, available: AgentId[] = ALL, max = 2) => planRouting(foldVi(q), available, { maxAgents: max });
@@ -61,11 +65,12 @@ test("M51-6 unaccented + folded-collision words: 'giáo án' is not eating, 'm�
   assert.deepEqual(sel("Mới tập được hai tuần thì nên tập mấy buổi?"), ["training"]);
 });
 
-// KNOWN DEFECTS found by this contract test AFTER heldout v2 was scored. Not fixed in M5.1: changing routing-planner.ts now
-// would be a new candidate that heldout v2 can no longer evaluate (one-shot protocol). Kept visible as TODO, not hidden.
-//  KD-1 "mọi người" folds to "moi nguoi" = "mỏi người" (sore body) → Recovery is taken as asked.
-//  KD-2 "hay" = "often" is read as "or" by the alternative-question rule → a second agent is asked.
-test("M51-6b KNOWN DEFECT KD-1/KD-2: 'Mọi người hay ăn gì sau tập?' should route to Nutrition only", { todo: "fix with a new candidate + a new heldout set (M5.1 known defects KD-1, KD-2)" }, () => {
+// KNOWN DEFECTS found by this contract test AFTER heldout v2 was scored, FIXED in M7-P4 by a new candidate (intent-v1.2)
+// evaluated on a NEW heldout set (v3, frozen before the change):
+//  KD-1 "mọi người" folds to "moi nguoi" = "mỏi người" (sore body) → Recovery was taken as asked.
+//  KD-2 "hay" = "often" was read as "or" by the alternative-question rule → a second agent was asked.
+// (Folded input here — the ambiguity rule applies; the accented path is covered in agent-v2-routing-m7p4.test.ts.)
+test("M51-6b KD-1/KD-2 (fixed in M7-P4): 'Mọi người hay ăn gì sau tập?' routes to Nutrition only", () => {
   assert.deepEqual(sel("Mọi người hay ăn gì sau tập?"), ["nutrition"]);
 });
 
@@ -78,26 +83,30 @@ test("M51-7 the planner names agents only: no tool, budget, identity; unregister
   assert.deepEqual({ ...SUPERVISOR_BUDGET }, { maxWallTimeMs: 60_000, maxModelCalls: 8, maxToolCalls: 6, maxInputTokens: 60_000, maxOutputTokens: 6_000, maxCostUsd: 0.08 });
 });
 
-test("M51-8 protocol: heldout v2 frozen; scored by exactly this planner; DEV / heldout / v1 questions are disjoint", () => {
+test("M51-8 protocol: heldout v2 frozen and scored by the M5.1 candidate only; the current candidate is locked to heldout v3; sets disjoint", () => {
   const integ = heldoutIntegrity();
   assert.ok(integ.ok, `heldout v2 changed (${integ.actual} != ${integ.expected})`);
   const run = JSON.parse(readFileSync(RUN_FILE, "utf8")) as { plannerSha256: string; heldoutSha256: string };
   assert.equal(run.heldoutSha256, integ.expected);
-  assert.equal(run.plannerSha256, plannerSha(), "routing-planner.ts changed after heldout v2 was scored — a new candidate needs a NEW heldout set");
+  // M7-P4: the router changed (intent-v1.2). Heldout v2 stays bound to the M5.1 candidate (= the planner at 099fb449);
+  // the new candidate is bound to heldout v3 (a NEW set frozen before the change).
+  const m51 = execFileSync("git", ["show", "099fb449:backend/services/ai-service/src/agent-v2/routing-planner.ts"], { cwd: WORKTREE, encoding: "utf8" });
+  assert.equal(createHash("sha256").update(m51.replace(/\r\n/g, "\n")).digest("hex"), run.plannerSha256);
+  assert.notEqual(plannerSha(), run.plannerSha256);
+  assert.equal((JSON.parse(readFileSync(V3_RUN_FILE, "utf8")) as { plannerSha256: string }).plannerSha256, plannerSha(), "routing-planner.ts changed after heldout v3 was scored — a new candidate needs a NEW heldout set");
   const norm = (s: string) => foldVi(s).replace(/[^a-z0-9 ]/g, "").trim();
   const sets = [ROUTING_CASES_V1, ROUTING_CASES_DEV, ROUTING_CASES_HELDOUT_V2].map((xs) => new Set(xs.map((c) => norm(c.q))));
   for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) for (const q of sets[i]) assert.ok(!sets[j].has(q), `duplicate across sets: ${q}`);
   assert.ok(ROUTING_CASES_DEV.every((c) => c.split === "dev") && ROUTING_CASES_HELDOUT_V2.every((c) => c.split === "heldout-v2"));
 });
 
-test("M51-9 final benchmark re-run (same candidate): deterministic, hard gates hold, failures = published list, labels un-adjudicated", async () => {
-  const r = await runM51Final();
-  assert.equal(r.identical, true);
-  const g = Object.fromEntries(r.gates.map((x) => [x.id, x]));
-  for (const id of ["G1", "G2", "G3", "G4", "G5", "G6", "G10"]) assert.ok(g[id].pass, `${id} = ${g[id].value}`);
-  assert.deepEqual(r.executionSummary.failed.map((a) => `${a.scenario}|${a.name}`).sort(), [...KNOWN_EXECUTION_FAILURES_V1].sort());
+// M7-P4: the M5.1 final run re-scores heldout v2, which is bound to the M5.1 candidate — with intent-v1.2 in the tree it
+// must REFUSE (one-shot protocol). Its recorded historical result and records are unchanged; the M5.1 adjudication
+// records stay un-approved (the owner's approvals are the separate M6 records).
+test("M51-9 the M5.1 final run refuses a different candidate; recorded results and adjudication records unchanged", async () => {
+  await assert.rejects(runM51Final(), /HELDOUT_V2_ALREADY_SCORED_BY_ANOTHER_CANDIDATE/);
+  const run = JSON.parse(readFileSync(RUN_FILE, "utf8")) as { result: { exactSetLe2Pct: number; primaryCoveragePct: number } };
+  assert.deepEqual(run.result, { exactSetLe2Pct: 95.1, primaryCoveragePct: 95 });
   assert.ok(ADJUDICATIONS_M51.every((a) => !a.approved && a.decision === "LABEL_REVIEW_REQUIRED" && a.invariantMet && a.policyCompliant));
-  // historical M5.1 evaluation (M5.1 records only): G9 FAIL. The owner's M6 approval is applied in run-m6.ts / agent-v2-rc-m6.test.ts.
-  assert.equal(g.G9.pass, false, "the M5.1 evaluation (without the M6 approvals) keeps G9 FAIL");
-  assert.equal(r.m6Ready, false);
+  assert.equal(KNOWN_EXECUTION_FAILURES_V1.length, 2);
 });
