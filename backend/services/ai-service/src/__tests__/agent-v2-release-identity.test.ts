@@ -12,12 +12,13 @@ import { readFileSync } from "node:fs";
 import { isAgentV2Enabled, isAgentV2HttpEnabled } from "../agent-v2/flag";
 import { V3_RUN_FILE, v3Integrity } from "./m7-benchmark/run-v3";
 import { V4_RUN_FILE, v4Integrity } from "./m7-benchmark/run-v4";
+// (V4_RUN_FILE also pins the M7-P4.3 candidate's router: intent-v1.3 unchanged)
 import { createHash } from "node:crypto";
 
 export const INTEGRATED_CANDIDATE = Object.freeze({
   id: "gymini-multi-agent-local-candidate-m7p1",
   baseM6Rc: "b8e595ddb98b5b218ad77c8e910d161b7c476dbc",
-  includes: Object.freeze(["M7-P0 profile reader 35699390", "MG-1 minor output a7f18a7c", "user calendar 004ca887", "M7-P1 local application integration 5d9bc3ed", "M7-P2 cross-service READ transport ed1508a7", "M7-P3 persistent session context 6686d7f4", "M7-P3.1 DynamoDB session adapter 329ff0be", "M7-P4 routing intent-v1.2 (KD-1/KD-2) + benchmark v3 0f529657", "M7-P4.1 benchmark v4 freeze e000497d", "M7-P4.1 routing intent-v1.3 + heldout v4 scoring"]),
+  includes: Object.freeze(["M7-P0 profile reader 35699390", "MG-1 minor output a7f18a7c", "user calendar 004ca887", "M7-P1 local application integration 5d9bc3ed", "M7-P2 cross-service READ transport ed1508a7", "M7-P3 persistent session context 6686d7f4", "M7-P3.1 DynamoDB session adapter 329ff0be", "M7-P4 routing intent-v1.2 (KD-1/KD-2) + benchmark v3 0f529657", "M7-P4.1 benchmark v4 freeze e000497d", "M7-P4.1 routing intent-v1.3 + heldout v4 scoring", "M7-P4.2 hybrid router offline 3c14950a", "M7-P4.3 hybrid router runtime wiring (default deterministic)"]),
   status: "LOCAL CANDIDATE — not benchmarked as M6, not live-verified, not production-ready, deployment on hold",
 });
 const AI_SRC = "backend/services/ai-service/src";
@@ -34,7 +35,7 @@ const ALLOWED_V1 = [`${AI_SRC}/agent-v2-integration/domain-read-transport.ts`, `
 
 test("RI-1 the frozen M6 RC is an ancestor; the post-M6 commits are on top of it (never re-labelled as M6)", () => {
   assert.equal(git("merge-base", "--is-ancestor", INTEGRATED_CANDIDATE.baseM6Rc, "HEAD") === "", true);
-  for (const c of ["35699390", "a7f18a7c", "004ca887", "5d9bc3ed", "ed1508a7", "6686d7f4", "329ff0be", "0f69ec88", "0f529657", "e000497d"]) execFileSync("git", ["merge-base", "--is-ancestor", c, "HEAD"], { cwd: WORKTREE });
+  for (const c of ["35699390", "a7f18a7c", "004ca887", "5d9bc3ed", "ed1508a7", "6686d7f4", "329ff0be", "0f69ec88", "0f529657", "e000497d", "9f54ef3b", "4898b54d", "3c14950a"]) execFileSync("git", ["merge-base", "--is-ancestor", c, "HEAD"], { cwd: WORKTREE });
   assert.notEqual(git("rev-parse", "HEAD"), INTEGRATED_CANDIDATE.baseM6Rc);
 });
 
@@ -59,6 +60,24 @@ test("RI-3 the router changed ONLY to the heldout-v4-scored candidate (M7-P4.1);
   assert.ok(v3Integrity().ok); assert.ok(v4Integrity().ok);
   assert.deepEqual(changedSinceRc(`${AI_SRC}/__tests__/m5-benchmark`), []);
   assert.ok(heldoutIntegrity().ok);
+});
+
+/** M7-P4.3 candidate: the hybrid router wired into the runtime, default deterministic. Not benchmarked with a live model. */
+export const M7P43_CANDIDATE = Object.freeze({
+  id: "gymini-multi-agent-local-candidate-m7p43",
+  base: "3c14950a",
+  routingDefault: "deterministic (intent-v1.3)",
+  status: "LOCAL CANDIDATE — hybrid wired offline (mock only), live evaluation pending, not production-ready, deployment on hold",
+});
+test("RI-5 M7-P4.3 identity: intent-v1.3 (sha-locked to heldout v4) and the strict hybrid parser are unchanged; default routing stays deterministic", async () => {
+  execFileSync("git", ["merge-base", "--is-ancestor", M7P43_CANDIDATE.base, "HEAD"], { cwd: WORKTREE });
+  const v4 = JSON.parse(readFileSync(V4_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string };
+  assert.equal(v4.plannerSha256, plannerSha()); assert.equal(v4.strategy, "intent-v1.3");
+  assert.deepEqual(lines(git("diff", "--name-only", M7P43_CANDIDATE.base, "--", `${AI_SRC}/agent-v2/hybrid-router.ts`, `${AI_SRC}/agent-v2/routing-planner.ts`, `${AI_SRC}/__tests__/m7-benchmark`, `${AI_SRC}/__tests__/m5-benchmark`)), []);
+  const { resolveRoutingConfig } = await import("../agent-v2/flag");
+  const cfg = resolveRoutingConfig({});
+  assert.equal(cfg.ok ? cfg.effective : "INVALID", "deterministic");
+  assert.match(M7P43_CANDIDATE.status, /not production-ready/);
 });
 
 test("RI-4 the candidate is not switched on anywhere by default: flag OFF, endpoint OFF, production needs a second explicit approval", () => {

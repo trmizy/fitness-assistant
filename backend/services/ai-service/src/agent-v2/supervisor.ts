@@ -282,6 +282,8 @@ export interface SupervisorTrace {
   generalOnlyOutput?: Record<string, number> | null;
   /** M7-P4.2: hybrid routing record (re-sanitized: enum codes, registered agent ids, bounded numbers — never prompt/output text). */
   hybridRouting?: HybridRoutingMeta | null;
+  /** M7-P4.3: the configured vs EFFECTIVE routing mode of this runtime and why (codes only). Absent when not configured. */
+  routingMode?: { requested: string; effective: string; reason: string } | null;
 }
 
 export interface SupervisorResult {
@@ -312,6 +314,8 @@ export interface SupervisorDeps {
   limitOverrides?: Partial<AgentLimits>;
   /** M4: multi-turn context (in-memory in tests). Absent → single-turn behaviour (M1–M3). M7-P3: or a versioned shared store. */
   sessionStore?: AnySessionStore;
+  /** M7-P4.3: the runtime's resolved routing mode, recorded in the trace (validated against the known codes). */
+  routingMode?: { requested: string; effective: string; reason: string };
 }
 
 export interface SupervisorTurn {
@@ -396,6 +400,10 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let sessionCounts: SupervisorTrace["session"] = null;
   let generalOnlyCounts: SupervisorTrace["generalOnlyOutput"] = null;
   let hybridRouting: SupervisorTrace["hybridRouting"] = null;
+  const MODE = /^(deterministic|selective|always)$/, MODE_REASON = /^(DEFAULT|CONFIGURED|HYBRID_PRODUCTION_NOT_APPROVED)$/;
+  const rm = deps.routingMode;
+  const routingMode: SupervisorTrace["routingMode"] = rm && MODE.test(rm.requested) && MODE.test(rm.effective) && MODE_REASON.test(rm.reason)
+    ? { requested: rm.requested, effective: rm.effective, reason: rm.reason } : null;
 
   const finish = (status: SupervisorStatus, answer: string): SupervisorResult => {
     const durationMs = now() - started;
@@ -410,7 +418,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
           estimatedCost: Number(spent.maxCostUsd.toFixed(6)), latencyMs: durationMs,
         },
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
-        routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts, hybridRouting,
+        routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts, hybridRouting, routingMode,
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };

@@ -298,10 +298,12 @@ test("HR-26 feature flag OFF: nothing runs, the router is never called", async (
   assert.equal(isAgentV2Enabled({}), false); assert.equal(isAgentV2HttpEnabled({}), false);
 });
 
-test("HR-27 V1 /ai/ask unchanged: no V1 file changed since the M7-P4.1 baseline", () => {
+test("HR-27 V1 /ai/ask unchanged: since the M7-P4.1 baseline only the approved V2 composition root changed outside agent-v2", () => {
   const AI = "backend/services/ai-service/src";
   const changed = execFileSync("git", ["diff", "--name-only", "4898b54d", "--", AI, `:(exclude)${AI}/agent-v2`, `:(exclude)${AI}/__tests__`, `:(exclude)${AI}/generated`], { cwd: WORKTREE, encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual(changed, []);
+  // M7-P4.3 wires the hybrid router into the approved integration layer (agent-v2-integration/multi-agent-runtime.ts);
+  // no V1 route, controller, service or app.ts line changed
+  assert.ok(changed.every((f) => f === `${AI}/agent-v2-integration/multi-agent-runtime.ts`), changed.join());
 });
 
 test("HR-28/29 no network and no real Nova call: the hybrid module imports no SDK / adapter; every guard counter is zero", () => {
@@ -312,8 +314,14 @@ test("HR-28/29 no network and no real Nova call: the hybrid module imports no SD
 });
 
 test("HR-30 no production activation by default: the runtime and the supervisor default stay deterministic", async () => {
+  // M7-P4.3: the composition root now wires the hybrid router — ONLY behind resolveRoutingConfig, whose default is
+  // deterministic (no routing model created); the HTTP vertical slice is agent-v2-hybrid-http.test.ts
   const runtime = readFileSync(resolve(__dirname, "../agent-v2-integration/multi-agent-runtime.ts"), "utf8");
-  assert.ok(!/hybrid/i.test(runtime), "the composition root does not wire the hybrid router");
+  assert.match(runtime, /routing\.effective === "deterministic" \? null : createHybridDecisionProvider/);
+  const { resolveRoutingConfig } = await import("../agent-v2/flag");
+  assert.deepEqual(resolveRoutingConfig({}), { ok: true, requested: "deterministic", effective: "deterministic", reason: "DEFAULT" });
+  const prod = resolveRoutingConfig({ AI_AGENT_V2_ROUTING_MODE: "always", NODE_ENV: "production", AI_AGENT_V2_PRODUCTION_APPROVED: "yes" });
+  assert.equal(prod.ok ? prod.effective : "INVALID", "deterministic", "production without the hybrid approval");
   const s = system(); s.prov.training.script(say("ok"));
   await s.ask(USER_A, "Hôm nay tôi tập gì?");
   assert.equal(s.traces[0].decision?.strategy, "intent-v1.3"); assert.equal(s.traces[0].hybridRouting ?? null, null);

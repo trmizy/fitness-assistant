@@ -24,3 +24,28 @@ export function isAgentV2HttpEnabled(env: Record<string, string | undefined> = p
   if (!isAgentV2Enabled(env)) return false;
   return env.NODE_ENV !== "production" || env.AI_AGENT_V2_PRODUCTION_APPROVED === "yes";
 }
+
+export type RoutingMode = "deterministic" | "selective" | "always";
+export type RoutingModeReason = "DEFAULT" | "CONFIGURED" | "HYBRID_PRODUCTION_NOT_APPROVED";
+export type RoutingConfig =
+  | { ok: true; requested: RoutingMode; effective: RoutingMode; reason: RoutingModeReason }
+  | { ok: false; reason: "INVALID_ROUTING_MODE" };
+
+/**
+ * M7-P4.3: how V2 routes. Server configuration ONLY (never a request body / query / header):
+ *   AI_AGENT_V2_ROUTING_MODE = "deterministic" (default when unset or empty) | "selective" | "always" — exact values only;
+ *   anything else is a configuration ERROR (the runtime refuses to start a turn), never a silent switch to model routing.
+ * A model-assisted mode on NODE_ENV=production additionally needs its OWN owner approval,
+ *   AI_AGENT_V2_HYBRID_PRODUCTION_APPROVED === "yes" (independent of AI_AGENT_V2_PRODUCTION_APPROVED);
+ * without it the effective mode is "deterministic" (no routing model is created or called) and the reason is traced.
+ * Deployment is on hold; neither variable may be set on a deployed service before the synchronized Multi-Agent release.
+ */
+export function resolveRoutingConfig(env: Record<string, string | undefined> = process.env): RoutingConfig {
+  const raw = env.AI_AGENT_V2_ROUTING_MODE;
+  if (raw === undefined || raw === "") return { ok: true, requested: "deterministic", effective: "deterministic", reason: "DEFAULT" };
+  if (raw !== "deterministic" && raw !== "selective" && raw !== "always") return { ok: false, reason: "INVALID_ROUTING_MODE" };
+  if (raw !== "deterministic" && env.NODE_ENV === "production" && env.AI_AGENT_V2_HYBRID_PRODUCTION_APPROVED !== "yes") {
+    return { ok: true, requested: raw, effective: "deterministic", reason: "HYBRID_PRODUCTION_NOT_APPROVED" };
+  }
+  return { ok: true, requested: raw, effective: raw, reason: "CONFIGURED" };
+}

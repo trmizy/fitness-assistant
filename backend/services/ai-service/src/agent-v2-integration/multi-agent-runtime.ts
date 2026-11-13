@@ -15,6 +15,9 @@
  *   session         M7-P3 resolveSessionStore(): AGENT_V2_SESSION_STORE=memory (local default, one process only) or
  *                   redis (AGENT_V2_SESSION_REDIS_URL; versioned compare-and-set store shared by instances). On
  *                   NODE_ENV=production persistence is REQUIRED: no in-memory fallback, a missing config is a 503.
+ *   routing         M7-P4.3: deterministic intent-v1.3 by default; selective / always = agent-v2/hybrid-router.ts over the same
+ *                   Bedrock adapter (one bounded call per turn inside the global budget), chosen by server configuration
+ *                   only (agent-v2/flag.ts resolveRoutingConfig — invalid value → 503, production needs its own approval)
  *   budget/policy   the supervisor's defaults (SUPERVISOR_BUDGET, DEFAULT_EXECUTION_POLICY) — not overridden
  *   tracing         the supervisor / engine / registry default sinks (structured logs, codes and counts only)
  * Everything is injectable for offline tests (multiAgentRuntimeSeam).
@@ -22,7 +25,9 @@
 import { requestService } from "../clients/service-lambda.client";
 import { createProfileReader, type ProfileServiceGet } from "../agent-v2/profile-reader";
 import { createAgentRunners, type AgentDomainDeps } from "../agent-v2/agent-catalog";
-import { runSupervisorTurn, type SupervisorResult, type SupervisorTrace } from "../agent-v2/supervisor";
+import { DEFAULT_EXECUTION_POLICY, runSupervisorTurn, type SupervisorResult, type SupervisorTrace } from "../agent-v2/supervisor";
+import { resolveRoutingConfig } from "../agent-v2/flag";
+import { createHybridDecisionProvider } from "../agent-v2/hybrid-router";
 import { createInMemorySessionStore, type AnySessionStore } from "../agent-v2/session-context";
 import { createNodeRedisSessionClient, createRedisSessionStore, type SessionRedisClient } from "./redis-session-store";
 import { createDynamoSessionSend, createDynamoSessionStore, type DynamoSend } from "./dynamodb-session-store";
@@ -60,20 +65,34 @@ export interface MultiAgentRuntimeOptions {
   traceSink?: (trace: SupervisorTrace) => void;
   agentTraceSink?: (trace: TurnTrace) => void;
   toolTraceSink?: (event: ToolTraceEvent) => void;
+  /** M7-P4.3: where the routing configuration is read from (absent → process.env). Server configuration only. */
+  env?: Record<string, string | undefined>;
+  /** M7-P4.3: the routing model for selective / always (absent → the Bedrock Converse adapter). Never created in deterministic mode. */
+  routingModelFactory?: () => AgentModelProvider;
 }
 
 export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): MultiAgentRuntime {
+  // M7-P4.3 routing mode (agent-v2/flag.ts resolveRoutingConfig): deterministic by default; an invalid value refuses the
+  // runtime (503) instead of guessing; a model-assisted mode on production needs its own approval or stays deterministic
+  const routing = resolveRoutingConfig(o.env ?? process.env);
+  if (!routing.ok) throw new ApiError("SERVICE_UNAVAILABLE", "The assistant's routing is not configured", 503);
   let shared: AgentModelProvider | null = null;
   const providerFor = o.providerFor ?? (() => (shared ??= createBedrockConverseProvider()));
   const now = o.now ?? Date.now;
   const runners = createAgentRunners({ providerFor, deps: o.deps ?? defaultDomainDeps({ request: o.readRequest }), now, toolTraceSink: o.toolTraceSink });
   const profileReader = createProfileReader({ get: o.profileGet ?? ((req) => requestService(req)), now });
   const sessionStore = o.sessionStore ?? resolveSessionStore();
+  // deterministic: no routing model exists at all (the supervisor's default intent-v1.3 provider is used)
+  const decisionProvider = routing.effective === "deterministic" ? null : createHybridDecisionProvider({
+    model: (o.routingModelFactory ?? (() => createBedrockConverseProvider()))(),
+    maxAgents: DEFAULT_EXECUTION_POLICY.maxAgentsPerTurn, mode: routing.effective, now,
+  });
+  const routingMode = { requested: routing.requested, effective: routing.effective, reason: routing.reason };
   return {
     ask: ({ question, identity, sessionId }) => runSupervisorTurn(
       { question, context: { userId: identity.userId, ...(identity.authorizationHeader ? { authorizationHeader: identity.authorizationHeader } : {}) }, ...(sessionId ? { sessionId } : {}) },
       {
-        runners, profileReader, sessionStore, now,
+        runners, profileReader, sessionStore, now, routingMode, ...(decisionProvider ? { decisionProvider } : {}),
         ...(o.traceSink ? { traceSink: o.traceSink } : {}), ...(o.agentTraceSink ? { agentTraceSink: o.agentTraceSink } : {}),
       },
     ),
