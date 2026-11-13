@@ -1,317 +1,333 @@
 /**
- * Offline validator for the FUTURE human-labelled routing dataset (>= 300 Vietnamese questions, two independent human
- * annotators; schema in docs/ai-v2/m7/M7-P4.2-HYBRID-ROUTER-vi.md plus a required `source` provenance block).
+ * M7-P5A.1 — ROW-LEVEL validator for the FUTURE human-labelled routing dataset (schema "m7-p5a1", see annotation-schema.ts).
+ * Two independent human annotators label every case; disagreements go to an adjudicator; `final` must equal the agreed label
+ * (A = B) or the adjudication decision. Acceptable sets / deferred agents are DERIVED (deriveExpected), never typed.
  *
- * It only REPORTS problems for humans to fix. It never mutates, normalises-in-place or "repairs" its input, creates no
- * label and no dataset. Pure + deterministic: no network, no model call, no file write.
+ * It only REPORTS problems for humans to fix. It never mutates, normalises-in-place or "repairs" its input, creates no label
+ * and no dataset. Pure + deterministic: no network, no model call, no file write (the CLI only reads the file given to it).
+ * Dataset-level checks (similarity, benchmark overlap, distribution, length, authors) live in annotation-dataset-checks.ts and
+ * are CALLED here, not reimplemented.
  *
- * Rules worth documenting:
- *  - Question normalisation: foldVi (lowercase, strip diacritics, đ->d) then every non [a-z0-9] char becomes a space.
- *  - Near-duplicate = identical after normalisation (exact) OR Jaccard(token sets) >= 0.9 (opts.nearDupJaccard).
- *  - requiredAgents order is the ask order. With >= 3 required agents only 2 execute, so every acceptable set must be
- *    exactly the first two required agents and expectDeferred must be the rest.
- *  - AMBIGUOUS with EMPTY requiredAgents is allowed and then follows the OOS shape (acceptable [[]]).
+ * A row with a duplicate JSON key is reported as DUPLICATE_JSON_KEY only and is NOT validated further (JSON.parse silently
+ * keeps the last duplicate, so any other verdict would be about data the human did not mean).
  *
  * CLI: npx tsx src/__tests__/m7-benchmark/annotation-validator.ts <file.jsonl> [--no-distribution] [--no-overlap]
+ *   exit 1 = at least one error; exit 3 = no error but REVIEW REQUIRED items need a human sign-off; exit 0 = clean; exit 2 = usage.
  */
 import fs from "node:fs";
-import { foldVi } from "../../llm/speech_act";
+import {
+  ADJUDICATION_KEYS, AGENTS, ANNOTATOR_KEYS, CATEGORIES, DERIVED_FIELDS, DOMAIN_KEYS, INTERPRETATION_KEYS, LABEL_KEYS, PRE_ROUTING_VALUES,
+  ROLES, ROW_KEYS, SAFETY_VALUES, SCHEMA_VERSION, SOURCE_KEYS, SOURCE_KINDS, TAGS,
+  isValidLabelerId, labelsEqual, orderingErrors,
+  type CaseLabel, type DatasetCheckOptions, type DatasetItem, type DomainLabel, type Finding, type Interpretation,
+} from "./annotation-schema";
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
-import { ROUTING_CASES_V1 } from "../m5-benchmark/dataset-v1";
-import { ROUTING_CASES_DEV } from "../m5-benchmark/dataset-dev";
-import { ROUTING_CASES_HELDOUT_V2 } from "../m5-benchmark/dataset-heldout-v2";
-import { ROUTING_CASES_DEV_V3, ROUTING_CASES_HELDOUT_V3 } from "./dataset-v3";
-import { ROUTING_CASES_DEV_V4, ROUTING_CASES_HELDOUT_V4 } from "./dataset-v4";
+import { findDuplicateKeys } from "./annotation-json";
+import { runDatasetChecks } from "./annotation-dataset-checks";
 
-export const AGENTS: readonly AgentLabel[] = ["training", "nutrition", "recovery", "progress"];
-export const CATEGORIES = ["SINGLE", "TWO", "MULTI", "OOS", "AMBIGUOUS"] as const;
-export const SAFETY_VALUES = ["NONE", "MINOR", "INJECTION", "HIGH_RISK"] as const;
-export type Category = (typeof CATEGORIES)[number];
+export type { Finding } from "./annotation-schema";
+/** Kept for callers of the pre-m7-p5a1 validator. */
+export type AnnotationError = Finding;
 
-export interface AnnotationError { line: number; id: string | null; code: string; detail: string }
-
-export interface DistributionTarget {
-  minCases: number;
-  /** Target share (0-100) per category. */
-  categoryPct: Record<Category, number>;
-  tolerancePts: number;
-  minUnaccentedPct: number;
-  minMultiClausePct: number;
-  minNoKeywordPct: number;
-  minMinor: number;
-  minInjection: number;
-}
-
-export const DEFAULT_TARGET: DistributionTarget = {
-  minCases: 300,
-  categoryPct: { SINGLE: 35, TWO: 25, MULTI: 15, OOS: 10, AMBIGUOUS: 15 },
-  tolerancePts: 5,
-  minUnaccentedPct: 25, minMultiClausePct: 20, minNoKeywordPct: 20, minMinor: 20, minInjection: 20,
-};
-
-export interface ValidateOptions {
-  target?: Partial<DistributionTarget>;
-  checkDistribution?: boolean;      // default true
-  checkBenchmarkOverlap?: boolean;  // default true
-  nearDupJaccard?: number;          // default 0.9
-}
+export type ValidateOptions = DatasetCheckOptions;
 
 export interface ValidationStats {
   totalLines: number;
   cases: number;
+  /** By FINAL category (rows whose final.category is a valid enum value). */
   byCategory: Record<string, number>;
-  unaccented: number;
-  multiClause: number;
-  noKeyword: number;
-  minor: number;
-  injection: number;
+  bySafety: Record<string, number>;
+  /** Rows where annotator A and B labels are not equal (these need an adjudication). */
+  disagreements: number;
+  adjudicated: number;
   errorsByCode: Record<string, number>;
+  reviewsByCode: Record<string, number>;
+  /** Raw stats returned by runDatasetChecks. */
+  dataset: Record<string, unknown>;
 }
-
-export interface ValidationResult { ok: boolean; errors: AnnotationError[]; stats: ValidationStats }
+export interface ValidationResult { ok: boolean; errors: Finding[]; reviews: Finding[]; stats: ValidationStats; items: DatasetItem[] }
 
 // ── helpers ────────────────────────────────────────────────────────────────────────────────────────────────────────
-export function normalizeQuestion(q: string): string {
-  return foldVi(q).replace(/[^a-z0-9]+/g, " ").trim();
-}
-function tokens(norm: string): Set<string> { return new Set(norm.split(" ").filter(Boolean)); }
-function jaccard(a: Set<string>, b: Set<string>): number {
-  if (!a.size && !b.size) return 1;
-  let inter = 0;
-  for (const t of a) if (b.has(t)) inter++;
-  return inter / (a.size + b.size - inter);
-}
 export function hasVietnameseDiacritics(q: string): boolean {
   return /[̀-ͯ]|đ|Đ/.test(q.normalize("NFD"));
 }
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const nonEmptyStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isAgent = (v: unknown): v is AgentLabel => typeof v === "string" && (AGENTS as readonly string[]).includes(v);
-const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x)) && b.every((x) => a.includes(x));
+const inList = (list: readonly string[], v: unknown): v is string => typeof v === "string" && list.includes(v);
+const canonDomain = (d: DomainLabel) => `${d.agent}:${d.role}:${d.supports ?? ""}`;
+const canonInterp = (i: Interpretation) => `${i.primaryAgent}|${i.domains.map(canonDomain).join(",")}`;
 
-const BENCHMARKS: Array<{ name: string; cases: ReadonlyArray<{ q: string }> }> = [
-  { name: "V1", cases: ROUTING_CASES_V1 },
-  { name: "DEV", cases: ROUTING_CASES_DEV },
-  { name: "HELDOUT_V2", cases: ROUTING_CASES_HELDOUT_V2 },
-  { name: "DEV_V3", cases: ROUTING_CASES_DEV_V3 },
-  { name: "HELDOUT_V3", cases: ROUTING_CASES_HELDOUT_V3 },
-  { name: "DEV_V4", cases: ROUTING_CASES_DEV_V4 },
-  { name: "HELDOUT_V4", cases: ROUTING_CASES_HELDOUT_V4 },
-];
-let benchIndex: Array<{ name: string; norms: Set<string>; toks: Set<string>[] }> | null = null;
-function getBenchIndex() {
-  if (!benchIndex) {
-    benchIndex = BENCHMARKS.map((b) => {
-      const list = b.cases.map((c) => normalizeQuestion(c.q));
-      return { name: b.name, norms: new Set(list), toks: list.map(tokens) };
-    });
+type Err = (code: string, detail: string) => void;
+
+/** Keys of an object that are not allowed. Derived fields get their own code (reported once, by walkDerived). */
+function checkKeys(obj: Record<string, unknown>, allowed: readonly string[], where: string, err: Err): void {
+  for (const k of Object.keys(obj)) {
+    if (allowed.includes(k)) continue;
+    if ((DERIVED_FIELDS as readonly string[]).includes(k)) continue;
+    err("UNEXPECTED_KEY", `${where}: unexpected key '${k}'`);
   }
-  return benchIndex;
+}
+
+/** DERIVED_FIELD_NOT_ALLOWED for any derived field name, at any depth. */
+function walkDerived(value: unknown, path: string, err: Err): void {
+  if (Array.isArray(value)) { value.forEach((v, i) => walkDerived(v, `${path}[${i}]`, err)); return; }
+  if (!isObj(value)) return;
+  for (const [k, v] of Object.entries(value)) {
+    if ((DERIVED_FIELDS as readonly string[]).includes(k)) err("DERIVED_FIELD_NOT_ALLOWED", `${path}.${k}: '${k}' is derived by the schema (deriveExpected) and must not be typed by hand`);
+    walkDerived(v, `${path}.${k}`, err);
+  }
+}
+
+/** Shape of one ordered domain list + ordering rules. Returns the list when every entry is well-formed (ordering errors are reported but do not null it). */
+function checkDomains(raw: unknown, where: string, err: Err): DomainLabel[] | null {
+  if (!Array.isArray(raw)) { err("MISSING_FIELD", `${where}.domains must be an array`); return null; }
+  let shapeOk = true;
+  const out: DomainLabel[] = [];
+  raw.forEach((d, i) => {
+    const w = `${where}.domains[${i}]`;
+    if (!isObj(d)) { err("INVALID_DOMAIN_ORDER", `${w} must be an object {agent, role, supports?}`); shapeOk = false; return; }
+    checkKeys(d, DOMAIN_KEYS, w, err);
+    if (!isAgent(d.agent)) { err("INVALID_AGENT", `${w}.agent invalid: ${JSON.stringify(d.agent)}`); shapeOk = false; }
+    if (!inList(ROLES, d.role)) { err("INVALID_ENUM", `${w}.role must be one of ${ROLES.join("|")}`); shapeOk = false; }
+    if (d.supports !== undefined && !isAgent(d.supports)) { err("INVALID_AGENT", `${w}.supports invalid: ${JSON.stringify(d.supports)}`); shapeOk = false; }
+    if (shapeOk) out.push({ agent: d.agent as AgentLabel, role: d.role as DomainLabel["role"], ...(d.supports !== undefined ? { supports: d.supports as AgentLabel } : {}) });
+  });
+  if (!shapeOk) return null;
+  for (const e of orderingErrors(out)) err("INVALID_DOMAIN_ORDER", `${where}: ${e}`);
+  return out;
+}
+
+/** The first REQUEST domain (what the primary must be), or null. */
+const firstRequest = (domains: readonly DomainLabel[]): AgentLabel | null => domains.find((d) => d.role === "request")?.agent ?? null;
+
+interface LabelCheck { label: CaseLabel | null }
+
+/**
+ * Validates one case label (annotator block without its id, adjudication.decision or final). `label` is returned only when
+ * the SHAPE is usable by labelsEqual (semantic errors — order, primary, category — are reported but do not null it).
+ */
+function checkLabel(raw: unknown, where: string, allowedKeys: readonly string[], err: Err): LabelCheck {
+  if (!isObj(raw)) { err("MISSING_FIELD", `${where} missing or not an object`); return { label: null }; }
+  checkKeys(raw, allowedKeys, where, err);
+  let shapeOk = true;
+
+  const domains = checkDomains(raw.domains, where, err);
+  if (!domains) shapeOk = false;
+
+  let primary: AgentLabel | null | undefined;
+  if (raw.primaryAgent === null) primary = null;
+  else if (isAgent(raw.primaryAgent)) primary = raw.primaryAgent;
+  else { err("INVALID_AGENT", `${where}.primaryAgent must be an agent or null, got ${JSON.stringify(raw.primaryAgent)}`); shapeOk = false; }
+
+  const category = inList(CATEGORIES, raw.category) ? (raw.category as CaseLabel["category"]) : null;
+  if (!category) { err("INVALID_ENUM", `${where}.category must be one of ${CATEGORIES.join("|")}`); shapeOk = false; }
+  const safety = inList(SAFETY_VALUES, raw.safety) ? (raw.safety as CaseLabel["safety"]) : null;
+  if (!safety) { err("INVALID_ENUM", `${where}.safety must be one of ${SAFETY_VALUES.join("|")}`); shapeOk = false; }
+  const pre = inList(PRE_ROUTING_VALUES, raw.expectedPreRouting) ? (raw.expectedPreRouting as CaseLabel["expectedPreRouting"]) : null;
+  if (!pre) { err("INVALID_ENUM", `${where}.expectedPreRouting must be one of ${PRE_ROUTING_VALUES.join("|")}`); shapeOk = false; }
+
+  if (safety === "NONE" && pre === "SAFETY_BLOCK") err("CATEGORY_SAFETY_INCONSISTENT", `${where}: safety NONE requires expectedPreRouting ALLOW`);
+
+  // interpretations
+  let interpretations: Interpretation[] | undefined;
+  if (raw.interpretations !== undefined) {
+    if (!Array.isArray(raw.interpretations)) { err("INVALID_INTERPRETATION", `${where}.interpretations must be an array`); shapeOk = false; }
+    else {
+      const its: Interpretation[] = [];
+      raw.interpretations.forEach((it, k) => {
+        const w = `${where}.interpretations[${k}]`;
+        if (!isObj(it)) { err("INVALID_INTERPRETATION", `${w} must be an object`); shapeOk = false; return; }
+        checkKeys(it, INTERPRETATION_KEYS, w, err);
+        const d = checkDomains(it.domains, w, err);
+        let itOk = d !== null;
+        if (d && d.length === 0) err("INVALID_INTERPRETATION", `${w}.domains must not be empty`);
+        let p: AgentLabel | null = null;
+        if (isAgent(it.primaryAgent)) p = it.primaryAgent;
+        else { err("INVALID_INTERPRETATION", `${w}.primaryAgent must be an agent, got ${JSON.stringify(it.primaryAgent)}`); itOk = false; }
+        if (d && p && d.length && firstRequest(d) !== p) err("INVALID_INTERPRETATION", `${w}.primaryAgent ${p} must equal its first request domain (${firstRequest(d) ?? "none"})`);
+        if (!nonEmptyStr(it.rationale)) { err("INVALID_INTERPRETATION", `${w}.rationale missing or empty`); itOk = false; }
+        if (itOk && d && p) its.push({ domains: d, primaryAgent: p, rationale: it.rationale as string });
+        else shapeOk = false;
+      });
+      interpretations = its;
+    }
+  }
+
+  // category vs domains / primary / interpretations
+  if (domains && category) {
+    const n = domains.length;
+    if (category === "SINGLE" && n !== 1) err("CATEGORY_MISMATCH", `${where}: SINGLE needs exactly 1 domain, got ${n}`);
+    if (category === "TWO" && n !== 2) err("CATEGORY_MISMATCH", `${where}: TWO needs exactly 2 domains, got ${n}`);
+    if (category === "MULTI" && (n < 3 || n > 4)) err("CATEGORY_MISMATCH", `${where}: MULTI needs 3-4 domains, got ${n}`);
+    if (category === "OOS" && n !== 0) err("CATEGORY_MISMATCH", `${where}: OOS needs domains [], got ${n}`);
+    if (category === "AMBIGUOUS" && n !== 0) err("CATEGORY_MISMATCH", `${where}: AMBIGUOUS needs top-level domains [] (the readings go in 'interpretations'), got ${n}`);
+    if (category !== "AMBIGUOUS" && raw.interpretations !== undefined) err("CATEGORY_MISMATCH", `${where}: 'interpretations' is only allowed on AMBIGUOUS`);
+    if (primary !== undefined) {
+      const expected = category === "OOS" || category === "AMBIGUOUS" ? null : firstRequest(domains);
+      if (primary !== expected) err("INVALID_PRIMARY", `${where}: primaryAgent is ${JSON.stringify(primary)} but must be ${JSON.stringify(expected)} (${category === "OOS" || category === "AMBIGUOUS" ? "OOS / AMBIGUOUS use null" : "the first request domain of this label"})`);
+    }
+  }
+  if (category === "AMBIGUOUS") {
+    if (raw.interpretations === undefined || (interpretations && interpretations.length < 2)) err("INVALID_INTERPRETATION", `${where}: AMBIGUOUS needs >= 2 valid interpretations, got ${interpretations?.length ?? 0}`);
+    if (interpretations && interpretations.length >= 2) {
+      const seen = new Set<string>();
+      for (const it of interpretations) {
+        const c = canonInterp(it);
+        if (seen.has(c)) { err("INVALID_INTERPRETATION", `${where}: interpretations must be pairwise different (duplicate reading ${c})`); break; }
+        seen.add(c);
+      }
+    }
+  }
+
+  if (!shapeOk || !domains || primary === undefined || !category || !safety || !pre) return { label: null };
+  return { label: { domains, primaryAgent: primary, category, safety, expectedPreRouting: pre, ...(interpretations !== undefined ? { interpretations } : {}) } };
+}
+
+function checkAnnotator(raw: unknown, which: "annotatorA" | "annotatorB", err: Err): { label: CaseLabel | null; id: string | null } {
+  if (!isObj(raw)) { err("MISSING_FIELD", `${which} missing or not an object`); return { label: null, id: null }; }
+  let id: string | null = null;
+  if (raw.annotatorId === undefined || raw.annotatorId === null || raw.annotatorId === "") err("MISSING_ANNOTATOR_ID", `${which}.annotatorId missing`);
+  else if (!isValidLabelerId(raw.annotatorId)) err("INVALID_ANNOTATOR_ID", `${which}.annotatorId ${JSON.stringify(raw.annotatorId)} is not a valid human pseudonym (model / tool names are refused)`);
+  else id = raw.annotatorId;
+  const { label } = checkLabel(raw, which, ANNOTATOR_KEYS, err);
+  return { label, id };
 }
 
 // ── main ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOptions = {}): ValidationResult {
-  const errors: AnnotationError[] = [];
-  const target: DistributionTarget = { ...DEFAULT_TARGET, ...(opts.target ?? {}), categoryPct: { ...DEFAULT_TARGET.categoryPct, ...(opts.target?.categoryPct ?? {}) } };
-  const nearThr = opts.nearDupJaccard ?? 0.9;
-  const checkDist = opts.checkDistribution !== false;
-  const checkOverlap = opts.checkBenchmarkOverlap !== false;
-  const stats: ValidationStats = { totalLines: 0, cases: 0, byCategory: {}, unaccented: 0, multiClause: 0, noKeyword: 0, minor: 0, injection: 0, errorsByCode: {} };
-
-  const lines = jsonlText.split(/\r?\n/);
+  const errors: Finding[] = [];
+  const stats: ValidationStats = { totalLines: 0, cases: 0, byCategory: {}, bySafety: {}, disagreements: 0, adjudicated: 0, errorsByCode: {}, reviewsByCode: {}, dataset: {} };
+  const items: DatasetItem[] = [];
   const seenIds = new Map<string, number>();
-  const seenNorm = new Map<string, { line: number; id: string }>();
-  const accepted: Array<{ line: number; id: string; norm: string; toks: Set<string> }> = [];
 
-  lines.forEach((raw, i) => {
-    if (!raw.trim()) return;
-    const line = i + 1;
+  jsonlText.split(/\r?\n/).forEach((text, idx) => {
+    if (!text.trim()) return;
+    const line = idx + 1;
     stats.totalLines++;
     let row: unknown;
-    try { row = JSON.parse(raw); } catch (e) {
+    try { row = JSON.parse(text); } catch (e) {
       errors.push({ line, id: null, code: "MALFORMED_JSON", detail: (e as Error).message });
       return;
     }
     if (!isObj(row)) { errors.push({ line, id: null, code: "NOT_OBJECT", detail: "line is not a JSON object" }); return; }
     stats.cases++;
     const id = nonEmptyStr(row.id) ? row.id : null;
-    const err = (code: string, detail: string) => errors.push({ line, id, code, detail });
+    const err: Err = (code, detail) => errors.push({ line, id, code, detail });
 
+    const dup = findDuplicateKeys(text);
+    if (dup.duplicates.length) {
+      for (const d of dup.duplicates) err("DUPLICATE_JSON_KEY", `key '${d.key}' appears more than once at ${d.path} (JSON.parse would silently keep the last one); row not validated further`);
+      return;
+    }
+
+    // schema version / keys / derived fields
+    if (row.schemaVersion !== SCHEMA_VERSION) err("SCHEMA_VERSION", `schemaVersion must be "${SCHEMA_VERSION}", got ${JSON.stringify(row.schemaVersion)}`);
+    checkKeys(row, ROW_KEYS, "row", err);
+    walkDerived(row, "$", err);
+
+    // id
     if (!id) err("MISSING_FIELD", "id missing or empty");
     else if (seenIds.has(id)) err("DUPLICATE_ID", `id also used on line ${seenIds.get(id)}`);
     else seenIds.set(id, line);
 
     // question + accented
-    const q = row.question;
-    if (!nonEmptyStr(q)) err("MISSING_FIELD", "question missing or empty");
-    else {
-      const norm = normalizeQuestion(q);
-      const toks = tokens(norm);
-      const prev = seenNorm.get(norm);
-      if (prev) err("DUPLICATE_QUESTION", `identical (after normalisation) to ${prev.id} on line ${prev.line}`);
-      else {
-        for (const a of accepted) {
-          const j = jaccard(toks, a.toks);
-          if (j >= nearThr) { err("NEAR_DUPLICATE_QUESTION", `token Jaccard ${j.toFixed(2)} >= ${nearThr} with ${a.id} on line ${a.line}`); break; }
-        }
-        seenNorm.set(norm, { line, id: id ?? "?" });
-      }
-      accepted.push({ line, id: id ?? "?", norm, toks });
-      if (typeof row.accented !== "boolean") err("MISSING_FIELD", "accented must be boolean");
-      else if (row.accented !== hasVietnameseDiacritics(q)) err("ACCENTED_MISMATCH", `accented=${row.accented} but text ${hasVietnameseDiacritics(q) ? "has" : "has no"} Vietnamese diacritics`);
-
-      if (checkOverlap) {
-        for (const b of getBenchIndex()) {
-          if (b.norms.has(norm)) { err("BENCHMARK_OVERLAP", `${b.name}: identical question`); continue; }
-          const hit = b.toks.some((t) => jaccard(toks, t) >= nearThr);
-          if (hit) err("BENCHMARK_OVERLAP", `${b.name}: near-duplicate question (Jaccard >= ${nearThr})`);
-        }
-      }
-      if (row.accented === false) stats.unaccented++;
-    }
-
-    // enums
-    const category = row.category;
-    const catOk = typeof category === "string" && (CATEGORIES as readonly string[]).includes(category);
-    if (!catOk) err("INVALID_ENUM", `category must be one of ${CATEGORIES.join("|")}`);
-    else stats.byCategory[category as string] = (stats.byCategory[category as string] ?? 0) + 1;
-    if (typeof row.safety !== "string" || !(SAFETY_VALUES as readonly string[]).includes(row.safety)) err("INVALID_ENUM", `safety must be one of ${SAFETY_VALUES.join("|")}`);
+    const q = nonEmptyStr(row.question) ? row.question : null;
+    if (!q) err("MISSING_FIELD", "question missing or empty");
+    const accentedOk = typeof row.accented === "boolean";
+    if (!accentedOk) err("MISSING_FIELD", "accented must be boolean");
+    else if (q && row.accented !== hasVietnameseDiacritics(q)) err("ACCENTED_MISMATCH", `accented=${row.accented} but the text ${hasVietnameseDiacritics(q) ? "has" : "has no"} Vietnamese diacritics`);
 
     // tags
-    const tags = Array.isArray(row.tags) ? row.tags.filter((t): t is string => typeof t === "string") : [];
+    let tags: string[] = [];
+    let tagsOk = false;
     if (!Array.isArray(row.tags)) err("MISSING_FIELD", "tags must be an array");
-    if (tags.includes("multi_clause")) stats.multiClause++;
-    if (tags.includes("no_keyword")) stats.noKeyword++;
-    if (tags.includes("minor") || row.safety === "MINOR") stats.minor++;
-    if (tags.includes("prompt_injection") || row.safety === "INJECTION") stats.injection++;
-
-    // agents
-    let agentsOk = true;
-    const checkAgentList = (v: unknown, where: string): AgentLabel[] | null => {
-      if (!Array.isArray(v)) { err("INVALID_AGENT", `${where} must be an array`); agentsOk = false; return null; }
-      const bad = v.filter((x) => !isAgent(x));
-      if (bad.length) { err("INVALID_AGENT", `${where} has invalid agent id(s): ${JSON.stringify(bad)}`); agentsOk = false; return null; }
-      if (new Set(v).size !== v.length) err("INVALID_AGENT", `${where} has duplicate agents`);
-      return v as AgentLabel[];
-    };
-    const required = checkAgentList(row.requiredAgents, "requiredAgents");
-    const deferred = checkAgentList(row.expectDeferred, "expectDeferred");
-    let primary: AgentLabel | null | undefined;
-    if (row.primaryAgent === null) primary = null;
-    else if (isAgent(row.primaryAgent)) primary = row.primaryAgent;
-    else { err("INVALID_AGENT", `primaryAgent invalid: ${JSON.stringify(row.primaryAgent)}`); agentsOk = false; }
-
-    let acceptable: AgentLabel[][] | null = null;
-    if (!Array.isArray(row.acceptable) || !row.acceptable.length) { err("INVALID_ACCEPTABLE", "acceptable must be a non-empty array of agent sets"); }
     else {
-      const sets: AgentLabel[][] = [];
-      let bad = false;
-      row.acceptable.forEach((s, k) => { const l = checkAgentList(s, `acceptable[${k}]`); if (l) sets.push(l); else bad = true; });
-      if (!bad) acceptable = sets;
+      tagsOk = true;
+      for (const t of row.tags) if (!inList(TAGS, t)) { err("INVALID_ENUM", `tag ${JSON.stringify(t)} is not one of ${TAGS.join("|")}`); tagsOk = false; }
+      if (new Set(row.tags).size !== row.tags.length) err("INVALID_ENUM", "tags contains a duplicate");
+      tags = row.tags.filter((t): t is string => typeof t === "string");
     }
 
-    // primary vs required
-    if (required && primary !== undefined) {
-      if (required.length === 0 && primary !== null) err("INVALID_PRIMARY", "primaryAgent must be null when requiredAgents is empty");
-      if (required.length > 0 && (primary === null || !required.includes(primary))) err("INVALID_PRIMARY", "primaryAgent must be one of requiredAgents");
-    }
-
-    // category consistency
-    if (required && catOk) {
-      const n = required.length;
-      if (category === "SINGLE" && n !== 1) err("CATEGORY_MISMATCH", `SINGLE needs exactly 1 required agent, got ${n}`);
-      if (category === "TWO" && n !== 2) err("CATEGORY_MISMATCH", `TWO needs exactly 2 required agents, got ${n}`);
-      if (category === "MULTI" && (n < 3 || n > 4)) err("CATEGORY_MISMATCH", `MULTI needs 3-4 required agents, got ${n}`);
-      if (category === "OOS" && n !== 0) err("CATEGORY_MISMATCH", `OOS needs 0 required agents, got ${n}`);
-      if (category === "AMBIGUOUS" && !tags.includes("ambiguous") && !nonEmptyStr(row.rationale)) err("AMBIGUOUS_UNJUSTIFIED", "AMBIGUOUS needs an 'ambiguous' tag or a rationale");
-    }
-
-    // acceptable sets
-    if (required && acceptable && agentsOk && catOk) {
-      const emptyShape = category === "OOS" || (category === "AMBIGUOUS" && required.length === 0);
-      if (emptyShape) {
-        if (!(acceptable.length === 1 && acceptable[0].length === 0)) err("INVALID_ACCEPTABLE", "OOS (or AMBIGUOUS with no required agent) must have acceptable exactly [[]]");
-      } else {
-        if (acceptable.some((s) => s.length === 0)) err("INVALID_ACCEPTABLE", "non-OOS case must not contain an empty acceptable set");
-        for (const s of acceptable) {
-          if (s.length > 2) err("INVALID_ACCEPTABLE", `acceptable set ${JSON.stringify(s)} has more than 2 agents`);
-          if (!s.every((a) => required.includes(a))) err("INVALID_ACCEPTABLE", `acceptable set ${JSON.stringify(s)} is not a subset of requiredAgents`);
-        }
-        if (required.length >= 3) {
-          const firstTwo = required.slice(0, 2);
-          for (const s of acceptable) if (s.length && !sameSet(s, firstTwo)) err("INVALID_ACCEPTABLE", `with >=3 required, acceptable must be the first two asks ${JSON.stringify(firstTwo)}, got ${JSON.stringify(s)}`);
-        }
-      }
-    }
-
-    // deferred
-    if (required && deferred) {
-      const expected = required.length >= 3 ? required.slice(2) : [];
-      if (!sameSet(deferred, expected)) err("INVALID_DEFERRED", `expectDeferred must be ${JSON.stringify(expected)} (required minus the 2 kept), got ${JSON.stringify(deferred)}`);
-      if (acceptable) for (const s of acceptable) if (s.some((a) => deferred.includes(a))) { err("INVALID_DEFERRED", `expectDeferred overlaps acceptable set ${JSON.stringify(s)}`); break; }
-    }
-
-    // rationale / source
-    if (!nonEmptyStr(row.rationale)) err("MISSING_RATIONALE", "rationale missing or empty");
+    // source
     const src = row.source;
-    if (!isObj(src)) err("INVALID_SOURCE", "source missing");
+    let author: string | null = null;
+    if (!isObj(src)) err("INVALID_SOURCE", "source missing or not an object");
     else {
-      if (src.kind !== "synthetic" && src.kind !== "permitted") err("INVALID_SOURCE", "source.kind must be synthetic|permitted");
-      if (!nonEmptyStr(src.author)) err("INVALID_SOURCE", "source.author missing or empty");
+      checkKeys(src, SOURCE_KEYS, "source", err);
+      if (!inList(SOURCE_KINDS, src.kind)) err("INVALID_SOURCE", `source.kind must be one of ${SOURCE_KINDS.join("|")}`);
+      if (!nonEmptyStr(src.author)) err("INVALID_SOURCE", "source.author missing or empty"); else author = src.author;
       if (!nonEmptyStr(src.note)) err("INVALID_SOURCE", "source.note missing or empty");
     }
 
-    // annotators + adjudication
-    const blocks: Array<{ req: AgentLabel[]; primary: AgentLabel | null } | null> = [];
-    for (const key of ["annotatorA", "annotatorB"] as const) {
-      const b = row[key];
-      if (!isObj(b)) { err("MISSING_ANNOTATOR", `${key} missing`); blocks.push(null); continue; }
-      const prevOk: boolean = agentsOk;
-      const req = checkAgentList(b.requiredAgents, `${key}.requiredAgents`);
-      let p: AgentLabel | null | undefined;
-      if (b.primaryAgent === null) p = null;
-      else if (isAgent(b.primaryAgent)) p = b.primaryAgent;
-      else err("INVALID_AGENT", `${key}.primaryAgent invalid: ${JSON.stringify(b.primaryAgent)}`);
-      agentsOk = prevOk;
-      blocks.push(req && p !== undefined ? { req, primary: p } : null);
+    if (!nonEmptyStr(row.rationale)) err("MISSING_RATIONALE", "rationale missing or empty");
+
+    // labels
+    const A = checkAnnotator(row.annotatorA, "annotatorA", err);
+    const B = checkAnnotator(row.annotatorB, "annotatorB", err);
+    if (A.id && B.id && A.id.toLowerCase() === B.id.toLowerCase()) err("SAME_ANNOTATOR", `annotatorA and annotatorB are the same labeler (${A.id}); two independent annotators are required`);
+    const { label: final } = checkLabel(row.final, "final", LABEL_KEYS, err);
+
+    // adjudication
+    const adj = row.adjudication;
+    const agreeKnown = A.label !== null && B.label !== null;
+    // checkLabel already returns the label WITHOUT annotatorId (= stripAnnotator of the block), so the ordered labels compare directly.
+    const agree = agreeKnown ? labelsEqual(A.label!, B.label!) : null;
+    let decision: CaseLabel | null = null;
+    let adjudicated = false;
+    if (isObj(adj)) checkKeys(adj, ADJUDICATION_KEYS, "adjudication", err);
+    if (adj !== undefined && !isObj(adj)) err("ADJUDICATION_MISSING", "adjudication must be an object ({needed:false} or {needed:true, adjudicatorId, decision, rationale})");
+    else if (adj === undefined) err("ADJUDICATION_MISSING", "adjudication missing (use {needed:false} when A and B agree)");
+    else if (isObj(adj)) {
+      if (adj.needed === true) {
+        adjudicated = true;
+        if (!isValidLabelerId(adj.adjudicatorId)) err("INVALID_ADJUDICATOR", `adjudication.adjudicatorId ${JSON.stringify(adj.adjudicatorId)} is missing or not a valid human pseudonym (model / tool names are refused)`);
+        decision = checkLabel(adj.decision, "adjudication.decision", LABEL_KEYS, err).label;
+        if (!nonEmptyStr(adj.rationale)) err("ADJUDICATION_MISSING", "adjudication.rationale missing or empty");
+        if (agree === true) err("ADJUDICATION_NOT_NEEDED", "annotators A and B agree: adjudication must be exactly {needed:false}");
+      } else if (adj.needed === false) {
+        const extra = Object.keys(adj).filter((k) => k !== "needed");
+        if (extra.length) err("ADJUDICATION_NOT_NEEDED", `adjudication.needed is false but carries ${extra.join(", ")}; it must be exactly {needed:false}`);
+        if (agree === false) err("ADJUDICATION_MISSING", "annotators A and B disagree (labels differ, ordered domains included): adjudication.needed must be true with adjudicatorId, decision and rationale");
+      } else err("ADJUDICATION_MISSING", "adjudication.needed must be boolean");
     }
-    const [a, b] = blocks;
-    if (a && b && (!sameSet(a.req, b.req) || a.primary !== b.primary)) {
-      const adj = row.adjudication;
-      if (!isObj(adj) || adj.needed !== true || !nonEmptyStr(adj.decision) || !nonEmptyStr(adj.by)) {
-        err("ADJUDICATION_MISSING", "annotators disagree: adjudication.needed must be true with non-empty decision and by");
+    if (agree === false) stats.disagreements++;
+    if (adjudicated) stats.adjudicated++;
+
+    // final integrity
+    if (final && agree === true && A.label && !labelsEqual(final, A.label)) err("FINAL_MISMATCH", "annotators A and B agree but final differs from their label");
+    if (final && agree === false && adjudicated && decision && !labelsEqual(final, decision)) err("FINAL_MISMATCH", "final differs from adjudication.decision (when A and B disagree, final must equal the decision)");
+
+    // safety / tags / routingScored (final)
+    if (final) {
+      const s = final.safety;
+      if (tagsOk) {
+        const has = (t: string) => tags.includes(t);
+        if (has("prompt_injection") && s !== "INJECTION" && s !== "HIGH_RISK") err("CATEGORY_SAFETY_INCONSISTENT", `tag prompt_injection requires final.safety INJECTION or HIGH_RISK, got ${s}`);
+        if (has("minor") && s !== "MINOR" && s !== "INJECTION" && s !== "HIGH_RISK") err("CATEGORY_SAFETY_INCONSISTENT", `tag minor requires final.safety MINOR, INJECTION or HIGH_RISK, got ${s}`);
+        if (has("high_risk") && s !== "HIGH_RISK") err("CATEGORY_SAFETY_INCONSISTENT", `tag high_risk requires final.safety HIGH_RISK, got ${s}`);
+        if (s === "HIGH_RISK" && !has("high_risk")) err("CATEGORY_SAFETY_INCONSISTENT", "final.safety HIGH_RISK requires tag high_risk");
+        if (s === "INJECTION" && !has("prompt_injection")) err("CATEGORY_SAFETY_INCONSISTENT", "final.safety INJECTION requires tag prompt_injection");
+        if (s === "MINOR" && !has("minor")) err("CATEGORY_SAFETY_INCONSISTENT", "final.safety MINOR requires tag minor");
       }
+      stats.byCategory[final.category] = (stats.byCategory[final.category] ?? 0) + 1;
+      stats.bySafety[s] = (stats.bySafety[s] ?? 0) + 1;
+      if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
+      else if (row.routingScored !== (final.expectedPreRouting === "ALLOW")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting} (must be true exactly when ALLOW)`);    } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
+
+    // dataset item (valid-enough rows only)
+    if (id && q && accentedOk && tagsOk && author && final) {
+      items.push({ line, id, question: q, accented: row.accented as boolean, tags, category: final.category, safety: final.safety, primaryAgent: final.primaryAgent, author });
     }
   });
 
-  // distribution
-  if (checkDist) {
-    const dErr = (code: string, detail: string) => errors.push({ line: 0, id: null, code, detail });
-    const n = stats.cases;
-    if (n < target.minCases) dErr("DISTRIBUTION_SIZE", `${n} cases < required ${target.minCases}`);
-    if (n > 0) {
-      for (const cat of CATEGORIES) {
-        const pct = ((stats.byCategory[cat] ?? 0) / n) * 100;
-        if (Math.abs(pct - target.categoryPct[cat]) > target.tolerancePts) dErr("DISTRIBUTION_CATEGORY", `${cat} is ${pct.toFixed(1)}% (target ${target.categoryPct[cat]}% +/- ${target.tolerancePts})`);
-      }
-      const pctChecks: Array<[string, number, number]> = [
-        ["DISTRIBUTION_UNACCENTED", stats.unaccented, target.minUnaccentedPct],
-        ["DISTRIBUTION_MULTI_CLAUSE", stats.multiClause, target.minMultiClausePct],
-        ["DISTRIBUTION_NO_KEYWORD", stats.noKeyword, target.minNoKeywordPct],
-      ];
-      for (const [code, count, min] of pctChecks) {
-        const pct = (count / n) * 100;
-        if (pct < min) dErr(code, `${pct.toFixed(1)}% (${count}/${n}) < required ${min}%`);
-      }
-    } else {
-      dErr("DISTRIBUTION_CATEGORY", "no cases");
-    }
-    if (stats.minor < target.minMinor) dErr("DISTRIBUTION_MINOR", `${stats.minor} minor cases < required ${target.minMinor}`);
-    if (stats.injection < target.minInjection) dErr("DISTRIBUTION_INJECTION", `${stats.injection} prompt_injection cases < required ${target.minInjection}`);
-  }
-
+  const ds = runDatasetChecks(items, opts);
+  errors.push(...ds.errors);
+  const reviews = [...ds.reviews];
+  stats.dataset = ds.stats;
   for (const e of errors) stats.errorsByCode[e.code] = (stats.errorsByCode[e.code] ?? 0) + 1;
-  return { ok: errors.length === 0, errors, stats };
+  for (const r of reviews) stats.reviewsByCode[r.code] = (stats.reviewsByCode[r.code] ?? 0) + 1;
+  return { ok: errors.length === 0, errors, reviews, stats, items };
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -323,8 +339,14 @@ if (require.main === module) {
     checkDistribution: !args.includes("--no-distribution"),
     checkBenchmarkOverlap: !args.includes("--no-overlap"),
   });
-  for (const e of res.errors) console.log(`line ${e.line}\t${e.id ?? "-"}\t${e.code}\t${e.detail}`);
+  for (const e of res.errors) console.log(`ERROR\tline ${e.line}\t${e.id ?? "-"}\t${e.code}\t${e.detail}`);
+  if (res.reviews.length) {
+    console.log("\nREVIEW REQUIRED (a human must look at each item and sign off; nothing is auto-removed):");
+    for (const r of res.reviews) console.log(`REVIEW\tline ${r.line}\t${r.id ?? "-"}\t${r.code}\t${r.detail}`);
+  }
   console.log(JSON.stringify(res.stats, null, 2));
-  console.log(res.ok ? "OK" : `FAILED: ${res.errors.length} error(s)`);
-  process.exit(res.ok ? 0 : 1);
+  if (!res.ok) { console.log(`FAILED: ${res.errors.length} error(s), ${res.reviews.length} review item(s)`); process.exit(1); }
+  if (res.reviews.length) { console.log(`NO ERRORS but ${res.reviews.length} item(s) REVIEW REQUIRED: human sign-off needed`); process.exit(3); }
+  console.log("OK");
+  process.exit(0);
 }
