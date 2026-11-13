@@ -21,6 +21,7 @@ import { z } from "zod";
 import { bodyGoalReader, trainingReader } from "../services/enterprise-data";
 import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { createToolRegistry, type ToolRegistryOptions } from "./tool-registry";
+import { calendarDateIn } from "./user-calendar";
 import type { AgentToolPolicy, ToolContract } from "./tool-contract";
 
 export interface ProgressToolDeps {
@@ -45,7 +46,8 @@ export interface ProgressEvidence {
 }
 
 const QUALITY = z.enum(["SUFFICIENT", "PARTIAL", "INSUFFICIENT_HISTORY", "NO_DATA", "STALE"]);
-const date10 = (v: unknown): string | null => { const d = new Date(String(v ?? "")); return v && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : null; };
+/** The user's calendar day (Asia/Ho_Chi_Minh) of a date/instant — never the UTC day. */
+const date10 = (v: unknown): string | null => (v ? calendarDateIn(v) : null);
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Number(v.toFixed(2)) : null);
 
 async function unwrapRead<T>(read: Promise<{ status: string; value?: T }>): Promise<T | null> {

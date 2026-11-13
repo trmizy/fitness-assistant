@@ -21,6 +21,7 @@
 import { z } from "zod";
 import { trainingReader, workoutReader } from "../services/enterprise-data";
 import { createToolRegistry, type ToolRegistryOptions } from "./tool-registry";
+import { calendarDateIn } from "./user-calendar";
 import type { AgentToolPolicy, ToolContract } from "./tool-contract";
 
 export interface RecoveryToolDeps {
@@ -118,9 +119,9 @@ const getRecentSessions: C<{ limit?: number }, any, unknown> = {
       const rpes = sets.map((s: any) => s?.rpe).filter((v: unknown): v is number => typeof v === "number" && Number.isFinite(v));
       const pains = sets.map((s: any) => s?.painScore).filter((v: unknown): v is number => typeof v === "number" && Number.isFinite(v));
       const parts = [...new Set(exercises.map((e: any) => e?.exercise?.bodyPart).filter((b: unknown) => (BODY_PARTS as readonly unknown[]).includes(b)))] as string[];
-      const d = new Date(w?.date);
       return {
-        date: Number.isNaN(d.getTime()) ? "unknown" : d.toISOString().slice(0, 10),
+        // the user's calendar day (Asia/Ho_Chi_Minh), the same day boundary as Training's "today" schedule
+        date: calendarDateIn(w?.date) ?? "unknown",
         durationMin: typeof w?.duration === "number" ? w.duration : null,
         exerciseCount: exercises.length,
         bodyParts: parts,

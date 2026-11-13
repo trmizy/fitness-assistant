@@ -24,6 +24,7 @@ import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
 import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
+import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
   agentsSatisfiedBySession, entriesFromFacts, invalidate, mergeEntries, reusableContext, userStatement,
   type ContextEntry, type SessionContextStore,
@@ -134,12 +135,10 @@ export function trainingFacts(toolId: string, data: unknown): Record<string, unk
   // enum values only: a session TITLE is user/PT-authored text and is never handed to another agent
   return { todaySchedule: { known: true, sessionCount: active.length, focus: active.length ? focusOf((active[0] as any)?.title) : "UNSPECIFIED" } };
 }
-/** Whole days between a YYYY-MM-DD date and `now` (UTC calendar days). */
+/** Whole calendar days between a YYYY-MM-DD date (user calendar, see recovery-tools) and `now`, in the user's time zone. */
 function daysAgo(date: string, now: number): number | null {
-  const t = Date.parse(`${date}T00:00:00Z`);
-  if (Number.isNaN(t)) return null;
-  const today = Date.parse(`${new Date(now).toISOString().slice(0, 10)}T00:00:00Z`);
-  return Math.round((today - t) / 86_400_000);
+  const today = calendarDateIn(now);
+  return today ? calendarDaysBetween(date, today) : null;
 }
 /** M2: enums and counts from the recovery projections only (never notes, names or a derived score). */
 export function recoveryFacts(toolId: string, data: unknown, now: number = Date.now()): Record<string, unknown> | null {
