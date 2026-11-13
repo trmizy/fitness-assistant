@@ -330,14 +330,37 @@ test("PC-B16 out of scope (old HR-5 rewritten): adult + router returns [] -> OUT
   assertNoRoutingCall(m, "minor, out of scope"); assert.equal(u.r.status, "OUT_OF_SCOPE"); assert.equal(u.clr?.reason, "MINOR_RESTRICTION"); assert.equal(m.reads.n, 1);
 });
 
-test("PC-B17 HIGH_RISK + not eligible: ROUTING_UNDETERMINED, nothing runs, nothing read (pins the contract's fallback table — see QUESTIONS FOR NGÀI #1)", async () => {
-  for (const [name, reader, reason] of [["minor profile", adult(16), "MINOR_RESTRICTION"], ["age unknown", { status: "AGE_UNKNOWN" } as ProfileReadResult, "AGE_UNKNOWN"]] as const) {
+test("PC-B17 HIGH_RISK + not eligible: the DETERMINISTIC plan flows to Gate 1 (restriction outcome, never ROUTING_UNDETERMINED); nothing runs, nothing personal is read, zero routing calls", async () => {
+  // CONTRACT CHANGE (owner decision M7-P5A.2.1): this test used to pin ROUTING_UNDETERMINED for a HIGH_RISK question when the
+  // routing model could not be used. An eligibility restriction (minor / unknown age / unverifiable profile) is NOT semantic
+  // routing uncertainty — "please rephrase" cannot change the user's age or profile and would loop. The supervisor's clearance
+  // now marks a RESTRICTION, the provider keeps the deterministic plan, and Gate 1 returns the accurate outcome exactly as in
+  // deterministic mode. Model failures and internal clearance faults still return ROUTING_UNDETERMINED (see PC-P7 / the
+  // dedicated suite agent-v2-safety-precedence*.test.ts for the full matrix).
+  const Q_OWN_HR = "Mức tạ bench của tôi tháng này có nhích lên không?"; // HIGH_RISK + an own-data marker ("của tôi")
+  const UNDETERMINED = "ROUTING_UNDETERMINED";
+  const cases: Array<[string, ProfileReadResult, string, string, string]> = [
+    ["minor profile", adult(16), Q_HR, "MINOR_RESTRICTION", "MINOR_PROTECTED"],
+    ["age unknown + own-data ask", { status: "AGE_UNKNOWN" }, Q_OWN_HR, "AGE_UNKNOWN", "PROFILE_UNVERIFIED"],
+    ["profile denied", { status: "PROFILE_ACCESS_DENIED" }, Q_HR, "PROFILE_UNVERIFIED", "PROFILE_UNVERIFIED"],
+  ];
+  for (const [name, reader, q, reason, status] of cases) {
     const s = prig({ reader });
-    const t = await s.turn(Q_HR);
+    const t = await s.turn(q);
     assertNoRoutingCall(s, name);
-    assert.equal(t.r.status, "ROUTING_UNDETERMINED", name); assert.equal(t.h?.selection, "UNDETERMINED", name); assert.equal(t.h?.fallbackReasonCode, "MODEL_ROUTING_NOT_ELIGIBLE", name);
-    assert.equal(t.clr?.reason, reason, name); assert.equal(t.tr.delegations.length, 0, name); assert.deepEqual(s.domainReads(), [], name);
+    assert.equal(t.r.status, status, name); assert.notEqual(t.r.status, UNDETERMINED, name);
+    assert.equal(t.h?.selection, "DETERMINISTIC_FALLBACK", `${name}: the deterministic plan is kept (restriction, not uncertainty)`); assert.equal(t.h?.fallbackReasonCode, "MODEL_ROUTING_NOT_ELIGIBLE", name);
+    assert.ok(!t.tr.decision!.reasonCodes.includes("routing_undetermined"), name); assert.ok(t.tr.decision!.agents.length > 0, `${name}: agents named by the deterministic plan`);
+    assert.equal(t.clr?.reason, reason, name); assert.equal(t.tr.delegations.length, 0, name); assert.deepEqual(s.domainReads(), [], name); assert.equal(s.reads.n, 1, name);
   }
+  // age unknown WITHOUT an own-data marker: Gate 1 only blocks AGE_UNKNOWN when the ask needs the user's own data, so the outcome is
+  // EXACTLY what deterministic mode gives (hybrid adds nothing and removes nothing) — and it is not ROUTING_UNDETERMINED
+  const h = prig({ reader: { status: "AGE_UNKNOWN" } }); const th = await h.turn(Q_HR);
+  const d = system({ deps: { decisionProvider: createIntentDecisionProvider({ maxAgents: 2 }), profileReader: async () => ({ status: "AGE_UNKNOWN" }) } as never });
+  for (const a of ALL) d.prov[a].script(say(`Gợi ý chung về ${a}.`));
+  const td = await d.ask(USER_A, Q_HR, { sessionId: "pc-b17-det" });
+  assertNoRoutingCall(h, "age unknown, no own-data marker"); assert.notEqual(th.r.status, UNDETERMINED); assert.equal(th.r.status, td.status, "same status as deterministic mode");
+  assert.deepEqual(th.tr.ageGate, d.traces[0].ageGate, "same Gate 1 verdict as deterministic mode"); assert.equal(th.h?.selection, "DETERMINISTIC_FALLBACK");
 });
 
 test("PC-B18 provider timeout AFTER clearance still falls back (clearance does not change the timeout / fallback behaviour)", async () => {
@@ -450,11 +473,32 @@ test("PC-P6 clearance is asked only when a call is about to be made: never for s
   assert.equal(d.usage?.modelCalls, 0);
 });
 
-test("PC-P7 HIGH_RISK + not eligible at provider level: UNDETERMINED (no agent), not a silent deterministic route", async () => {
-  const s = direct(); s.router.script(ids(["nutrition"]));
-  const d = await s.decide(Q_HR, s.clearance({ eligible: false, reason: "MINOR_RESTRICTION" }));
-  assert.equal(s.router.requests.length, 0); assert.equal(metaOfDecision(d).selection, "UNDETERMINED"); assert.deepEqual(d.agents, []); assert.ok(d.reasonCodes.includes("routing_undetermined"));
-  assert.equal(metaOfDecision(d).fallbackReasonCode, "MODEL_ROUTING_NOT_ELIGIBLE");
+test("PC-P7 HIGH_RISK at provider level: an explicit RESTRICTION keeps the deterministic plan (no agent dropped, zero model calls); an INTERNAL clearance fault keeps the conservative table (UNDETERMINED)", async () => {
+  // CONTRACT CHANGE (owner decision M7-P5A.2.1): PC-P7 used to pin UNDETERMINED for { eligible:false, reason:"MINOR_RESTRICTION" }
+  // on a HIGH_RISK plan. A supervisor-assigned restriction (explicit eligible:false + MINOR_RESTRICTION / AGE_UNKNOWN /
+  // PROFILE_UNVERIFIED / SESSION_UNAVAILABLE) is not routing uncertainty: the deterministic plan goes on to Gate 1. Only a
+  // missing / throwing / contradictory clearance (an internal fault) and model failures keep ROUTING_UNDETERMINED.
+  for (const reason of ["MINOR_RESTRICTION", "AGE_UNKNOWN", "PROFILE_UNVERIFIED", "SESSION_UNAVAILABLE"] as const) {
+    const s = direct(); s.router.script(ids(["nutrition"]));
+    const d = await s.decide(Q_HR, s.clearance({ eligible: false, reason }));
+    assert.equal(s.router.requests.length, 0, reason); assert.equal(s.provider.modelCalls(), 0, reason);
+    const m = metaOfDecision(d);
+    assert.equal(m.selection, "DETERMINISTIC_FALLBACK", `${reason}: restriction keeps the deterministic plan`); assert.deepEqual(d.agents, ["nutrition"], reason); assert.ok(!d.reasonCodes.includes("routing_undetermined"), reason);
+    assert.equal(m.fallbackReasonCode, "MODEL_ROUTING_NOT_ELIGIBLE", reason); assert.equal(m.routingClearance, reason, reason); assert.equal(m.routingModelCalled, false, reason);
+    assert.deepEqual([d.usage?.modelCalls, d.usage?.inputTokens, d.usage?.outputTokens], [0, 0, 0], reason);
+  }
+  // internal clearance faults on the same HIGH_RISK plan: conservative table, no agent, no model call
+  const faults: Array<[string, (s: ReturnType<typeof direct>) => SupervisorDecision | Promise<SupervisorDecision>]> = [
+    ["clearance absent", (s) => s.decide(Q_HR)],
+    ["clearance throws", (s) => s.decide(Q_HR, async () => { throw new Error("clearance exploded"); })],
+    ["contradictory eligible:true + MINOR_RESTRICTION", (s) => s.decide(Q_HR, s.clearance({ eligible: true, reason: "MINOR_RESTRICTION" }))],
+  ];
+  for (const [name, run] of faults) {
+    const s = direct(); s.router.script(ids(["nutrition"]));
+    const d = await run(s);
+    assert.equal(s.router.requests.length, 0, name); assert.equal(metaOfDecision(d).selection, "UNDETERMINED", name); assert.deepEqual(d.agents, [], name); assert.ok(d.reasonCodes.includes("routing_undetermined"), name);
+    assert.equal(metaOfDecision(d).fallbackReasonCode, "MODEL_ROUTING_NOT_ELIGIBLE", name);
+  }
 });
 
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

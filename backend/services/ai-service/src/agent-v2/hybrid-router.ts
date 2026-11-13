@@ -247,8 +247,13 @@ export function createHybridDecisionProvider(o: HybridProviderOptions): Decision
         meta.estimatedTokenUsage = { input: usage.inputTokens, output: usage.outputTokens };
         return { ...d, hybrid: meta, usage };
       };
-      const keepDeterministic = (selection: HybridSelection, reason: FallbackReason) => {
-        if (selection === "DETERMINISTIC_FALLBACK" && !fallbackAllowed(det, input.question)) {
+      // `restricted` (M7-P5A.2.1): the SUPERVISOR said this user may not reach the routing model (minor restriction, unknown /
+      // unverifiable age, unreadable session). That is an eligibility restriction, NOT semantic routing uncertainty and not a
+      // model failure: the deterministic plan goes on to the supervisor's gates exactly as in deterministic mode, where Gate 1
+      // returns the accurate outcome (MINOR_PROTECTED / PROFILE_UNVERIFIED / SESSION_UNAVAILABLE / general-only). Returning
+      // ROUTING_UNDETERMINED ("please rephrase") there would be misleading and loop. Model failures keep the fallback table.
+      const keepDeterministic = (selection: HybridSelection, reason: FallbackReason, restricted = false) => {
+        if (selection === "DETERMINISTIC_FALLBACK" && !restricted && !fallbackAllowed(det, input.question)) {
           meta.selection = "UNDETERMINED"; meta.fallbackReasonCode = reason;
           meta.detectedAgentIds = []; meta.selectedAgentIds = []; meta.deferredAgentIds = [];
           return finish({ strategy: "hybrid-v1", agents: [], reasonCodes: ["routing_undetermined", `fallback:${reason}`.slice(0, 40)] });
@@ -290,7 +295,10 @@ export function createHybridDecisionProvider(o: HybridProviderOptions): Decision
       // fail closed: eligible only when the provider says so AND the reason is VERIFIED_ADULT (a contradictory answer is not trusted)
       if (cl.eligible !== true || reason !== "VERIFIED_ADULT") {
         meta.routingClearance = cl.eligible === true ? "CLEARANCE_ERROR" : reason === "VERIFIED_ADULT" ? "CLEARANCE_ERROR" : reason;
-        return keepDeterministic("DETERMINISTIC_FALLBACK", "MODEL_ROUTING_NOT_ELIGIBLE");
+        // only an explicit `eligible:false` with a supervisor-assigned restriction reason is a trusted restriction; a missing /
+        // contradictory clearance (internal fault) keeps the conservative table
+        const restricted = cl.eligible === false && reason !== "VERIFIED_ADULT" && reason !== "CLEARANCE_ERROR";
+        return keepDeterministic("DETERMINISTIC_FALLBACK", "MODEL_ROUTING_NOT_ELIGIBLE", restricted);
       }
       meta.routingClearance = "VERIFIED_ADULT";
 
