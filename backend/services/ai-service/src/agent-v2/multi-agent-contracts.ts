@@ -132,6 +132,10 @@ export interface SupervisorDecision {
   reasonCodes: string[];
   /** M4: the routing plan behind the selection (codes only): needs, relevance, deferred agents, coverage, uncertainty. */
   plan?: import("./routing-planner").RoutingPlan;
+  /** M7-P4.2: hybrid routing record (codes / ids / numbers only) — untrusted, re-sanitized by the supervisor for its trace. */
+  hybrid?: import("./hybrid-router").HybridRoutingMeta;
+  /** M7-P4.2: what the routing decision itself consumed — accounted against the turn's GLOBAL budget by the supervisor. */
+  usage?: import("./hybrid-router").RoutingUsage;
 }
 
 export interface DecisionInput {
@@ -141,6 +145,8 @@ export interface DecisionInput {
   available: readonly AgentId[];
   /** M4: agents whose facts are already FRESH in the session context (a follow-up need not re-run them). */
   satisfiedFromSession?: ReadonlySet<AgentId>;
+  /** M7-P4.2: what is LEFT of the turn's global budget when routing starts (a model-backed provider must fit inside it). */
+  budget?: Readonly<AgentBudget>;
 }
 
 /** Swappable routing strategy (deterministic in M1; an LLM-backed provider can implement the same interface later). */

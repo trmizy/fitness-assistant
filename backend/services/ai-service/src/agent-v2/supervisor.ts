@@ -24,6 +24,7 @@ import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
 import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
+import { sanitizeHybridMeta, sanitizeRoutingUsage, ROUTING_MODEL_LIMITS, type HybridRoutingMeta } from "./hybrid-router";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
   agentsSatisfiedBySession, entriesFromFacts, hasStatedMinorAge, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
@@ -238,7 +239,9 @@ export type SupervisorStatus =
   | "ANSWERED" | "PARTIAL" | "INSUFFICIENT_DATA" | "BLOCKED" | "FAILED" | "BUDGET_EXHAUSTED" | "OUT_OF_SCOPE"
   | "DISABLED" | "UNAUTHENTICATED" | "INVALID_INPUT" | "SAFETY_BLOCKED" | "MINOR_PROTECTED" | "PROFILE_UNVERIFIED"
   /** M7-P3: the session store could not be read / written while it may hold a safety restriction — personal advice refused. */
-  | "SESSION_UNAVAILABLE";
+  | "SESSION_UNAVAILABLE"
+  /** M7-P4.2: a model-assisted router could not be used and the deterministic plan was not safe to fall back to — no agent ran. */
+  | "ROUTING_UNDETERMINED";
 
 export interface DelegationTrace {
   delegationId: string;
@@ -277,6 +280,8 @@ export interface SupervisorTrace {
   session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number; store?: "OK" | "UNAVAILABLE" | "CORRUPT"; saved?: "OK" | "CONFLICT" | "FAILED" } | null;
   /** M7-P0.1: general-only output policy removals at composition (rule → count; never the removed text). */
   generalOnlyOutput?: Record<string, number> | null;
+  /** M7-P4.2: hybrid routing record (re-sanitized: enum codes, registered agent ids, bounded numbers — never prompt/output text). */
+  hybridRouting?: HybridRoutingMeta | null;
 }
 
 export interface SupervisorResult {
@@ -332,6 +337,7 @@ const TEXT: Record<string, string> = {
   SESSION_UNAVAILABLE: "Mình chưa đọc được ngữ cảnh cuộc trò chuyện này nên chưa thể tư vấn cá nhân lúc này. Bạn thử lại sau ít phút, hoặc hỏi kiến thức chung nhé.",
   BUDGET_EXHAUSTED: "Mình chưa thể hoàn thành câu trả lời trong giới hạn xử lý cho phép. Bạn thử hỏi cụ thể hơn nhé.",
   SCHEDULE_CONFLICT: "Lưu ý: mình không thấy buổi tập nào trong lịch hôm nay của bạn, nên phần dưới là gợi ý chung, chỉ áp dụng nếu bạn tự tập.",
+  ROUTING_UNDETERMINED: "Mình chưa xác định chắc chắn bạn đang hỏi về phần nào (tập luyện, dinh dưỡng, phục hồi hay tiến độ), nên chưa tư vấn cá nhân lúc này. Bạn hỏi lại cụ thể hơn giúp mình nhé.",
 };
 /** M7-P3: trace counts when the session store could not be read (codes only). */
 const EMPTY_SESSION_COUNTS = Object.freeze({ used: true, loaded: 0, reused: 0, expired: 0, superseded: 0, droppedInvalid: 0, stored: 0 });
@@ -389,6 +395,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let routingSummary: SupervisorTrace["routing"] = null;
   let sessionCounts: SupervisorTrace["session"] = null;
   let generalOnlyCounts: SupervisorTrace["generalOnlyOutput"] = null;
+  let hybridRouting: SupervisorTrace["hybridRouting"] = null;
 
   const finish = (status: SupervisorStatus, answer: string): SupervisorResult => {
     const durationMs = now() - started;
@@ -403,7 +410,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
           estimatedCost: Number(spent.maxCostUsd.toFixed(6)), latencyMs: durationMs,
         },
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
-        routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts,
+        routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts, hybridRouting,
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };
@@ -457,12 +464,23 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   const available = AGENT_ORDER.filter((a) => byId.has(a) && policy.allowedAgents.includes(a));
   const provider = deps.decisionProvider ?? createIntentDecisionProvider({ maxAgents: policy.maxAgentsPerTurn, domainSignals: ROUTING_SIGNALS });
   const satisfiedFromSession = reuse ? agentsSatisfiedBySession(reuse.freshSubjects) : new Set<AgentId>();
+  // M7-P4.2: a model-backed provider sees what is LEFT of the turn budget and must fit inside it
+  spent.maxWallTimeMs = now() - started;
+  const routingBudget = Object.fromEntries(DIMS.map((k) => [k, Math.max(0, policy.budget[k] - spent[k])])) as unknown as AgentBudget;
   let raw: SupervisorDecision;
   try {
-    raw = await provider.decide({ question, folded, available, satisfiedFromSession });
+    raw = await provider.decide({ question, folded, available, satisfiedFromSession, budget: Object.freeze(routingBudget) });
   } catch {
     raw = { strategy: provider.name, agents: [], reasonCodes: ["decision_provider_error"] };
   }
+  // M7-P4.2: the routing call is part of the turn — accounted against the GLOBAL budget (never a separate allowance);
+  // more than one routing model call per turn is a provider fault → no agent runs
+  const routingUsage = sanitizeRoutingUsage(raw?.usage);
+  if (routingUsage.modelCalls > ROUTING_MODEL_LIMITS.maxModelCalls) { overrun.push("routingModelCalls"); raw = { strategy: provider.name, agents: [], reasonCodes: ["routing_model_calls_exceeded"] }; }
+  spent.maxModelCalls += routingUsage.modelCalls; spent.maxInputTokens += routingUsage.inputTokens;
+  spent.maxOutputTokens += routingUsage.outputTokens; spent.maxCostUsd += routingUsage.estimatedCostUsd;
+  for (const k of ["maxModelCalls", "maxInputTokens", "maxOutputTokens", "maxCostUsd"] as const) if (spent[k] > policy.budget[k] + 1e-9 && !overrun.includes(k)) overrun.push(k);
+  hybridRouting = sanitizeHybridMeta(raw?.hybrid);
   const requested = Array.isArray(raw?.agents) ? raw.agents.map(String) : [];
   const valid = AGENT_ORDER.filter((a) => requested.includes(a) && available.includes(a));
   dropped = [...new Set(requested.filter((a) => !valid.includes(a as AgentId)))].slice(0, 10).map((a) => a.slice(0, 40));
@@ -474,7 +492,11 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   for (const d of planDeferred) dropped.push(`${d.agentId}:${d.reason === "MAX_AGENTS" ? "max_agents" : "from_session"}`);
   routingSummary = plan ? { coverage: plan.coverage, uncertainty: plan.uncertainty, primaryNeed: plan.primaryNeed, deferred: planDeferred.map((d) => ({ agentId: d.agentId, needs: d.needs, reason: d.reason })) } : null;
   decision = { strategy: String(raw?.strategy ?? provider.name).slice(0, 40), agents: selected, reasonCodes: (raw?.reasonCodes ?? []).map((c) => String(c).slice(0, 40)).slice(0, 10), ...(plan ? { plan } : {}) };
-  if (!selected.length) return finish("OUT_OF_SCOPE", TEXT.OUT_OF_SCOPE);
+  if (!selected.length) {
+    if (decision.reasonCodes.includes("routing_undetermined")) return finish("ROUTING_UNDETERMINED", TEXT.ROUTING_UNDETERMINED);
+    if (overrun.length) return finish("BUDGET_EXHAUSTED", TEXT.BUDGET_EXHAUSTED);
+    return finish("OUT_OF_SCOPE", TEXT.OUT_OF_SCOPE);
+  }
 
   // 3. Gate 1 over the WHOLE turn, before any delegation — one read, shared by every agent (they cannot loosen it)
   let read: ProfileReadResult;
