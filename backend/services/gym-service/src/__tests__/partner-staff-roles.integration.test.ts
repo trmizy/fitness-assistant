@@ -193,7 +193,7 @@ test.before(async () => {
   const yesterdayD = new Date(todayD.getTime() - 864e5);
   await prisma.gymPtCheckIn.createMany({
     data: [
-      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 3, qualifyingSessionIds: ['s-1'], contractIds: ['c-1'] },
+      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 3, qualifyingSessionIds: ['SENTINEL_SESSION_LEAK_s1'], contractIds: ['SENTINEL_CONTRACT_LEAK_c1'] },
       { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt2, localDate: yesterdayD, firstScanAt: new Date(now - 864e5), lastScanAt: new Date(now - 864e5), scanCount: 1, qualifyingSessionIds: ['s-2'], contractIds: ['c-2'] },
       { gymId: gym.a2, brandId: brand.a, ptUserId: id.pt2, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 1, qualifyingSessionIds: ['s-3'], contractIds: ['c-3'] },
     ],
@@ -525,7 +525,7 @@ integrationTest('D15b · LỄ TÂN: PT đã check-in HÔM NAY chỉ ở chi nhá
   assert.deepEqual(Object.keys(r.body.data.pts[0]).sort(), ['firstScanAt', 'id', 'lastScanAt', 'ptName']);
   assert.equal(r.body.data.pts[0].ptName, `Ten ${id.pt.slice(0, 4)}`);
   const text = JSON.stringify(r.body);
-  for (const leak of [id.pt, id.pt2, 'scanCount', 'qualifying', 'contract', 'secret-', '@mail.test', 's-1', 'c-1']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
+  for (const leak of [id.pt, id.pt2, 'scanCount', 'qualifying', 'contract', 'secret-', '@mail.test', 'SENTINEL_SESSION_LEAK_s1', 'SENTINEL_CONTRACT_LEAK_c1']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
   // Chi nhánh khác trong CÙNG đối tác: lễ tân a1 → 403; lễ tân a2 chỉ thấy PT của a2.
   assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/pt-checkins/today`)).status, 403);
   assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/front-desk/today`)).status, 403);
