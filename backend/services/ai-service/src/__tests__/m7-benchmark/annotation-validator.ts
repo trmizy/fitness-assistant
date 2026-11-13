@@ -237,6 +237,10 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     // question + accented
     const q = nonEmptyStr(row.question) ? row.question : null;
     if (!q) err("MISSING_FIELD", "question missing or empty");
+    // M7-P5A.2 remediation (cross-check F3): lengths (600 / 2000) are measured on the stored text, so the stored text
+    // must already be what the endpoint measures — trimmed (supervisor trims) and NFC (no save-format dependence)
+    if (q && q !== q.trim()) err("QUESTION_NOT_TRIMMED", "question has leading or trailing whitespace (the endpoint trims before measuring)");
+    if (q && q !== q.normalize("NFC")) err("QUESTION_NOT_NFC", "question is not Unicode NFC (lengths would depend on how the file was saved)");
     const accentedOk = typeof row.accented === "boolean";
     if (!accentedOk) err("MISSING_FIELD", "accented must be boolean");
     else if (q && row.accented !== hasVietnameseDiacritics(q)) err("ACCENTED_MISMATCH", `accented=${row.accented} but the text ${hasVietnameseDiacritics(q) ? "has" : "has no"} Vietnamese diacritics`);
@@ -316,7 +320,8 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
       stats.byCategory[final.category] = (stats.byCategory[final.category] ?? 0) + 1;
       stats.bySafety[s] = (stats.bySafety[s] ?? 0) + 1;
       if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
-      else if (row.routingScored !== expectedRoutingScored(final, typeof q === "string" ? q : "")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting}, question length ${typeof q === "string" ? q.length : "?"} (must be true exactly when ALLOW and ≤ ${MAX_QUESTION_CHARS} chars)`);    } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
+      else if (row.routingScored !== expectedRoutingScored(final, typeof q === "string" ? q : "")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting}, question length ${typeof q === "string" ? q.length : "?"} (must be true exactly when ALLOW and ≤ ${MAX_QUESTION_CHARS} chars)`);
+    } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
 
     // dataset item (valid-enough rows only)
     if (id && q && accentedOk && tagsOk && author && final) {

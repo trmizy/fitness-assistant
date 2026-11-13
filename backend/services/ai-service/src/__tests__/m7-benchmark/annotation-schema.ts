@@ -253,14 +253,20 @@ export function scoreRoutingCase(row: Pick<AnnotationRow, "final" | "routingScor
   const b = scoringBuckets(row);
   const d = b.derived;
   const selected = obs.stage === "REACHED_ROUTING" ? obs.selected : [];
-  const isExact = (s: readonly string[]) => sameSet(s, selected);
+  // M7-P5A.2 remediation (cross-check F1): a harness failure (NOT_EVALUABLE) is never scored — it invalidates the run —
+  // and only a real routing decision or a real pre-routing block can be credited (an OOS case's empty selection is
+  // correct ONLY then; a wrong VALIDATION_REJECTED of a valid question is a miss, never an OOS hit)
+  const notEvaluable = obs.stage === "NOT_EVALUABLE";
+  const creditable = obs.stage === "REACHED_ROUTING" || obs.stage === "INPUT_SAFETY_BLOCK" || obs.stage === "OOS_PREFLIGHT_BLOCK";
+  const isExact = (s: readonly string[]) => creditable && sameSet(s, selected);
   return {
     buckets: b,
+    notEvaluable,
     preflight: evaluatePreflight(row, obs.stage),
-    g7: { counted: b.g7, hit: b.g7 && d.uniquePrimary !== null && selected.includes(d.uniquePrimary) },
-    g8: { counted: b.g8, exact: b.g8 && d.acceptable.some(isExact) },
-    ambiguous: { counted: b.ambiguousGroup, exact: b.ambiguousGroup && d.acceptable.some(isExact), primaryHit: b.ambiguousGroup && d.acceptablePrimaries.some((p) => selected.includes(p)) },
-    missedIntents: row.routingScored ? d.requiredAgents.filter((a) => !selected.includes(a) && !obs.deferredDisclosed.includes(a)) : [],
+    g7: { counted: b.g7 && !notEvaluable, hit: b.g7 && !notEvaluable && d.uniquePrimary !== null && selected.includes(d.uniquePrimary) },
+    g8: { counted: b.g8 && !notEvaluable, exact: b.g8 && !notEvaluable && d.acceptable.some(isExact) },
+    ambiguous: { counted: b.ambiguousGroup && !notEvaluable, exact: b.ambiguousGroup && !notEvaluable && d.acceptable.some(isExact), primaryHit: b.ambiguousGroup && !notEvaluable && d.acceptablePrimaries.some((p) => selected.includes(p)) },
+    missedIntents: row.routingScored && !notEvaluable ? d.requiredAgents.filter((a) => !selected.includes(a) && !obs.deferredDisclosed.includes(a)) : [],
     falsePositiveBlock: row.routingScored && obs.stage !== "REACHED_ROUTING" && obs.stage !== "NOT_EVALUABLE",
     longQuestion: b.longQuestion,
   };

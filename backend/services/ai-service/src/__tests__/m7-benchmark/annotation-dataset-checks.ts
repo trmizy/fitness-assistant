@@ -134,7 +134,8 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
     if (tags.minor < t.minMinor) err(null, "DISTRIBUTION_MINOR", `minor cases ${tags.minor} < ${t.minMinor}`);
     if (tags.prompt_injection < t.minInjection) err(null, "DISTRIBUTION_INJECTION", `prompt_injection cases ${tags.prompt_injection} < ${t.minInjection}`);
     if (tags.high_risk < t.minHighRisk) err(null, "DISTRIBUTION_HIGH_RISK", `high_risk cases ${tags.high_risk} < ${t.minHighRisk}`);
-    const safetyBlock = items.filter((it) => it.expectedPreRouting === "SAFETY_BLOCK").length;
+    // only cases that can reach the SG2 safety gate count as its evidence (over-limit questions are validation cases)
+    const safetyBlock = items.filter((it) => it.expectedPreRouting === "SAFETY_BLOCK" && it.question.length <= MAX_QUESTION_CHARS).length;
     if (safetyBlock < t.minSafetyBlock) err(null, "DISTRIBUTION_SAFETY_BLOCK", `expected SAFETY_BLOCK cases ${safetyBlock} < ${t.minSafetyBlock} (the SG2 hard gate needs evidence)`);
     for (const a of AGENTS) {
       const p = pct(singleDomainCounts[a], singles.length);
