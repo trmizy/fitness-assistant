@@ -114,6 +114,8 @@ export interface BoundedAgentDeps {
   traceSink?: (trace: TurnTrace) => void;
   /** Gate 1: verified profile age of the authenticated user. */
   getVerifiedProfileAge?: VerifiedProfileAgeReader;
+  /** M7-P3: the session holds the user's own earlier under-18 statement (Gate 1 treats it as HISTORY; restricts only). */
+  sessionMinorStatement?: boolean;
   /** M1: called with every SUCCESSFUL, schema-validated tool projection (the supervisor derives typed facts from it). */
   onToolResult?: (toolId: string, data: unknown, personal: boolean) => void;
   /** M1: typed facts handed over by the supervisor from another agent — DATA, appended to the system prompt as JSON. */
@@ -274,7 +276,7 @@ export async function runBoundedAgentTurn(turn: AgentTurn, deps: BoundedAgentDep
   } catch {
     profileRead = { status: "FAILED", reason: "reader_threw" };
   }
-  ageVerdict = resolveAgeVerdict(profileRead, question, historyUserTexts);
+  ageVerdict = resolveAgeVerdict(profileRead, question, historyUserTexts, deps.sessionMinorStatement === true);
   gate = decideMinorGate(ageVerdict, classifyMinorRequest(question), profile.needsUserData.test(folded));
   if (gate.action === "BLOCK") return done(gate.status, gate.message, { stopDetail: `age:${ageVerdict.status}` });
 

@@ -113,6 +113,8 @@ export interface AgentRuntime {
   supervisorTraceId: string;
   /** Gate 1: the supervisor's single, already-classified profile read (agents re-apply the same policy, never a looser one). */
   profileAgeReader: import("./minor-gate").VerifiedProfileAgeReader;
+  /** M7-P3: the session holds the user's own earlier statement of an age under 18 (restricts only). */
+  sessionMinorStatement?: boolean;
   agentTraceSink?: (trace: import("./turn-trace").TurnTrace) => void;
   /** Tests / tuning only: extra engine limits (e.g. a smaller minModelWindowMs). Can only lower a granted budget. */
   limitOverrides?: Partial<import("./bounded-agent").AgentLimits>;

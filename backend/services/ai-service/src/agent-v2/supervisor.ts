@@ -18,7 +18,7 @@ import { appendMinorSupervisionNote } from "../llm/medical-referral";
 import { checkInputSafety, guardGeneralOnlyAnswer, splitSentences } from "./answer-guards";
 import { isAgentV2Enabled } from "./flag";
 import { PILOT_LIMITS, type AgentLimits, type AgentTurn, type AgentTurnResult, type BoundedAgentDeps } from "./bounded-agent";
-import { classifyMinorRequest, decideMinorGate, resolveAgeVerdict, type ProfileAgeRead, type VerifiedProfileAgeReader } from "./minor-gate";
+import { classifyMinorRequest, decideMinorGate, resolveAgeVerdict, statesMinorAge, type ProfileAgeRead, type VerifiedProfileAgeReader } from "./minor-gate";
 import type { AgentModelProvider } from "./model-provider";
 import type { ToolRegistry } from "./tool-registry";
 import type { TurnTrace } from "./turn-trace";
@@ -26,8 +26,8 @@ import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
-  agentsSatisfiedBySession, entriesFromFacts, invalidate, mergeEntries, reusableContext, userStatement,
-  type ContextEntry, type SessionContextStore,
+  agentsSatisfiedBySession, entriesFromFacts, hasStatedMinorAge, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
+  statedMinorAgeStatement, updateSession, userStatement, type AnySessionStore, type ContextEntry,
 } from "./session-context";
 import type {
   AgentBudget, AgentCapability, AgentCompletion, AgentEvidence, AgentExecutionPolicy, AgentId, AgentRequest, AgentResult,
@@ -216,6 +216,7 @@ export function createBoundedAgentRunner(
         {
           provider: base.provider, registry: base.registry, policy: capability.toolPolicy, enabled: runtime.enabled, now: runtime.now,
           limits: limitsFor(request.budget, runtime.limitOverrides), getVerifiedProfileAge: runtime.profileAgeReader,
+          ...(runtime.sessionMinorStatement ? { sessionMinorStatement: true } : {}),
           traceSink: runtime.agentTraceSink, handoffData: request.context.handoff,
           traceLinks: { supervisorTraceId: runtime.supervisorTraceId, delegationId: request.delegationId },
           onToolResult: (toolId, data) => { const f = base.facts?.(toolId, data); if (f) Object.assign(facts, f); },
@@ -235,7 +236,9 @@ export function createBoundedAgentRunner(
 // ── supervisor ───────────────────────────────────────────────────────────────────────────────────────────────────────
 export type SupervisorStatus =
   | "ANSWERED" | "PARTIAL" | "INSUFFICIENT_DATA" | "BLOCKED" | "FAILED" | "BUDGET_EXHAUSTED" | "OUT_OF_SCOPE"
-  | "DISABLED" | "UNAUTHENTICATED" | "INVALID_INPUT" | "SAFETY_BLOCKED" | "MINOR_PROTECTED" | "PROFILE_UNVERIFIED";
+  | "DISABLED" | "UNAUTHENTICATED" | "INVALID_INPUT" | "SAFETY_BLOCKED" | "MINOR_PROTECTED" | "PROFILE_UNVERIFIED"
+  /** M7-P3: the session store could not be read / written while it may hold a safety restriction — personal advice refused. */
+  | "SESSION_UNAVAILABLE";
 
 export interface DelegationTrace {
   delegationId: string;
@@ -271,7 +274,7 @@ export interface SupervisorTrace {
   /** M4: routing plan summary (codes only). */
   routing?: { coverage: string; uncertainty: string; primaryNeed: string | null; deferred: Array<{ agentId: AgentId; needs: string[]; reason: string }> } | null;
   /** M4: session-context counts (never values, subjects of user data or the session id). */
-  session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number } | null;
+  session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number; store?: "OK" | "UNAVAILABLE" | "CORRUPT"; saved?: "OK" | "CONFLICT" | "FAILED" } | null;
   /** M7-P0.1: general-only output policy removals at composition (rule → count; never the removed text). */
   generalOnlyOutput?: Record<string, number> | null;
 }
@@ -302,8 +305,8 @@ export interface SupervisorDeps {
   traceSink?: (trace: SupervisorTrace) => void;
   agentTraceSink?: (trace: TurnTrace) => void;
   limitOverrides?: Partial<AgentLimits>;
-  /** M4: multi-turn context (in-memory in tests). Absent → single-turn behaviour (M1–M3). */
-  sessionStore?: SessionContextStore;
+  /** M4: multi-turn context (in-memory in tests). Absent → single-turn behaviour (M1–M3). M7-P3: or a versioned shared store. */
+  sessionStore?: AnySessionStore;
 }
 
 export interface SupervisorTurn {
@@ -326,9 +329,12 @@ const TEXT: Record<string, string> = {
   HISTORY_CONFLICT: "Lưu ý: nhật ký tập của bạn không có buổi tập nào được ghi vào hôm qua. Mình vẫn tính đến điều bạn kể, nhưng phần nhận xét dựa trên dữ liệu chỉ phản ánh các buổi đã được ghi.",
   BODY_PART_CONFLICT: "Lưu ý: buổi tập được ghi vào hôm qua không phải nhóm cơ bạn nhắc tới. Mình giữ cả hai thông tin như nhau — bạn kiểm tra lại nhật ký tập nhé.",
   FAILED: "Trợ lý tạm thời chưa trả lời được. Bạn thử lại sau ít phút nhé.",
+  SESSION_UNAVAILABLE: "Mình chưa đọc được ngữ cảnh cuộc trò chuyện này nên chưa thể tư vấn cá nhân lúc này. Bạn thử lại sau ít phút, hoặc hỏi kiến thức chung nhé.",
   BUDGET_EXHAUSTED: "Mình chưa thể hoàn thành câu trả lời trong giới hạn xử lý cho phép. Bạn thử hỏi cụ thể hơn nhé.",
   SCHEDULE_CONFLICT: "Lưu ý: mình không thấy buổi tập nào trong lịch hôm nay của bạn, nên phần dưới là gợi ý chung, chỉ áp dụng nếu bạn tự tập.",
 };
+/** M7-P3: trace counts when the session store could not be read (codes only). */
+const EMPTY_SESSION_COUNTS = Object.freeze({ used: true, loaded: 0, reused: 0, expired: 0, superseded: 0, droppedInvalid: 0, stored: 0 });
 const PART_UNAVAILABLE: Record<Exclude<AgentCompletion, "COMPLETE" | "BLOCKED">, (label: string) => string> = {
   INSUFFICIENT_DATA: (l) => `Phần ${l.toLowerCase()}: mình chưa đọc được dữ liệu cần thiết của bạn nên chưa trả lời phần này.`,
   FAILED: (l) => `Phần ${l.toLowerCase()}: trợ lý tạm thời chưa trả lời được.`,
@@ -411,21 +417,38 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   const identity = { userId: ctx.userId, ...(typeof ctx.authorizationHeader === "string" ? { authorizationHeader: ctx.authorizationHeader } : {}) };
   const question = typeof turn.question === "string" ? turn.question.trim() : "";
   if (!question || question.length > PILOT_LIMITS.maxQuestionChars) return finish("INVALID_INPUT", TEXT.INVALID_INPUT);
+  // M4: session context — scope = (authenticated userId, sessionId); the client's sessionId alone authorizes nothing
+  const sessionId = typeof turn.sessionId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(turn.sessionId) ? turn.sessionId : null;
+  const store = deps.sessionStore && sessionId ? deps.sessionStore : null;
+  // M7-P3: the user's own statement of an age under 18 is persisted FIRST — before input safety may stop this turn — so a
+  // later turn (on any instance) stays restricted. If it cannot be persisted, this turn is refused (never silently lost).
+  if (store && statesMinorAge(question)) {
+    const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
+    const written = await updateSession(store, identity.userId, sessionId!, (cur) => pruneForStorage(mergeEntries(reusableContext(cur, identity.userId, sessionId!, at.now).all, [statedMinorAgeStatement(at)])));
+    if (written !== "ok") {
+      sessionCounts = { ...EMPTY_SESSION_COUNTS, store: written === "corrupt" ? "CORRUPT" : "UNAVAILABLE", saved: "FAILED" };
+      return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
+    }
+  }
   const safety = checkInputSafety(question);
   if (!safety.safe) return finish("SAFETY_BLOCKED", safety.message ?? TEXT.FAILED);
   const folded = foldVi(question);
 
-  // M4: session context — scope = (authenticated userId, sessionId); the client's sessionId alone authorizes nothing
-  const sessionId = typeof turn.sessionId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(turn.sessionId) ? turn.sessionId : null;
-  const store = deps.sessionStore && sessionId ? deps.sessionStore : null;
-  let sessionAll: ContextEntry[] = [];
   let reuse: ReturnType<typeof reusableContext>["reuse"] | null = null;
+  // M7-P3: a store that cannot be read is NOT an empty session (it may hold a safety restriction) — see Gate 1 below
+  let sessionUnavailable = false;
+  let sessionMinor = false;
   if (store) {
-    let loadedRaw: unknown[] = [];
-    try { loadedRaw = store.load(identity.userId, sessionId!); } catch { loadedRaw = []; }
-    const loaded = reusableContext(loadedRaw, identity.userId, sessionId!, now());
-    sessionAll = loaded.all; reuse = loaded.reuse;
-    sessionCounts = { used: true, ...loaded.reuse.counts, stored: 0 };
+    const loadedRead = await readSession(store, identity.userId, sessionId!);
+    if (loadedRead.status === "ok") {
+      const loaded = reusableContext(loadedRead.raw, identity.userId, sessionId!, now());
+      reuse = loaded.reuse;
+      sessionMinor = hasStatedMinorAge(loaded.all);
+      sessionCounts = { used: true, ...loaded.reuse.counts, stored: 0, store: "OK" };
+    } else {
+      sessionUnavailable = true;
+      sessionCounts = { ...EMPTY_SESSION_COUNTS, store: loadedRead.status === "corrupt" ? "CORRUPT" : "UNAVAILABLE" };
+    }
   }
 
   // 2. route (M4 default: intent planner), then validate: a decision can only select registered, allowed agents
@@ -463,20 +486,30 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     profileStatus = "READER_ERROR";
   }
   const ageRead = toProfileAgeRead(read);
-  const profileAgeReader: VerifiedProfileAgeReader = async () => ageRead;
+  // M7-P3: with the session unreadable the agents' own gate sees an UNVERIFIED state (general information only)
+  const agentAgeRead: ProfileAgeRead = sessionUnavailable ? { status: "FAILED", reason: "session_unavailable" } : ageRead;
+  const profileAgeReader: VerifiedProfileAgeReader = async () => agentAgeRead;
   const history = (turn.history ?? []).slice(-4).map((h) => ({ role: h.role, text: String(h.text ?? "").slice(0, 1_500) }));
-  const verdict = resolveAgeVerdict(ageRead, question, history.filter((h) => h.role === "user").map((h) => h.text));
+  const verdict = resolveAgeVerdict(ageRead, question, history.filter((h) => h.role === "user").map((h) => h.text), sessionMinor);
   const needsOwnData = selected.some((a) => byId.get(a)!.capability.needsUserData.test(folded));
-  const gate = decideMinorGate(verdict, classifyMinorRequest(question), needsOwnData);
+  const category = classifyMinorRequest(question);
+  const gate = decideMinorGate(verdict, category, needsOwnData);
   ageGate = { status: verdict.status, minorBy: verdict.minorBy, conflict: verdict.conflict, decision: gate.action };
   if (gate.action === "BLOCK") return finish(gate.status, gate.message);
+  // M7-P3: the session (which may hold a minor restriction) could not be read — anything personal fails closed; a general
+  // knowledge question is still answered in general-only mode (non-personal tools, MG-1 output policy). Distinct from
+  // AGE_UNKNOWN / PROFILE_UNAVAILABLE: the profile read above is unaffected and reported separately.
+  if (sessionUnavailable && (needsOwnData || category !== "GENERAL_KNOWLEDGE")) {
+    ageGate = { ...ageGate, decision: "BLOCK_SESSION_UNAVAILABLE" };
+    return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
+  }
   // M3: AGE_UNKNOWN is never evidence of adulthood — a HIGH_RISK personal request (body-change targets, max effort,
   // supplements, pain…) fails closed until the profile carries an age (a self-stated adult age cannot unlock it).
   if (read.status === "AGE_UNKNOWN" && verdict.status === "UNKNOWN" && needsOwnData && classifyMinorRequest(question) === "HIGH_RISK") {
     ageGate = { ...ageGate, decision: "BLOCK_AGE_UNKNOWN" };
     return finish("PROFILE_UNVERIFIED", TEXT.AGE_REQUIRED);
   }
-  const generalOnly = gate.action === "GENERAL_ONLY";
+  const generalOnly = gate.action === "GENERAL_ONLY" || sessionUnavailable;
 
   // 4. delegations — sequential, each bounded by a slice of the REMAINING turn budget
   // the user's own fatigue statement travels as a labelled self-report (the question itself is never handed over)
@@ -517,7 +550,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
         context: { identity, history, handoff: Object.freeze({ ...handoff }) },
       };
       const runtime: AgentRuntime = {
-        enabled, now, supervisorTraceId, profileAgeReader, agentTraceSink: deps.agentTraceSink,
+        enabled, now, supervisorTraceId, profileAgeReader, sessionMinorStatement: sessionMinor, agentTraceSink: deps.agentTraceSink,
         limitOverrides: { ...(deps.limitOverrides ?? {}), maxWallTimeMs: Math.min(grant.maxWallTimeMs, deps.limitOverrides?.maxWallTimeMs ?? Number.POSITIVE_INFINITY) },
       };
       try {
@@ -653,13 +686,13 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   if (store) {
     const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
     let incoming: ContextEntry[] = [];
-    let entries = sessionAll;
+    const invalidated: string[] = [];
     for (const r of results) {
       if (r.completion === "POLICY_VIOLATION") continue;
       const okTools = r.evidence.filter((e) => e.outcome === "ok").map((e) => e.toolId);
       incoming.push(...entriesFromFacts(r.agentId, r.facts, { ...at, toolIds: okTools }));
       // a failed refresh invalidates the previous value of that subject (it must not be reused as current)
-      for (const e of r.evidence) if (e.outcome !== "ok" && TOOL_SUBJECT[e.toolId]) entries = invalidate(entries, TOOL_SUBJECT[e.toolId]);
+      for (const e of r.evidence) if (e.outcome !== "ok" && TOOL_SUBJECT[e.toolId]) invalidated.push(TOOL_SUBJECT[e.toolId]);
     }
     if (yesterdayClaim) incoming.push(userStatement("user.trainedYesterday", { part: yesterdayClaim.part ?? "UNSPECIFIED" }, at));
     if (SELF_REPORTED_FATIGUE.test(folded)) incoming.push(userStatement("user.fatigue", { reported: true }, at));
@@ -667,8 +700,13 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     if (fm) incoming.push(userStatement("user.mentionedForecast", { direction: fm[1] === "giam" ? "DOWN" : "UP", kg: Number(fm[2].replace(",", ".")) }, at, "FORECAST"));
     for (const c of conflicts) incoming.push({ ...userStatement("user.conflict", { code: c }, at), kind: "CONFLICT", subject: `conflict.${c}`, source: { producer: "supervisor", turnId } });
     incoming = incoming.filter((e) => e.kind === "CONFLICT" || validateIncoming(e));
-    try { store.save(identity.userId, sessionId!, mergeEntries(entries, incoming)); } catch { /* the answer never depends on the save */ }
-    if (sessionCounts) sessionCounts.stored = incoming.length;
+    // M7-P3: merged onto the LATEST stored entries (compare-and-set; a concurrent turn's writes are kept, never overwritten)
+    const saved = await updateSession(store, identity.userId, sessionId!, (cur) => {
+      let base = reusableContext(cur, identity.userId, sessionId!, at.now).all;
+      for (const subject of invalidated) base = invalidate(base, subject);
+      return pruneForStorage(mergeEntries(base, incoming));
+    });
+    if (sessionCounts) { sessionCounts.stored = saved === "ok" ? incoming.length : 0; sessionCounts.saved = saved === "ok" ? "OK" : saved === "conflict" ? "CONFLICT" : "FAILED"; }
   }
   return finish(status, answer);
 }

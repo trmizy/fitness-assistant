@@ -339,7 +339,9 @@ test("M4-16 trace privacy with sessions: counts and codes only — no session id
   assert.ok(!JSON.stringify([s.traces, s.agentTraces]).includes(A), "user id (raw)");
   const json = JSON.stringify([s.traces, s.agentTraces], (k, v) => (TIMING.has(k) ? undefined : v)).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<uuid>");
   for (const bad of [SID, "tok-", "todaySchedule", "LOWER_BODY", "Leg day", "trước buổi tập", "Ăn nhẹ", "user."]) assert.ok(!json.includes(bad), bad);
-  assert.deepEqual(Object.keys(s.traces[1].session!).sort(), ["conflicts", "droppedInvalid", "expired", "loaded", "reused", "stored", "superseded", "truncated", "used"]);
+  // M7-P3: + store / saved status CODES (no key, id or value)
+  assert.deepEqual(Object.keys(s.traces[1].session!).sort(), ["conflicts", "droppedInvalid", "expired", "loaded", "reused", "saved", "store", "stored", "superseded", "truncated", "used"]);
+  assert.equal(s.traces[1].session!.store, "OK"); assert.equal(s.traces[1].session!.saved, "OK");
 });
 
 test("M4-17 flag OFF; no session read/write; no paid provider or network across a multi-turn run", async () => {

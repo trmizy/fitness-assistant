@@ -12,8 +12,9 @@
  *                   Recovery + Progress body/training-window → domain-read-transport.ts (same endpoints over requestService,
  *                   typed errors) instead of the HTTP-only enterprise-data readers; /internal Training READs need the secret
  *   model           AgentModelProvider; default Bedrock Converse adapter (created lazily, no call until a turn needs one)
- *   session         SessionContextStore; default process-local in-memory (LOCAL ONLY — not persistent, not shared
- *                   between Lambda instances, not production-ready)
+ *   session         M7-P3 resolveSessionStore(): AGENT_V2_SESSION_STORE=memory (local default, one process only) or
+ *                   redis (AGENT_V2_SESSION_REDIS_URL; versioned compare-and-set store shared by instances). On
+ *                   NODE_ENV=production persistence is REQUIRED: no in-memory fallback, a missing config is a 503.
  *   budget/policy   the supervisor's defaults (SUPERVISOR_BUDGET, DEFAULT_EXECUTION_POLICY) — not overridden
  *   tracing         the supervisor / engine / registry default sinks (structured logs, codes and counts only)
  * Everything is injectable for offline tests (multiAgentRuntimeSeam).
@@ -22,7 +23,9 @@ import { requestService } from "../clients/service-lambda.client";
 import { createProfileReader, type ProfileServiceGet } from "../agent-v2/profile-reader";
 import { createAgentRunners, type AgentDomainDeps } from "../agent-v2/agent-catalog";
 import { runSupervisorTurn, type SupervisorResult, type SupervisorTrace } from "../agent-v2/supervisor";
-import { createInMemorySessionStore, type SessionContextStore } from "../agent-v2/session-context";
+import { createInMemorySessionStore, type AnySessionStore } from "../agent-v2/session-context";
+import { createNodeRedisSessionClient, createRedisSessionStore, type SessionRedisClient } from "./redis-session-store";
+import { ApiError } from "../errors/api-error";
 import { createBedrockConverseProvider } from "../agent-v2/bedrock-converse-adapter";
 import type { AgentId } from "../agent-v2/multi-agent-contracts";
 import type { AgentModelProvider } from "../agent-v2/model-provider";
@@ -50,7 +53,8 @@ export interface MultiAgentRuntimeOptions {
   /** Transport for the default Recovery / Progress READs (tests inject a mock; default requestService). */
   readRequest?: ServiceRequester;
   profileGet?: ProfileServiceGet;
-  sessionStore?: SessionContextStore;
+  /** Absent → resolveSessionStore(process.env). */
+  sessionStore?: AnySessionStore;
   now?: () => number;
   traceSink?: (trace: SupervisorTrace) => void;
   agentTraceSink?: (trace: TurnTrace) => void;
@@ -63,7 +67,7 @@ export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): Multi
   const now = o.now ?? Date.now;
   const runners = createAgentRunners({ providerFor, deps: o.deps ?? defaultDomainDeps({ request: o.readRequest }), now, toolTraceSink: o.toolTraceSink });
   const profileReader = createProfileReader({ get: o.profileGet ?? ((req) => requestService(req)), now });
-  const sessionStore = o.sessionStore ?? createInMemorySessionStore();
+  const sessionStore = o.sessionStore ?? resolveSessionStore();
   return {
     ask: ({ question, identity, sessionId }) => runSupervisorTurn(
       { question, context: { userId: identity.userId, ...(identity.authorizationHeader ? { authorizationHeader: identity.authorizationHeader } : {}) }, ...(sessionId ? { sessionId } : {}) },
@@ -73,6 +77,25 @@ export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): Multi
       },
     ),
   };
+}
+
+/**
+ * M7-P3: which session store this process uses. Config names avoid the flag's name on purpose (only agent-v2 reads it).
+ *   AGENT_V2_SESSION_STORE = "memory" | "redis"   (unset → "memory" outside production; REQUIRED "redis" in production)
+ *   AGENT_V2_SESSION_REDIS_URL                     (required for "redis"; never hardcoded, never traced)
+ * Anything else, or "redis" without a URL, is a configuration error — never a silent fallback to memory.
+ */
+export function resolveSessionStore(env: Record<string, string | undefined> = process.env, createClient: (url: string) => SessionRedisClient = createNodeRedisSessionClient): AnySessionStore {
+  const production = env.NODE_ENV === "production";
+  const mode = (env.AGENT_V2_SESSION_STORE ?? (production ? "" : "memory")).trim().toLowerCase();
+  const fail = () => new ApiError("SERVICE_UNAVAILABLE", "The assistant's session storage is not configured", 503);
+  if (mode === "memory" && !production) return createInMemorySessionStore();
+  if (mode === "redis") {
+    const url = (env.AGENT_V2_SESSION_REDIS_URL ?? "").trim();
+    if (!/^rediss?:\/\/\S+$/.test(url)) throw fail();
+    return createRedisSessionStore({ client: createClient(url) });
+  }
+  throw fail();
 }
 
 /**

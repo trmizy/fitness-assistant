@@ -39,9 +39,97 @@ export interface ContextEntry {
   supersededBy?: string;
 }
 
+/** M4 synchronous store (in-memory; a single process). Kept unchanged for tests and local runs. */
 export interface SessionContextStore {
   load(owner: string, sessionId: string): ContextEntry[];
   save(owner: string, sessionId: string, entries: ContextEntry[]): void;
+}
+
+/**
+ * M7-P3: a store shared by several application instances. Reads return the raw stored entries plus an opaque version;
+ * writes are compare-and-set on that version (a writer that read an older version is rejected, never a blind
+ * overwrite). Errors are thrown as SessionStoreError — a failure is never reported as an empty session.
+ */
+export interface VersionedSessionStore {
+  readonly versioned: true;
+  read(owner: string, sessionId: string): Promise<{ entries: unknown[]; version: string }>;
+  /** true = written; false = the stored version is no longer `expectedVersion` (someone else wrote first). */
+  write(owner: string, sessionId: string, expectedVersion: string, entries: ContextEntry[]): Promise<boolean>;
+}
+export type AnySessionStore = SessionContextStore | VersionedSessionStore;
+export type SessionStoreErrorKind = "UNAVAILABLE" | "TIMEOUT" | "CORRUPT" | "TOO_LARGE" | "CONFIGURATION_ERROR";
+export class SessionStoreError extends Error {
+  constructor(readonly kind: SessionStoreErrorKind) { super(`session store ${kind}`); this.name = "SessionStoreError"; }
+}
+const isVersioned = (s: AnySessionStore): s is VersionedSessionStore => (s as VersionedSessionStore).versioned === true;
+
+/** Kinds that may ever be persisted (model text / hypotheses / profile facts never are). */
+export const PERSISTABLE_KINDS: ReadonlySet<ContextKind> = new Set<ContextKind>(["TOOL_EVIDENCE", "USER_STATEMENT", "FORECAST", "CONFLICT"]);
+/** Stored history bound (12 entries are REUSED per turn; superseded / expired history is kept up to this, oldest dropped first). */
+export const MAX_STORED_ENTRIES = 48;
+/** Session lifetime, sliding on every write: the longest entry lifetime (user statements, 6 h). */
+export const SESSION_TTL_MS = 6 * 60 * 60_000;
+
+export type SessionRead =
+  | { status: "ok"; raw: unknown[]; version: string | null }
+  | { status: "unavailable" | "corrupt" };
+
+/** Load without ever turning a failure into an empty session. */
+export async function readSession(store: AnySessionStore, owner: string, sessionId: string): Promise<SessionRead> {
+  try {
+    if (isVersioned(store)) {
+      const r = await store.read(owner, sessionId);
+      return Array.isArray(r?.entries) && typeof r.version === "string" ? { status: "ok", raw: r.entries, version: r.version } : { status: "corrupt" };
+    }
+    const raw = store.load(owner, sessionId);
+    return Array.isArray(raw) ? { status: "ok", raw, version: null } : { status: "corrupt" };
+  } catch (err) {
+    return { status: err instanceof SessionStoreError && (err.kind === "CORRUPT" || err.kind === "TOO_LARGE") ? "corrupt" : "unavailable" };
+  }
+}
+
+/**
+ * Read-modify-write: `mutate` always runs on the LATEST stored entries (re-read on a version conflict), so concurrent
+ * turns of the same session merge instead of overwriting each other. Bounded: at most `maxAttempts` CAS rounds; no retry
+ * on a store error. A sync store is updated within one synchronous step (atomic inside a single process).
+ */
+export async function updateSession(store: AnySessionStore, owner: string, sessionId: string, mutate: (current: unknown[]) => ContextEntry[], maxAttempts = 3): Promise<"ok" | "conflict" | "unavailable" | "corrupt"> {
+  if (!isVersioned(store)) {
+    try { store.save(owner, sessionId, mutate(store.load(owner, sessionId))); return "ok"; } catch { return "unavailable"; }
+  }
+  for (let attempt = 0; attempt < Math.max(1, maxAttempts); attempt++) {
+    const cur = await readSession(store, owner, sessionId);
+    if (cur.status !== "ok") return cur.status;
+    try {
+      if (await store.write(owner, sessionId, cur.version ?? "0", mutate(cur.raw))) return "ok";
+    } catch (err) {
+      return err instanceof SessionStoreError && (err.kind === "CORRUPT" || err.kind === "TOO_LARGE") ? "corrupt" : "unavailable";
+    }
+  }
+  return "conflict";
+}
+
+/** Keep every active entry; keep the newest non-active history up to MAX_STORED_ENTRIES; never persist a forbidden kind. */
+export function pruneForStorage(entries: ContextEntry[]): ContextEntry[] {
+  const allowed = entries.filter((e) => PERSISTABLE_KINDS.has(e.kind));
+  const active = allowed.filter(isActive);
+  const history = allowed.filter((e) => !isActive(e)).sort((a, b) => b.createdAt - a.createdAt).slice(0, Math.max(0, MAX_STORED_ENTRIES - active.length));
+  const keep = new Set([...active, ...history]);
+  return allowed.filter((e) => keep.has(e));
+}
+
+/**
+ * M7-P3: the user's OWN statement of an age under 18, kept for the whole session (no per-entry expiry; bounded by the
+ * session TTL). USER_REPORTED — it restricts (Gate 1 counts it as HISTORY), it is never a profile age, never VERIFIED.
+ * Only the fact "under 18" is stored, not the number.
+ */
+export const STATED_MINOR_SUBJECT = "user.statedMinorAge";
+export function statedMinorAgeStatement(ctx: { owner: string; sessionId: string; turnId: string; now: number }): ContextEntry {
+  return { ...userStatement(STATED_MINOR_SUBJECT, { underEighteen: true }, ctx), expiresAt: null };
+}
+/** Active stated-minor entry present in validated, expiry-applied entries. */
+export function hasStatedMinorAge(entries: ContextEntry[]): boolean {
+  return entries.some((e) => e.subject === STATED_MINOR_SUBJECT && e.kind === "USER_STATEMENT" && isActive(e) && e.value.underEighteen === true);
 }
 
 /** In-memory store (tests / local). Keyed by owner AND session; load re-checks ownership of every entry. */

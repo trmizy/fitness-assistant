@@ -83,17 +83,27 @@ function statedAges(text: string): number[] {
   return [f.value];
 }
 
-/** Pure. `historyUserTexts` = earlier USER turns of this conversation only (assistant text is never an age source). */
-export function resolveAgeVerdict(profile: ProfileAgeRead, question: string, historyUserTexts: readonly string[] = []): AgeVerdict {
+/** M7-P3: the user stated (or hypothesised) an age under 18 in this text. Same parser and rules as the verdict below. */
+export function statesMinorAge(text: string): boolean {
+  return statedAges(text).some((a) => a < 18);
+}
+
+/**
+ * Pure. `historyUserTexts` = earlier USER turns of this conversation only (assistant text is never an age source).
+ * M7-P3: `sessionMinorStatement` = the persisted session holds the user's own earlier statement of an age under 18
+ * (a USER_REPORTED entry, written by the supervisor — never a profile age). Counted as HISTORY: it can only make the
+ * verdict stricter, never lift a minor profile age, and a later adult claim does not cancel it.
+ */
+export function resolveAgeVerdict(profile: ProfileAgeRead, question: string, historyUserTexts: readonly string[] = [], sessionMinorStatement = false): AgeVerdict {
   const profileAge = profile.status === "OK" ? profile.age : null;
   const current = statedAges(question);
   const history = historyUserTexts.flatMap(statedAges);
   const minorBy: AgeSource[] = [];
   if (profileAge !== null && profileAge < 18) minorBy.push("PROFILE");
   if (current.some((a) => a < 18)) minorBy.push("CURRENT_TURN");
-  if (history.some((a) => a < 18)) minorBy.push("HISTORY");
+  if (history.some((a) => a < 18) || sessionMinorStatement) minorBy.push("HISTORY");
   const stated = [...current, ...history];
-  const conflict = profileAge !== null && stated.some((a) => (a < 18) !== (profileAge < 18));
+  const conflict = profileAge !== null && (stated.some((a) => (a < 18) !== (profileAge < 18)) || (sessionMinorStatement && profileAge >= 18));
   const status: AgeGateStatus = minorBy.length ? "MINOR" : profile.status === "FAILED" ? "UNVERIFIED" : profileAge === null ? "UNKNOWN" : "ADULT";
   return { status, minorBy, conflict, profileRead: profile.status };
 }
