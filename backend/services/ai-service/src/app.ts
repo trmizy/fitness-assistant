@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { metricsMiddleware, register, logger } from "@gym-coach/shared";
 import aiRoutes from "./routes/ai.routes";
+import aiV2Routes from "./routes/ai-v2.routes";
 import planRoutes from "./routes/plan.routes";
 import adminAiRoutes from "./routes/admin.routes";
 import internalRoutes from "./routes/internal.routes";
@@ -66,6 +67,9 @@ app.get("/metrics", async (_req, res) => {
   res.end(await register.metrics());
 });
 
+// M7-P1 (local integration only): experimental Multi-Agent V2 endpoint POST /ai/v2/ask. Flag-gated (404 when OFF, nothing
+// loaded); mounted before /ai so it never passes through the V1 router. /ai/ask is unchanged.
+app.use("/ai/v2", aiV2Routes);
 app.use("/ai", aiRoutes);
 app.use("/plans", planRoutes);
 // Registered BEFORE the generic /admin/ai mount so /admin/ai/marketplace/* is matched first.

@@ -23,6 +23,7 @@ import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { createToolRegistry, type ToolRegistryOptions } from "./tool-registry";
 import { calendarDateIn } from "./user-calendar";
 import type { AgentToolPolicy, ToolContract } from "./tool-contract";
+import { readErrorStatus } from "./tool-contract";
 
 export interface ProgressToolDeps {
   getBodyGoalState: typeof bodyGoalReader.getBodyGoalState;
@@ -54,7 +55,7 @@ async function unwrapRead<T>(read: Promise<{ status: string; value?: T }>): Prom
   const r = await read;
   if (r.status === "ok") return r.value as T;
   if (r.status === "absent") return null;
-  throw Object.assign(new Error("progress data source unavailable"), { status: 503 });
+  throw Object.assign(new Error("progress data source unavailable"), { status: readErrorStatus(r) });
 }
 /** V1 domain() throws {status}; 404 = "none exists" (no active cycle / roadmap), anything else stays an error. */
 async function nullOn404<T>(work: Promise<T>): Promise<T | null> {

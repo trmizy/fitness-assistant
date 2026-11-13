@@ -56,7 +56,8 @@ const MESSAGES: Record<ToolErrorCode, string> = {
   IDENTITY_IN_ARGUMENTS: "Arguments must not name a user; the signed-in user is always used.",
   VALIDATION_ERROR: "Invalid arguments.",
   CROSS_USER_DATA: "The data returned did not belong to the signed-in user and was withheld.",
-  DOMAIN_ERROR: "The request was rejected by the fitness service (for example: nothing found, or not allowed).",
+  DOMAIN_ERROR: "The request was rejected by the fitness service (for example: nothing found, or invalid).",
+  DOMAIN_ACCESS_DENIED: "The fitness service did not allow this read for the signed-in user.",
   TOOL_TIMEOUT: "The tool did not answer in time.",
   OUTPUT_INVALID: "The tool returned data in an unexpected format.",
   SYSTEM_ERROR: "The tool failed because of a system error.",
@@ -159,7 +160,7 @@ export function createToolRegistry<D = unknown>(options: ToolRegistryOptions<D> 
     } catch (err: any) {
       if (err instanceof ToolTimeout) return fail("TOOL_TIMEOUT");
       const status = Number(err?.status ?? err?.response?.status);
-      return fail(status >= 400 && status < 500 ? "DOMAIN_ERROR" : "SYSTEM_ERROR");
+      return fail(status === 401 || status === 403 ? "DOMAIN_ACCESS_DENIED" : status >= 400 && status < 500 ? "DOMAIN_ERROR" : "SYSTEM_ERROR");
     }
 
     // Defence in depth: the domain services already scope by the forwarded identity; if a response ever carries another

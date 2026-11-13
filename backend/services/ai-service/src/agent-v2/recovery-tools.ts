@@ -23,6 +23,7 @@ import { trainingReader, workoutReader } from "../services/enterprise-data";
 import { createToolRegistry, type ToolRegistryOptions } from "./tool-registry";
 import { calendarDateIn } from "./user-calendar";
 import type { AgentToolPolicy, ToolContract } from "./tool-contract";
+import { readErrorStatus } from "./tool-contract";
 
 export interface RecoveryToolDeps {
   getTrainingAnalytics: typeof trainingReader.getTrainingAnalytics;
@@ -40,7 +41,7 @@ async function unwrap<T>(read: Promise<{ status: string; value?: T }>): Promise<
   const r = await read;
   if (r.status === "ok") return r.value as T;
   if (r.status === "absent") return null;
-  throw Object.assign(new Error("recovery data source unavailable"), { status: 503 });
+  throw Object.assign(new Error("recovery data source unavailable"), { status: readErrorStatus(r) });
 }
 
 // ── READ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────

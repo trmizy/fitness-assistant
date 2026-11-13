@@ -20,16 +20,40 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-test("no V1 module imports agent-v2 (only tests may)", () => {
+// M7-P1 (owner-approved governance exception, LOCAL INTEGRATION ONLY): exactly these two V1-side files may reach
+// agent-v2 — the flag-gated route (dynamic import() only, after the flag check) and the composition root it loads lazily.
+const INTEGRATION_ALLOWLIST = new Set([path.join("routes", "ai-v2.routes.ts"), path.join("agent-v2-integration", "multi-agent-runtime.ts")]);
+const STATIC_V2_IMPORT = /from\s+["'][^"']*agent-v2[^"']*["']|require\(\s*["'][^"']*agent-v2/;
+const ANY_V2_IMPORT = /from\s+["'][^"']*agent-v2[^"']*["']|require\(\s*["'][^"']*agent-v2|import\(\s*["'][^"']*agent-v2/;
+
+test("no V1 module imports agent-v2 (only tests and the two allowlisted integration files may)", () => {
   const offenders = walk(SRC)
-    .filter((f) => !f.startsWith(V2) && !f.includes(`${path.sep}__tests__${path.sep}`))
-    .filter((f) => /from\s+["'][^"']*agent-v2[^"']*["']|require\(\s*["'][^"']*agent-v2/.test(fs.readFileSync(f, "utf8")));
+    .filter((f) => !f.startsWith(V2 + path.sep) && !f.includes(`${path.sep}__tests__${path.sep}`))
+    .filter((f) => !INTEGRATION_ALLOWLIST.has(path.relative(SRC, f)))
+    .filter((f) => ANY_V2_IMPORT.test(fs.readFileSync(f, "utf8")));
   assert.deepEqual(offenders.map((f) => path.relative(SRC, f)), []);
+});
+
+test("M7-P1 integration boundary: the route reaches agent-v2 only by dynamic import(); nothing imports the composition root statically", () => {
+  const route = fs.readFileSync(path.join(SRC, "routes", "ai-v2.routes.ts"), "utf8");
+  assert.doesNotMatch(route, STATIC_V2_IMPORT, "ai-v2.routes.ts must not import agent-v2 statically (flag OFF loads nothing)");
+  assert.match(route, /import\(\s*["']\.\.\/agent-v2\/flag["']\)/);
+  assert.match(route, /import\(\s*["']\.\.\/agent-v2-integration\/multi-agent-runtime["']\)/);
+  // flag gate is the FIRST handler of the route; then requireAuth, then the end-user check
+  assert.match(route, /router\.post\("\/ask",\s*v2FlagGate,\s*requireAuth,\s*requireVerifiedEndUser,/);
+  const staticRoot = walk(SRC)
+    .filter((f) => !f.includes(`${path.sep}__tests__${path.sep}`))
+    .filter((f) => /from\s+["'][^"']*agent-v2-integration[^"']*["']|require\(\s*["'][^"']*agent-v2-integration/.test(fs.readFileSync(f, "utf8")));
+  assert.deepEqual(staticRoot.map((f) => path.relative(SRC, f)), []);
+  // app.ts only mounts the route module (no agent-v2 import of its own)
+  const appSrc = fs.readFileSync(path.join(SRC, "app.ts"), "utf8");
+  assert.doesNotMatch(appSrc, ANY_V2_IMPORT);
+  assert.match(appSrc, /app\.use\("\/ai\/v2", aiV2Routes\);\s*\n\s*app\.use\("\/ai", aiRoutes\);/);
 });
 
 test("nothing outside agent-v2 reads AI_AGENT_V2", () => {
   const offenders = walk(SRC)
-    .filter((f) => !f.startsWith(V2) && !f.includes(`${path.sep}__tests__${path.sep}`))
+    .filter((f) => !f.startsWith(V2 + path.sep) && !f.includes(`${path.sep}__tests__${path.sep}`))
     .filter((f) => fs.readFileSync(f, "utf8").includes("AI_AGENT_V2"));
   assert.deepEqual(offenders.map((f) => path.relative(SRC, f)), []);
 });

@@ -9,7 +9,11 @@ import { APPROVED_ADJUDICATIONS_M6, resolveFailures, type ApprovedAdjudication }
 import { ADJUDICATIONS_M51 } from "./m5-benchmark/adjudication-m51";
 import { KNOWN_EXECUTION_FAILURES_V1 } from "./m5-benchmark/run-benchmark";
 import { ROUTING_CASES_V1, type RoutingCase } from "./m5-benchmark/dataset-v1";
-import { capabilityMatrix, componentChecks, sourceIdentity, runM6Evaluation } from "./m5-benchmark/run-m6";
+import { capabilityMatrix, componentChecks, sourceIdentity, runM6Evaluation, WORKTREE } from "./m5-benchmark/run-m6";
+import { execFileSync } from "node:child_process";
+
+/** The frozen M6 Local RC (historical baseline; never re-labelled as a later candidate). */
+const M6_RC_COMMIT = "b8e595ddb98b5b218ad77c8e910d161b7c476dbc";
 
 let ex: Awaited<ReturnType<typeof runExecutionBenchmark>>;
 test.before(async () => { ex = await runExecutionBenchmark(); });
@@ -98,8 +102,15 @@ test("M6-6 RC source identity: planner = the heldout-scored candidate, heldout i
   assert.ok(id.heldout.ok);
   assert.ok(id.manifest.some((m) => m.file === "agent-v2/routing-planner.ts" && m.sha256 === id.plannerLockSha256));
   if (id.v1RuntimeChangedSinceRc2 === null) { t.skip("tag v1.0.0-rc2 not available in this clone"); return; }
-  assert.deepEqual(id.v1RuntimeChangedSinceRc2, []); assert.deepEqual(id.otherRepoPathsChangedSinceRc2, []);
-  assert.deepEqual(id.v1RuntimeWorkingTreeChanges, []);
+  // M7-P1: the M6 RC is the FROZEN commit b8e595dd (historical baseline). Its V1 runtime is checked AT THAT COMMIT; later
+  // commits (M7-P0, MG-1, TZ, M7-P1 integration) are a separate integrated candidate — see agent-v2-release-identity.test.ts.
+  const AI_SRC = "backend/services/ai-service/src";
+  const v1Paths = [AI_SRC, `:(exclude)${AI_SRC}/agent-v2`, `:(exclude)${AI_SRC}/__tests__`, `:(exclude)${AI_SRC}/generated`];
+  const git = (...a: string[]) => execFileSync("git", a, { cwd: WORKTREE, encoding: "utf8" }).trim();
+  assert.equal(git("cat-file", "-t", M6_RC_COMMIT), "commit");
+  assert.deepEqual(git("diff", "--name-only", "v1.0.0-rc2", M6_RC_COMMIT, "--", ...v1Paths).split("\n").filter(Boolean), []);
+  assert.deepEqual(git("diff", "--name-only", "v1.0.0-rc2", M6_RC_COMMIT, "--", ".", `:(exclude)${AI_SRC}`).split("\n").filter(Boolean), []);
+  assert.ok(git("rev-parse", `${M6_RC_COMMIT}:${AI_SRC}/agent-v2`).startsWith("82a6192f"), "M6 agent-v2 tree 82a6192f…");
 });
 
 test("M6-7 gates after adjudication: G1–G10 PASS with the unchanged M5.1 thresholds; before: only G9 failed", async () => {

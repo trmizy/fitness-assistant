@@ -49,9 +49,23 @@ export type ToolErrorCode =
   | "VALIDATION_ERROR"
   | "CROSS_USER_DATA"
   | "DOMAIN_ERROR"
+  /** M7-P1: the domain service refused the signed-in user (HTTP 401/403) — distinct from "nothing found" / other 4xx. */
+  | "DOMAIN_ACCESS_DENIED"
   | "TOOL_TIMEOUT"
   | "OUTPUT_INVALID"
   | "SYSTEM_ERROR";
+
+/**
+ * M7-P1: the V1 enterprise-data readers return {status:"error", message} for EVERY failure (their catch keeps only the
+ * HTTP client's message). The access decision is recovered from that client's wording ("Request failed with status code 403") so a
+ * refused read is not reported as an outage. Anything else stays 503 (unchanged). String-based on purpose: V1 readers are
+ * not modified.
+ */
+export function readErrorStatus(read: unknown): number {
+  const m = /status code (\d{3})\b/.exec(String((read as { message?: unknown } | null | undefined)?.message ?? ""));
+  const status = m ? Number(m[1]) : NaN;
+  return status === 401 || status === 403 ? status : 503;
+}
 
 /** Error classes the model may be told about. Messages are fixed strings: no domain text, ids, stack or secrets. */
 export const ERROR_CLASS: Record<ToolErrorCode, "policy" | "authorization" | "validation" | "domain" | "system"> = {
@@ -65,6 +79,7 @@ export const ERROR_CLASS: Record<ToolErrorCode, "policy" | "authorization" | "va
   CROSS_USER_DATA: "authorization",
   VALIDATION_ERROR: "validation",
   DOMAIN_ERROR: "domain",
+  DOMAIN_ACCESS_DENIED: "authorization",
   TOOL_TIMEOUT: "system",
   OUTPUT_INVALID: "system",
   SYSTEM_ERROR: "system",
