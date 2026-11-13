@@ -172,6 +172,29 @@ test("M7P41-21 benchmark v4 protocol: frozen BEFORE the router change (planner a
   assert.ok(USED.length >= 30);
 });
 
+// RECORDED RESULT (scored ONCE, 2026-11-13, not re-tuned): heldout v4 G7 FAIL 85% (51/60) → ROUTING NOT READY;
+// G8 PASS 85.5% (53/62); every safety gate PASS; deterministic. A re-run must reproduce the recorded first scoring.
+test("M7P41-23 heldout v4 result (recorded, not re-tuned): G7 FAIL 85% → ROUTING NOT READY; G8 and every safety gate PASS", async () => {
+  const { runM7P41Evaluation, V4_RUN_FILE } = await import("./m7-benchmark/run-v4");
+  const { readFileSync } = await import("node:fs");
+  const ev = await runM7P41Evaluation();
+  const run = JSON.parse(readFileSync(V4_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string; result: Record<string, number> };
+  assert.equal(run.plannerSha256, candidateSha()); assert.equal(run.strategy, "intent-v1.3");
+  assert.deepEqual(run.result, { primaryCoveragePct: 85, exactSetLe2Pct: 85.5, exactSetAllPct: 85.7, macroF1: 0.904, microF1: 0.907 });
+  const m = ev.heldout.candidate.metrics;
+  assert.equal(ev.identical, true);
+  assert.deepEqual({ p: m.primaryCoverage.pct, e: m.exactSetLe2.pct, a: m.exactSetAll.pct }, { p: run.result.primaryCoveragePct, e: run.result.exactSetLe2Pct, a: run.result.exactSetAllPct });
+  assert.ok(ev.thresholdsUnchanged);
+  const g = Object.fromEntries(ev.gates.map((x) => [x.id, x]));
+  for (const id of ["G1", "G2", "G3", "G4", "G5", "G6", "G9", "G10"]) assert.ok(g[id].pass, `${id} = ${g[id].value}`);
+  assert.deepEqual([g.G7.threshold, g.G8.threshold, g.G7.pass, g.G8.pass], [90, 85, false, true]);
+  assert.equal(ev.routingReady, false);
+  // comparators on the same 70 cases (frozen intent-v1.1 and v1.2 select identically on v4)
+  assert.deepEqual(["keyword-v1", "intent-v1.1-frozen", "intent-v1.2-frozen"].map((c) => ev.heldout[c as "keyword-v1"].metrics.primaryCoverage.pct), [51.7, 68.3, 68.3]);
+  assert.deepEqual(ev.deferral.map((d) => d.undetected), [35, 23, 23, 11]);
+  assert.equal(ev.execution.counters.netCalls, 0);
+});
+
 test("M7P41-22 the v4 comparator harness (provider passed in) scores exactly like the M5 routeCase for the same provider (DEV v4)", async () => {
   const scrub = (o: object) => JSON.stringify({ ...o, routingLatencyUs: 0, config: "x" });
   const prov = createIntentDecisionProvider({ maxAgents: 2, domainSignals: ROUTING_SIGNALS });
