@@ -30,3 +30,17 @@ test("CODE AUDIT: app.ts hands those serializers to pino-http (the default seria
   assert.match(app, /pinoHttp\(\{\s*logger,\s*serializers: requestLogSerializers,?\s*\}\)/);
   assert.doesNotMatch(app, /pinoHttp\(\{ logger \}\)/);
 });
+
+test("logRequest redacts query VALUES (a signed document link's sig/exp is a capability) but keeps the path and the parameter names", () => {
+  const out = logRequest({ id: 1, method: "GET", url: "/pt-applications/documents/a.png?exp=1794555229469&sig=a21b73c8d4071bce#frag" });
+  assert.deepEqual(out, { id: 1, method: "GET", url: "/pt-applications/documents/a.png?exp=[REDACTED]&sig=[REDACTED]" });
+  assert.equal(JSON.stringify(out).includes("a21b73c8"), false);
+});
+
+test("the response side is the shared serializer: credential headers and a signed Location / Set-Cookie are redacted, status kept", () => {
+  const out: any = requestLogSerializers.res({ statusCode: 302, headers: { location: "https://x.invalid/d?sig=SYN_LOC", "set-cookie": "s=SYN_COOKIE", "content-type": "text/html" } });
+  assert.equal(out.statusCode, 302);
+  assert.equal(out.headers.location, "https://x.invalid/d?sig=[REDACTED]");
+  assert.equal(out.headers["set-cookie"], "[REDACTED]");
+  assert.equal(out.headers["content-type"], "text/html");
+});
