@@ -1,0 +1,20 @@
+{
+  "file": "dataset-v3.ts",
+  "sha256": "7fcc0eafc5c984f89db6c031bf4fe3d95940fe287f278552772a9e25e06cb826",
+  "devCases": 30,
+  "heldoutCases": 66,
+  "frozenAt": "2026-11-13T07:10:58Z",
+  "frozenBeforeRouterChange": true,
+  "plannerSha256AtFreeze": "ddc0b2d8d2acfd206587c177043d6c3166a4968930b7409ca43b5e9a4fbc35ed",
+  "baselineFile": "baseline-intent-v1-1.ts",
+  "baselineSha256": "ca1361f77700bfbd41da85d0b610f65943e2f9fbbfdf19920c65bb0355231a86",
+  "baseHead": "329ff0be",
+  "criteria": {
+    "primaryCoveragePctMin": 90,
+    "exactSetLe2PctMin": 85,
+    "agentCap": 2,
+    "metricDefinitions": "m5-benchmark/routing-eval.ts routingMetrics (unchanged)"
+  },
+  "labelling": "Single-author (same author as the router); no second annotator; NOT expert-validated; review flags on 7 heldout labels.",
+  "note": "Labels written and frozen before any M7-P4 router change. HELDOUT_V3 is scored ONCE by the M7-P4 candidate; re-runs only check determinism. DEV_V3 may be used while fixing KD-1/KD-2."
+}
