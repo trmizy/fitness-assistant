@@ -16,7 +16,7 @@ import { randomUUID } from "node:crypto";
 import { logger } from "@gym-coach/shared";
 import { foldVi } from "../llm/speech_act";
 import { classifyAgentTurnAct, mayStartMutation } from "../services/agent-turn-act";
-import { checkInputSafety } from "./answer-guards";
+import { checkInputSafety, guardGeneralOnlyAnswer } from "./answer-guards";
 import { isAgentV2Enabled } from "./flag";
 import {
   AgentProviderError, type AgentBlock, type AgentMessage, type AgentModelProvider, type AgentModelResponse, type AgentToolSpec,
@@ -365,7 +365,13 @@ export async function runBoundedAgentTurn(turn: AgentTurn, deps: BoundedAgentDep
           const text = texts.map((t) => t.text).join("\n").trim();
           if (!text) return done("MALFORMED_MODEL_OUTPUT", MSG.MALFORMED_MODEL_OUTPUT, { stopDetail: "empty_answer" });
           if (profile.needsUserData.test(folded) && !personalDataRead) return done("UNGROUNDED", MSG.UNGROUNDED, { stopDetail: "no_user_data_read" });
-          const guarded = profile.guard(text, { question, sessionUserMessages: historyUserTexts, verifiedNumbers, toolData, handoff: deps.handoffData ?? {} });
+          let guarded = profile.guard(text, { question, sessionUserMessages: historyUserTexts, verifiedNumbers, toolData, handoff: deps.handoffData ?? {} });
+          // M7-P0.1 (MG-1): on a general-only turn (minor / unverified profile) the model's text is filtered for personal age,
+          // adulthood, energy / weight / macro prescriptions and personal plans — whatever the prompt note asked
+          if (generalOnly && guarded.answer) {
+            const minor = guardGeneralOnlyAnswer(guarded.answer);
+            guarded = { answer: minor.answer, actions: [...guarded.actions, ...minor.actions] };
+          }
           if (!guarded.answer) return done("MODEL_REFUSED", MSG.MODEL_REFUSED, { stopDetail: "guards_removed_everything", guardActions: guarded.actions });
           return done("ANSWERED", minorNote ? appendMinorSupervisionNote(guarded.answer, "vi") : guarded.answer, { guardActions: minorNote ? [...guarded.actions, "minor_supervision"] : guarded.actions });
         }

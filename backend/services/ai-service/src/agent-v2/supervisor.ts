@@ -15,7 +15,7 @@ import { logger } from "@gym-coach/shared";
 import { foldVi } from "../llm/speech_act";
 import { stripInternalReferences } from "../llm/output_hygiene";
 import { appendMinorSupervisionNote } from "../llm/medical-referral";
-import { checkInputSafety, splitSentences } from "./answer-guards";
+import { checkInputSafety, guardGeneralOnlyAnswer, splitSentences } from "./answer-guards";
 import { isAgentV2Enabled } from "./flag";
 import { PILOT_LIMITS, type AgentLimits, type AgentTurn, type AgentTurnResult, type BoundedAgentDeps } from "./bounded-agent";
 import { classifyMinorRequest, decideMinorGate, resolveAgeVerdict, type ProfileAgeRead, type VerifiedProfileAgeReader } from "./minor-gate";
@@ -273,6 +273,8 @@ export interface SupervisorTrace {
   routing?: { coverage: string; uncertainty: string; primaryNeed: string | null; deferred: Array<{ agentId: AgentId; needs: string[]; reason: string }> } | null;
   /** M4: session-context counts (never values, subjects of user data or the session id). */
   session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number } | null;
+  /** M7-P0.1: general-only output policy removals at composition (rule → count; never the removed text). */
+  generalOnlyOutput?: Record<string, number> | null;
 }
 
 export interface SupervisorResult {
@@ -381,6 +383,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let ageGate: SupervisorTrace["ageGate"] = null;
   let routingSummary: SupervisorTrace["routing"] = null;
   let sessionCounts: SupervisorTrace["session"] = null;
+  let generalOnlyCounts: SupervisorTrace["generalOnlyOutput"] = null;
 
   const finish = (status: SupervisorStatus, answer: string): SupervisorResult => {
     const durationMs = now() - started;
@@ -395,7 +398,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
           estimatedCost: Number(spent.maxCostUsd.toFixed(6)), latencyMs: durationMs,
         },
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
-        routing: routingSummary, session: sessionCounts,
+        routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts,
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };
@@ -584,6 +587,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // 6. composition (deterministic) + final guards
   const sections: string[] = [];
   const notes: string[] = [];
+  const minorOutputActions: string[] = [];
   const multi = results.length > 1;
   for (const r of results) {
     const label = AGENT_LABEL[r.agentId];
@@ -598,12 +602,20 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       }
       text = text.split("\n").filter((line) => !TOOL_NAME.test(line)).join("\n");
       text = stripInternalReferences(text).answer.trim();
+      // M7-P0.1 (MG-1): the same general-only output policy again at composition — it also covers runners that are not
+      // built on the bounded engine. Agent text only; the supervision line is kept and re-checked after composition.
+      if (generalOnly && text) {
+        const minor = guardGeneralOnlyAnswer(text);
+        if (minor.actions.length) minorOutputActions.push(...minor.actions);
+        text = minor.answer;
+      }
       if (!text) { notes.push(PART_UNAVAILABLE.FAILED(label)); continue; }
       sections.push(multi ? `**${label}**\n${text}` : text);
     } else {
       notes.push(PART_UNAVAILABLE[r.completion](label));
     }
   }
+  if (minorOutputActions.length) generalOnlyCounts = countGuards(minorOutputActions);
   if (causalRemoved) { conflicts.push("causal_claim_removed"); notes.push(TEXT.CAUSAL_NOTE); }
   // M3/M4: agents the question needed but the per-turn cap excluded (by the cap or by the intent plan) are SAID
   const cappedOut = [...new Set([...valid.slice(selected.length), ...planDeferred.filter((d) => d.reason === "MAX_AGENTS").map((d) => d.agentId)])];

@@ -19,6 +19,7 @@ import { removeUnsupportedUserClaims } from "../llm/context_fidelity_guard";
 import { enforceExerciseConstraints } from "../llm/exercise_constraint_guard";
 import { extractTurnFacts } from "../llm/turn_facts";
 import { groundIntakeClaims } from "../llm/intake_claim_guard";
+import { appendMinorSupervisionNote } from "../llm/medical-referral";
 
 /**
  * Sentence splitter for the deterministic guards: breaks after . ! ? only when followed by whitespace / end, and at line
@@ -298,4 +299,63 @@ export function guardProgressAnswer(answer: string, ev: ProgressAnswerEvidence):
   if (labelled) actions.push(`e1rm_labelled:${labelled}`);
 
   return { answer: out.trim(), actions };
+}
+
+// ── M7-P0.1 (MG-1): general-only output policy (minor / unverified profile) ─────────────────────────────────────────
+/**
+ * On a GENERAL_ONLY turn (Gate 1: minor + general knowledge, or profile unverified + general knowledge) nothing about the
+ * user was read and the model was told so — but the model's TEXT is not trusted to comply. This deterministic filter runs on
+ * MODEL-GENERATED text only (never on the user's input) and removes, sentence by sentence (folded text, accented or not):
+ *   age        a specific age asserted for the user ("bạn 20 tuổi", "em năm nay 17 tuổi", "tuổi 20 của bạn")
+ *   adult      an adulthood claim ("bạn đã trưởng thành", "vì bạn là người lớn", "bạn trên 18 tuổi")
+ *   kcal       an energy figure (≥ 100 kcal/calo/cal, any common separator, ranges) addressed to the user, or prescribed per
+ *              day / for weight change ("bạn cần 1500 kcal/ngày", "để giảm cân nên ăn 1.200 calo mỗi ngày")
+ *   weight     a weight-change figure addressed to the user ("bạn nên giảm 5 kg")
+ *   macro      a gram figure of a macronutrient addressed to the user ("bạn cần 120 g protein")
+ *   body       a conclusion about the user's own body / energy need ("bạn đang thừa cân", "nhu cầu calo của bạn là …")
+ *   plan       a personal meal plan or restrictive diet instruction ("thực đơn cho bạn", "bạn nên ăn kiêng")
+ * Kept: general statements, including ones with numbers ("1 g protein cung cấp 4 kcal", "một quả chuối khoảng 100 kcal",
+ * "nhu cầu dinh dưỡng thay đổi theo tuổi"), and the mandatory supervision line. When a sentence is ambiguous (addressed to
+ * the user AND carrying an energy / weight / macro figure) it is removed — the stricter side. If the removals leave no
+ * content, a fixed general-knowledge answer is returned instead. A pattern list cannot cover every phrasing; it is a
+ * deterministic backstop under the prompt note, not a proof of absence.
+ */
+export const GENERAL_ONLY_FALLBACK_VI =
+  "Nhu cầu năng lượng và dinh dưỡng ở tuổi đang lớn khác nhau theo tuổi, giới, tốc độ phát triển và mức vận động, nên mình không đưa ra con số hay mục tiêu cá nhân.";
+const SUPERVISION_NOTES = [appendMinorSupervisionNote("", "vi"), appendMinorSupervisionNote("", "en")].map((n) => foldVi(n));
+const YOU = String.raw`(?<!tre )\b(?:ban|em)\b`;
+const AGE_FILLER = String.raw`(?:\s+(?:hien|hien tai|nay|nam nay|bay gio|da|moi|chi|tam|khoang|cung|la|vua|se|tron|duoc))*`;
+const MINOR_OUTPUT_RULES: ReadonlyArray<readonly [string, RegExp]> = [
+  ["age", new RegExp(`${YOU}${AGE_FILLER}\\s+\\d{1,3}\\s*(?:tuoi|t)\\b|\\btuoi\\s+\\d{1,3}\\s+(?:cua|nhu)\\s+(?:ban|em)\\b|\\b\\d{1,3}\\s*tuoi\\s+(?:nhu|cua)\\s+(?:ban|em)\\b|\\b(?:o|voi)\\s+(?:do\\s+)?(?:tuoi\\s+\\d{1,3}|\\d{1,3}\\s*tuoi)\\b[^.!?\\n]{0,20}${YOU}|\\byou(?:'re| are)\\s+\\d{1,3}\\b`)],
+  ["adult", new RegExp(`${YOU}\\s+(?:hien\\s+|nay\\s+|bay gio\\s+|cung\\s+)?(?:da\\s+|la\\s+|deu\\s+|dang la\\s+)?(?:mot\\s+)?(?:nguoi\\s+)?(?:truong thanh|nguoi lon|lon roi|du 18|tren 18|qua 18|ngoai 18|du tuoi truong thanh|qua tuoi vi thanh nien|khong con (?:la )?(?:tre )?vi thanh nien|khong phai (?:la )?(?:tre )?vi thanh nien)\\b|\\btuoi truong thanh\\b[^.!?\\n]{0,15}\\b(?:nhu|cua) (?:ban|em)\\b|\\byou(?:'re| are) (?:an )?(?:adult|over 18|grown)`)],
+  ["body", new RegExp(`${YOU}\\s+(?:hien\\s+|dang\\s+|co ve\\s+|co le\\s+|hoi\\s+|bi\\s+)*(?:thua can|beo phi|thieu can|qua gay|qua beo|nang \\d|cao \\d)|\\b(?:can nang|chieu cao|vong eo|ti le mo|ty le mo|luong mo|khoi co|bmi|tdee|bmr|nhu cau (?:calo|nang luong|dinh duong)|muc tieu (?:calo|nang luong|can nang)) (?:hien tai |hang ngay |moi ngay )?cua (?:ban|em)\\b[^.!?\\n]{0,30}(?:\\d|\\b(?:la|o muc|khoang|dang|qua|thap|cao|on)\\b)`)],
+  ["plan", new RegExp(`\\b(?:thuc don|ke hoach (?:an|dinh duong|giam can)|che do an|lich an)\\b[^.!?\\n]{0,20}\\b(?:cua|cho|danh cho) (?:ban|em)\\b|${YOU}\\s+(?:nen|can|hay|phai)\\s+(?:an kieng|nhin an|bo bua|cat giam (?:calo|tinh bot|an)|giam an|an it lai|han che calo)`)],
+];
+const SECOND_PERSON = new RegExp(`${YOU}|\\byour?\\b`);
+const ENERGY_FIGURE = /(\d{1,2}(?:[.,\s]\d{3})+|\d{2,5})\s*(?:kcal|kilocalo(?:ries)?|calo(?:ries?)?|calories?|cal|ca-? ?lo)\b/g;
+const WEIGHT_FIGURE = /\b(?:giam|tang|xuong|len|cat|mat)\s+(?:them\s+|duoc\s+|khoang\s+)?\d+(?:[.,]\d+)?\s*(?:kg|ky|ki|kilo|can)\b/;
+const MACRO_FIGURE = /\b\d+(?:[.,]\d+)?\s*(?:g|gam|gram)\b[^.!?\n]{0,20}\b(?:protein|dam|carb|tinh bot|chat beo|beo|chat xo)\b|\b(?:protein|dam|carb|tinh bot|chat beo)\b[^.!?\n]{0,25}\b\d+(?:[.,]\d+)?\s*(?:g|gam|gram)\b/;
+const PRESCRIPTIVE = /\b(?:nen|can|hay|phai|chi nen|muc tieu|toi da|toi thieu|khong qua|it nhat|an|nap)\b/;
+const WEIGHT_CONTEXT = /\b(?:giam can|giam mo|tang can|siet can|cat can|tham hut|thieu hut|giam beo|dot mo|cat giam)\b/;
+
+export function guardGeneralOnlyAnswer(answer: string): { answer: string; actions: string[] } {
+  const removed: Record<string, number> = {};
+  const kept = splitSentences(answer).filter((sentence) => {
+    const f = foldVi(sentence);
+    if (!f || SUPERVISION_NOTES.some((n) => n.includes(f))) return true;
+    const hit = (k: string) => { removed[k] = (removed[k] ?? 0) + 1; return false; };
+    for (const [k, re] of MINOR_OUTPUT_RULES) if (re.test(f)) return hit(k);
+    const you = SECOND_PERSON.test(f);
+    const energy = [...f.matchAll(ENERGY_FIGURE)].some((m) => Number(m[1].replace(/[.,\s]/g, "")) >= 100);
+    if (energy && (you || (PRESCRIPTIVE.test(f) && (DAILY_CONTEXT.test(f) || WEIGHT_CONTEXT.test(f))) || (DAILY_CONTEXT.test(f) && WEIGHT_CONTEXT.test(f)))) return hit("kcal");
+    if (you && WEIGHT_FIGURE.test(f)) return hit("weight");
+    if (you && MACRO_FIGURE.test(f)) return hit("macro");
+    return true;
+  });
+  const actions = Object.entries(removed).map(([k, n]) => `minor_output_${k}:${n}`);
+  if (!actions.length) return { answer, actions };
+  const out = kept.join("").trim();
+  const content = splitSentences(out).filter((s) => { const f = foldVi(s); return /[a-z]{2}/.test(f) && !SUPERVISION_NOTES.some((n) => n.includes(f)); });
+  if (!content.length) return { answer: [GENERAL_ONLY_FALLBACK_VI, out].filter(Boolean).join("\n\n"), actions: [...actions, "minor_output_fallback:1"] };
+  return { answer: out, actions };
 }

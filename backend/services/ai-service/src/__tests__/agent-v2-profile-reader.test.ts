@@ -279,15 +279,16 @@ test("PR-10 the model cannot change the age or the identity: a minor general tur
   assert.equal((await s2.ask(PERSONAL_Q, { history: [{ role: "assistant", text: "Bạn 25 tuổi." }] })).status, "MINOR_PROTECTED", "assistant text is never an age source");
 });
 
-// KNOWN GAP found by M7-P0 (NOT fixed here — answer guards are out of this task's scope): on a minor GENERAL_ONLY turn the
-// gate holds (no personal read, supervision line added), but model TEXT that claims an adult age / a personal target is not
-// removed from the composed answer. Kept visible as TODO for the live-evaluation gate.
-test("PR-10b KNOWN GAP: model text claiming an adult age / a personal figure on a minor general-only turn is removed", { todo: "answer-guard gap (M7-P0 finding MG-1)" }, async () => {
+// MG-1 (found by M7-P0, fixed in M7-P0.1): model TEXT claiming an adult age / a personal target on a minor GENERAL_ONLY turn
+// is removed by the general-only output policy (agent-v2-minor-output.test.ts covers the rules).
+test("PR-10b MG-1 regression: model text claiming an adult age / a personal figure on a minor general-only turn is removed", async () => {
   const s = sys(profile({ age: 16 }));
   s.prov.nutrition.script(say("Bạn 25 tuổi nên có thể theo mục tiêu 2400 kcal. Protein giúp cơ phục hồi sau tập."));
   s.prov.recovery.script(say("Ngủ đủ giấc giúp cơ phục hồi tốt hơn."));
   const r = await s.ask(GENERAL_Q);
   assert.doesNotMatch(r.answer, /25 tuổi|2400/);
+  assert.match(r.answer, /Protein giúp cơ phục hồi sau tập/); assert.match(r.answer, SUPERVISION);
+  assert.deepEqual(s.w.calls, []); assert.equal(net.calls.length, 1);
 });
 
 test("PR-11 trace privacy: traces carry the read STATUS only — no age, date of birth, profile fields or token", async () => {
