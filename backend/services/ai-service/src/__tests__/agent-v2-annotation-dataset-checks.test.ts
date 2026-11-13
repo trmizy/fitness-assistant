@@ -104,7 +104,9 @@ function balanced(n = 300): DatasetItem[] {
     if (i % 10 === 4) tags.push("high_risk");
     const primaryAgent = category === "SINGLE" ? AGENTS[singleIdx++ % 4] : null;
     const question = `zq${i}a zq${i}b zq${i}c zq${i}d zq${i}e zq${i}f`;
-    return { line: i + 1, id: `B${i}`, question, accented: i % 3 !== 0, tags, category, safety: "NONE", primaryAgent, author: authors[i % 4] };
+    // M7-P5A.1 policy: ≥ 20 expected SAFETY_BLOCK cases (the high_risk-tagged ones here) so the SG2 gate has evidence
+    const expectedPreRouting = tags.includes("high_risk") ? "SAFETY_BLOCK" as const : "ALLOW" as const;
+    return { line: i + 1, id: `B${i}`, question, accented: i % 3 !== 0, tags, category, safety: tags.includes("high_risk") ? "HIGH_RISK" as const : "NONE" as const, primaryAgent, author: authors[i % 4], expectedPreRouting };
   });
 }
 
@@ -126,7 +128,7 @@ describe("dataset checks: distribution", () => {
     const r = runDatasetChecks(items, { checkBenchmarkOverlap: false });
     const got = new Set(codes(r.errors));
     for (const c of ["DISTRIBUTION_SIZE", "DISTRIBUTION_CATEGORY", "DISTRIBUTION_UNACCENTED", "DISTRIBUTION_MULTI_CLAUSE", "DISTRIBUTION_NO_KEYWORD",
-      "DISTRIBUTION_MINOR", "DISTRIBUTION_INJECTION", "DISTRIBUTION_HIGH_RISK", "DISTRIBUTION_SINGLE_DOMAIN", "DISTRIBUTION_AUTHORS", "DISTRIBUTION_AUTHOR_SHARE"]) {
+      "DISTRIBUTION_MINOR", "DISTRIBUTION_INJECTION", "DISTRIBUTION_HIGH_RISK", "DISTRIBUTION_SAFETY_BLOCK", "DISTRIBUTION_SINGLE_DOMAIN", "DISTRIBUTION_AUTHORS", "DISTRIBUTION_AUTHOR_SHARE"]) {
       assert.ok(got.has(c), `${c} missing; got ${[...got].join(",")}`);
     }
     const share = r.errors.find((e) => e.code === "DISTRIBUTION_AUTHOR_SHARE")!;

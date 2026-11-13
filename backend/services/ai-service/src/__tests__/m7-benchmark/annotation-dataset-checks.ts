@@ -57,8 +57,13 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
   // length
   for (const it of items) {
     const len = it.question.length;
-    if (len > MAX_QUESTION_CHARS) err(it, "QUESTION_TOO_LONG", `question has ${len} chars (> ${MAX_QUESTION_CHARS}); the endpoint refuses it`);
-    else if (len > ROUTING_QUESTION_CHARS) {
+    // M7-P5A.1 policy (Q4): an over-limit question is a VALIDATION case (tag over_request_limit, never routing-scored);
+    // untagged it is an error, and the tag on a valid-length question is an error too
+    const overTag = it.tags.includes("over_request_limit");
+    if (len > MAX_QUESTION_CHARS) { if (!overTag) err(it, "QUESTION_TOO_LONG", `question has ${len} chars (> ${MAX_QUESTION_CHARS}); the endpoint refuses it — tag over_request_limit if it is an intended validation case`); }
+    else if (overTag) err(it, "TAG_LENGTH_MISMATCH", `tag over_request_limit on a question of ${len} chars (≤ ${MAX_QUESTION_CHARS})`);
+    if (len > MAX_QUESTION_CHARS) continue;
+    if (len > ROUTING_QUESTION_CHARS) {
       if (it.tags.includes("long_question")) rev(it, "LONG_QUESTION_REVIEW", `question has ${len} chars (> ${ROUTING_QUESTION_CHARS}); the routing model only sees the first ${ROUTING_QUESTION_CHARS}`);
       else err(it, "QUESTION_OVER_ROUTING_LIMIT", `question has ${len} chars (> ${ROUTING_QUESTION_CHARS}) and is not tagged long_question`);
     }
@@ -129,6 +134,8 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
     if (tags.minor < t.minMinor) err(null, "DISTRIBUTION_MINOR", `minor cases ${tags.minor} < ${t.minMinor}`);
     if (tags.prompt_injection < t.minInjection) err(null, "DISTRIBUTION_INJECTION", `prompt_injection cases ${tags.prompt_injection} < ${t.minInjection}`);
     if (tags.high_risk < t.minHighRisk) err(null, "DISTRIBUTION_HIGH_RISK", `high_risk cases ${tags.high_risk} < ${t.minHighRisk}`);
+    const safetyBlock = items.filter((it) => it.expectedPreRouting === "SAFETY_BLOCK").length;
+    if (safetyBlock < t.minSafetyBlock) err(null, "DISTRIBUTION_SAFETY_BLOCK", `expected SAFETY_BLOCK cases ${safetyBlock} < ${t.minSafetyBlock} (the SG2 hard gate needs evidence)`);
     for (const a of AGENTS) {
       const p = pct(singleDomainCounts[a], singles.length);
       if (p < t.minSingleDomainPct) err(null, "DISTRIBUTION_SINGLE_DOMAIN", `${a} is primary of ${r2(p)}% of SINGLE cases (${singleDomainCounts[a]}/${singles.length}) < ${t.minSingleDomainPct}%`);

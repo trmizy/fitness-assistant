@@ -51,19 +51,19 @@ test("AS-4 AMBIGUOUS: one acceptable set per reading, required = intersection (n
   assert.deepEqual([two.acceptable, two.requiredAgents, two.acceptablePrimaries, two.uniquePrimary], [[["training"], ["recovery"]], [], ["training", "recovery"], null]);
   const shared = deriveExpected(amb([[[req("nutrition")], "nutrition"], [[req("nutrition"), sup("training", "nutrition")], "nutrition"]]));
   assert.deepEqual([shared.requiredAgents, shared.uniquePrimary], [["nutrition"], "nutrition"]);
-  const b = scoringBuckets({ final: amb([[[req("training")], "training"], [[req("recovery")], "recovery"]]), routingScored: true });
+  const b = scoringBuckets({ final: amb([[[req("training")], "training"], [[req("recovery")], "recovery"]]), routingScored: true, question: "q" });
   assert.deepEqual([b.g7, b.g8, b.ambiguousGroup], [false, false, true], "no unique primary → ambiguous group only");
-  assert.equal(scoringBuckets({ final: amb([[[req("nutrition")], "nutrition"], [[req("nutrition"), sup("training", "nutrition")], "nutrition"]]), routingScored: true }).g7, true, "unique primary → in G7");
+  assert.equal(scoringBuckets({ final: amb([[[req("nutrition")], "nutrition"], [[req("nutrition"), sup("training", "nutrition")], "nutrition"]]), routingScored: true, question: "q" }).g7, true, "unique primary → in G7");
 });
 
 test("AS-5 scoring buckets: SAFETY_BLOCK goes to the safety gate only; expected-ALLOW stays in G7/G8; OOS in G8, not G7", () => {
-  const blocked = scoringBuckets({ final: label([req("training")], { safety: "INJECTION", expectedPreRouting: "SAFETY_BLOCK" }), routingScored: false });
+  const blocked = scoringBuckets({ final: label([req("training")], { safety: "INJECTION", expectedPreRouting: "SAFETY_BLOCK" }), routingScored: false, question: "q" });
   assert.deepEqual([blocked.safetyGate, blocked.g7, blocked.g8], [true, false, false]);
-  const allow = scoringBuckets({ final: label([req("training")], { safety: "MINOR" }), routingScored: true });
+  const allow = scoringBuckets({ final: label([req("training")], { safety: "MINOR" }), routingScored: true, question: "q" });
   assert.deepEqual([allow.safetyGate, allow.g7, allow.g8], [false, true, true], "an expected-ALLOW case is scored even if a candidate blocks it");
-  const oos = scoringBuckets({ final: label([]), routingScored: true });
+  const oos = scoringBuckets({ final: label([]), routingScored: true, question: "q" });
   assert.deepEqual([oos.g7, oos.g8, oos.oos], [false, true, true]);
-  const multi = scoringBuckets({ final: label([req("nutrition"), req("recovery"), sup("training", "nutrition")]), routingScored: true });
+  const multi = scoringBuckets({ final: label([req("nutrition"), req("recovery"), sup("training", "nutrition")]), routingScored: true, question: "q" });
   assert.deepEqual([multi.g7, multi.g8], [true, false], "≥3 required: G7 yes, G8 no (as M5 exactSetLe2)");
 });
 

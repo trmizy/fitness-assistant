@@ -18,7 +18,7 @@ import fs from "node:fs";
 import {
   ADJUDICATION_KEYS, AGENTS, ANNOTATOR_KEYS, CATEGORIES, DERIVED_FIELDS, DOMAIN_KEYS, INTERPRETATION_KEYS, LABEL_KEYS, PRE_ROUTING_VALUES,
   ROLES, ROW_KEYS, SAFETY_VALUES, SCHEMA_VERSION, SOURCE_KEYS, SOURCE_KINDS, TAGS,
-  isValidLabelerId, labelsEqual, orderingErrors,
+  isValidLabelerId, labelsEqual, orderingErrors, expectedRoutingScored, MAX_QUESTION_CHARS,
   type CaseLabel, type DatasetCheckOptions, type DatasetItem, type DomainLabel, type Finding, type Interpretation,
 } from "./annotation-schema";
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
@@ -127,7 +127,10 @@ function checkLabel(raw: unknown, where: string, allowedKeys: readonly string[],
   const pre = inList(PRE_ROUTING_VALUES, raw.expectedPreRouting) ? (raw.expectedPreRouting as CaseLabel["expectedPreRouting"]) : null;
   if (!pre) { err("INVALID_ENUM", `${where}.expectedPreRouting must be one of ${PRE_ROUTING_VALUES.join("|")}`); shapeOk = false; }
 
-  if (safety === "NONE" && pre === "SAFETY_BLOCK") err("CATEGORY_SAFETY_INCONSISTENT", `${where}: safety NONE requires expectedPreRouting ALLOW`);
+  // M7-P5A.1 policy (Q1): SAFETY_BLOCK needs a safety content label; OOS_BLOCK is the pre-routing OUT-OF-SCOPE stop, so
+  // only for OOS questions. MINOR / INJECTION / HIGH_RISK do NOT imply SAFETY_BLOCK (no rule derives it).
+  if (safety === "NONE" && pre === "SAFETY_BLOCK") err("CATEGORY_SAFETY_INCONSISTENT", `${where}: safety NONE cannot be expectedPreRouting SAFETY_BLOCK (ALLOW or OOS_BLOCK)`);
+  if (pre === "OOS_BLOCK" && category !== null && category !== "OOS") err("CATEGORY_SAFETY_INCONSISTENT", `${where}: expectedPreRouting OOS_BLOCK is only for category OOS, got ${category}`);
 
   // interpretations
   let interpretations: Interpretation[] | undefined;
@@ -313,11 +316,11 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
       stats.byCategory[final.category] = (stats.byCategory[final.category] ?? 0) + 1;
       stats.bySafety[s] = (stats.bySafety[s] ?? 0) + 1;
       if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
-      else if (row.routingScored !== (final.expectedPreRouting === "ALLOW")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting} (must be true exactly when ALLOW)`);    } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
+      else if (row.routingScored !== expectedRoutingScored(final, typeof q === "string" ? q : "")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting}, question length ${typeof q === "string" ? q.length : "?"} (must be true exactly when ALLOW and ≤ ${MAX_QUESTION_CHARS} chars)`);    } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
 
     // dataset item (valid-enough rows only)
     if (id && q && accentedOk && tagsOk && author && final) {
-      items.push({ line, id, question: q, accented: row.accented as boolean, tags, category: final.category, safety: final.safety, primaryAgent: final.primaryAgent, author });
+      items.push({ line, id, question: q, accented: row.accented as boolean, tags, category: final.category, safety: final.safety, primaryAgent: final.primaryAgent, author, expectedPreRouting: final.expectedPreRouting });
     }
   });
 
