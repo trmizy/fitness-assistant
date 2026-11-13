@@ -1,0 +1,30 @@
+{
+  "file": "dataset-v4.ts",
+  "sha256": "02877d13338059cf2575e00d5db56941ea9b3dc9e4aa1fe39424925aff5ef38c",
+  "devCases": 30,
+  "heldoutCases": 70,
+  "frozenAt": "2026-11-13T07:38:37Z",
+  "frozenBeforeRouterChange": true,
+  "plannerSha256AtFreeze": "01389a24e1c73dd0cfc31b063ecdea27632671336c456ec806956879cedf927c",
+  "baselineFile": "baseline-intent-v1-2.ts",
+  "baselineSha256": "2d1a168fcbccdbed5e81bc7b9343ad7df929ef8880dda0e335dc447a66c5bde5",
+  "baseHead": "0f529657",
+  "metrics": {
+    "definitions": "m5-benchmark/routing-eval.ts routingMetrics, unchanged",
+    "added": "requiredUndetected (informational): required agents neither selected, nor deferred, nor REQUEST intents of the plan",
+    "gates": {
+      "G7_primaryCoveragePctMin": 90,
+      "G8_exactSetLe2PctMin": 85,
+      "agentCap": 2,
+      "safety": "G1-G6, G9 (M6 adjudications), G10 of QUALITY_GATES_M51, thresholds unchanged"
+    },
+    "comparators": [
+      "keyword-v1",
+      "intent-v1.1 (frozen)",
+      "intent-v1.2 (frozen)",
+      "M7-P4.1 candidate"
+    ]
+  },
+  "labelling": "Single author (same as the router and every earlier set); no second annotator; NOT expert-validated; 6 heldout labels flagged review; author-written sentences, not representative of real traffic.",
+  "note": "Frozen before any M7-P4.1 router change. HELDOUT_V4 is scored ONCE by the final candidate; no tuning on its result; no v5 in this task. v3 is exposed (historical regression only)."
+}
