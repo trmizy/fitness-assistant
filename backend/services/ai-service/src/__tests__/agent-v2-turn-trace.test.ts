@@ -82,7 +82,34 @@ test("privacy: no question text, answer text, token, user id or tool data in the
   for (const forbidden of ["Chu kỳ", "tuần mấy", "Bạn đang", "secret-token-value", "Bearer", ME, CYCLE, "2026-11-29"]) assert.ok(!json.includes(forbidden), forbidden);
   assert.equal(turns[0].question.length, q.length);
   assert.deepEqual(turns[0].question, { length: q.length }, "length only — no (dictionary-reversible) hash of the question");
-  assert.doesNotMatch(json, /[0-9a-f]{16}/, "no 16-hex hash anywhere in the trace");
+  // M7-P3.1: the former regex held literal BACKSPACE characters where \b was meant, so it could never match. Structural
+  // check instead: every string value, at any depth, except well-formed UUID ids and ISO timestamps.
+  assert.deepEqual(hexFingerprints(turns[0]), [], "no 16+-hex hash / fingerprint anywhere in the trace");
+});
+
+/** Paths of string values (and keys) that carry a run of ≥ 16 hex characters — a hash, digest or token fingerprint. */
+function hexFingerprints(value: unknown, path = "$", out: string[] = []): string[] {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+  const HEX_RUN = /(?:^|[^0-9a-f])[0-9a-f]{16,}(?:$|[^0-9a-f])/i;
+  if (typeof value === "string") { if (!UUID.test(value) && !ISO.test(value) && HEX_RUN.test(value)) out.push(path); }
+  else if (Array.isArray(value)) value.forEach((v, i) => hexFingerprints(v, `${path}[${i}]`, out));
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) { if (HEX_RUN.test(k) || /hash|digest|fingerprint/i.test(k)) out.push(`${path}.${k}(key)`); hexFingerprints(v, `${path}.${k}`, out); }
+  return out;
+}
+
+test("privacy detector is effective: it flags planted fingerprints and ignores ids / timestamps (M7-P3.1)", async () => {
+  const { turns } = await turn("Mỗi tuần nên tập bao nhiêu set?", [say("Khoảng 10–20 set mỗi nhóm cơ mỗi tuần.")]);
+  const clean = turns[0];
+  assert.ok(/^[0-9a-f-]{36}$/.test(clean.turnId) && typeof clean.startedAt === "string", "the fixture really carries a UUID and an ISO timestamp");
+  assert.deepEqual(hexFingerprints(clean), [], "UUIDs / timestamps / counts are not false positives");
+  const planted = (patch: (t: any) => void) => { const t = structuredClone(clean) as any; patch(t); return hexFingerprints(t); };
+  assert.deepEqual(planted((t) => { t.question = { length: 32, sha: "9f86d081884c7d65" }; }), ["$.question.sha"]);
+  assert.deepEqual(planted((t) => { t.stopDetail = "user:3a7bd3e2360a3d29eea436fcfb7e44c7"; }), ["$.stopDetail"]);
+  assert.deepEqual(planted((t) => { t.rounds = [{ outcome: "ok", promptDigest: "x" }]; }), ["$.rounds[0].promptDigest(key)"]);
+  assert.deepEqual(planted((t) => { t.guardActions = ["hygiene:1/0", "abcdef0123456789ABCDEF"]; }), ["$.guardActions[1]"]);
+  // a UUID with its dashes removed IS a 32-hex fingerprint and must be caught
+  assert.equal(planted((t) => { t.turnId = clean.turnId.replace(/-/g, ""); }).length, 1);
 });
 
 test("a throwing trace sink never changes the turn's outcome", async () => {

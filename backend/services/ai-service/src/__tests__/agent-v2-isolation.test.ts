@@ -23,7 +23,7 @@ function walk(dir: string, out: string[] = []): string[] {
 // M7-P1 (owner-approved governance exception, LOCAL INTEGRATION ONLY): exactly these two V1-side files may reach
 // agent-v2 — the flag-gated route (dynamic import() only, after the flag check) and the composition root it loads lazily.
 // M7-P3: + the Redis session store adapter (session contract types only).
-const INTEGRATION_ALLOWLIST = new Set([path.join("routes", "ai-v2.routes.ts"), path.join("agent-v2-integration", "multi-agent-runtime.ts"), path.join("agent-v2-integration", "redis-session-store.ts")]);
+const INTEGRATION_ALLOWLIST = new Set([path.join("routes", "ai-v2.routes.ts"), path.join("agent-v2-integration", "multi-agent-runtime.ts"), path.join("agent-v2-integration", "redis-session-store.ts"), path.join("agent-v2-integration", "dynamodb-session-store.ts")]);
 const STATIC_V2_IMPORT = /from\s+["'][^"']*agent-v2[^"']*["']|require\(\s*["'][^"']*agent-v2/;
 const ANY_V2_IMPORT = /from\s+["'][^"']*agent-v2[^"']*["']|require\(\s*["'][^"']*agent-v2|import\(\s*["'][^"']*agent-v2/;
 

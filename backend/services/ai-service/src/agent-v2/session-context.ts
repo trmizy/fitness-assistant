@@ -57,7 +57,8 @@ export interface VersionedSessionStore {
   write(owner: string, sessionId: string, expectedVersion: string, entries: ContextEntry[]): Promise<boolean>;
 }
 export type AnySessionStore = SessionContextStore | VersionedSessionStore;
-export type SessionStoreErrorKind = "UNAVAILABLE" | "TIMEOUT" | "CORRUPT" | "TOO_LARGE" | "CONFIGURATION_ERROR";
+/** M7-P3.1: + ACCESS_DENIED / THROTTLED / INVALID_RESPONSE (DynamoDB). Every kind is a failure — never an empty session. */
+export type SessionStoreErrorKind = "UNAVAILABLE" | "TIMEOUT" | "CORRUPT" | "TOO_LARGE" | "CONFIGURATION_ERROR" | "ACCESS_DENIED" | "THROTTLED" | "INVALID_RESPONSE";
 export class SessionStoreError extends Error {
   constructor(readonly kind: SessionStoreErrorKind) { super(`session store ${kind}`); this.name = "SessionStoreError"; }
 }

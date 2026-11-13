@@ -25,6 +25,7 @@ import { createAgentRunners, type AgentDomainDeps } from "../agent-v2/agent-cata
 import { runSupervisorTurn, type SupervisorResult, type SupervisorTrace } from "../agent-v2/supervisor";
 import { createInMemorySessionStore, type AnySessionStore } from "../agent-v2/session-context";
 import { createNodeRedisSessionClient, createRedisSessionStore, type SessionRedisClient } from "./redis-session-store";
+import { createDynamoSessionSend, createDynamoSessionStore, type DynamoSend } from "./dynamodb-session-store";
 import { ApiError } from "../errors/api-error";
 import { createBedrockConverseProvider } from "../agent-v2/bedrock-converse-adapter";
 import type { AgentId } from "../agent-v2/multi-agent-contracts";
@@ -81,11 +82,14 @@ export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): Multi
 
 /**
  * M7-P3: which session store this process uses. Config names avoid the flag's name on purpose (only agent-v2 reads it).
- *   AGENT_V2_SESSION_STORE = "memory" | "redis"   (unset → "memory" outside production; REQUIRED "redis" in production)
+ *   AGENT_V2_SESSION_STORE = "memory" | "redis" | "dynamodb"   (unset → "memory" outside production; production REQUIRES
+ *                                                               "redis" or "dynamodb" — never memory, never a fallback)
  *   AGENT_V2_SESSION_REDIS_URL                     (required for "redis"; never hardcoded, never traced)
+ *   AGENT_V2_SESSION_TABLE + AGENT_V2_SESSION_REGION (required for "dynamodb"; validated; no default table or region)
  * Anything else, or "redis" without a URL, is a configuration error — never a silent fallback to memory.
  */
-export function resolveSessionStore(env: Record<string, string | undefined> = process.env, createClient: (url: string) => SessionRedisClient = createNodeRedisSessionClient): AnySessionStore {
+export function resolveSessionStore(env: Record<string, string | undefined> = process.env, createClient: (url: string) => SessionRedisClient = createNodeRedisSessionClient,
+  createDynamoSend: (region: string) => DynamoSend = createDynamoSessionSend): AnySessionStore {
   const production = env.NODE_ENV === "production";
   const mode = (env.AGENT_V2_SESSION_STORE ?? (production ? "" : "memory")).trim().toLowerCase();
   const fail = () => new ApiError("SERVICE_UNAVAILABLE", "The assistant's session storage is not configured", 503);
@@ -94,6 +98,12 @@ export function resolveSessionStore(env: Record<string, string | undefined> = pr
     const url = (env.AGENT_V2_SESSION_REDIS_URL ?? "").trim();
     if (!/^rediss?:\/\/\S+$/.test(url)) throw fail();
     return createRedisSessionStore({ client: createClient(url) });
+  }
+  if (mode === "dynamodb") {
+    const table = (env.AGENT_V2_SESSION_TABLE ?? "").trim();
+    const region = (env.AGENT_V2_SESSION_REGION ?? "").trim();
+    if (!/^[A-Za-z0-9_.-]{3,255}$/.test(table) || !/^[a-z]{2}(-[a-z]+)+-\d$/.test(region)) throw fail();
+    return createDynamoSessionStore({ tableName: table, send: createDynamoSend(region) });
   }
   throw fail();
 }
