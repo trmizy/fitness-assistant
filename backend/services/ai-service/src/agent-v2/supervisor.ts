@@ -290,7 +290,11 @@ export interface SupervisorDeps {
   runners: readonly AgentRunner[];
   decisionProvider?: DecisionProvider;
   executionPolicy?: Partial<AgentExecutionPolicy>;
-  /** Gate 1 reader (4-state contract). Absent → PROFILE_UNAVAILABLE (fail closed); profileExtractor is NOT used here. */
+  /**
+   * Gate 1 reader (4-state contract). Absent → PROFILE_UNAVAILABLE (fail closed); profileExtractor is NOT used here.
+   * M7-P0: the real reader is `createProfileReader({ get })` (profile-reader.ts), with the V1 service client injected by the
+   * composition root. Read once per turn, before any delegation; agents only receive the cached result.
+   */
   profileReader?: SupervisorProfileReader;
   enabled?: boolean;
   now?: () => number;
