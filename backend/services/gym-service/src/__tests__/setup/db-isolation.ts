@@ -35,6 +35,11 @@ if (verdict.ok) {
   }
 }
 
+// Deterministic test process: the runtime gate of the dispute / complaint-case flags needs NODE_ENV=test, and notification pushes need a service secret.
+// Defaults only - a value already set in the shell is never overridden. The secret is a synthetic, test-only literal (no real credential).
+process.env.NODE_ENV ??= "test";
+process.env.INTERNAL_SERVICE_SECRET ??= "test-only-internal-service-secret-not-a-credential";
+
 neutraliseOutboundEnv();
 installOutboundGuard();
 process.env.GYMINI_TEST_ISOLATION = "1";
