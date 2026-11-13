@@ -73,7 +73,12 @@ test("RI-5 M7-P4.3 identity: intent-v1.3 (sha-locked to heldout v4) and the stri
   execFileSync("git", ["merge-base", "--is-ancestor", M7P43_CANDIDATE.base, "HEAD"], { cwd: WORKTREE });
   const v4 = JSON.parse(readFileSync(V4_RUN_FILE, "utf8")) as { plannerSha256: string; strategy: string };
   assert.equal(v4.plannerSha256, plannerSha()); assert.equal(v4.strategy, "intent-v1.3");
-  assert.deepEqual(lines(git("diff", "--name-only", M7P43_CANDIDATE.base, "--", `${AI_SRC}/agent-v2/hybrid-router.ts`, `${AI_SRC}/agent-v2/routing-planner.ts`, `${AI_SRC}/__tests__/m7-benchmark`, `${AI_SRC}/__tests__/m5-benchmark`)), []);
+  // the frozen benchmark ARTIFACTS (datasets, freeze/run records, frozen baselines, runners) — M7-P5A only ADDED the
+  // annotation validator + its fixtures next to them; nothing frozen may be modified or deleted
+  const M7 = `${AI_SRC}/__tests__/m7-benchmark`;
+  const frozen = ["dataset-v3.ts", "dataset-v4.ts", "heldout-v3.freeze.json", "heldout-v3.run.json", "heldout-v4.freeze.json", "heldout-v4.run.json", "baseline-intent-v1-1.ts", "baseline-intent-v1-2.ts", "run-v3.ts", "run-v4.ts"].map((f) => `${M7}/${f}`);
+  assert.deepEqual(lines(git("diff", "--name-only", M7P43_CANDIDATE.base, "--", `${AI_SRC}/agent-v2/hybrid-router.ts`, `${AI_SRC}/agent-v2/routing-planner.ts`, ...frozen, `${AI_SRC}/__tests__/m5-benchmark`)), []);
+  assert.deepEqual(lines(git("diff", "--name-only", "--diff-filter=MDR", M7P43_CANDIDATE.base, "--", M7)), [], "no file under m7-benchmark modified, deleted or renamed");
   const { resolveRoutingConfig } = await import("../agent-v2/flag");
   const cfg = resolveRoutingConfig({});
   assert.equal(cfg.ok ? cfg.effective : "INVALID", "deterministic");
