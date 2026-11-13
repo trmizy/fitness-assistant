@@ -44,32 +44,38 @@ function refundStub(): ExecDeps {
 test('R-18: GET /admin/complaints is paged ADDITIVELY - no params = the old full array; limit/offset page it stably; meta + X-Total-Count carry the total; bad values are 400', { skip }, async () => {
   const admin = newAdmin();
   const { gym } = await makeGym();
+  // The shared *_test database may hold gym_complaints left by other runs / suites (R-18 once saw 14 from 09/11): the totals below are
+  // BASELINE + the 5 rows made here, never an absolute 5, so the assertions stay exact without depending on what else is in the table.
+  const baseTotal = await prisma.gymComplaint.count();
+  const baseInProgress = await prisma.gymComplaint.count({ where: { status: 'IN_PROGRESS' } });
   const ids: string[] = [];
   for (let i = 0; i < 5; i++) ids.push((await makeComplaint(gym.id, `member-${i}`, { description: `d${i}` })).id);
   await prisma.gymComplaint.update({ where: { id: ids[0] }, data: { status: 'IN_PROGRESS' } });
+  const total = baseTotal + 5;
 
   // old behaviour: no params -> the whole list in `data`, same array shape as before
   const all = await call('GET', '/admin/complaints', admin.tok);
   assert.equal(all.status, 200);
   assert.ok(Array.isArray(all.body.data));
-  assert.equal(all.body.data.length, 5);
-  assert.deepEqual(all.body.meta, { total: 5, limit: null, offset: 0 });
-  assert.equal(all.headers.get('x-total-count'), '5');
+  assert.equal(all.body.data.length, total);
+  assert.deepEqual(all.body.meta, { total, limit: null, offset: 0 });
+  assert.equal(all.headers.get('x-total-count'), String(total));
+  assert.ok(ids.every((id) => all.body.data.some((c: any) => c.id === id)), 'the 5 rows made here are all in the unpaged list');
   assert.ok(['id', 'gymId', 'status', 'issueType', 'description', 'createdAt'].every((k) => k in all.body.data[0]), 'the item shape is unchanged');
 
   // paging: disjoint pages whose union is the whole list, in a stable order
-  const p1 = (await call('GET', '/admin/complaints?limit=2&offset=0', admin.tok)).body;
-  const p2 = (await call('GET', '/admin/complaints?limit=2&offset=2', admin.tok)).body;
-  const p3 = (await call('GET', '/admin/complaints?limit=2&offset=4', admin.tok)).body;
-  assert.deepEqual([p1.data.length, p2.data.length, p3.data.length], [2, 2, 1]);
-  assert.deepEqual(p1.meta, { total: 5, limit: 2, offset: 0 });
-  assert.deepEqual([...p1.data, ...p2.data, ...p3.data].map((c: any) => c.id), all.body.data.map((c: any) => c.id));
-  assert.equal((await call('GET', '/admin/complaints?limit=2&offset=9', admin.tok)).body.data.length, 0);
+  const pages: any[] = [];
+  for (let offset = 0; offset < total; offset += 2) pages.push((await call('GET', `/admin/complaints?limit=2&offset=${offset}`, admin.tok)).body);
+  assert.deepEqual(pages.map((p) => p.data.length), Array.from({ length: pages.length }, (_, i) => Math.min(2, total - 2 * i)));
+  assert.deepEqual(pages[0].meta, { total, limit: 2, offset: 0 });
+  assert.deepEqual(pages.flatMap((p) => p.data).map((c: any) => c.id), all.body.data.map((c: any) => c.id), 'disjoint pages, union == the whole list, same stable order');
+  assert.equal((await call('GET', `/admin/complaints?limit=2&offset=${total + 4}`, admin.tok)).body.data.length, 0);
   // offset alone, and the status filter together with paging
-  assert.equal((await call('GET', '/admin/complaints?offset=3', admin.tok)).body.data.length, 2);
+  assert.equal((await call('GET', '/admin/complaints?offset=3', admin.tok)).body.data.length, total - 3);
   const inProg = (await call('GET', '/admin/complaints?status=IN_PROGRESS&limit=10', admin.tok)).body;
-  assert.equal(inProg.meta.total, 1);
-  assert.equal(inProg.data[0].id, ids[0]);
+  assert.equal(inProg.meta.total, baseInProgress + 1);
+  assert.ok(inProg.data.some((c: any) => c.id === ids[0]), 'the row moved to IN_PROGRESS here is in the filtered list');
+  assert.ok(inProg.data.every((c: any) => c.status === 'IN_PROGRESS'));
 
   for (const q of ['limit=0', 'limit=201', 'limit=abc', 'limit=-1', 'limit=1.5', 'offset=-1', 'offset=x', 'limit=']) {
     const r = await call('GET', `/admin/complaints?${q}`, admin.tok);

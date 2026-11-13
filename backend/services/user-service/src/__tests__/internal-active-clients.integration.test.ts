@@ -22,14 +22,16 @@ let prisma: (typeof import("../repositories/profile.repository"))["prisma"];
 let server: import("node:http").Server | undefined;
 let base = "";
 
-const mk = (ptUserId: string, clientUserId: string, status: string) =>
-  prisma.contract.create({ data: { id: randomUUID(), ptUserId, clientUserId, packageName: "t", totalSessions: 4, status: status as any } }).then((c) => { ids.push(c.id); return c; });
+const mk = (ptUserId: string, clientUserId: string, status: string, source: "INDEPENDENT" | "MARKETPLACE" = "INDEPENDENT") =>
+  prisma.contract.create({ data: { id: randomUUID(), ptUserId, clientUserId, packageName: "t", totalSessions: 4, status: status as any, source } }).then((c) => { ids.push(c.id); return c; });
 
 test.before(async () => {
   if (!canUseDb) return;
   prisma = (await import("../repositories/profile.repository")).prisma;
   await mk(PT, `c1-${RUN}`, "ACTIVE");
-  await mk(PT, `c1-${RUN}`, "ACTIVE");          // same client twice -> listed once
+  // same client twice -> listed once. Since migration 20261021 (contracts_one_live_per_pair) a second live INDEPENDENT contract for the same
+  // (PT, client) pair is rejected by the DB; the one legitimate way to have two ACTIVE rows is a MARKETPLACE contract (exempt from the index).
+  await mk(PT, `c1-${RUN}`, "ACTIVE", "MARKETPLACE");
   await mk(PT, `c2-${RUN}`, "ACTIVE");
   for (const s of ["PENDING_REVIEW", "PENDING_SIGNATURE", "PENDING_PAYMENT", "COMPLETED", "EXPIRED", "CANCELLED", "REJECTED"]) await mk(PT, `x-${s}-${RUN}`, s);
   await mk(OTHER_PT, `c3-${RUN}`, "ACTIVE");    // another PT's client
