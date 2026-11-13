@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { WORKTREE } from "./m5-benchmark/run-m6";
 import { heldoutIntegrity, plannerSha, RUN_FILE } from "./m5-benchmark/run-m51";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { isAgentV2Enabled, isAgentV2HttpEnabled } from "../agent-v2/flag";
 import { V3_RUN_FILE, v3Integrity } from "./m7-benchmark/run-v3";
 import { V4_RUN_FILE, v4Integrity } from "./m7-benchmark/run-v4";
@@ -77,7 +78,16 @@ test("RI-5 M7-P4.3 identity: intent-v1.3 (sha-locked to heldout v4) and the stri
   // annotation validator + its fixtures next to them; nothing frozen may be modified or deleted
   const M7 = `${AI_SRC}/__tests__/m7-benchmark`;
   const frozen = ["dataset-v3.ts", "dataset-v4.ts", "heldout-v3.freeze.json", "heldout-v3.run.json", "heldout-v4.freeze.json", "heldout-v4.run.json", "baseline-intent-v1-1.ts", "baseline-intent-v1-2.ts", "run-v3.ts", "run-v4.ts"].map((f) => `${M7}/${f}`);
-  assert.deepEqual(lines(git("diff", "--name-only", M7P43_CANDIDATE.base, "--", `${AI_SRC}/agent-v2/hybrid-router.ts`, `${AI_SRC}/agent-v2/routing-planner.ts`, ...frozen, `${AI_SRC}/__tests__/m5-benchmark`)), []);
+  // M7-P5A.2: hybrid-router.ts INTENTIONALLY changed (privacy controls A + B). The deterministic router, the frozen
+  // benchmark artifacts and M5 stay byte-identical; the strict JSON output contract (validateRoutingOutput) and the routing
+  // prompt/limits are checked below to be unchanged from the M7-P4.3 candidate.
+  assert.deepEqual(lines(git("diff", "--name-only", M7P43_CANDIDATE.base, "--", `${AI_SRC}/agent-v2/routing-planner.ts`, ...frozen, `${AI_SRC}/__tests__/m5-benchmark`)), []);
+  const HR = `${AI_SRC}/agent-v2/hybrid-router.ts`;
+  const section = (src: string, from: string, to: string) => { const a = src.indexOf(from), b = src.indexOf(to, a); assert.ok(a >= 0 && b > a, `${from} … ${to}`); return src.slice(a, b); };
+  const was = git("show", `${M7P43_CANDIDATE.base}:${HR}`).replace(/\r\n/g, "\n"), now = readFileSync(resolve(WORKTREE, HR), "utf8").replace(/\r\n/g, "\n");
+  assert.equal(section(now, "export function validateRoutingOutput", "const SYSTEM_PROMPT"), section(was, "export function validateRoutingOutput", "const SYSTEM_PROMPT"), "strict JSON validator unchanged");
+  assert.equal(section(now, "const SYSTEM_PROMPT", ".join(\" \");"), section(was, "const SYSTEM_PROMPT", ".join(\" \");"), "routing system prompt unchanged");
+  assert.equal(section(now, "export const ROUTING_MODEL_LIMITS", "export type RoutingLimits"), section(was, "export const ROUTING_MODEL_LIMITS", "export type RoutingLimits"), "routing limits unchanged");
   assert.deepEqual(lines(git("diff", "--name-only", "--diff-filter=MDR", M7P43_CANDIDATE.base, "--", M7)), [], "no file under m7-benchmark modified, deleted or renamed");
   const { resolveRoutingConfig } = await import("../agent-v2/flag");
   const cfg = resolveRoutingConfig({});

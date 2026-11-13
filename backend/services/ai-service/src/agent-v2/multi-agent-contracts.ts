@@ -147,7 +147,23 @@ export interface DecisionInput {
   satisfiedFromSession?: ReadonlySet<AgentId>;
   /** M7-P4.2: what is LEFT of the turn's global budget when routing starts (a model-backed provider must fit inside it). */
   budget?: Readonly<AgentBudget>;
+  /**
+   * M7-P5A.2 privacy control B: a model-backed provider MUST await this immediately before a routing-model call and call
+   * the model only when `eligible` is true. The supervisor implements it with the SAME single, cached profile read that
+   * Gate 1 uses later (never a second read). Absent → the provider must treat the turn as NOT eligible (fail closed).
+   */
+  routingModelClearance?: () => Promise<RoutingModelClearance>;
 }
+
+/**
+ * Whether a routing-model call is allowed for this turn (control B). Only a VERIFIED adult profile (PROFILE_OK, age ≥ 18)
+ * with no minor restriction from the current question, the conversation history or the session qualifies. Self-reported
+ * adulthood is not verification; AGE_UNKNOWN / PROFILE_ACCESS_DENIED / PROFILE_UNAVAILABLE / a reader error / an
+ * unreadable session store are never eligible. Codes only — never the age or any profile value.
+ */
+export type RoutingModelClearanceReason =
+  | "VERIFIED_ADULT" | "MINOR_RESTRICTION" | "AGE_UNKNOWN" | "PROFILE_UNVERIFIED" | "SESSION_UNAVAILABLE";
+export interface RoutingModelClearance { eligible: boolean; reason: RoutingModelClearanceReason }
 
 /** Swappable routing strategy (deterministic in M1; an LLM-backed provider can implement the same interface later). */
 export interface DecisionProvider {

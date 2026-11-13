@@ -210,16 +210,22 @@ test("HH-10 unauthorized: 401 / 403, no runtime work, no routing", async () => {
   assert.equal(s.router.requests.length, 0); assert.equal(s.runtimeCreated(), 0);
 });
 
-test("HH-11 minor: a preflight-blocked minor request never routes; a profile minor is protected after routing with no read", async () => {
+test("HH-11 minor: a preflight-blocked minor request never routes; a profile minor makes ZERO routing calls and is protected by Gate 1 with no domain read", async () => {
   const s = rig({ env: { AI_AGENT_V2: "on", AI_AGENT_V2_ROUTING_MODE: "always" } });
   const r = await s.ask("tok-a", { question: "Em 16 tuổi, cho em thực đơn để giảm cân thật nhanh" });
   assert.equal(r.body.data.status, "SAFETY_BLOCKED"); assert.equal(s.router.requests.length, 0);
-  // profile says 16: Gate 1 runs after routing (order unchanged) — the routing prompt never sees the age, no agent / domain read
+  // CONTRACT CHANGE (M7-P5A.2 control B): a verified-minor profile used to reach the routing model once (`<= 1`) before Gate 1;
+  // it now makes EXACTLY ZERO routing calls (routing-model clearance), the one profile read is shared with Gate 1, and Gate 1
+  // still protects. The "no age in the routing prompt" claim is kept on a verified adult (distinctive age 37), where a call happens.
   const p = rig({ env: { AI_AGENT_V2: "on", AI_AGENT_V2_ROUTING_MODE: "always" }, profiles: { "tok-a": profile(USER_A, 16) } });
   p.router.script(ids(["nutrition"]));
   const m = await p.ask("tok-a", { question: "Mục tiêu calo của tôi là bao nhiêu?" });
-  assert.equal(m.body.data.status, "MINOR_PROTECTED"); assert.ok(p.router.requests.length <= 1);
-  assert.deepEqual(p.w.calls, []); assert.equal(p.last().delegations.length, 0); assert.ok(!/\b16\b|tuổi/.test(routerText(p.router)));
+  assert.equal(m.body.data.status, "MINOR_PROTECTED"); assert.equal(p.router.requests.length, 0); assert.equal(p.profileReads(), 1);
+  assert.deepEqual(p.w.calls, []); assert.equal(p.last().delegations.length, 0);
+  const a = rig({ env: { AI_AGENT_V2: "on", AI_AGENT_V2_ROUTING_MODE: "always" }, profiles: { "tok-a": profile(USER_A, 37) } });
+  a.router.script(ids(["nutrition"]));
+  await a.ask("tok-a", { question: "Mục tiêu calo của tôi là bao nhiêu?" });
+  assert.equal(a.router.requests.length, 1); assert.ok(!/\b37\b|tuổi/.test(routerText(a.router)));
 });
 
 // ── 12–15 model-assisted selection, cap and deferral ────────────────────────────────────────────────────────────────
@@ -290,13 +296,15 @@ test("HH-20 budget: routing usage is part of the GLOBAL budget — an expensive 
   assert.equal(tr.totals.modelCallCount, 1 + tr.delegations.reduce((k, d) => k + d.modelCallCount, 0)); assert.deepEqual(tr.budget.overrun, []);
 });
 
-test("HH-21 ROUTING_UNDETERMINED: a HIGH_RISK personal request with the router unavailable runs nothing and reads nothing", async () => {
+test("HH-21 ROUTING_UNDETERMINED: a HIGH_RISK personal request with the router unavailable runs nothing and reads no domain data", async () => {
   const { AgentProviderError } = await import("../agent-v2/model-provider");
   const s = rig({ env: { AI_AGENT_V2: "on", AI_AGENT_V2_ROUTING_MODE: "always" } });
   s.router.script(() => { throw new AgentProviderError("throttled", "x"); });
   const r = await s.ask("tok-a", { question: "Tôi muốn giảm 5kg trong 2 tuần thì tập và ăn thế nào?" });
   assert.equal(r.status, 200); assert.equal(r.body.data.status, "ROUTING_UNDETERMINED"); assert.deepEqual(r.body.data.agents, []);
-  assert.equal(s.profileReads(), 0); assert.deepEqual(s.w.calls, []); assert.equal(s.last().hybridRouting?.fallbackReasonCode, "PROVIDER_RATE_LIMITED");
+  // CONTRACT CHANGE (M7-P5A.2 control B): the profile is now read ONCE, before the routing call, for clearance (a verified
+  // adult here). That read is the only one (Gate 1 is never reached), and still no domain read happens.
+  assert.equal(s.profileReads(), 1); assert.deepEqual(s.w.calls, []); assert.equal(s.last().hybridRouting?.fallbackReasonCode, "PROVIDER_RATE_LIMITED");
 });
 
 // ── 22–26 sessions, isolation, permissions, trace privacy ───────────────────────────────────────────────────────────
@@ -340,7 +348,8 @@ test("HH-26 trace privacy: no question text, prompt, raw routing output, bearer 
   await s.ask("tok-a", { question: q });
   const tr = JSON.stringify(s.traces);
   for (const x of [q, "Squat sâu", "RAW-ROUTER-OUTPUT-7731", "routing classifier", "Bearer", "tok-a", USER_A]) assert.ok(!tr.includes(x), x);
-  assert.deepEqual(Object.keys(s.last().hybridRouting!).sort(), ["boundedLatencyMs", "deferredAgentIds", "detectedAgentIds", "deterministicAgentIds", "estimatedTokenUsage", "fallbackReasonCode", "mode", "routingModelCalled", "routingStrategy", "routingTimeoutMs", "routingValidationStatus", "selectedAgentIds", "selection", "signals"]);
+  // CONTRACT CHANGE (M7-P5A.2): the trace-safe allowlist gains `routingClearance` (a code) and `redactions` (two counts).
+  assert.deepEqual(Object.keys(s.last().hybridRouting!).sort(), ["boundedLatencyMs", "deferredAgentIds", "detectedAgentIds", "deterministicAgentIds", "estimatedTokenUsage", "fallbackReasonCode", "mode", "redactions", "routingClearance", "routingModelCalled", "routingStrategy", "routingTimeoutMs", "routingValidationStatus", "selectedAgentIds", "selection", "signals"]);
 });
 
 // ── 27–28 V1 unchanged, no network; Bedrock adapter compatibility ────────────────────────────────────────────────────

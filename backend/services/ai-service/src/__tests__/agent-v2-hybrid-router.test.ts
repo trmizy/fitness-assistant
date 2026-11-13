@@ -95,7 +95,10 @@ test("HR-5 out of scope: [] runs no agent and reads nothing (it is not a safety 
   const s = hsys(); s.router.script(ids([]));
   // (a purely off-topic question — "phim nào hay …" — is already stopped by V1 input safety, before routing)
   const { r, tr } = await s.turn(USER_A, "Mai trời có mưa không, tôi định chạy bộ buổi sáng");
-  assert.equal(r.status, "OUT_OF_SCOPE"); assert.equal(s.router.requests.length, 1); assert.equal(tr.delegations.length, 0); assert.equal(tr.profileRead, "NOT_READ"); assert.deepEqual(s.w.calls, []);
+  // CONTRACT CHANGE (M7-P5A.2 control B): before a routing-model call the supervisor now reads the profile ONCE to decide
+  // clearance (verified adult). So `profileRead` is PROFILE_OK, not NOT_READ; the read is the one Gate 1 would reuse, and still
+  // nothing else is read (no domain read, no delegation).
+  assert.equal(r.status, "OUT_OF_SCOPE"); assert.equal(s.router.requests.length, 1); assert.equal(tr.delegations.length, 0); assert.equal(tr.profileRead, "PROFILE_OK"); assert.deepEqual(s.w.calls, []);
 });
 
 // ── 6–11 strict contract ──────────────────────────────────────────────────────────────────────────────────────────
@@ -200,17 +203,27 @@ test("HR-17 no routing call after an input-safety block", async () => {
   assert.equal(r.status, "SAFETY_BLOCKED"); assert.equal(s.router.requests.length, 0); assert.equal(tr.hybridRouting ?? null, null); assert.equal(tr.decision, null);
 });
 
-test("HR-18 minor: routing never sees the age; Gate 1 still decides after routing (general-only / protected)", async () => {
+test("HR-18 minor: the routing model is NEVER called; Gate 1 still decides (general-only / protected); the request an adult sends carries no age", async () => {
+  // CONTRACT CHANGE (M7-P5A.2 control B): a verified-minor profile used to reach the routing model (the age itself was never in
+  // the request); it now makes ZERO routing calls — the deterministic plan stays and Gate 1 decides after it, as before.
+  // The old "no age / profile in the routing request" claim can only be observed where a call still happens (a verified adult
+  // with a distinctive age), so it is asserted there instead of being dropped.
   const s = hsys({ reader: { status: "PROFILE_OK", age: 15 } }); s.router.script(ids(["nutrition"]));
   const { tr } = await s.turn(USER_A, "Protein có vai trò gì trong việc xây cơ?");
-  const data = JSON.parse(userText(s.router)) as Record<string, unknown>;
-  assert.deepEqual(Object.keys(data), ["availableAgents", "recentDomains", "question"], "question + agent codes only");
-  assert.ok(!/\b15\b|tuổi|minor|PROFILE/i.test(JSON.stringify(s.router.requests[0])), "no age / profile in the routing request");
+  assert.equal(s.router.requests.length, 0, "minor profile: no routing call"); assert.equal(tr.hybridRouting?.routingModelCalled, false);
   assert.equal(tr.ageGate?.status, "MINOR"); assert.ok(tr.delegations.every((d) => d.evidence.every((e) => !e.personal || e.outcome !== "ok")), "general-only: no personal read");
+  const a = hsys({ reader: { status: "PROFILE_OK", age: 37 } }); a.router.script(ids(["nutrition"]));
+  await a.turn(USER_A, "Protein có vai trò gì trong việc xây cơ?");
+  assert.equal(a.router.requests.length, 1);
+  const data = JSON.parse(userText(a.router)) as Record<string, unknown>;
+  assert.deepEqual(Object.keys(data), ["availableAgents", "recentDomains", "question"], "question + agent codes only");
+  assert.ok(!/\b37\b|tuổi|minor|PROFILE/i.test(JSON.stringify(a.router.requests[0])), "no age / profile in the routing request");
   const m = hsys({ reader: { status: "PROFILE_OK", age: 15 } }); m.router.script(ids(["training", "nutrition"]));
   const { r } = await m.turn(USER_A, "Cho em lịch tập để tăng 8kg cơ trong một tháng");
-  assert.ok(["MINOR_PROTECTED", "BLOCKED", "SAFETY_BLOCKED"].includes(r.status), r.status);
-  assert.ok(!m.w.calls.some((c) => /weight|inbody|nutrition_target/.test(c) && c.endsWith(":A")) || r.status !== "ANSWERED");
+  assert.equal(m.router.requests.length, 0, "minor profile, personal request: no routing call");
+  // (this question is not HIGH_RISK for the classifier, so Gate 1 lets the turn through and the agent's own minor gate answers
+  //  BLOCKED — the same outcome the old test accepted; the point here is the 0 routing calls and the 0 domain reads)
+  assert.equal(r.status, "BLOCKED"); assert.deepEqual(m.w.calls, [], "zero domain reads");
 });
 
 // ── 19–23 routing quality cases (mock outputs; illustrate the path, not model accuracy) ───────────────────────────

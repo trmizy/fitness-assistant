@@ -24,7 +24,8 @@ import { classifyMinorRequest } from "./minor-gate";
 import { costOf } from "./bounded-agent";
 import { createIntentDecisionProvider, type IntentNeed, type RoutingPlan } from "./routing-planner";
 import { AgentProviderError, type AgentModelProvider, type AgentModelRequest, type AgentModelResponse } from "./model-provider";
-import type { AgentBudget, AgentId, DecisionInput, DecisionProvider, SupervisorDecision } from "./multi-agent-contracts";
+import type { AgentBudget, AgentId, DecisionInput, DecisionProvider, RoutingModelClearanceReason, SupervisorDecision } from "./multi-agent-contracts";
+import { redactForRouting } from "./routing-redaction";
 
 export const ROUTING_AGENT_IDS: readonly AgentId[] = Object.freeze(["training", "nutrition", "recovery", "progress"]);
 /** Per-call ceilings of the routing call. They never RAISE the turn budget: the call must also fit what the turn has left. */
@@ -41,7 +42,10 @@ export type RoutingValidationStatus =
   | "NOT_AN_ARRAY" | "TOO_MANY_AGENTS" | "UNKNOWN_AGENT" | "DUPLICATE_AGENT" | "PROVIDER_ERROR";
 export type FallbackReason =
   | "NONE" | "ROUTING_TIMEOUT" | "PROVIDER_UNAVAILABLE" | "PROVIDER_RATE_LIMITED" | "INVALID_OUTPUT"
-  | "MODEL_BUDGET_EXCEEDED" | "WALL_TIME_EXCEEDED" | "TOKEN_BUDGET_EXCEEDED" | "COST_BUDGET_EXCEEDED" | "NO_BUDGET_CONTEXT";
+  | "MODEL_BUDGET_EXCEEDED" | "WALL_TIME_EXCEEDED" | "TOKEN_BUDGET_EXCEEDED" | "COST_BUDGET_EXCEEDED" | "NO_BUDGET_CONTEXT"
+  | "MODEL_ROUTING_NOT_ELIGIBLE" | "REDACTION_FAILED";
+/** M7-P5A.2 control B outcome (codes only): the clearance reason, or why no clearance was consulted / obtained. */
+export type RoutingClearanceMeta = RoutingModelClearanceReason | "NOT_REQUESTED" | "NO_CLEARANCE_CONTEXT" | "CLEARANCE_ERROR";
 export type RiskSignal =
   | "DET_ABSTAIN" | "DET_LOW_CONFIDENCE" | "AMBIGUOUS_OWNERSHIP" | "COMPOUND_STRUCTURE" | "WEAK_PRIMARY"
   | "LOW_LEXICAL_COVERAGE" | "UNACCENTED_INPUT" | "SENSITIVE_REQUEST";
@@ -63,21 +67,29 @@ export interface HybridRoutingMeta {
   estimatedTokenUsage: { input: number; output: number };
   boundedLatencyMs: number;
   routingTimeoutMs: number;
+  /** Control B: whether the routing model was cleared for this turn (code only). */
+  routingClearance: RoutingClearanceMeta;
+  /** Control A: how many e-mail / phone spans were replaced in the model request (counts only, never text). */
+  redactions: { email: number; phone: number };
 }
 export interface RoutingUsage { modelCalls: number; inputTokens: number; outputTokens: number; estimatedCostUsd: number; latencyMs: number }
 
 // ── supervisor-side sanitizers (a provider is untrusted: its record and usage are re-checked before trace / accounting) ──
 const SELECTIONS: readonly HybridSelection[] = ["KEEP_DETERMINISTIC", "MODEL_ASSISTED", "DETERMINISTIC_FALLBACK", "UNDETERMINED"];
 const VALIDATIONS: readonly RoutingValidationStatus[] = ["NOT_CALLED", "VALID", "NON_TEXT_OUTPUT", "TRUNCATED", "INVALID_JSON", "NOT_AN_OBJECT", "EXTRA_KEYS", "NOT_AN_ARRAY", "TOO_MANY_AGENTS", "UNKNOWN_AGENT", "DUPLICATE_AGENT", "PROVIDER_ERROR"];
-const FALLBACKS: readonly FallbackReason[] = ["NONE", "ROUTING_TIMEOUT", "PROVIDER_UNAVAILABLE", "PROVIDER_RATE_LIMITED", "INVALID_OUTPUT", "MODEL_BUDGET_EXCEEDED", "WALL_TIME_EXCEEDED", "TOKEN_BUDGET_EXCEEDED", "COST_BUDGET_EXCEEDED", "NO_BUDGET_CONTEXT"];
+const FALLBACKS: readonly FallbackReason[] = ["NONE", "ROUTING_TIMEOUT", "PROVIDER_UNAVAILABLE", "PROVIDER_RATE_LIMITED", "INVALID_OUTPUT", "MODEL_BUDGET_EXCEEDED", "WALL_TIME_EXCEEDED", "TOKEN_BUDGET_EXCEEDED", "COST_BUDGET_EXCEEDED", "NO_BUDGET_CONTEXT", "MODEL_ROUTING_NOT_ELIGIBLE", "REDACTION_FAILED"];
+const CLEARANCES: readonly RoutingClearanceMeta[] = ["VERIFIED_ADULT", "MINOR_RESTRICTION", "AGE_UNKNOWN", "PROFILE_UNVERIFIED", "SESSION_UNAVAILABLE", "NOT_REQUESTED", "NO_CLEARANCE_CONTEXT", "CLEARANCE_ERROR"];
+const CLEARANCE_REASONS = CLEARANCES.slice(0, 5);
 const SIGNALS: readonly RiskSignal[] = ["DET_ABSTAIN", "DET_LOW_CONFIDENCE", "AMBIGUOUS_OWNERSHIP", "COMPOUND_STRUCTURE", "WEAK_PRIMARY", "LOW_LEXICAL_COVERAGE", "UNACCENTED_INPUT", "SENSITIVE_REQUEST"];
 const num = (x: unknown, max: number) => (typeof x === "number" && Number.isFinite(x) && x >= 0 ? Math.min(x, max) : 0);
 const ids = (x: unknown): AgentId[] => (Array.isArray(x) ? [...new Set(x.filter((a): a is AgentId => (ROUTING_AGENT_IDS as readonly unknown[]).includes(a)))] : []);
+const count = (x: unknown) => (typeof x === "number" && Number.isFinite(x) && x >= 0 ? Math.min(Math.floor(x), 1000) : 0);
 const pick = <T extends string>(x: unknown, allowed: readonly T[], dflt: T): T => ((allowed as readonly unknown[]).includes(x) ? (x as T) : dflt);
 export function sanitizeHybridMeta(m: unknown): HybridRoutingMeta | null {
   if (!m || typeof m !== "object") return null;
   const r = m as Record<string, unknown>;
   const tok = (r.estimatedTokenUsage ?? {}) as Record<string, unknown>;
+  const red = (r.redactions && typeof r.redactions === "object" ? r.redactions : {}) as Record<string, unknown>;
   return {
     routingStrategy: "hybrid-v1", mode: r.mode === "always" ? "always" : "selective",
     selection: pick(r.selection, SELECTIONS, "UNDETERMINED"), routingModelCalled: r.routingModelCalled === true,
@@ -85,6 +97,7 @@ export function sanitizeHybridMeta(m: unknown): HybridRoutingMeta | null {
     signals: Array.isArray(r.signals) ? [...new Set(r.signals.filter((s): s is RiskSignal => (SIGNALS as readonly unknown[]).includes(s)))] : [],
     deterministicAgentIds: ids(r.deterministicAgentIds), detectedAgentIds: ids(r.detectedAgentIds), selectedAgentIds: ids(r.selectedAgentIds), deferredAgentIds: ids(r.deferredAgentIds),
     estimatedTokenUsage: { input: num(tok.input, 1e7), output: num(tok.output, 1e7) }, boundedLatencyMs: num(r.boundedLatencyMs, 3.6e6), routingTimeoutMs: num(r.routingTimeoutMs, 3.6e6),
+    routingClearance: pick(r.routingClearance, CLEARANCES, "NOT_REQUESTED"), redactions: { email: count(red.email), phone: count(red.phone) },
   };
 }
 /** Missing / malformed usage counts as zero EXCEPT model calls, which are never under-reported: a non-integer is rounded up. */
@@ -128,10 +141,25 @@ const SYSTEM_PROMPT = [
   "No other keys, no explanation, no markdown.",
 ].join(" ");
 
-/** The routing request: the question (truncated) + agent-id codes. No identity, profile, session values or tool data. */
+/** Thrown by the request builder when the question cannot be safely redacted; the request is never built and nothing is sent. */
+export class RoutingRedactionError extends Error {
+  constructor() { super("routing question could not be redacted"); this.name = "RoutingRedactionError"; }
+}
+/**
+ * The ONLY routing-request builder (single choke point for privacy control A): the FULL question is redacted first
+ * (e-mail / phone → placeholders), THEN truncated, so an identifier straddling the limit never leaks a fragment. The request
+ * carries the redacted question (truncated) + agent-id codes — no identity, profile, session values or tool data.
+ * Throws RoutingRedactionError (no request) when the input is not a string or too long.
+ */
+export function buildRoutingRequestRedacted(question: string, available: readonly AgentId[], recentDomains: readonly AgentId[], maxOutputTokens: number, signal: AbortSignal): { request: AgentModelRequest; redactions: { email: number; phone: number } } {
+  const red = redactForRouting(question);
+  if (!red.ok) throw new RoutingRedactionError();
+  const data = { availableAgents: [...available], recentDomains: [...recentDomains], question: red.text.slice(0, ROUTING_MODEL_LIMITS.maxQuestionChars) };
+  const request: AgentModelRequest = { system: SYSTEM_PROMPT, messages: [{ role: "user", content: [{ type: "text", text: JSON.stringify(data) }] }], tools: [], maxOutputTokens, temperature: 0, signal };
+  return { request, redactions: red.counts };
+}
 export function buildRoutingRequest(question: string, available: readonly AgentId[], recentDomains: readonly AgentId[], maxOutputTokens: number, signal: AbortSignal): AgentModelRequest {
-  const data = { availableAgents: [...available], recentDomains: [...recentDomains], question: question.slice(0, ROUTING_MODEL_LIMITS.maxQuestionChars) };
-  return { system: SYSTEM_PROMPT, messages: [{ role: "user", content: [{ type: "text", text: JSON.stringify(data) }] }], tools: [], maxOutputTokens, temperature: 0, signal };
+  return buildRoutingRequestRedacted(question, available, recentDomains, maxOutputTokens, signal).request;
 }
 const CHARS_PER_TOKEN = 3;
 export const estimateRoutingInputTokens = (req: Pick<AgentModelRequest, "system" | "messages">) => Math.ceil((req.system.length + JSON.stringify(req.messages).length) / CHARS_PER_TOKEN);
@@ -211,6 +239,7 @@ export function createHybridDecisionProvider(o: HybridProviderOptions): Decision
         fallbackReasonCode: "NONE", signals, deterministicAgentIds: [...det.selected], detectedAgentIds: [...det.selected],
         selectedAgentIds: [...det.selected], deferredAgentIds: det.deferred.filter((d) => d.reason === "MAX_AGENTS").map((d) => d.agentId),
         estimatedTokenUsage: { input: 0, output: 0 }, boundedLatencyMs: 0, routingTimeoutMs: 0,
+        routingClearance: "NOT_REQUESTED", redactions: { email: 0, phone: 0 },
       };
       const usage: RoutingUsage = { modelCalls: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, latencyMs: 0 };
       const finish = (d: SupervisorDecision): SupervisorDecision => {
@@ -239,10 +268,31 @@ export function createHybridDecisionProvider(o: HybridProviderOptions): Decision
       const maxOut = Math.min(L.maxOutputTokens, Math.floor(b.maxOutputTokens));
       const controller = new AbortController();
       const recent = input.satisfiedFromSession ? ROUTING_AGENT_IDS.filter((a) => input.satisfiedFromSession!.has(a)) : [];
-      const req = buildRoutingRequest(input.question, input.available, recent, maxOut, controller.signal);
+      let req: AgentModelRequest;
+      try {
+        const built = buildRoutingRequestRedacted(input.question, input.available, recent, maxOut, controller.signal);
+        req = built.request; meta.redactions = built.redactions;
+      } catch {
+        // control A: an input that cannot be redacted is never sent — no model call, deterministic fallback table applies
+        return keepDeterministic("DETERMINISTIC_FALLBACK", "REDACTION_FAILED");
+      }
       const estIn = estimateRoutingInputTokens(req);
       if (maxOut < 16 || estIn > Math.min(L.maxInputTokens, b.maxInputTokens)) return keepDeterministic("DETERMINISTIC_FALLBACK", "TOKEN_BUDGET_EXCEEDED");
       if (costOf(estIn, maxOut) > Math.min(L.maxCostUsd, b.maxCostUsd)) return keepDeterministic("DETERMINISTIC_FALLBACK", "COST_BUDGET_EXCEEDED");
+
+      // ── control B: the model is called only for a VERIFIED adult (clearance awaited immediately before the call) ───
+      if (typeof input.routingModelClearance !== "function") { meta.routingClearance = "NO_CLEARANCE_CONTEXT"; return keepDeterministic("DETERMINISTIC_FALLBACK", "MODEL_ROUTING_NOT_ELIGIBLE"); }
+      let clearance: unknown;
+      try { clearance = await input.routingModelClearance(); } catch { clearance = null; }
+      const cl = clearance && typeof clearance === "object" ? (clearance as Record<string, unknown>) : null;
+      if (!cl) { meta.routingClearance = "CLEARANCE_ERROR"; return keepDeterministic("DETERMINISTIC_FALLBACK", "MODEL_ROUTING_NOT_ELIGIBLE"); }
+      const reason = pick<RoutingClearanceMeta>(cl.reason, CLEARANCE_REASONS, "CLEARANCE_ERROR");
+      // fail closed: eligible only when the provider says so AND the reason is VERIFIED_ADULT (a contradictory answer is not trusted)
+      if (cl.eligible !== true || reason !== "VERIFIED_ADULT") {
+        meta.routingClearance = cl.eligible === true ? "CLEARANCE_ERROR" : reason === "VERIFIED_ADULT" ? "CLEARANCE_ERROR" : reason;
+        return keepDeterministic("DETERMINISTIC_FALLBACK", "MODEL_ROUTING_NOT_ELIGIBLE");
+      }
+      meta.routingClearance = "VERIFIED_ADULT";
 
       // ── exactly one attempt, own timeout, no retry ─────────────────────────────────────────────────────────────
       meta.routingModelCalled = true; meta.routingTimeoutMs = timeoutMs; calls++;

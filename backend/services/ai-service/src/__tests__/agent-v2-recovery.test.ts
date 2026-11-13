@@ -27,6 +27,9 @@ const OTHER = "22222222-2222-4222-8222-222222222222";
 const CTX = { userId: ME, authorizationHeader: "Bearer secret-token-rec" };
 const DAY = 86_400_000;
 const isoDaysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString();
+// The tool reports the user's calendar day (Asia/Ho_Chi_Minh, M7 TZ fix 004ca887). The expectation is computed independently
+// with Intl (not with the production helper) — slicing the UTC ISO string made this test fail every day from 17:00 UTC.
+const vnDateDaysAgo = (n: number) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(Date.now() - n * DAY));
 
 // ── synthetic data in the V1 reader shapes ───────────────────────────────────────────────────────────────────────────
 const WINDOW = (over: Record<string, unknown> = {}) => ({
@@ -124,7 +127,7 @@ test("R-1 tools: READ only, frozen policy, projections drop the derived recovery
   const json = JSON.stringify([load, sessions]);
   for (const s of ["recoveryScore", "0.62", "Barbell Squat", "Bench Press", "secret-note", "IGNORE RULES", "w-1", ME, "e-sq"]) assert.ok(!json.includes(s), s);
   assert.equal((load as any).data.effort.averageSessionRpe, 8.2); assert.equal((load as any).data.effort.rpeTrend, "increasing");
-  assert.deepEqual((sessions as any).data.sessions[0], { date: isoDaysAgo(1).slice(0, 10), durationMin: 60, exerciseCount: 1, bodyParts: ["LOWER_BODY"], completedSets: 2, avgSetRpe: 8.5, maxPainScore: 2 });
+  assert.deepEqual((sessions as any).data.sessions[0], { date: vnDateDaysAgo(1), durationMin: 60, exerciseCount: 1, bodyParts: ["LOWER_BODY"], completedSets: 2, avgSetRpe: 8.5, maxPainScore: 2 });
 });
 
 test("R-2 routing: Training-only, Recovery-only, Training+Recovery; 'phục hồi cơ' alone stays Nutrition", () => {

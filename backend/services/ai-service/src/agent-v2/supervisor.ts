@@ -32,7 +32,7 @@ import {
 } from "./session-context";
 import type {
   AgentBudget, AgentCapability, AgentCompletion, AgentEvidence, AgentExecutionPolicy, AgentId, AgentRequest, AgentResult,
-  AgentRunner, AgentRuntime, DecisionInput, DecisionProvider, ProfileReadResult, SupervisorDecision, SupervisorProfileReader,
+  AgentRunner, AgentRuntime, DecisionInput, DecisionProvider, ProfileReadResult, RoutingModelClearance, RoutingModelClearanceReason, SupervisorDecision, SupervisorProfileReader,
 } from "./multi-agent-contracts";
 
 // ── defaults ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -284,6 +284,8 @@ export interface SupervisorTrace {
   hybridRouting?: HybridRoutingMeta | null;
   /** M7-P4.3: the configured vs EFFECTIVE routing mode of this runtime and why (codes only). Absent when not configured. */
   routingMode?: { requested: string; effective: string; reason: string } | null;
+  /** M7-P5A.2 control B: on every turn that reached routing — whether the provider asked for a routing-model clearance and its reason (codes only — never age/profile values). */
+  routingClearance?: { requested: boolean; reason: RoutingModelClearanceReason | null };
 }
 
 export interface SupervisorResult {
@@ -400,6 +402,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let sessionCounts: SupervisorTrace["session"] = null;
   let generalOnlyCounts: SupervisorTrace["generalOnlyOutput"] = null;
   let hybridRouting: SupervisorTrace["hybridRouting"] = null;
+  let routingClearance: SupervisorTrace["routingClearance"];
   const MODE = /^(deterministic|selective|always)$/, MODE_REASON = /^(DEFAULT|CONFIGURED|HYBRID_PRODUCTION_NOT_APPROVED)$/;
   const rm = deps.routingMode;
   const routingMode: SupervisorTrace["routingMode"] = rm && MODE.test(rm.requested) && MODE.test(rm.effective) && MODE_REASON.test(rm.reason)
@@ -419,6 +422,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
         },
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
         routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts, hybridRouting, routingMode,
+        ...(routingClearance ? { routingClearance } : {}),
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts };
@@ -471,13 +475,50 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   for (const r of deps.runners) if (!byId.has(r.capability.agentId)) byId.set(r.capability.agentId, r);
   const available = AGENT_ORDER.filter((a) => byId.has(a) && policy.allowedAgents.includes(a));
   const provider = deps.decisionProvider ?? createIntentDecisionProvider({ maxAgents: policy.maxAgentsPerTurn, domainSignals: ROUTING_SIGNALS });
+  // M7-P5A.2: every routed turn records whether the routing-model clearance was requested (codes only)
+  routingClearance = { requested: false, reason: null };
   const satisfiedFromSession = reuse ? agentsSatisfiedBySession(reuse.freshSubjects) : new Set<AgentId>();
   // M7-P4.2: a model-backed provider sees what is LEFT of the turn budget and must fit inside it
   spent.maxWallTimeMs = now() - started;
   const routingBudget = Object.fromEntries(DIMS.map((k) => [k, Math.max(0, policy.budget[k] - spent[k])])) as unknown as AgentBudget;
+  // M7-P5A.2 privacy control B: ONE profile read per turn, memoized and LAZY — nothing is read unless routing asks for clearance
+  // or Gate 1 is reached (turns that end earlier read nothing). Gate 1 and the routing clearance share this exact promise.
+  let profileReadOnce: Promise<ProfileReadResult> | null = null;
+  const readProfileOnce = (): Promise<ProfileReadResult> => (profileReadOnce ??= (async (): Promise<ProfileReadResult> => {
+    try {
+      const r: ProfileReadResult = deps.profileReader ? await deps.profileReader(identity) : { status: "PROFILE_UNAVAILABLE" };
+      profileStatus = r?.status ?? "READER_ERROR";
+      return r;
+    } catch {
+      profileStatus = "READER_ERROR";
+      return { status: "PROFILE_UNAVAILABLE" };
+    }
+  })());
+  // the same bounded history Gate 1 uses (built before routing so the clearance and Gate 1 evaluate identical inputs)
+  const history = (turn.history ?? []).slice(-4).map((h) => ({ role: h.role, text: String(h.text ?? "").slice(0, 1_500) }));
+  const historyUserTexts = history.filter((h) => h.role === "user").map((h) => h.text);
+  let clearanceOnce: Promise<RoutingModelClearance> | null = null;
+  const routingModelClearance = (): Promise<RoutingModelClearance> => (clearanceOnce ??= (async (): Promise<RoutingModelClearance> => {
+    let result: RoutingModelClearance;
+    try {
+      if (sessionUnavailable) result = { eligible: false, reason: "SESSION_UNAVAILABLE" };
+      else {
+        // same inputs as Gate 1: the single profile read, the current question, the history user texts, the session minor flag
+        const v = resolveAgeVerdict(toProfileAgeRead(await readProfileOnce()), question, historyUserTexts, sessionMinor);
+        result = v.status === "ADULT" ? { eligible: true, reason: "VERIFIED_ADULT" }
+          : v.status === "MINOR" ? { eligible: false, reason: "MINOR_RESTRICTION" }
+          : v.status === "UNKNOWN" ? { eligible: false, reason: "AGE_UNKNOWN" }
+          : { eligible: false, reason: "PROFILE_UNVERIFIED" };
+      }
+    } catch {
+      result = { eligible: false, reason: "PROFILE_UNVERIFIED" }; // fail closed — never eligible on an unexpected error
+    }
+    routingClearance = { requested: true, reason: result.reason };
+    return result;
+  })());
   let raw: SupervisorDecision;
   try {
-    raw = await provider.decide({ question, folded, available, satisfiedFromSession, budget: Object.freeze(routingBudget) });
+    raw = await provider.decide({ question, folded, available, satisfiedFromSession, budget: Object.freeze(routingBudget), routingModelClearance });
   } catch {
     raw = { strategy: provider.name, agents: [], reasonCodes: ["decision_provider_error"] };
   }
@@ -507,20 +548,12 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   }
 
   // 3. Gate 1 over the WHOLE turn, before any delegation — one read, shared by every agent (they cannot loosen it)
-  let read: ProfileReadResult;
-  try {
-    read = deps.profileReader ? await deps.profileReader(identity) : { status: "PROFILE_UNAVAILABLE" };
-    profileStatus = read?.status ?? "READER_ERROR";
-  } catch {
-    read = { status: "PROFILE_UNAVAILABLE" };
-    profileStatus = "READER_ERROR";
-  }
+  const read = await readProfileOnce();
   const ageRead = toProfileAgeRead(read);
   // M7-P3: with the session unreadable the agents' own gate sees an UNVERIFIED state (general information only)
   const agentAgeRead: ProfileAgeRead = sessionUnavailable ? { status: "FAILED", reason: "session_unavailable" } : ageRead;
   const profileAgeReader: VerifiedProfileAgeReader = async () => agentAgeRead;
-  const history = (turn.history ?? []).slice(-4).map((h) => ({ role: h.role, text: String(h.text ?? "").slice(0, 1_500) }));
-  const verdict = resolveAgeVerdict(ageRead, question, history.filter((h) => h.role === "user").map((h) => h.text), sessionMinor);
+  const verdict = resolveAgeVerdict(ageRead, question, historyUserTexts, sessionMinor);
   const needsOwnData = selected.some((a) => byId.get(a)!.capability.needsUserData.test(folded));
   const category = classifyMinorRequest(question);
   const gate = decideMinorGate(verdict, category, needsOwnData);
