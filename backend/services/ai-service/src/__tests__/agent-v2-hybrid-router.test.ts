@@ -320,7 +320,9 @@ test("HR-27 V1 /ai/ask unchanged: since the M7-P4.1 baseline only the approved V
   // see RI-2), not a V1 route; V1 /ai/ask has its own router and is checked in HH-27 / SH-14.
   // M7-P5A.2.3: the isolated, owner-authorised V1 safety hotfix 86f24b96 ("móc họng" → unsafe_weight_loss_behavior) — ONLY
   // llm/safety_guard.ts and its own new test file; a separate V1 changeset, not part of the V2 composition.
-  const approved = [`${AI}/agent-v2-integration/multi-agent-runtime.ts`, `${AI}/routes/ai-v2.routes.ts`, `${AI}/llm/safety_guard.ts`, `${AI}/llm/__tests__/safety_guard_induced_vomiting.test.ts`];
+  const approved = [`${AI}/agent-v2-integration/multi-agent-runtime.ts`, `${AI}/routes/ai-v2.routes.ts`, `${AI}/llm/safety_guard.ts`, `${AI}/llm/__tests__/safety_guard_induced_vomiting.test.ts`,
+    // M7-P5A.3c: one more test file of the same owner-authorised V1 detector remediation (nothing else under llm/**)
+    `${AI}/llm/__tests__/safety_guard_induced_vomiting_clause.test.ts`];
   assert.ok(changed.every((f) => approved.includes(f)), changed.join());
 });
 

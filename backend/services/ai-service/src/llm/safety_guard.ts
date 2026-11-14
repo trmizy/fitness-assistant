@@ -337,7 +337,10 @@ const INDUCED_VOMITING_PATTERNS: readonly RegExp[] = [
 // see `detectBareVomitingDisclosure`), never across sentences (V1 safety correction 2026-11-14, P1-a / P1-b).
 // The subject of a bare-verb pattern must be a real first person: "con tôi", "vợ mình", "bé nhà mình", "mẹ em" … are third persons, so the
 // first-person word may not directly follow a possessive / relation head. (Bare path only: the móc họng / intent patterns above are unchanged.)
-const IV_NOT_POSSESSED = String.raw`(?<!\b(?:con|ban|vo|chong|anh|chi|me|bo|ba|chau|be|nguoi|cua|trai|gai|ong|bac|chu|co|dua|thang|nha)\s)`;
+// The heads are looked up in their MARKED form ("<head>xrel", written only by `foldInducedVomitingText(text, "accented" | "plain")`, i.e. only
+// for the bare path): after the diacritic fold "có / cố / cô" all read "co", "chỉ / chị" read "chi", "còn" reads "con", "bỏ" reads "bo", so an
+// unmarked homograph ("Chỉ có mình hay ói …" = "only I …") must NOT be mistaken for a relation head ("chị / cô mình").
+const IV_NOT_POSSESSED = String.raw`(?<!\b(?:con|ban|vo|chong|anh|chi|me|bo|ba|chau|be|nguoi|cua|trai|gai|ong|bac|chu|co|dua|thang|nha|di|cau)xrel\s)`;
 const IV_SUBJECT_BARE = String.raw`${IV_NOT_POSSESSED}${IV_SUBJECT}`;
 const IV_SUBJECT_HABIT_BARE = String.raw`${IV_SUBJECT_BARE}${IV_SUBJECT_HABIT.slice(IV_SUBJECT.length)}`;
 const INDUCED_VOMITING_BARE_VERB_PATTERNS: readonly RegExp[] = [
@@ -373,36 +376,63 @@ const IV_BENIGN_CAUSE = /\b(?:vi|do|boi|tai)\s+(?:bi\s+)?(?:say\s+(?:xe|song|nan
  * interjections ôi/ơi/ối ("em ơi") are neutralised, so the diacritic fold cannot turn them into "mua" (buy) / a bare "oi" → then
  * the shared diacritic fold.
  */
-function foldInducedVomitingText(text: string): string {
-  const marked = String(text ?? "")
+function foldInducedVomitingText(text: string, relationHeads?: "accented" | "plain"): string {
+  let marked = String(text ?? "")
     .normalize("NFC")
     .toLowerCase()
     .replace(/mửa/g, "mxuaz")
     .replace(/(?<![\p{L}])ói(?![\p{L}])/gu, "oiz")
     .replace(/(?<![\p{L}])ôm(?![\p{L}])/gu, "oxm") // "ôm" (hug) must not read as the unaccented "om" = "ốm" (thin / ill)
     .replace(/(?<![\p{L}])[ôơốồổỗộớờởỡợ]i(?![\p{L}])/gu, "oxi");
+  // Bare path only: mark the REAL relation / possessive heads so `IV_NOT_POSSESSED` never reads a homograph ("chỉ", "có", "còn", "chứ") as one.
+  if (relationHeads) {
+    marked = marked.replace(relationHeads === "accented" ? IV_RELATION_HEADS_ACCENTED : IV_RELATION_HEADS_PLAIN, "$&xrel");
+  }
   return foldSafetyText(marked);
 }
+// Relation heads that precede a first-person word ("con tôi", "vợ mình", "bé nhà mình", "chị mình", "của tôi").
+// Accented text (any Vietnamese diacritic anywhere in the question): only the properly accented spelling counts — plus the heads that are
+// ordinary ASCII words (con / ba / anh / trai) — so ASCII "chi" / "co" / "chu" in "Chỉ có mình …" are NOT heads.
+// Fully unaccented text: every unambiguous head counts, but not the genuinely ambiguous co / chi / chu (accepted trade-off: favour detection).
+const IV_RELATION_HEADS_ACCENTED = /(?<![\p{L}])(?:bạn|vợ|chồng|chị|mẹ|bố|bà|chú|cô|cậu|bé|nhà|của|gái|ông|bác|dì|cháu|đứa|thằng|người|con|ba|anh|trai)(?![\p{L}])/gu;
+const IV_RELATION_HEADS_PLAIN = /(?<![\p{L}])(?:con|vo|chong|me|bo|ba|chau|be|nguoi|trai|gai|ong|bac|dua|thang|nha|anh|ban|cua)(?![\p{L}])/gu;
+const IV_HAS_DIACRITIC = /[À-ɏḀ-ỿ]/;
 // Clause-local bare-verb classification. The RAW question is segmented BEFORE folding (the fold collapses newlines): sentences split on
 // . ! ? ; … and line breaks, comma-clauses inside a sentence split on "," — each clause is then folded and tested alone. A purpose / cause stated
 // in another SENTENCE never cancels nor creates a disclosure for this vomiting event; inside the same sentence only the event's own clause plus an
 // ADJACENT comma-clause that starts with a purpose (resp. cause) marker counts. Same-event cause wins ("ói vì say xe, để giảm cân" stays safe).
 const IV_SENTENCE_SPLIT = /[.!?;…\n\r]+/;
-const IV_CLAUSE_SPLIT = /[,，]/;
-const IV_PURPOSE_CLAUSE_START = /^(?:de|cho|nham|muon|vi\s+so|so|keo|tranh)\b/;
+// Intra-sentence clause separators: comma, colon, parentheses, a spaced hyphen / en dash / em dash, an unspaced en / em dash (never a hyphen inside a word).
+const IV_CLAUSE_SPLIT = /[,，:()]|\s[-–—]+\s|[–—]/;
+const IV_PURPOSE_CLAUSE_START = /^(?:de|cho|nham|muon|so|keo|tranh|vi\s+(?:muon|khong\s+muon|so|de|nham))\b/;
 const IV_CAUSE_CLAUSE_START = /^(?:vi|do|boi|tai)\b/;
+// An ADJACENT purpose clause that goes on with its OWN subject ("để giữ dáng tôi đi bộ", "để giảm cân mình ăn nhiều rau") states the purpose of THAT
+// action, not of the neighbouring vomiting event, so it is not adopted for the event.
+const IV_OWN_SUBJECT_AFTER_PURPOSE = /^\s*(?:minh|toi|tui|tao|em|anh)\b/;
+function adjacentPurposeBelongsToEvent(adjacent: string): boolean {
+  if (!IV_PURPOSE_CLAUSE_START.test(adjacent)) return false;
+  const reason = IV_BARE_PURGE_REASON.exec(adjacent);
+  if (!reason) return true; // no purge reason in it: adopting adds nothing (purposeScope is tested for a reason anyway)
+  return !IV_OWN_SUBJECT_AFTER_PURPOSE.test(adjacent.slice(reason.index + reason[0].length));
+}
 function detectBareVomitingDisclosure(question: string): boolean {
-  for (const sentence of String(question ?? "").split(IV_SENTENCE_SPLIT)) {
+  const raw = String(question ?? "");
+  // "accented text" = a Vietnamese diacritic anywhere in the question (mixed-accent text counts as accented).
+  const relationHeads = IV_HAS_DIACRITIC.test(raw.normalize("NFC").toLowerCase()) ? "accented" : "plain";
+  for (const sentence of raw.split(IV_SENTENCE_SPLIT)) {
     if (!sentence.trim()) continue;
-    const clauses = sentence.split(IV_CLAUSE_SPLIT).map(foldInducedVomitingText);
+    const raws = sentence.split(IV_CLAUSE_SPLIT);
+    // The subject patterns run on the relation-MARKED fold; purpose / cause scopes use the plain fold so the marker never leaks into them.
+    const markedClauses = raws.map((clause) => foldInducedVomitingText(clause, relationHeads));
+    const clauses = raws.map((clause) => foldInducedVomitingText(clause));
     for (let i = 0; i < clauses.length; i++) {
-      if (!INDUCED_VOMITING_BARE_VERB_PATTERNS.some((re) => re.test(clauses[i]))) continue;
+      if (!INDUCED_VOMITING_BARE_VERB_PATTERNS.some((re) => re.test(markedClauses[i]))) continue;
       let purposeScope = clauses[i];
       let causeScope = clauses[i];
       for (const j of [i - 1, i + 1]) {
         const adjacent = clauses[j];
         if (adjacent === undefined) continue;
-        if (IV_PURPOSE_CLAUSE_START.test(adjacent)) purposeScope += " " + adjacent;
+        if (adjacentPurposeBelongsToEvent(adjacent)) purposeScope += " " + adjacent;
         if (IV_CAUSE_CLAUSE_START.test(adjacent)) causeScope += " " + adjacent;
       }
       if (IV_BARE_PURGE_REASON.test(purposeScope) && !IV_BENIGN_CAUSE.test(causeScope)) return true;
