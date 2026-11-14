@@ -2,8 +2,9 @@
 /**
  * Loads scripts/seed-marketplace/data/geo/vietnam_ward_geo.json into user-service.vietnam_ward_geo.
  *
- * Allowed targets ONLY: --target test | --target scale (explicitly refuses --target dev or others).
- * Requires SEED_MARKETPLACE_CONFIRM=scale when using --target scale.
+ * Allowed targets ONLY: --target test | --target scale | --target official (explicitly refuses --target dev or others).
+ * Requires SEED_MARKETPLACE_CONFIRM=scale when using --target scale, SEED_MARKETPLACE_CONFIRM=official for --target official
+ * (gymcoach_user_official; non-loopback host only with --allow-remote-host).
  * Idempotent: ON CONFLICT (ward_code) DO UPDATE ... WHERE row IS DISTINCT FROM EXCLUDED.
  */
 import fs from "node:fs";
@@ -19,19 +20,19 @@ export const EXPECTED_WARD_COUNT = 3321;
 export const VN_CENTROID_BOUNDS = Object.freeze({ minLat: 6, maxLat: 24, minLng: 100, maxLng: 115 });
 // Đặc khu Trường Sa (ward 22736) spans eastward to 117.828 E while its centroid remains <= 115 E.
 export const VN_BBOX_BOUNDS = Object.freeze({ minLat: 6, maxLat: 24, minLng: 100, maxLng: 118 });
-const ALLOWED_TARGETS = new Set(["test", "scale"]);
+const ALLOWED_TARGETS = new Set(["test", "scale", "official"]);
 
 /** Enforces load-ward-geo target rules: ONLY --target test or --target scale (never dev). */
-export function assertLoadWardGeoAllowed(kind, { suffix = "seed_test", env = process.env } = {}) {
+export function assertLoadWardGeoAllowed(kind, { suffix = "seed_test", env = process.env, allowRemoteHost = false } = {}) {
   const normalizedKind = kind === undefined ? "test" : String(kind).toLowerCase();
   if (!ALLOWED_TARGETS.has(normalizedKind)) {
     throw new SeedGuardError(
       "TARGET_REFUSED",
-      `load-ward-geo refuses --target "${normalizedKind}" (only --target test or --target scale is allowed).`,
+      `load-ward-geo refuses --target "${normalizedKind}" (only --target test, scale or official is allowed).`,
     );
   }
   const target = resolveTarget({ kind: normalizedKind, suffix, env });
-  const guard = assertSeedAllowed(target, { env, allowSharedTestDb: false });
+  const guard = assertSeedAllowed(target, { env, allowSharedTestDb: false, allowRemoteHost });
   if (!ALLOWED_TARGETS.has(guard.kind)) {
     throw new SeedGuardError("TARGET_REFUSED", `Unexpected guard target "${guard.kind}".`);
   }
@@ -200,8 +201,9 @@ export async function loadWardGeoToDb({
   geoPath = DEFAULT_GEO_PATH,
   env = process.env,
   dryRun = false,
+  allowRemoteHost = false,
 } = {}) {
-  const { guard, target } = assertLoadWardGeoAllowed(kind, { suffix, env });
+  const { guard, target } = assertLoadWardGeoAllowed(kind, { suffix, env, allowRemoteHost });
   const geoJson = JSON.parse(fs.readFileSync(geoPath, "utf8"));
   const rows = prepareWardGeoRows(geoJson);
   if (dryRun) {
@@ -280,6 +282,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     suffix: flag("suffix", "seed_test"),
     geoPath: flag("geo", DEFAULT_GEO_PATH),
     dryRun: !!flag("dry-run", false),
+    allowRemoteHost: !!flag("allow-remote-host", false),
   })
     .then((result) => console.log(JSON.stringify(result, null, 2)))
     .catch((err) => {

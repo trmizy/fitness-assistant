@@ -22,6 +22,7 @@ import {
   createScaleS3Clients,
   generateScaleAvatars,
   loadUsableMasterPools,
+  probeS3Buckets,
   syncMediaToMinio,
 } from "./media.mjs";
 import { runScaleIntegrity } from "./integrity.mjs";
@@ -53,6 +54,14 @@ export async function runScaleSeed({
   const existingCp = loadCheckpoint(cpFile);
 
   await assertTargetReadyForScale({ target, pools, resume, checkpoint: existingCp });
+
+  // Media settings are validated (and the buckets probed) BEFORE any row is written: a wrong MinIO env must not surface after
+  // 17 minutes of DB writes. Official target: strict, never falls back to the scale stack's defaults.
+  let s3Clients = s3;
+  if (target.kind === "official" && !skipMedia && !s3Clients) {
+    s3Clients = createScaleS3Clients(process.env, { strict: true });
+    await probeS3Buckets(s3Clients);
+  }
 
   const { result: { universe } } = await tracker.trackPhase("plan", async () => {
     const u = buildScaleUniverse({ counts, namespace, masterPools });
@@ -310,9 +319,8 @@ export async function runScaleSeed({
   }
 
   // 6. Media (MinIO server-side CopyObject + local DiceBear avatars)
-  let s3Clients = s3;
   if (!skipMedia && phaseSet.has("media") && !(resume && checkpoint.phasesDone.media)) {
-    if (!s3Clients) s3Clients = createScaleS3Clients();
+    if (!s3Clients) s3Clients = createScaleS3Clients(process.env, { strict: target.kind === "official" });
     await tracker.trackPhase("media.avatars", async () => {
       const av = await generateScaleAvatars({
         avatarPlans: universe.avatarPlans,
@@ -343,7 +351,7 @@ export async function runScaleSeed({
   let integrityResults = [];
   if (phaseSet.has("verify")) {
     const checkMedia = !skipMedia;
-    if (checkMedia && !s3Clients) s3Clients = createScaleS3Clients();
+    if (checkMedia && !s3Clients) s3Clients = createScaleS3Clients(process.env, { strict: target.kind === "official" });
     const { result } = await tracker.trackPhase("verify.c6", async () => {
       integrityResults = await runScaleIntegrity({
         pools,

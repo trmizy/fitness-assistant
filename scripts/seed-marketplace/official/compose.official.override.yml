@@ -1,0 +1,35 @@
+# Points the dev stack's auth / user / gym / payment / chat services at the OFFICIAL databases (gymcoach_<svc>_official) that
+# `index.mjs --target official` seeds. Stack it AFTER infra/compose/docker-compose.dev.yml:
+#
+#   docker compose -f infra/compose/docker-compose.dev.yml -f scripts/seed-marketplace/official/compose.official.override.yml up -d --no-deps --force-recreate `
+#       auth-service user-service gym-service payment-service chat-service api-gateway
+#
+# Rollback = run the same command WITHOUT this file (the old gymcoach_<svc> databases were never touched).
+# fitness-service / ai-service are deliberately NOT switched: they own the exercise / food / knowledge catalogs (the official seed
+# does not create any) and the marketplace flows do not use them. See README.md in this folder.
+# Each service keeps the dev startup (`prisma migrate deploy` first) so pending migrations still apply to the official DBs.
+services:
+  auth-service:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth_official
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  user-service:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user_official
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/tsx prisma/seed_vietnam_locations.ts && pnpm run dev"]
+  gym-service:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym_official
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  payment-service:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment_official
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  chat-service:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat_official
+      CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat_official
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  api-gateway:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth_official

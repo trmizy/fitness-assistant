@@ -4,6 +4,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { PHOTO_REUSE_CAP, SCALE_EPOCH } from "./config.mjs";
+import { SeedGuardError } from "../guard.mjs";
 import { generateAvatarBuffer } from "../../generate-avatars.mjs";
 import { manifest } from "../world/assets.mjs";
 
@@ -277,13 +278,46 @@ export function verifyLocalAvatars(avatarPlans, outDir = DEFAULT_AVATARS_DIR) {
   return { examined: avatarPlans.length, missing };
 }
 
-export function createScaleS3Clients(env = process.env) {
+/** True for the isolated scale stack's MinIO (host port 59000 or the compose service name); the official target must never write there. */
+export function isScaleMinioEndpoint(endpoint) {
+  try {
+    const u = new URL(endpoint);
+    return /minio-scale/i.test(u.hostname) || Number(u.port) === 59000;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * S3/MinIO clients. Default (scale / test): the isolated scale MinIO defaults below.
+ * strict (official target): NOTHING falls back to the scale stack - the partner's own endpoint, credentials and both buckets must be
+ * given explicitly (SEED_MINIO_ENDPOINT/ACCESS_KEY/SECRET_KEY or the services' PT_MEDIA_S3_* vars, plus PT_MEDIA_S3_BUCKET and
+ * PARTNER_S3_PRIVATE_BUCKET - the same variables user-service / gym-service use).
+ */
+export function createScaleS3Clients(env = process.env, { strict = false } = {}) {
   const { S3Client } = loadAwsS3Sdk();
-  const endpoint = env.SEED_MINIO_ENDPOINT || env.PT_MEDIA_S3_ENDPOINT || "http://127.0.0.1:59000";
+  const pick = (...names) => names.map((n) => env[n]).find((v) => typeof v === "string" && v.length > 0);
+  if (strict) {
+    const missing = [
+      ["SEED_MINIO_ENDPOINT (or PT_MEDIA_S3_ENDPOINT)", pick("SEED_MINIO_ENDPOINT", "PT_MEDIA_S3_ENDPOINT")],
+      ["SEED_MINIO_ACCESS_KEY (or PT_MEDIA_S3_ACCESS_KEY_ID)", pick("SEED_MINIO_ACCESS_KEY", "PT_MEDIA_S3_ACCESS_KEY_ID")],
+      ["SEED_MINIO_SECRET_KEY (or PT_MEDIA_S3_SECRET_ACCESS_KEY)", pick("SEED_MINIO_SECRET_KEY", "PT_MEDIA_S3_SECRET_ACCESS_KEY")],
+      ["PT_MEDIA_S3_BUCKET", pick("PT_MEDIA_S3_BUCKET")],
+      ["PARTNER_S3_PRIVATE_BUCKET", pick("PARTNER_S3_PRIVATE_BUCKET")],
+    ].filter(([, v]) => !v).map(([n]) => n);
+    if (missing.length) {
+      throw new SeedGuardError("MEDIA_ENV_MISSING", `Official media needs explicit S3/MinIO settings (no scale defaults): missing ${missing.join(", ")}.`);
+    }
+    const ep = pick("SEED_MINIO_ENDPOINT", "PT_MEDIA_S3_ENDPOINT");
+    if (isScaleMinioEndpoint(ep)) {
+      throw new SeedGuardError("MEDIA_ENDPOINT_REFUSED", `S3 endpoint ${ep} is the isolated scale MinIO; the official media must go to the official stack's own MinIO.`);
+    }
+  }
+  const endpoint = pick("SEED_MINIO_ENDPOINT", "PT_MEDIA_S3_ENDPOINT") || "http://127.0.0.1:59000";
   const region = env.SEED_MINIO_REGION || "us-east-1";
   const credentials = {
-    accessKeyId: env.SEED_MINIO_ACCESS_KEY || env.PT_MEDIA_S3_ACCESS_KEY_ID || "scale_minio",
-    secretAccessKey: env.SEED_MINIO_SECRET_KEY || env.PT_MEDIA_S3_SECRET_ACCESS_KEY || "scale_minio_secret_isolated",
+    accessKeyId: pick("SEED_MINIO_ACCESS_KEY", "PT_MEDIA_S3_ACCESS_KEY_ID") || "scale_minio",
+    secretAccessKey: pick("SEED_MINIO_SECRET_KEY", "PT_MEDIA_S3_SECRET_ACCESS_KEY") || "scale_minio_secret_isolated",
   };
   const client = new S3Client({ endpoint, region, forcePathStyle: true, credentials });
   return {
@@ -292,6 +326,18 @@ export function createScaleS3Clients(env = process.env) {
     ptBucket: env.PT_MEDIA_S3_BUCKET || "gymini-user-media",
     gymBucket: env.PARTNER_S3_PRIVATE_BUCKET || "gymini-partner-private",
   };
+}
+
+/** Cheap reachability probe of both buckets (one ListObjectsV2, MaxKeys=1 each); throws SeedGuardError MEDIA_UNREACHABLE. */
+export async function probeS3Buckets(s3, commands = null) {
+  const { ListObjectsV2Command } = commands ?? loadAwsS3Sdk();
+  for (const [client, bucket] of [[s3.ptClient, s3.ptBucket], [s3.gymClient, s3.gymBucket]]) {
+    try {
+      await client.send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }));
+    } catch (e) {
+      throw new SeedGuardError("MEDIA_UNREACHABLE", `S3/MinIO bucket "${bucket}" is not reachable with the given settings (${e.name || e.message}). Create the bucket and check SEED_MINIO_* before seeding.`);
+    }
+  }
 }
 
 async function listKeysByPrefix(s3Client, ListObjectsV2Command, bucket, prefix) {

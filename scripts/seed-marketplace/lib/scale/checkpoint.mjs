@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
-import { targetFingerprint } from "../preflight.mjs";
+import { assertOfficialTargetEmpty, targetFingerprint } from "../preflight.mjs";
 import { SeedGuardError } from "../guard.mjs";
 import { SCALE_EMAIL_DOMAIN } from "./config.mjs";
 
@@ -33,6 +33,20 @@ export async function assertTargetReadyForScale({ target, pools, resume = false,
   if (resume) {
     if (!checkpoint) {
       throw new SeedGuardError("RESUME_CHECKPOINT_MISSING", "Cannot --resume: no matching checkpoint file found for this target.");
+    }
+    return;
+  }
+
+  // official target: stricter than the SYNTHETIC-marker probes below - every table of the four DBs must be empty
+  // (migration + reference rows aside), so the scale tier can never be layered on a database that holds anything else.
+  if (target.kind === "official") {
+    try {
+      await assertOfficialTargetEmpty(pools);
+    } catch (e) {
+      if (e instanceof SeedGuardError && e.code === "OFFICIAL_NOT_EMPTY") {
+        throw new SeedGuardError("SCALE_ALREADY_SEEDED", `${e.message}. Pass --resume to continue an interrupted run, or create fresh gymcoach_<svc>_official databases.`);
+      }
+      throw e;
     }
     return;
   }

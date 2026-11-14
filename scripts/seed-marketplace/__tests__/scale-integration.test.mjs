@@ -148,6 +148,20 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
     assert.equal(badRes.find((r) => r.name.startsWith("4.")).status, "FAIL");
     await pools.payment.query(`DELETE FROM payment_transactions WHERE id = 'it-pay-bad'`);
 
+    // Fault injection 2b: a wallet owned by a scale user fails check 4; a wallet of a NON-scale (REAL) user, even funded, does not
+    // (official database = scale tier + REAL business seed); a platform wallet other than ESCROW/REVENUE fails.
+    const walletIns = (id, ownerType, ownerId, bal) => pools.payment.query(
+      `INSERT INTO wallets (id, owner_type, owner_id, available_balance, updated_at) VALUES ($1, $2::"WalletOwnerType", $3, $4, now())`, [id, ownerType, ownerId, bal]);
+    const check4 = async () => (await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false })).find((r) => r.name.startsWith("4.")).status;
+    await walletIns("it-w-real", "CLIENT", "it-real-user-not-in-scale", 500000);
+    assert.equal(await check4(), "PASS");
+    await walletIns("it-w-scale", "CLIENT", uRow.rows[0].id, 0);
+    assert.equal(await check4(), "FAIL");
+    await pools.payment.query(`DELETE FROM wallets WHERE id = 'it-w-scale'`);
+    await walletIns("it-w-plat", "PLATFORM", "OTHER", 0);
+    assert.equal(await check4(), "FAIL");
+    await pools.payment.query(`DELETE FROM wallets WHERE id IN ('it-w-plat','it-w-real')`);
+
     // Fault injection 3: scale gym flipped to REAL fails check 3 AND check 5 (SYNTHETIC reviews/memberships pointing to non-SYNTHETIC gym)
     const revGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_reviews WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);
     const memGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);

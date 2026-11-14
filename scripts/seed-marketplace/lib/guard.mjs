@@ -5,6 +5,9 @@
 //   dev DBs  (gymcoach_<svc> on localhost:5433 or gymcoach-postgres:5432) -> need the verify-clean.ok marker written by the
 //                                          DB clean-up step (H4) AND SEED_MARKETPLACE_CONFIRM=dev
 //   dev DBs that already hold seed data    -> need --reseed (which only runs the "ensure" functions, never deletes)
+//   official DBs (gymcoach_<svc>_official, 4 services, loopback host unless --allow-remote-host) -> the database prepared for
+//                                          the thesis defense: scale-tier SYNTHETIC history + the REAL business seed on top.
+//                                          Needs SEED_MARKETPLACE_CONFIRM=official and EMPTY tables for the scale tier.
 //   always refused: NODE_ENV=production, a DB name containing prod / staging / live, a non-local host, anything else
 import fs from "node:fs";
 import path from "node:path";
@@ -26,6 +29,7 @@ const TEST_NAME = /^gymcoach_(auth|user|gym|payment)_[a-z0-9_]*test$/;
 const SHARED_TEST_NAME = /^gymcoach_(auth|user|gym|payment)_test$/; // the DBs the repo's own suites use
 const DEV_NAME = /^gymcoach_(auth|user|gym|payment)$/;
 const SCALE_NAME_ANY = /^gymcoach_(auth|user|fitness|ai|chat|payment|gym)_scale$/;
+const OFFICIAL_NAME_ANY = /_official$/i;
 
 export const DEFAULT_MARKER_ROOT = process.env.SEED_MARKETPLACE_MARKER_ROOT || "D:\\FitnessAssistant-backups";
 
@@ -94,8 +98,55 @@ function assertScaleAllowed(target, env) {
   return { kind: "scale" };
 }
 
+/**
+ * `--target official`: the database set shown at the thesis defense. Only the four seeded services (auth/user/gym/payment),
+ * only names gymcoach_<svc>_official, loopback host by default (remote needs the explicit allowRemoteHost option / --allow-remote-host),
+ * never a name or host containing prod/staging/live, never the reserved scale endpoint, and SEED_MARKETPLACE_CONFIRM=official.
+ */
+function assertOfficialAllowed(target, env, opts) {
+  const host = String(target.host).toLowerCase();
+  const port = Number(target.port);
+  if (FORBIDDEN_NAME.test(host)) {
+    throw new SeedGuardError("FORBIDDEN_DB_NAME", `Host "${target.host}" contains prod/staging/live.`);
+  }
+  if (host === "gymcoach-postgres-scale" || port === 55440) {
+    throw new SeedGuardError("HOST_NOT_ALLOWED", `Scale Postgres endpoint ${target.host}:${target.port} is reserved for --target scale.`);
+  }
+  if (!LOOPBACK_HOSTS.has(host) && opts.allowRemoteHost !== true) {
+    throw new SeedGuardError(
+      "HOST_NOT_ALLOWED",
+      `Host "${target.host}" is not loopback (allowed by default: ${[...LOOPBACK_HOSTS].join(", ")}). A non-local Postgres needs the explicit --allow-remote-host flag.`,
+    );
+  }
+  const extra = Object.keys(target.dbs).find((k) => !SERVICES.includes(k));
+  if (extra) throw new SeedGuardError("DB_NOT_ALLOWLISTED", `The official target seeds only ${SERVICES.join(", ")}; unexpected database key "${extra}".`);
+  for (const service of SERVICES) {
+    const name = target.dbs[service];
+    if (!name) throw new SeedGuardError("NO_TARGET", `Need a database for each of ${SERVICES.join(", ")}.`);
+    if (FORBIDDEN_NAME.test(name)) throw new SeedGuardError("FORBIDDEN_DB_NAME", `Database name "${name}" contains prod/staging/live.`);
+    if (name !== `gymcoach_${service}_official`) {
+      if (/^gymcoach_(auth|user|fitness|ai|chat|payment|gym)_official$/.test(name)) {
+        throw new SeedGuardError("DB_SERVICE_MISMATCH", `The ${service} database is called "${name}" - it must be gymcoach_${service}_official.`);
+      }
+      throw new SeedGuardError("DB_NOT_ALLOWLISTED", `Database "${name}" is not allowed for ${service}/official (expected gymcoach_${service}_official).`);
+    }
+  }
+  if (env.SEED_MARKETPLACE_CONFIRM !== "official") {
+    throw new SeedGuardError("CONFIRM_MISSING", "The official seed needs SEED_MARKETPLACE_CONFIRM=official.");
+  }
+  return { kind: "official", requiresEmptyCheck: true };
+}
+
 /** Rejects any non-scale target that touches *_scale databases or the scale Postgres host/port. */
 function assertNonScaleRejectsScale(target) {
+  for (const name of Object.values(target.dbs)) {
+    if (typeof name === "string" && OFFICIAL_NAME_ANY.test(name)) {
+      throw new SeedGuardError(
+        "DB_NOT_ALLOWLISTED",
+        `Database "${name}" is an official (defense) database; only --target official may touch *_official DBs.`,
+      );
+    }
+  }
   for (const name of Object.values(target.dbs)) {
     if (typeof name === "string" && (SCALE_NAME_ANY.test(name) || /_scale$/i.test(name))) {
       throw new SeedGuardError(
@@ -127,6 +178,9 @@ export function assertSeedAllowed(target, opts = {}) {
   if (!target || !target.host || !target.dbs) throw new SeedGuardError("NO_TARGET", "No target given.");
   if (target.kind === "scale") {
     return assertScaleAllowed(target, env);
+  }
+  if (target.kind === "official") {
+    return assertOfficialAllowed(target, env, opts);
   }
   assertNonScaleRejectsScale(target);
   if (!LOCAL_HOSTS.has(String(target.host).toLowerCase())) {
@@ -197,6 +251,16 @@ export function resolveTarget({ kind, suffix = "seed_test", env = process.env } 
       user: env.SEED_PG_USER || "gymcoach_scale",
       password: env.SEED_PG_PASSWORD || "scale_pg_password_isolated",
       dbs: Object.fromEntries(ALL_SERVICES.map((s) => [s, `gymcoach_${s}_scale`])),
+    };
+  }
+  if (kind === "official") {
+    return {
+      kind: "official",
+      host: env.SEED_PG_HOST || "localhost",
+      port: Number(env.SEED_PG_PORT || 5433),
+      user: env.SEED_PG_USER || "gymcoach",
+      password: env.SEED_PG_PASSWORD || "gymcoach_password",
+      dbs: Object.fromEntries(SERVICES.map((s) => [s, `gymcoach_${s}_official`])),
     };
   }
   if (kind === "fresh" || kind === "partner") {

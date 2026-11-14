@@ -297,7 +297,6 @@ export async function runScaleIntegrity({
       badSettlements,
       badGymMemStatus,
       badReferrals,
-      badWallets,
       scaleUserRows,
       scalePtContractRows,
       scaleGymContractRows,
@@ -329,11 +328,6 @@ export async function runScaleIntegrity({
         `SELECT count(*)::int AS n FROM gym_membership_referrals r JOIN gym_membership_contracts m ON m.id = r.membership_contract_id
          WHERE m.data_origin = 'SYNTHETIC'::"DataOrigin"`
       ),
-      rows(
-        pools.payment,
-        `SELECT count(*)::int AS n FROM wallets WHERE owner_type <> 'PLATFORM' OR owner_id NOT IN ('ESCROW','REVENUE')
-           OR available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 OR holdback_balance <> 0`
-      ),
       rows(pools.auth, `SELECT array_agg(id) AS ids FROM users WHERE email LIKE ${SCALE_LIKE}`),
       rows(pools.user, `SELECT array_agg(id) AS ids FROM contracts WHERE data_origin = 'SYNTHETIC'`),
       rows(pools.gym, `SELECT array_agg(id) AS ids FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin"`),
@@ -344,7 +338,7 @@ export async function runScaleIntegrity({
     const userIds = scaleUserRows[0]?.ids ?? [];
     const ptCIds = scalePtContractRows[0]?.ids ?? [];
     const gymCIds = scaleGymContractRows[0]?.ids ?? [];
-    const [badTx, badLedger, badWithdraw] = await Promise.all([
+    const [badTx, badLedger, badWithdraw, badWallets] = await Promise.all([
       rows(
         pools.payment,
         `SELECT count(*)::int AS n FROM payment_transactions
@@ -363,6 +357,15 @@ export async function runScaleIntegrity({
          WHERE wl.owner_id = ANY($1::text[])`,
         [userIds]
       ),
+      // Scoped to the SYNTHETIC (scale) domain so the check also holds on the official database, where the REAL business seed
+      // legitimately has user wallets and non-zero ESCROW/REVENUE balances: a scale user must own NO wallet, and the only
+      // platform wallets allowed are the ESCROW/REVENUE system ones (their balances belong to the REAL domain there).
+      rows(
+        pools.payment,
+        `SELECT count(*)::int AS n FROM wallets
+         WHERE owner_id = ANY($1::text[]) OR (owner_type = 'PLATFORM' AND owner_id NOT IN ('ESCROW','REVENUE'))`,
+        [userIds]
+      ),
     ]);
 
     const v = [];
@@ -372,7 +375,7 @@ export async function runScaleIntegrity({
     addIf(badSettlements[0].n, "session_settlements attached to SYNTHETIC contracts");
     addIf(badGymMemStatus[0].n, "SYNTHETIC gym memberships not EXPIRED or carry payment/payout fields");
     addIf(badReferrals[0].n, "gym_membership_referrals attached to SYNTHETIC memberships");
-    addIf(badWallets[0].n, "non-escrow or non-zero wallets exist");
+    addIf(badWallets[0].n, "wallets owned by scale users (or unknown platform wallets) exist");
     addIf(badTx[0].n, "payment_transactions reference scale users/contracts/memberships");
     addIf(badLedger[0].n, "wallet_ledger_entries reference scale transactions");
     addIf(badWithdraw[0].n, "withdrawal_requests reference scale users");
