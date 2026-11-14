@@ -19,7 +19,14 @@ export const THRESHOLDS = Object.freeze({
 });
 
 /** M7-P5A.3: invisible / format / control characters (zero-width, soft hyphen, bidi controls, BOM, C0/C1 controls). Ordinary space is NOT in the set. */
-export const INVISIBLE_CHARS_RE = /[\u0000-\u001f\u007f-\u009f­͏؜᠎​-‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/;
+export const INVISIBLE_CHARS_RE = /[\u0000-\u001f\u2028\u2029\u007f-\u009f­͏؜᠎​-‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/;
+/**
+ * M7-P5A.3b: QUESTION variant. A decoded question MAY contain \t \n \r as INNER ordinary whitespace (a legitimately formatted question; the JSON
+ * file still carries them ESCAPED, one object per physical line). Every other C0/C1 control and all format/invisible chars stay rejected.
+ * U+2028 / U+2029 (line / paragraph separators) are rejected: some JSONL readers (Node readline) treat them as physical-line breaks.
+ * Leading/trailing whitespace is still caught by the trim rule. author / id keep the STRICT INVISIBLE_CHARS_RE.
+ */
+export const QUESTION_INVISIBLE_CHARS_RE = new RegExp(INVISIBLE_CHARS_RE.source.replace("\\u0000-\\u001f", "\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f"));
 /** Format characters with no visible glyph: removed (joined) before folding. C0/C1 controls fall through to the non-alnum -> space step. */
 const FORMAT_CHARS_RE = /[­͏؜᠎​-‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/g;
 

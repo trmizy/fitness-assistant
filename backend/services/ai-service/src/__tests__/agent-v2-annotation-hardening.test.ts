@@ -113,3 +113,72 @@ test("H5 untrimmed id rejected; case-variant duplicate ids rejected", () => {
   assert.ok(r.errors.some((e) => e.code === "DUPLICATE_ID" && e.line === 2));
   assert.ok(codes(lines(mk("X-1", Q(0)), mk("X-1 ", Q(1)))).includes("DUPLICATE_ID"));
 });
+
+
+// ── M7-P5A.3b: inner tab / newline in a decoded question ─────────────────────────────────────────────────────────────────
+// mk() + JSON.stringify ESCAPES the control characters, so the file keeps one JSON object per physical line.
+const hasCode = (text: string, c: string) => codes(text).includes(c);
+test("P5A.3b escaped \\n, \\t and \\r\\n inside a question are decoded and accepted (row otherwise valid)", () => {
+  for (const q of ["Sau buổi tập lưng,\nngày mai nên nghỉ không?", "Sau buổi tập lưng,\tngày mai nên nghỉ không?", "Sau buổi tập lưng,\r\nngày mai nên nghỉ không?"]) {
+    const text = lines(mk("N-1", q));
+    assert.ok(!text.includes("\n") && !text.includes("\t") && !text.includes("\r"), "file text has them escaped");
+    const r = validateRoutingAnnotations(text, NO_DIST);
+    assert.equal(r.errors.length, 0, JSON.stringify(q) + " " + JSON.stringify(r.errors));
+    assert.equal(r.stats.totalLines, 1);
+  }
+});
+test("P5A.3b CRLF-terminated file with escaped inner newline still works", () => {
+  const text = [mk("N-1", "Câu một,\nngày hai"), mk("N-2", Q(1))].map((r) => JSON.stringify(r)).join("\r\n") + "\r\n";
+  const r = validateRoutingAnnotations(text, NO_DIST);
+  assert.equal(r.stats.totalLines, 2);
+  assert.ok(!r.errors.some((e) => e.code === "MALFORMED_JSON" || e.code === "QUESTION_INVISIBLE_CHARS"));
+});
+test("P5A.3b RAW newline inside a JSON string splits the row: both fragments MALFORMED_JSON, nothing accepted, nothing joined", () => {
+  const raw = JSON.stringify(mk("N-1", "Sau buổi tập lưng,|ngày mai nên nghỉ không?")).replace("|", "\n");
+  const r = validateRoutingAnnotations(raw, NO_DIST);
+  assert.equal(r.errors.filter((e) => e.code === "MALFORMED_JSON").length, 2);
+  assert.equal(r.items?.length ?? 0, 0);
+  assert.ok(!r.errors.some((e) => e.code === "QUESTION_INVISIBLE_CHARS"));
+});
+test("P5A.3b RAW tab inside a JSON string is invalid JSON (MALFORMED_JSON), not repaired", () => {
+  const raw = JSON.stringify(mk("N-1", "Sau buổi tập lưng,|ngày mai nên nghỉ không?")).replace("|", "\t");
+  const r = validateRoutingAnnotations(raw, NO_DIST);
+  assert.deepEqual(r.errors.map((e) => e.code), ["MALFORMED_JSON"]);
+});
+test("P5A.3b leading / trailing \\n and \\t are still rejected by the trim rule", () => {
+  for (const q of ["\nCâu hỏi thử", "Câu hỏi thử\n", "\tCâu hỏi thử", "Câu hỏi thử\t", "Câu hỏi thử\r\n"]) {
+    assert.ok(hasCode(lines(mk("N-1", q)), "QUESTION_NOT_TRIMMED"), JSON.stringify(q));
+  }
+});
+test("P5A.3b U+2028 / U+2029 in a question are rejected (physical-line breaks for some JSONL readers)", () => {
+  for (const ch of [" ", " "]) assert.ok(hasCode(lines(mk("N-1", `Câu hỏi${ch}thử nghiệm`)), "QUESTION_INVISIBLE_CHARS"), ch.charCodeAt(0).toString(16));
+});
+test("P5A.3b other controls / format chars are still rejected in a question", () => {
+  for (const ch of ["​", "­", "\u0000", "\u0007", "\u000b", "\u000c", "\u001f", "\u007f", "\u0085"]) {
+    assert.ok(hasCode(lines(mk("N-1", `Câu hỏi${ch}thử nghiệm`)), "QUESTION_INVISIBLE_CHARS"), ch.charCodeAt(0).toString(16));
+  }
+});
+test("P5A.3b author / id stay STRICT: tab, newline, CR (and U+2028) are rejected", () => {
+  for (const ch of ["\t", "\n", "\r", " "]) {
+    assert.ok(hasCode(lines(mk("N-1", Q(0), `writer${ch}01`)), "AUTHOR_NOT_CANONICAL"), "author " + ch.charCodeAt(0));
+    if (ch !== " ") assert.ok(hasCode(lines(mk(`N-1${ch}`, Q(0))), "ID_NOT_TRIMMED"), "id trailing " + ch.charCodeAt(0)); // id rule at HEAD = trim only; inner id controls are not validated (unchanged)
+  }
+});
+test("P5A.3b benchmark question with a newline replacing a space is still BENCHMARK_OVERLAP (and accepted by the char rule)", () => {
+  const nl = T01.replace(" ", "\n");
+  assert.notEqual(nl, T01);
+  const c = codes(lines(mk("N-1", nl)));
+  assert.ok(c.includes("BENCHMARK_OVERLAP"));
+  assert.ok(!c.includes("QUESTION_INVISIBLE_CHARS"));
+});
+test("P5A.3b normalizeForCompare treats \\n \\t \\r as whitespace; format chars still stripped first", () => {
+  assert.equal(normalizeForCompare("a\nb"), normalizeForCompare("a b"));
+  assert.equal(normalizeForCompare("a\tb\r\nc"), "a b c");
+  assert.equal(normalizeForCompare("a​b"), "ab");
+});
+test("P5A.3b length is measured on the decoded string (inner newline = 1 char; 2000 ok, 2001 QUESTION_TOO_LONG)", () => {
+  const ok = "a\n".repeat(1000), over = "a\n".repeat(1000) + "b";
+  assert.equal(ok.length, 2000);
+  assert.ok(!runDatasetChecks([dsItem(ok)], { checkDistribution: false, checkBenchmarkOverlap: false }).errors.some((e) => e.code === "QUESTION_TOO_LONG"));
+  assert.ok(runDatasetChecks([dsItem(over)], { checkDistribution: false, checkBenchmarkOverlap: false }).errors.some((e) => e.code === "QUESTION_TOO_LONG"));
+});

@@ -23,7 +23,7 @@ import {
 } from "./annotation-schema";
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
 import { findDuplicateKeys, MAX_JSON_DEPTH } from "./annotation-json";
-import { runDatasetChecks, INVISIBLE_CHARS_RE } from "./annotation-dataset-checks";
+import { runDatasetChecks, INVISIBLE_CHARS_RE, QUESTION_INVISIBLE_CHARS_RE } from "./annotation-dataset-checks";
 
 export type { Finding } from "./annotation-schema";
 /** Kept for callers of the pre-m7-p5a1 validator. */
@@ -247,7 +247,7 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     // must already be what the endpoint measures — trimmed (supervisor trims) and NFC (no save-format dependence)
     if (q && q !== q.trim()) err("QUESTION_NOT_TRIMMED", "question has leading or trailing whitespace (the endpoint trims before measuring)");
     if (q && q !== q.normalize("NFC")) err("QUESTION_NOT_NFC", "question is not Unicode NFC (lengths would depend on how the file was saved)");
-    if (q && INVISIBLE_CHARS_RE.test(q)) err("QUESTION_INVISIBLE_CHARS", "question contains invisible / format / control characters (zero-width, bidi, soft hyphen, BOM, C0/C1 controls); they hide overlap and change lengths");
+    if (q && QUESTION_INVISIBLE_CHARS_RE.test(q)) err("QUESTION_INVISIBLE_CHARS", "question contains invisible / format / control characters (zero-width, bidi, soft hyphen, BOM, C0/C1 controls); they hide overlap and change lengths");
     const accentedOk = typeof row.accented === "boolean";
     if (!accentedOk) err("MISSING_FIELD", "accented must be boolean");
     else if (q && row.accented !== hasVietnameseDiacritics(q)) err("ACCENTED_MISMATCH", `accented=${row.accented} but the text ${hasVietnameseDiacritics(q) ? "has" : "has no"} Vietnamese diacritics`);
