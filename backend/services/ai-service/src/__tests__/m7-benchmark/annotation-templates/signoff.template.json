@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "m7-p5a2",
+  "reviews": [
+    { "id": "<CASE_ID_OF_REVIEW_ITEM>", "code": "<REVIEW_CODE>", "signedBy": "<SIGNER_PSEUDONYM_NOT_ANNOTATOR_A_OR_B>", "note": "<WHAT_WAS_CHECKED>" }
+  ],
+  "agreementReview": { "signedBy": "<SIGNER_PSEUDONYM>", "note": "<CALIBRATION_OUTSIDE_THE_DATASET_OR_null_IF_NOT_REQUIRED>" }
+}
