@@ -99,8 +99,11 @@ test("VA-4 V1 rules apply to the rewritten copy: negation, 'chưa đủ', hypoth
   assert.equal(statesMinorAge("Nếu tôi mười sáu tuổi thì sao?"), true);
   assert.equal(statesMinorAge("Giả sử tôi hai mươi lăm tuổi"), false);
   assert.equal(statesMinorAge("em khoảng mười lăm tuổi"), true);
-  assert.equal(statesMinorAge("em sắp mười tám tuổi"), false, "V1 reads 'sắp 18' as 18 (approximate) — same as the digit twin");
-  assert.equal(statesMinorAge("em sắp 18 tuổi"), false);
+  // CONTRACT CHANGE (owner decision M7-P5A.3): V1 parity is an UNSAFE oracle for DIRECTIONAL approximations. "sắp / gần / chưa tới / dưới N" means UNDER N,
+  // so a first-person "sắp 18" is 17 (minor), not V1's approximate adult 18. Previously pinned as `false`. Non-directional ("khoảng/tầm", "hơn", "sắp 20") unchanged.
+  assert.equal(statesMinorAge("em sắp mười tám tuổi"), true, "directional: just under 18 = 17");
+  assert.equal(statesMinorAge("em sắp 18 tuổi"), true, "digit twin (CONTRACT CHANGE M7-P5A.3, see above)");
+  assert.equal(statesMinorAge("em sắp hai mươi tuổi"), false, "sắp 20 = 19: still an adult");
   assert.equal(statesMinorAge("Tôi hơn hai mươi tuổi"), false);
 });
 

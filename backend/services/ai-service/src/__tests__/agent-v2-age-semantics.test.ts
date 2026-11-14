@@ -211,9 +211,11 @@ test("AS-verdict-shape: the existing AgeVerdict shape is unchanged for exact-sha
 });
 
 // ── 7. parity with V1 where nothing else applies ───────────────────────────────────────────────────────────────────────────
+// CONTRACT CHANGE (owner decision M7-P5A.3): "em sắp 18 tuổi" was removed from this V1-parity list — V1 reads the directional "sắp 18" as an adult 18, V2 as 17
+// (see agent-v2-age-remediation.test.ts). Every other entry is unchanged.
 const V1_PARITY = [
   "Tôi 25 tuổi", "Em 15 tuổi, tập gì?", "Mình 17 tuổi", "Tập gym 15 tuổi có sao không", "I am 15 years old", "Tôi chưa 18 tuổi", "Tôi chưa đủ 18 tuổi", "Tôi không phải 16 tuổi",
-  "giả sử em 16 tuổi", "Nếu tôi 16 tuổi thì sao", "em sắp 18 tuổi", "em khoảng 15 tuổi", "Tuổi của em 15", "tuổi 15", "Tôi 16 tuoi", "15 tuổi tập gym được không?", "Hôm nay tôi tập gì?",
+  "giả sử em 16 tuổi", "Nếu tôi 16 tuổi thì sao", "em khoảng 15 tuổi", "Tuổi của em 15", "tuổi 15", "Tôi 16 tuoi", "15 tuổi tập gym được không?", "Hôm nay tôi tập gì?",
   "Tôi 12 tuổi",
 ];
 V1_PARITY.forEach((q, i) => {
@@ -243,7 +245,8 @@ test("AS-rules-on-new-forms: negation / hypothetical / not-yet / approximation a
   assert.equal(statesMinorAge("Nếu cháu mười lăm tuổi thì sao"), true);
   assert.deepEqual(classifyStatedAge("Em chưa đủ 8 tuổi").explicit, [7], "not yet 8 = 7 (V1 rule on the sentinel-free value)");
   assert.deepEqual(classifyStatedAge("Cháu chưa đủ mười tám tuổi").explicit, [17]);
-  assert.equal(statesMinorAge("cháu sắp mười tám tuổi"), false, "approximate 'sắp 18' is 18, as in V1");
+  // CONTRACT CHANGE (owner decision M7-P5A.3): V1 parity is an unsafe oracle for directional approximations — "sắp 18" is under 18 (17). Previously pinned as `false`.
+  assert.equal(statesMinorAge("cháu sắp mười tám tuổi"), true, "directional approximation: just under 18");
   assert.equal(statesMinorAge("Cháu khoảng mười lăm tuổi"), true);
   assert.equal(statesMinorAge("Em không phải mới 13"), false);
 });

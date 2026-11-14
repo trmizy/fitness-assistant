@@ -22,8 +22,8 @@ import {
   type CaseLabel, type DatasetCheckOptions, type DatasetItem, type DomainLabel, type Finding, type Interpretation,
 } from "./annotation-schema";
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
-import { findDuplicateKeys } from "./annotation-json";
-import { runDatasetChecks } from "./annotation-dataset-checks";
+import { findDuplicateKeys, MAX_JSON_DEPTH } from "./annotation-json";
+import { runDatasetChecks, INVISIBLE_CHARS_RE } from "./annotation-dataset-checks";
 
 export type { Finding } from "./annotation-schema";
 /** Kept for callers of the pre-m7-p5a1 validator. */
@@ -70,12 +70,13 @@ function checkKeys(obj: Record<string, unknown>, allowed: readonly string[], whe
 }
 
 /** DERIVED_FIELD_NOT_ALLOWED for any derived field name, at any depth. */
-function walkDerived(value: unknown, path: string, err: Err): void {
-  if (Array.isArray(value)) { value.forEach((v, i) => walkDerived(v, `${path}[${i}]`, err)); return; }
+function walkDerived(value: unknown, path: string, err: Err, depth = 0): void {
+  if (depth > MAX_JSON_DEPTH) return; // bounded (M7-P5A.3); deeper rows are rejected earlier as JSON_TOO_DEEP
+  if (Array.isArray(value)) { value.forEach((v, i) => walkDerived(v, `${path}[${i}]`, err, depth + 1)); return; }
   if (!isObj(value)) return;
   for (const [k, v] of Object.entries(value)) {
     if ((DERIVED_FIELDS as readonly string[]).includes(k)) err("DERIVED_FIELD_NOT_ALLOWED", `${path}.${k}: '${k}' is derived by the schema (deriveExpected) and must not be typed by hand`);
-    walkDerived(v, `${path}.${k}`, err);
+    walkDerived(v, `${path}.${k}`, err, depth + 1);
   }
 }
 
@@ -219,6 +220,7 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     const err: Err = (code, detail) => errors.push({ line, id, code, detail });
 
     const dup = findDuplicateKeys(text);
+    if (dup.tooDeep) { err("JSON_TOO_DEEP", `row nests JSON deeper than ${MAX_JSON_DEPTH} levels; row not validated further`); return; }
     if (dup.duplicates.length) {
       for (const d of dup.duplicates) err("DUPLICATE_JSON_KEY", `key '${d.key}' appears more than once at ${d.path} (JSON.parse would silently keep the last one); row not validated further`);
       return;
@@ -231,8 +233,12 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
 
     // id
     if (!id) err("MISSING_FIELD", "id missing or empty");
-    else if (seenIds.has(id)) err("DUPLICATE_ID", `id also used on line ${seenIds.get(id)}`);
-    else seenIds.set(id, line);
+    else {
+      if (id !== id.trim()) err("ID_NOT_TRIMMED", "id has leading or trailing whitespace");
+      const idKey = id.trim().toLowerCase(); // M7-P5A.3: ids are unique case-insensitively
+      if (seenIds.has(idKey)) err("DUPLICATE_ID", `id also used on line ${seenIds.get(idKey)} (compared trimmed and case-insensitively)`);
+      else seenIds.set(idKey, line);
+    }
 
     // question + accented
     const q = nonEmptyStr(row.question) ? row.question : null;
@@ -241,6 +247,7 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     // must already be what the endpoint measures — trimmed (supervisor trims) and NFC (no save-format dependence)
     if (q && q !== q.trim()) err("QUESTION_NOT_TRIMMED", "question has leading or trailing whitespace (the endpoint trims before measuring)");
     if (q && q !== q.normalize("NFC")) err("QUESTION_NOT_NFC", "question is not Unicode NFC (lengths would depend on how the file was saved)");
+    if (q && INVISIBLE_CHARS_RE.test(q)) err("QUESTION_INVISIBLE_CHARS", "question contains invisible / format / control characters (zero-width, bidi, soft hyphen, BOM, C0/C1 controls); they hide overlap and change lengths");
     const accentedOk = typeof row.accented === "boolean";
     if (!accentedOk) err("MISSING_FIELD", "accented must be boolean");
     else if (q && row.accented !== hasVietnameseDiacritics(q)) err("ACCENTED_MISMATCH", `accented=${row.accented} but the text ${hasVietnameseDiacritics(q) ? "has" : "has no"} Vietnamese diacritics`);
@@ -263,7 +270,11 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     else {
       checkKeys(src, SOURCE_KEYS, "source", err);
       if (!inList(SOURCE_KINDS, src.kind)) err("INVALID_SOURCE", `source.kind must be one of ${SOURCE_KINDS.join("|")}`);
-      if (!nonEmptyStr(src.author)) err("INVALID_SOURCE", "source.author missing or empty"); else author = src.author;
+      if (!nonEmptyStr(src.author)) err("INVALID_SOURCE", "source.author missing or empty");
+      else {
+        author = src.author;
+        if (src.author !== src.author.trim() || src.author !== src.author.normalize("NFC") || INVISIBLE_CHARS_RE.test(src.author)) err("AUTHOR_NOT_CANONICAL", "source.author must be trimmed, Unicode NFC and free of invisible / control characters (writer identity is counted case-insensitively)");
+      }
       if (!nonEmptyStr(src.note)) err("INVALID_SOURCE", "source.note missing or empty");
     }
 

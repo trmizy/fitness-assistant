@@ -45,7 +45,9 @@ test("RI-1 the frozen M6 RC is an ancestor; the post-M6 commits are on top of it
 
 test("RI-2 V1-side changes since the M6 RC are exactly the approved integration files; nothing outside ai-service changed", () => {
   assert.deepEqual(changedSinceRc(...V1_PATHS), ALLOWED_V1);
-  assert.deepEqual(changedSinceRc(".", `:(exclude)${AI_SRC}`, ":(exclude)docs/ai-v2"), []);
+  // `.codex/` is untracked Codex-CLI tooling configuration (agent profile for the local Codex install, identical to the main worktree's
+  // untracked `.codex/`), not product code: excluded so the check stays about repository files (M7-P5A.3).
+  assert.deepEqual(changedSinceRc(".", `:(exclude)${AI_SRC}`, ":(exclude)docs/ai-v2", ":(exclude).codex"), []);
   // app.ts: additions only (the route import + the mount + its comment), nothing removed or edited
   const diff = git("diff", INTEGRATED_CANDIDATE.baseM6Rc, "--", `${AI_SRC}/app.ts`).split("\n").filter((l) => /^[+-][^+-]/.test(l));
   assert.ok(diff.every((l) => l.startsWith("+")), diff.join("\n"));

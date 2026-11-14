@@ -18,8 +18,19 @@ export const THRESHOLDS = Object.freeze({
   benchErrorJaccard: 0.8, benchReviewJaccard: 0.5,
 });
 
+/** M7-P5A.3: invisible / format / control characters (zero-width, soft hyphen, bidi controls, BOM, C0/C1 controls). Ordinary space is NOT in the set. */
+export const INVISIBLE_CHARS_RE = /[\u0000-\u001f\u007f-\u009f­͏؜᠎​-‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/;
+/** Format characters with no visible glyph: removed (joined) before folding. C0/C1 controls fall through to the non-alnum -> space step. */
+const FORMAT_CHARS_RE = /[­͏؜᠎​-‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/g;
+
+/** Canonical writer key (M7-P5A.3): NFKC, trim, case-fold, collapse inner whitespace. Used ONLY for counting; stored text is never rewritten. */
+export function canonicalWriterKey(author: string): string {
+  return author.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export function normalizeForCompare(q: string): string {
-  return foldVi(q).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  // comparison-only representation: invisible format chars are stripped BEFORE folding so they cannot split tokens
+  return foldVi(q.replace(FORMAT_CHARS_RE, "")).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 const tokenSet = (norm: string): Set<string> => new Set(norm.length ? norm.split(" ") : []);
 function overlap(a: Set<string>, b: Set<string>): { jaccard: number; containment: number; minSize: number } {
@@ -101,18 +112,22 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
 
   // stats
   const n = items.length;
+  // Map-based tallies: user-supplied strings (tags, authors) such as "__proto__" must never hit an object prototype
   const count = <K extends string>(keys: readonly K[], f: (it: DatasetItem) => K | null): Record<string, number> => {
-    const m: Record<string, number> = Object.fromEntries(keys.map((k) => [k, 0]));
-    for (const it of items) { const k = f(it); if (k !== null) m[k] = (m[k] ?? 0) + 1; }
-    return m;
+    const m = new Map<string, number>(keys.map((k) => [k, 0]));
+    for (const it of items) { const k = f(it); if (k !== null) m.set(k, (m.get(k) ?? 0) + 1); }
+    return Object.fromEntries(m);
   };
   const categories = count(CATEGORIES, (it) => it.category);
-  const tags: Record<string, number> = Object.fromEntries(TAGS.map((t) => [t, 0]));
-  const authors: Record<string, number> = {};
+  const tagMap = new Map<string, number>(TAGS.map((t) => [t, 0]));
+  const authorMap = new Map<string, number>();
   for (const it of items) {
-    for (const t of new Set(it.tags)) tags[t] = (tags[t] ?? 0) + 1;
-    authors[it.author] = (authors[it.author] ?? 0) + 1;
+    for (const t of new Set(it.tags)) tagMap.set(t, (tagMap.get(t) ?? 0) + 1);
+    const key = canonicalWriterKey(it.author);
+    authorMap.set(key, (authorMap.get(key) ?? 0) + 1);
   }
+  const tags: Record<string, number> = Object.fromEntries(tagMap);
+  const authors: Record<string, number> = Object.fromEntries(authorMap);
   const singles = items.filter((it) => it.category === "SINGLE");
   const singleDomainCounts = count(AGENTS, (it) => (it.category === "SINGLE" ? it.primaryAgent : null));
   const pct = (x: number, d: number) => (d === 0 ? 0 : (x * 100) / d);
@@ -141,11 +156,10 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
       const p = pct(singleDomainCounts[a], singles.length);
       if (p < t.minSingleDomainPct) err(null, "DISTRIBUTION_SINGLE_DOMAIN", `${a} is primary of ${r2(p)}% of SINGLE cases (${singleDomainCounts[a]}/${singles.length}) < ${t.minSingleDomainPct}%`);
     }
-    const names = Object.keys(authors);
-    if (names.length < t.minAuthors) err(null, "DISTRIBUTION_AUTHORS", `${names.length} distinct authors < ${t.minAuthors}`);
-    for (const name of names) {
-      const p = pct(authors[name], n);
-      if (p > t.maxAuthorPct) err(null, "DISTRIBUTION_AUTHOR_SHARE", `author ${name} wrote ${r2(p)}% (${authors[name]}/${n}) > ${t.maxAuthorPct}%`);
+    if (authorMap.size < t.minAuthors) err(null, "DISTRIBUTION_AUTHORS", `${authorMap.size} distinct authors < ${t.minAuthors}`);
+    for (const [name, c] of authorMap) {
+      const p = pct(c, n);
+      if (p > t.maxAuthorPct) err(null, "DISTRIBUTION_AUTHOR_SHARE", `author ${name} wrote ${r2(p)}% (${c}/${n}) > ${t.maxAuthorPct}%`);
     }
   }
 

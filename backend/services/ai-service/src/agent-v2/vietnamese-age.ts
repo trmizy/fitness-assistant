@@ -47,6 +47,12 @@
  *   OTHER     no recognised subject word: DIGITS keep V1 parity (the age is read as the user's own: "Tập gym 15 tuổi có sao không",
  *             "15 tuổi tập được không?", "Minh 15 tuổi …"), WORDS are not an age ("mười lăm tuổi" alone, "tập mười lăm tuổi").
  *
+ * M7-P5A.3 (owner decision, remediation R-B):
+ *   - "có" directly before a WORDS/DIGITS-"tuổi" age is skipped when it leads to a FIRST or THIRD owner ("Em mới có mười lăm tuổi" = FIRST 15,
+ *     "Con tôi mới có mười lăm tuổi" = THIRD); the "có" is removed from the V1 copy so V1's negation / not-yet rules still see the words before it.
+ *   - a DIRECTIONAL approximation (sắp | gần [tròn] | chưa tới|đến|đủ|tròn|được | dưới) + N with N in 6..18 and a FIRST subject is read as N-1
+ *     ("Em sắp 18 tuổi" = 17): V1 would read an approximate adult 18. N >= 19, khoảng/tầm/hơn/trên/ngoài/đã/đủ keep V1's reading.
+ *
  * NOT AN AGE: experience ("tập 15 năm", "15 năm kinh nghiệm"), weights/reps/sets/durations/dates/money (a unit follows the number), "năm"
  * as a unit, "em 15" / "em mười lăm" with no marker and no "tuổi", "em 15 rồi" (documented gap, stays no-evidence).
  *
@@ -82,8 +88,17 @@ const CHAIN_SRC = `(?:${ADV_SRC})(?:\\s+(?:${ADV_SRC})){0,2}`;
 const MARKER_RE = /(?:^|\s)(?:moi|dang|hien|nam nay|bay gio)(?=\s|$)/;
 const LEAD_MARKER = /(?:nam nay|hien tai|hien nay|bay gio)\s*,?\s*$/;
 const TERMINATOR = /^[ \t]*(?:$|[\r\n,.;!?:…)"']|(?:roi|nen|va|nhung|ma|thi|nhe|a|nha|day|do|thoi|ne)(?![a-z0-9]))/;
-const ADV1 = new Set(["moi", "da", "dang", "vua", "hien", "tron", "dung", "duoc", "chi", "chua", "sap", "gan", "ngoai", "hon", "tam", "khoang"]);
-const ADV2 = new Set(["hien tai", "hien nay", "nam nay", "chua du", "bay gio"]);
+const ADV1 = new Set(["moi", "da", "dang", "vua", "hien", "tron", "dung", "duoc", "chi", "chua", "sap", "gan", "ngoai", "hon", "tam", "khoang", "duoi"]);
+const ADV2 = new Set(["hien tai", "hien nay", "nam nay", "chua du", "bay gio", "chua toi", "chua den"]);
+/**
+ * M7-P5A.3 (item 2): a DIRECTIONAL approximation right before the number means "below that number": "sắp 18" / "gần 18" / "sắp tròn 18" /
+ * "chưa tới|đến|đủ|tròn|được 18" / "dưới 18". V1 reads "sắp 18" as an approximate 18 (adult) — an unsafe oracle for this direction; V2
+ * rewrites the located mention to N-1 (see `detect`). "khoảng / tầm / hơn / trên / ngoài / đã / đủ N" are NOT directional (V1 behaviour kept).
+ */
+const DIRECTIONAL_RE = /(?:^|[^a-z0-9])((?:(?:sap|gan)(?:\s+(?:tron|dung|du))?|duoi|chua\s+(?:du|toi|den|tron|duoc)))\s*$/;
+const DIRECTIONAL_LOOKBACK = 24;
+/** Under-N reading only for a plausible minor threshold: N in 6..18 (N-1 stays in the 5..17 range this module reads at all). */
+const directionalMax = (v: number): boolean => v >= 6 && v <= 18;
 
 // regexes over the FOLDED sentence (same indices as the raw lower-cased one)
 const D1_RE = /(?<![\d.,])(\d{1,2})\s*(?:tuoi|years? ?old|yo)\b/g; // V1's pattern, verbatim
@@ -149,7 +164,7 @@ export function parseVietnameseNumberWords(folded: string): number | null {
 }
 
 interface Tok { f: string; raw: string; end: boolean; start: number }
-interface Subject { cls: AgeSubject | "OTHER"; marker: boolean }
+interface Subject { cls: AgeSubject | "OTHER"; marker: boolean; /** start of a skipped "có" directly before the expression (item 1) */ coAt?: number }
 interface Expr { start: number; end: number; value: number; kind: AgeMentionKind; render: string; subject: AgeSubject; native: boolean; sentinel: boolean }
 
 const pronounOk = (t: Tok, accented: boolean): boolean => {
@@ -199,8 +214,14 @@ function classifyHead(t: Tok[], accented: boolean): AgeSubject | "OTHER" {
 }
 
 /** Who owns the age expression that starts at `pos`? (the tokens before it, adverbs skipped) */
-function subjectBefore(lower: string, f: string, pos: number, accented: boolean, chain: string): Subject {
+function subjectBefore(lower: string, f: string, pos: number, accented: boolean, chain: string, skipCo = false): Subject {
   const t = tokensBefore(lower, f, pos);
+  let coAt: number | undefined;
+  if (skipCo && t.length) {
+    // M7-P5A.3: "em mới CÓ mười lăm tuổi" — "có" directly before the age is neither a subject nor a modifier: skip it (accented text: only "có", never "cô"/"cơ")
+    const c = t[t.length - 1];
+    if (!c.end && (accented ? c.raw === "có" : c.raw === "co")) { coAt = c.start; t.length -= 1; }
+  }
   const stripped: string[] = [];
   for (let i = 0; i < 3 && t.length; i++) {
     const l = t[t.length - 1];
@@ -212,14 +233,31 @@ function subjectBefore(lower: string, f: string, pos: number, accented: boolean,
   }
   const advText = [...stripped, chain].join(" ");
   const hasMarker = (head?: Tok): boolean => MARKER_RE.test(advText) || (head !== undefined && LEAD_MARKER.test(f.slice(Math.max(0, head.start - 14), head.start)));
-  if (!t.length) return { cls: "OTHER", marker: hasMarker() };
+  if (!t.length) return { cls: "OTHER", marker: hasMarker(), coAt };
   const head = t[t.length - 1];
   if (head.end) {
     // the expression opens a new clause right after "X," — only a THIRD party carries over (appositive "Con tôi, 15 tuổi,")
     const c = classifyHead(t, accented);
-    return { cls: c === "THIRD" ? "THIRD" : "OTHER", marker: hasMarker() };
+    return { cls: c === "THIRD" ? "THIRD" : "OTHER", marker: hasMarker(), coAt };
   }
-  return { cls: classifyHead(t, accented), marker: hasMarker(head) };
+  return { cls: classifyHead(t, accented), marker: hasMarker(head), coAt };
+}
+
+/**
+ * Subject with the optional "có" skip (item 1). The skip is only accepted when it yields a FIRST or THIRD owner — an AMBIGUOUS / OTHER
+ * result ("Con có 15 tuổi", "Bạn có 15 tuổi") keeps the previous reading, so the skip can only ADD a located speaker/third-party age.
+ */
+function subjectBeforeAge(lower: string, f: string, pos: number, accented: boolean, chain: string): Subject {
+  const plain = subjectBefore(lower, f, pos, accented, chain, false);
+  const withCo = subjectBefore(lower, f, pos, accented, chain, true);
+  return withCo.coAt !== undefined && (withCo.cls === "FIRST" || withCo.cls === "THIRD") ? withCo : plain;
+}
+
+/** Start index of a directional approximation word directly before `numStart` ("sắp", "gần tròn", "chưa tới", "dưới"), or -1. */
+function directionalStart(f: string, numStart: number): number {
+  const from = Math.max(0, numStart - DIRECTIONAL_LOOKBACK);
+  const m = DIRECTIONAL_RE.exec(f.slice(from, numStart));
+  return m ? from + m.index + m[0].indexOf(m[1]) : -1;
 }
 
 /** Subject of "tuổi của X …": X alone decides. */
@@ -247,11 +285,19 @@ function detect(lower: string, f: string, accented: boolean, budget: number): Ex
     const v = Number(m[1]);
     if (v < 5) continue;
     const start = m.index!;
-    const s = subjectBefore(lower, f, start, accented, "");
+    const s = subjectBeforeAge(lower, f, start, accented, "");
     if (s.cls === "OTHER" && v < 10) continue; // V1 parity: no subject word ⇒ a digit age below 10 is not read
+    const subject: AgeSubject = s.cls === "OTHER" ? "FIRST" : s.cls;
+    const tail = lower.slice(start + m[1].length, start + m[0].length);
+    // item 2: "em sắp 18 tuổi" / "dưới 18 tuổi" → the first-person age is UNDER 18 (N-1), not V1's approximate 18
+    const dir = s.cls === "FIRST" && directionalMax(v) ? directionalStart(f, start) : -1;
+    if (dir >= 0) {
+      add({ start: dir, end: start + m[0].length, value: v - 1, kind: "DIGITS", subject, native: false, sentinel: v - 1 < 10, render: String(sentinelOf(v - 1)) + tail });
+      continue;
+    }
     const sentinel = v < 10;
-    add({ start, end: start + m[0].length, value: v, kind: "DIGITS", subject: s.cls === "OTHER" ? "FIRST" : s.cls, native: !sentinel, sentinel,
-      render: String(sentinelOf(v)) + lower.slice(start + m[1].length, start + m[0].length) });
+    add({ start: s.coAt ?? start, end: start + m[0].length, value: v, kind: "DIGITS", subject, native: !sentinel && s.coAt === undefined, sentinel,
+      render: String(sentinelOf(v)) + tail });
   }
   // D2 — "tuổi của X 15" / "tuổi [là] 15" / written "tuổi của em là mười lăm"
   for (const m of f.matchAll(TUOI_X_RE)) {
@@ -286,11 +332,16 @@ function detect(lower: string, f: string, accented: boolean, budget: number): Ex
     const v = parseVietnameseNumberWords(numFolded);
     if (v === null) continue;
     if (!hasTuoi && v < 10) continue;
-    const s = subjectBefore(lower, f, at, accented, chain);
+    const s = hasTuoi ? subjectBeforeAge(lower, f, at, accented, chain) : subjectBefore(lower, f, at, accented, chain);
     if (s.cls === "OTHER") continue;
     if (!hasTuoi && (!s.marker || !TERMINATOR.test(f.slice(numEnd, numEnd + 12)))) continue;
     const end = hasTuoi ? at + m[0].length : numEnd;
-    add({ start: numStart, end, value: v, kind: "WORDS", subject: s.cls, native: false, sentinel: v < 10, render: `${sentinelOf(v)} tuoi` });
+    const dir = hasTuoi && s.cls === "FIRST" && directionalMax(v) ? directionalStart(f, numStart) : -1;
+    if (dir >= 0) {
+      add({ start: dir, end, value: v - 1, kind: "WORDS", subject: s.cls, native: false, sentinel: v - 1 < 10, render: `${sentinelOf(v - 1)} tuoi` });
+      continue;
+    }
+    add({ start: s.coAt ?? numStart, end, value: v, kind: "WORDS", subject: s.cls, native: false, sentinel: v < 10, render: `${sentinelOf(v)} tuoi` });
   }
   // D3 — marker + two digits at the end of the clause
   for (const m of f.matchAll(D3_RE)) {

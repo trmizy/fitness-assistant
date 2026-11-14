@@ -9,7 +9,9 @@
  * what it saw so far (`complete: false`).
  */
 export interface DuplicateKey { key: string; path: string }
-export interface DuplicateKeyScan { duplicates: DuplicateKey[]; complete: boolean }
+/** M7-P5A.3: `tooDeep` = nesting deeper than MAX_JSON_DEPTH (the scan stops there; it never recurses past the bound). */
+export interface DuplicateKeyScan { duplicates: DuplicateKey[]; complete: boolean; tooDeep?: boolean }
+export const MAX_JSON_DEPTH = 64;
 
 const WS = new Set([" ", "\t", "\n", "\r"]);
 
@@ -17,6 +19,8 @@ export function findDuplicateKeys(text: string): DuplicateKeyScan {
   const duplicates: DuplicateKey[] = [];
   let i = 0;
   let broken = false;
+  let tooDeep = false;
+  let depth = 0;
 
   const skipWs = () => { while (i < text.length && WS.has(text[i])) i++; };
 
@@ -39,8 +43,12 @@ export function findDuplicateKeys(text: string): DuplicateKeyScan {
     skipWs();
     if (broken || i >= text.length) { broken = true; return; }
     const ch = text[i];
-    if (ch === "{") parseObject(path);
-    else if (ch === "[") parseArray(path);
+    if (ch === "{" || ch === "[") {
+      if (depth >= MAX_JSON_DEPTH) { broken = true; tooDeep = true; return; }
+      depth++;
+      if (ch === "{") parseObject(path); else parseArray(path);
+      depth--;
+    }
     else if (ch === '"') { if (readString() === null) broken = true; }
     else readScalar();
   };
@@ -86,5 +94,5 @@ export function findDuplicateKeys(text: string): DuplicateKeyScan {
 
   parseValue("$");
   if (!broken) { skipWs(); if (i < text.length) broken = true; }
-  return { duplicates, complete: !broken };
+  return { duplicates, complete: !broken, ...(tooDeep ? { tooDeep } : {}) };
 }
