@@ -36,7 +36,7 @@ export const GYM_CASE_STATUSES: readonly GymCaseStatus[] = [
   "APPEAL_REVIEW",
 ];
 export type GymExecStatus = "NOT_STARTED" | "EXECUTING" | "BUSINESS_DONE" | "EXEC_BLOCKED" | "NEEDS_HUMAN";
-export type GymOutcome = "REFUND_TRANSACTION_ERROR" | "REFUND_GYM_CLOSED" | "REFUND_GYM_VIOLATION" | "RESOLVE_UPHELD" | "RESOLVE_INSUFFICIENT_EVIDENCE";
+export type GymOutcome = "REFUND_TRANSACTION_ERROR" | "REFUND_GYM_CLOSED" | "REFUND_GYM_VIOLATION" | "RESOLVE_UPHELD" | "RESOLVE_INSUFFICIENT_EVIDENCE" | "REFUND_APPEAL_SUPPLEMENT";
 export type GymFinding = "ESTABLISHED" | "NOT_ESTABLISHED";
 export type GymAssessmentResult = "ESTABLISHED" | "NOT_ESTABLISHED" | "REFUTED";
 export type GymClaimantRole = "MEMBER" | "ADMIN_ON_BEHALF";
@@ -326,6 +326,9 @@ export interface GymProposalResult {
   outcome: GymOutcome;
   outcomeLabel: string;
   caseStatus: GymCaseStatus;
+  /** Q5: set when the appeal is reviewed AFTER a refund was executed */
+  afterRefundAppeal?: boolean;
+  supplementAmount?: string;
 }
 export interface GymDecideResult {
   approvalId: string;

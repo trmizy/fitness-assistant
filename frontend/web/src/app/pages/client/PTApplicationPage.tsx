@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserIcon as User, ShieldIcon as Shield, BriefcaseIcon as Briefcase, MedalIcon as Award, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, CheckCircleIcon as CheckCircle, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, UploadSimpleIcon as Upload, XIcon as X, CheckIcon as Check, WarningCircleIcon as AlertCircle, ClockIcon as Clock, FileTextIcon as FileText, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, FacebookLogoIcon as Facebook, PlusIcon as Plus, TrashIcon as Trash2, MapPinIcon as MapPin } from "@phosphor-icons/react";
+import { UserIcon as User, ShieldIcon as Shield, BriefcaseIcon as Briefcase, MedalIcon as Award, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, UploadSimpleIcon as Upload, XIcon as X, CheckIcon as Check, WarningCircleIcon as AlertCircle, ClockIcon as Clock, FileTextIcon as FileText, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, FacebookLogoIcon as Facebook, PlusIcon as Plus, TrashIcon as Trash2, MapPinIcon as MapPin } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
 import {
   ptApplicationService,
@@ -14,6 +14,8 @@ import { SPECIALTIES } from "../../constants/specialties";
 import { apiBaseUrl } from "../../config/serverUrl";
 import { PtTermsModal, usePtTerms } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, isPtTermsVersionStale } from "../../utils/ptTerms";
+import { checkPtDocumentFile, ptDocumentUploadErrorMessage } from "../../utils/ptDocumentUpload";
+import { fullName } from "../../utils/fullName";
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
@@ -202,6 +204,12 @@ function UploadBox({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const problem = checkPtDocumentFile(file);
+    if (problem) {
+      alert(problem);
+      e.target.value = "";
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -210,7 +218,7 @@ function UploadBox({
       onUpload(resp.url);
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Tải lên thất bại. Vui lòng thử lại.");
+      alert(ptDocumentUploadErrorMessage(error));
     } finally {
       setIsUploading(false);
     }
@@ -545,7 +553,14 @@ export function PTApplicationPage() {
     // an E2E test for this wizard: identity-document uploads and service-mode/price fields on a
     // later step were wiped this way. setQueryData closes the race window entirely — there is
     // no network round-trip left to race against.
-    onSuccess: (data) => queryClient.setQueryData(["pt-application-me"], data),
+    onSuccess: (data) =>
+      queryClient.setQueryData(["pt-application-me"], (prev: PTApplication | undefined) => ({
+        ...data,
+        // Giữ số lần còn lại do GET /me tính (phản hồi lưu nháp không kèm các trường này).
+        rejectionCount: prev?.rejectionCount,
+        maxRejections: prev?.maxRejections,
+        remainingAttempts: prev?.remainingAttempts,
+      })),
     onError: (err: any) => {
       alert(
         err.response?.data?.error ||
@@ -622,6 +637,12 @@ export function PTApplicationPage() {
       alert("Tối đa 5 ảnh portfolio");
       return;
     }
+    const problem = checkPtDocumentFile(file);
+    if (problem) {
+      alert(problem);
+      e.target.value = "";
+      return;
+    }
     setPortfolioUploading(true);
     try {
       const { url } = await ptApplicationService.uploadDocument(file);
@@ -630,7 +651,7 @@ export function PTApplicationPage() {
       updateField("media", media);
     } catch (error) {
       console.error("Portfolio upload failed", error);
-      alert("Tải lên thất bại. Vui lòng thử lại.");
+      alert(ptDocumentUploadErrorMessage(error));
     } finally {
       setPortfolioUploading(false);
     }
@@ -861,9 +882,35 @@ export function PTApplicationPage() {
               onClick={() => navigate("/client/dashboard")}
               className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
             >
-              Về Dashboard
+              Về trang chủ
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Đã bị từ chối đủ số lần cho phép: không còn nộp lại được (backend trả 409 PT_APPLICATION_LIMIT_REACHED).
+  if (status === "REJECTED" && appData?.remainingAttempts === 0) {
+    return (
+      <div className="p-4 md:p-6 max-w-2xl mx-auto">
+        <div data-testid="pt-application-limit" className="bg-zinc-900 rounded-xl border border-red-500/20 p-10 text-center">
+          <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
+            <XCircle className="w-10 h-10 text-red-400" />
+          </div>
+          <h2 className="text-zinc-100 font-bold mb-2">Không thể đăng ký làm huấn luyện viên nữa</h2>
+          <p className="text-zinc-400 text-sm mb-1">
+            Tài khoản đã bị từ chối {appData.maxRejections ?? 3} lần nên không thể nộp thêm hồ sơ.
+          </p>
+          {appData.rejectionReason && (
+            <p className="text-zinc-500 text-xs mb-6">Lý do lần gần nhất: {appData.rejectionReason}</p>
+          )}
+          <button
+            onClick={() => navigate("/client/profile")}
+            className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors"
+          >
+            Về trang cá nhân
+          </button>
         </div>
       </div>
     );
@@ -899,6 +946,12 @@ export function PTApplicationPage() {
             </p>
             <p className="text-xs text-zinc-400 mt-1">{formData.adminNote}</p>
           </div>
+        </div>
+      )}
+      {(appData?.rejectionCount ?? 0) > 0 && typeof appData?.remainingAttempts === "number" && (
+        <div data-testid="pt-application-attempts" className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-3 text-xs text-zinc-400">
+          Hồ sơ của bạn đã bị từ chối {appData.rejectionCount}/{appData.maxRejections ?? 3} lần. Bạn còn{" "}
+          <span className="font-bold text-zinc-200">{appData.remainingAttempts}</span> lần nộp lại.
         </div>
       )}
       {status === "REJECTED" && formData.rejectionReason && (
@@ -2236,7 +2289,7 @@ export function PTApplicationPage() {
                 <ReviewRow
                   label="Họ tên"
                   value={
-                    user ? `${user.firstName} ${user.lastName}` : undefined
+                    user ? fullName(user) : undefined
                   }
                 />
                 <ReviewRow label="Điện thoại" value={formData.phoneNumber} />

@@ -33,13 +33,20 @@ function initials(firstName?: string, lastName?: string): string {
   return (f + l).toUpperCase() || "?";
 }
 
+// N11D1-02: PENDING_PAYMENT / PENDING_SIGNATURE / REJECTED từng hiện nguyên mã.
+const CONTRACT_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: "Đang hiệu lực",
+  PENDING_REVIEW: "Chờ duyệt",
+  PENDING_SIGNATURE: "Chờ ký",
+  PENDING_PAYMENT: "Chờ thanh toán",
+  COMPLETED: "Hoàn thành",
+  EXPIRED: "Đã hết hạn",
+  CANCELLED: "Đã hủy",
+  REJECTED: "Đã từ chối",
+};
+
 function contractStatusLabel(status: string) {
-  if (status === "ACTIVE") return "Đang hiệu lực";
-  if (status === "PENDING_REVIEW") return "Chờ duyệt";
-  if (status === "COMPLETED") return "Hoàn thành";
-  if (status === "EXPIRED") return "Đã hết hạn";
-  if (status === "CANCELLED") return "Đã hủy";
-  return status;
+  return CONTRACT_STATUS_LABEL[status] ?? "Không xác định";
 }
 
 function goalLabel(goal?: string): string {
@@ -48,7 +55,7 @@ function goalLabel(goal?: string): string {
 }
 
 const FILTER_ALL = "Tất cả";
-const FILTER_OPTIONS = [FILTER_ALL, "Đang hiệu lực", "Chờ duyệt", "Hoàn thành", "Đã hết hạn"];
+const FILTER_OPTIONS = [FILTER_ALL, "Đang hiệu lực", "Chờ duyệt", "Chờ thanh toán", "Hoàn thành", "Đã hết hạn"];
 
 export function PTClientList() {
   const navigate = useNavigate();

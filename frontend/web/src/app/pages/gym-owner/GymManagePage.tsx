@@ -18,6 +18,8 @@ import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeni
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
 import { canViewWallet, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { MEMBERSHIP_STATUS_VI, viLabel } from "../../utils/labels.vi";
+import { memberLabel } from "../../utils/memberLabel";
 
 const ALL_WEEK_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 function defaultHours(gymId: string): GymOperatingHoursDay[] {
@@ -718,7 +720,7 @@ export function GymManagePage() {
             {memberships.map((m) => (
               <div key={m.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3.5 flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-zinc-500">{m.clientId.slice(0, 8)}...</div>
+                  <div className="text-xs text-zinc-500">{memberLabel(m.clientId, m.clientName)}</div>
                   {m.status === "ACTIVE" && (
                     <div className="text-[11px] text-zinc-600 mt-0.5">
                       {m.totalVisits != null ? `Lượt: ${m.usedVisits}/${m.totalVisits}` : `Lượt đã vào: ${m.usedVisits} · không giới hạn`}
@@ -731,7 +733,7 @@ export function GymManagePage() {
                     : m.status === "PENDING_PAYMENT" ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
                     : "bg-zinc-700/50 border-zinc-700 text-zinc-400"
                   }`}>
-                    {m.status}
+                    {viLabel(MEMBERSHIP_STATUS_VI, m.status)}
                   </span>
                   <span className="text-sm font-bold text-green-400">{formatVND(Number(m.priceAtPurchase))}</span>
                 </div>

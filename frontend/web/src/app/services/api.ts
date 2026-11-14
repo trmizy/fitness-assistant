@@ -329,7 +329,7 @@ export const authService = {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName?: string, // optional: a one-word name has no last name (omitted from the JSON body)
   ) => {
     const { data } = await api.post("/auth/register", {
       email,
@@ -599,6 +599,12 @@ function sortInBodyHistoryByMeasurementDate(history: any[]) {
 export const inbodyService = {
   create: async (entry: any) => {
     const { data } = await api.post("/inbody", entry);
+    return data;
+  },
+
+  // N13G-04: owner-only delete of a wrong measurement.
+  remove: async (id: string) => {
+    const { data } = await api.delete(`/inbody/${encodeURIComponent(id)}`);
     return data;
   },
 
@@ -6163,7 +6169,7 @@ export const gymService = {
     const { data } = await api.get(`/partner-invitations/${token}`);
     return data?.data ?? data;
   },
-  acceptPartnerInvitation: async (token: string, payload: { password: string; firstName: string; lastName?: string }) => {
+  acceptPartnerInvitation: async (token: string, payload: { password?: string; firstName?: string; lastName?: string }) => {
     const { data } = await api.post(`/partner-invitations/${token}/accept`, payload);
     return data?.data ?? data;
   },

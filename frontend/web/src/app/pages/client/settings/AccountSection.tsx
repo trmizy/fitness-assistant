@@ -7,6 +7,7 @@ import { useApp } from "../../../context/AppContext";
 import { authService } from "../../../services/api";
 import { SectionCard } from "./components/SectionCard";
 import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../../utils/passwordPolicy";
+import { authErrorMessage } from "../../../utils/authErrors";
 
 const inputClass =
   "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
@@ -52,9 +53,7 @@ export function AccountSection() {
       toast.success("Đã cập nhật mật khẩu");
     },
     onError: (error: any) => {
-      const message =
-        error?.response?.data?.error || "Không thể đổi mật khẩu — thử lại sau";
-      toast.error(message);
+      toast.error(authErrorMessage(error, "Không thể đổi mật khẩu — thử lại sau"));
     },
   });
 

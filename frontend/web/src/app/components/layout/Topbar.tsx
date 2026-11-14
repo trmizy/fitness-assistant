@@ -31,9 +31,13 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   GYM_COMPLAINT_CASE_SLA_OVERDUE: "Hồ sơ đã quá hạn xử lý",
   GYM_COMPLAINT_CASE_APPEAL_FILED: "Kháng nghị đã được tiếp nhận",
   GYM_COMPLAINT_CASE_RESOLVED: "Hồ sơ đã có kết luận",
+  WITHDRAWAL_APPROVED: "Yêu cầu rút tiền đã được duyệt",
+  WITHDRAWAL_PAID: "Yêu cầu rút tiền đã chuyển khoản",
+  WITHDRAWAL_REJECTED: "Yêu cầu rút tiền bị từ chối",
 };
 import { useSocket } from "../../hooks/useSocket";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { notificationEventLabel } from "../../utils/notificationEventLabels";
 
 export function Topbar() {
   const {
@@ -344,7 +348,7 @@ export function Topbar() {
                           })}
                         </span>
                         <span className="text-xs text-zinc-700">
-                          {EVENT_TYPE_LABELS_VI[n.eventType] ?? n.eventType.replace(/_/g, " ").toLowerCase()}
+                          {EVENT_TYPE_LABELS_VI[n.eventType] ?? notificationEventLabel(n.eventType)}
                         </span>
                       </div>
                     </div>

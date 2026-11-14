@@ -356,7 +356,7 @@ export function UserManagement() {
               aria-label={`Thao tác với ${u.name}`}
               data-user-actions={u.id}
               onClick={(e) => e.stopPropagation()}
-              className="rounded p-1.5 text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-500"
+              className="inline-flex h-10 w-10 items-center justify-center rounded text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-500"
             >
               <MoreVertical className="h-4 w-4" />
             </button>

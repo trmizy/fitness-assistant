@@ -4,6 +4,7 @@ import { useApp } from "../../context/AppContext";
 import { BarbellIcon as Dumbbell, ArrowRightIcon as ArrowRight, CheckIcon as Check, EnvelopeSimpleIcon as Mail, LockIcon as Lock, UserCircleIcon as UserCircle } from "@phosphor-icons/react";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
+import { authErrorMessage, isEmailAlreadyRegistered } from "../../utils/authErrors";
 
 /**
  * Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.1.
@@ -53,15 +54,15 @@ export function RegisterPage() {
     try {
       const parts = fullName.trim().split(" ");
       const firstName = parts[0];
-      const lastName = parts.slice(1).join(" ") || ".";
+      // N13A-14: a one-word name has NO last name — send nothing (the backend stores null), never a placeholder dot.
+      const lastName = parts.slice(1).join(" ").trim() || undefined;
 
       await authService.register(email, password, firstName, lastName);
       toast.success("Mã xác nhận đã được gửi đến email của bạn");
       setStep(1);
       setResendIn(RESEND_AFTER_SECONDS);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || "";
-      if (errorMsg === "Email already registered") {
+      if (isEmailAlreadyRegistered(error)) {
         toast.error("Email này đã được đăng ký. Bạn có muốn đăng nhập không?", {
           action: {
             label: "Đăng nhập ngay",
@@ -70,7 +71,7 @@ export function RegisterPage() {
           duration: 5000,
         });
       } else {
-        toast.error(errorMsg || "Đăng ký thất bại");
+        toast.error(authErrorMessage(error, "Đăng ký thất bại"));
       }
     } finally {
       setLoading(false);
@@ -92,9 +93,7 @@ export function RegisterPage() {
       setResendIn(result?.resendAfterSeconds ?? RESEND_AFTER_SECONDS);
       toast.success("Đã gửi mã mới — mã cũ không còn dùng được");
     } catch (error: any) {
-      toast.error(
-        error?.response ? error.response.data?.error || "Không gửi lại được mã" : "Không kết nối được máy chủ",
-      );
+      toast.error(authErrorMessage(error, "Không gửi lại được mã"));
     } finally {
       setResending(false);
     }
@@ -119,7 +118,7 @@ export function RegisterPage() {
         navigate("/client/onboarding", { replace: true });
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xác minh thất bại");
+      toast.error(authErrorMessage(error, "Xác minh thất bại"));
     } finally {
       setLoading(false);
     }

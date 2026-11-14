@@ -479,7 +479,8 @@ function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: Distance
         {cover ? <TrainerCover uri={cover} /> : null}
         <View className="flex-row gap-3.5 p-4">
           <Avatar uri={pt.photoUrl} name={pt.name} size={60} />
-          <View className="flex-1">
+          {/* N13I-03: min-w-0 lets the long location ellipsize instead of running under the "/buổi" price column */}
+          <View className="min-w-0 flex-1">
             <View className="flex-row items-center gap-1.5">
               <Text className="font-display text-base text-foreground" numberOfLines={1}>
                 {pt.name}
@@ -502,9 +503,9 @@ function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: Distance
                 <Text className="font-body text-xs text-muted-foreground">Chưa có đánh giá</Text>
               )}
               {area ? (
-                <View className="flex-row items-center gap-1">
+                <View className="min-w-0 shrink flex-row items-center gap-1">
                   <MapPin size={12} color="#8b9299" />
-                  <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                  <Text className="shrink font-body text-xs text-muted-foreground" numberOfLines={1}>
                     {area}
                   </Text>
                 </View>
@@ -528,7 +529,7 @@ function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: Distance
               </View>
             ) : null}
           </View>
-          <View className="items-end">
+          <View className="shrink-0 items-end">
             {pt.lowestPrice != null ? (
               <>
                 <Text className="font-body text-[11px] text-muted-foreground">từ</Text>

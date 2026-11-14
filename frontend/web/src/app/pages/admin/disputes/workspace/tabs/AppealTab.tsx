@@ -37,6 +37,7 @@ import {
   consequenceKindLabel,
   consequenceStatusLabel,
   consequenceStatusTone,
+  adminDisplayName,
   isNeedsRecon,
   filterIndependentReviewers,
   isKeepResult,
@@ -349,12 +350,12 @@ export function AppealTab({
                     <span className="font-medium text-adm-text">
                       {currentUserId && item.reviewerId === currentUserId
                         ? "Bạn (Quản trị viên được phân công)"
-                        : `Mã ${shortRef(item.reviewerId)}`}
+                        : adminDisplayName(item.reviewerId, admins, currentUserId)}
                     </span>
                   ) : (
                     <span className="italic text-adm-text-2">Chưa phân công</span>
                   )}
-                  {item.reviewerAssignedBy && ` · Phân công bởi ${shortRef(item.reviewerAssignedBy)}`}
+                  {item.reviewerAssignedBy && ` · Phân công bởi ${adminDisplayName(item.reviewerAssignedBy, admins, currentUserId)}`}
                 </div>
 
                 {/* Decision outcome if decided */}
@@ -387,11 +388,9 @@ export function AppealTab({
                     {item.decidedAt && (
                       <p className="text-xs text-adm-text-2">
                         Quyết định lúc {formatDateTime(item.decidedAt)} bởi{" "}
-                        {item.decidedBy
-                          ? `mã ${shortRef(item.decidedBy)}`
-                          : item.reviewerId
-                            ? `mã ${shortRef(item.reviewerId)}`
-                            : "quản trị viên"}
+                        {item.decidedBy || item.reviewerId
+                          ? adminDisplayName(item.decidedBy || item.reviewerId, admins, currentUserId)
+                          : "quản trị viên"}
                       </p>
                     )}
 

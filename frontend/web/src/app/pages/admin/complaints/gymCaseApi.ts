@@ -209,7 +209,7 @@ export function createGymCaseApi(client: GymHttpClient) {
     /** The outcome is computed by the server from (class, finding). */
     recordFinding: (caseId: string, input: FindingInput, key: string) => postData<GymFindingResult>(`${A}/${enc(caseId)}/finding`, { finding: input.finding, reasoning: input.reasoning }, key),
     /** No outcome, no amount: only an optional note. */
-    propose: (caseId: string, input: { note?: string }, key: string) => postData<GymProposalResult>(`${A}/${enc(caseId)}/proposal`, compact({ note: input.note }), key),
+    propose: (caseId: string, input: { note?: string; appealResult?: "UPHOLD" | "OVERTURN_MEMBER" | "OVERTURN_GYM" }, key: string) => postData<GymProposalResult>(`${A}/${enc(caseId)}/proposal`, compact({ note: input.note, appealResult: input.appealResult }), key),
     /** Four eyes: the server re-checks the approver. Approving executes nothing. */
     decide: (caseId: string, input: DecisionInput, key: string) =>
       postData<GymDecideResult>(

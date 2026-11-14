@@ -8,6 +8,7 @@ import { EquipmentPicker, TrainingLocationPresetRow } from "../../components/Equ
 import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../utils/units";
 import { toast } from "sonner";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
+import { SESSION_DURATION_MAX, SESSION_DURATION_MIN, validateSessionDuration } from "./onboarding.validation";
 
 /**
  * First-run onboarding wizard — collects everything the Decision Engine and
@@ -114,6 +115,7 @@ export function OnboardingWizardPage() {
   const [goal, setGoal] = useState("");
   const [trainingDays, setTrainingDays] = useState<number[]>([]);
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState("60");
+  const [durationTouched, setDurationTouched] = useState(false);
   // "auto" = don't send preferredSplit at all (same as the pre-existing "Chưa xác định"
   // default — the system/AI decides) — default for everyone, not just BEGINNER: nobody
   // should be shown Push/Pull/Legs/Bro Split jargon unless they specifically ask for manual
@@ -271,7 +273,8 @@ export function OnboardingWizardPage() {
       experienceLevel: experienceLevel || undefined,
       goal: goal || undefined,
       preferredTrainingDays: trainingDays,
-      sessionDurationMinutes: sessionDurationMinutes ? parseInt(sessionDurationMinutes, 10) : undefined,
+      // Never send a value the backend would reject (10-240): "skip" saves what is valid so far, the rest stays unset.
+      sessionDurationMinutes: validateSessionDuration(sessionDurationMinutes) === null ? parseInt(sessionDurationMinutes, 10) : undefined,
       // "auto" always sends an explicit null (not undefined) — profileSchema's
       // preferredSplit is .nullable() specifically so a client can clear a
       // previously-set value; omitting the key here would leave a stale manual
@@ -399,6 +402,31 @@ export function OnboardingWizardPage() {
     // already is for experienceLevel/goal above.
     if (currentStep === 4) return !!activityLevel;
     return true;
+  };
+
+  // N13A-13 - the schedule step enforces the backend's 10-240 minute rule before moving on (Vietnamese message, not only the HTML min/max).
+  const scheduleError = () => validateSessionDuration(sessionDurationMinutes);
+  const goNext = () => {
+    if (!canGoNext()) return;
+    if (currentStep === 1) {
+      const err = scheduleError();
+      if (err) {
+        setDurationTouched(true);
+        toast.error(err);
+        return;
+      }
+    }
+    setCurrentStep((s) => Math.min(steps.length - 1, s + 1));
+  };
+  const finish = () => {
+    const err = scheduleError();
+    if (err) {
+      setDurationTouched(true);
+      setCurrentStep(1);
+      toast.error(err);
+      return;
+    }
+    submitMutation.mutate(true);
   };
 
   const toggleDay = (d: number) => {
@@ -576,12 +604,20 @@ export function OnboardingWizardPage() {
                 <label className={lbl}>Thời lượng mỗi buổi (phút)</label>
                 <input
                   type="number"
-                  min={15}
-                  max={180}
+                  inputMode="numeric"
+                  min={SESSION_DURATION_MIN}
+                  max={SESSION_DURATION_MAX}
+                  step={1}
                   value={sessionDurationMinutes}
                   onChange={(e) => setSessionDurationMinutes(e.target.value)}
+                  onBlur={() => setDurationTouched(true)}
+                  aria-invalid={durationTouched && scheduleError() !== null}
+                  data-testid="onboarding-session-duration"
                   className={inp}
                 />
+                {durationTouched && scheduleError() && (
+                  <p role="alert" data-testid="onboarding-session-duration-error" className="text-[11px] text-red-400 mt-1">{scheduleError()}</p>
+                )}
               </div>
               <div>
                 <label className={lbl}>Kiểu chia lịch tập</label>
@@ -882,7 +918,7 @@ export function OnboardingWizardPage() {
           {isLastStep ? (
             <button
               type="button"
-              onClick={() => submitMutation.mutate(true)}
+              onClick={finish}
               disabled={submitMutation.isPending}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold bg-green-500 text-black hover:bg-green-400 shadow-lg shadow-green-500/25 disabled:opacity-60 transition-all"
             >
@@ -892,7 +928,7 @@ export function OnboardingWizardPage() {
           ) : (
             <button
               type="button"
-              onClick={() => canGoNext() && setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
+              onClick={goNext}
               disabled={!canGoNext()}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold bg-green-500 text-black hover:bg-green-400 shadow-lg shadow-green-500/25 disabled:opacity-40 transition-all"
             >

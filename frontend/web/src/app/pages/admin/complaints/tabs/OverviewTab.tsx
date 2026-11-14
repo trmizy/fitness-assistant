@@ -119,7 +119,7 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
               { label: "Tình trạng gói", value: MEMBERSHIP_STATUS[detail.membership.status] ?? "Chưa rõ" },
               { label: "Bắt đầu", value: formatDateSafe(detail.membership.startDate) },
               { label: "Kết thúc", value: formatDateSafe(detail.membership.endDate) },
-              { label: "Giá lúc mua", value: detail.membership.priceAtPurchase },
+              { label: "Giá lúc mua", value: formatMoneyExact(detail.membership.priceAtPurchase) },
             ]}
           />
           <Muted>Giá lúc mua không phải số tiền sẽ hoàn. Số hoàn do máy chủ tính khi thực thi.</Muted>

@@ -22,6 +22,7 @@ import { SOCIALS, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BrandLogoUpload } from "../partner-application/uploaders";
 import { canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { authErrorMessage } from "../../utils/authErrors";
 
 const inputCls =
   "w-full px-3 py-2.5 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 disabled:opacity-60 transition-all";
@@ -164,7 +165,7 @@ export function GymOwnerProfilePage() {
       setConfirmPassword("");
       toast.success("Đã đổi mật khẩu");
     },
-    onError: (e) => toast.error(errMessage(e, "Không đổi được mật khẩu — kiểm tra lại mật khẩu hiện tại")),
+    onError: (e) => toast.error(authErrorMessage(e, "Không đổi được mật khẩu — kiểm tra lại mật khẩu hiện tại")),
   });
   const pwMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
   const canChangePassword = currentPassword.length > 0 && newPassword.length >= 8 && newPassword === confirmPassword;

@@ -38,7 +38,7 @@ export function TabbedPage({
             type="button"
             data-testid={`page-tab-${t.value}`}
             onClick={() => setActive(t.value)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+            className={`inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
               active === t.value
                 ? "bg-green-500 text-black border-green-500"
                 : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40"

@@ -1,6 +1,8 @@
 import { motion } from "motion/react";
+import { useLocation } from "react-router";
 import { useApp } from "../../context/AppContext";
 import { GyminiMonkeyMark } from "../icons/gymini/mascot";
+import { AI_FAB_LIFT_VAR, isAiCoachFabHiddenOn } from "./aiCoachFab";
 
 /**
  * Global, always-visible entry point to AI Coach — replaces the old "AI
@@ -11,6 +13,7 @@ import { GyminiMonkeyMark } from "../icons/gymini/mascot";
  */
 export function AICoachFloatingButton() {
   const { isAuthenticated, role, isAiCoachOpen, openAiCoach } = useApp();
+  const { pathname } = useLocation();
 
   // AI Coach is a client-side feature only (AICoachPage lives under
   // /client/...). AppShell is shared by client, pt, gym_owner AND admin
@@ -22,6 +25,8 @@ export function AICoachFloatingButton() {
   // A PT also gets it in their own workspace: the PT Copilot (roster overview, drafted client proposals) is the same chat.
   const inClientContext = role === "client" || role === "pt";
   if (!isAuthenticated || !inClientContext || isAiCoachOpen) return null;
+  // Not on the chat screens (it covered "Gửi" and the "Thử lại" link) nor on AI Coach's own page.
+  if (isAiCoachFabHiddenOn(pathname)) return null;
 
   return (
     <motion.button
@@ -45,7 +50,9 @@ export function AICoachFloatingButton() {
       }}
       whileHover={{ scale: 1.12 }}
       whileTap={{ scale: 0.94 }}
-      className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-green-500/30 bg-zinc-900/90 text-green-400 shadow-lg shadow-green-500/20 backdrop-blur-md"
+      // bottom rises with a page's sticky bottom bar (--ai-fab-lift, set by StickyActionBar) so it never sits on its buttons.
+      style={{ bottom: `calc(1.25rem + var(${AI_FAB_LIFT_VAR}, 0px))` }}
+      className="fixed right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-green-500/30 bg-zinc-900/90 text-green-400 shadow-lg shadow-green-500/20 backdrop-blur-md"
     >
       <GyminiMonkeyMark size={28} />
     </motion.button>

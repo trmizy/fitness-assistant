@@ -851,7 +851,7 @@ export function MembersSection({ gymId }: { gymId: string }) {
             <View key={m.id} className="flex-row items-center justify-between gap-2 rounded-xl border border-border bg-panel px-3 py-2.5">
               <View className="min-w-0 flex-1">
                 <Text className="font-body-semibold text-xs text-foreground" numberOfLines={1}>
-                  {memberLabel(m.clientId)}
+                  {memberLabel(m.clientId, m.clientName)}
                 </Text>
                 {m.status === "ACTIVE" ? (
                   <Text className="font-body text-[11px] text-muted-foreground">

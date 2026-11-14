@@ -363,8 +363,13 @@ export function pendingCollabCount(collabs: unknown) {
   return awaitingMyReplyCount(collabs, "GYM");
 }
 
-/** Members are anonymous to the owner beyond their id — never invent a name. */
-export function memberLabel(clientId: string | null | undefined): string {
+/**
+ * N13I-04: the owner sees the member's display name when the server supplies one (`clientName`, same field the owner/manager
+ * check-in rows carry); until a row has it, the short id stays — a name is never invented.
+ */
+export function memberLabel(clientId: string | null | undefined, clientName?: string | null): string {
+  const name = (clientName ?? "").trim();
+  if (name) return name;
   const id = (clientId ?? "").trim();
   return id ? `Khách #${id.slice(0, 8)}` : "Khách";
 }

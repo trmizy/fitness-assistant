@@ -1,0 +1,71 @@
+/**
+ * Dòng phụ của chuông thông báo (N13A-12 = N11D1-01): trước đây mọi loại không nằm trong bảng nhỏ ở Topbar bị hiện
+ * bằng chính mã loại viết thường ("contract requested", "nutrition plan ready"). Bảng này phủ toàn bộ NotificationEventType
+ * của user-service; loại lạ (backend thêm sau) rơi về "Thông báo" — không bao giờ lộ mã tiếng Anh.
+ */
+export const NOTIFICATION_EVENT_LABEL_VI: Record<string, string> = {
+  CONTRACT_REQUESTED: "Yêu cầu hợp đồng",
+  CONTRACT_ACCEPTED: "Hợp đồng được chấp nhận",
+  CONTRACT_REJECTED: "Hợp đồng bị từ chối",
+  CONTRACT_CANCELLED: "Hợp đồng đã huỷ",
+  CONTRACT_CANCELLED_PT_DEACTIVATED: "Hợp đồng đã huỷ do PT ngừng hoạt động",
+  CONTRACT_PAUSED_PT_SUSPENDED: "Hợp đồng tạm dừng",
+  CONTRACT_RESUMED_PT_REINSTATED: "Hợp đồng hoạt động trở lại",
+  SESSION_BOOKED: "Buổi tập mới được đặt",
+  SESSION_CONFIRMED: "Buổi tập đã xác nhận",
+  SESSION_COMPLETED: "Buổi tập đã hoàn thành",
+  SESSION_CANCELLED: "Buổi tập đã huỷ",
+  SESSION_NO_SHOW_CLIENT: "Học viên vắng mặt",
+  SESSION_NO_SHOW_PT: "PT vắng mặt",
+  SESSION_RESCHEDULE_REQUESTED: "Yêu cầu đổi giờ buổi tập",
+  SESSION_RESCHEDULE_ACCEPTED: "Đổi giờ được chấp nhận",
+  SESSION_RESCHEDULE_REJECTED: "Đổi giờ bị từ chối",
+  SESSION_RESCHEDULE_EXPIRED: "Yêu cầu đổi giờ đã hết hạn",
+  SESSION_PENDING_CONFIRMATION: "Buổi tập chờ bạn xác nhận",
+  SESSION_AUTO_CONFIRMED: "Buổi tập được tự động xác nhận",
+  SESSION_DISPUTED: "Buổi tập có khiếu nại",
+  SESSION_DISPUTE_RESOLVED: "Khiếu nại buổi tập đã có kết quả",
+  SESSION_PT_NO_SHOW_REPORTED: "Báo cáo PT vắng mặt",
+  WORKOUT_UPCOMING: "Buổi tập hôm nay",
+  WORKOUT_RESCHEDULED: "Đã dời lịch tập",
+  WORKOUT_UNFINISHED: "Buổi tập dang dở",
+  TRAINING_PLAN_UPDATED: "Cập nhật kế hoạch tập",
+  NUTRITION_PLAN_READY: "Kế hoạch dinh dưỡng đã sẵn sàng",
+  CYCLE_REASSESSMENT_READY: "Có đề xuất điều chỉnh chu kỳ",
+  CYCLE_ASSESSMENT_READY: "Có đánh giá chu kỳ mới",
+  PT_FEEDBACK_RECEIVED: "Phản hồi từ PT",
+  REFUND_NEEDS_MANUAL_SETTLEMENT: "Hoàn tiền cần xử lý",
+  PAYMENT_AUTO_REFUNDED: "Đã hoàn tiền tự động",
+  PT_APPLICATION_REVIEWED: "Kết quả duyệt hồ sơ PT",
+  PT_APPLICATION_SUBMITTED: "Hồ sơ PT mới nộp",
+  PT_LISTING_APPROVED: "Hồ sơ hiển thị đã được duyệt",
+  PT_LISTING_REJECTED: "Hồ sơ hiển thị bị từ chối",
+  PT_LISTING_CHANGES_REQUESTED: "Hồ sơ hiển thị cần chỉnh sửa",
+  PT_LISTING_INVALIDATED: "Bản chỉnh sửa hồ sơ đã hết hiệu lực",
+  GYM_LISTING_APPROVED: "Trang chi nhánh đã được duyệt",
+  GYM_LISTING_REJECTED: "Trang chi nhánh bị từ chối",
+  GYM_LISTING_CHANGES_REQUESTED: "Trang chi nhánh cần chỉnh sửa",
+  GYM_LISTING_INVALIDATED: "Bản chỉnh sửa chi nhánh đã hết hiệu lực",
+  GYM_AMENITY_PROPOSAL_REVIEWED: "Đề xuất tiện ích đã được xét",
+  GYM_BRANCH_CHANGES_REQUESTED: "Chi nhánh cần chỉnh sửa",
+  GYM_PARTNER_APPLICATION_REJECTED: "Hồ sơ đối tác bị từ chối",
+  GYM_COMPLAINT_RESOLVED: "Báo cáo đã có kết quả",
+  DISPUTE_CASE_UPDATED: "Cập nhật hồ sơ khiếu nại",
+  GYM_COMPLAINT_CASE_OPENED: "Báo cáo đã được tiếp nhận",
+  GYM_COMPLAINT_CASE_MORE_INFO: "Cần bổ sung thông tin",
+  GYM_COMPLAINT_CASE_SLA_WARNING: "Hồ sơ sắp đến hạn xử lý",
+  GYM_COMPLAINT_CASE_SLA_OVERDUE: "Hồ sơ đã quá hạn xử lý",
+  GYM_COMPLAINT_CASE_APPEAL_FILED: "Kháng nghị đã được tiếp nhận",
+  GYM_COMPLAINT_CASE_APPEAL_MANUAL_HANDLING: "Kháng nghị cần xử lý thủ công",
+  GYM_COMPLAINT_CASE_RESOLVED: "Hồ sơ đã có kết luận",
+  WITHDRAWAL_AWAITING_SECOND_ADMIN: "Rút tiền chờ duyệt lần hai",
+  WITHDRAWAL_APPROVED: "Yêu cầu rút tiền đã được duyệt",
+  WITHDRAWAL_PAID: "Yêu cầu rút tiền đã chuyển khoản",
+  WITHDRAWAL_REJECTED: "Yêu cầu rút tiền bị từ chối",
+};
+
+export const NOTIFICATION_EVENT_FALLBACK_VI = "Thông báo";
+
+export function notificationEventLabel(eventType: string | null | undefined): string {
+  return (eventType && NOTIFICATION_EVENT_LABEL_VI[eventType]) || NOTIFICATION_EVENT_FALLBACK_VI;
+}

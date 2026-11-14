@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, WalletIcon, XIcon } from "@phosphor-icons/react";
 import { formatMoneyExact } from "../../adminFinanceOverview.utils";
 import { formatDateTimeVi } from "../../adminReconciliation.utils";
 import { OWNER_LABELS } from "../transactions/transactionsLabels";
+import { ShortIdCopy } from "../transactions/TransactionParts";
 import { FOCUS, PagerBar, WalletOwner, WalletStatusPill } from "./WalletParts";
 import { WALLET_OWNER_TYPES, walletOwnerTitle } from "./walletLabels";
 import { MAX_OWNER_ID_LENGTH, hasActiveFilters, pageCount, type WalletFilters } from "./walletsUrlState";
@@ -123,8 +124,14 @@ export function WalletsTable({ rows, activeId, onOpen, dimmed }: { rows: WalletD
                   aria-label={`Mở chi tiết ví ${walletOwnerTitle(w.ownerType, w.ownerId)}`}
                   className={`min-h-11 rounded-md text-left underline-offset-4 hover:underline xl:min-h-8 ${FOCUS}`}
                 >
-                  <WalletOwner ownerType={w.ownerType} ownerId={w.ownerId} />
+                  <WalletOwner ownerType={w.ownerType} ownerId={w.ownerId} withCopy={false} />
                 </button>
+                {/* N13J-06: the copy button is a SIBLING of the open-row button — never nested inside it. */}
+                {w.ownerType !== "PLATFORM" && (
+                  <div className="text-xs text-adm-text-2">
+                    <ShortIdCopy id={w.ownerId} label="mã chủ ví" />
+                  </div>
+                )}
               </div>
               <div className="xl:hidden"><WalletStatusPill status={w.status} /></div>
             </div>

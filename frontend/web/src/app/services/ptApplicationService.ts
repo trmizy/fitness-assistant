@@ -92,6 +92,10 @@ export interface PTApplication {
   otherReferences?: string;
   adminNote?: string;
   rejectionReason?: string;
+  /** Số lần tài khoản đã bị từ chối đơn PT, giới hạn tối đa và số lần còn lại (backend tính, chỉ có ở GET /pt-applications/me). */
+  rejectionCount?: number;
+  maxRejections?: number;
+  remainingAttempts?: number;
   submittedAt?: string;
   reviewedAt?: string;
   approvedAt?: string;

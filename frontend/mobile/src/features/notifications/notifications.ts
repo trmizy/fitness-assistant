@@ -87,6 +87,15 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Hồ sơ đã quá hạn xử lý", icon: "alert", tone: "danger" };
     case "GYM_COMPLAINT_CASE_APPEAL_FILED":
       return { title: "Kháng nghị đã được tiếp nhận", icon: "shield", tone: "primary" };
+    // Withdrawal (Q9): the owner's approved / paid / rejected notices and the admins' "waiting for a second admin" notice.
+    case "WITHDRAWAL_APPROVED":
+      return { title: "Yêu cầu rút tiền đã được duyệt", icon: "money", tone: "primary" };
+    case "WITHDRAWAL_PAID":
+      return { title: "Rút tiền đã chuyển khoản", icon: "money", tone: "primary" };
+    case "WITHDRAWAL_REJECTED":
+      return { title: "Yêu cầu rút tiền bị từ chối", icon: "alert", tone: "danger" };
+    case "WITHDRAWAL_AWAITING_SECOND_ADMIN":
+      return { title: "Rút tiền chờ duyệt lần hai", icon: "money", tone: "warning" };
     case "CONTRACT_REQUESTED":
     case "CONTRACT_ACCEPTED":
       return { title: "Hợp đồng PT", icon: "file", tone: "primary" };
@@ -137,6 +146,9 @@ const LINK_MAP: Record<string, string> = {
   "/client/training": "/client/workout",
   "/client/nutrition": "/client/workout/nutrition",
   "/client/wallet": "/client/profile/wallet",
+  // Withdrawal notices (Q9): the PT's wallet screen and the admin's withdrawals screen.
+  "/pt/wallet": "/pt/wallet",
+  "/admin/finance/withdrawals": "/admin/withdrawals",
   "/client/dashboard": "/client/dashboard",
   "/client/pt-application": "/client/profile/pt-application",
   // Listing Management (M1): the server links PT listing notifications to "/pt/listing".

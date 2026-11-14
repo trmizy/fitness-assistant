@@ -11,6 +11,8 @@ import {
   chatPartnerName,
   chatRoleLabel,
   chatSendErrorText,
+  filterConversationsByPartner,
+  isTransientSendError,
   mergeMessages,
 } from "../chatThread";
 
@@ -116,5 +118,36 @@ describe("chatSendErrorText (N09F-03/07)", () => {
 
   it("a network failure (no response) asks to check the connection and retry", () => {
     assert.match(chatSendErrorText(new Error("Network Error")), /Kiểm tra kết nối/);
+  });
+});
+
+describe("filterConversationsByPartner (N13H-04)", () => {
+  const list = [
+    { id: "1", otherUser: { firstName: "Hoàng", lastName: "Quang", role: "PT" } },
+    { id: "2", otherUser: { firstName: "Đặng", lastName: "Thu Hà", role: "CUSTOMER" } },
+    { id: "3", otherUser: { role: "GYM_OWNER" } },
+  ];
+  it("an empty or blank query keeps everything", () => {
+    assert.equal(filterConversationsByPartner(list, "").length, 3);
+    assert.equal(filterConversationsByPartner(list, "   ").length, 3);
+  });
+  it("matches by partner name, ignoring case and accents, every word must match", () => {
+    assert.deepEqual(filterConversationsByPartner(list, "hoang").map((c) => c.id), ["1"]);
+    assert.deepEqual(filterConversationsByPartner(list, "HOÀNG quang").map((c) => c.id), ["1"]);
+    assert.deepEqual(filterConversationsByPartner(list, "dang ha").map((c) => c.id), ["2"]);
+    assert.deepEqual(filterConversationsByPartner(list, "hoang ha").map((c) => c.id), []);
+  });
+  it("a partner without a name is found by the label shown for them", () => {
+    assert.deepEqual(filterConversationsByPartner(list, "chu phong").map((c) => c.id), ["3"]);
+  });
+});
+
+describe("isTransientSendError (N11F-02)", () => {
+  it("no answer or a server error may clear itself on reconnect; a refusal may not", () => {
+    assert.equal(isTransientSendError({ code: "ERR_NETWORK" }), true);
+    assert.equal(isTransientSendError({ response: { status: 503 } }), true);
+    assert.equal(isTransientSendError({ response: { status: 403 } }), false);
+    assert.equal(isTransientSendError({ response: { status: 401 } }), false);
+    assert.equal(isTransientSendError({ response: { status: 413 } }), false);
   });
 });

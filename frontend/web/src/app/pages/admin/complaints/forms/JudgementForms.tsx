@@ -213,17 +213,23 @@ export function FindingCard({ detail, onChanged, push }: FormProps) {
 
 export function ProposeCard({ detail, onChanged, push }: FormProps) {
   const id = useId();
-  const w = useGymWrite<{ note: string }, GymProposalResult>(onChanged);
+  const w = useGymWrite<{ note: string; appealResult: string }, GymProposalResult>(onChanged);
   const [note, setNote] = useState("");
+  // Q5: an appeal under review may follow a refund that was already paid; the reviewer then picks how it ends (the server refuses the choice when it does not apply).
+  const [appealResult, setAppealResult] = useState("");
+  const appealUnderReview = detail.appeal?.status === "REVIEWING";
   const f = latestFinding(detail.findings);
   const err = textError(note, LIMITS.note, false);
 
   async function send() {
     if (err) return;
-    const r = await w.submit({ note: note.trim() }, (key, b) => gymCaseApi.propose(detail.case.id, b.note ? { note: b.note } : {}, key));
+    const r = await w.submit({ note: note.trim(), appealResult }, (key, b) =>
+      gymCaseApi.propose(detail.case.id, { ...(b.note ? { note: b.note } : {}), ...(b.appealResult ? { appealResult: b.appealResult as "UPHOLD" | "OVERTURN_MEMBER" | "OVERTURN_GYM" } : {}) }, key),
+    );
     if (r.ok) {
       push({ tone: "success", testId: "d6-propose-done", text: `Đã lập đề xuất: ${r.value.outcomeLabel || gymOutcomeLabel(r.value.outcome)}. Hồ sơ chờ một quản trị viên khác duyệt.` });
       setNote("");
+      setAppealResult("");
     }
   }
 
@@ -233,6 +239,24 @@ export function ProposeCard({ detail, onChanged, push }: FormProps) {
         <p className="text-sm text-adm-text">
           Dựa trên kết luận: <strong>{gymFindingLabel(f.finding)}</strong>. {findingConsequence(detail.case.caseClass, f.finding)}
         </p>
+      )}
+      {appealUnderReview && (
+        <Field id={`${id}-appeal-result`} label="Kết quả kháng nghị (chỉ dùng khi khoản hoàn đã được chi trước đó)">
+          <Select
+            id={`${id}-appeal-result`}
+            value={appealResult}
+            onChange={(x) => {
+              w.onEdit();
+              setAppealResult(x);
+            }}
+            options={[
+              { value: "UPHOLD", label: "Giữ nguyên kết quả trước đó" },
+              { value: "OVERTURN_MEMBER", label: "Có lợi cho hội viên: hoàn thêm phần chênh lệch" },
+              { value: "OVERTURN_GYM", label: "Có lợi cho phòng tập: ghi nhận, xử lý thủ công, không trừ ví hội viên" },
+            ]}
+            placeholder="Để hệ thống chọn theo kết luận"
+          />
+        </Field>
       )}
       <Field id={`${id}-note`} label="Ghi chú cho người duyệt (không bắt buộc)" error={err} count={counter(note)} max={LIMITS.note}>
         <TextArea id={`${id}-note`} value={note} rows={2} onChange={(x) => { w.onEdit(); setNote(x); }} error={err} />

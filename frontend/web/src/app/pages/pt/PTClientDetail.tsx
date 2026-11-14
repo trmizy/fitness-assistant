@@ -112,6 +112,10 @@ const contractStatusLabel: Record<string, string> = {
   PENDING_REVIEW: "Chờ duyệt",
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã hủy",
+  PENDING_SIGNATURE: "Chờ ký",
+  PENDING_PAYMENT: "Chờ thanh toán",
+  EXPIRED: "Đã hết hạn",
+  REJECTED: "Đã từ chối",
 };
 
 const TABS = [
@@ -298,7 +302,7 @@ export function PTClientDetail() {
                   }`}
                 >
                   Hợp đồng{" "}
-                  {contractStatusLabel[contract.status] ?? contract.status}
+                  {contractStatusLabel[contract.status] ?? "Không xác định"}
                 </span>
                 <span className="text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded-full">
                   Buổi {sessionsUsed} / {sessionsTotal}

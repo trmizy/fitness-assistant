@@ -5,6 +5,7 @@ import { authService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { AppLogo } from "../brand/AppLogo";
 import { PASSWORD_POLICY_HINT, passwordPolicyError } from "../../utils/passwordPolicy";
+import { authErrorMessage } from "../../utils/authErrors";
 
 /**
  * Blocks the entire app behind this screen for an account still on its admin-issued random
@@ -32,9 +33,7 @@ export function ForceChangePasswordScreen() {
       updateUser({ mustChangePassword: false });
     },
     onError: (err: any) => {
-      setError(
-        err?.response?.data?.error || "Không thể đổi mật khẩu — kiểm tra lại mật khẩu tạm thời.",
-      );
+      setError(authErrorMessage(err, "Không thể đổi mật khẩu — kiểm tra lại mật khẩu tạm thời."));
     },
   });
 

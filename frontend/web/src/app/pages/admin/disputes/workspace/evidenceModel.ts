@@ -15,6 +15,7 @@ import { PROVENANCE_LABEL } from "../disputeCaseLabels";
 import type { DisputeEvidence } from "../disputeCaseTypes";
 import { sessionTypeLabel } from "../queue/queueModel";
 import { asArray, asRecord, formatDateTime, proseOrNull, shortRef } from "./format";
+import { ptTermsVersionLabel } from "../../../../utils/ptTermsLabel";
 
 // ───────────────────────────────────────────────────────────── titles ──
 export const SOURCE_ORDER = [
@@ -417,7 +418,7 @@ export function describePayload(e: Pick<DisputeEvidence, "subject" | "payload" |
     finish(CONTRACT_FIN_SPECS, ["id"]);
   } else if (subject === "PT_TERMS_ACCEPTANCES") {
     const { records, technical } = recordsFrom(p.rows, {
-      version: t("Phiên bản điều khoản", plain),
+      version: t("Phiên bản điều khoản", (v) => (plain(v) ? ptTermsVersionLabel(plain(v)) : null)),
       acceptedAt: t("Chấp nhận lúc", dateOrNull),
     }, ["id", "source"]);
     view.groups.push({ title: "Các lần chấp nhận", records, emptyText: "PT chưa có bản ghi chấp nhận điều khoản." });

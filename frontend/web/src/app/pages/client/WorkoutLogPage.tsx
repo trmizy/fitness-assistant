@@ -4611,10 +4611,10 @@ export function WorkoutLogPage() {
                   <AlertCircle className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-emerald-100/90">
+                  <p className="text-sm text-zinc-100">
                     Đã đến lúc cập nhật chỉ số cơ thể
                   </p>
-                  <p className="text-xs text-emerald-500/40 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     {daysSinceInBody !== null
                       ? `Cập nhật ${daysSinceInBody} ngày trước · Nên quét InBody`
                       : "Chưa có dữ liệu InBody · Bắt đầu bằng cách tải ảnh lên"}
@@ -4631,7 +4631,7 @@ export function WorkoutLogPage() {
           )}
 
           {/* Cinematic Hero */}
-          <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
+          <div className="on-media group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
             <img
               src={heroImg}
               alt="Training"
@@ -4657,7 +4657,7 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
-              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">
+              <span className="text-[10px] text-emerald-400 uppercase tracking-[0.2em] mb-1.5 block">
                 Chương trình
               </span>
               <h2 className="text-2xl text-white mb-2 tracking-tight">

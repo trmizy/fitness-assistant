@@ -474,7 +474,7 @@ export function describeEvidence(e: GymEvidence): EvidenceView {
       push(fields, "Tình trạng gói", MEMBERSHIP_STATUS[String(p.status)] ?? null);
       push(fields, "Bắt đầu", date(p.startDate));
       push(fields, "Kết thúc", date(p.endDate));
-      push(fields, "Giá lúc mua", num(p.priceAtPurchase));
+      push(fields, "Giá lúc mua", num(p.priceAtPurchase) ? formatMoneyExact(p.priceAtPurchase) : null);
       push(fields, "Thời hạn gói (ngày)", num(p.durationDaysSnapshot));
       push(fields, "Lượt tập", p.totalVisits === null || p.totalVisits === undefined ? null : `${num(p.usedVisits) ?? "0"}/${num(p.totalVisits) ?? "?"}`);
       push(fields, "Đã chuyển tiền cho phòng tập lúc", date(p.payoutReleasedAt));

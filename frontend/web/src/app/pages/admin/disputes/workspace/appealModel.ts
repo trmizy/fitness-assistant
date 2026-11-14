@@ -313,3 +313,19 @@ export const isNewFindingResult = isNewResult;
 export const isObligationOpen = (s?: string | null): boolean => s === STATUS_OBLIGATION_OPEN;
 
 
+
+/**
+ * N13D-05: the appeal tab printed the reviewer's id ("Mã d0d00000"). Resolve it through the admin directory the tab already loads
+ * (`/admin/dispute-cases/admins`): self -> "Bạn", known admin -> its name, anyone else (deactivated admin) -> a neutral phrase.
+ */
+export function adminDisplayName(
+  id: string | null | undefined,
+  admins: Array<{ id: string; displayName?: string; label?: string }>,
+  currentUserId?: string | null,
+): string {
+  if (!id) return "Chưa rõ";
+  if (currentUserId && id === currentUserId) return "Bạn";
+  const found = admins.find((a) => a.id === id);
+  const name = found?.displayName?.trim() || found?.label?.trim();
+  return name || "Quản trị viên khác";
+}

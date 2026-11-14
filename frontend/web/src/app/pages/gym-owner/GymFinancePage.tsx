@@ -179,7 +179,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={sales.length === 0}
                 onClick={() => downloadCsv(`gymini-doanh-so-${stamp}.csv`, salesCsv(sales, { gym: gymName, plan: planName }))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>
@@ -208,7 +208,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={!commission || commission.byMonth.length === 0}
                 onClick={() => commission && downloadCsv(`gymini-hoa-hong-pt-${stamp}.csv`, commissionCsv(commission))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>
@@ -275,7 +275,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={withdrawals.length === 0}
                 onClick={() => downloadCsv(`gymini-rut-tien-${stamp}.csv`, withdrawalsCsv(withdrawals))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>

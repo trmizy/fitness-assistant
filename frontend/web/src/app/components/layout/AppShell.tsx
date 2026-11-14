@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { AICoachFloatingButton } from "./AICoachFloatingButton";
 import { AICoachFloatingPanel } from "./AICoachFloatingPanel";
+import { isAiCoachFabHiddenOn } from "./aiCoachFab";
 
 // Vòng 4 / Phase D1 — was a Vite ES import of a 6MB src/assets/bg-gym.jpg (duplicated
 // byte-for-byte in public/bg-gym.jpg, which public/offline.html and public/sw.js's precache
@@ -93,8 +94,12 @@ export function AppShell() {
 }
 
 function AppShellInner() {
-  const { sidebarOpen, setSidebarOpen } = useApp();
+  const { sidebarOpen, setSidebarOpen, role } = useApp();
   const location = useLocation();
+  // The floating AI Coach button (client/PT) sits over the bottom-right corner of whatever page is open. Leave
+  // room under the page equal to the button + its margin so the last row of any page can always be scrolled
+  // clear of it. Not reserved where the button is not drawn (chat, AI Coach) - those pages fill the screen exactly.
+  const reserveForAiFab = (role === "client" || role === "pt") && !isAiCoachFabHiddenOn(location.pathname);
 
   return (
     <div
@@ -125,7 +130,7 @@ function AppShellInner() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">
         <Topbar />
         <main
-          className="flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10 overflow-x-hidden"
+          className={`flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10 overflow-x-hidden${reserveForAiFab ? " pb-24" : ""}`}
         >
           {/*
             Only the content area animates. The topbar and sidebar live outside this box

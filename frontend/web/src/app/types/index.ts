@@ -303,7 +303,7 @@ export type NotificationEventType =
   | "PT_FEEDBACK_RECEIVED"
   | "DISPUTE_CASE_UPDATED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE" | "WITHDRAWAL_REQUEST";
 
 export interface AppNotification {
   id: string;
@@ -680,6 +680,8 @@ export interface GymMembershipContract {
   gymId: string;
   planId: string;
   clientId: string;
+  /** N13I-04: display name, sent only to the branch owner / manager (absent for other roles or when the name service is down). */
+  clientName?: string;
   status: GymMembershipContractStatus;
   paymentTxnId?: string;
   startDate?: string;

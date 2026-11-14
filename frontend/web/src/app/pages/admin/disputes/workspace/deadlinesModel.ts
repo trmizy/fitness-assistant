@@ -15,6 +15,9 @@ export const DEADLINE_KIND_LABEL: Record<string, string> = {
   STATEMENT: "Nộp lời khai",
   EVIDENCE: "Bổ sung tài liệu",
   APPEAL: "Thời hạn xem xét lại",
+  // Gym complaint cases (N13E-11): the first answer a party owes (72h) and a supplement round (48h)
+  FIRST_RESPONSE: "Phản hồi lần đầu",
+  SUPPLEMENT_ROUND: "Bổ sung theo yêu cầu",
 };
 
 export function deadlineKindLabel(kind: string | null | undefined): string {

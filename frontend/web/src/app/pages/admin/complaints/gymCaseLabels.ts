@@ -101,6 +101,7 @@ export const GYM_OUTCOME_LABEL: Record<GymOutcome, string> = {
   REFUND_GYM_VIOLATION: "Hoàn tiền gói: phòng tập vi phạm",
   RESOLVE_UPHELD: "Ghi nhận khiếu nại là đúng, không phát sinh tiền",
   RESOLVE_INSUFFICIENT_EVIDENCE: "Chưa đủ căn cứ, không hoàn tiền",
+  REFUND_APPEAL_SUPPLEMENT: "Kháng nghị được chấp nhận: hoàn thêm phần chênh lệch",
 };
 export const gymOutcomeLabel = (o: string | null | undefined) => lookup(GYM_OUTCOME_LABEL, o, "Kết quả khác");
 

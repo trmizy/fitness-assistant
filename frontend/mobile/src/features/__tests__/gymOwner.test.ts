@@ -295,9 +295,12 @@ describe("dashboard figures", () => {
     assert.equal(pendingCollabCount(collabs), 1);
   });
 
-  it("a member is shown by a short id — the owner is never handed an invented name", () => {
+  it("a member is shown by the server's display name, else a short id — a name is never invented", () => {
     assert.equal(memberLabel("1234567890abcdef"), "Khách #12345678");
     assert.equal(memberLabel(null), "Khách");
+    assert.equal(memberLabel("1234567890abcdef", "Nguyễn Văn An"), "Nguyễn Văn An");
+    assert.equal(memberLabel("1234567890abcdef", "   "), "Khách #12345678");
+    assert.equal(memberLabel("1234567890abcdef", null), "Khách #12345678");
   });
 
   it("recent memberships are newest first and capped", () => {

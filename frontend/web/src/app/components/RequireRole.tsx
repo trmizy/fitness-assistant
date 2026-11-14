@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router";
+import { Link, Navigate, useLocation } from "react-router";
 import { useApp, type UserRole } from "../context/AppContext";
 
 /**
@@ -47,13 +47,25 @@ export function RequireRole({
   if (!allow.includes(role)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-950">
-        <div className="max-w-md w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
-          <h2 className="text-amber-300 text-lg font-bold mb-2">
+        <div
+          data-testid="role-forbidden-card"
+          className="max-w-md w-full rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center"
+        >
+          <h2 className="text-zinc-100 text-lg font-bold mb-2">
             403 — Không có quyền truy cập
           </h2>
-          <p className="text-amber-200/80 text-sm">
+          <p className="text-zinc-400 text-sm">
             Tài khoản của bạn không có quyền xem trang này.
           </p>
+          {/* N13J-07: "/" is RootRedirect, which sends each role (and applicant-state gym owners) to their own home. */}
+          <Link
+            to="/"
+            replace
+            data-testid="role-forbidden-home"
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-green-500 px-5 py-2.5 text-sm font-bold text-black transition-all hover:bg-green-400"
+          >
+            Về trang chính
+          </Link>
         </div>
       </div>
     );

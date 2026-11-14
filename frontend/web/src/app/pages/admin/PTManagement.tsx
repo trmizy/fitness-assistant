@@ -369,12 +369,22 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
 /* ═══════════════════════════════════════════════════════════
    DETAIL VIEW
    ═══════════════════════════════════════════════════════════ */
+const ADMIN_REVIEWABLE_STATUSES = ["SUBMITTED", "UNDER_REVIEW"];
+const REVIEW_LOCKED_NOTE: Record<string, string> = {
+  DRAFT: "Hồ sơ còn là bản nháp — người nộp chưa gửi nên chưa thể xét duyệt.",
+  NEEDS_MORE_INFO: "Đang chờ người nộp bổ sung thông tin. Hồ sơ sẽ xét duyệt lại sau khi người nộp gửi lại.",
+  APPROVED: "Hồ sơ đã được duyệt. Muốn gỡ huấn luyện viên, hãy dùng chức năng tạm khóa hoặc ngừng hoạt động huấn luyện viên.",
+  REJECTED: "Hồ sơ đã bị từ chối. Người nộp cần nộp hồ sơ mới (tối đa 3 lần bị từ chối cho mỗi tài khoản).",
+};
+
 function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onDone?: () => void }) {
   const queryClient = useQueryClient();
   const [adminNote, setAdminNote] = useState(app.adminNote || "");
   const [feedback, setFeedback] = useState("");
   const [showDocs, setShowDocs] = useState(false);
   const cfg = statusConfig[app.status || "DRAFT"];
+  // Quy tắc duyệt hồ sơ (khớp backend, 409 INVALID_APPLICATION_TRANSITION): chỉ hồ sơ đang chờ xét duyệt mới thao tác được.
+  const canReview = ADMIN_REVIEWABLE_STATUSES.includes(app.status || "DRAFT");
 
   const actionMutation = useMutation({
     mutationFn: ({
@@ -531,6 +541,11 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
               <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-green-500" /> Xét duyệt của admin
               </p>
+              {!canReview ? (
+                <p data-testid="pt-review-locked" className="text-xs text-zinc-400 leading-relaxed">
+                  {REVIEW_LOCKED_NOTE[app.status || "DRAFT"] ?? "Hồ sơ này hiện không thể xét duyệt."}
+                </p>
+              ) : (
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
@@ -595,6 +610,7 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                   </button>
                 </div>
               </div>
+              )}
             </div>
           </div>
 

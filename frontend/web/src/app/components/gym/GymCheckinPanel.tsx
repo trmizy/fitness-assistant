@@ -85,7 +85,7 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
           type="button"
           onClick={() => refetch()}
           disabled={isRefetching}
-          className="flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+          className="flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} /> Tạo lại
         </button>
@@ -114,7 +114,7 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
               <button
                 type="button"
                 onClick={() => setFullscreen(true)}
-                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-zinc-900/90 text-zinc-300 hover:text-green-400 border border-zinc-700/60"
+                className="absolute bottom-2 right-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900/90 text-zinc-300 hover:text-green-400 border border-zinc-700/60"
                 aria-label="Phóng to mã QR"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
