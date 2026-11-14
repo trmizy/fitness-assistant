@@ -32,11 +32,19 @@ export function splitSentences(text: string): string[] {
 
 export interface InputSafetyVerdict { safe: boolean; type: string; message?: string }
 
+/** True when the text carries any Vietnamese diacritic (NFD combining mark, or đ/Đ which has no decomposition). */
+function hasVietnameseDiacritic(text: string): boolean {
+  return /[\p{M}đĐ]/u.test(text.normalize("NFD"));
+}
+
 export function checkInputSafety(question: string): InputSafetyVerdict {
   // V1's detectors partly match only UNACCENTED text ("giam 10kg trong 1 tuan" is blocked, "giảm 10kg trong 1 tuần" is not —
   // found 2026-11-12, V1 runtime frozen, reported separately). V2 also checks the diacritic-folded form; never weaker than V1.
+  // The induced-vomiting detector reads the ORIGINAL accents ("ói"/"ơi", "cô"/"có"), so when the original HAS diacritics the folded retry
+  // skips only that detector (accentFoldedRetry) — otherwise an accented third-person sentence folds into a first-person lookalike. A fully
+  // unaccented original is evaluated unchanged (folded == original), so unaccented first-person disclosures keep being refused.
   let r: any = safetyGuard.check(question);
-  if (!r || r.type === "safe") r = safetyGuard.check(foldVi(question));
+  if (!r || r.type === "safe") r = hasVietnameseDiacritic(question) ? safetyGuard.check(foldVi(question), { accentFoldedRetry: true }) : safetyGuard.check(foldVi(question));
   if (!r || r.type === "safe") return { safe: true, type: "safe" };
   const message = typeof r.messageVi === "string" && r.messageVi
     ? r.messageVi
