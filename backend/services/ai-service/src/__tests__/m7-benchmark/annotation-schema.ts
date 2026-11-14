@@ -1,5 +1,6 @@
 /**
- * M7-P5A.1 — annotation CONTRACT for the future human-labelled routing dataset (schema "m7-p5a1"). Single source of truth
+ * M7-P5A2 — annotation CONTRACT for the future human-labelled routing dataset (schema "m7-p5a2"; supersedes "m7-p5a1",
+ * see MIGRATION below). Single source of truth
  * for the validator, the agreement metrics, the dataset-level checks and the (future) runner's scoring. Pure: no I/O, no
  * network, no model. It never creates, repairs or guesses a label — it only defines shapes and DERIVES expectations.
  *
@@ -16,7 +17,15 @@
  */
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
 
-export const SCHEMA_VERSION = "m7-p5a1" as const;
+export const SCHEMA_VERSION = "m7-p5a2" as const;
+/**
+ * MIGRATION m7-p5a1 → m7-p5a2 (owner decisions Q2 / Q4 / Q6, 2026-11-15). There is NO automatic migration and no m7-p5a1
+ * human data exists. An m7-p5a1 row is refused (SCHEMA_VERSION) because it cannot be upgraded without new HUMAN input:
+ *   - annotatorA.rationale / annotatorB.rationale: each annotator's OWN reason (never copied, generated or back-filled);
+ *   - rationaleBy: the adjudicator who wrote the row-level (final) rationale — required on every row;
+ *   - routingScored: long questions (> ROUTING_QUESTION_CHARS) are no longer routing-scored (Q6).
+ */
+export const SUPERSEDED_SCHEMA_VERSIONS = Object.freeze(["m7-p5a1"] as const);
 export const AGENTS: readonly AgentLabel[] = Object.freeze(["training", "nutrition", "recovery", "progress"]);
 export const CATEGORIES = ["SINGLE", "TWO", "MULTI", "OOS", "AMBIGUOUS"] as const;
 export const SAFETY_VALUES = ["NONE", "MINOR", "INJECTION", "HIGH_RISK"] as const;
@@ -65,7 +74,8 @@ export interface CaseLabel {
   expectedPreRouting: PreRouting;
   interpretations?: Interpretation[];
 }
-export interface AnnotatorBlock extends CaseLabel { annotatorId: string }
+/** m7-p5a2 (Q2): every annotator keeps an OWN rationale (required, non-empty, trimmed, NFC, no invisible characters). */
+export interface AnnotatorBlock extends CaseLabel { annotatorId: string; rationale: string }
 export type Adjudication =
   | { needed: false }
   | { needed: true; adjudicatorId: string; decision: CaseLabel; rationale: string };
@@ -81,24 +91,54 @@ export interface AnnotationRow {
   adjudication: Adjudication;
   /** = A (= B) when they agree; = adjudication.decision when they do not. Never edited on its own. */
   final: CaseLabel;
+  /** m7-p5a2 (Q2): the FINAL rationale, written by the adjudicator for EVERY row (agreed rows too: a short human confirmation). */
   rationale: string;
+  /** m7-p5a2 (Q2 / Q4): the adjudicator who wrote `rationale`; = adjudication.adjudicatorId when adjudication.needed is true. */
+  rationaleBy: string;
   /** Must equal expectedRoutingScored(final, question) (declared, then checked — never inferred from a run). */
   routingScored: boolean;
 }
 
-/** routingScored = expected ALLOW AND a valid request (≤ MAX_QUESTION_CHARS). Over-limit questions are validation cases (Q4). */
+/**
+ * routingScored = expected ALLOW AND question ≤ ROUTING_QUESTION_CHARS.
+ * CONTRACT CHANGE m7-p5a2 (owner decision Q6, 2026-11-15; supersedes the m7-p5a1 Q4 rule that kept 601–2000-char questions
+ * inside G7 / G8): long_question (601–2000) and over_request_limit (> 2000) cases are VALIDATION / special-length cases,
+ * never routing-scored and never in the G7 / G8 denominators; they are reported in their own groups (scoringBuckets).
+ */
 export const expectedRoutingScored = (final: Pick<CaseLabel, "expectedPreRouting">, question: string): boolean =>
-  final.expectedPreRouting === "ALLOW" && question.length <= MAX_QUESTION_CHARS;
+  final.expectedPreRouting === "ALLOW" && question.length <= ROUTING_QUESTION_CHARS;
+
+/** Owner-approved caps (2026-11-15). Enforced by the validator on every run (not only with distribution checks). */
+export const QUOTAS = Object.freeze({
+  /** Q5: questions asked on behalf of someone else under 18 (third person; safety by CONTENT, never MINOR). */
+  thirdPartyMinorMax: 10,
+  /** Q6: tag long_question (601–2000 chars). */
+  longQuestionMax: 5,
+  /** Q6: tag over_request_limit (> 2000 chars). */
+  overRequestLimitMax: 3,
+});
+/**
+ * Q5 identification (owner decision: tag `review` + the row-level rationale says "ngôi thứ ba"). A row is a third-party
+ * minor case when it carries tag `review` AND its row rationale contains this marker (compared NFC, case-insensitive, also
+ * without diacritics). The validator cannot detect an UNMARKED third-party case from the text — that is a human duty.
+ */
+export const THIRD_PARTY_MINOR_MARKER = "ngôi thứ ba";
+/**
+ * Q3: tags whose change can alter safety consistency, the Q5 identification or scoring / quotas. A curator change that adds or
+ * removes one of them must be confirmed by the adjudicator (tag audit, annotation-tag-audit.ts). multi_clause / no_keyword /
+ * unaccented only affect distribution and need the curator's audit entry only.
+ */
+export const GOVERNED_TAGS = Object.freeze(["minor", "prompt_injection", "high_risk", "long_question", "over_request_limit", "review"] as const);
 
 /** Allowed keys per object (anything else is UNEXPECTED_KEY; acceptable / expectDeferred / requiredAgents are DERIVED, never stored). */
-export const ROW_KEYS = ["schemaVersion", "id", "question", "accented", "tags", "source", "annotatorA", "annotatorB", "adjudication", "final", "rationale", "routingScored"] as const;
+export const ROW_KEYS = ["schemaVersion", "id", "question", "accented", "tags", "source", "annotatorA", "annotatorB", "adjudication", "final", "rationale", "rationaleBy", "routingScored"] as const;
 export const LABEL_KEYS = ["domains", "primaryAgent", "category", "safety", "expectedPreRouting", "interpretations"] as const;
-export const ANNOTATOR_KEYS = ["annotatorId", ...LABEL_KEYS] as const;
+export const ANNOTATOR_KEYS = ["annotatorId", "rationale", ...LABEL_KEYS] as const;
 export const DOMAIN_KEYS = ["agent", "role", "supports"] as const;
 export const INTERPRETATION_KEYS = ["domains", "primaryAgent", "rationale"] as const;
 export const SOURCE_KEYS = ["kind", "author", "note"] as const;
 export const ADJUDICATION_KEYS = ["needed", "adjudicatorId", "decision", "rationale"] as const;
-/** Fields that older drafts stored by hand; in m7-p5a1 they are derived (DERIVED_FIELD_NOT_ALLOWED if present anywhere in a row). */
+/** Fields that older drafts stored by hand; since m7-p5a1 they are derived (DERIVED_FIELD_NOT_ALLOWED if present anywhere in a row). */
 export const DERIVED_FIELDS = ["acceptable", "expectDeferred", "requiredAgents", "acceptablePrimaries"] as const;
 
 /**
@@ -114,6 +154,11 @@ export const FORBIDDEN_LABELER_WORD = /^(ai|bot|nova|model|assistant)\d*$/;
 const labelerKey = (id: string) => id.toLowerCase().replace(/[^a-z0-9]/g, "");
 export const isForbiddenLabeler = (id: string) => FORBIDDEN_LABELER_PREFIX.test(labelerKey(id)) || FORBIDDEN_LABELER_WORD.test(labelerKey(id));
 export const isValidLabelerId = (id: unknown): id is string => typeof id === "string" && /^[A-Za-z0-9][A-Za-z0-9_.+-]{1,63}$/.test(id) && !isForbiddenLabeler(id);
+/**
+ * m7-p5a2 (Q4): canonical ROLE key of a labeler id (NFKC, trimmed, case-insensitive). Two ids with the same key are the SAME
+ * person for role checks. It proves CONSISTENCY of declared ids only — never the real identity of a participant.
+ */
+export const labelerRoleKey = (id: string): string => id.normalize("NFKC").trim().toLowerCase();
 
 // ── ordering ────────────────────────────────────────────────────────────────────────────────────────────────────────
 /** Problems of an ordered domain list against rules 1–4 above (empty = valid). Order WITHIN requests / within ties cannot be checked — only structure. */
@@ -184,8 +229,8 @@ export function deriveExpected(label: CaseLabel): DerivedExpectation {
  *  - g7 denominator:  routingScored, not OOS, with a unique expected primary (AMBIGUOUS only when all readings share it).
  *  - g8 denominator:  routingScored, not AMBIGUOUS, derived required ≤ 2 (OOS included, as M5 exactSetLe2 does).
  *  - ambiguousGroup:  routingScored AMBIGUOUS — reported separately (exact = selection equals ANY acceptable set).
- *  - longQuestion:    routingScored and question > ROUTING_QUESTION_CHARS — a separate SLICE that stays inside G7 / G8:
- *    labels cover the WHOLE question; an intent the router loses to the 600-char truncation is a miss (Q4).
+ *  - longQuestion:    ROUTING_QUESTION_CHARS < question ≤ MAX_QUESTION_CHARS (tag long_question). m7-p5a2 (Q6): a
+ *    special-length group reported on its own — NOT routing-scored, never in G7 / G8 (supersedes the m7-p5a1 slice rule).
  * An expected-ALLOW case that the candidate blocks STAYS in the G7 / G8 denominators and counts as a miss — except an
  * OOS case: its expected selection is empty, so a pre-routing stop selects nothing and is CORRECT for G8 / OOS (as M5
  * routing-eval.ts), but it is still reported as a FALSE_POSITIVE_OOS_BLOCK in the preflight report (Q5).
@@ -203,7 +248,7 @@ export function scoringBuckets(row: Pick<AnnotationRow, "final" | "routingScored
     g8: scored && row.final.category !== "AMBIGUOUS" && d.requiredAgents.length <= MAX_EXECUTING_AGENTS,
     ambiguousGroup: scored && row.final.category === "AMBIGUOUS",
     oos: scored && row.final.category === "OOS",
-    longQuestion: scored && row.question.length > ROUTING_QUESTION_CHARS,
+    longQuestion: !overLimit && row.question.length > ROUTING_QUESTION_CHARS,
     derived: d,
   };
 }
@@ -311,7 +356,7 @@ export function labelsEqual(a: CaseLabel, b: CaseLabel): boolean {
   return ia.length === ib.length && ia.every((x, i) => x === ib[i]);
 }
 export const stripAnnotator = (b: AnnotatorBlock): CaseLabel => {
-  const { annotatorId: _id, ...label } = b;
+  const { annotatorId: _id, rationale: _r, ...label } = b;
   return label;
 };
 

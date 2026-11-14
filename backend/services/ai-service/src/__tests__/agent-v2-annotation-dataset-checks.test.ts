@@ -84,7 +84,8 @@ describe("dataset checks: length", () => {
   it("600 chars is fine; 2001 chars -> QUESTION_TOO_LONG (even tagged)", () => {
     assert.deepEqual(runDatasetChecks([item(long(600))], { checkDistribution: false, checkBenchmarkOverlap: false }).errors, []);
     const r = runDatasetChecks([item(long(2001), { tags: ["long_question"] })], { checkDistribution: false, checkBenchmarkOverlap: false });
-    assert.deepEqual(codes(r.errors), ["QUESTION_TOO_LONG"]);
+    // CONTRACT CHANGE m7-p5a2 (owner decision Q6): long_question means 601–2000 chars, so the tag on a 2001-char question is also TAG_LENGTH_MISMATCH
+    assert.deepEqual(codes(r.errors), ["QUESTION_TOO_LONG", "TAG_LENGTH_MISMATCH"]);
   });
 });
 

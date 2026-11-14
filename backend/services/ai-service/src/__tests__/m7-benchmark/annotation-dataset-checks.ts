@@ -1,5 +1,5 @@
 /**
- * M7-P5A.1 — dataset-level checks for the human-labelled routing dataset. Pure: no I/O, no network, never mutates input.
+ * M7-P5A.1 / M7-P5A2 — dataset-level checks for the human-labelled routing dataset. Pure: no I/O, no network, never mutates input.
  * errors = must be fixed by a human; reviews = REVIEW REQUIRED (a human must look and sign off; never auto-removed).
  */
 import { foldVi } from "../../llm/speech_act";
@@ -9,7 +9,7 @@ import { ROUTING_CASES_HELDOUT_V2 } from "../m5-benchmark/dataset-heldout-v2";
 import { ROUTING_CASES_DEV_V3, ROUTING_CASES_HELDOUT_V3 } from "./dataset-v3";
 import { ROUTING_CASES_DEV_V4, ROUTING_CASES_HELDOUT_V4 } from "./dataset-v4";
 import {
-  AGENTS, CATEGORIES, DEFAULT_TARGET, MAX_QUESTION_CHARS, ROUTING_QUESTION_CHARS, TAGS,
+  AGENTS, CATEGORIES, DEFAULT_TARGET, MAX_QUESTION_CHARS, QUOTAS, ROUTING_QUESTION_CHARS, TAGS,
   type DatasetCheckOptions, type DatasetCheckResult, type DatasetItem, type DistributionTarget, type Finding,
 } from "./annotation-schema";
 
@@ -80,12 +80,19 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
     const overTag = it.tags.includes("over_request_limit");
     if (len > MAX_QUESTION_CHARS) { if (!overTag) err(it, "QUESTION_TOO_LONG", `question has ${len} chars (> ${MAX_QUESTION_CHARS}); the endpoint refuses it — tag over_request_limit if it is an intended validation case`); }
     else if (overTag) err(it, "TAG_LENGTH_MISMATCH", `tag over_request_limit on a question of ${len} chars (≤ ${MAX_QUESTION_CHARS})`);
+    // m7-p5a2 (Q6): long_question means exactly ROUTING_QUESTION_CHARS < length ≤ MAX_QUESTION_CHARS
+    if (it.tags.includes("long_question") && (len <= ROUTING_QUESTION_CHARS || len > MAX_QUESTION_CHARS)) err(it, "TAG_LENGTH_MISMATCH", `tag long_question on a question of ${len} chars (must be ${ROUTING_QUESTION_CHARS + 1}–${MAX_QUESTION_CHARS})`);
     if (len > MAX_QUESTION_CHARS) continue;
     if (len > ROUTING_QUESTION_CHARS) {
-      if (it.tags.includes("long_question")) rev(it, "LONG_QUESTION_REVIEW", `question has ${len} chars (> ${ROUTING_QUESTION_CHARS}); the routing model only sees the first ${ROUTING_QUESTION_CHARS}`);
+      if (it.tags.includes("long_question")) rev(it, "LONG_QUESTION_REVIEW", `question has ${len} chars (> ${ROUTING_QUESTION_CHARS}); the routing model only sees the first ${ROUTING_QUESTION_CHARS}; a special-length case, never routing-scored (Q6)`);
       else err(it, "QUESTION_OVER_ROUTING_LIMIT", `question has ${len} chars (> ${ROUTING_QUESTION_CHARS}) and is not tagged long_question`);
     }
   }
+  // m7-p5a2 (Q6): owner caps on special-length cases (always enforced, also without distribution checks)
+  const tagged = (t: string) => items.filter((it) => it.tags.includes(t));
+  const longTagged = tagged("long_question"), overTagged = tagged("over_request_limit");
+  for (const it of longTagged.slice(QUOTAS.longQuestionMax)) err(it, "QUOTA_LONG_QUESTION", `more than ${QUOTAS.longQuestionMax} long_question cases (Q6); this row is over the cap`);
+  for (const it of overTagged.slice(QUOTAS.overRequestLimitMax)) err(it, "QUOTA_OVER_REQUEST_LIMIT", `more than ${QUOTAS.overRequestLimitMax} over_request_limit cases (Q6); this row is over the cap`);
 
   // within-dataset similarity
   for (let i = 0; i < items.length; i++) {
@@ -175,6 +182,7 @@ export function runDatasetChecks(items: readonly DatasetItem[], opts: DatasetChe
     errors, reviews,
     stats: {
       cases: n, categories, tags, authors, unaccented, singleDomainCounts, singleDomainPct,
+      quotas: { longQuestion: longTagged.length, overRequestLimit: overTagged.length },
       errorCount: errors.length, reviewCount: reviews.length, errorsByCode: tally(errors), reviewsByCode: tally(reviews),
     },
   };

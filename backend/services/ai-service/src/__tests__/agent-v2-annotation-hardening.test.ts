@@ -11,10 +11,10 @@ const TRAIN: CaseLabel = { domains: [{ agent: "training", role: "request" }], pr
 type Obj = Record<string, any>;
 function mk(id: string, question: string, author = "F-author-1", over: Obj = {}): Obj {
   return {
-    schemaVersion: "m7-p5a1", id, question, accented: /[̀-ͯ]|đ|Đ/.test(question.normalize("NFD")), tags: [],
+    schemaVersion: "m7-p5a2", id, question, accented: /[̀-ͯ]|đ|Đ/.test(question.normalize("NFD")), tags: [],
     source: { kind: "synthetic", author, note: "TEST FIXTURE — not evaluation data" },
-    annotatorA: { annotatorId: "A01", ...TRAIN }, annotatorB: { annotatorId: "B02", ...TRAIN },
-    adjudication: { needed: false }, final: TRAIN, rationale: "TEST FIXTURE rationale", routingScored: true, ...over,
+    annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...TRAIN }, annotatorB: { annotatorId: "B02", rationale: "TEST FIXTURE annotator rationale", ...TRAIN },
+    adjudication: { needed: false }, final: TRAIN, rationale: "TEST FIXTURE rationale", rationaleBy: "ADJ01", routingScored: true, ...over,
   };
 }
 const lines = (...rows: Array<Obj | string>) => rows.map((r) => (typeof r === "string" ? r : JSON.stringify(r))).join("\n");

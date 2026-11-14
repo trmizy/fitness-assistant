@@ -1,5 +1,5 @@
 /**
- * M7-P5A.1 - INTER-ANNOTATOR AGREEMENT metrics for the future human-labelled routing dataset (schema "m7-p5a1").
+ * M7-P5A.1 / M7-P5A2 - INTER-ANNOTATOR AGREEMENT metrics for the future human-labelled routing dataset (schema "m7-p5a2").
  *
  * INPUT CONTRACT (read before use): `pairs[i].a` / `.b` MUST be the ORIGINAL, INDEPENDENT labels of annotator A and
  * annotator B, captured BEFORE any adjudication. This function has no access to adjudicated / final labels BY DESIGN.
@@ -188,5 +188,50 @@ export function computeAgreement(pairs: ReadonlyArray<{ id: string; a: CaseLabel
     ambiguousIds: pairs.filter(isAmb).map((p) => p.id),
     withAmbiguous: block(pairs),
     excludingAmbiguous: block(pairs.filter((p) => !isAmb(p))),
+  };
+}
+
+// ── m7-p5a2 agreement POLICY (owner decision 2026-11-15, fixed BEFORE any result is seen) ───────────────────────────
+/**
+ * Primary Cohen's κ < 0.60 on the ORIGINAL A / B labels ⇒ review + ONE calibration round of the guide on a subset that is
+ * NOT part of the evaluation dataset (calibration cases are never counted in the 300-case benchmark; old labels are never
+ * edited). Checked on BOTH blocks (withAmbiguous, where AMBIGUOUS primary = null is a category, and excludingAmbiguous): the
+ * lower one decides. An undefined κ (n = 0 or 1 − p_e = 0) cannot clear the trigger: a human must review it.
+ * This is a TRIGGER, not a verdict: κ alone never makes the dataset PASS or FAIL. Compared unrounded.
+ */
+export const AGREEMENT_POLICY = Object.freeze({
+  primaryKappaMin: 0.6,
+  decidedAt: "2026-11-15",
+  appliesTo: "primary Cohen's kappa on ORIGINAL (pre-adjudication) annotator A / B labels; withAmbiguous and excludingAmbiguous blocks",
+  onTrigger: "human review + one guide-calibration round on a subset OUTSIDE the evaluation dataset; existing labels are not edited; calibration cases are not counted in the benchmark",
+});
+export type AgreementPolicyStatus = "NO_CALIBRATION_TRIGGER" | "CALIBRATION_REQUIRED" | "KAPPA_UNDEFINED_REVIEW";
+export interface AgreementPolicyResult {
+  status: AgreementPolicyStatus;
+  /** true for CALIBRATION_REQUIRED and KAPPA_UNDEFINED_REVIEW. */
+  reviewRequired: boolean;
+  calibrationRequired: boolean;
+  primaryKappa: { withAmbiguous: number | undefined; excludingAmbiguous: number | undefined };
+  threshold: number;
+  reasons: string[];
+  /** Always the same sentence: the policy never yields PASS / FAIL. */
+  note: string;
+}
+export function evaluateAgreementPolicy(r: AgreementReport): AgreementPolicyResult {
+  const w = r.withAmbiguous.primary.kappa, x = r.excludingAmbiguous.primary.kappa;
+  const t = AGREEMENT_POLICY.primaryKappaMin;
+  const reasons: string[] = [];
+  let low = false, undef = false;
+  for (const [name, k] of [["withAmbiguous", w], ["excludingAmbiguous", x]] as const) {
+    if (k.value === undefined) {
+      // an empty excludingAmbiguous block while withAmbiguous has cases is "no evidence", reported but it does not hide a low value
+      undef = true; reasons.push(`${name}: primary kappa undefined (${k.reason ?? "no reason"})`);
+    } else if (k.value < t) { low = true; reasons.push(`${name}: primary kappa ${k.value} < ${t}`); }
+  }
+  const status: AgreementPolicyStatus = low ? "CALIBRATION_REQUIRED" : undef ? "KAPPA_UNDEFINED_REVIEW" : "NO_CALIBRATION_TRIGGER";
+  return {
+    status, reviewRequired: status !== "NO_CALIBRATION_TRIGGER", calibrationRequired: status === "CALIBRATION_REQUIRED",
+    primaryKappa: { withAmbiguous: w.value, excludingAmbiguous: x.value }, threshold: t, reasons,
+    note: "kappa is a calibration trigger only; it never makes the dataset PASS or FAIL on its own",
   };
 }

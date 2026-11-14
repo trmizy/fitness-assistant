@@ -11,8 +11,8 @@ import { ROUTING_CASES_V1 } from "./m5-benchmark/dataset-v1";
 // TEST FIXTURE only: invented sentences, no real labels, no dataset. Every row below is synthetic.
 const VALIDATOR = path.join(__dirname, "m7-benchmark", "annotation-validator.ts");
 const FIX = path.join(__dirname, "m7-benchmark", "annotation-fixtures");
-const invalidText = fs.readFileSync(path.join(FIX, "synthetic-invalid.jsonl"), "utf8");
-const validText = fs.readFileSync(path.join(FIX, "synthetic-valid-sample.jsonl"), "utf8");
+const invalidText = fs.readFileSync(path.join(FIX, "synthetic-invalid.m7-p5a2.jsonl"), "utf8");
+const validText = fs.readFileSync(path.join(FIX, "synthetic-valid-sample.m7-p5a2.jsonl"), "utf8");
 const NO_DIST = { checkDistribution: false, checkBenchmarkOverlap: true } as const;
 const NOTE = "TEST FIXTURE — not evaluation data";
 
@@ -28,10 +28,10 @@ type Obj = Record<string, any>;
 /** A clean row: A = B = final = `label`, no adjudication. `over` replaces top-level keys. */
 function mk(label: CaseLabel = TRAIN, over: Obj = {}, id = "T-0001", question = "Thanh tạ ở phòng tập gần nhà bị rỉ sét nhẹ, có nên đổi sang phòng khác không?"): Obj {
   return {
-    schemaVersion: "m7-p5a1", id, question, accented: true, tags: [],
+    schemaVersion: "m7-p5a2", id, question, accented: true, tags: [],
     source: { kind: "synthetic", author: "F-author-1", note: NOTE },
-    annotatorA: { annotatorId: "A01", ...label }, annotatorB: { annotatorId: "B02", ...label },
-    adjudication: { needed: false }, final: label, rationale: "TEST FIXTURE rationale",
+    annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...label }, annotatorB: { annotatorId: "B02", rationale: "TEST FIXTURE annotator rationale", ...label },
+    adjudication: { needed: false }, final: label, rationale: "TEST FIXTURE rationale", rationaleBy: "ADJ01",
     routingScored: label.expectedPreRouting === "ALLOW", ...over,
   };
 }
@@ -41,7 +41,7 @@ const codes = (text: string, opts?: Parameters<typeof validateRoutingAnnotations
 const has = (text: string, code: string) => codes(text).includes(code);
 const codesAt = (errs: Finding[], line: number) => errs.filter((e) => e.line === line).map((e) => e.code);
 const withLabels = (a: CaseLabel, b: CaseLabel, final: CaseLabel, adj: Obj = { needed: false }, over: Obj = {}) =>
-  mk(final, { annotatorA: { annotatorId: "A01", ...a }, annotatorB: { annotatorId: "B02", ...b }, adjudication: adj, ...over });
+  mk(final, { annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...a }, annotatorB: { annotatorId: "B02", rationale: "TEST FIXTURE annotator rationale", ...b }, adjudication: adj, ...over });
 
 // ── fixtures ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("valid fixture passes row-level checks with distribution checks off (no errors, no review)", () => {
@@ -82,7 +82,7 @@ test("validator never mutates, repairs or randomises: same text in, same finding
     assert.equal(text, copy);
     assert.deepEqual(r1, r2);
   }
-  assert.equal(fs.readFileSync(path.join(FIX, "synthetic-invalid.jsonl"), "utf8"), invalidText);
+  assert.equal(fs.readFileSync(path.join(FIX, "synthetic-invalid.m7-p5a2.jsonl"), "utf8"), invalidText);
 });
 
 // ── mandatory rejections R1–R8 ───────────────────────────────────────────────────────────────────────────────────────
@@ -111,19 +111,19 @@ test("R3: a hand-typed `acceptable` is DERIVED_FIELD_NOT_ALLOWED; deriveExpected
   assert.equal(r.errors.filter((e) => e.code === "UNEXPECTED_KEY").length, 0, "reported once, with the derived-field code");
   // also at row level and on an annotator block
   assert.ok(has(lines(mk(TRAIN, { acceptable: [["training"]] })), "DERIVED_FIELD_NOT_ALLOWED"));
-  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", ...TRAIN, expectDeferred: [] } })), "DERIVED_FIELD_NOT_ALLOWED"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...TRAIN, expectDeferred: [] } })), "DERIVED_FIELD_NOT_ALLOWED"));
   assert.deepEqual(deriveExpected(two).acceptable, [["nutrition", "training"]]);
   assert.deepEqual(deriveExpected(two).expectDeferred, []);
 });
 
 test("R4: annotatorA primaryAgent nutrition while A's first request domain is training → INVALID_PRIMARY", () => {
   const badA = lab([R("training")], "nutrition", "SINGLE");
-  const r = run(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", ...badA } })));
+  const r = run(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...badA } })));
   const hit = r.errors.filter((e) => e.code === "INVALID_PRIMARY");
   assert.ok(hit.length >= 1 && hit.every((e) => /annotatorA/.test(e.detail)), JSON.stringify(r.errors));
   // also invalid in the other places a label lives
   assert.ok(has(lines(mk(TRAIN, { final: badA })), "INVALID_PRIMARY"));
-  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "B02", ...badA } })), "INVALID_PRIMARY"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "B02", rationale: "TEST FIXTURE annotator rationale", ...badA } })), "INVALID_PRIMARY"));
   // OOS and AMBIGUOUS must use null
   assert.ok(has(lines(mk(lab([], "training", "OOS"))), "INVALID_PRIMARY"));
   // primary must be the FIRST request, not any domain
@@ -134,7 +134,7 @@ test("R4: annotatorA primaryAgent nutrition while A's first request domain is tr
 test("R5: unexpected key `routerPrediction` → UNEXPECTED_KEY; adjudicatorId 'claude' → INVALID_ADJUDICATOR", () => {
   assert.ok(has(lines(mk(TRAIN, { routerPrediction: ["training"] })), "UNEXPECTED_KEY"));
   // unexpected key at every level
-  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", ...TRAIN, routerPrediction: 1 } })), "UNEXPECTED_KEY"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...TRAIN, routerPrediction: 1 } })), "UNEXPECTED_KEY"));
   assert.ok(has(lines(mk(TRAIN, { final: { ...TRAIN, extra: 1 } })), "UNEXPECTED_KEY"));
   assert.ok(has(lines(mk(TRAIN, { final: { ...TRAIN, domains: [{ agent: "training", role: "request", weight: 1 }] } })), "UNEXPECTED_KEY"));
   assert.ok(has(lines(mk(TRAIN, { source: { kind: "synthetic", author: "a", note: "n", url: "x" } })), "UNEXPECTED_KEY"));
@@ -145,7 +145,7 @@ test("R5: unexpected key `routerPrediction` → UNEXPECTED_KEY; adjudicatorId 'c
   }
   assert.ok(has(lines(withLabels(TRAIN, NUTR, TRAIN, { needed: true, decision: TRAIN, rationale: "r" })), "INVALID_ADJUDICATOR"), "missing adjudicatorId");
   // model names are refused for annotators too
-  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "gpt-4", ...TRAIN } })), "INVALID_ANNOTATOR_ID"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "gpt-4", rationale: "TEST FIXTURE annotator rationale", ...TRAIN } })), "INVALID_ANNOTATOR_ID"));
 });
 
 test("R6: duplicate key `final` (and a nested duplicate) → DUPLICATE_JSON_KEY, row not validated further", () => {
@@ -186,13 +186,13 @@ test("R8: the v1 benchmark question N04 with 'tôi' → 'mình' → BENCHMARK_OV
 
 // ── labelers ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 test("SAME_ANNOTATOR (case-insensitive), MISSING_ANNOTATOR_ID, INVALID_ANNOTATOR_ID", () => {
-  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "A01", ...TRAIN } })), "SAME_ANNOTATOR"));
-  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "a01", ...TRAIN } })), "SAME_ANNOTATOR"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...TRAIN } })), "SAME_ANNOTATOR"));
+  assert.ok(has(lines(mk(TRAIN, { annotatorB: { annotatorId: "a01", rationale: "TEST FIXTURE annotator rationale", ...TRAIN } })), "SAME_ANNOTATOR"));
   const noId = mk(TRAIN); delete noId.annotatorA.annotatorId;
   assert.ok(has(lines(noId), "MISSING_ANNOTATOR_ID"));
   const noIdB = mk(TRAIN); delete noIdB.annotatorB.annotatorId;
   assert.ok(has(lines(noIdB), "MISSING_ANNOTATOR_ID"));
-  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "x", ...TRAIN } })), "INVALID_ANNOTATOR_ID"), "too short");
+  assert.ok(has(lines(mk(TRAIN, { annotatorA: { annotatorId: "x", rationale: "TEST FIXTURE annotator rationale", ...TRAIN } })), "INVALID_ANNOTATOR_ID"), "too short");
   assert.ok(!codes(lines(mk(TRAIN))).some((c) => /ANNOTATOR/.test(c)));
 });
 

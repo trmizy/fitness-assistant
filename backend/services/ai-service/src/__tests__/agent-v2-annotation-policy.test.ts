@@ -39,10 +39,10 @@ let seq = 0;
 function rowText(question: string, final: CaseLabel, o: { tags?: string[]; routingScored?: boolean; extra?: Record<string, unknown> } = {}) {
   const id = `PT-${String(++seq).padStart(3, "0")}`;
   return JSON.stringify({
-    schemaVersion: "m7-p5a1", id, question, accented: accented(question), tags: o.tags ?? [],
+    schemaVersion: "m7-p5a2", id, question, accented: accented(question), tags: o.tags ?? [],
     source: { kind: "synthetic", author: "P-author-1", note: NOTE },
-    annotatorA: { annotatorId: "A01", ...final }, annotatorB: { annotatorId: "B02", ...final }, adjudication: { needed: false },
-    final, rationale: "TEST FIXTURE rationale", routingScored: o.routingScored ?? expectedRoutingScored(final, question), ...(o.extra ?? {}),
+    annotatorA: { annotatorId: "A01", rationale: "TEST FIXTURE annotator rationale", ...final }, annotatorB: { annotatorId: "B02", rationale: "TEST FIXTURE annotator rationale", ...final }, adjudication: { needed: false },
+    final, rationale: "TEST FIXTURE rationale", rationaleBy: "ADJ01", routingScored: o.routingScored ?? expectedRoutingScored(final, question), ...(o.extra ?? {}),
   });
 }
 const OPTS = { checkDistribution: false, checkBenchmarkOverlap: false };
@@ -156,11 +156,15 @@ test("PO-7 a > 600-char question is labelled on the WHOLE question (ask after ch
   assert.equal(scoringBuckets({ final, routingScored: true, question: LONG_Q }).longQuestion, true);
 });
 
-test("PO-8 truncation that loses an intent is a MISS (no exemption): G8 not exact, missedIntents recorded, long-question slice", () => {
+// CONTRACT CHANGE m7-p5a2 (owner decision Q6, 2026-11-15) — supersedes the m7-p5a1 rule ("long question stays inside G7 / G8, a
+// truncation miss is a miss"): a long_question case is a special-length case, NEVER routing-scored, reported in its own group.
+test("PO-8 (m7-p5a2 Q6) a long question is not routing-scored: outside G7 / G8, no missed-intent accounting, reported in the long-question group", () => {
   const final = label([req("nutrition"), req("recovery")]);
-  const s = scoreRoutingCase({ final, routingScored: true, question: LONG_Q }, { stage: "REACHED_ROUTING", selected: ["nutrition"], deferredDisclosed: [] });
-  assert.deepEqual([s.g7.hit, s.g8.counted, s.g8.exact, s.longQuestion], [true, true, false, true]);
-  assert.deepEqual(s.missedIntents, ["recovery"]);
+  assert.equal(expectedRoutingScored(final, LONG_Q), false);
+  const s = scoreRoutingCase({ final, routingScored: expectedRoutingScored(final, LONG_Q), question: LONG_Q }, { stage: "REACHED_ROUTING", selected: ["nutrition"], deferredDisclosed: [] });
+  assert.deepEqual([s.g7.counted, s.g8.counted, s.ambiguous.counted, s.longQuestion], [false, false, false, true]);
+  assert.deepEqual(s.missedIntents, []);
+  assert.equal(s.falsePositiveBlock, false);
 });
 
 // ── 9: over the whole-request limit → validation group, never routing success ───────────────────────────────────────

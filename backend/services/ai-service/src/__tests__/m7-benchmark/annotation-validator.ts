@@ -1,7 +1,11 @@
 /**
- * M7-P5A.1 — ROW-LEVEL validator for the FUTURE human-labelled routing dataset (schema "m7-p5a1", see annotation-schema.ts).
+ * M7-P5A2 — ROW-LEVEL validator for the FUTURE human-labelled routing dataset (schema "m7-p5a2", see annotation-schema.ts).
  * Two independent human annotators label every case; disagreements go to an adjudicator; `final` must equal the agreed label
  * (A = B) or the adjudication decision. Acceptable sets / deferred agents are DERIVED (deriveExpected), never typed.
+ * m7-p5a2 adds (owner decisions 2026-11-15): an OWN rationale per annotator (Q2), `rationaleBy` = the adjudicator who wrote
+ * the final rationale (Q2), role-separation checks across the whole file (Q4: one id per role, adjudicator ≠ A / B, writer ≠
+ * labeler — consistency of DECLARED ids only, it cannot prove who a person is), the Q5 third-party-minor cap and safety rule,
+ * the Q6 special-length caps, and explicit scoring exclusions / denominators in the stats.
  *
  * It only REPORTS problems for humans to fix. It never mutates, normalises-in-place or "repairs" its input, creates no label
  * and no dataset. Pure + deterministic: no network, no model call, no file write (the CLI only reads the file given to it).
@@ -18,12 +22,14 @@ import fs from "node:fs";
 import {
   ADJUDICATION_KEYS, AGENTS, ANNOTATOR_KEYS, CATEGORIES, DERIVED_FIELDS, DOMAIN_KEYS, INTERPRETATION_KEYS, LABEL_KEYS, PRE_ROUTING_VALUES,
   ROLES, ROW_KEYS, SAFETY_VALUES, SCHEMA_VERSION, SOURCE_KEYS, SOURCE_KINDS, TAGS,
-  isValidLabelerId, labelsEqual, orderingErrors, expectedRoutingScored, MAX_QUESTION_CHARS,
+  isValidLabelerId, labelsEqual, orderingErrors, expectedRoutingScored, ROUTING_QUESTION_CHARS, labelerRoleKey,
+  SUPERSEDED_SCHEMA_VERSIONS, QUOTAS, THIRD_PARTY_MINOR_MARKER, scoringBuckets,
   type CaseLabel, type DatasetCheckOptions, type DatasetItem, type DomainLabel, type Finding, type Interpretation,
 } from "./annotation-schema";
 import type { AgentLabel } from "../m5-benchmark/dataset-v1";
 import { findDuplicateKeys, MAX_JSON_DEPTH } from "./annotation-json";
-import { runDatasetChecks, INVISIBLE_CHARS_RE, QUESTION_INVISIBLE_CHARS_RE } from "./annotation-dataset-checks";
+import { runDatasetChecks, canonicalWriterKey, INVISIBLE_CHARS_RE, QUESTION_INVISIBLE_CHARS_RE } from "./annotation-dataset-checks";
+import { foldVi } from "../../llm/speech_act";
 
 export type { Finding } from "./annotation-schema";
 /** Kept for callers of the pre-m7-p5a1 validator. */
@@ -44,6 +50,19 @@ export interface ValidationStats {
   reviewsByCode: Record<string, number>;
   /** Raw stats returned by runDatasetChecks. */
   dataset: Record<string, unknown>;
+  /** m7-p5a2 (Q4): the id used per role (first valid id seen; deviations are ROLE_ID_INCONSISTENT errors). */
+  roles: { annotatorA: string | null; annotatorB: string | null; adjudicator: string | null };
+  /** m7-p5a2 (Q5 / Q6): owner caps — used / max. */
+  quotas: { thirdPartyMinor: { used: number; max: number }; longQuestion: { used: number; max: number }; overRequestLimit: { used: number; max: number } };
+  /**
+   * m7-p5a2 (Q6): declared scoring exclusions and denominators, from the FINAL labels and the question length (scoringBuckets).
+   * Rows whose final label is unusable are not counted (they already carry errors).
+   */
+  scoring: {
+    rows: number; routingScored: number; notRoutingScored: number;
+    excluded: { overRequestLimit: number; longQuestion: number; safetyBlock: number; oosBlock: number };
+    denominators: { g7: number; g8: number; ambiguousGroup: number; oos: number; safetyGate: number; oosPreflight: number; validationGroup: number; longQuestionGroup: number };
+  };
 }
 export interface ValidationResult { ok: boolean; errors: Finding[]; reviews: Finding[]; stats: ValidationStats; items: DatasetItem[] }
 
@@ -53,12 +72,31 @@ export function hasVietnameseDiacritics(q: string): boolean {
 }
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const nonEmptyStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
+/**
+ * m7-p5a2: free human text (rationales) must be stored canonically — trimmed, Unicode NFC, no invisible / format / control
+ * characters except inner TAB / LF / CR (same rule as the question). Returns the problem, or null when canonical.
+ */
+export function humanTextProblem(v: string): string | null {
+  if (v !== v.trim()) return "has leading or trailing whitespace";
+  if (v !== v.normalize("NFC")) return "is not Unicode NFC";
+  if (QUESTION_INVISIBLE_CHARS_RE.test(v)) return "contains invisible / format / control characters";
+  return null;
+}
+/** Q5: the row rationale carries the third-party marker (NFC, case-insensitive, or without diacritics). */
+export function hasThirdPartyMarker(rationale: string): boolean {
+  const t = rationale.normalize("NFC").toLowerCase();
+  return t.includes(THIRD_PARTY_MINOR_MARKER) || foldVi(t).includes(foldVi(THIRD_PARTY_MINOR_MARKER));
+}
 const isAgent = (v: unknown): v is AgentLabel => typeof v === "string" && (AGENTS as readonly string[]).includes(v);
 const inList = (list: readonly string[], v: unknown): v is string => typeof v === "string" && list.includes(v);
 const canonDomain = (d: DomainLabel) => `${d.agent}:${d.role}:${d.supports ?? ""}`;
 const canonInterp = (i: Interpretation) => `${i.primaryAgent}|${i.domains.map(canonDomain).join(",")}`;
 
-type Err = (code: string, detail: string) => void;
+export type Err = (code: string, detail: string) => void;
+/** Labeler roles: annotator A, annotator B, J = adjudicator (adjudication.adjudicatorId and rationaleBy). */
+type Role = "A" | "B" | "J";
+const ROLE_LIST: readonly Role[] = ["A", "B", "J"];
+const ROLE_NAME: Record<Role, string> = { A: "annotatorA", B: "annotatorB", J: "adjudicator" };
 
 /** Keys of an object that are not allowed. Derived fields get their own code (reported once, by walkDerived). */
 function checkKeys(obj: Record<string, unknown>, allowed: readonly string[], where: string, err: Err): void {
@@ -108,7 +146,7 @@ interface LabelCheck { label: CaseLabel | null }
  * Validates one case label (annotator block without its id, adjudication.decision or final). `label` is returned only when
  * the SHAPE is usable by labelsEqual (semantic errors — order, primary, category — are reported but do not null it).
  */
-function checkLabel(raw: unknown, where: string, allowedKeys: readonly string[], err: Err): LabelCheck {
+export function checkLabel(raw: unknown, where: string, allowedKeys: readonly string[], err: Err): LabelCheck {
   if (!isObj(raw)) { err("MISSING_FIELD", `${where} missing or not an object`); return { label: null }; }
   checkKeys(raw, allowedKeys, where, err);
   let shapeOk = true;
@@ -188,22 +226,44 @@ function checkLabel(raw: unknown, where: string, allowedKeys: readonly string[],
   return { label: { domains, primaryAgent: primary, category, safety, expectedPreRouting: pre, ...(interpretations !== undefined ? { interpretations } : {}) } };
 }
 
-function checkAnnotator(raw: unknown, which: "annotatorA" | "annotatorB", err: Err): { label: CaseLabel | null; id: string | null } {
-  if (!isObj(raw)) { err("MISSING_FIELD", `${which} missing or not an object`); return { label: null, id: null }; }
+/** One annotator block (m7-p5a2: annotatorId + own rationale + label). Exported for the offline CLI (check-role / merge). */
+export function checkAnnotator(raw: unknown, which: string, err: Err): { label: CaseLabel | null; id: string | null; rationale: string | null } {
+  if (!isObj(raw)) { err("MISSING_FIELD", `${which} missing or not an object`); return { label: null, id: null, rationale: null }; }
   let id: string | null = null;
   if (raw.annotatorId === undefined || raw.annotatorId === null || raw.annotatorId === "") err("MISSING_ANNOTATOR_ID", `${which}.annotatorId missing`);
   else if (!isValidLabelerId(raw.annotatorId)) err("INVALID_ANNOTATOR_ID", `${which}.annotatorId ${JSON.stringify(raw.annotatorId)} is not a valid human pseudonym (model / tool names are refused)`);
   else id = raw.annotatorId;
+  // m7-p5a2 (Q2): the annotator's OWN reason — required; never generated, copied or back-filled by a tool
+  let rationale: string | null = null;
+  if (!nonEmptyStr(raw.rationale)) err("MISSING_ANNOTATOR_RATIONALE", `${which}.rationale missing or empty (each annotator writes an own rationale, m7-p5a2 Q2)`);
+  else {
+    const p = humanTextProblem(raw.rationale);
+    if (p) err("RATIONALE_NOT_CANONICAL", `${which}.rationale ${p}`);
+    rationale = raw.rationale;
+  }
   const { label } = checkLabel(raw, which, ANNOTATOR_KEYS, err);
-  return { label, id };
+  return { label, id, rationale };
 }
 
 // ── main ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOptions = {}): ValidationResult {
   const errors: Finding[] = [];
-  const stats: ValidationStats = { totalLines: 0, cases: 0, byCategory: {}, bySafety: {}, disagreements: 0, adjudicated: 0, errorsByCode: {}, reviewsByCode: {}, dataset: {} };
+  const rowReviews: Finding[] = [];
+  const stats: ValidationStats = {
+    totalLines: 0, cases: 0, byCategory: {}, bySafety: {}, disagreements: 0, adjudicated: 0, errorsByCode: {}, reviewsByCode: {}, dataset: {},
+    roles: { annotatorA: null, annotatorB: null, adjudicator: null },
+    quotas: { thirdPartyMinor: { used: 0, max: QUOTAS.thirdPartyMinorMax }, longQuestion: { used: 0, max: QUOTAS.longQuestionMax }, overRequestLimit: { used: 0, max: QUOTAS.overRequestLimitMax } },
+    scoring: {
+      rows: 0, routingScored: 0, notRoutingScored: 0, excluded: { overRequestLimit: 0, longQuestion: 0, safetyBlock: 0, oosBlock: 0 },
+      denominators: { g7: 0, g8: 0, ambiguousGroup: 0, oos: 0, safetyGate: 0, oosPreflight: 0, validationGroup: 0, longQuestionGroup: 0 },
+    },
+  };
   const items: DatasetItem[] = [];
   const seenIds = new Map<string, number>();
+  // m7-p5a2 (Q4): every VALID labeler id used, by role (A / B / J = adjudicator), and every writer — checked across the file below
+  const roleUses: Array<{ line: number; id: string | null; role: Role; raw: string }> = [];
+  const authorUses: Array<{ line: number; id: string | null; author: string }> = [];
+  const thirdParty: Array<{ line: number; id: string | null }> = [];
 
   jsonlText.split(/\r?\n/).forEach((text, idx) => {
     if (!text.trim()) return;
@@ -227,7 +287,9 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     }
 
     // schema version / keys / derived fields
-    if (row.schemaVersion !== SCHEMA_VERSION) err("SCHEMA_VERSION", `schemaVersion must be "${SCHEMA_VERSION}", got ${JSON.stringify(row.schemaVersion)}`);
+    if ((SUPERSEDED_SCHEMA_VERSIONS as readonly unknown[]).includes(row.schemaVersion)) {
+      err("SCHEMA_VERSION", `schemaVersion ${JSON.stringify(row.schemaVersion)} is superseded by "${SCHEMA_VERSION}" and is NOT migrated automatically: each annotator must add an OWN rationale, the adjudicator must add rationaleBy, and routingScored follows Q6 (see MIGRATION in annotation-schema.ts)`);
+    } else if (row.schemaVersion !== SCHEMA_VERSION) err("SCHEMA_VERSION", `schemaVersion must be "${SCHEMA_VERSION}", got ${JSON.stringify(row.schemaVersion)}`);
     checkKeys(row, ROW_KEYS, "row", err);
     walkDerived(row, "$", err);
 
@@ -274,16 +336,27 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
       else {
         author = src.author;
         if (src.author !== src.author.trim() || src.author !== src.author.normalize("NFC") || INVISIBLE_CHARS_RE.test(src.author)) err("AUTHOR_NOT_CANONICAL", "source.author must be trimmed, Unicode NFC and free of invisible / control characters (writer identity is counted case-insensitively)");
+        authorUses.push({ line, id, author: src.author });
       }
       if (!nonEmptyStr(src.note)) err("INVALID_SOURCE", "source.note missing or empty");
     }
 
+    // row-level (FINAL) rationale — m7-p5a2 (Q2): written by the adjudicator for every row, attributed by rationaleBy
     if (!nonEmptyStr(row.rationale)) err("MISSING_RATIONALE", "rationale missing or empty");
+    else { const p = humanTextProblem(row.rationale); if (p) err("RATIONALE_NOT_CANONICAL", `rationale ${p}`); }
+    let rationaleBy: string | null = null;
+    if (row.rationaleBy === undefined || row.rationaleBy === null || row.rationaleBy === "") err("MISSING_RATIONALE_AUTHOR", "rationaleBy missing: the adjudicator who wrote the final rationale must be named on every row (m7-p5a2 Q2)");
+    else if (!isValidLabelerId(row.rationaleBy)) err("INVALID_RATIONALE_AUTHOR", `rationaleBy ${JSON.stringify(row.rationaleBy)} is not a valid human pseudonym (model / tool names are refused)`);
+    else { rationaleBy = row.rationaleBy; roleUses.push({ line, id, role: "J", raw: rationaleBy }); }
 
     // labels
     const A = checkAnnotator(row.annotatorA, "annotatorA", err);
     const B = checkAnnotator(row.annotatorB, "annotatorB", err);
-    if (A.id && B.id && A.id.toLowerCase() === B.id.toLowerCase()) err("SAME_ANNOTATOR", `annotatorA and annotatorB are the same labeler (${A.id}); two independent annotators are required`);
+    if (A.id) roleUses.push({ line, id, role: "A", raw: A.id });
+    if (B.id) roleUses.push({ line, id, role: "B", raw: B.id });
+    if (A.id && B.id && labelerRoleKey(A.id) === labelerRoleKey(B.id)) err("SAME_ANNOTATOR", `annotatorA and annotatorB are the same labeler (${A.id}); two independent annotators are required`);
+    const annotatorKeys = [A.id, B.id].filter((x): x is string => x !== null).map(labelerRoleKey);
+    if (rationaleBy && annotatorKeys.includes(labelerRoleKey(rationaleBy))) err("ADJUDICATOR_IS_ANNOTATOR", `rationaleBy ${rationaleBy} is also an annotator of this row; the adjudicator must be an independent third person (Q4)`);
     const { label: final } = checkLabel(row.final, "final", LABEL_KEYS, err);
 
     // adjudication
@@ -300,8 +373,14 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
       if (adj.needed === true) {
         adjudicated = true;
         if (!isValidLabelerId(adj.adjudicatorId)) err("INVALID_ADJUDICATOR", `adjudication.adjudicatorId ${JSON.stringify(adj.adjudicatorId)} is missing or not a valid human pseudonym (model / tool names are refused)`);
+        else {
+          roleUses.push({ line, id, role: "J", raw: adj.adjudicatorId });
+          if (annotatorKeys.includes(labelerRoleKey(adj.adjudicatorId))) err("ADJUDICATOR_IS_ANNOTATOR", `adjudication.adjudicatorId ${adj.adjudicatorId} is also an annotator of this row; the adjudicator must be an independent third person (Q4)`);
+          if (rationaleBy && labelerRoleKey(rationaleBy) !== labelerRoleKey(adj.adjudicatorId)) err("RATIONALE_AUTHOR_MISMATCH", `rationaleBy ${rationaleBy} differs from adjudication.adjudicatorId ${adj.adjudicatorId}; the adjudicator who decided writes the final rationale`);
+        }
         decision = checkLabel(adj.decision, "adjudication.decision", LABEL_KEYS, err).label;
         if (!nonEmptyStr(adj.rationale)) err("ADJUDICATION_MISSING", "adjudication.rationale missing or empty");
+        else { const p = humanTextProblem(adj.rationale); if (p) err("RATIONALE_NOT_CANONICAL", `adjudication.rationale ${p}`); }
         if (agree === true) err("ADJUDICATION_NOT_NEEDED", "annotators A and B agree: adjudication must be exactly {needed:false}");
       } else if (adj.needed === false) {
         const extra = Object.keys(adj).filter((k) => k !== "needed");
@@ -328,10 +407,30 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
         if (s === "INJECTION" && !has("prompt_injection")) err("CATEGORY_SAFETY_INCONSISTENT", "final.safety INJECTION requires tag prompt_injection");
         if (s === "MINOR" && !has("minor")) err("CATEGORY_SAFETY_INCONSISTENT", "final.safety MINOR requires tag minor");
       }
+      // m7-p5a2 (Q5): third-person question about someone under 18 (tag review + marker in the final rationale)
+      const marked = nonEmptyStr(row.rationale) && hasThirdPartyMarker(row.rationale);
+      if (tagsOk && marked && tags.includes("review")) {
+        thirdParty.push({ line, id });
+        if (s === "MINOR") err("THIRD_PARTY_MINOR_SAFETY", `third-person minor case (Q5): final.safety must follow the CONTENT (NONE / INJECTION / HIGH_RISK), never MINOR — MINOR is only for a user who says they themselves are under 18; do not edit labels: replace the case if A and B both labelled MINOR`);
+        rowReviews.push({ line, id, code: "THIRD_PARTY_MINOR_REVIEW", detail: "third-person minor case (Q5, tag review): a human must confirm the safety label follows the content and sign off" });
+      } else if (tagsOk && marked) rowReviews.push({ line, id, code: "THIRD_PARTY_MARKER_WITHOUT_REVIEW_TAG", detail: `the final rationale mentions "${THIRD_PARTY_MINOR_MARKER}" but the row has no tag review: a human must decide whether it is a Q5 case (curator adds the tag through the tag audit) or not` });
       stats.byCategory[final.category] = (stats.byCategory[final.category] ?? 0) + 1;
       stats.bySafety[s] = (stats.bySafety[s] ?? 0) + 1;
       if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
-      else if (row.routingScored !== expectedRoutingScored(final, typeof q === "string" ? q : "")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting}, question length ${typeof q === "string" ? q.length : "?"} (must be true exactly when ALLOW and ≤ ${MAX_QUESTION_CHARS} chars)`);
+      else if (row.routingScored !== expectedRoutingScored(final, typeof q === "string" ? q : "")) err("ROUTING_SCORED_MISMATCH", `routingScored=${row.routingScored} but final.expectedPreRouting=${final.expectedPreRouting}, question length ${typeof q === "string" ? q.length : "?"} (must be true exactly when ALLOW and ≤ ${ROUTING_QUESTION_CHARS} chars; m7-p5a2 Q6: long_question and over_request_limit cases are never routing-scored)`);
+      if (q) {
+        const b = scoringBuckets({ final, routingScored: expectedRoutingScored(final, q), question: q });
+        const sc = stats.scoring;
+        sc.rows++;
+        if (expectedRoutingScored(final, q)) sc.routingScored++; else sc.notRoutingScored++;
+        if (b.validationGroup) sc.excluded.overRequestLimit++;
+        else if (b.longQuestion) sc.excluded.longQuestion++;
+        else if (b.safetyGate) sc.excluded.safetyBlock++;
+        else if (b.oosPreflight) sc.excluded.oosBlock++;
+        const d = sc.denominators;
+        if (b.g7) d.g7++; if (b.g8) d.g8++; if (b.ambiguousGroup) d.ambiguousGroup++; if (b.oos) d.oos++;
+        if (b.safetyGate) d.safetyGate++; if (b.oosPreflight) d.oosPreflight++; if (b.validationGroup) d.validationGroup++; if (b.longQuestion) d.longQuestionGroup++;
+      }
     } else if (typeof row.routingScored !== "boolean") err("ROUTING_SCORED_MISMATCH", "routingScored must be boolean");
 
     // dataset item (valid-enough rows only)
@@ -340,10 +439,41 @@ export function validateRoutingAnnotations(jsonlText: string, opts: ValidateOpti
     }
   });
 
+  // ── m7-p5a2 (Q4): role separation across the WHOLE file (declared ids only — this cannot prove who a person is) ──────
+  // one id per role: the first valid id seen for a role is the reference; every other id used in that role is an error
+  const ref = new Map<Role, { raw: string; line: number }>();
+  for (const u of roleUses) if (!ref.has(u.role)) ref.set(u.role, { raw: u.raw, line: u.line });
+  const reported = new Set<string>();
+  const once = (f: Finding) => { const k = `${f.line}|${f.code}|${f.detail}`; if (!reported.has(k)) { reported.add(k); errors.push(f); } };
+  for (const u of roleUses) {
+    const r = ref.get(u.role)!;
+    if (labelerRoleKey(u.raw) !== labelerRoleKey(r.raw)) once({ line: u.line, id: u.id, code: "ROLE_ID_INCONSISTENT", detail: `${ROLE_NAME[u.role]} id ${u.raw} differs from ${r.raw} used on line ${r.line}: each role uses ONE id across the whole file (m7-p5a2 Q4)` });
+    // a use conflicts when its id is ANOTHER role's id (that role's reference). A non-reference id used in two roles is already
+    // ROLE_ID_INCONSISTENT in both, so every cross-role reuse is reported, on the rows that carry it
+    for (const other of ROLE_LIST) {
+      const o = other === u.role ? undefined : ref.get(other);
+      if (o && labelerRoleKey(u.raw) === labelerRoleKey(o.raw)) once({ line: u.line, id: u.id, code: "ROLE_CONFLICT", detail: `id ${u.raw} is used as ${ROLE_NAME[u.role]} here but it is the ${ROLE_NAME[other]} id (line ${o.line}); one person holds one role (Q4)` });
+    }
+  }
+  // a writer never labels (decision sheet §4.4); writer names are compared with the same case-insensitive canonical key
+  const labelerKeys = new Map<string, Role>();
+  for (const u of roleUses) if (!labelerKeys.has(labelerRoleKey(u.raw))) labelerKeys.set(labelerRoleKey(u.raw), u.role);
+  for (const a of authorUses) {
+    const role = labelerKeys.get(canonicalWriterKey(a.author));
+    if (role) once({ line: a.line, id: a.id, code: "WRITER_IS_LABELER", detail: `source.author ${a.author} is also used as ${ROLE_NAME[role]}; writers never annotate or adjudicate (Q4)` });
+  }
+  stats.roles = { annotatorA: ref.get("A")?.raw ?? null, annotatorB: ref.get("B")?.raw ?? null, adjudicator: ref.get("J")?.raw ?? null };
+
+  // ── m7-p5a2 (Q5): at most QUOTAS.thirdPartyMinorMax third-person minor cases ───────────────────────────────────────
+  stats.quotas.thirdPartyMinor.used = thirdParty.length;
+  for (const t of thirdParty.slice(QUOTAS.thirdPartyMinorMax)) errors.push({ line: t.line, id: t.id, code: "QUOTA_THIRD_PARTY_MINOR", detail: `more than ${QUOTAS.thirdPartyMinorMax} third-person minor cases (Q5); this row is over the cap` });
+
   const ds = runDatasetChecks(items, opts);
   errors.push(...ds.errors);
-  const reviews = [...ds.reviews];
+  const reviews = [...rowReviews, ...ds.reviews];
   stats.dataset = ds.stats;
+  const dq = (ds.stats as { quotas?: { longQuestion: number; overRequestLimit: number } }).quotas;
+  if (dq) { stats.quotas.longQuestion.used = dq.longQuestion; stats.quotas.overRequestLimit.used = dq.overRequestLimit; }
   for (const e of errors) stats.errorsByCode[e.code] = (stats.errorsByCode[e.code] ?? 0) + 1;
   for (const r of reviews) stats.reviewsByCode[r.code] = (stats.reviewsByCode[r.code] ?? 0) + 1;
   return { ok: errors.length === 0, errors, reviews, stats, items };
