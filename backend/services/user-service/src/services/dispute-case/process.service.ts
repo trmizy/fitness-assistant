@@ -84,7 +84,12 @@ export const processService = {
         await ctx.tx.disputeCaseAgreementConfirmation.create({ data: { agreementId: ag.id, partyRole: role, userId: actor.id, confirmedHash: b.contentHash } });
         const both = new Set([...ag.confirmations.map((x) => x.partyRole), role]).size === 2;
         if (both) await ctx.tx.disputeCaseAgreement.update({ where: { id: ag.id }, data: { status: "AGREED", agreedAt: clockNow() } });
-        return { caseId: c.id, result: { agreementId: ag.id, partyRole: role, status: both ? "AGREED" : "PROPOSED", bothConfirmed: both }, note: `${role} xác nhận phương án chung`, detail: { agreementId: ag.id, partyRole: role, bothConfirmed: both } };
+        // N13D-04: once both sides agree there is nothing left to wait for from the parties - the case moves to ASSESSING by itself (existing
+        // COLLECTING / AWAITING_PARTIES -> ASSESSING transitions) so the investigator can record the finding without a manual status change.
+        if (both && (c.status === "COLLECTING" || c.status === "AWAITING_PARTIES")) {
+          await __internals.casStatus(ctx, c, "ASSESSING", "Hai bên đã cùng xác nhận phương án chung");
+        }
+        return { caseId: c.id, result: { agreementId: ag.id, partyRole: role, status: both ? "AGREED" : "PROPOSED", bothConfirmed: both, caseStatus: c.status }, note: `${role} xác nhận phương án chung`, detail: { agreementId: ag.id, partyRole: role, bothConfirmed: both } };
       },
     });
   },

@@ -71,6 +71,7 @@ router.get("/", authMiddleware, inbodyController.getHistory as any);
 router.get("/latest", authMiddleware, inbodyController.getLatest as any);
 router.post("/", authMiddleware, inbodyController.create as any);
 router.patch("/:id", authMiddleware, inbodyController.update as any);
+router.delete("/:id", authMiddleware, inbodyController.remove as any);
 router.post(
   "/upload",
   authMiddleware,

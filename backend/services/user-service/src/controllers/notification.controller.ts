@@ -2,12 +2,34 @@ import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { notificationService } from "../services/notification.service";
 
+const NOTIFICATION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** N13A-08: strict paging - a negative/zero/huge/garbage value is a 400, never a Prisma 500. Absent = defaults. */
+export function parseNotificationPaging(query: any): { page: number; limit: number } | null {
+  const read = (raw: unknown, def: number, min: number, max: number): number | null => {
+    if (raw === undefined || raw === "") return def;
+    if (typeof raw !== "string" || !/^\d{1,9}$/.test(raw)) return null;
+    const n = Number(raw);
+    return n >= min && n <= max ? n : null;
+  };
+  const page = read(query?.page, 1, 1, 100000);
+  const limit = read(query?.limit, 20, 1, 100);
+  return page === null || limit === null ? null : { page, limit };
+}
+
 export const notificationController = {
   async list(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const paging = parseNotificationPaging(req.query);
+      if (!paging) {
+        res.status(400).json({
+          error: "Tham số phân trang không hợp lệ (page ≥ 1, limit từ 1 đến 100)",
+          code: "INVALID_PAGINATION",
+        });
+        return;
+      }
+      const { page, limit } = paging;
       const result = await notificationService.list(userId, page, limit);
       res.json(result);
     } catch (error: any) {
@@ -19,6 +41,11 @@ export const notificationController = {
   async markRead(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;
+      // N13A-08: an id that cannot be a notification id (not a UUID) is simply not found - never a silent 200.
+      if (!NOTIFICATION_ID_RE.test(String(req.params.id ?? ""))) {
+        res.status(404).json({ error: "Không tìm thấy thông báo", code: "NOTIFICATION_NOT_FOUND" });
+        return;
+      }
       await notificationService.markRead(req.params.id, userId);
       res.json({ success: true });
     } catch (error: any) {

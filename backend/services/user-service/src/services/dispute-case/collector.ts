@@ -304,3 +304,23 @@ export async function collectSources(
 export function draftHash(d: EvidenceDraft): string {
   return contentHashOf(d.payload);
 }
+
+/**
+ * N13D-03: fields of a live contract slot that move whenever ANOTHER session of the same contract is settled (quota counters, money released so far).
+ * They are not what a decision about THIS session rests on (rates, price, mode, status and dates are), and a quota correction re-checks the live counters
+ * under lock when it is applied. Left in the staleness compare, every case on a contract whose other case had executed in the meantime hit
+ * EVIDENCE_CHANGED with an empty changedIds list. Stored rows are NOT altered: only the "is the live source still what we stored?" comparison ignores them.
+ */
+export const VOLATILE_LIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  "user-service.contracts#CONTRACT_SNAPSHOT": ["usedSessions", "compensatedSessions", "extraSessions"],
+  "user-service.contracts#CONTRACT_FINANCIAL_SNAPSHOT": ["releasedToPt", "releasedToGym", "releasedToPlatform", "holdbackReleasedAt"],
+};
+
+/** Hash of a slot payload for the staleness compare: the volatile fields of that slot (if any) are left out first. */
+export function stableSlotHash(source: string, subject: string, payload: unknown): string {
+  const volatile = VOLATILE_LIVE_FIELDS[`${source}#${subject}`];
+  if (!volatile || payload === null || typeof payload !== "object" || Array.isArray(payload)) return contentHashOf(payload);
+  const copy: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  for (const k of volatile) delete copy[k];
+  return contentHashOf(copy);
+}

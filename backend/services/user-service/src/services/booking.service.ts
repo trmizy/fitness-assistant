@@ -577,9 +577,12 @@ export const bookingService = {
       if (!data.sessionMode) {
         data.sessionMode = contract.sessionMode as string;
       } else if (data.sessionMode !== contract.sessionMode) {
-        throw err(
-          `Session mode must match contract: expected ${contract.sessionMode}`,
+        throw codedError(
+          `Hình thức buổi tập phải khớp với hợp đồng (hợp đồng này là buổi ${
+            contract.sessionMode === "ONLINE" ? "trực tuyến" : "trực tiếp"
+          })`,
           400,
+          "SESSION_MODE_MISMATCH",
         );
       }
     }
@@ -1590,7 +1593,7 @@ export const bookingService = {
     // VĐ4: only a CONFIRMED session. A REQUESTED one has not been agreed yet — there is
     // nothing to move, and the PT can simply confirm it at a different time.
     if (session.status !== SessionStatus.CONFIRMED) {
-      throw err("Chỉ buổi tập đã xác nhận (CONFIRMED) mới được dời lịch", 400);
+      throw codedError("Chỉ buổi tập đã được xác nhận mới được dời lịch", 400, "RESCHEDULE_REQUIRES_CONFIRMED");
     }
 
     const now = new Date();
@@ -1629,6 +1632,10 @@ export const bookingService = {
     }
     if (proposedStart <= now) {
       throw err("Thời gian đề xuất phải ở tương lai", 400);
+    }
+    // N13C-03: proposing the exact current start is a no-op that would still lock out other requests.
+    if (proposedStart.getTime() === session.scheduledStartAt.getTime()) {
+      throw codedError("Giờ đề xuất trùng với giờ hiện tại của buổi tập, hãy chọn một giờ khác", 400, "RESCHEDULE_SAME_TIME");
     }
 
     // P0 cluster H1: duration comes ONLY from the contract's own frozen snapshot, never the
@@ -1776,6 +1783,10 @@ export const bookingService = {
     action: "ACCEPT" | "REJECT",
     responseNote?: string
   ) {
+    // N13C-05: only the two real answers are accepted; anything else used to fall through to REJECT.
+    if (action !== "ACCEPT" && action !== "REJECT") {
+      throw codedError("Hành động phản hồi không hợp lệ (chỉ chấp nhận hoặc từ chối)", 400, "INVALID_RESCHEDULE_ACTION");
+    }
     const request = await sessionRepository.findRescheduleRequestById(requestId);
     if (!request) throw err("Không tìm thấy yêu cầu đổi lịch", 404);
     if (request.status !== "PENDING") {

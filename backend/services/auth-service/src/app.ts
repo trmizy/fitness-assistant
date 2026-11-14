@@ -32,4 +32,24 @@ app.get("/metrics", async (_req, res) => {
 
 app.use("/auth", authRoutes);
 
+
+// N13A-06: a malformed JSON body (or any other body-parser failure) answers JSON, never Express's default HTML page with the stack trace and server paths.
+// The raw body is never logged or echoed back.
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const e = err as { type?: string; status?: number; statusCode?: number } | null;
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+  if (err instanceof SyntaxError && e?.status === 400 && "body" in (err as object)) {
+    res.status(400).json({ error: "Dữ liệu JSON không hợp lệ", code: "INVALID_JSON" });
+    return;
+  }
+  if (e?.type === "entity.too.large") {
+    res.status(413).json({ error: "Dữ liệu gửi lên quá lớn", code: "PAYLOAD_TOO_LARGE" });
+    return;
+  }
+  next(err);
+});
+
 export default app;

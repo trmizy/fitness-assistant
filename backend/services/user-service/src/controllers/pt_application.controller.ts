@@ -101,7 +101,7 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Save PT application draft error");
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
+      return res.status(error?.status === 409 ? 409 : 400).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 
@@ -115,7 +115,9 @@ export const ptApplicationController = {
       if (typeof error?.code === "string" && error.code.startsWith("PT_TERMS_") && error.status) {
         return res.status(error.status).json({ error: error.message, code: error.code, termsVersion: error.termsVersion });
       }
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT) });
+      return res
+        .status(error?.status === 409 ? 409 : 400)
+        .json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 
@@ -318,7 +320,8 @@ export const ptApplicationController = {
     } catch (error: any) {
       logger.error(error, "Admin review action error");
       // C1-06: an unknown application is a 404 (the service tags it), not a generic 400.
-      const status = error?.status === 404 ? 404 : 400;
+      // Q2: an invalid state transition is a 409 INVALID_APPLICATION_TRANSITION.
+      const status = error?.status === 404 ? 404 : error?.status === 409 ? 409 : 400;
       return res.status(status).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },

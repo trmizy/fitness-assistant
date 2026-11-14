@@ -238,6 +238,9 @@ export function findEarliestSlotFromRows(input: {
   return null;
 }
 
+/** HH:MM, 00:00-23:59. */
+const AVAILABILITY_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export const availabilityService = {
   // Validate blocks: no overlap, startTime < endTime
   validateAvailabilityBlocks(
@@ -248,15 +251,18 @@ export const availabilityService = {
     for (const slot of slots) {
       if (!DAY_ORDER[slot.dayOfWeek])
         throw err(`Invalid day: ${slot.dayOfWeek}`, 400);
+      // N13B-04: a real clock time, 00:00-23:59 (the old \d{2}:\d{2} accepted "25:00" and "99:99").
       if (
-        !/^\d{2}:\d{2}$/.test(slot.startTime) ||
-        !/^\d{2}:\d{2}$/.test(slot.endTime)
+        typeof slot.startTime !== "string" ||
+        typeof slot.endTime !== "string" ||
+        !AVAILABILITY_TIME_RE.test(slot.startTime) ||
+        !AVAILABILITY_TIME_RE.test(slot.endTime)
       ) {
-        throw err("Time must be in HH:MM format", 400);
+        throw err("Giờ phải đúng định dạng HH:MM trong khoảng 00:00 đến 23:59", 400);
       }
       if (slot.startTime >= slot.endTime) {
         throw err(
-          `Start time must be before end time for ${slot.dayOfWeek}`,
+          `Giờ kết thúc phải sau giờ bắt đầu (${slot.dayOfWeek})`,
           400,
         );
       }

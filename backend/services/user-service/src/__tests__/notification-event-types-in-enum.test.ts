@@ -70,6 +70,12 @@ test("every stored notification uses an event type and entity type the database 
   }
   assert.ok(entityTypes.has("GYM_COMPLAINT_CASE"), "GYM_COMPLAINT_CASE is a value of NotificationEntityType");
 
+  // Q9: payment-service's withdrawal notices (sent over POST /internal/notifications) must be storable.
+  for (const type of ["AWAITING_SECOND_ADMIN", "APPROVED", "PAID", "REJECTED"]) {
+    assert.ok(eventTypes.has(`WITHDRAWAL_${type}`), `WITHDRAWAL_${type} is a value of NotificationEventType`);
+  }
+  assert.ok(entityTypes.has("WITHDRAWAL_REQUEST"), "WITHDRAWAL_REQUEST is a value of NotificationEntityType");
+
   const unknown = calls.filter((c) => !eventTypes.has(c.eventType) || !entityTypes.has(c.entityType));
   assert.deepEqual(unknown, []);
 });

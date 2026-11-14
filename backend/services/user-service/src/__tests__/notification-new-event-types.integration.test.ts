@@ -42,6 +42,11 @@ const CASES: [eventType: string, entityType: string][] = [
   ["GYM_COMPLAINT_CASE_SLA_OVERDUE", "GYM_COMPLAINT_CASE"],
   ["GYM_COMPLAINT_CASE_APPEAL_FILED", "GYM_COMPLAINT_CASE"],
   ["GYM_COMPLAINT_CASE_RESOLVED", "GYM_COMPLAINT_CASE"],
+  // Q9: payment-service withdrawal notices (owner: approved / paid / rejected; other admins: waiting for a second admin)
+  ["WITHDRAWAL_AWAITING_SECOND_ADMIN", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_APPROVED", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_PAID", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_REJECTED", "WITHDRAWAL_REQUEST"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

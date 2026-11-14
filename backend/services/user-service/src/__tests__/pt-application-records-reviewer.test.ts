@@ -28,8 +28,10 @@ test("rejecting an application records which admin rejected it", async () => {
   const updateCalls: any[] = [];
   const restoreFind = patch(ptApplicationRepository, "findById", async () => ({
     id: "app-1",
+    status: "SUBMITTED",
     userProfile: { userId: "pt-candidate-1" },
   }));
+  const restoreAudit = patch(ptApplicationRepository, "recordRejectionAudit", async () => ({}));
   const restoreUpdate = patch(ptApplicationRepository, "updateStatus", async (id: string, status: string, extra: any) => {
     updateCalls.push({ id, status, extra });
     return { id, status, ...extra };
@@ -48,6 +50,7 @@ test("rejecting an application records which admin rejected it", async () => {
   } finally {
     restoreFind();
     restoreUpdate();
+    restoreAudit();
   }
 });
 
@@ -55,6 +58,7 @@ test("requesting more info records which admin asked for it", async () => {
   const updateCalls: any[] = [];
   const restoreFind = patch(ptApplicationRepository, "findById", async () => ({
     id: "app-2",
+    status: "UNDER_REVIEW",
     userProfile: { userId: "pt-candidate-2" },
   }));
   const restoreUpdate = patch(ptApplicationRepository, "updateStatus", async (id: string, status: string, extra: any) => {
@@ -80,8 +84,10 @@ test("two different admins acting on two different applications each get their o
   const updateCalls: any[] = [];
   const restoreFind = patch(ptApplicationRepository, "findById", async () => ({
     id: "app-x",
+    status: "SUBMITTED",
     userProfile: { userId: "pt-candidate-x" },
   }));
+  const restoreAudit = patch(ptApplicationRepository, "recordRejectionAudit", async () => ({}));
   const restoreUpdate = patch(ptApplicationRepository, "updateStatus", async (id: string, _status: string, extra: any) => {
     updateCalls.push({ id, extra });
     return {};
@@ -95,5 +101,6 @@ test("two different admins acting on two different applications each get their o
   } finally {
     restoreFind();
     restoreUpdate();
+    restoreAudit();
   }
 });

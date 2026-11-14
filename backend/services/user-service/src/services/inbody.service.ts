@@ -6,6 +6,12 @@ import { assertPtMayAct, assertPtMayActOnContract } from "./pt-restriction.servi
 import { extractInBodyVision } from "./inbody-vision.service";
 import { triggerInBodyReassessmentSafe } from "../clients/fitness-service.client";
 import {
+  assertInBodyConsistent,
+  inbodyError,
+  parseInBodyInput,
+  INBODY_INVALID_INPUT,
+} from "./inbody.validation";
+import {
   ocrExtractionsTotal,
   ocrExtractionDuration,
   inbodyUploadsTotal,
@@ -17,8 +23,8 @@ function startOfUtcDay(d: Date): Date {
   return x;
 }
 
-function err(message: string, status: number) {
-  return Object.assign(new Error(message), { status });
+function err(message: string, status: number, code?: string) {
+  return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
 }
 
 // BR-07: max one InBody entry per user per calendar day. The `dateOnly` field
@@ -45,6 +51,16 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
     // on every subsequent sync it's a no-op since startingWeight is already set.
     await profileRepository.upsert(userId, patch, { source: "INBODY" });
   }
+}
+
+/** True when the vision result carries at least one real core metric (weight, muscle mass or fat mass > 0). */
+export function hasReadableInBodyMetrics(result: any): boolean {
+  const positive = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
+  return (
+    positive(result?.weight) ||
+    positive(result?.skeletal_muscle_mass) ||
+    positive(result?.body_fat_mass)
+  );
 }
 
 export const inbodyService = {
@@ -81,9 +97,15 @@ export const inbodyService = {
     return inbodyRepository.findLatestByUserIdOnOrBefore(userId, cutoff);
   },
 
-  async createEntry(userId: string, data: any) {
+  async createEntry(userId: string, raw: unknown) {
+    // Whitelist + range validation (N13G-01/02/03): userId/id/createdAt/unknown keys never get past here,
+    // and bad types/ranges are a 400 with a Vietnamese message, never a 500.
+    const data = parseInBodyInput(raw, "create");
+    if (data.weight === undefined) {
+      throw inbodyError("Cần nhập Cân nặng", 400, INBODY_INVALID_INPUT, "weight");
+    }
     inbodyUploadsTotal.inc({ method: "manual" });
-    const measuredDate = data.date ? new Date(data.date) : new Date();
+    const measuredDate = data.date ?? new Date();
     const dateOnly = startOfUtcDay(measuredDate);
 
     // The manual-entry form only marks "Cân nặng" (weight) and "Ngày kiểm tra" (date) as
@@ -95,11 +117,11 @@ export const inbodyService = {
     // bodyFatPct/100 when it's missing but derivable; only reject (with a real 400, not a raw
     // 500) when there's truly no way to know it.
     let bodyFat = data.bodyFat;
-    if ((bodyFat === undefined || bodyFat === null) && data.weight != null && data.bodyFatPct != null) {
-      bodyFat = Math.round(Number(data.weight) * (Number(data.bodyFatPct) / 100) * 10) / 10;
+    if (bodyFat === undefined && data.bodyFatPct != null) {
+      bodyFat = Math.round(data.weight * (data.bodyFatPct / 100) * 10) / 10;
     }
-    if (bodyFat === undefined || bodyFat === null) {
-      throw err("Cần nhập Mỡ cơ thể (kg) hoặc % Mỡ cơ thể để tính ra được", 400);
+    if (bodyFat === undefined) {
+      throw err("Cần nhập Mỡ cơ thể (kg) hoặc % Mỡ cơ thể để tính ra được", 400, INBODY_INVALID_INPUT);
     }
 
     // Same class of bug as bodyFat above (Gymini Cross-System Fitness Journey
@@ -109,12 +131,13 @@ export const inbodyService = {
     // reasonably computed from weight/bodyFat alone) — a real, reachable
     // submission with it left blank used to hit an uncaught Prisma
     // validation error and a raw 500. Reject cleanly instead.
-    if (data.muscleMass === undefined || data.muscleMass === null || Number.isNaN(Number(data.muscleMass))) {
-      throw err("Cần nhập Cơ bắp (kg)", 400);
+    if (data.muscleMass === undefined) {
+      throw err("Cần nhập Cơ bắp (kg)", 400, INBODY_INVALID_INPUT);
     }
+    assertInBodyConsistent({ weight: data.weight, muscleMass: data.muscleMass, bodyFat });
 
     const payload = { ...data, bodyFat, date: measuredDate, dateOnly };
-    const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
+    const { dateOnly: _d, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
       userId,
       dateOnly,
@@ -135,17 +158,25 @@ export const inbodyService = {
 
   // BR-06: client may edit an InBody entry (e.g. tweak OCR results before confirming).
   // Only the owner can update. If `date` is changed, `dateOnly` is recomputed so the
-  // unique-per-day constraint keeps making sense.
-  async updateEntry(userId: string, id: string, data: any) {
+  // unique-per-day constraint keeps making sense. Only whitelisted measurement fields are
+  // editable (N13G-01): never userId / id / createdAt / dateOnly.
+  async updateEntry(userId: string, id: string, raw: unknown) {
     const existing = await inbodyRepository.findById(id);
     if (!existing || existing.userId !== userId) {
-      throw err("InBody entry not found", 404);
+      throw err("Không tìm thấy bản ghi InBody", 404, "INBODY_NOT_FOUND");
     }
+    const data = parseInBodyInput(raw, "patch");
+    if (Object.keys(data).length === 0) {
+      throw err("Không có dữ liệu hợp lệ để cập nhật", 400, INBODY_INVALID_INPUT);
+    }
+    assertInBodyConsistent({
+      weight: data.weight ?? existing.weight,
+      muscleMass: data.muscleMass ?? existing.muscleMass,
+      bodyFat: data.bodyFat ?? existing.bodyFat,
+    });
     const patch: Record<string, any> = { ...data };
     if (data.date !== undefined) {
-      const newDate = new Date(data.date);
-      patch.date = newDate;
-      patch.dateOnly = startOfUtcDay(newDate);
+      patch.dateOnly = startOfUtcDay(data.date);
     }
     try {
       const updated = await inbodyRepository.update(id, patch);
@@ -156,16 +187,40 @@ export const inbodyService = {
       return updated;
     } catch (e: any) {
       if (isUniqueViolation(e)) {
-        throw err("Bản ghi InBody trong ngày đã tồn tại", 409);
+        throw err("Bản ghi InBody trong ngày đã tồn tại", 409, "INBODY_DUPLICATE_DAY");
       }
       throw e;
     }
+  },
+
+  // N13G-04: the owner can delete a wrong entry; anyone else gets the same 404 as for a missing id
+  // (no existence oracle). The profile weight is re-derived from whatever is now the latest entry.
+  async deleteEntry(userId: string, id: string) {
+    const existing = await inbodyRepository.findById(id);
+    if (!existing || existing.userId !== userId) {
+      throw err("Không tìm thấy bản ghi InBody", 404, "INBODY_NOT_FOUND");
+    }
+    await inbodyRepository.delete(id);
+    await syncLatestInBodyToProfile(userId).catch(() => {});
+    return { deleted: true, id };
   },
 
   async extractFromImage(_userId: string, imagePath: string, uploadMimeType?: string) {
     const startTime = Date.now();
     try {
       const result = await extractInBodyVision(imagePath, uploadMimeType);
+
+      // N13G-06: a photo that is not an InBody sheet comes back with every metric 0/empty. Never hand
+      // that to the review form (it would save zeros as a real measurement) - tell the user instead.
+      if (!hasReadableInBodyMetrics(result)) {
+        ocrExtractionsTotal.inc({ status: "unreadable" });
+        ocrExtractionDuration.observe((Date.now() - startTime) / 1000);
+        throw err(
+          "Không đọc được chỉ số từ ảnh. Hãy chụp lại rõ nét phiếu InBody (đủ sáng, không bị cắt) hoặc nhập tay.",
+          422,
+          "INBODY_SCAN_UNREADABLE",
+        );
+      }
 
       const durationSec = (Date.now() - startTime) / 1000;
       ocrExtractionsTotal.inc({ status: "success" });
@@ -228,6 +283,7 @@ export const inbodyService = {
 
       return { result, entryData };
     } catch (error: any) {
+      if (error?.code === "INBODY_SCAN_UNREADABLE") throw error; // already counted as "unreadable"
       const durationSec = (Date.now() - startTime) / 1000;
       ocrExtractionsTotal.inc({ status: "failure" });
       ocrExtractionDuration.observe(durationSec);

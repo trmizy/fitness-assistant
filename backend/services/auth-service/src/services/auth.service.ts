@@ -146,7 +146,7 @@ export const authService = {
     const existing = await authRepository.findUserByEmail(data.email);
     // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
     // the frontend to distinguish "already verified" from "validation error".
-    if (existing) throw { status: 409, message: "Email đã đăng ký" };
+    if (existing) throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
 
     const previous = await authRepository.findEmailVerificationByEmail(
       data.email,
@@ -210,27 +210,27 @@ export const authService = {
     const record = await authRepository.findEmailVerificationByEmail(
       data.email,
     );
-    if (!record) throw { status: 400, message: "OTP not found" };
+    if (!record) throw { status: 400, message: "Không tìm thấy mã xác nhận. Hãy yêu cầu gửi lại mã.", code: "OTP_NOT_FOUND" };
 
     if (record.expiresAt < new Date()) {
-      throw { status: 400, message: "OTP expired" };
+      throw { status: 400, message: "Mã xác nhận đã hết hạn. Hãy yêu cầu gửi lại mã.", code: "OTP_EXPIRED" };
     }
 
     if (record.attempts >= OTP_MAX_ATTEMPTS) {
-      throw { status: 429, message: "OTP attempts exceeded" };
+      throw { status: 429, message: "Bạn đã nhập sai quá nhiều lần. Hãy yêu cầu gửi lại mã mới.", code: "OTP_ATTEMPTS_EXCEEDED" };
     }
 
     const otpHash = hashOtp(data.otp);
     if (otpHash !== record.otpHash) {
       await authRepository.incrementEmailVerificationAttempts(data.email);
-      throw { status: 400, message: "Invalid OTP" };
+      throw { status: 400, message: "Mã xác nhận không đúng.", code: "OTP_INVALID" };
     }
 
     assertNotTestAccount(data.email);
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) {
       await authRepository.deleteEmailVerification(data.email);
-      throw { status: 400, message: "Email already registered" };
+      throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
     }
 
     const user = await authRepository.createUser({
@@ -276,7 +276,7 @@ export const authService = {
    */
   async resendRegistrationOtp(email: string) {
     const existing = await authRepository.findUserByEmail(email);
-    if (existing) throw { status: 409, message: "Email đã đăng ký" };
+    if (existing) throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
 
     const pending = await authRepository.findEmailVerificationByEmail(email);
     if (!pending) {
@@ -620,12 +620,12 @@ export const authService = {
       user.password,
     );
     if (!validPassword) {
-      throw { status: 401, message: "Current password is incorrect" };
+      throw { status: 401, message: "Mật khẩu hiện tại không đúng", code: "CURRENT_PASSWORD_INCORRECT" };
     }
 
     const samePassword = await bcrypt.compare(data.newPassword, user.password);
     if (samePassword) {
-      throw { status: 400, message: "New password must be different" };
+      throw { status: 400, message: "Mật khẩu mới phải khác mật khẩu hiện tại", code: "NEW_PASSWORD_SAME_AS_CURRENT" };
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, 10);

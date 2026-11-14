@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "../../generated/prisma";
 import { prisma } from "../../repositories/profile.repository";
 import { canonicalJson, contentHashOf, sha256Hex } from "./canonical";
-import { collectExternal, collectSources, draftHash, type Db, type EvidenceDraft } from "./collector";
+import { collectExternal, collectSources, draftHash, stableSlotHash, VOLATILE_LIVE_FIELDS, type Db, type EvidenceDraft } from "./collector";
 import { buildFinancialView, hasLateArrivalStep, partyFinancialView } from "./financial";
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from "./errors";
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
@@ -15,7 +15,7 @@ import { currentApprovalWhere, dbChecks as replacementDbChecks } from "./decisio
 import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
 import { deadlineDueAt, satisfyDeadlines } from "./party-notices";
 import { isSynthetic, syntheticNotTransactableError } from "../synthetic-guard.util";
-import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
+import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, MAX_EVIDENCE_FILES_PER_PARTY, PARTY_FILE_SOURCE, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
 import {
   D77_BLOCK_REASON,
   MANUAL_TARGETS,
@@ -1700,12 +1700,17 @@ export const disputeCaseService = {
           const role = partyRoleOf(actor.id, c);
           if (!role) throw notFoundCase();
           if (!PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus)) throw stateNotAllowed(c, PARTY_SUBMIT_STATUSES);
+          // N13D-02: counted under the case lock, so two concurrent uploads cannot both slip past the cap.
+          const already = await ctx.tx.disputeCaseEvidence.count({ where: { caseId: c.id, source: PARTY_FILE_SOURCE, submittedBy: actor.id } });
+          if (already >= MAX_EVIDENCE_FILES_PER_PARTY) {
+            throw caseError(409, "EVIDENCE_FILE_LIMIT_REACHED", `Mỗi bên chỉ được nộp tối đa ${MAX_EVIDENCE_FILES_PER_PARTY} tệp bằng chứng cho một hồ sơ`, { limit: MAX_EVIDENCE_FILES_PER_PARTY });
+          }
           const row = await insertEvidence(
             ctx.tx,
             c,
             {
               provenanceType: "SERVER_OBSERVED",
-              source: "party.external_document_file",
+              source: PARTY_FILE_SOURCE,
               subject: `PARTY_FILE:${randomUUID()}`,
               eventAt: null,
               captureStatus: "OK",
@@ -1964,6 +1969,11 @@ export async function evidenceGuard(tx: Tx, c: CaseRow, snapshot: SnapshotEntry[
   for (const d of collected?.evidence ?? []) {
     const head = heads.get(slotKey(d.source, d.subject));
     if (head && head.hash === draftHash(d)) continue;
+    // N13D-03: a slot whose only difference is a counter that moves with other sessions' settlement is not "changed evidence".
+    if (head && VOLATILE_LIVE_FIELDS[`${d.source}#${d.subject}`] && d.captureStatus === "OK" && head.captureStatus === "OK") {
+      const stored = await tx.disputeCaseEvidence.findUnique({ where: { id: head.id }, select: { payload: true } });
+      if (stored && stableSlotHash(d.source, d.subject, stored.payload) === stableSlotHash(d.source, d.subject, d.payload)) continue;
+    }
     // F5: the live read FAILED now while the stored head holds real data: unknown, not changed.
     if (head && d.captureStatus === "UNAVAILABLE" && head.captureStatus !== "UNAVAILABLE") unreadableLive.push(`${d.source}#${d.subject}`);
     else staleLive.push(`${d.source}#${d.subject}`);

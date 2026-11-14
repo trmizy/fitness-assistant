@@ -105,6 +105,28 @@ function adminListWhere(filters: { status?: PTApplicationStatus; search?: string
 }
 
 export const ptApplicationRepository = {
+  /** Q1: how many PT_APPLICATION_REJECTED audit rows this applicant has (entityType PT_PROFILE, entityId = userId). */
+  countRejectionAudits: (userId: string, action: string) =>
+    prisma.auditLog.count({ where: { entityType: "PT_PROFILE", entityId: userId, action } }),
+
+  /** Q1: one durable row per rejection; throws on failure (the caller must not change the status then). */
+  recordRejectionAudit: (a: {
+    action: string;
+    reviewerUserId: string;
+    applicantUserId: string;
+    applicationId: string;
+    rejectionReason?: string;
+  }) =>
+    prisma.auditLog.create({
+      data: {
+        actorUserId: a.reviewerUserId,
+        action: a.action,
+        entityType: "PT_PROFILE",
+        entityId: a.applicantUserId,
+        metadata: { applicationId: a.applicationId, rejectionReason: a.rejectionReason ?? null },
+      },
+    }),
+
   findByUserId: async (userId: string) => {
     return prisma.pTApplication.findFirst({
       where: { userProfile: { userId } },

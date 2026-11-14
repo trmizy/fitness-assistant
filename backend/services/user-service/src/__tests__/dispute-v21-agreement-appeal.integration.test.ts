@@ -178,6 +178,33 @@ test("mutual agreement: both parties confirm the SAME content hash -> AGREED -> 
   assert.equal(events.length, 5, "2 proposals + 2 confirmations + 1 finding, all audited");
 });
 
+test("N13D-04: both parties confirm while the case is AWAITING_PARTIES -> the case moves to ASSESSING by itself and the finding can be recorded without a manual transition", async () => {
+  const s = await mkSession();
+  const P = admin();
+  const caseId = (await call("POST", "/admin/dispute-cases", A(P), { sessionId: s.session.id })).json.case.id;
+  await call("POST", `/admin/dispute-cases/${caseId}/assign`, A(P), {});
+  await call("POST", `/admin/dispute-cases/${caseId}/transition`, A(P), { to: "COLLECTING" });
+  await call("POST", `/admin/dispute-cases/${caseId}/transition`, A(P), { to: "AWAITING_PARTIES" });
+  assert.equal((await caseRow(caseId)).status, "AWAITING_PARTIES");
+  const ag = await call("POST", `/admin/dispute-cases/${caseId}/agreements`, A(P), { outcome: "COMPLETED", note: "Hai bên đã thống nhất" }, key());
+  assert.equal(ag.status, 201, JSON.stringify(ag.json));
+  const confirm = (tok: string) => call("POST", `/dispute-cases/${caseId}/agreements/${ag.json.id}/confirm`, tok, { contentHash: ag.json.contentHash });
+
+  const c1 = await confirm(`CUSTOMER:${s.clientUserId}`);
+  assert.deepEqual([c1.json.bothConfirmed, (await caseRow(caseId)).status], [false, "AWAITING_PARTIES"], "one confirmation moves nothing");
+  const c2 = await confirm(`PT:${s.ptUserId}`);
+  assert.deepEqual([c2.json.status, c2.json.bothConfirmed, c2.json.caseStatus], ["AGREED", true, "ASSESSING"]);
+  assert.equal((await caseRow(caseId)).status, "ASSESSING");
+  // audited: the confirming event itself carries the automatic transition
+  const ev = await prisma.disputeCaseEvent.findMany({ where: { caseId, action: "AGREEMENT_CONFIRMED", toStatus: "ASSESSING" } });
+  assert.deepEqual(ev.map((e) => e.fromStatus), ["AWAITING_PARTIES"]);
+
+  const fnd = await call("POST", `/admin/dispute-cases/${caseId}/agreements/${ag.json.id}/record-finding`, A(P), {});
+  assert.equal(fnd.status, 201, JSON.stringify(fnd.json));
+  assert.equal((await caseRow(caseId)).status, "FINDING_RECORDED");
+  assert.equal(writeCalls.length, 0);
+});
+
 test("mutual agreement and appeal routes are refused (409 DISPUTE_PROCESS_DISABLED) while the flag is OFF; reads stay open", async () => {
   const s = await mkSession();
   const { caseId, P } = await assessingCase(s);

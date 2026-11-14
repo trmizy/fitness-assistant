@@ -15,6 +15,10 @@ import path from "node:path";
  *  - The server computes sha256 over the bytes it stored; reading re-computes it and refuses a file that no longer matches (integrity).
  */
 export const MAX_EVIDENCE_BYTES = 5 * 1024 * 1024;
+/** N13D-02: evidence files ONE party may attach to ONE case (the design docs state no figure; 10 x 5 MB = 50 MB per party per case at most). */
+export const MAX_EVIDENCE_FILES_PER_PARTY = 10;
+/** The evidence `source` a party-uploaded file is stored under (the per-party count is taken over it). */
+export const PARTY_FILE_SOURCE = "party.external_document_file";
 export const ALLOWED_MIME: Readonly<Record<string, string>> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
 
 export function storageDir(env: NodeJS.ProcessEnv = process.env): string {

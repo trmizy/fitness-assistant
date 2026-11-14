@@ -550,6 +550,11 @@ export const contractService = {
         return prior;
       }
     }
+    // N13C-01: a trainer cannot buy their own package - the contract would pay the PT's own wallet and let one
+    // person be both parties of a coaching relationship. The caller identity (token) is authoritative.
+    if (data.ptUserId && data.ptUserId === clientUserId) {
+      throw codedError("Bạn không thể gửi yêu cầu hợp đồng cho chính mình", 400, "SELF_CONTRACT_NOT_ALLOWED");
+    }
     // 1. Load the package (source of truth for price/sessions/mode)
     //
     // Guard the id before it reaches Prisma: findUnique({ where: { id: undefined } }) is a

@@ -570,6 +570,13 @@ enum NotificationEventType {
   GYM_COMPLAINT_CASE_SLA_OVERDUE
   GYM_COMPLAINT_CASE_APPEAL_FILED
   GYM_COMPLAINT_CASE_RESOLVED
+  // Withdrawal (Q9, 14/11/2026) - sent by payment-service via POST /internal/notifications (entity WITHDRAWAL_REQUEST, entityId = the withdrawal request id).
+  // The owner is told when their request is approved / paid / rejected; every other active admin is told when a large request (four-eyes) was approved
+  // by one admin and now waits for a second admin to confirm the payout. Direct consequences of the recipient's own request / duty, so no opt-out entry.
+  WITHDRAWAL_AWAITING_SECOND_ADMIN
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_PAID
+  WITHDRAWAL_REJECTED
 }
 
 enum NotificationEntityType {
@@ -606,6 +613,8 @@ enum NotificationEntityType {
   DISPUTE_CASE
   // GYM_COMPLAINT_CASE_*'s entityId = gym-service's GymComplaintCase.id (cross-service reference by convention).
   GYM_COMPLAINT_CASE
+  // WITHDRAWAL_*'s entityId = payment-service's WithdrawalRequest.id (cross-service reference by convention).
+  WITHDRAWAL_REQUEST
 }
 
 enum RescheduleStatus {
