@@ -322,7 +322,9 @@ test("HR-27 V1 /ai/ask unchanged: since the M7-P4.1 baseline only the approved V
   // llm/safety_guard.ts and its own new test file; a separate V1 changeset, not part of the V2 composition.
   const approved = [`${AI}/agent-v2-integration/multi-agent-runtime.ts`, `${AI}/routes/ai-v2.routes.ts`, `${AI}/llm/safety_guard.ts`, `${AI}/llm/__tests__/safety_guard_induced_vomiting.test.ts`,
     // M7-P5A.3c: one more test file of the same owner-authorised V1 detector remediation (nothing else under llm/**)
-    `${AI}/llm/__tests__/safety_guard_induced_vomiting_clause.test.ts`];
+    `${AI}/llm/__tests__/safety_guard_induced_vomiting_clause.test.ts`,
+    // M7-P5A.3d: the owner-approved bounded redesign of the same detector (event-scoped module + its test files; nothing else under llm/**)
+    `${AI}/llm/induced_vomiting_events.ts`, `${AI}/llm/__tests__/safety_guard_induced_vomiting_event.test.ts`, `${AI}/llm/__tests__/induced_vomiting_events_structure.test.ts`];
   assert.ok(changed.every((f) => approved.includes(f)), changed.join());
 });
 

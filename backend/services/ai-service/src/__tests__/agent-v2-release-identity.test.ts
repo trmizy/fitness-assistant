@@ -35,8 +35,11 @@ const V1_PATHS = [AI_SRC, `:(exclude)${AI_SRC}/agent-v2`, `:(exclude)${AI_SRC}/_
 const ALLOWED_V1 = [`${AI_SRC}/agent-v2-integration/domain-read-transport.ts`, `${AI_SRC}/agent-v2-integration/dynamodb-session-store.ts`, `${AI_SRC}/agent-v2-integration/multi-agent-runtime.ts`, `${AI_SRC}/agent-v2-integration/redis-session-store.ts`, `${AI_SRC}/app.ts`,
   // M7-P5A.2.3: the isolated, owner-authorised V1 safety hotfix (commit 86f24b96) — nothing else under llm/** may change.
   // M7-P5A.3c: the owner-authorised focused V1 remediation adds ONE more test file for the same detector — still nothing else under llm/**.
+  // M7-P5A.3d: the owner-approved bounded REDESIGN of the induced-vomiting detector (event-scoped module + its structural / event test files) — nothing else under llm/**.
+  `${AI_SRC}/llm/__tests__/induced_vomiting_events_structure.test.ts`,
   `${AI_SRC}/llm/__tests__/safety_guard_induced_vomiting.test.ts`, `${AI_SRC}/llm/__tests__/safety_guard_induced_vomiting_clause.test.ts`,
-  `${AI_SRC}/llm/safety_guard.ts`,
+  `${AI_SRC}/llm/__tests__/safety_guard_induced_vomiting_event.test.ts`,
+  `${AI_SRC}/llm/induced_vomiting_events.ts`, `${AI_SRC}/llm/safety_guard.ts`,
   `${AI_SRC}/routes/ai-v2.routes.ts`];
 
 test("RI-1 the frozen M6 RC is an ancestor; the post-M6 commits are on top of it (never re-labelled as M6)", () => {
