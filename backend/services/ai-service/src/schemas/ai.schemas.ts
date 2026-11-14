@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { MAX_QUESTION_CHARS } from "../llm/safety-limits";
 
 export const AskRequestSchema = z.object({
   question: z
     .string({ required_error: "question is required" })
     .min(1, "question must not be empty")
-    .max(2000, "question must be at most 2000 characters"),
+    .max(MAX_QUESTION_CHARS, `question must be at most ${MAX_QUESTION_CHARS} characters`),
   sessionId: z.string().uuid("sessionId must be a valid UUID").optional(),
   // Stable id of this user action, generated once by the client and reused by its retries (see services/request-identity.ts).
   // Deliberately lenient here: a malformed value is ignored (legacy behaviour), never a 400.

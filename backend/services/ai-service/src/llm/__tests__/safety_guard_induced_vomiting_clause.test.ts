@@ -330,11 +330,21 @@ for (const { q, label } of S7_INPUTS) {
     assert.ok(ms < 500, `${ms.toFixed(1)} ms on a ${q.length}-char input`);
   });
 }
-test("IV-C.7.99 a real disclosure at the END of 5000 chars of padding is still found, quickly", () => {
+// CONTRACT CHANGE (owner decision M7 Q3, bounded computation): `checkInputSafety` now FAILS CLOSED above MAX_QUESTION_CHARS (2000) with `input_too_long` (never "safe",
+// never truncated). The V1 `safetyGuard.check` stays TOTAL and must still find a disclosure at the END of long padding. The original 5000-char row is split in two:
+test("IV-C.7.99 a real disclosure at the END of 5000 chars of padding: V1 check() still finds it (no truncation); V2 checkInputSafety fails closed (input_too_long), quickly", () => {
   const q = "Hôm nay tôi nên tập ngực hay lưng? ".repeat(140) + " Ăn xong mình hay ói để giảm cân";
+  assert.ok(q.length > 2000, `${q.length}`);
   const t0 = performance.now();
-  expectRefused(q);
+  assert.equal(safetyGuard.check(q).type, REASON, "V1 guard is total: found at the end, never truncated");
+  const v = checkInputSafety(q);
+  assert.equal(v.safe, false); assert.equal(v.type, "input_too_long");
   assert.ok(performance.now() - t0 < 500, "slow");
+});
+test("IV-C.7.99b the same shape WITHIN the 2000-char cap is refused at BOTH entry points", () => {
+  const q = "Hôm nay tôi nên tập ngực hay lưng? ".repeat(52) + " Ăn xong mình hay ói để giảm cân";
+  assert.ok(q.length <= 2000, `${q.length}`);
+  expectRefused(q);
 });
 
 // ═══ S8  optional structural gaps (node:test `todo`: reported, never fail the run) ═══════════════════════════════════════════════

@@ -491,17 +491,30 @@ for (const [q, label] of F9_INPUTS) {
     assert.ok(ms < 500, `${ms.toFixed(1)} ms on a ${q.length}-char input`);
   });
 }
-test(`IV-E.F9.${F9_INPUTS.length + 1} a real disclosure at the END of 5000 chars of padding is still refused, quickly`, () => {
+// CONTRACT CHANGE (owner decision M7 Q3, bounded computation): `checkInputSafety` FAILS CLOSED above MAX_QUESTION_CHARS (2000): `{ safe:false, type:"input_too_long" }`, never
+// "safe" and never truncated; the V1 `safetyGuard.check` stays TOTAL. The two 5000-char rows keep their V1 expectation and assert fail-closed at V2; in-cap twins (<= 2000) keep
+// the full both-entry-point expectation.
+test(`IV-E.F9.${F9_INPUTS.length + 1} a real disclosure at the END of 5000 chars of padding: V1 check() still refuses it; V2 fails closed (input_too_long), quickly`, () => {
   const q = "Hôm nay tôi nên tập ngực hay lưng? ".repeat(140) + " Ăn xong mình hay ói để giảm cân";
   const t0 = performance.now();
-  assertRow("REFUSE", q);
+  assert.equal(safetyGuard.check(q).type, "unsafe_weight_loss_behavior");
+  const v = checkInputSafety(q);
+  assert.equal(v.safe, false); assert.equal(v.type, "input_too_long");
   assert.ok(performance.now() - t0 < 500, "slow");
 });
-test(`IV-E.F9.${F9_INPUTS.length + 2} a benign own event at the END of 5000 chars of padding stays safe, quickly`, () => {
+test(`IV-E.F9.${F9_INPUTS.length + 2} a benign own event at the END of 5000 chars of padding: V1 check() stays safe; V2 fails closed (oversized is never 'safe'), quickly`, () => {
   const q = "Hôm nay tôi nên tập ngực hay lưng? ".repeat(140) + " Ăn xong mình hay ói vì say xe";
   const t0 = performance.now();
-  assertRow("SAFE", q);
+  assert.equal(safetyGuard.check(q).type, "safe");
+  const v = checkInputSafety(q);
+  assert.equal(v.safe, false); assert.equal(v.type, "input_too_long");
   assert.ok(performance.now() - t0 < 500, "slow");
+});
+test(`IV-E.F9.${F9_INPUTS.length + 3} in-cap (<= 2000 chars) twins: a disclosure at the END of padding is refused and a benign own event stays safe, at BOTH entry points`, () => {
+  const pad = "Hôm nay tôi nên tập ngực hay lưng? ".repeat(52);
+  const refuse = pad + " Ăn xong mình hay ói để giảm cân", safe = pad + " Ăn xong mình hay ói vì say xe";
+  assert.ok(refuse.length <= 2000 && safe.length <= 2000, `${refuse.length}/${safe.length}`);
+  assertRow("REFUSE", refuse); assertRow("SAFE", safe);
 });
 
 // ═══ inventory ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

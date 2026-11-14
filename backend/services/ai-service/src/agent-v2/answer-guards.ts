@@ -20,6 +20,7 @@ import { enforceExerciseConstraints } from "../llm/exercise_constraint_guard";
 import { extractTurnFacts } from "../llm/turn_facts";
 import { groundIntakeClaims } from "../llm/intake_claim_guard";
 import { appendMinorSupervisionNote } from "../llm/medical-referral";
+import { MAX_QUESTION_CHARS } from "../llm/safety-limits";
 
 /**
  * Sentence splitter for the deterministic guards: breaks after . ! ? only when followed by whitespace / end, and at line
@@ -38,6 +39,12 @@ function hasVietnameseDiacritic(text: string): boolean {
 }
 
 export function checkInputSafety(question: string): InputSafetyVerdict {
+  // Bounded computation (owner Q3): an over-limit question is refused BEFORE any scan, normalization or detector runs — fail-CLOSED
+  // (never "safe", never truncated, never echoed). Unreachable over HTTP (zod and the supervisor / bounded agent already reject
+  // > MAX_QUESTION_CHARS earlier); this is function-level defence in depth for any other caller. Unit: UTF-16 code units (`.length`).
+  if (question.length > MAX_QUESTION_CHARS) {
+    return { safe: false, type: "input_too_long", message: "Mình không thể hỗ trợ yêu cầu này một cách an toàn. Hãy trao đổi với bác sĩ hoặc chuyên gia." };
+  }
   // V1's detectors partly match only UNACCENTED text ("giam 10kg trong 1 tuan" is blocked, "giảm 10kg trong 1 tuần" is not —
   // found 2026-11-12, V1 runtime frozen, reported separately). V2 also checks the diacritic-folded form; never weaker than V1.
   // The induced-vomiting detector reads the ORIGINAL accents ("ói"/"ơi", "cô"/"có"), so when the original HAS diacritics the folded retry

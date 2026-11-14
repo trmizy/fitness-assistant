@@ -18,9 +18,10 @@ import { requireAuth } from "../middleware/auth.middleware";
 import { askRateLimiter } from "../middleware/ai-rate-limiters";
 import { validateBody } from "../middleware/validate.middleware";
 import { ApiError, formatErrorResponse } from "../errors/api-error";
+import { MAX_QUESTION_CHARS } from "../llm/safety-limits";
 
 const AskV2Schema = z.object({
-  question: z.string().trim().min(1).max(2_000),
+  question: z.string().trim().min(1).max(MAX_QUESTION_CHARS),
   sessionId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
 }).strict();
 
