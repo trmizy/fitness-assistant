@@ -1,7 +1,7 @@
 {
   "schemaVersion": "m7-p5a2",
   "reviews": [
-    { "id": "<CASE_ID_OF_REVIEW_ITEM>", "code": "<REVIEW_CODE>", "signedBy": "<SIGNER_PSEUDONYM_NOT_ANNOTATOR_A_OR_B>", "note": "<WHAT_WAS_CHECKED>" }
+    { "id": "<CASE_ID_OF_REVIEW_ITEM>", "code": "<REVIEW_CODE>", "findingSha256": "<FINDING_SHA256_PRINTED_BY_FREEZE>", "bindingSha256": "<BINDING_SHA256_PRINTED_BY_FREEZE>", "decision": "<APPROVED>", "signedBy": "<SIGNER_PSEUDONYM_NOT_ANNOTATOR_A_OR_B>", "note": "<WHAT_WAS_CHECKED>" }
   ],
-  "agreementReview": { "signedBy": "<SIGNER_PSEUDONYM>", "note": "<CALIBRATION_OUTSIDE_THE_DATASET_OR_null_IF_NOT_REQUIRED>" }
+  "agreementReview": { "role": "<adjudicator_or_reviewer>", "signedBy": "<SIGNER_PSEUDONYM_NOT_ANNOTATOR_A_OR_B>", "decision": "<CALIBRATION_COMPLETED_or_REVIEWED>", "bindingSha256": "<BINDING_SHA256_PRINTED_BY_FREEZE>", "note": "<WHAT_WAS_REVIEWED>", "calibration": { "caseIds": ["<CALIBRATION_CASE_ID_OUTSIDE_THE_DATASET>"], "ref": "<WHERE_THE_CALIBRATION_ROUND_IS_DOCUMENTED>" } }
 }
