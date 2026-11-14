@@ -301,7 +301,7 @@ function detectPurgeOrUnsafeWeightLossBehavior(question: string): boolean {
 // detector, unchanged). Patterns run on text folded by `foldInducedVomitingText` (accent-free, lower-case), so one pattern covers
 // accented, unaccented, mixed, NFD and upper-case spellings. Called once with the original question from `check()`.
 const IV_SUBJECT = String.raw`(?:minh|toi|tui|em|tao)`; // "tớ/tô" omitted: "to" also means "big"
-const IV_SUBJECT_HABIT = String.raw`${IV_SUBJECT}(?:\s+(?:hay|thuong|luon|lai|dang|van|deu|da|tung|cu|thinh thoang|thi thoang|doi khi|moi lan|moi khi|sau moi bua|an xong|an roi|sau khi an)){0,4}`;
+const IV_SUBJECT_HABIT = String.raw`${IV_SUBJECT}(?:\s+(?:thuong\s+xuyen|luon\s+luon|luc\s+nao\s+cung|ngay\s+nao\s+cung|lan\s+nao\s+cung|deu\s+dan|moi\s+lan\s+an|moi\s+bua|toan|hay|thuong|luon|lai|dang|van|deu|da|tung|cu|thinh thoang|thi thoang|doi khi|moi lan|moi khi|sau moi bua|an xong|an roi|sau khi an)){0,4}`;
 const IV_MOC_HONG = String.raw`moc\s+(?:co\s+)?hong`; // "móc họng" / "móc cổ họng"
 // Vomit verb after the fold: "non"; "oiz" = the ACCENTED "ói" and "mxuaz" = the accented "mửa" (marked by the fold, because the
 // unaccented homographs mean "oi"=interjection ơi/ôi and "mua"=buy); a bare unaccented "oi" counts only when it does not directly
@@ -327,11 +327,19 @@ const INDUCED_VOMITING_PATTERNS: readonly RegExp[] = [
   new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_INTENT}\s+(?:ban\s+than\s+)?${IV_VOMIT}\b`),
   // 6. after a meal + intent marker (no subject needed) — "ăn xong ép nôn", "ăn xong là tự ói"
   new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_INTENT}\s+${IV_VOMIT}\b`),
-  // 7. after a meal + first-person subject + vomit verb — "ăn xong mình nôn", "ăn xong mình hay ói" ("bị nôn" / third person / bare "ăn xong nôn" stay out)
-  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+(?:${IV_INTENT}\s+)?${IV_VOMIT}\b`),
-  // 8. first-person subject + (intent) vomit verb + "sau khi ăn" — "mình hay nôn ra sau khi ăn" (the existing pattern only knew the adjacent "nôn sau khi ăn")
-  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+(?:${IV_INTENT}\s+)?${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
+  // 7. after a meal + first-person subject + INTENT marker + vomit verb — "ăn xong em ép nôn hoài"
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+${IV_INTENT}\s+${IV_VOMIT}\b`),
+  // 8. first-person subject + INTENT + vomit verb + "sau khi ăn" — "mình hay tự nôn ra sau khi ăn"
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_INTENT}\s+${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
 ];
+// Patterns whose ONLY evidence is a bare vomit verb after a meal ("ăn xong mình ói", "mình hay nôn ra sau khi ăn"). A bare verb is also an
+// involuntary symptom, so these additionally need an explicit purge reason in the same text and no stated benign cause (R-C 2026-11-14).
+const INDUCED_VOMITING_BARE_VERB_PATTERNS: readonly RegExp[] = [
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+${IV_VOMIT}\b`),
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
+];
+const IV_BARE_PURGE_REASON = /\b(?:ep|co\s+tinh|co\s+y|tu\s+lam|chu\s+dong|(?:de|cho)\s+(?:do|bot|khoi|dep)\s+(?:beo|map|mo|tang\s+can)|so\s+(?:tang\s+can|beo|map)|(?:de\s+)?giam\s+(?:can|beo|mo)|(?:de\s+)?khoi\s+(?:tang|beo|map)|(?:khong|dung)\s+(?:muon\s+)?(?:bi\s+)?(?:tang\s+can|beo|map)|do\s+(?:beo|map)|dep\s+(?:beo|mo))\b/;
+const IV_BENIGN_CAUSE = /\b(?:vi|do|boi|tai)\s+(?:bi\s+)?(?:say\s+(?:xe|song|nang)|ngo\s+doc|trao\s+nguoc|da\s+day|om|cam|benh|sot|thai\s+nghen|thai|thuoc|di\s+ung|an\s+phai|an\s+do\s+hong|do\s+an\s+hong)\b/;
 /**
  * Classification-only fold for the induced-vomiting patterns: NFC → lower-case → the accented words "mửa" / "ói" are marked and the
  * interjections ôi/ơi/ối ("em ơi") are neutralised, so the diacritic fold cannot turn them into "mua" (buy) / a bare "oi" → then
@@ -348,7 +356,10 @@ function foldInducedVomitingText(text: string): string {
 }
 function detectInducedVomitingDisclosure(question: string): boolean {
   const q = foldInducedVomitingText(question);
-  return INDUCED_VOMITING_PATTERNS.some((re) => re.test(q));
+  if (INDUCED_VOMITING_PATTERNS.some((re) => re.test(q))) return true;
+  return (
+    INDUCED_VOMITING_BARE_VERB_PATTERNS.some((re) => re.test(q)) && IV_BARE_PURGE_REASON.test(q) && !IV_BENIGN_CAUSE.test(q)
+  );
 }
 
 // Severe/anaphylaxis-level allergy — deliberately narrow to explicit
