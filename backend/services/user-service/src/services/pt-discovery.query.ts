@@ -579,6 +579,20 @@ function roundDistanceKm(v: number): number {
  * Enforces `SET LOCAL statement_timeout = '2s'`, Haversine distance (with Q5 ward-centroid
  * fallback), scope filtering, tiered ordering, encrypted epoch-bound cursors, and live visibility.
  */
+/**
+ * The ranking-stats rows of ONE epoch, read once. Joined row-by-row (`LEFT JOIN pt_discovery_stats ds ON epoch AND
+ * pt_user_id`) the planner, which under-estimates the filtered population (~270 instead of ~10,000 trainers), picked
+ * a nested loop of ~10,000 index probes (~30,000 buffer hits, a third of the statement). Materialised, it is one
+ * index-only scan of the epoch partition + a hash join. Same rows, same ordering: only the join strategy changes.
+ */
+function dsEpochCte(epoch: number | null): Prisma.Sql {
+  return Prisma.sql`ds_epoch AS MATERIALIZED (
+      SELECT ds0.pt_user_id, ds0.quality, ds0.rating_avg, ds0.from_price_online, ds0.from_price_offline, ds0.from_price_overall
+      FROM pt_discovery_stats ds0
+      WHERE ds0.epoch = ${epoch}::int4
+    )`;
+}
+
 export async function searchDiscoveryPtPageIds(
   input: PtSearchQueryInput = {},
   options: PtSearchQueryOptions = {},
@@ -880,7 +894,7 @@ export async function searchDiscoveryPtPageIds(
     }
 
     const queryRows = await tx.$queryRaw<RawSearchRow[]>(Prisma.sql`
-      WITH ${Prisma.join(ctes, ", ")},
+      WITH ${Prisma.join([dsEpochCte(resolvedEpoch), ...ctes], ", ")},
       tiered AS (
         SELECT
           p."userId" AS "userId",
@@ -923,9 +937,7 @@ export async function searchDiscoveryPtPageIds(
           ${sortNumExpr} AS sort_num,
           ${sortStrExpr} AS sort_str
         FROM bucketed t
-        LEFT JOIN pt_discovery_stats ds
-          ON ds.epoch = ${resolvedEpoch}::int4
-         AND ds.pt_user_id = t."userId"
+        LEFT JOIN ds_epoch ds ON ds.pt_user_id = t."userId"
       )
       SELECT
         b."userId",

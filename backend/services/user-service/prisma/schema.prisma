@@ -354,6 +354,7 @@ model PTApplicationCertificate {
   
   application          PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@map("pt_application_certificates")
 }
 

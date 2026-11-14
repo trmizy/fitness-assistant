@@ -101,7 +101,7 @@ export async function enrichForDiscovery(
   const viewer = viewerLocation(viewerArea);
   const [slots, gymIds] = await Promise.all([
     availabilityService
-      .countAvailableSlotsForPTs(
+      .countAvailableSlotsForPTsOneQuery(
         ptIds,
         new Date(),
         new Date(Date.now() + availabilityService.SLOT_LOOKAHEAD_DAYS * 86_400_000),

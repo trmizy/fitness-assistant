@@ -263,7 +263,10 @@ async function hydrateDiscoveryPublicPts(
     ).catch(() => undefined);
   }
 
-  const rated = await attachPtRatings(profiles as any[]);
+  // The single-statement list hydration already carries avgRating/ratingCount; only rows that came from a
+  // Prisma `select` (e.g. the PT detail path) still need the aggregate query.
+  const alreadyRated = (profiles as any[]).every((p) => "ratingCount" in p);
+  const rated = alreadyRated ? (profiles as any[]) : await attachPtRatings(profiles as any[]);
   const enriched = await enrichForDiscovery(rated, viewerUserId, viewerArea, activeViewerGymIds);
 
   return Promise.all(
