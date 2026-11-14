@@ -4,7 +4,7 @@ import cors from "cors";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
-import { getIo } from "./socket/index";
+import { getIo, disconnectUserSockets } from "./socket/index";
 import { callService } from "./services/call.service";
 import { createInternalEvidenceRoutes } from "./routes/internal-evidence.routes";
 import { internalEvidenceRepository } from "./repositories/internal-evidence.repository";
@@ -132,6 +132,23 @@ app.post("/internal/calls/end-by-session", async (req: Request, res: Response): 
     logger.error({ error: err.message, coachingSessionId }, "end-by-session failed");
     res.status(500).json({ error: "Failed to end call" });
   }
+});
+
+// Account lock: cuts every live chat/call socket of one user. A socket authenticates only at the handshake, so a
+// locked account's already-open connection would otherwise stay up (N11F-03). Called by the gateway when an admin
+// locks the account; a reconnect re-runs the handshake, which auth-service now refuses.
+app.post("/internal/users/:userId/disconnect", (req: Request, res: Response): void => {
+  if (!isValidInternalSecret(req.headers["x-internal-secret"])) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const userId = String(req.params.userId || "");
+  if (!userId || userId.length > 128) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+  const done = disconnectUserSockets(getIo(), userId);
+  res.status(done ? 200 : 503).json(done ? { ok: true } : { error: "Socket not ready" });
 });
 
 // Dispute Case slice 2 / S2.3: read-only call-session evidence for user-service (shared secret; the gateway does not proxy /internal).

@@ -40,7 +40,12 @@ export const chatRepository = {
         participants: true,
         messages: { take: 1, orderBy: { createdAt: "desc" } },
       },
-      orderBy: { lastMessageAt: "desc" },
+      // Conversations never written to (lastMessageAt NULL) go last, not first: an empty thread
+      // must not outrank the one with the newest message (N13H-02).
+      orderBy: [
+        { lastMessageAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
     });
   },
 
