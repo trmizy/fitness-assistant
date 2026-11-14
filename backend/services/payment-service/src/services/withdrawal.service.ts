@@ -5,6 +5,7 @@ import { walletRepository } from '../repositories/wallet.repository';
 import { prisma } from '../repositories/prisma';
 import { walletService } from './wallet.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
+import { notifyAdminsAwaitingSecondApproval, notifyWithdrawalOwner } from './withdrawal-notification.service';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, code });
@@ -272,7 +273,10 @@ export const withdrawalService = {
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+    // Q9: notify only when THIS call really moved PENDING -> APPROVED (a replay of an approved request changes nothing, tells nobody).
+    let transitioned = false;
+    const approved = await walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      transitioned = false;
       // Every transition holds this wallet lock. Re-read AFTER acquiring it; the
       // preflight snapshot may predate a rejection or a payout.
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
@@ -281,12 +285,20 @@ export const withdrawalService = {
       return withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
         await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
         await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
-        return ops.tx.withdrawalRequest.update({
+        const row = await ops.tx.withdrawalRequest.update({
           where: { id },
           data: { status: 'APPROVED', reviewedBy: adminId, reviewedAt: new Date() },
         });
+        transitioned = true;
+        return row;
       });
     });
+    if (transitioned) {
+      // After commit, best-effort, never throws (withdrawal-notification.service.ts).
+      await notifyWithdrawalOwner('APPROVED', approved);
+      if (isFourEyesRequired(approved.amount)) await notifyAdminsAwaitingSecondApproval(approved, adminId);
+    }
+    return approved;
   },
 
   /** P0 cluster F — a request rejected AFTER approval had its money moved to LOCKED; that
@@ -302,7 +314,9 @@ export const withdrawalService = {
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+    let transitioned = false;
+    const rejected = await walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      transitioned = false;
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 409, 'ALREADY_PAID');
       if (current.status === 'REJECTED') return current;
@@ -313,11 +327,15 @@ export const withdrawalService = {
           return { unlocked: request.amount.toFixed(2) };
         });
       }
-      return ops.tx.withdrawalRequest.update({
+      const row = await ops.tx.withdrawalRequest.update({
         where: { id },
         data: { status: 'REJECTED', reviewedBy: adminId, reviewedAt: new Date(), rejectionReason: reason.trim() },
       });
+      transitioned = true;
+      return row;
     });
+    if (transitioned) await notifyWithdrawalOwner('REJECTED', rejected, { reason: rejected.rejectionReason });
+    return rejected;
   },
 
   /**
@@ -353,7 +371,9 @@ export const withdrawalService = {
     // wallet. withIdempotentLedgerOp guards the debit itself: two concurrent markPaid calls
     // serialize on the wallet's FOR UPDATE lock, and the loser finds this key already claimed
     // and replays instead of debiting a second time.
+    let transitioned = false;
     return walletService.withWallets([request.walletId, escrowWallet.id], payoutTxn.id, async (ops) => {
+      transitioned = false;
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'PAID') return current;
       if (current.status !== 'PENDING' && current.status !== 'APPROVED') {
@@ -381,18 +401,23 @@ export const withdrawalService = {
         // before this line existed).
         await ops.debit(escrowWallet.id, request.amount, `Withdrawal ${request.id} paid out — ref ${bankReference.trim()}`);
         await ops.tx.paymentTransaction.update({ where: { id: payoutTxn.id }, data: { status: 'PAID', paidAt: new Date() } });
-        return ops.tx.withdrawalRequest.update({
+        const row = await ops.tx.withdrawalRequest.update({
           where: { id },
           data: {
             status: 'PAID',
             bankReference: bankReference.trim(),
+            // Q7 (14/11): a straight PENDING -> PAID (below the four-eyes threshold) also records the approval - the paying admin is
+            // the approver (reviewedBy / reviewedAt, the same columns approve() writes and the history reads as approvedBy), so a paid
+            // withdrawal never has no approver. An earlier approval is kept as it was.
             reviewedBy: current.reviewedBy ?? adminId,
             reviewedAt: current.reviewedAt ?? new Date(),
             paidAt: new Date(),
           },
         });
+        transitioned = true;
+        return row;
       });
-    }).then((paid) => {
+    }).then(async (paid) => {
       // There is no paidBy column, so who confirmed the payout is recorded here (after commit).
       logger.info({
         message: 'Withdrawal paid',
@@ -401,6 +426,7 @@ export const withdrawalService = {
         paidBy: adminId,
         fourEyesRequired: isFourEyesRequired(paid.amount),
       });
+      if (transitioned) await notifyWithdrawalOwner('PAID', paid, { bankReference: paid.bankReference });
       return paid;
     }).catch((e) => {
       logger.error({ error: 'Withdrawal markPaid failed', withdrawalId: id, message: (e as Error).message });

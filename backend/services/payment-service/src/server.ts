@@ -10,6 +10,12 @@ import { paymentGateVerdict, lateOpenSettlementVerdict } from './services/late-o
 
 const PORT = process.env.PORT || 3007;
 
+// N13F-05: a stray rejected promise (a handler that slipped past the route error forwarding, a fire-and-forget job) must be LOGGED, never
+// end the process: this service holds every payment, wallet and webhook. Deliberately no process.exit here.
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason instanceof Error ? reason.message : String(reason) }, '[payment-service] unhandledRejection (process kept alive)');
+});
+
 async function startServer() {
   try {
     app.listen(PORT, () => {

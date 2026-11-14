@@ -80,7 +80,7 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
       await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
       const rows = await tx.$queryRawUnsafe<any[]>(
         `SELECT e.transaction_id,
-                t.amount::text AS price, t.metadata, t.paid_at, t.related_entity_id,
+                t.amount::text AS price, t.status::text AS txn_status, t.metadata, t.paid_at, t.related_entity_id,
                 coalesce(sum(CASE WHEN e.bucket='AVAILABLE' AND e.entry_type='CREDIT' THEN e.amount ELSE 0 END),0)::text AS avail_credit,
                 coalesce(sum(CASE WHEN e.bucket='HOLDBACK' THEN (CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) ELSE 0 END),0)::text AS held,
                 coalesce(sum(CASE WHEN e.bucket='PENDING' THEN (CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) ELSE 0 END),0)::text AS pending,
@@ -88,7 +88,7 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
            FROM wallet_ledger_entries e
            JOIN payment_transactions t ON t.id = e.transaction_id
           WHERE e.wallet_id = $1 AND t.purpose = 'PT_CONTRACT'
-          GROUP BY e.transaction_id, t.amount, t.metadata, t.paid_at, t.related_entity_id
+          GROUP BY e.transaction_id, t.amount, t.status, t.metadata, t.paid_at, t.related_entity_id
           ORDER BY t.paid_at DESC NULLS LAST, e.transaction_id
           LIMIT $2`,
         wallet.id,
@@ -148,7 +148,7 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
       let totalDispute = new Prisma.Decimal(0);
       let holding = 0;
       const contracts: PtWalletContractRow[] = rows.map((r) => {
-        const meta = (r.metadata ?? {}) as { rates?: Record<string, string>; ptHoldback?: { target?: string } };
+        const meta = (r.metadata ?? {}) as { rates?: Record<string, string>; ptHoldback?: { target?: string }; unactivatedRefund?: unknown };
         let expected = new Prisma.Decimal(0);
         if (meta.rates) {
           try {
@@ -164,6 +164,14 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
         }
         const held = Prisma.Decimal.max(new Prisma.Decimal(r.held), 0);
         const isEnded = ended.has(r.transaction_id);
+        // N13C-06 (display only, no ledger write): the PT's claim is what the ledger can still pay them, not the price formula.
+        //  - the payment was given back whole and the contract never ran (REFUNDED, or the unactivated-contract auto refund marker): nothing is owed to the PT;
+        //  - the contract has ended (its TERMINATE is recorded): the entitlement is final = what it already paid + still holds (+ pending not yet released),
+        //    so a partial refund shows exactly the PT's real remainder and a full refund shows 0.
+        const givenBack = r.txn_status === 'REFUNDED' || meta.unactivatedRefund != null;
+        const pendingNow = givenBack ? new Prisma.Decimal(0) : Prisma.Decimal.max(new Prisma.Decimal(r.pending), 0);
+        if (givenBack) expected = new Prisma.Decimal(0);
+        else if (isEnded) expected = new Prisma.Decimal(r.avail_credit).plus(held).plus(pendingNow);
         const obligations = new Prisma.Decimal(openOb.get(r.transaction_id) ?? 0);
         const undecidedN = undecided.get(r.transaction_id) ?? 0;
         const hasHoldback = new Prisma.Decimal(meta.ptHoldback?.target ?? 0).greaterThan(0);
@@ -192,7 +200,7 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
           contractValue: money(r.price),
           expectedIncome: expected.toFixed(2),
           holdbackTarget: money(meta.ptHoldback?.target ?? 0),
-          pending: money(Prisma.Decimal.max(new Prisma.Decimal(r.pending), 0)),
+          pending: money(pendingNow),
           earned: availCredit.plus(held).toFixed(2),
           held: held.toFixed(2),
           availableFromContract: availCredit.toFixed(2),

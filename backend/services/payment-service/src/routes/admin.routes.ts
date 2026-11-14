@@ -17,6 +17,7 @@ import { postServiceJson } from '../clients/service-lambda.client';
 import adminObligationsRoutes from './admin-obligations.routes';
 import { assertRefundNotBypassingCase, RefundGuardError } from '../services/refund-case-guard';
 import { sendAdminWriteError } from '../utils/admin-error';
+import { noWalletRefundRefusal } from '../utils/refund-refusal';
 import { adminTransactionsQuerySchema, adminTransactionsService, isUuid } from '../services/admin-transactions.service';
 
 const INTERNAL_SERVICE_SECRET =
@@ -282,7 +283,9 @@ router.post('/:id/refund', async (req: Request, res: Response) => {
   }
 
   if (!original.payerWalletId || !original.receiverWalletId) {
-    return res.status(400).json({ success: false, error: { code: 'NOT_REFUNDABLE', message: 'Original transaction has no wallet references (likely a top-up, not a purchase)' } });
+    // N13F-04: same status (400) and same refusal as before - only the code/message now say WHY, in Vietnamese. A purchase paid
+    // straight at a gateway (VNPay) never touched a wallet, so there is no ledger movement for this button to reverse.
+    return res.status(400).json({ success: false, error: noWalletRefundRefusal(original) });
   }
 
   const commission = await transactionRepository.findCommissionByTransactionId(original.id);

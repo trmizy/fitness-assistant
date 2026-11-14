@@ -125,10 +125,19 @@ export const transactionRepository = {
    */
   async findStaleProcessing(purposeFilter: 'topup' | 'non-topup', staleMinutes: number) {
     const clause = purposeFilter === 'topup' ? Prisma.sql`"purpose" = 'WALLET_TOPUP'` : Prisma.sql`"purpose" != 'WALLET_TOPUP'`;
+    // N13F-02: a withdrawal's payout transaction is created PENDING at approve() and stays PENDING until markPaid. For a large
+    // withdrawal (four-eyes) that wait is legitimate - one admin approved, the second has not paid yet - so the sweep must not
+    // mark it FAILED (the page then showed FAILED, and it flipped to PAID when admin 2 paid). It is only "stale" once its
+    // withdrawal request is terminal (REJECTED / PAID); a request still PENDING or APPROVED is waiting on a person, not stuck.
+    // The payout transaction's key is `WITHDRAWAL:<request id>` (withdrawal.service.ts getOrCreatePayoutTransaction).
+    const awaitingAdmin = Prisma.sql`NOT ("purpose" = 'WITHDRAWAL' AND "idempotency_key" IN (
+          SELECT 'WITHDRAWAL:' || w.id FROM withdrawal_requests w WHERE w.status IN ('PENDING', 'APPROVED')
+        ))`;
     return prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT id FROM payment_transactions
       WHERE status IN ('PENDING', 'PROCESSING')
         AND ${clause}
+        AND ${awaitingAdmin}
         AND updated_at < NOW() - (${staleMinutes} || ' minutes')::INTERVAL
     `);
   },

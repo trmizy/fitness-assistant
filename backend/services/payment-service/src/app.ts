@@ -1,4 +1,8 @@
+import { installAsyncRouteErrorForwarding } from './utils/async-route-errors';
+// N13F-05: must run before any router handles a request - an async route that rejects goes to the error middleware below, never crashes the process.
+installAsyncRouteErrorForwarding();
 import express from 'express';
+import { apiErrorHandler } from './middleware/error-handler';
 import { metricsMiddleware, register } from '@gym-coach/shared';
 import webhookRoutes from './routes/webhook.routes';
 import vnpayReturnRoutes from './routes/vnpay-return.routes';
@@ -52,5 +56,8 @@ app.use('/admin/payments/withdrawal-history', adminWithdrawalHistoryRoutes);
 app.use('/admin/payments/wallets', adminWalletsRoutes);
 app.use('/admin/payments', adminRoutes);
 app.use('/internal', internalRoutes);
+
+// Last-resort error middleware (N13F-05): Prisma connection errors -> 503 SERVICE_BUSY, everything else -> 500 INTERNAL_ERROR.
+app.use(apiErrorHandler);
 
 export default app;

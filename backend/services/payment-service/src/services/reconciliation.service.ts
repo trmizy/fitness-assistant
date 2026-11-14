@@ -21,7 +21,9 @@ const INTERNAL_SERVICE_SECRET =
 
 export function startReconciliationJob(): void {
   logger.info('Reconciliation job started (interval: 5 min)');
-  setInterval(() => { void runReconciliation(); }, INTERVAL_MS);
+  setInterval(() => {
+    runReconciliation().catch((err) => logger.error({ error: 'Reconciliation pass failed', message: (err as Error).message }));
+  }, INTERVAL_MS);
 }
 
 export async function runReconciliation(): Promise<void> {
