@@ -61,6 +61,8 @@ test.before(async () => {
       const u = USERS[token];
       return u ? send(res, 200, { user: u }) : send(res, 401, { error: 'invalid' });
     }
+    // N13E-03: the collaboration propose now checks the id is a real, active PT (auth-service GET /auth/internal/users/:id)
+    if (req.method === 'GET' && req.url?.startsWith('/auth/internal/users/')) return send(res, 200, { user: { id: req.url.split('/').pop(), email: 'pt@c-fixes.test', firstName: 'P', lastName: 'T', role: 'PT', isActive: true } });
     if (req.method === 'POST' && req.url === '/auth/internal/send-email') return send(res, 200, { ok: true });
     if (req.method === 'POST' && req.url === '/auth/internal/partner-auth/email-status') return send(res, 200, { exists: false, role: null });
     if (req.method === 'POST' && req.url === '/auth/internal/partner-auth/create-invited-account') {

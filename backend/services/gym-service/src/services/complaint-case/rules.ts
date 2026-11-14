@@ -13,7 +13,8 @@ export type Outcome =
   | 'REFUND_GYM_CLOSED'
   | 'REFUND_GYM_VIOLATION'
   | 'RESOLVE_UPHELD'
-  | 'RESOLVE_INSUFFICIENT_EVIDENCE';
+  | 'RESOLVE_INSUFFICIENT_EVIDENCE'
+  | 'REFUND_APPEAL_SUPPLEMENT';
 export type RefundReason = 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED';
 
 /** Only these three classes have a money exit (design §1.3.4). MEM_ACCESS and every GYM_* class have none. */
@@ -35,6 +36,43 @@ export function outcomeFor(caseClass: CaseClass, finding: FindingKind): Outcome 
 }
 
 export const isRefundOutcome = (o: Outcome) => o === 'REFUND_TRANSACTION_ERROR' || o === 'REFUND_GYM_CLOSED' || o === 'REFUND_GYM_VIOLATION';
+
+// ── Q5 (owner approved 14/11/2026): the appeal of a case whose refund was ALREADY executed ────────────────────────────
+// The membership is CANCELLED and its money released, so the normal refund outcomes cannot run again (they would be refused: MEMBERSHIP_NOT_REFUNDABLE) and the case used to
+// be stuck. The independent appeal reviewer now ends it with exactly one of three results; each maps onto an outcome and the case then CLOSES (never stuck):
+//   UPHOLD           finding ESTABLISHED, nothing more to pay      -> RESOLVE_UPHELD                 (the earlier refund stays; no money)
+//   OVERTURN_MEMBER  finding ESTABLISHED, member gets MORE         -> REFUND_APPEAL_SUPPLEMENT       (ONLY the difference, rounded DOWN to 1,000, capped by what is still refundable)
+//   OVERTURN_GYM     finding NOT_ESTABLISHED (refund unjustified)  -> RESOLVE_INSUFFICIENT_EVIDENCE  (decision recorded + a manual-handling record; the member's wallet is NEVER debited)
+export type AppealResult = 'UPHOLD' | 'OVERTURN_MEMBER' | 'OVERTURN_GYM';
+export const APPEAL_RESULTS: readonly AppealResult[] = ['UPHOLD', 'OVERTURN_MEMBER', 'OVERTURN_GYM'];
+export const isSupplementOutcome = (o: Outcome) => o === 'REFUND_APPEAL_SUPPLEMENT';
+/** Outcomes whose money axis is derived from a payment-service answer (a refund or the supplementary refund). */
+export const hasPaymentStep = (o: Outcome) => isRefundOutcome(o) || isSupplementOutcome(o);
+
+/** The outcome of an after-refund appeal, or a coded refusal when the reviewer's chosen result contradicts the finding. */
+export function appealOutcomeAfterRefund(finding: FindingKind, result?: AppealResult): { ok: true; outcome: Outcome; result: AppealResult } | { ok: false; code: string; message: string } {
+  if (finding === 'NOT_ESTABLISHED') {
+    if (result === undefined || result === 'OVERTURN_GYM') return { ok: true, outcome: 'RESOLVE_INSUFFICIENT_EVIDENCE', result: 'OVERTURN_GYM' };
+    return { ok: false, code: 'APPEAL_RESULT_MISMATCH', message: 'Kết luận "chưa đủ căn cứ" chỉ đi cùng kết quả kháng nghị có lợi cho phòng tập' };
+  }
+  if (result === undefined || result === 'UPHOLD') return { ok: true, outcome: 'RESOLVE_UPHELD', result: 'UPHOLD' };
+  if (result === 'OVERTURN_MEMBER') return { ok: true, outcome: 'REFUND_APPEAL_SUPPLEMENT', result: 'OVERTURN_MEMBER' };
+  return { ok: false, code: 'APPEAL_RESULT_MISMATCH', message: 'Kết quả có lợi cho phòng tập cần kết luận "chưa đủ căn cứ"' };
+}
+/** Re-check at execution time: is the stored outcome one the finding allows for an after-refund appeal? */
+export function appealOutcomeAllowed(finding: FindingKind, outcome: Outcome): boolean {
+  return finding === 'NOT_ESTABLISHED' ? outcome === 'RESOLVE_INSUFFICIENT_EVIDENCE' : outcome === 'RESOLVE_UPHELD' || outcome === 'REFUND_APPEAL_SUPPLEMENT';
+}
+/**
+ * The supplementary refund: ONLY what is still refundable (price paid minus everything already refunded), rounded DOWN to the nearest 1,000 VND like every prorated refund
+ * (proratedRefundAmount, be8ba560), never above that remainder and never negative. Pure.
+ * Examples: price 700,000 refunded 699,000 -> 1,000; price 700,000 refunded 700,000 -> 0; price 299,999.84 refunded 299,000 -> 0 (0.84 + 999 < 1,000 floor).
+ */
+export function supplementaryRefundAmount(pricePaid: number, alreadyRefunded: number): number {
+  const remaining = Math.round((pricePaid - alreadyRefunded) * 100) / 100;
+  if (!(remaining > 0)) return 0;
+  return Math.min(remaining, Math.floor(remaining / 1000) * 1000);
+}
 
 /** The refundByAdmin reason that matches a refund outcome (membership.service ADMIN_REFUND_REASONS). */
 export function refundReasonFor(o: Outcome): RefundReason | null {
@@ -61,6 +99,8 @@ export function outcomeLabelVi(o: Outcome): string {
       return 'Hoàn tiền gói: phòng tập vi phạm';
     case 'RESOLVE_UPHELD':
       return 'Ghi nhận khiếu nại là đúng, không phát sinh tiền';
+    case 'REFUND_APPEAL_SUPPLEMENT':
+      return 'Kháng nghị được chấp nhận: hoàn thêm phần chênh lệch';
     default:
       return 'Chưa đủ căn cứ, không hoàn tiền';
   }
@@ -370,7 +410,7 @@ export function deriveFinancialView(i: {
   caseClass?: CaseClass | null;
 }): FinancialView {
   const base = { derived: true as const, postedToMemberWallet: null, memberShortfall: null, referralClawbackShortfall: null, observedAt: i.observation?.observedAt ?? null };
-  if (!i.outcome || !isRefundOutcome(i.outcome)) {
+  if (!i.outcome || !hasPaymentStep(i.outcome)) {
     return {
       ...base,
       state: 'NO_MONEY_EFFECT',
@@ -442,7 +482,17 @@ export function closureOf(status: CaseStatus, execStatus: string, v: FinancialVi
 
 // ── Messages to the member (no internal enum, never "paid" unless confirmed) ─────────────────────────────────────
 
-export function memberResolutionText(outcome: Outcome, v: FinancialView): string {
+export function memberResolutionText(outcome: Outcome, v: FinancialView, ctx: { afterRefundAppeal?: boolean } = {}): string {
+  if (isSupplementOutcome(outcome)) {
+    const m = memberFinancialView(v);
+    return `Kháng nghị của bạn đã được người xem xét độc lập chấp nhận. Phần chênh lệch được hoàn thêm: ${m.label}.`;
+  }
+  if (ctx.afterRefundAppeal && outcome === 'RESOLVE_UPHELD') {
+    return 'Kháng nghị của bạn đã được người xem xét độc lập xem xét: giữ nguyên kết quả trước đó. Khoản hoàn bạn đã nhận không thay đổi.';
+  }
+  if (ctx.afterRefundAppeal && outcome === 'RESOLVE_INSUFFICIENT_EVIDENCE') {
+    return 'Kháng nghị của bạn đã được người xem xét độc lập xem xét. Khoản hoàn bạn đã nhận không bị trừ lại; Gymini ghi nhận kết quả và xử lý các bước tiếp theo, bạn không cần làm gì thêm.';
+  }
   if (isRefundOutcome(outcome)) {
     const m = memberFinancialView(v);
     return `Báo cáo vấn đề của bạn đã được xem xét và chấp nhận. ${m.label}.`;

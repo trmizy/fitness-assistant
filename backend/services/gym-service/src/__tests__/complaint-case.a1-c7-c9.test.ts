@@ -323,8 +323,10 @@ test('A1 appeal window: 14 days from the DELIVERED conclusion notice; an undeliv
   ok(await call('POST', `/admin/complaint-cases/${rf.caseId}/appeal/reviewer`, newAdmin().tok, { reviewerId: rev.id }), 200, 'assign reviewer');
   await assess({ caseId: rf.caseId, inv: rev }, 'ESTABLISHED');
   ok(await call('POST', `/admin/complaint-cases/${rf.caseId}/finding`, rev.tok, { finding: 'ESTABLISHED', reasoning: 'r' }), 201, 'finding');
-  const p = await call('POST', `/admin/complaint-cases/${rf.caseId}/proposal`, rev.tok, {});
-  assert.equal(p.body.error.code, 'MEMBERSHIP_NOT_REFUNDABLE', 'no second refund');
+  // Q5 (14/11): the old dead end (409 MEMBERSHIP_NOT_REFUNDABLE) is gone - an after-refund appeal can only end UPHOLD / OVERTURN_MEMBER (supplement only) / OVERTURN_GYM, never a second full refund
+  // (the three results are covered end-to-end in complaint-case.q5-appeal-after-refund.test.ts). A result that contradicts the finding is refused and creates nothing.
+  const p = await call('POST', `/admin/complaint-cases/${rf.caseId}/proposal`, rev.tok, { appealResult: 'OVERTURN_GYM' });
+  assert.equal(p.body.error.code, 'APPEAL_RESULT_MISMATCH', 'no second refund, no stuck case');
   // ... and a reversal to "no refund" is only a recorded finding: no automatic clawback of what was paid
   ok(await call('POST', `/admin/complaint-cases/${rf.caseId}/transition`, rev.tok, { to: 'ASSESSING' }), 200, 'back');
   await assess({ caseId: rf.caseId, inv: rev }, 'NOT_ESTABLISHED');

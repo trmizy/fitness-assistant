@@ -20,11 +20,14 @@ import {
   diffAgainstSnapshot,
   evidenceVisibleTo,
   hasMoneyExit,
+  hasPaymentStep,
   isRefundOutcome,
   memberFinancialView,
   memberProgressLabel,
+  appealOutcomeAfterRefund,
   outcomeFor,
   outcomeLabelVi,
+  supplementaryRefundAmount,
   statementVisibleTo,
   viewerKind,
   appealWindow,
@@ -32,6 +35,7 @@ import {
   slaOf,
   verificationLabelVi,
   verificationOf,
+  type AppealResult,
   type CaseClass,
   type CaseStatus,
   type FindingKind,
@@ -722,14 +726,14 @@ export const complaintCaseService = {
    * Builds the proposal. The outcome is computed here from (case class, latest finding) - never read from the request, and no amount is accepted.
    * For a refund outcome the membership must still be refundable (ACTIVE, belongs to the reporter and the gym); otherwise no proposal is created.
    */
-  async propose(actor: Actor, caseId: string, note: string | undefined, idempotencyKey?: string) {
+  async propose(actor: Actor, caseId: string, note: string | undefined, idempotencyKey?: string, appealResult?: AppealResult) {
     assertAdmin(actor);
     return mutate<Record<string, any>>({
       actor,
       action: 'PROPOSAL_CREATED',
       scope: caseId,
       idempotencyKey,
-      body: { note: note ?? null },
+      body: { note: note ?? null, appealResult: appealResult ?? null },
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         assertInvestigator(actor, c);
@@ -737,13 +741,33 @@ export const complaintCaseService = {
         if (c.status !== 'FINDING_RECORDED') throw stateNotAllowed(c, ['FINDING_RECORDED']);
         const finding = await ctx.tx.gymCaseFinding.findFirst({ where: { caseId: c.id }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
         if (!finding) throw caseError(409, 'FINDING_REQUIRED', 'Chưa có kết luận để đề xuất');
-        const outcome = outcomeFor(c.caseClass as CaseClass, finding.finding as FindingKind);
-        if (isRefundOutcome(outcome)) await assertRefundable(ctx.tx, c);
+        // Q5: an appeal reviewed AFTER the refund was executed can never run the normal refund again (the membership is CANCELLED): the reviewer picks one of three results.
+        const prior = await priorRefundFacts(ctx.tx, c.id);
+        let outcome: Outcome;
+        let supplement: number | undefined;
+        if (prior) {
+          const verdict = appealOutcomeAfterRefund(finding.finding as FindingKind, appealResult);
+          if (!verdict.ok) throw caseError(409, verdict.code, verdict.message);
+          outcome = verdict.outcome;
+          if (outcome === 'REFUND_APPEAL_SUPPLEMENT') {
+            if (prior.shortfall > 0) throw caseError(409, 'PRIOR_REFUND_SHORTFALL', 'Lần hoàn trước còn khoản chưa trả được (cần đối soát) nên chưa hoàn thêm được', { shortfall: String(prior.shortfall) });
+            supplement = await supplementAvailable(ctx.tx, c, prior.refundedSoFar);
+            if (supplement <= 0) throw caseError(409, 'NO_SUPPLEMENT_AVAILABLE', 'Không còn khoản nào có thể hoàn thêm cho gói này (đã hoàn gần hết hoặc hết số tiền đã thanh toán). Hãy chọn kết quả giữ nguyên', { refundedSoFar: String(prior.refundedSoFar) });
+          }
+        } else {
+          if (appealResult !== undefined) throw caseError(409, 'APPEAL_RESULT_NOT_APPLICABLE', 'Hồ sơ này chưa có khoản hoàn nào đã thực hiện nên không chọn kết quả kháng nghị sau hoàn tiền');
+          outcome = outcomeFor(c.caseClass as CaseClass, finding.finding as FindingKind);
+          if (isRefundOutcome(outcome)) await assertRefundable(ctx.tx, c);
+        }
         const proposal = await ctx.tx.gymCaseProposal.create({
           data: { caseId: c.id, findingId: finding.id, outcome, proposerId: actor.id, evidenceSnapshot: toJson(await buildSnapshot(ctx.tx, c.id)) },
         });
         await casStatus(ctx, c, 'AWAITING_APPROVAL', note);
-        return { caseId: c.id, result: { id: proposal.id, outcome, outcomeLabel: outcomeLabelVi(outcome), caseStatus: c.status }, note };
+        return {
+          caseId: c.id,
+          result: { id: proposal.id, outcome, outcomeLabel: outcomeLabelVi(outcome), caseStatus: c.status, ...(prior ? { afterRefundAppeal: true, ...(supplement !== undefined ? { supplementAmount: supplement.toFixed(2) } : {}) } : {}) },
+          note,
+        };
       },
     });
   },
@@ -1164,6 +1188,28 @@ export async function assertRefundable(db: Db, c: { id: string; gymId: string; m
   if (block === 'NO_PAYMENT') throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên chưa có giao dịch thanh toán để hoàn');
   const quote = await db.gymCaseRefundQuote.findUnique({ where: { caseId: c.id } });
   if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại nên không hoàn tiền được');
+}
+
+/**
+ * Q5: what the case's EARLIER decisions already paid out. A case "has a refund behind it" when a refund outcome finished (BUSINESS_DONE) under a decision other than `exceptDecisionId`.
+ * refundedSoFar = everything payment-service confirmed to the member across those executions (the original refund and any supplement). Read-only.
+ */
+export async function priorRefundFacts(db: Db, caseId: string, exceptDecisionId?: string): Promise<{ refundedSoFar: number; shortfall: number; decisionIds: string[] } | null> {
+  const rows = await db.gymCaseExecution.findMany({ where: { caseId, state: 'BUSINESS_DONE', ...(exceptDecisionId ? { decisionId: { not: exceptDecisionId } } : {}) }, select: { decisionId: true, outcome: true, response: true } });
+  const refunds = rows.filter((r) => isRefundOutcome(r.outcome as Outcome));
+  if (refunds.length === 0) return null;
+  const refundedSoFar = rows.filter((r) => hasPaymentStep(r.outcome as Outcome)).reduce((sum, r) => sum + Number((r.response as { payment?: { refundedToClient?: string | null } } | null)?.payment?.refundedToClient ?? 0), 0);
+  const shortfall = rows.reduce((sum, r) => sum + Number((r.response as { payment?: { releaseShortfall?: string | null } } | null)?.payment?.releaseShortfall ?? 0), 0);
+  return { refundedSoFar: Math.round(refundedSoFar * 100) / 100, shortfall: Math.round(shortfall * 100) / 100, decisionIds: refunds.map((r) => r.decisionId) };
+}
+
+/** Q5: the supplementary amount that is still refundable NOW: price paid (the case's own quote, never above the membership's price) minus everything refunded, floored to 1,000. */
+export async function supplementAvailable(db: Db, c: { id: string; membershipId: string | null }, refundedSoFar: number): Promise<number> {
+  const quote = await db.gymCaseRefundQuote.findUnique({ where: { caseId: c.id } });
+  if (!quote) throw caseError(409, 'REFUND_QUOTE_MISSING', 'Hồ sơ chưa chốt số tiền hoàn tại ngày khiếu nại nên không tính được phần hoàn thêm');
+  const m = c.membershipId ? await db.gymMembershipContract.findUnique({ where: { id: c.membershipId }, select: { priceAtPurchase: true } }) : null;
+  const price = Math.min(Number(quote.pricePaid), m ? Number(m.priceAtPurchase) : Number(quote.pricePaid));
+  return supplementaryRefundAmount(price, refundedSoFar);
 }
 
 /** E1: the amount fixed for the case (written when it was opened). */

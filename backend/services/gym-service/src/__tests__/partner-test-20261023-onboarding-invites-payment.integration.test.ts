@@ -36,6 +36,7 @@ const partnerIds: string[] = [];
 const gymIds: string[] = [];
 const brandIds: string[] = [];
 const checkoutBodies: any[] = [];
+const gatewayDown = { on: false };
 
 function readBody(req: http.IncomingMessage): Promise<any> {
   return new Promise((resolve) => {
@@ -89,7 +90,8 @@ test.before(async () => {
       const body = await readBody(req);
       checkoutBodies.push(body);
       if (body.provider === 'ZALOPAY') return send(res, 400, { success: false, error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'PROVIDER_NOT_CONFIGURED' } });
-      if (body.provider === 'MOMO') return send(res, 502, { success: false, error: { code: 'GATEWAY_ERROR', message: 'Cổng MoMo từ chối' } });
+      // N13E-02: MOMO/PAYOS are refused before any row exists, so the "gateway error" case is a live gateway (VNPAY) failing while gatewayDown is set
+      if (body.provider === 'VNPAY' && gatewayDown.on) return send(res, 502, { success: false, error: { code: 'GATEWAY_ERROR', message: 'Cổng MoMo từ chối' } });
       return send(res, 200, { success: true, data: { transactionId: randomUUID(), status: 'PENDING', redirectUrl: 'https://pay.test/x', qrCodeUrl: null, provider: 'MOCK' } });
     }
     return send(res, 404, {});
@@ -445,14 +447,16 @@ integrationTest('B24 + B25: payment-service error code/status survive purchase A
 
   // the PENDING_PAYMENT row exists; retry-pay with a gateway that errors keeps status 502 + code + upstream message
   const pending = await prisma.gymMembershipContract.findFirstOrThrow({ where: { gymId: o.gym.id, clientId: c.id } });
-  r = await call(c.token, 'POST', `/me/gym-memberships/${pending.id}/pay`, { provider: 'momo' });
+  gatewayDown.on = true;
+  r = await call(c.token, 'POST', `/me/gym-memberships/${pending.id}/pay`, { provider: 'vnpay' });
+  gatewayDown.on = false;
   assert.equal(r.status, 502);
   assert.equal(r.body.error.code, 'GATEWAY_ERROR');
   assert.equal(r.body.error.message, 'Cổng MoMo từ chối');
 
   // success path: orderInfo is human, with no uuid
   checkoutBodies.length = 0;
-  r = await call(c.token, 'POST', `/me/gym-memberships/${pending.id}/pay`, { provider: 'mock' });
+  r = await call(c.token, 'POST', `/me/gym-memberships/${pending.id}/pay`, { provider: 'vnpay' });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(checkoutBodies.length, 1);
   const info: string = checkoutBodies[0].orderInfo;

@@ -6,6 +6,7 @@ import type { Prisma } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import { isGymPubliclyVisible } from '../services/gym-public';
 import { partnerS3 } from '../services/partner-s3.service';
+import { partnerService } from '../services/partner.service';
 
 /**
  * Listing Management B1 — the ONLY way a branch photo's bytes leave gym-service for an anonymous viewer.
@@ -26,10 +27,34 @@ function notFound(res: Response) {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy ảnh' } });
 }
 
-async function findVisiblePublishedPhoto(where: Prisma.GymPhotoWhereInput) {
+/**
+ * N13E-05 / N11D2-01 (14/11/2026): the photos of a TEMPORARILY_CLOSED branch are not public (the strict rule above), but the people who RUN the branch must still see them -
+ * the owner pages list these URLs. An authenticated ADMIN, the partner's OWNER, or a MANAGER scoped to that branch may fetch a PUBLISHED photo of a branch that is APPROVED
+ * and only temporarily closed. Everyone else (anonymous, customers, other partners, receptionists / accountants, permanently closed or unapproved branches) keeps the 404.
+ * Optional auth: no Authorization header = the unchanged public path.
+ */
+async function canViewTemporarilyClosedPhoto(req: Request, gymId: string): Promise<boolean> {
+  const user = req.user;
+  if (!user?.userId) return false;
+  const gym = await prisma.gym.findUnique({ where: { id: gymId }, select: { id: true, ownerId: true, status: true, operationalStatus: true } });
+  if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'TEMPORARILY_CLOSED') return false;
+  if (user.role === 'ADMIN') return true;
+  if (user.role !== 'GYM_OWNER') return false;
+  try {
+    const ctx = await partnerService.resolveContextForUser(user.userId);
+    if (ctx.principalUserId !== gym.ownerId) return false;
+    if (ctx.role === 'OWNER') return true;
+    return ctx.role === 'MANAGER' && ctx.scopedGymIds.includes(gymId);
+  } catch {
+    return false; // revoked / not activated / unresolved: no access
+  }
+}
+
+async function findVisiblePublishedPhoto(where: Prisma.GymPhotoWhereInput, req?: Request) {
   const photo = await prisma.gymPhoto.findFirst({ where: { ...where, status: 'PUBLISHED' } });
   if (!photo) return null;
-  return (await isGymPubliclyVisible(photo.gymId)) ? photo : null;
+  if (await isGymPubliclyVisible(photo.gymId)) return photo;
+  return req && (await canViewTemporarilyClosedPhoto(req, photo.gymId)) ? photo : null;
 }
 
 /** Streams a disk photo, refusing anything that would resolve outside the photo directory. */
@@ -45,7 +70,7 @@ function sendDiskPhoto(res: Response, fileName: string) {
 export const gymMediaController = {
   /** GET /media/gym-photos/:photoId - S3 photo: 302 to a 10-minute presigned GET; disk photo: streamed. */
   async servePhoto(req: Request, res: Response) {
-    const photo = await findVisiblePublishedPhoto({ id: req.params.photoId });
+    const photo = await findVisiblePublishedPhoto({ id: req.params.photoId }, req);
     if (!photo) return notFound(res);
 
     if (!photo.s3Key) return sendDiskPhoto(res, photo.fileName);
@@ -62,7 +87,7 @@ export const gymMediaController = {
 
   /** GET /uploads/gym-photos/:file - the old static URL (`fileName` of a disk photo), now a checked route. */
   async serveLegacyFile(req: Request, res: Response) {
-    const photo = await findVisiblePublishedPhoto({ fileName: req.params.file, s3Key: null });
+    const photo = await findVisiblePublishedPhoto({ fileName: req.params.file, s3Key: null }, req);
     if (!photo) return notFound(res);
     return sendDiskPhoto(res, photo.fileName);
   },

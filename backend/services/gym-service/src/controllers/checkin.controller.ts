@@ -93,8 +93,9 @@ export const checkinController = {
     try {
       const ownerId = principalId(req);
       const list = await checkinService.listForGym(req.params.gymId, ownerId);
-      // Lễ tân chỉ nhận tên hiển thị (không clientId): tra tên ở đây, chỉ cho vai trò cần.
-      const names = req.partner?.role === 'RECEPTIONIST' ? await resolveDisplayNames(list.map((c) => c.clientId)) : undefined;
+      // Lễ tân chỉ nhận tên hiển thị (không clientId); chủ / quản lý nhận thêm tên hiển thị bên cạnh clientId (N13E-12): tra tên ở đây, chỉ cho các vai trò đó.
+      const wantsNames = req.partner?.role === 'RECEPTIONIST' || req.partner?.role === 'OWNER' || req.partner?.role === 'MANAGER';
+      const names = wantsNames ? await resolveDisplayNames(list.map((c) => c.clientId)) : undefined;
       res.json({ success: true, data: req.partner ? checkinsFor(req.partner.role, list, names) : list });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { amenitySelectionFields } from '../services/amenity-selection.schemas';
+import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from '../utils/phone.util';
 
 /**
  * Vòng 4 / Phase B — gym.controller.ts's createOwned/updateOwned passed req.body straight to
@@ -42,10 +43,14 @@ const gymLocationNote = z
   .max(300, 'Hướng dẫn vị trí không được vượt quá 300 ký tự')
   .optional();
 
+// N13E-01 / N11A-01 (14/11/2026): the branch phone is PUBLIC, yet "abc" / "12" / "<script>" used to be stored. Same rule as the onboarding contact phone and the PT
+// application (utils/phone.util.ts). An empty string stays valid so an owner can still clear the number. Shared by the owner update, the admin update, the create
+// payload and the application branch PUT (applicationBranchSchema is derived from gymCreateSchema).
 const gymPhone = z
   .string()
   .trim()
   .max(20, 'Số điện thoại không được vượt quá 20 ký tự')
+  .refine((v) => v === '' || isValidPhoneNumber(v), { message: PHONE_INVALID_MESSAGE })
   .optional();
 
 // Empty string is kept valid (and distinct from "field omitted") so a caller can still

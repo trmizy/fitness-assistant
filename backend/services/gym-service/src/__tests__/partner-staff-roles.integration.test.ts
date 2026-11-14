@@ -57,6 +57,8 @@ let payServer: http.Server;
 let userServer: http.Server;
 let appServer: http.Server;
 let base = '';
+let batchDown = false;
+let batchCalls = 0;
 let prisma: typeof import('../repositories/prisma').prisma;
 let ownerRouter: any;
 const sentMails: Array<{ to: string; subject: string }> = [];
@@ -84,6 +86,13 @@ test.before(async () => {
         const b = JSON.parse(Buffer.concat(chunks).toString() || '{}');
         sentMails.push({ to: b.to, subject: b.subject });
         return res.end(JSON.stringify({ ok: true }));
+      }
+      if (req.method === 'POST' && req.url === '/auth/internal/users/batch') {
+        // N13I-04: tra tên theo LÔ cho danh sách hội viên của chủ / quản lý (kèm e-mail để chứng minh e-mail không bị chuyển tiếp).
+        batchCalls++;
+        if (batchDown) { req.socket.destroy(); return; } // auth-service unreachable (headers are already written above)
+        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+        return res.end(JSON.stringify({ users: (b.userIds as string[]).map((uid) => ({ id: uid, email: `secret-${uid.slice(0, 8)}@mail.test`, firstName: 'Ten', lastName: uid.slice(0, 4) })) }));
       }
       if (req.url?.startsWith('/auth/internal/users/')) {
         // Tên + e-mail + SĐT: chỉ TÊN được phép tới lễ tân (xem test field allow-list).
@@ -365,6 +374,34 @@ integrationTest('KẾ TOÁN thấy doanh số (giá, mã giao dịch) nhưng KH�
   assert.equal(JSON.stringify(r.body).includes(id.clientX), false);
   const owner = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
   assert.equal(owner.body.data[0].clientId, id.clientX);
+});
+
+integrationTest('N13I-04 · danh sách hội viên: CHỦ / QUẢN LÝ nhận thêm clientName (1 lần tra lô); kế toán KHÔNG có tên; auth-service lỗi ⇒ vẫn trả danh sách, không có tên', async () => {
+  const want = `Ten ${id.clientX.slice(0, 4)}`;
+  batchCalls = 0;
+  const owner = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(owner.status, 200);
+  assert.equal(owner.body.data[0].clientName, want);
+  assert.equal(owner.body.data[0].clientId, id.clientX, 'clientId vẫn còn');
+  assert.equal(JSON.stringify(owner.body).includes('@mail.test'), false, 'e-mail của hội viên không được chuyển tiếp');
+  const manager = await call(M, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(manager.body.data[0].clientName, want);
+  assert.equal(batchCalls, 2, 'mỗi lần tải danh sách chỉ 1 lần tra lô (không N+1)');
+  batchCalls = 0;
+  const acct = await call(AA, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(acct.status, 200);
+  assert.equal('clientName' in acct.body.data[0], false);
+  assert.equal(JSON.stringify(acct.body).includes(want), false);
+  assert.equal(batchCalls, 0, 'kế toán: không tra tên');
+  batchDown = true;
+  try {
+    const down = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+    assert.equal(down.status, 200);
+    assert.equal(down.body.data[0].clientId, id.clientX);
+    assert.equal('clientName' in down.body.data[0], false, 'thiếu tên ⇒ không bịa tên');
+  } finally {
+    batchDown = false;
+  }
 });
 
 integrationTest('KẾ TOÁN: ví đọc được; lịch sử rút tiền CHE số tài khoản; chủ thấy nguyên văn', async () => {

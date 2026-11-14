@@ -1839,6 +1839,8 @@ enum GymCaseOutcome {
   REFUND_GYM_VIOLATION
   RESOLVE_UPHELD
   RESOLVE_INSUFFICIENT_EVIDENCE
+  /// Q5: after-refund appeal won by the member - refunds ONLY the difference (never a second full refund).
+  REFUND_APPEAL_SUPPLEMENT
 }
 
 enum GymCaseApprovalResult {

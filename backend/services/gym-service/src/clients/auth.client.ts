@@ -71,6 +71,13 @@ export const authClient = {
     }
   },
 
+  /** Tra nhiều tài khoản một lần (id/email/tên). Lỗi mạng ném ra - phía gọi quyết định cách xử lý. */
+  async getUsersBatch(userIds: string[]) {
+    if (userIds.length === 0) return [] as Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
+    const { data } = await axios.post(`${AUTH_SERVICE_URL}/auth/internal/users/batch`, { userIds }, { headers, timeout: 5000 });
+    return (data?.users ?? []) as Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
+  },
+
   async getUser(userId: string) {
     const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/internal/users/${userId}`, { headers, timeout: 5000 });
     return data.user as { id: string; email: string; firstName: string | null; lastName: string | null; role: string; isActive: boolean };

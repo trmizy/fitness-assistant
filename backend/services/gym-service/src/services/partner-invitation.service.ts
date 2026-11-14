@@ -27,13 +27,19 @@ type InviteDb = Pick<typeof prisma, 'partnerInvitation'>;
  * Email thuộc tài khoản khách/PT/admin (không phải nhân sự đối tác) gym-service KHÔNG tự biết được - auth-service
  * từ chối ở bước nhận lời mời (409 EMAIL_IN_USE, xem public-partner.controller.ts).
  */
-export async function assertEmailInvitable(db: InviteDb, partnerId: string, email: string): Promise<void> {
+export async function assertEmailInvitable(
+  db: InviteDb,
+  partnerId: string,
+  email: string,
+  /** Q4 (14/11): người này từng là nhân sự của CHÍNH đối tác nhưng quyền đã bị thu hồi (REVOKED) => được mời lại. */
+  opts: { revokedMember?: boolean } = {},
+): Promise<void> {
   const rows = await db.partnerInvitation.findMany({ where: { email, status: { in: ['PENDING', 'ACCEPTED'] } } });
   const accepted = rows.filter((r) => r.status === 'ACCEPTED');
-  if (accepted.some((r) => r.partnerId === partnerId)) {
+  if (accepted.some((r) => r.partnerId === partnerId) && !opts.revokedMember) {
     throw err('Email này đã là thành viên trong đối tác của bạn', 409, 'ALREADY_PARTNER_MEMBER');
   }
-  if (accepted.length > 0) {
+  if (accepted.some((r) => r.partnerId !== partnerId)) {
     throw err('Email này đã có tài khoản Gymini — hãy mời bằng một email khác', 409, 'EMAIL_IN_USE');
   }
   const now = Date.now();
@@ -46,6 +52,25 @@ export async function assertEmailInvitable(db: InviteDb, partnerId: string, emai
 }
 
 const DEFAULT_TTL_DAYS = 7;
+
+/**
+ * Q4 (14/11) - tìm tài khoản nhân sự ĐÃ BỊ THU HỒI của đối tác này ứng với một email. gym-service không lưu email của tài
+ * khoản đăng nhập nên hỏi auth-service theo lô các tài khoản REVOKED của đối tác (số lượng nhỏ) rồi so email.
+ * Không hỏi được auth-service => null (bảo thủ: vẫn coi là "đã là thành viên", không tự ý cho mời lại).
+ */
+export async function findRevokedAccountByEmail(partnerId: string, email: string) {
+  const revoked = (await partnerRepository.listAccountsByPartner(partnerId)).filter((a) => a.status === 'REVOKED');
+  if (revoked.length === 0) return null;
+  try {
+    const users = await authClient.getUsersBatch(revoked.map((a) => a.userId));
+    const wanted = email.trim().toLowerCase();
+    const hit = users.find((u) => u.email?.trim().toLowerCase() === wanted);
+    return hit ? (revoked.find((a) => a.userId === hit.id) ?? null) : null;
+  } catch (e) {
+    logger.warn({ err: (e as Error).message, partnerId }, '[PartnerInvitation] không tra được email của tài khoản đã thu hồi - coi như chưa thu hồi');
+    return null;
+  }
+}
 
 /**
  * ⚠️ Token gốc KHÔNG BAO GIỜ được lưu. Sinh ra 32 byte ngẫu nhiên, trả bản gốc đúng một
@@ -121,11 +146,12 @@ export const partnerInvitationService = {
         throw err('Email này đã được dùng cho một tài khoản Gymini khác — hãy mời bằng một email khác', 409, 'EMAIL_IN_USE');
       }
     }
+    const revokedMember = params.enforceUniqueEmail ? Boolean(await findRevokedAccountByEmail(params.partnerId, email)) : false;
     const invitation = params.enforceUniqueEmail
       ? await prisma.$transaction(async (tx) => {
           // Khoá dòng đối tác: hai lần bấm "Mời" cùng lúc không thể cùng lọt qua bước kiểm trùng.
           await tx.$queryRaw`SELECT id FROM gym_partners WHERE id = ${params.partnerId} FOR UPDATE`;
-          await assertEmailInvitable(tx, params.partnerId, email);
+          await assertEmailInvitable(tx, params.partnerId, email, { revokedMember });
           return tx.partnerInvitation.create({ data });
         })
       : await partnerRepository.createInvitation(data);
@@ -209,6 +235,10 @@ export const partnerInvitationService = {
     // ở đây để trả lời được "vì sao" thay vì một lỗi ràng buộc thô.
     const existingAccount = await partnerRepository.findAccountByUserId(userId);
     if (existingAccount) {
+      // Q4 (14/11): người từng bị thu hồi của CHÍNH đối tác này nhận lời mời mới => kích hoạt lại đúng bản ghi cũ.
+      if (existingAccount.partnerId === invitation.partnerId && existingAccount.status === 'REVOKED') {
+        return this.reactivateRevokedAccount(invitation, existingAccount);
+      }
       throw err('Tài khoản này đã thuộc về một đối tác khác', 409);
     }
 
@@ -236,6 +266,67 @@ export const partnerInvitationService = {
 
     logger.info(`[PartnerInvitation] ${userId} accepted invitation ${invitation.id} as ${invitation.role}`);
     return account;
+  },
+
+  /**
+   * Q4 (14/11) - kích hoạt lại tài khoản nhân sự đã bị thu hồi bằng lời mời MỚI: cùng một hàng gym_partner_accounts (cùng
+   * userId, giữ onboarding), vai trò + phạm vi chi nhánh lấy theo lời mời mới. Lời mời ACCEPTED cũ giữ nguyên làm lịch sử;
+   * thông tin thu hồi cũ (thời điểm/lý do/vai trò cũ) được ghi vào nhật ký kiểm toán trong CÙNG transaction.
+   * Một lời mời chỉ dùng được một lần: chuyển PENDING -> ACCEPTED có điều kiện, hai lần bấm đồng thời chỉ một lần thắng.
+   */
+  async reactivateRevokedAccount(
+    invitation: NonNullable<Awaited<ReturnType<typeof partnerRepository.findInvitationByTokenHash>>>,
+    account: NonNullable<Awaited<ReturnType<typeof partnerRepository.findAccountByUserId>>>,
+  ) {
+    const now = new Date();
+    const updated = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.partnerInvitation.updateMany({
+        where: { id: invitation.id, status: 'PENDING' },
+        data: { status: 'ACCEPTED', acceptedAt: now },
+      });
+      if (claimed.count !== 1) throw err('Thư mời này đã được sử dụng', 409);
+      const next = await tx.gymPartnerAccount.updateMany({
+        where: { id: account.id, status: 'REVOKED' },
+        data: {
+          status: 'ACTIVE',
+          role: invitation.role,
+          scopedGymIds: invitation.scopedGymIds,
+          invitedBy: invitation.createdBy,
+          invitedAt: invitation.createdAt,
+          activatedAt: now,
+          revokedAt: null,
+          revokedReason: null,
+        },
+      });
+      if (next.count !== 1) throw err('Tài khoản này không còn ở trạng thái bị thu hồi', 409);
+      await tx.partnerAuditLog.create({
+        data: {
+          partnerId: invitation.partnerId,
+          actorUserId: account.userId,
+          action: 'PARTNER_UPDATED',
+          targetAccountId: account.id,
+          reason: 'Kích hoạt lại nhân sự đã bị thu hồi bằng lời mời mới',
+          metadata: {
+            reactivated: true,
+            invitationId: invitation.id,
+            previousRole: account.role,
+            previousScopedGymIds: account.scopedGymIds,
+            previousRevokedAt: account.revokedAt?.toISOString() ?? null,
+            previousRevokedReason: account.revokedReason,
+            newRole: invitation.role,
+            newScopedGymIds: invitation.scopedGymIds,
+          } as any,
+        },
+      });
+      return tx.gymPartnerAccount.findUniqueOrThrow({ where: { id: account.id } });
+    });
+    logger.info(`[PartnerInvitation] ${account.userId} re-activated revoked account ${account.id} via invitation ${invitation.id} as ${invitation.role}`);
+    return updated;
+  },
+
+  /** Q4 - lời mời này có phải để kích hoạt lại một nhân sự đã bị thu hồi của chính đối tác không? (trả về tài khoản cũ hoặc null) */
+  async findReactivationTarget(invitation: { partnerId: string; email: string }) {
+    return findRevokedAccountByEmail(invitation.partnerId, invitation.email);
   },
 
   listForPartner(partnerId: string) {

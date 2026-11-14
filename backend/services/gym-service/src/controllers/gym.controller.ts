@@ -203,8 +203,13 @@ export const gymController = {
 
   async setStatus(req: Request, res: Response) {
     try {
-      const { status } = req.body;
-      const gym = await gymService.setStatus(req.params.id, status, req.user!.userId);
+      const { status } = req.body ?? {};
+      // N13E-10 (14/11/2026): "BOGUS" (or a missing / non-string value) fell through to Prisma and answered 500. Only the three moderation results exist on this route.
+      if (typeof status !== 'string' || !['APPROVED', 'REJECTED', 'SUSPENDED'].includes(status)) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: 'Trạng thái không hợp lệ — chỉ nhận APPROVED, REJECTED hoặc SUSPENDED' } });
+        return;
+      }
+      const gym = await gymService.setStatus(req.params.id, status as 'APPROVED' | 'REJECTED' | 'SUSPENDED', req.user!.userId);
       res.json({ success: true, data: gym });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });

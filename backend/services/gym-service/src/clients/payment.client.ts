@@ -192,6 +192,29 @@ export const paymentClient = {
     });
   },
 
+  /**
+   * Q5 (14/11/2026): the SUPPLEMENTARY refund of an after-refund appeal won by the member - ONLY the difference, idempotent on `idempotencyKey`.
+   * CONTRACT with payment-service: POST /internal/contracts/membership-appeal-supplement  { transactionId, gymId, clientId, amount, label, idempotencyKey, entityOrigin? }
+   *   -> data { refundedToClient: string, shortfall: string }. NOTE: that route is NOT built yet (open question: which wallet funds the difference). Until it exists the call fails 404/501,
+   * the executor records the case as EXEC_BLOCKED (nothing moved, retriable) - it never invents a ledger movement of its own.
+   */
+  async refundMembershipSupplement(body: {
+    transactionId: string;
+    gymId: string;
+    clientId: string;
+    amount: string;
+    label: string;
+    idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
+  }) {
+    try {
+      return await paymentRequest<{ refundedToClient: string; shortfall: string }>({ method: 'POST', path: '/internal/contracts/membership-appeal-supplement', timeout: 20_000, body });
+    } catch (e: any) {
+      const status: number | undefined = e?.response?.status ?? e?.status;
+      throw Object.assign(new Error(e?.response?.data?.error?.code || e?.message || 'SUPPLEMENT_REFUND_FAILED'), status ? { status } : {});
+    }
+  },
+
   /** Client self-cancelled — forfeit everything to the parties immediately, no client credit. */
   async forfeitMembershipOnCancel(body: {
     transactionId: string;

@@ -96,6 +96,18 @@ test('hội viên theo vai trò: chủ/quản lý đủ; LỄ TÂN KHÔNG có da
   assert.deepEqual(membershipsFor('NOPE' as any, [membership]), []);
 });
 
+test('N13I-04: membershipsFor thêm clientName CHỈ cho chủ/quản lý khi có tên; kế toán / lễ tân không bao giờ nhận tên', () => {
+  const names = new Map([[membership.clientId as string, 'Nguyễn An']]);
+  for (const role of ['OWNER', 'MANAGER'] as const) {
+    const row = membershipsFor(role, [membership], names)[0];
+    assert.equal(row.clientName, 'Nguyễn An');
+    assert.equal(row.clientId, membership.clientId);
+  }
+  assert.equal('clientName' in membershipsFor('OWNER', [membership], new Map())[0], false, 'thiếu tên ⇒ không có trường');
+  assert.equal('clientName' in membershipsFor('ACCOUNTANT', [membership], names)[0], false);
+  assert.deepEqual(membershipsFor('RECEPTIONIST', [membership], names), []);
+});
+
 test('che số tài khoản trong thông tin nhận tiền (giữ 4 số cuối); chủ thấy nguyên văn', () => {
   assert.equal(maskPayoutInfo('VCB 0123456789012 NGUYEN VAN A'), 'VCB •********9012 NGUYEN VAN A'.replace('•********', '•'.repeat(9)));
   assert.equal(maskPayoutInfo('Momo 0901'), 'Momo 0901', 'chuỗi số ngắn không đổi');

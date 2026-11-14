@@ -4,10 +4,13 @@ import { membershipService } from '../membership.service';
 import { caseError, forbiddenRole } from './errors';
 import { currentApprovalWhere, hasPendingReplacement, replacedApprovalIds } from './decision-replacement.service';
 import { gymCaseEnabled } from './flags';
+import { userClient } from '../../clients/user.client';
 import {
   ackTimesOf,
   assertRefundable,
   fixedRefundOf,
+  priorRefundFacts,
+  supplementAvailable,
   gymLinkedUserIds,
   evidenceGuard,
   financialOf,
@@ -19,11 +22,14 @@ import {
   type Tx,
 } from './case.service';
 import {
+  appealOutcomeAllowed,
   changeAcknowledged,
   checkApprover,
   closureOf,
   deriveFinancialView,
   isRefundOutcome,
+  isSupplementOutcome,
+  formatVnd,
   memberResolutionText,
   outcomeFor,
   outcomeLabelVi,
@@ -66,6 +72,8 @@ export interface RefundResult {
 export interface ExecDeps {
   /** The money exit. Default: membershipService.refundByAdmin. */
   refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED', caseDecisionId: string, fixedAmount: number) => Promise<RefundResult>;
+  /** Q5: the supplementary refund of an after-refund appeal (ONLY the difference). Default: paymentClient.refundMembershipSupplement, idempotent on the key. */
+  supplement?: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string }, amount: number, decisionId: string) => Promise<{ refundedToClient?: string; shortfall?: string }>;
   /** Replays the payment-service release of a membership by its key (idempotent read of the first answer). Default: paymentClient.releaseMembershipPending with refund 0. */
   replayRelease: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string; ptUserId: string | null }) => Promise<{ refundedToClient?: string; shortfall?: string }>;
   /** TEST SEAM - awaited after the case was set to EXECUTING and before money is asked to move. */
@@ -75,6 +83,15 @@ export interface ExecDeps {
 }
 export const defaultExecDeps = (): ExecDeps => ({
   refund: (membershipId, actorId, reason, caseDecisionId, fixedAmount) => membershipService.refundByAdmin(membershipId, actorId, reason, { caseDecisionId, fixedAmount }) as unknown as Promise<RefundResult>,
+  supplement: (m, amount, decisionId) =>
+    paymentClient.refundMembershipSupplement({
+      transactionId: m.paymentTxnId,
+      gymId: m.gymId,
+      clientId: m.clientId,
+      amount: amount.toFixed(2),
+      label: `Membership ${m.id} appeal supplement`,
+      idempotencyKey: `GYM_CASE_APPEAL_SUPPLEMENT:${decisionId}`,
+    }),
   replayRelease: (m) =>
     paymentClient.releaseMembershipPending({
       transactionId: m.paymentTxnId,
@@ -128,7 +145,10 @@ async function loadAndCheck(actor: Actor, caseId: string, decisionId: string | u
   // The outcome is computed again from (class, the finding the proposal was built on) - and that finding must still be the case's latest.
   const latest = await prisma.gymCaseFinding.findFirst({ where: { caseId: c.id }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], select: { id: true } });
   const recomputed = outcomeFor(c.caseClass as CaseClass, approval.proposal.finding.finding as FindingKind);
-  if (recomputed !== approval.proposal.outcome || latest?.id !== approval.proposal.findingId) {
+  // Q5: an appeal reviewed AFTER a refund finished under an EARLIER decision uses the after-refund outcomes (the proposal step already validated them against the finding).
+  const afterRefund = await priorRefundFacts(prisma, c.id, approval.id);
+  const outcomeOk = afterRefund ? appealOutcomeAllowed(approval.proposal.finding.finding as FindingKind, approval.proposal.outcome as Outcome) : recomputed === approval.proposal.outcome;
+  if (!outcomeOk || latest?.id !== approval.proposal.findingId) {
     throw caseError(409, 'OUTCOME_MISMATCH', 'Kết quả của quyết định không khớp với kết luận của hồ sơ', { stored: approval.proposal.outcome, recomputed });
   }
 
@@ -215,8 +235,14 @@ function observationFrom(r: RefundResult, clawbackWasAlreadyDone: boolean, hasRe
 async function finish(c: { id: string; complaintId: string; reporterUserId: string }, approval: { id: string; approverId: string; proposal: { outcome: any } }, actor: Actor, via: string, observation: PaymentObservation | null) {
   const outcome = approval.proposal.outcome as Outcome;
   const view = deriveFinancialView({ outcome, execStatus: 'BUSINESS_DONE', observation });
-  const text = memberResolutionText(outcome, view);
-  const response = { outcome, decisionId: approval.id, via, payment: observation, resolutionText: text };
+  // Q5: a RESOLVE_* result reached through an appeal that came AFTER a refund (the member keeps what they were paid; the wording and the record say so)
+  const afterRefund = isRefundOutcome(outcome) ? null : await priorRefundFacts(prisma, c.id, approval.id);
+  const text = memberResolutionText(outcome, view, { afterRefundAppeal: !!afterRefund });
+  const gymFavour = !!afterRefund && outcome === 'RESOLVE_INSUFFICIENT_EVIDENCE';
+  const manualHandling = gymFavour
+    ? { kind: 'APPEAL_OVERTURNED_FOR_GYM', status: 'OPEN_MANUAL_HANDLING', autoDebitMember: false, refundedToMember: afterRefund!.refundedSoFar.toFixed(2), decidedBy: approval.approverId, note: 'Kháng nghị cho rằng khoản hoàn trước đó không có căn cứ. KHÔNG tự trừ ví của hội viên; cần người có thẩm quyền xử lý thủ công.' }
+    : null;
+  const response = { outcome, decisionId: approval.id, via, payment: observation, resolutionText: text, ...(afterRefund ? { afterRefundAppeal: true, refundedBefore: afterRefund.refundedSoFar.toFixed(2) } : {}), ...(manualHandling ? { manualHandling } : {}) };
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM gym_complaint_cases WHERE id = ${c.id}::uuid FOR UPDATE`;
     const r = await tx.gymComplaintCase.updateMany({ where: { id: c.id, execStatus: 'EXECUTING', execDecisionId: approval.id }, data: { execStatus: 'BUSINESS_DONE', version: { increment: 1 } } });
@@ -227,7 +253,15 @@ async function finish(c: { id: string; complaintId: string; reporterUserId: stri
     // The complaint is resolved HERE (and only here for a complaint that has a case): same wording the member is told.
     await tx.gymComplaint.update({ where: { id: c.complaintId }, data: { status: 'RESOLVED', adminResponse: text, resolvedAt: new Date(), resolvedBy: actor.id } });
     await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: 'EXECUTION_BUSINESS_DONE', note: via, payload: toJson(response) } });
+    // Q5: the manual-handling RECORD of an appeal overturned in favour of the gym (append-only history, same transaction as the closing). No wallet is touched.
+    if (manualHandling) {
+      const row = await tx.gymComplaintCase.findUniqueOrThrow({ where: { id: c.id }, select: { membershipId: true, gymId: true, reporterUserId: true } });
+      await tx.gymCaseEvent.create({ data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: 'APPEAL_GYM_FAVOUR_MANUAL_HANDLING', note: manualHandling.note, payload: toJson({ ...manualHandling, decisionId: approval.id, membershipId: row.membershipId, gymId: row.gymId, memberUserId: row.reporterUserId }) } });
+    }
   });
+  if (manualHandling) {
+    await userClient.notifyAdmins({ id: `gym-case-appeal-gym-favour:${c.id}`, text: `Một kháng nghị hồ sơ khiếu nại phòng gym được kết luận có lợi cho phòng tập sau khi đã hoàn ${formatVnd(manualHandling.refundedToMember)} cho hội viên. Cần xử lý thủ công, hệ thống không tự trừ ví hội viên.`, eventType: 'GYM_COMPLAINT_CASE_APPEAL_MANUAL_HANDLING', entityType: 'GYM_COMPLAINT_CASE', entityId: c.id });
+  }
   await notifyMember({ id: c.id, reporterUserId: c.reporterUserId }, text, 'GYM_COMPLAINT_CASE_RESOLVED', 'CONCLUSION'); // A1: a DELIVERED CONCLUSION notice starts the 14-day appeal window
   return { view, text };
 }
@@ -247,6 +281,32 @@ function answer(l: { c: CaseRow; outcome: Outcome }, replayed: boolean, view: Re
 async function runAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string) {
   const { c, approval, outcome } = l;
   let observation: PaymentObservation | null = null;
+  if (isSupplementOutcome(outcome)) {
+    // Q5: ONLY the difference, re-read NOW from what the case already paid (idempotent on the decision id; never a second full refund).
+    const prior = await priorRefundFacts(prisma, c.id, approval.id);
+    if (!prior) throw caseError(409, 'NO_PRIOR_REFUND', 'Hồ sơ này chưa có khoản hoàn nào đã thực hiện nên không có phần chênh lệch để hoàn thêm');
+    if (prior.shortfall > 0) await recordBlocked(c, approval, actor, 'PRIOR_REFUND_SHORTFALL', 'Lần hoàn trước còn khoản chưa trả được (cần đối soát) nên chưa hoàn thêm được. Chưa có khoản tiền nào được chuyển');
+    const amount = await supplementAvailable(prisma, c, prior.refundedSoFar);
+    const m = await prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId! } });
+    if (!m || !m.paymentTxnId) throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn giao dịch thanh toán để hoàn thêm');
+    let refundedNow = '0.00';
+    let shortfall = '0.00';
+    if (amount > 0) {
+      try {
+        const r = await (deps.supplement ?? defaultExecDeps().supplement!)({ id: m.id, paymentTxnId: m.paymentTxnId, gymId: m.gymId, clientId: m.clientId }, amount, approval.id);
+        refundedNow = String(r?.refundedToClient ?? amount.toFixed(2));
+        shortfall = String(r?.shortfall ?? '0.00');
+      } catch (e: any) {
+        if (typeof e?.status === 'number' && e.status >= 400 && e.status < 500) {
+          await recordBlocked(c, approval, actor, `SUPPLEMENT_REFUSED:${String(e?.message ?? e?.status)}`.slice(0, 200), 'Hệ thống chưa hoàn thêm được phần chênh lệch (cổng thanh toán từ chối hoặc chưa hỗ trợ). Chưa có khoản tiền nào được chuyển');
+        }
+        throw e; // 5xx / network: stays EXECUTING; reconcile re-runs it (same payment idempotency key)
+      }
+    }
+    observation = { refundAmount: String(amount), refundedToClient: refundedNow, releaseShortfall: shortfall, clawbackObserved: true, observedAt: new Date().toISOString() };
+    if (deps.afterRefund) await deps.afterRefund();
+    return finish(c, approval, actor, via, observation);
+  }
   if (isRefundOutcome(outcome)) {
     const reason = refundReasonFor(outcome)!;
     const pre = await prisma.gymMembershipContract.findUnique({ where: { id: c.membershipId! }, include: { referral: true } });
@@ -347,6 +407,10 @@ export const complaintCaseExecutionService = {
       await recordNeedsHuman(c, approval, actor, reason, detail);
       return { action: 'NEEDS_HUMAN' as const, reason };
     };
+    if (isSupplementOutcome(outcome)) {
+      const r = await runAndFinish(l, actor, deps, 'RECONCILE_RERUN_SUPPLEMENT'); // the payment idempotency key makes a second run a replay, never a second payment
+      return { action: 'RERAN_SUPPLEMENT' as const, ...answer(l, false, r.view) };
+    }
     if (!isRefundOutcome(outcome)) {
       const { view } = await finish(c, approval, actor, 'RECONCILE_NO_MONEY_STEP', null);
       return { action: 'BUSINESS_DONE' as const, ...answer(l, false, view) };
