@@ -58,11 +58,32 @@ function statedMinorAge(question: string): boolean {
 // ── Medical emergency symptoms ────────────────────────────────────────────────
 const MEDICAL_PATTERNS: RegExp[] = [
   /\bđau ngực\b|dau nguc\b|chest pain|chest tightness|tức ngực/i,
-  /khó thở đột ngột|sudden.*short.*breath|can't breathe|không thở được/i,
+  /khó thở đột ngột|can't breathe|không thở được/i,
   /ngất xỉu|ngat xiu|\bfaint(ing)?\b|passed? out|blackout|mất ý thức/i,
   /đau tim|dau tim|heart attack|cardiac arrest|trụy tim/i,
   /\btự làm hại\b|tu lam hai|self.?harm|hurt\s+(my)?self|tự tổn thương/i,
 ];
+
+// The former `/sudden.*short.*breath/i` (cubic) and `/binge.eat.*disorder/i` (quadratic) backtracked over `.*`. A `.*` never crosses a line terminator, so
+// "these parts in this order on ONE line" is decided exactly, in linear time, by taking the earliest occurrence of each part within each line (the earliest
+// choice leaves the most room for the next part). The parts carry the same `i` flag, so the case-insensitive semantics are unchanged.
+const LINE_TERMINATORS = /[\n\r\u2028\u2029]/;
+const SUDDEN_SHORT_BREATH_PARTS = [/sudden/gi, /short/gi, /breath/gi];
+const BINGE_EAT_DISORDER_PARTS = [/binge.eat/gi, /disorder/gi];
+function orderedOnOneLine(text: string, parts: RegExp[]): boolean {
+  for (const line of text.split(LINE_TERMINATORS)) {
+    let from = 0;
+    let all = true;
+    for (const re of parts) {
+      re.lastIndex = from;
+      const m = re.exec(line);
+      if (m === null) { all = false; break; }
+      from = m.index + m[0].length;
+    }
+    if (all) return true;
+  }
+  return false;
+}
 
 // ── Performance-enhancing drugs (steroids/SARMs/growth hormone) ─────────────
 // Narrow to actual PED substances + dosing/cycle language, so it doesn't
@@ -148,7 +169,7 @@ function detectSevereEnergyRestriction(question: string): boolean {
     // `\d+\s*` allowance between the count and "tuần" that
     // intent_router.ts's own frequency_change_request pattern uses, for
     // "N buổi 1 tuần"-style phrasing.
-    /\b[5-7]\s*(bu[oổ]i|sessions?|days?|ng[aà]y)\s*[/]?\s*(?:\d+\s*)?(m[oỗ]i\s*)?(tu[aầ]n|week)/i.test(
+    /\b[5-7]\s*(bu[oổ]i|sessions?|days?|ng[aà]y)\s*(?:\/\s*)?(?:\d+\s*)?(m[oỗ]i\s*)?(tu[aầ]n|week)/i.test(
       q,
     ) ||
     /(t[aậ]p n[aặ]ng|intense training|athlete|v[aậ]n [dđ][oộ]ng vi[eê]n)/i.test(
@@ -271,8 +292,9 @@ function detectPregnancyOrBreastfeeding(question: string): boolean {
 // specialist referral, not a 115-call.
 function detectEatingDisorderDisclosure(question: string): boolean {
   const q = question.toLowerCase();
-  return /rối loạn ăn uống|roi loan an uong|chứng biếng ăn|chung bieng an|anorexia|bulimia|binge.eat.*disorder|chán ăn tâm thần|chan an tam than/i.test(
-    q,
+  return (
+    /rối loạn ăn uống|roi loan an uong|chứng biếng ăn|chung bieng an|anorexia|bulimia|chán ăn tâm thần|chan an tam than/i.test(q) ||
+    orderedOnOneLine(q, BINGE_EAT_DISORDER_PARTS)
   );
 }
 
@@ -438,7 +460,7 @@ function detectPostExerciseSymptoms(question: string): boolean {
 }
 
 function detectMedicalEmergency(question: string): boolean {
-  if (MEDICAL_PATTERNS.some((p) => p.test(question))) return true;
+  if (MEDICAL_PATTERNS.some((p) => p.test(question)) || orderedOnOneLine(question, SUDDEN_SHORT_BREATH_PARTS)) return true;
   try {
     const resolved = resolveSafetySignals(question);
     return resolved.level === "HIGH_RISK" && resolved.signals.some((sig) => sig.level === "HIGH_RISK" && EMERGENCY_SIGNAL_CLASSES.has(sig.cls));

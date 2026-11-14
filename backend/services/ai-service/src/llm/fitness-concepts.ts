@@ -314,13 +314,13 @@ function accentCompatible(foldedQ: string, rawLower: string, start: number, end:
 export const AMBIGUOUS_TERMS = new Set(["lunge", "bench", "curl", "plank", "row", "press", "dip", "dips", "cut", "bulk", "split", "cable"]);
 
 /** positive fitness context: training vocabulary other than the ambiguous token itself */
-const POSITIVE_CONTEXT = /(\btap\b|\btap luyen|bai tap|workout|\bgym\b|exercise|training|\d+ ?sets?\b|\bsets? (x|va|rep)|\d+ ?reps?\b|nhom co|co nao|dung co|tac dong|\bta\b|ta don|ta dom|\brpe\b|\brir\b|\b1rm\b|\bform\b|ky thuat|hiep|mesocycle|cardio|kg\b.*(nang|tap|squat|deadlift)|(nang|tap|squat|deadlift|bench press).*\bkg\b|muscle|hypertroph|\bglute|abs\b|(giai doan|mua) (bulk|cut)|lean bulk|dirty bulk|\bcalo\b|kcal|\bprotein\b|\bmacros?\b|giam mo|tang co|tang can|co bap|the hinh|bodybuild|an du\b|du calo)/;
+const POSITIVE_CONTEXT = /(\btap\b|\btap luyen|bai tap|workout|\bgym\b|exercise|training|(?<!\d)\d+ ?sets?\b|\bsets? (x|va|rep)|(?<!\d)\d+ ?reps?\b|nhom co|co nao|dung co|tac dong|\bta\b|ta don|ta dom|\brpe\b|\brir\b|\b1rm\b|\bform\b|ky thuat|hiep|mesocycle|cardio|kg\b.*(nang|tap|squat|deadlift)|(nang|tap|squat|deadlift|bench press).*\bkg\b|muscle|hypertroph|\bglute|abs\b|(giai doan|mua) (bulk|cut)|lean bulk|dirty bulk|\bcalo\b|kcal|\bprotein\b|\bmacros?\b|giam mo|tang co|tang can|co bap|the hinh|bodybuild|an du\b|du calo)/;
 
 /** incompatible, strongly non-fitness phrase contexts (classes, not sentences) */
 const INCOMPATIBLE: Array<[string, RegExp]> = [
   ["LEGAL", /(\bluat\b|hinh su|toa an|warrant|lawsuit|phap ly|kien tung|bi cao|bao hiem|hop dong|thu tuc|legal|court)/],
   ["COMPUTING", /(wifi|may in|printer|laptop|phan mem|ung dung|\bapp\b|dien thoai|samsung|iphone|excel|bang tinh|windows|android|\bcommand\b|terminal|\bscript\b|download|upload|\bheaders?\b|\bhttp|\bapi\b|\bcode\b|lap trinh|\bfile\b|\bserver\b|\bsql\b|python|\bbash\b|linux|\bcli\b|database|router|password|\bcsv\b|\bjson\b|\bgit\b)/],
-  ["MATERIAL_COMMERCE", /(\bgo\b|\bsoi\b|\bvan go\b|\btam\b.*(go|nhua|inox)|\bday \d+ ?(cm|mm)\b|\d+ ?(cm|mm)\b|noi that|thi cong|xay dung|\bgia (mot|bao nhieu|ban|tien)\b|khuyen mai|giam gia)/],
+  ["MATERIAL_COMMERCE", /(\bgo\b|\bsoi\b|\bvan go\b|\btam\b.*(go|nhua|inox)|\bday \d+ ?(cm|mm)\b|(?<!\d)\d+ ?(cm|mm)\b|noi that|thi cong|xay dung|\bgia (mot|bao nhieu|ban|tien)\b|khuyen mai|giam gia)/],
   ["FOOD_PREP", /(cach (pha|nau|lam|nuong|chien|rang)|cong thuc (nau|pha|lam)|nguyen lieu|pha (che|sao)|\bpha (ca phe|tra|sinh to)|dam vi|ngon mieng|\bbaking?\b|\bbake\b|sourdough)/],
   ["TRAVEL_NEWS", /(ve may bay|dat (ve|phong)|lich thi dau|thoi tiet|tin tuc|ra mat|tuyen sinh)/],
 ];
