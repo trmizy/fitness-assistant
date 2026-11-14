@@ -333,12 +333,40 @@ const INDUCED_VOMITING_PATTERNS: readonly RegExp[] = [
   new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_INTENT}\s+${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
 ];
 // Patterns whose ONLY evidence is a bare vomit verb after a meal ("ăn xong mình ói", "mình hay nôn ra sau khi ăn"). A bare verb is also an
-// involuntary symptom, so these additionally need an explicit purge reason in the same text and no stated benign cause (R-C 2026-11-14).
+// involuntary symptom, so these additionally need an explicit purge PURPOSE and no benign CAUSE — both evaluated per vomiting EVENT (clause-local,
+// see `detectBareVomitingDisclosure`), never across sentences (V1 safety correction 2026-11-14, P1-a / P1-b).
+// The subject of a bare-verb pattern must be a real first person: "con tôi", "vợ mình", "bé nhà mình", "mẹ em" … are third persons, so the
+// first-person word may not directly follow a possessive / relation head. (Bare path only: the móc họng / intent patterns above are unchanged.)
+const IV_NOT_POSSESSED = String.raw`(?<!\b(?:con|ban|vo|chong|anh|chi|me|bo|ba|chau|be|nguoi|cua|trai|gai|ong|bac|chu|co|dua|thang|nha)\s)`;
+const IV_SUBJECT_BARE = String.raw`${IV_NOT_POSSESSED}${IV_SUBJECT}`;
+const IV_SUBJECT_HABIT_BARE = String.raw`${IV_SUBJECT_BARE}${IV_SUBJECT_HABIT.slice(IV_SUBJECT.length)}`;
 const INDUCED_VOMITING_BARE_VERB_PATTERNS: readonly RegExp[] = [
-  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+${IV_VOMIT}\b`),
-  new RegExp(String.raw`\b${IV_SUBJECT_HABIT}\s+${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
+  new RegExp(String.raw`\b${IV_AFTER_MEAL}${IV_FILLER}\s+${IV_SUBJECT_BARE}(?:\s+(?:la|ma|thi|lai|hay|thuong|luon|deu|cu|van|dang))*\s+${IV_VOMIT}\b`),
+  new RegExp(String.raw`\b${IV_SUBJECT_HABIT_BARE}\s+${IV_VOMIT}(?:\s+(?:ra|het))*\s+(?:ngay\s+)?(?:sau\s+khi\s+an|sau\s+(?:moi\s+)?bua(?:\s+an)?)\b`),
 ];
-const IV_BARE_PURGE_REASON = /\b(?:ep|co\s+tinh|co\s+y|tu\s+lam|chu\s+dong|(?:de|cho)\s+(?:do|bot|khoi|dep)\s+(?:beo|map|mo|tang\s+can)|so\s+(?:tang\s+can|beo|map)|(?:de\s+)?giam\s+(?:can|beo|mo)|(?:de\s+)?khoi\s+(?:tang|beo|map)|(?:khong|dung)\s+(?:muon\s+)?(?:bi\s+)?(?:tang\s+can|beo|map)|do\s+(?:beo|map)|dep\s+(?:beo|mo))\b/;
+// Purge PURPOSE vocabulary (folded text). Every entry is a purpose PHRASE (body / shape / weight / calorie control) — never a bare "dang", "nhe",
+// "om", "gay", "map", "beo" (they occur in benign sentences). The fold marks the accented "ôm" (hug), so "om" below is "ốm" or unaccented input.
+const IV_PURPOSE_BODY = String.raw`(?:gon|thon|om|gay|nhe\s+can|manh|eo)(?:\s+(?:nguoi|eo))?`;
+const IV_BARE_PURGE_REASON = new RegExp(
+  String.raw`\b(?:` +
+    [
+      String.raw`ep|co\s+tinh|co\s+y|tu\s+lam|chu\s+dong`,
+      String.raw`(?:de|cho)\s+(?:do|bot|khoi|dep)\s+(?:beo|map|mo|tang\s+can)`,
+      String.raw`(?:de\s+)?giam\s+(?:can|beo|mo|calo|calories)`,
+      String.raw`(?:de\s+)?khoi\s+(?:tang|beo|map)`,
+      String.raw`(?:khong|dung|khoi)\s+(?:muon\s+)?(?:bi\s+)?(?:len\s+can|tang\s+can|beo|map)`,
+      String.raw`do\s+(?:beo|map)`,
+      String.raw`dep\s+(?:beo|mo)`,
+      String.raw`so\s+(?:len\s+can|tang\s+can|beo|map)`,
+      String.raw`(?:giu|duy\s+tri)\s+(?:dang|eo|voc\s+dang|form|can\s+nang|can(?!\s+bang)|vong\s+eo|body)`,
+      String.raw`(?:cho|de)\s+${IV_PURPOSE_BODY}`,
+      String.raw`kiem\s+soat\s+(?:can\s+nang|can(?!\s+bang)|calo|calories)`,
+      String.raw`(?:dot|bot|thai|loai\s+bo|loai|tieu)\s+(?:bot\s+)?(?:calo|calories|mo)`,
+      String.raw`keo\s+(?:beo|map|tang\s+can|len\s+can)`,
+      String.raw`tranh\s+(?:beo|map|tang\s+can|len\s+can)`,
+    ].join("|") +
+    String.raw`)\b`,
+);
 const IV_BENIGN_CAUSE = /\b(?:vi|do|boi|tai)\s+(?:bi\s+)?(?:say\s+(?:xe|song|nang)|ngo\s+doc|trao\s+nguoc|da\s+day|om|cam|benh|sot|thai\s+nghen|thai|thuoc|di\s+ung|an\s+phai|an\s+do\s+hong|do\s+an\s+hong)\b/;
 /**
  * Classification-only fold for the induced-vomiting patterns: NFC → lower-case → the accented words "mửa" / "ói" are marked and the
@@ -351,15 +379,41 @@ function foldInducedVomitingText(text: string): string {
     .toLowerCase()
     .replace(/mửa/g, "mxuaz")
     .replace(/(?<![\p{L}])ói(?![\p{L}])/gu, "oiz")
+    .replace(/(?<![\p{L}])ôm(?![\p{L}])/gu, "oxm") // "ôm" (hug) must not read as the unaccented "om" = "ốm" (thin / ill)
     .replace(/(?<![\p{L}])[ôơốồổỗộớờởỡợ]i(?![\p{L}])/gu, "oxi");
   return foldSafetyText(marked);
+}
+// Clause-local bare-verb classification. The RAW question is segmented BEFORE folding (the fold collapses newlines): sentences split on
+// . ! ? ; … and line breaks, comma-clauses inside a sentence split on "," — each clause is then folded and tested alone. A purpose / cause stated
+// in another SENTENCE never cancels nor creates a disclosure for this vomiting event; inside the same sentence only the event's own clause plus an
+// ADJACENT comma-clause that starts with a purpose (resp. cause) marker counts. Same-event cause wins ("ói vì say xe, để giảm cân" stays safe).
+const IV_SENTENCE_SPLIT = /[.!?;…\n\r]+/;
+const IV_CLAUSE_SPLIT = /[,，]/;
+const IV_PURPOSE_CLAUSE_START = /^(?:de|cho|nham|muon|vi\s+so|so|keo|tranh)\b/;
+const IV_CAUSE_CLAUSE_START = /^(?:vi|do|boi|tai)\b/;
+function detectBareVomitingDisclosure(question: string): boolean {
+  for (const sentence of String(question ?? "").split(IV_SENTENCE_SPLIT)) {
+    if (!sentence.trim()) continue;
+    const clauses = sentence.split(IV_CLAUSE_SPLIT).map(foldInducedVomitingText);
+    for (let i = 0; i < clauses.length; i++) {
+      if (!INDUCED_VOMITING_BARE_VERB_PATTERNS.some((re) => re.test(clauses[i]))) continue;
+      let purposeScope = clauses[i];
+      let causeScope = clauses[i];
+      for (const j of [i - 1, i + 1]) {
+        const adjacent = clauses[j];
+        if (adjacent === undefined) continue;
+        if (IV_PURPOSE_CLAUSE_START.test(adjacent)) purposeScope += " " + adjacent;
+        if (IV_CAUSE_CLAUSE_START.test(adjacent)) causeScope += " " + adjacent;
+      }
+      if (IV_BARE_PURGE_REASON.test(purposeScope) && !IV_BENIGN_CAUSE.test(causeScope)) return true;
+    }
+  }
+  return false;
 }
 function detectInducedVomitingDisclosure(question: string): boolean {
   const q = foldInducedVomitingText(question);
   if (INDUCED_VOMITING_PATTERNS.some((re) => re.test(q))) return true;
-  return (
-    INDUCED_VOMITING_BARE_VERB_PATTERNS.some((re) => re.test(q)) && IV_BARE_PURGE_REASON.test(q) && !IV_BENIGN_CAUSE.test(q)
-  );
+  return detectBareVomitingDisclosure(question);
 }
 
 // Severe/anaphylaxis-level allergy — deliberately narrow to explicit
