@@ -352,9 +352,9 @@ export async function runOfflineDemo(): Promise<DemoReport> {
   lines.push("== Scenario summary ==");
   for (const s of results) lines.push(`  ${s.id}  ${s.verdict.padEnd(16)} ${s.checks.filter((c) => c.ok).length}/${s.checks.length} checks  statuses: ${s.statuses.join(" ") || "-"}${s.reason ? `  (${s.reason})` : ""}`);
   lines.push("", `RESULT: ${ok ? "ALL SCENARIOS BEHAVED AS EXPECTED" : "UNEXPECTED BEHAVIOUR — see [FAIL] lines"}`, "", "== Known limitations (open at the time of this demo) ==",
-    "  - P1 (open): attached combining marks on \"ói\" (vomiting detector) can still bypass the symptom detector — not demonstrated, not fixed here.",
-    "  - P1-1 / P1-2 of the minor restriction are under remediation; the A2 restriction shown above is only as strong as its in-memory store.",
-    "  - No persistent minor-restriction store exists: it is in-memory, single-process, lost on restart; production refuses to start without one (503).",
+    "  - P1 (open, pre-existing, reproduced): an invisible character INSIDE a word (e.g. a zero-width space) still bypasses V1 safety detectors, including the explicit induced-vomiting and the weight-loss paths. The combining-mark bypass on \"ói\" is fixed offline only.",
+    "  - P1 (open, found by Codex, reproduced): the minor restriction quarantine (in-process, capped at 10,000 owners) can forget a failed statement once it overflows, and a personal turn already in flight can miss a quarantine registered during its read. Earlier P1-1 / P1-2 are fixed offline only.",
+    "  - No persistent minor-restriction store exists: it is in-memory, single-process, lost on restart, not shared across instances; the default runtime resolver refuses production with 503 (an explicitly injected store, as in the production-mode scenario above, bypasses that resolver).",
     "  - Self-reported age is never verified; the restriction is conservative and is not lifted by a later adult claim.",
     "  - Gates G7 and G8 are NOT verified.",
     "  - No human validation: every status above comes from scripted mock models over synthetic fixtures; it says nothing about real-model quality, accuracy or safety.",

@@ -21,7 +21,7 @@ const allPass = (id: string) => {
 test("DM-1 transcript starts with the mandatory banner and ends with the Known limitations section", () => {
   assert.ok(report.transcript.startsWith(`${BANNER}\n`));
   const tail = report.transcript.slice(report.transcript.indexOf("== Known limitations"));
-  for (const k of ["combining marks", "P1-1 / P1-2", "persistent", "G7 and G8", "human validation"]) assert.ok(tail.includes(k), k);
+  for (const k of ["zero-width space", "quarantine", "persistent", "G7 and G8", "human validation"]) assert.ok(tail.includes(k), k);
 });
 
 test("DM-2 S1 supervisor orchestration", () => allPass("S1"));
