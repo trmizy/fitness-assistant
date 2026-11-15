@@ -26,7 +26,7 @@ import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
 import { isAggressiveBodyChangeRequest, isPersonalizedHighRiskRequest } from "./personalized-request";
 import { sanitizeHybridMeta, sanitizeRoutingUsage, ROUTING_MODEL_LIMITS, type HybridRoutingMeta } from "./hybrid-router";
-import { pendingMinorRestrictionsFor, persistMinorRestriction, readMinorRestriction, type MinorRestrictionStore, type PendingMinorRestrictions, type PersistResult } from "./minor-restriction";
+import { pendingMinorRestrictionsFor, persistMinorRestriction, readMinorRestriction, watchOwnerRestriction, type MinorRestrictionStore, type OwnerRestrictionWatch, type PendingMinorRestrictions, type PersistResult } from "./minor-restriction";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
   agentsSatisfiedBySession, entriesFromFacts, hasCorruptStatedMinorEntry, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
@@ -418,6 +418,12 @@ function countGuards(actions: string[]): Record<string, number> {
 }
 
 export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDeps): Promise<SupervisorResult> {
+  // M8-C C1: the in-flight watch (minor-restriction.ts) is taken inside the turn and ALWAYS released here, whatever the outcome (also on a throw)
+  const guard: { release?: () => void } = {};
+  try { return await runSupervisorTurnImpl(turn, deps, guard); } finally { guard.release?.(); }
+}
+
+async function runSupervisorTurnImpl(turn: SupervisorTurn, deps: SupervisorDeps, guard: { release?: () => void }): Promise<SupervisorResult> {
   const policy: AgentExecutionPolicy = { ...DEFAULT_EXECUTION_POLICY, ...(deps.executionPolicy ?? {}) };
   const now = deps.now ?? Date.now;
   const started = now();
@@ -479,6 +485,12 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // M7-P3: the user's own statement of an age under 18 is persisted FIRST — before input safety may stop this turn — so a
   // later turn (on any instance) stays restricted. If it cannot be persisted, this turn is refused (never silently lost).
   const statesMinor = statesMinorAge(question);
+  // M8-C C1 (Codex P1, concurrent turn): from here on any minor statement registered for this owner by ANOTHER in-flight turn is observed by
+  // `observeConcurrentReport` below. The report of THIS turn is registered here, SYNCHRONOUSLY, before any await (so a concurrent personal turn
+  // that started earlier cannot miss it, whatever it read before).
+  const watch: OwnerRestrictionWatch = watchOwnerRestriction(identity.userId);
+  guard.release = () => watch.release();
+  if (statesMinor) watch.report();
   // M8-A2: the AUTHORITATIVE copy is user-scoped (authenticated userId only, no sessionId needed), written first with
   // compare-and-set. If it cannot be persisted this turn is refused — a restriction is never silently dropped.
   // M8-B S1: a statement that cannot be persisted is QUARANTINED for the authenticated owner (never dropped): the turn is refused and every
@@ -511,6 +523,15 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let sessionUnavailable = false;
   let sessionMinor = false;
   let sessionCorrupt = false; // M8-A2: a corrupt stated-minor entry must survive this turn (never rewritten away by the end-of-turn session write)
+  // M8-C C1: called SYNCHRONOUSLY right after every await that precedes a grant of personal work (profile read, routing clearance, between
+  // delegations, before the answer is returned). A minor report registered by a concurrent turn since the last call makes this turn restricted
+  // (sticky: sessionMinor only ever goes false → true) — a snapshot taken before the await can never grant personal work after the report.
+  const observeConcurrentReport = (): boolean => {
+    if (!watch.consume()) return false;
+    sessionMinor = true;
+    minorRestrictionTrace = { store: minorRestrictionTrace?.store ?? "OK", state: "PENDING", ...(minorRestrictionTrace?.written ? { written: minorRestrictionTrace.written } : {}) };
+    return true;
+  };
   // M8-A2: the user-scoped restriction is read on EVERY turn (with or without a sessionId). Anything but a definite answer
   // (store error, timeout, corrupt / foreign / malformed record) is "restriction state unknown" → same fail-closed path as an
   // unreadable session. An expired record is "no restriction" only because the clock says so.
@@ -546,6 +567,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       // and so does every later turn of this owner in this process until the write succeeds. Only the opaque turn id + time are carried.
       if (legacy && restrictionStore && pending && !userRecordActive && !pendingNow) { // (pending: this turn already retried it in stage 1)
         const at = Number.isSafeInteger(legacy.createdAt) && legacy.createdAt > 0 ? Math.min(legacy.createdAt, now()) : now();
+        watch.report(); // the promoted restriction is a new report for the owner: other in-flight turns must observe it (synchronous, before the await)
         const p = await persistMinorRestriction(restrictionStore, pending, identity.userId, { turnId: legacy.source?.turnId ?? "unknown", now: at });
         minorRestrictionTrace = restrictionTrace(p);
         if (p.outcome === "ok") userRecordActive = true;
@@ -595,7 +617,9 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       if (sessionUnavailable) result = { eligible: false, reason: "SESSION_UNAVAILABLE" };
       else {
         // same inputs as Gate 1: the single profile read, the current question, the history user texts, the session minor flag
-        const v = resolveAgeVerdict(toProfileAgeRead(await readProfileOnce()), question, historyUserTexts, sessionMinor);
+        const profileRead = await readProfileOnce();
+        observeConcurrentReport(); // M8-C C1: a report registered while this turn awaited makes it ineligible for the routing model too
+        const v = resolveAgeVerdict(toProfileAgeRead(profileRead), question, historyUserTexts, sessionMinor);
         result = ambiguousUnresolved(v) ? { eligible: false, reason: "AGE_UNKNOWN" } // ambiguous self-report: never eligible
           : v.status === "ADULT" ? { eligible: true, reason: "VERIFIED_ADULT" }
           : v.status === "MINOR" ? { eligible: false, reason: "MINOR_RESTRICTION" }
@@ -648,6 +672,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     // No agent, no model, no tool runs here; the adult answer is fixed text with no individual plan or number.
     if (isAggressiveBodyChangeRequest(question)) {
       const read = await readProfileOnce();
+      observeConcurrentReport(); // M8-C C1
       const verdict = resolveAgeVerdict(toProfileAgeRead(read), question, historyUserTexts, sessionMinor);
       const ambiguous = ambiguousUnresolved(verdict);
       const gate = decideMinorGate(gateVerdict(verdict), "HIGH_RISK", true);
@@ -664,6 +689,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
 
   // 3. Gate 1 over the WHOLE turn, before any delegation — one read, shared by every agent (they cannot loosen it)
   const read = await readProfileOnce();
+  observeConcurrentReport(); // M8-C C1: the LAST await before Gate 1 — everything from here to the first delegation is synchronous
   const ageRead = toProfileAgeRead(read);
   const verdict = resolveAgeVerdict(ageRead, question, historyUserTexts, sessionMinor);
   const ageAmbiguous = ambiguousUnresolved(verdict);
@@ -714,7 +740,18 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
       if (satisfiedFromSession.has(domain as AgentId) && !selected.includes(domain as AgentId)) handoff[name] = { ...e.value, source: "session", ageMin: e.ageMin };
     }
   }
+  // M8-C C1: a minor report registered by a concurrent turn AFTER the grant (during an agent run, or between agents) cannot recall what an
+  // in-flight agent already did, but nothing more may run and NOTHING personal may be returned: every output of this turn is withheld.
+  // Evidence of what ran stays in the trace (`delegations`, codes only); the answer / results / provenance are dropped.
+  const refuseRestrictionRegisteredMidTurn = (): SupervisorResult => {
+    results.length = 0;
+    ageGate = { status: "MINOR", minorBy: ["HISTORY"], conflict: false, decision: "BLOCK_RESTRICTION_REGISTERED_DURING_TURN" };
+    const g = decideMinorGate({ status: "MINOR", minorBy: ["HISTORY"], conflict: false, profileRead: "FAILED" }, "HIGH_RISK", true);
+    return finish("MINOR_PROTECTED", g.action === "BLOCK" ? g.message : TEXT.SESSION_UNAVAILABLE);
+  };
   for (const [i, agentId] of selected.entries()) {
+    // the check and the runner call below are separated by NO await: a report registered later is ordered after this grant
+    if (observeConcurrentReport()) return refuseRestrictionRegisteredMidTurn();
     const runner = byId.get(agentId)!;
     const delegationId = randomUUID();
     spent.maxWallTimeMs = now() - started;
@@ -899,6 +936,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     });
     if (sessionCounts) { sessionCounts.stored = saved === "ok" ? incoming.length : 0; sessionCounts.saved = saved === "ok" ? "OK" : saved === "conflict" ? "CONFLICT" : "FAILED"; }
   }
+  if (selected.length && observeConcurrentReport()) return refuseRestrictionRegisteredMidTurn(); // M8-C C1: nothing personal leaves a turn a report overtook
   return finish(status, answer);
 }
 

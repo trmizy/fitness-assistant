@@ -198,7 +198,9 @@ test("MR-5 concurrency: two racing writers both land (CAS conflict re-reads and 
   const y = instance({ restriction, session });
   restriction.st.afterReadSnapshot = async () => { await y.ask(MINOR_STATEMENT, "A", "sY"); };
   const x = await i.askPersonal("A", "sX");
-  assert.equal(x.status, "ANSWERED", "X was in flight before the statement: it is linearised before it (documented residual)");
+  // M8-C C1 (Codex P1-2): this was "ANSWERED (documented residual)" = the stale-snapshot bypass. A statement registered while X was suspended is now observed
+  // by X (in-flight watch) before any delegation: X is refused, no personal tool runs.
+  assert.equal(x.status, "MINOR_PROTECTED", "X's snapshot predates the statement but the statement registered before X was granted anything: refused"); assert.deepEqual(i.w.calls, []);
   assert.equal(recordOf(restriction)?.reportCount, 1, "Y's restriction survived X's write");
   assert.equal((await i.askPersonal("A", "sX")).status, "MINOR_PROTECTED", "the very next turn of X's own session is restricted");
   // (c) parallel turns: an adult ask and a statement racing — the restriction ends up stored exactly once, never lost

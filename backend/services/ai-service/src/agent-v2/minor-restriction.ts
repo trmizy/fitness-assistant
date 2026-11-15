@@ -21,6 +21,11 @@
  *                profile age, no new session, and no elapsed time removes it (a profile >= 18 against a restriction is only
  *                reported as a conflict by resolveAgeVerdict, status stays MINOR). Removal = an out-of-band operator action only.
  *                [OWNER POLICY DECISION: who may clear it and how (e.g. an account-owner re-verification) is NOT implemented.]
+ *                M8-C C1: still NO clearing path exists in code (the store interface has no delete; the pending `remove` only follows a durable
+ *                write; the overflow filter cannot be emptied). Lifting a restriction is allowed only by reliable age verification or an audited
+ *                admin process, neither of which exists yet (open owner item).
+ *                OPEN OWNER ITEM: `statesMinorAge` counts a HYPOTHETICAL first-person age ("nếu tôi 16 tuổi…") as a statement (V1 extraction rules);
+ *                that is existing behaviour, unchanged here, and is reported for the owner's decision (the policy says a hypothetical is not a self-report).
  *   concurrency  versioned compare-and-set: a writer that read an older version is rejected and re-reads (bounded retries),
  *                the merge is monotonic (count up, first report kept, expiry only extends). Two racing writers both land.
  *   fail closed  a store error on read OR write, a malformed / foreign / corrupt record, a timeout → "UNAVAILABLE" /
@@ -32,7 +37,20 @@
  *                keyed by the authenticated owner. While an owner is pending the supervisor treats them as restricted, retries the
  *                persistence on every turn, and only removes the pending entry after a durable write. The same registry holds a
  *                restriction found in a legacy SESSION-scoped entry whose promotion to the user store failed.
- *                MULTI-INSTANCE LIMIT (honest): the registry is in-process memory. Another instance, or this one after a restart,
+ *                M8-C C1 (Codex P1) CAPACITY: the registry has TWO tiers and NEVER drops a restriction. Tier 1 = an exact map (at most
+ *                PENDING_MINOR_RESTRICTION_MAX_OWNERS entries, each retried and flushed as above). When tier 1 is full a new owner goes into
+ *                tier 2, the OVERFLOW filter: a fixed-size bit array (PENDING_OVERFLOW_FILTER_BITS bits, k hashes of sha256(owner); no raw id
+ *                is kept). Membership is approximate in ONE direction only: an inserted owner is ALWAYS reported pending (no false negative,
+ *                so no active restriction is lost); a never-inserted owner can rarely be reported pending too (a false positive = that user is
+ *                refused personal advice until the process restarts: fail closed, never fail open). Tier 2 cannot be retried (only hash bits are
+ *                kept, and a false positive must never be written to the durable store as a restriction) and cannot be emptied; as its bits
+ *                fill up the false-positive rate climbs towards "everyone is refused", which is the safe direction.
+ *                Memory is bounded: tier 1 ~100 B x MAX_OWNERS, tier 2 BITS/8 bytes, in-flight watches = number of in-flight turns.
+ *                WHAT OVERFLOW MEANS FOR OTHER USERS: an owner never inserted (and not a hash collision) is unaffected, their own durable
+ *                read decides; an owner inserted into tier 2 stays restricted in this process even after the store recovers.
+ *                Next to the quarantine, an in-flight-turn WATCH (watchOwnerRestriction) lets a turn that started before a minor statement
+ *                observe it: any report registered for the owner after the turn started is seen at the next synchronous check (supervisor).
+ *                MULTI-INSTANCE LIMIT (honest): both tiers are in-process memory. Another instance, or this one after a restart,
  *                does NOT know about it; until the store is writable the restriction is enforced only by the instance that
  *                received the statement (and by the best-effort session-scoped copy for the same sessionId). This is NOT a
  *                durable guarantee; only a persistent store satisfying the production conditions below closes it.
@@ -43,6 +61,7 @@
  * The existing Redis / DynamoDB session adapters do NOT implement this interface and must not be claimed to. A persistent
  * implementation has to satisfy the PRODUCTION CONDITIONS listed on `MinorRestrictionStore`.
  */
+import { createHash } from "node:crypto";
 import { SessionStoreError } from "./session-context";
 
 export const MINOR_RESTRICTION_SCHEMA = "agent-v2-minor-restriction/1" as const;
@@ -187,38 +206,110 @@ export async function recordMinorRestriction(store: MinorRestrictionStore, owner
 /** One report not yet durably stored: opaque turn id + report time only — never text, an age or a session id. */
 export interface PendingReport { readonly turnId: string; readonly now: number }
 
-/** Upper bound of owners held in quarantine per process (each entry is ~100 bytes). Beyond it a NEW owner cannot be quarantined (reported, see persist). */
+/** Upper bound of owners held in the EXACT tier of the quarantine per process (each entry is ~100 bytes). Beyond it a new owner goes to the overflow filter (never dropped). */
 export const PENDING_MINOR_RESTRICTION_MAX_OWNERS = 10_000;
+/** Size of the overflow filter in bits (2^21 bits = 256 KiB, allocated on first use). With k=3 and 10^4 inserted owners the false-positive rate is ~3e-6. */
+export const PENDING_OVERFLOW_FILTER_BITS = 1 << 21;
+const OVERFLOW_HASHES = 3;
 
 /**
  * In-process quarantine of restrictions that could not (yet) be persisted, keyed by the AUTHENTICATED owner. Not durable, not shared
- * between instances (see the header). Entries are removed only by `remove` after a durable write of exactly that entry.
+ * between instances (see the header). Exact entries are removed only by `remove` after a durable write of exactly that entry.
  */
 export interface PendingMinorRestrictions {
+  /** Exact entry OR overflow-filter hit. A filter hit can be a false positive (the safe direction); an inserted owner is never missed. */
   has(owner: string): boolean;
+  /** The EXACT entry only (the one that can be retried). Null for an overflow-tier owner. */
   get(owner: string): PendingReport | null;
-  /** Idempotent: an owner already pending keeps its (earlier) entry. Returns the entry, or null when the registry is full. */
+  /**
+   * Idempotent: an owner already pending keeps its (earlier) entry. Returns the exact entry; NULL when the exact tier is full (the owner is
+   * then recorded in the overflow filter: `has(owner)` is true, nothing is lost) or when the owner id is invalid (nothing recorded).
+   */
   add(owner: string, report: PendingReport): PendingReport | null;
-  /** Removes the owner only if `entry` is still its current entry (a newer concurrent add is never lost). */
+  /** Removes the owner's exact entry only if `entry` is still its current entry (a newer concurrent add is never lost). Never touches the overflow filter. */
   remove(owner: string, entry: PendingReport): void;
+  /** True when the owner has no exact entry but is held by the overflow filter (approximate; cannot be retried or cleared). */
+  inOverflow(owner: string): boolean;
+  /** Number of EXACT entries. */
   readonly size: number;
+  /** Owners ever inserted into the overflow filter (monotone; for observability and saturation tests). */
+  readonly overflowInserts: number;
 }
 
-export function createPendingMinorRestrictions(maxOwners: number = PENDING_MINOR_RESTRICTION_MAX_OWNERS): PendingMinorRestrictions {
+export function createPendingMinorRestrictions(maxOwners: number = PENDING_MINOR_RESTRICTION_MAX_OWNERS, overflowBits: number = PENDING_OVERFLOW_FILTER_BITS): PendingMinorRestrictions {
   const m = new Map<string, PendingReport>();
+  const bits = Math.max(8, Math.floor(overflowBits));
+  let filter: Uint8Array | null = null; // allocated on first overflow: bits / 8 bytes, never grows
+  let inserts = 0;
+  const positions = (owner: string): number[] => {
+    const d = createHash("sha256").update(owner).digest();
+    return Array.from({ length: OVERFLOW_HASHES }, (_, k) => d.readUInt32BE(4 * k) % bits);
+  };
+  const filterHas = (owner: string): boolean => !!filter && positions(owner).every((b) => (filter![b >> 3] & (1 << (b & 7))) !== 0);
+  const filterAdd = (owner: string): void => {
+    filter ??= new Uint8Array(Math.ceil(bits / 8));
+    for (const b of positions(owner)) filter[b >> 3] |= 1 << (b & 7);
+    inserts++;
+  };
   return {
-    has: (owner) => m.has(owner),
+    has: (owner) => m.has(owner) || filterHas(owner),
     get: (owner) => m.get(owner) ?? null,
     add(owner, report) {
       const cur = m.get(owner);
       if (cur) return cur;
-      if (!OWNER_RE.test(owner) || m.size >= Math.max(0, maxOwners)) return null;
+      if (!OWNER_RE.test(owner)) return null;
+      if (m.size >= Math.max(0, maxOwners)) { if (!filterHas(owner)) filterAdd(owner); return null; } // full: NEVER dropped, recorded in the overflow filter
       const entry: PendingReport = Object.freeze({ turnId: isTurnId(report.turnId) ? report.turnId : "unknown", now: report.now });
       m.set(owner, entry);
       return entry;
     },
     remove(owner, entry) { if (m.get(owner) === entry) m.delete(owner); },
+    inOverflow: (owner) => !m.has(owner) && filterHas(owner),
     get size() { return m.size; },
+    get overflowInserts() { return inserts; },
+  };
+}
+
+// ── M8-C C1: in-flight turn watch (a restriction registered AFTER a turn started must be seen BEFORE it is granted personal work) ──
+/**
+ * WHY: a personal turn samples the pending registry / reads the stores, then awaits (profile read, session read, routing). A minor statement of the
+ * SAME owner can register its quarantine (or even complete a durable write and remove the pending entry) in between, so a snapshot taken
+ * earlier can be stale (Codex P1: the suspended personal turn was ANSWERED). Re-sampling the pending registry is NOT enough (the entry may already
+ * be flushed and removed while this turn's own store read predates the write), hence a monotone per-owner epoch:
+ *   - `watchOwnerRestriction(owner)` is taken synchronously at the start of a turn and released in a finally (state exists only while a turn is in
+ *     flight: bounded by the number of in-flight turns, empty when idle);
+ *   - every report registered for the owner (a statement, a legacy promotion) calls `report()` SYNCHRONOUSLY, before any await of that turn;
+ *   - `consume()` returns true once per change since the last consume. The supervisor calls it right after each await that precedes a grant
+ *     (profile read, routing clearance, before each delegation, before returning an answer): there is NO await between the last consume and the
+ *     delegation call, so a report registered later than that point is ordered after the grant (nothing personal could have been learned from
+ *     before it), and one registered earlier is observed.
+ * Process-wide on purpose (not per store): a statement seen by this process restricts every in-flight turn of that owner in this process.
+ * Not shared between instances (see the header).
+ */
+export interface OwnerRestrictionWatch {
+  /** Registers a report for this owner (every in-flight watch of the owner, except an unobserved change of THIS watch, is marked changed). */
+  report(): void;
+  /** True if a report was registered since the last consume (or since the watch was taken); resets. */
+  consume(): boolean;
+  /** Idempotent. */
+  release(): void;
+}
+
+const ownerEpochs = new Map<string, { epoch: number; refs: number }>();
+/** In-flight owners currently watched (tests: must be 0 when idle). */
+export const watchedOwnerCount = (): number => ownerEpochs.size;
+
+export function watchOwnerRestriction(owner: string): OwnerRestrictionWatch {
+  let rec = ownerEpochs.get(owner);
+  if (!rec) { rec = { epoch: 0, refs: 1 }; ownerEpochs.set(owner, rec); } else rec.refs++;
+  const shared = rec; let seen = shared.epoch; let released = false;
+  return {
+    report() { const clean = shared.epoch === seen; shared.epoch++; if (clean) seen = shared.epoch; },
+    consume() { if (shared.epoch === seen) return false; seen = shared.epoch; return true; },
+    release() {
+      if (released) return; released = true;
+      if (--shared.refs <= 0 && ownerEpochs.get(owner) === shared) ownerEpochs.delete(owner);
+    },
   };
 }
 
@@ -232,7 +323,7 @@ export function pendingMinorRestrictionsFor(store: MinorRestrictionStore): Pendi
 
 export interface PersistResult {
   outcome: "ok" | "conflict" | "unavailable" | "corrupt";
-  /** True when the owner is (still) quarantined after this call. False after "ok", or when the registry was full. */
+  /** True when the owner is (still) quarantined after this call (exact entry or overflow filter). False after "ok" of an exact entry. */
   quarantined: boolean;
 }
 
@@ -250,8 +341,15 @@ export async function persistMinorRestriction(store: MinorRestrictionStore, pend
     const r = await attempt(store, owner, old);
     if (r === "ok") pending.remove(owner, old);
     else return { outcome: r, quarantined: pending.has(owner) };
+    if (!report) return { outcome: "ok", quarantined: pending.has(owner) }; // the exact entry was just made durable
   }
-  if (!report) return { outcome: "ok", quarantined: false };
+  if (!report) {
+    // nothing exact to retry. An owner held ONLY by the overflow filter has nothing durable and cannot be retried (no report is kept):
+    // that is NOT "ok" — it stays quarantined (restricted) for the life of the process.
+    return pending.has(owner) ? { outcome: "unavailable", quarantined: true } : { outcome: "ok", quarantined: false };
+  }
+  // M8-C C1: when the exact tier is full `add` records the owner in the overflow filter and returns null: the report in hand is still written
+  // (durable if the store works) but the owner stays quarantined afterwards (the filter cannot be emptied) — never dropped.
   const entry = pending.add(owner, report);
   const outcome = await attempt(store, owner, entry ?? report);
   if (outcome === "ok" && entry) pending.remove(owner, entry);

@@ -266,7 +266,7 @@ test("FC-11 legacy promotion is per USER: A's session entry is never applied to 
 });
 
 // ── the multi-instance limit, asserted on purpose ───────────────────────────────────────────────────────────────────
-test("FC-LIMIT-1 DOCUMENTED RESIDUAL (NOT a pass for production): the quarantine is in-process. A second instance with its own memory does not know about it; the best-effort SESSION copy lets it recover only when the same sessionId comes back", async () => {
+test("FC-LIMIT-1 DOCUMENTED RESIDUAL (NOT a pass for production): the quarantine (exact tier AND the M8-C overflow filter AND the in-flight watch) is in-process. A second instance with its own memory does not know about it; the best-effort SESSION copy lets it recover only when the same sessionId comes back", async () => {
   const inner = mr.createInMemoryMinorRestrictionStore(); const w1 = faulty(inner); const w2 = faulty(inner); const session = sc.createInMemorySessionStore();
   const i1 = instance({ restriction: w1, session }); const i2 = instance({ restriction: w2, session });
   w1.st.writeFail = "UNAVAILABLE";
@@ -330,13 +330,14 @@ test("FC-14 pending registry: per owner, idempotent, bounded, identity-checked r
   const a1 = p.add(USER_A, { turnId: "turn-a1", now: T0 })!; const a2 = p.add(USER_A, { turnId: "turn-a2", now: T0 + 1 })!;
   assert.equal(a1, a2, "an owner already pending keeps its EARLIER entry"); assert.equal(a1.turnId, "turn-a1"); assert.deepEqual(Object.keys(a1).sort(), ["now", "turnId"]); assert.ok(Object.isFrozen(a1));
   const b = p.add(USER_B, { turnId: "Tôi 16 tuổi, mục tiêu calo?", now: T0 })!; assert.equal(b.turnId, "unknown", "a turn id with text is never stored");
-  assert.equal(p.add("33333333-3333-4333-8333-333333333333", { turnId: "x", now: T0 }), null, "bounded: a new owner beyond the cap cannot be added"); assert.equal(p.size, 2);
+  // M8-C C1: the exact tier is bounded, but a new owner beyond the cap is NOT dropped any more: it is recorded in the overflow filter (add → null, has → true)
+  assert.equal(p.add("33333333-3333-4333-8333-333333333333", { turnId: "x", now: T0 }), null, "bounded exact tier: no exact entry beyond the cap"); assert.equal(p.size, 2); assert.equal(p.has("33333333-3333-4333-8333-333333333333"), true, "...but the owner is still held (overflow tier), never lost"); assert.equal(p.get("33333333-3333-4333-8333-333333333333"), null);
   p.remove(USER_A, { turnId: "turn-a1", now: T0 }); assert.equal(p.has(USER_A), true, "removal needs the CURRENT entry object");
   p.remove(USER_A, a1); assert.equal(p.has(USER_A), false); assert.equal(p.has(USER_B), true); assert.equal(p.get("nobody"), null);
   assert.equal(p.add("a b", { turnId: "x", now: T0 }), null, "invalid owner id");
 });
 
-test("FC-15 persistMinorRestriction: old pending is retried first; a new report is registered BEFORE its write (write-ahead); failure keeps it; a full registry is reported (quarantined=false), never 'ok'", async () => {
+test("FC-15 persistMinorRestriction: old pending is retried first; a new report is registered BEFORE its write (write-ahead); failure keeps it; a full exact tier moves the owner to the overflow tier (quarantined=true), never 'ok' and never dropped", async () => {
   const inner = mr.createInMemoryMinorRestrictionStore(); let writes = 0; let failOn = new Set<number>();
   const store: MinorRestrictionStore = { minorRestrictionStore: true, read: (o) => inner.read(o), write: async (o, v, r) => { writes++; if (failOn.has(writes)) throw new sc.SessionStoreError("UNAVAILABLE"); return inner.write(o, v, r); } };
   const pending = mr.createPendingMinorRestrictions();
@@ -351,9 +352,9 @@ test("FC-15 persistMinorRestriction: old pending is retried first; a new report 
   // an old entry that still fails short-circuits (the new report is not written, the owner stays quarantined with the OLD entry)
   pending.add(USER_A, { turnId: "stuck", now: T0 }); writes = 0; failOn = new Set([1]); const before = JSON.stringify([...inner.raw.entries()]);
   assert.deepEqual(await mr.persistMinorRestriction(store, pending, USER_A, { turnId: "later", now: T0 + 1 }), { outcome: "unavailable", quarantined: true }); assert.equal(pending.get(USER_A)?.turnId, "stuck"); assert.equal(JSON.stringify([...inner.raw.entries()]), before);
-  // full registry
+  // full registry (M8-C C1: was quarantined:false = the restriction was forgotten; now the overflow tier holds the owner)
   failOn = new Set([1]); writes = 0; const full = mr.createPendingMinorRestrictions(0);
-  assert.deepEqual(await mr.persistMinorRestriction(store, full, USER_B, { turnId: "t", now: T0 }), { outcome: "unavailable", quarantined: false });
+  assert.deepEqual(await mr.persistMinorRestriction(store, full, USER_B, { turnId: "t", now: T0 }), { outcome: "unavailable", quarantined: true }); assert.equal(full.has(USER_B), true);
   // nothing to do → no store call
   const quiet = mr.createPendingMinorRestrictions(); writes = 0; assert.deepEqual(await mr.persistMinorRestriction(store, quiet, USER_B, null), { outcome: "ok", quarantined: false }); assert.equal(writes, 0);
 });
