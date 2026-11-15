@@ -14,7 +14,7 @@ import {
   holdbackStatusLabel,
   ledgerOperationLabel,
   obligationKindLabel,
-  obligationStatusLabel,
+  obligationStatusLabelFor,
   ownerLabel,
   providerLabel,
   purposeLabel,
@@ -140,11 +140,11 @@ export function buildMoneyJourney(detail: TxnDetailResponse): JourneyEvent[] {
       key: `obligation:${o.id}`,
       kind: "obligation",
       title: `Ghi nhận nghĩa vụ chưa trả: ${obligationKindLabel(o.kind)}`,
-      detail: `Bên nhận: ${ownerLabel(o.party)}. Trạng thái hiện tại: ${obligationStatusLabel(o.status)}.`,
+      detail: `Bên nhận: ${ownerLabel(o.party)}. Trạng thái hiện tại: ${obligationStatusLabelFor(o.kind, o.status, o.unpaid)}.`,
       amount: o.unpaid,
       tone: "danger",
     }, o.createdAt);
-    push({ key: `obligation-closed:${o.id}`, kind: "obligation-closed", title: "Nghĩa vụ chưa trả đã được đóng", detail: `${obligationStatusLabel(o.status)}.`, tone: "success" }, o.resolvedAt);
+    push({ key: `obligation-closed:${o.id}`, kind: "obligation-closed", title: "Nghĩa vụ chưa trả đã được đóng", detail: `${obligationStatusLabelFor(o.kind, o.status, o.unpaid)}.`, tone: "success" }, o.resolvedAt);
   }
 
   for (const h of detail.holdbackReviews ?? []) {

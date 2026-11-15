@@ -28,7 +28,7 @@ import {
   formatObligationEvent,
   formatPendingPayment,
   obligationKindLabel,
-  obligationStatusLabel,
+  obligationStatusLabelFor,
   obligationTone,
   partyLabel,
   productLookupNote,
@@ -154,12 +154,12 @@ const TONE_CLASS: Record<string, string> = {
   open: "text-adm-text",
   closed: "text-adm-text",
 };
-const StatusText = ({ status }: { status: string }) => <span className={TONE_CLASS[obligationTone(status)]}>{obligationStatusLabel(status)}</span>;
+const StatusText = ({ status, kind, unpaid }: { status: string; kind?: string; unpaid?: string }) => <span className={TONE_CLASS[obligationTone(status)]}>{obligationStatusLabelFor(kind, status, unpaid)}</span>;
 
 // Còn thiếu / đang mở
 const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Phải trả cho", cell: (r) => partyLabel(r.party) },
   { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   { header: "Đã trả / phải trả", cell: (r) => `${money(r.paid)} / ${money(r.owed)}`, right: true },
@@ -182,7 +182,7 @@ const obligationCols: Column<UnpaidObligationRow>[] = [
 // Đã phê duyệt chi / đang chờ chứng từ: vẫn còn thiếu, kèm khoản chi đang chờ
 const inFlightCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   {
     header: "Khoản chi đang chờ",
@@ -195,7 +195,7 @@ const inFlightCols: Column<UnpaidObligationRow>[] = [
 // Đã thanh toán được xác minh
 const verifiedCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Đã trả và được xác minh", cell: (r) => <span className="text-st-success font-semibold">{money(r.verifiedPaid)}</span>, right: true },
   { header: "Phải trả", cell: (r) => money(r.owed), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
@@ -205,7 +205,7 @@ const verifiedCols: Column<UnpaidObligationRow>[] = [
 // Đã trả vào ví Gymini (bút toán sổ cái nội bộ): KHÔNG phải chuyển khoản ngân hàng, KHÔNG gộp với "được xác minh"
 const ledgerPaidCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Đã trả vào ví Gymini", cell: (r) => <span className="text-st-success font-semibold">{money(r.paid)}</span>, right: true },
   { header: "Phải trả", cell: (r) => money(r.owed), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
@@ -216,7 +216,7 @@ const ledgerPaidCols: Column<UnpaidObligationRow>[] = [
 // BẢN GHI CŨ: chứng từ tự nhập, chưa xác minh
 const unverifiedCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Ghi nhận đã trả (CHƯA xác minh)", cell: (r) => <span className="text-st-warning">{money(r.externallyPaid)}</span>, right: true },
   { header: "Đã xác minh", cell: (r) => money(r.verifiedPaid), right: true },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
@@ -226,7 +226,7 @@ const unverifiedCols: Column<UnpaidObligationRow>[] = [
 // Không truy đòi / giải quyết cách khác / bản ghi cũ: khách KHÔNG được ghi nhận là đã trả
 const closedNotPaidCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} kind={r.kind} unpaid={r.unpaid} /> },
   { header: "Số tiền không trả", cell: (r) => money(r.unpaid), right: true },
   { header: "Lý do", cell: (r) => r.history?.length ? (r.history[r.history.length - 1].note || "—") : "—" },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },

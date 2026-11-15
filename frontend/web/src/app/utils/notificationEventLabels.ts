@@ -62,6 +62,10 @@ export const NOTIFICATION_EVENT_LABEL_VI: Record<string, string> = {
   WITHDRAWAL_APPROVED: "Yêu cầu rút tiền đã được duyệt",
   WITHDRAWAL_PAID: "Yêu cầu rút tiền đã chuyển khoản",
   WITHDRAWAL_REJECTED: "Yêu cầu rút tiền bị từ chối",
+  GYM_BRANCH_SUSPENDED: "Chi nhánh bị tạm khoá",
+  GYM_BRANCH_SUSPENSION_LIFTED: "Chi nhánh được mở khoá",
+  GYM_BRANCH_TEMPORARILY_CLOSED: "Chi nhánh tạm đóng cửa",
+  GYM_BRANCH_REOPENED: "Chi nhánh mở cửa lại",
 };
 
 export const NOTIFICATION_EVENT_FALLBACK_VI = "Thông báo";

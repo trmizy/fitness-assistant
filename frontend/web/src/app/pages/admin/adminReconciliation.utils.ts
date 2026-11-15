@@ -346,6 +346,12 @@ export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
   RESOLVED: "Đã xử lý (bản ghi cũ)",
 };
 export const obligationStatusLabel = (s: string | null | undefined) => lookup(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");
+/**
+ * Nợ của phòng gym (GYM_DEBT) khép lại với `unpaid` = 0 (trạng thái RESOLVED_OTHER, chỉ do hệ thống tự thu hồi từ thu nhập của gym ghi) = nền tảng đã thu hồi đủ.
+ * Một lần "giải quyết bằng phương thức khác" thủ công không đưa `unpaid` về 0 nên vẫn đọc bằng nhãn chung.
+ */
+export const obligationStatusLabelFor = (kind: string | null | undefined, s: string | null | undefined, unpaid?: string | number | null) =>
+  kind === "GYM_DEBT" && s === "RESOLVED_OTHER" && unpaid !== null && unpaid !== undefined && Number(unpaid) === 0 ? "Đã thu hồi từ thu nhập của gym" : obligationStatusLabel(s);
 
 export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
   REVIEW: "Chuyển sang xem xét",
@@ -358,6 +364,7 @@ export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
   RESOLVE_OTHER: "Giải quyết bằng phương thức khác",
   WAIVE: "Quyết định không truy đòi",
   RESOLVE: "Đánh dấu đã xử lý (cách cũ)",
+  RECOVER_FROM_INCOME: "Tự động trừ nợ từ thu nhập mới của gym",
 };
 export const obligationActionLabel = (a: string | null | undefined) => lookup(OBLIGATION_ACTION_LABEL, a, "Thao tác khác");
 
@@ -449,6 +456,11 @@ export function formatObligationEvent(e: ObligationEventRow, fmtMoney: (v: strin
   if (e.action === "VERIFY_PAYMENT" && e.verifiedBy) parts.push(`${e.verifiedBy} đã xác minh`);
   else if (e.action === "SUBMIT_EVIDENCE") parts.push(`${e.actor} nộp chứng từ — chưa xác minh`);
   else if (e.action === "PAY_EXTERNALLY") parts.push("chưa xác minh");
+  if (e.action === "RECOVER_FROM_INCOME") {
+    if (e.unpaidAfter !== null && e.unpaidAfter !== undefined) parts.push(`còn nợ ${fmtMoney(e.unpaidAfter)}`);
+    parts.push("tự động, không cần người duyệt");
+    return parts.join(" · ");
+  }
   parts.push(`${e.approvedBy ?? e.actor} · phê duyệt ${e.approvalRef}`);
   return parts.join(" · ");
 }

@@ -13,6 +13,12 @@ describe("notificationEventLabel", () => {
     assert.equal(notificationEventLabel("CONTRACT_REQUESTED"), "Yêu cầu hợp đồng");
     assert.equal(notificationEventLabel("NUTRITION_PLAN_READY"), "Kế hoạch dinh dưỡng đã sẵn sàng");
   });
+  it("labels the four branch lifecycle notices (FIX3-NOTIFY)", () => {
+    assert.equal(notificationEventLabel("GYM_BRANCH_SUSPENDED"), "Chi nhánh bị tạm khoá");
+    assert.equal(notificationEventLabel("GYM_BRANCH_SUSPENSION_LIFTED"), "Chi nhánh được mở khoá");
+    assert.equal(notificationEventLabel("GYM_BRANCH_TEMPORARILY_CLOSED"), "Chi nhánh tạm đóng cửa");
+    assert.equal(notificationEventLabel("GYM_BRANCH_REOPENED"), "Chi nhánh mở cửa lại");
+  });
   it("unknown / empty type falls back to a Vietnamese word, never the code", () => {
     assert.equal(notificationEventLabel("SOMETHING_NEW"), "Thông báo");
     assert.equal(notificationEventLabel(undefined), "Thông báo");

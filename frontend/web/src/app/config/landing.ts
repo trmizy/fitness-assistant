@@ -71,6 +71,8 @@ export function isReturnPathForRole(path: string, role: UserRole): boolean {
   return (Object.keys(ROLE_HOME) as UserRole[])
     .filter((r) => r !== role)
     .every((otherRole) => {
+      // A PT also uses the client workspace (the PT/client view switch), e.g. /client/gyms?gym=... from a shared gym link.
+      if (role === "pt" && otherRole === "client") return true;
       const otherZone = zoneOf(otherRole);
       return path !== otherZone && !path.startsWith(otherZone + "/");
     });

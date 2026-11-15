@@ -96,7 +96,8 @@ describe("Q5: branch lifecycle actions", () => {
     assert.equal(LIFECYCLE.CLOSE_TEMPORARILY.reasonRequired, true);
     assert.equal(LIFECYCLE.LIFT_SUSPENSION.reasonRequired, false);
     assert.equal(LIFECYCLE.REOPEN.reasonRequired, false);
-    assert.match(LIFECYCLE.SUSPEND.effect, /check-in được/);
+    assert.match(LIFECYCLE.SUSPEND.effect, /vẫn check-in bình thường tới hết hạn/);
+    assert.match(LIFECYCLE.SUSPEND.effect, /ẩn khỏi tìm kiếm và không bán gói mới/);
     assert.match(LIFECYCLE.SUSPEND.effect, /không tự hoàn tiền/);
   });
 

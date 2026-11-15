@@ -110,7 +110,7 @@ export const LIFECYCLE: Record<LifecycleAction, LifecycleMeta> = {
     label: "Tạm khoá chi nhánh",
     confirmLabel: "Tạm khoá",
     effect:
-      "Chi nhánh bị ẩn khỏi tìm kiếm, không bán được gói mới và không ai check-in được. Gói hội viên đang có không bị huỷ và không tự hoàn tiền — nếu cần hoàn tiền, xử lý riêng bằng hành động Hoàn tiền. Chủ gym vẫn sửa được tin giới thiệu. Có thể bỏ tạm khoá bất cứ lúc nào.",
+      "Hội viên đang có gói vẫn check-in bình thường tới hết hạn. Chi nhánh bị ẩn khỏi tìm kiếm và không bán gói mới. Gói đang có không bị huỷ và không tự hoàn tiền — nếu cần hoàn tiền, xử lý riêng bằng hành động Hoàn tiền. Chủ gym vẫn sửa được tin giới thiệu. Có thể bỏ tạm khoá bất cứ lúc nào.",
     reasonRequired: true,
     reasonLabel: "Lý do tạm khoá",
     danger: true,
@@ -120,7 +120,7 @@ export const LIFECYCLE: Record<LifecycleAction, LifecycleMeta> = {
     action: "LIFT_SUSPENSION",
     label: "Bỏ tạm khoá",
     confirmLabel: "Bỏ tạm khoá",
-    effect: "Chi nhánh được hiện lại trong tìm kiếm, bán gói mới và nhận check-in trở lại (nếu đang mở cửa).",
+    effect: "Chi nhánh được hiện lại trong tìm kiếm và bán gói mới trở lại. Hội viên vẫn check-in bình thường.",
     reasonRequired: false,
     reasonLabel: "Ghi chú (không bắt buộc)",
     danger: false,

@@ -404,6 +404,14 @@ export interface Wallet {
   status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;
   updatedAt: string;
+  /** Chỉ ví chi nhánh (GYM): nền tảng đã tự trừ bao nhiêu nợ từ thu nhập mới và còn nợ bao nhiêu (payment-service, FIX3-PAY). */
+  gymDebt?: GymDebtSummary;
+}
+
+export interface GymDebtSummary {
+  openUnpaid: string;
+  recoveredTotal: string;
+  recent: Array<{ at: string; amount: string; unpaidAfter: string }>;
 }
 
 export interface WalletLedgerEntry {

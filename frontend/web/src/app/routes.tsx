@@ -212,7 +212,7 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "attributions", Component: AttributionsPage },
-      // Liên kết công khai của chi tiết phòng gym (nút Chia sẻ) — khách vãng lai xem được, không cần đăng nhập.
+      // Liên kết chia sẻ của chi tiết phòng gym (nút Chia sẻ): khách → /login rồi quay lại chi tiết; đã đăng nhập → chi tiết ngay.
       { path: "gyms/:id", Component: PublicGymPage },
       { path: "register", Component: RegisterPage },
       { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },

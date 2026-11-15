@@ -12,7 +12,6 @@ import {
   NavigationArrowIcon as Directions,
   SignpostIcon as Signpost,
   ShareNetworkIcon as Share,
-  SignInIcon as LogIn,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { API_URL, gymService } from "../../services/api";
@@ -35,7 +34,7 @@ import { Modal, ModalTitle } from "../ui/Modal";
 import { useApp } from "../../context/AppContext";
 import { gymDiscoveryKeys } from "../../utils/discoverySearch";
 import { GymOpeningHours } from "./GymOpeningHours";
-import { publicGymPath, publicGymUrl, shareOrCopyLink } from "../../utils/shareLink";
+import { publicGymUrl, shareOrCopyLink } from "../../utils/shareLink";
 
 /**
  * Trang tìm PT đã dùng modal 3 tab (Chi tiết/Giá gói/Đánh giá) từ lâu — tìm phòng gym vẫn
@@ -60,8 +59,8 @@ export function GymDetailModal({
   initialTab?: "detail" | "pricing" | "reviews";
 }) {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useApp();
-  const gymKeys = gymDiscoveryKeys(isAuthenticated ? user?.id : null);
+  const { user } = useApp();
+  const gymKeys = gymDiscoveryKeys(user?.id);
 
   const [isDesktopView, setIsDesktopView] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
   useEffect(() => {
@@ -81,11 +80,6 @@ export function GymDetailModal({
   // Esc / bấm nền / nút Back do <Modal> lo (Esc chỉ đóng lớp trên cùng, nên hộp xác nhận/thanh toán mở phía trên
   // sẽ đóng trước).
 
-  // Khách vãng lai xem được chi tiết; mua gói/đánh giá thì mời đăng nhập rồi quay lại đúng trang này.
-  const goLogin = (returnTab?: "pricing" | "reviews") => {
-    navigate("/login", { state: { from: `${publicGymPath(gymId)}${returnTab ? `?tab=${returnTab}` : ""}` } });
-  };
-
   const { data: gym, isLoading: gymLoading, error: gymError } = useQuery<Gym>({
     queryKey: gymKeys.detail(gymId),
     queryFn: () => gymService.getGym(gymId),
@@ -102,8 +96,6 @@ export function GymDetailModal({
   const { data: multiGymWarnings = [] } = useQuery({
     queryKey: gymKeys.warnings(gymId),
     queryFn: () => gymService.getMembershipWarnings(gymId),
-    // Khách vãng lai chưa có phiên: gọi route cần đăng nhập sẽ bị 401 và đá sang /login.
-    enabled: isAuthenticated,
   });
 
   // Địa chỉ đầy đủ: số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã — gym chỉ lưu mã).
@@ -134,10 +126,6 @@ export function GymDetailModal({
 
   const startBuy = (plan: GymMembershipPlan) => {
     if (closedTemporarily) return;
-    if (!isAuthenticated) {
-      goLogin("pricing");
-      return;
-    }
     if (multiGymWarnings.length > 0) setWarningTarget(plan);
     else setBuyTarget(plan);
   };
@@ -383,18 +371,6 @@ export function GymDetailModal({
 
         {tab === "pricing" && (
           <>
-            {!isAuthenticated && (
-              <div role="status" data-testid="gym-guest-login-hint" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-500/25 bg-green-500/5 px-3.5 py-3">
-                <p className="text-sm text-zinc-300">Bạn đang xem với tư cách khách. Đăng nhập để mua gói hội viên.</p>
-                <button
-                  type="button"
-                  onClick={() => goLogin("pricing")}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-green-500 px-3.5 text-xs font-bold text-black transition-all hover:bg-green-400"
-                >
-                  <LogIn className="w-4 h-4" /> Đăng nhập
-                </button>
-              </div>
-            )}
             {plans.length > 0 && (
               <div>
                 <label htmlFor="referral-code" className="text-xs font-semibold text-zinc-500 mb-1 block">
@@ -437,7 +413,7 @@ export function GymDetailModal({
                         className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       >
                         {buyMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        {isAuthenticated ? "Mua" : "Đăng nhập để mua"}
+                        Mua
                       </button>
                     </div>
                   </div>
@@ -447,7 +423,7 @@ export function GymDetailModal({
           </>
         )}
 
-        {tab === "reviews" && <GymReviewsSection gymId={gymId} onLogin={() => goLogin("reviews")} />}
+        {tab === "reviews" && <GymReviewsSection gymId={gymId} />}
       </div>
     </>
   );
