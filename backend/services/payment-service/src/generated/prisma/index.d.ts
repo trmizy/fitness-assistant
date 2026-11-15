@@ -268,7 +268,8 @@ export const ContractUnpaidObligationKind: {
   LATE_ARRIVAL: 'LATE_ARRIVAL',
   REFUND_SHORT: 'REFUND_SHORT',
   OVER_RELEASED: 'OVER_RELEASED',
-  APPEAL_AWARD: 'APPEAL_AWARD'
+  APPEAL_AWARD: 'APPEAL_AWARD',
+  GYM_DEBT: 'GYM_DEBT'
 };
 
 export type ContractUnpaidObligationKind = (typeof ContractUnpaidObligationKind)[keyof typeof ContractUnpaidObligationKind]

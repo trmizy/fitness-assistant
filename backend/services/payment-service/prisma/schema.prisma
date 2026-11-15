@@ -354,6 +354,9 @@ enum ContractUnpaidObligationKind {
   OVER_RELEASED
   /// E5: created after a won appeal whose approved finding established an amount and a responsible party.
   APPEAL_AWARD
+  /// Q1 (15/11/2026): a gym's share of a supplementary membership refund (won appeal) that its AVAILABLE wallet could not fund. The member was paid in full,
+  /// the platform fronted the shortfall from REVENUE; party = GYM (the DEBTOR). Not payable through the client-payout lifecycle (party is not CLIENT).
+  GYM_DEBT
 }
 
 /// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it.

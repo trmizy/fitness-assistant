@@ -523,7 +523,8 @@ exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKi
   LATE_ARRIVAL: 'LATE_ARRIVAL',
   REFUND_SHORT: 'REFUND_SHORT',
   OVER_RELEASED: 'OVER_RELEASED',
-  APPEAL_AWARD: 'APPEAL_AWARD'
+  APPEAL_AWARD: 'APPEAL_AWARD',
+  GYM_DEBT: 'GYM_DEBT'
 };
 
 exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {

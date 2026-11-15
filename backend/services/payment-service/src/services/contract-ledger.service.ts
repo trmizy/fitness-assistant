@@ -106,7 +106,7 @@ export async function ownPending(ops: LedgerOps, walletId: string, transactionId
 
 // ── FH-1: unpaid obligations (D48 / N7) ──────────────────────────────────────
 
-export type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED' | 'APPEAL_AWARD';
+export type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED' | 'APPEAL_AWARD' | 'GYM_DEBT';
 
 /**
  * Writes the durable record of what a PT-fault step could not pay out of THE CONTRACT'S OWN money.
