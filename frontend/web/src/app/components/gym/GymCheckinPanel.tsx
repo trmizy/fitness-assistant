@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "qrcode";
-import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maximize2, XIcon as X, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
+import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maximize2, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import type { GymCheckIn } from "../../types";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import { useApp } from "../../context/AppContext";
 import {
   normalizeOwnerPtCheckins,
@@ -32,7 +32,6 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
   const { user } = useApp();
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
-  useBackDismissible(!!fullscreen, () => setFullscreen(false));
 
   const { data: qr, isLoading, refetch, isRefetching } = useQuery<{
     token: string;
@@ -200,28 +199,24 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
       )}
 
       {/* Blown up so a phone can read it from across the desk. */}
-      {fullscreen && dataUrl && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-6"
-          onClick={() => setFullscreen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setFullscreen(false)}
-            className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-100"
-            aria-label="Đóng"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="text-zinc-100 font-bold mb-4">{qr?.gymName}</div>
+      <Modal
+        open={fullscreen && !!dataUrl}
+        onClose={() => setFullscreen(false)}
+        backdropClassName="bg-black/90"
+        className="flex-col p-6 on-media"
+        data-testid="checkin-qr-zoom"
+      >
+        <ModalClose className="absolute top-3 right-3 rounded-full bg-black/60 text-white hover:bg-black/80" />
+        <ModalTitle className="text-zinc-100 font-bold mb-4">{qr?.gymName || "Mã QR check-in"}</ModalTitle>
+        {dataUrl && (
           <img
             src={dataUrl}
             alt="Mã QR check-in"
             className="rounded-2xl bg-white p-6 max-w-[80vw] max-h-[70vh]"
           />
-          <p className="text-zinc-400 text-sm mt-4">Quét mã để check-in</p>
-        </div>
-      )}
+        )}
+        <p className="text-zinc-400 text-sm mt-4">Quét mã để check-in</p>
+      </Modal>
     </div>
   );
 }

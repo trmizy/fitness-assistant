@@ -6,12 +6,14 @@ import { gymService } from "../../services/api";
 import type { GymReviewsResponse } from "../../types";
 import { Stars } from "./Stars";
 import { isPublicGymGone } from "../../utils/gymPublic";
+import { useApp } from "../../context/AppContext";
 
 /** N09C-03: same cap as gym-service (review.service.ts REVIEW_COMMENT_MAX). */
 export const REVIEW_COMMENT_MAX = 1000;
 
-export function GymReviewsSection({ gymId }: { gymId: string }) {
+export function GymReviewsSection({ gymId, onLogin }: { gymId: string; /** Khách vãng lai bấm "Đăng nhập" → quay lại đúng trang này sau khi đăng nhập. */ onLogin?: () => void }) {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useApp();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
@@ -27,6 +29,8 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
   const { data: myMemberships = [] } = useQuery<any[]>({
     queryKey: ["client-gym-memberships"],
     queryFn: () => gymService.listMyMemberships(),
+    // Khách vãng lai không có phiên: route này cần đăng nhập, gọi sẽ bị 401 và đá sang /login.
+    enabled: isAuthenticated,
   });
   // ACTIVE = current member, EXPIRED = used to be one. Both count; a CANCELLED (refunded)
   // membership does not, matching the server's rule.
@@ -92,6 +96,16 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
             Chỉ hội viên đã mua gói tại phòng gym này mới được đánh giá. Bạn vẫn có thể xem
             các đánh giá bên dưới.
           </p>
+          {!isAuthenticated && onLogin && (
+            <button
+              type="button"
+              onClick={onLogin}
+              data-testid="gym-reviews-login"
+              className="mt-2 inline-flex h-10 items-center rounded-lg border border-green-500/30 px-3.5 text-xs font-bold text-green-400 transition-colors hover:bg-green-500/10"
+            >
+              Đăng nhập để đánh giá
+            </button>
+          )}
         </div>
       ) : (
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">

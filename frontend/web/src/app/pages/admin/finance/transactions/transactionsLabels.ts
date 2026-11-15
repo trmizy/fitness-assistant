@@ -88,6 +88,7 @@ export const OBLIGATION_KIND_LABELS: Record<string, string> = {
   REFUND_SHORT: "Hoàn tiền còn thiếu",
   OVER_RELEASED: "Đã giải phóng vượt mức",
   APPEAL_AWARD: "Khoản phải trả sau khiếu nại",
+  GYM_DEBT: "Phòng gym còn nợ nền tảng",
 };
 export const obligationKindLabel = (k: string | null | undefined) => pick(OBLIGATION_KIND_LABELS, k, "Nghĩa vụ khác");
 export const obligationStatusLabel = (s: string | null | undefined) => pick(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");

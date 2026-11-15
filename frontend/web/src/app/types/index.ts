@@ -13,10 +13,6 @@ export interface User {
   isPT?: boolean;
   searchProvinceCode?: number | null;
   searchWardCode?: number | null;
-  /** True only for an admin-created account (currently just gym owners) still on its random
-   * temporary password. AppShell blocks all navigation behind a forced change-password
-   * screen while this is true; cleared server-side the moment any password change succeeds. */
-  mustChangePassword?: boolean;
 }
 
 export interface InBodyEntry {
@@ -656,6 +652,8 @@ export interface Gym {
   photos?: { id: string; url: string | null; category?: string | null; isCover?: boolean }[];
   /** Chi tiết công khai: mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ. */
   brandBranches?: { id: string; name: string; address: string; latitude: number | null; longitude: number | null }[];
+  /** Chi tiết công khai: giờ mở cửa chủ gym nhập ở wizard (Thứ 2..Chủ nhật). [] = chưa có dữ liệu. */
+  operatingHours?: { day: WeekDay; type: DayScheduleType; openMinute: number | null; closeMinute: number | null }[];
 }
 
 export interface GymMembershipPlan {
@@ -678,6 +676,8 @@ export interface GymMembershipPlan {
 export interface GymMembershipContract {
   id: string;
   gymId: string;
+  /** GET /me/gym-memberships: tên hiển thị của chi nhánh (đã duyệt), để dialog/thẻ không phải hiện mã. */
+  gymName?: string;
   planId: string;
   clientId: string;
   /** N13I-04: display name, sent only to the branch owner / manager (absent for other roles or when the name service is down). */

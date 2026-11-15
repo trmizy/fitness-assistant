@@ -28,6 +28,8 @@ const GymManagementKitchenSink = lazy(() =>
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
+const PublicGymPage = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.PublicGymPage })));
+const ClientGymDeepLink = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.ClientGymDeepLink })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 const PartnerInviteAcceptPage = lazy(() => import("./pages/auth/PartnerInviteAcceptPage").then((m) => ({ default: m.PartnerInviteAcceptPage })));
 const PartnerApplyPage = lazy(() => import("./pages/partner-application/PartnerApplyPage").then((m) => ({ default: m.PartnerApplyPage })));
@@ -210,6 +212,8 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "attributions", Component: AttributionsPage },
+      // Liên kết công khai của chi tiết phòng gym (nút Chia sẻ) — khách vãng lai xem được, không cần đăng nhập.
+      { path: "gyms/:id", Component: PublicGymPage },
       { path: "register", Component: RegisterPage },
       { path: "partner/invite/:token", Component: PartnerInviteAcceptPage },
       // Đăng ký đối tác tự phục vụ: công khai (chưa có tài khoản) → vùng ứng viên (đã đăng nhập, chưa được duyệt).
@@ -291,10 +295,10 @@ export const router = createBrowserRouter([
           { path: "wallet", Component: WalletPage },
           { path: "payments/result", Component: PaymentResultPage },
           { path: "gyms", Component: ServicesPage },
-          // Chi tiết phòng gym giờ mở bằng modal ngay trên trang tìm kiếm (GymDetailModal,
-          // cùng khuôn mẫu 3 tab với tìm PT) thay vì điều hướng sang trang riêng — giữ
-          // redirect này cho bookmark/liên kết cũ thay vì để 404.
-          { path: "gyms/:id", element: <Navigate to="/client/gyms" replace /> },
+          // Chi tiết phòng gym mở bằng modal ngay trên trang tìm kiếm (GymDetailModal, cùng khuôn
+          // mẫu 3 tab với tìm PT). Đường dẫn này chuyển sang /client/gyms?gym=:id để liên kết sâu
+          // (bookmark, dán tay) vẫn mở đúng chi tiết thay vì rơi về danh sách.
+          { path: "gyms/:id", Component: ClientGymDeepLink },
           { path: "gym-memberships", Component: ServicesPage },
         ],
       },

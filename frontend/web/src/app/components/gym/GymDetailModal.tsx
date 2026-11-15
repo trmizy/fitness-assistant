@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router";
 import {
   BarbellIcon as Dumbbell,
@@ -12,6 +11,8 @@ import {
   EnvelopeSimpleIcon as Mail,
   NavigationArrowIcon as Directions,
   SignpostIcon as Signpost,
+  ShareNetworkIcon as Share,
+  SignInIcon as LogIn,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { API_URL, gymService } from "../../services/api";
@@ -30,9 +31,11 @@ import { SocialLinks } from "./SocialLinks";
 import { useLocationNames } from "./addressAutoPin";
 import { ABOUT_MAX } from "./AboutCounter";
 import { PaymentMethodDialog } from "../payment/PaymentMethodDialog";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle } from "../ui/Modal";
 import { useApp } from "../../context/AppContext";
 import { gymDiscoveryKeys } from "../../utils/discoverySearch";
+import { GymOpeningHours } from "./GymOpeningHours";
+import { publicGymPath, publicGymUrl, shareOrCopyLink } from "../../utils/shareLink";
 
 /**
  * Trang tìm PT đã dùng modal 3 tab (Chi tiết/Giá gói/Đánh giá) từ lâu — tìm phòng gym vẫn
@@ -57,9 +60,8 @@ export function GymDetailModal({
   initialTab?: "detail" | "pricing" | "reviews";
 }) {
   const navigate = useNavigate();
-  const { user } = useApp();
-  const gymKeys = gymDiscoveryKeys(user?.id);
-  useBackDismissible(true, onClose);
+  const { user, isAuthenticated } = useApp();
+  const gymKeys = gymDiscoveryKeys(isAuthenticated ? user?.id : null);
 
   const [isDesktopView, setIsDesktopView] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
   useEffect(() => {
@@ -74,8 +76,15 @@ export function GymDetailModal({
 
   const [buyTarget, setBuyTarget] = useState<GymMembershipPlan | null>(null);
   const [warningTarget, setWarningTarget] = useState<GymMembershipPlan | null>(null);
-  useBackDismissible(!!warningTarget, () => setWarningTarget(null));
   const [referralCode, setReferralCode] = useState(() => (initialReferralCode ?? "").trim().toUpperCase());
+
+  // Esc / bấm nền / nút Back do <Modal> lo (Esc chỉ đóng lớp trên cùng, nên hộp xác nhận/thanh toán mở phía trên
+  // sẽ đóng trước).
+
+  // Khách vãng lai xem được chi tiết; mua gói/đánh giá thì mời đăng nhập rồi quay lại đúng trang này.
+  const goLogin = (returnTab?: "pricing" | "reviews") => {
+    navigate("/login", { state: { from: `${publicGymPath(gymId)}${returnTab ? `?tab=${returnTab}` : ""}` } });
+  };
 
   const { data: gym, isLoading: gymLoading, error: gymError } = useQuery<Gym>({
     queryKey: gymKeys.detail(gymId),
@@ -93,6 +102,8 @@ export function GymDetailModal({
   const { data: multiGymWarnings = [] } = useQuery({
     queryKey: gymKeys.warnings(gymId),
     queryFn: () => gymService.getMembershipWarnings(gymId),
+    // Khách vãng lai chưa có phiên: gọi route cần đăng nhập sẽ bị 401 và đá sang /login.
+    enabled: isAuthenticated,
   });
 
   // Địa chỉ đầy đủ: số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã — gym chỉ lưu mã).
@@ -114,8 +125,19 @@ export function GymDetailModal({
 
   const closedTemporarily = !!gym && (gym.isTemporarilyClosed === true || gym.operationalStatus === "TEMPORARILY_CLOSED" || gym.isOpen === false);
 
+  const onShare = async () => {
+    if (!gym) return;
+    const result = await shareOrCopyLink({ title: gym.name, text: `${gym.name} — phòng gym trên Gymini`, url: publicGymUrl(gym.id) });
+    if (result === "copied") toast.success("Đã sao chép liên kết phòng gym");
+    else if (result === "failed") toast.error("Không sao chép được liên kết — hãy copy từ thanh địa chỉ.");
+  };
+
   const startBuy = (plan: GymMembershipPlan) => {
     if (closedTemporarily) return;
+    if (!isAuthenticated) {
+      goLogin("pricing");
+      return;
+    }
     if (multiGymWarnings.length > 0) setWarningTarget(plan);
     else setBuyTarget(plan);
   };
@@ -210,14 +232,26 @@ export function GymDetailModal({
               )}
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0" aria-label="Đóng">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => void onShare()}
+              data-testid="gym-share"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              aria-label="Chia sẻ phòng gym"
+              title="Chia sẻ / sao chép liên kết"
+            >
+              <Share className="w-5 h-5" />
+            </button>
+            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors" aria-label="Đóng">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
+      <div role="tablist" aria-label="Thông tin phòng gym" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
         {(
           [
             { key: "detail", label: "Chi tiết" },
@@ -228,8 +262,10 @@ export function GymDetailModal({
           <button
             key={t.key}
             type="button"
+            role="tab"
+            aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
               tab === t.key ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -307,6 +343,8 @@ export function GymDetailModal({
               )}
             </div>
 
+            <GymOpeningHours hours={gym.operatingHours} suppressNow={closedTemporarily} />
+
             <SocialLinks value={gym.brand} />
 
             <section className="space-y-2">
@@ -345,6 +383,18 @@ export function GymDetailModal({
 
         {tab === "pricing" && (
           <>
+            {!isAuthenticated && (
+              <div role="status" data-testid="gym-guest-login-hint" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-500/25 bg-green-500/5 px-3.5 py-3">
+                <p className="text-sm text-zinc-300">Bạn đang xem với tư cách khách. Đăng nhập để mua gói hội viên.</p>
+                <button
+                  type="button"
+                  onClick={() => goLogin("pricing")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-green-500 px-3.5 text-xs font-bold text-black transition-all hover:bg-green-400"
+                >
+                  <LogIn className="w-4 h-4" /> Đăng nhập
+                </button>
+              </div>
+            )}
             {plans.length > 0 && (
               <div>
                 <label htmlFor="referral-code" className="text-xs font-semibold text-zinc-500 mb-1 block">
@@ -387,7 +437,7 @@ export function GymDetailModal({
                         className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       >
                         {buyMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        Mua
+                        {isAuthenticated ? "Mua" : "Đăng nhập để mua"}
                       </button>
                     </div>
                   </div>
@@ -397,33 +447,43 @@ export function GymDetailModal({
           </>
         )}
 
-        {tab === "reviews" && <GymReviewsSection gymId={gymId} />}
+        {tab === "reviews" && <GymReviewsSection gymId={gymId} onLogin={() => goLogin("reviews")} />}
       </div>
     </>
   );
 
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex justify-center ${isDesktopView ? "items-center p-4" : "items-end"}`}
-      onClick={onClose}
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      ariaLabel={gym ? `Chi tiết ${gym.name}` : "Chi tiết phòng gym"}
+      placement={isDesktopView ? "center" : "sheet"}
+      className={isDesktopView ? "z-[60]" : "z-[60] sm:items-end sm:p-0"}
+      backdropClassName="bg-black/70 backdrop-blur-sm z-[60]"
+      data-testid="gym-detail-modal"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         className={
           isDesktopView
-            ? "w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-zinc-800/60 bg-zinc-900 shadow-2xl"
-            : "w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800/60 bg-zinc-900"
+            ? "relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-zinc-800/60 bg-zinc-900 shadow-2xl"
+            : "relative w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800/60 bg-zinc-900"
         }
       >
         {content}
       </div>
 
-      {warningTarget && createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" onClick={(e) => e.stopPropagation()} role="presentation">
-          <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl w-full max-w-sm shadow-2xl">
+      <Modal
+        open={!!warningTarget}
+        onClose={() => setWarningTarget(null)}
+        className="z-[70]"
+        backdropClassName="z-[70]"
+        data-testid="gym-multi-warning-modal"
+      >
+        {warningTarget && (
+          <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl w-full max-w-sm shadow-2xl max-h-full overflow-y-auto">
             <div className="p-5 border-b border-zinc-800/60 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <h3 className="text-zinc-100 font-bold">Bạn đang có gói ở phòng gym khác</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Bạn đang có gói ở phòng gym khác</ModalTitle>
             </div>
             <div className="p-5 space-y-2 text-sm text-zinc-300">
               <p className="text-zinc-300">Bạn đang có gói hội viên còn hạn ở phòng gym khác. Vẫn mua thêm?</p>
@@ -437,35 +497,30 @@ export function GymDetailModal({
               </ul>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setWarningTarget(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
+              <button type="button" onClick={() => setWarningTarget(null)} className="flex-1 min-h-10 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
                 Để sau
               </button>
               <button
                 type="button"
                 onClick={() => { setBuyTarget(warningTarget); setWarningTarget(null); }}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+                className="flex-1 min-h-10 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
               >
                 Vẫn tiếp tục mua
               </button>
             </div>
           </div>
-        </div>,
-        document.body,
-      )}
+        )}
+      </Modal>
 
-      {buyTarget && createPortal(
-        <div className="fixed inset-0 z-[70]" onClick={(e) => e.stopPropagation()}>
-          <PaymentMethodDialog
-            amount={Number(buyTarget.price)}
-            title="Chọn phương thức thanh toán gói tập"
-            isSubmitting={buyMutation.isPending}
-            onClose={() => setBuyTarget(null)}
-            onConfirm={(provider) => buyMutation.mutate({ planId: buyTarget.id, provider })}
-          />
-        </div>,
-        document.body,
+      {buyTarget && (
+        <PaymentMethodDialog
+          amount={Number(buyTarget.price)}
+          title="Chọn phương thức thanh toán gói tập"
+          isSubmitting={buyMutation.isPending}
+          onClose={() => setBuyTarget(null)}
+          onConfirm={(provider) => buyMutation.mutate({ planId: buyTarget.id, provider })}
+        />
       )}
-    </div>,
-    document.body,
+    </Modal>
   );
 }

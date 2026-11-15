@@ -15,6 +15,7 @@ export function useStaffRole() {
     role: normalizePartnerRole(q.data?.role),
     isLoading: q.isLoading,
     isError: q.isError,
+    error: q.error,
     refetch: q.refetch,
   };
 }

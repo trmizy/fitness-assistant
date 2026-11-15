@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileTextIcon as FileText, MagnifyingGlassIcon as Search, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, UserIcon as User, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CurrencyDollarIcon as DollarSign, BarbellIcon as Dumbbell, PlayCircleIcon as PlayCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, CheckIcon as Check, XIcon as X, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, WarningOctagonIcon as AlertOctagon, StarIcon as Star } from "@phosphor-icons/react";
+import { FileTextIcon as FileText, MagnifyingGlassIcon as Search, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, UserIcon as User, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CurrencyDollarIcon as DollarSign, BarbellIcon as Dumbbell, PlayCircleIcon as PlayCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, CheckIcon as Check, CopyIcon as Copy, XIcon as X, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, WarningOctagonIcon as AlertOctagon, StarIcon as Star } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import type {
 } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 import { ptContractShare } from "../../utils/ptContractShare";
@@ -167,14 +167,22 @@ export function PTContractsPage() {
   const [tab, setTab] = useState("");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [copiedRefId, setCopiedRefId] = useState<string | null>(null);
+  const copyContractRef = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedRefId(id);
+      toast.success("Đã sao chép mã hợp đồng");
+      setTimeout(() => setCopiedRefId((cur) => (cur === id ? null : cur)), 2000);
+    } catch {
+      toast.error("Không sao chép được — thử lại hoặc dùng mã ngắn khi liên hệ hỗ trợ");
+    }
+  };
   const [rejectId, setRejectId] = useState<string | null>(null);
-  useBackDismissible(!!rejectId, () => setRejectId(null));
   const [rejectReason, setRejectReason] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
-  useBackDismissible(!!cancelId, () => setCancelId(null));
   // Roadmap P4.1 "Notifications/reminders" (§27) — PT feedback.
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
-  useBackDismissible(!!feedbackId, () => setFeedbackId(null));
   const [feedbackText, setFeedbackText] = useState("");
 
   const { data: contracts = [], isLoading } = useQuery({
@@ -303,7 +311,6 @@ export function PTContractsPage() {
   // Mirror-image of the client's session review (BookingPage.tsx) — PT rates the client
   // instead of the client rating the PT.
   const [reviewClientId, setReviewClientId] = useState<string | null>(null);
-  useBackDismissible(!!reviewClientId, () => setReviewClientId(null));
   const [reviewClientRating, setReviewClientRating] = useState(5);
   const [reviewClientComment, setReviewClientComment] = useState("");
   const reviewClientMut = useMutation({
@@ -585,9 +592,24 @@ export function PTContractsPage() {
                         <div className="text-xs text-zinc-600 mb-0.5">
                           Mã hợp đồng
                         </div>
-                        <code className="text-[11px] font-mono text-zinc-300 break-all select-all">
-                          {c.id}
-                        </code>
+                        {/* N14T-09: mã ngắn dễ đọc/đọc qua điện thoại; nút sao chép lấy MÃ ĐẦY ĐỦ để nộp khiếu nại. */}
+                        <div className="flex items-center gap-1.5">
+                          <code
+                            className="text-[11px] font-mono font-semibold tracking-wider text-zinc-300"
+                            title="Mã đầy đủ có trong nút sao chép"
+                            data-testid="pt-contract-short-ref"
+                          >
+                            #{c.id.slice(0, 8).toUpperCase()}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => copyContractRef(c.id)}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-green-400 transition-colors"
+                            aria-label="Sao chép mã hợp đồng đầy đủ"
+                          >
+                            {copiedRefId === c.id ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs text-zinc-600 mb-0.5">
@@ -899,11 +921,16 @@ export function PTContractsPage() {
       )}
 
       {/* Roadmap P4.1 "Notifications/reminders" — Send Feedback Dialog */}
-      {feedbackId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(feedbackId)}
+        onClose={() => setFeedbackId(null)}
+        closeOnBackdrop={false}
+        data-testid="pt-contract-feedback-modal"
+      >
+        {feedbackId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Gửi phản hồi cho khách hàng</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Gửi phản hồi cho khách hàng</ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
@@ -920,35 +947,42 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setFeedbackId(null);
                   setFeedbackText("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 data-testid="send-feedback-submit"
                 onClick={() => feedbackMutation.mutate({ id: feedbackId, text: feedbackText })}
                 disabled={!feedbackText.trim() || feedbackMutation.isPending}
-                className="flex-1 py-2.5 bg-sky-500 text-black text-sm font-semibold rounded-lg hover:bg-sky-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-sky-500 text-black text-sm font-semibold rounded-lg hover:bg-sky-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {feedbackMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Gửi
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Reject Dialog */}
-      {rejectId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(rejectId)}
+        onClose={() => setRejectId(null)}
+        closeOnBackdrop={false}
+        data-testid="pt-contract-reject-modal"
+      >
+        {rejectId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">
+              <ModalTitle className="text-zinc-100 font-bold">
                 Từ chối yêu cầu huấn luyện
-              </h3>
+              </ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
@@ -964,20 +998,22 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setRejectId(null);
                   setRejectReason("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={() =>
                   rejectMutation.mutate({ id: rejectId, reason: rejectReason })
                 }
                 disabled={!rejectReason.trim() || rejectMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {rejectMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -986,20 +1022,26 @@ export function PTContractsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Review Client Dialog — mirror-image of BookingPage.tsx's client review modal */}
-      {reviewClientId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(reviewClientId)}
+        onClose={() => setReviewClientId(null)}
+        closeOnBackdrop={false}
+        data-testid="pt-contract-review-modal"
+      >
+        {reviewClientId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Đánh giá khách hàng</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Đánh giá khách hàng</ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-center gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => setReviewClientRating(i + 1)}
                   >
@@ -1019,19 +1061,21 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setReviewClientId(null);
                   setReviewClientRating(5);
                   setReviewClientComment("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Bỏ qua
               </button>
               <button
+                type="button"
                 onClick={() => reviewClientMut.mutate()}
                 disabled={reviewClientMut.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {reviewClientMut.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1040,15 +1084,20 @@ export function PTContractsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Cancel Dialog */}
-      {cancelId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(cancelId)}
+        onClose={() => setCancelId(null)}
+        closeOnBackdrop={false}
+        data-testid="pt-contract-cancel-modal"
+      >
+        {cancelId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Hủy hợp đồng</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Hủy hợp đồng</ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
@@ -1057,15 +1106,17 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setCancelId(null)}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Giữ lại
               </button>
               <button
+                type="button"
                 onClick={() => cancelMutation.mutate(cancelId)}
                 disabled={cancelMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1074,8 +1125,8 @@ export function PTContractsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

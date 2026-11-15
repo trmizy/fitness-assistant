@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   BarbellIcon as Dumbbell,
   MapPinIcon as MapPin,
@@ -156,6 +157,19 @@ export function GymsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [selectedGymId, setSelectedGymId] = useState<string | null>(null);
+  // Liên kết sâu /client/gyms?gym=:id[&tab=pricing|reviews] (nút Chia sẻ, bookmark): mở thẳng chi tiết gym đó.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkGymId = searchParams.get("gym");
+  const deepLinkTab = ["detail", "pricing", "reviews"].find((t) => t === searchParams.get("tab")) as "detail" | "pricing" | "reviews" | undefined;
+  const closeDetail = () => {
+    setSelectedGymId(null);
+    if (searchParams.has("gym") || searchParams.has("tab")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("gym");
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
+    }
+  };
   const [filterOpen, setFilterOpen] = useState(false);
 
   // Region + GPS state — NEVER prompts geolocation on mount; cleared cleanly across account switches
@@ -719,7 +733,13 @@ export function GymsPage() {
         </div>
       )}
 
-      {selectedGymId && <GymDetailModal gymId={selectedGymId} onClose={() => setSelectedGymId(null)} />}
+      {(selectedGymId ?? deepLinkGymId) && (
+        <GymDetailModal
+          gymId={(selectedGymId ?? deepLinkGymId) as string}
+          initialTab={selectedGymId ? undefined : deepLinkTab}
+          onClose={closeDetail}
+        />
+      )}
     </div>
   );
 }

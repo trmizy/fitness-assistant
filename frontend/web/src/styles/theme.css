@@ -665,6 +665,17 @@
     color: #be123c;
   }
 
+  /* N14T-11 - blue / violet accents were left at their dark-theme shade (2.1-2.5:1 on a light card). */
+  :root[data-theme="light"] .text-blue-300,
+  :root[data-theme="light"] .text-blue-400 {
+    color: #1d4ed8;
+  }
+
+  :root[data-theme="light"] .text-violet-300,
+  :root[data-theme="light"] .text-violet-400 {
+    color: #6d28d9;
+  }
+
   :root[data-theme="light"] .hover\:text-zinc-300:hover,
   :root[data-theme="light"] .hover\:text-zinc-400:hover,
   :root[data-theme="light"] .hover\:text-zinc-500:hover {

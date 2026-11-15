@@ -15,6 +15,7 @@ import { useRestoreFocus } from "./shared/b9aReturnFocus";
 import { SOCIALS } from "../../components/gym/SocialLinks";
 import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
 import { amenityCategoryLabel } from "../../utils/amenityIcons";
+import { humanizeCodes, partnerAuditActionVi } from "../../utils/adminPartnerLabels";
 import {
   CATEGORY_LABEL,
   DOC_LABEL,
@@ -380,6 +381,19 @@ function AmenitiesBlock({ d }: { d: AdminApplicationDetail }) {
 
 function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminApplicationDetail; onChanged: () => void; canReview: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
+  // N14G-09: accepting a document somebody else already handled answers 409 DOCUMENT_NOT_PENDING_REVIEW. The row on screen was stale, so say
+  // so (toast + a note that stays on the panel) and re-read the application instead of leaving the old "Chấp nhận" button in place.
+  const [notice, setNotice] = useState<string | null>(null);
+  const reportFailure = (e: unknown) => {
+    const f = friendlyError(e);
+    const text =
+      f.code === "DOCUMENT_NOT_PENDING_REVIEW"
+        ? "Giấy tờ này không còn ở trạng thái chờ duyệt (có thể đã được xử lý). Danh sách đã được cập nhật."
+        : f.message;
+    setNotice(text);
+    toast.error(text, { id: "admin-doc-accept-error" });
+    onChanged();
+  };
 
   const view = async (docType: DocType, fileId?: string) => {
     setBusy(fileId ?? docType);
@@ -388,7 +402,7 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
       window.open(r.url, "_blank", "noopener,noreferrer");
       onChanged();
     } catch (e) {
-      toast.error(friendlyError(e).message);
+      reportFailure(e);
     } finally {
       setBusy(null);
     }
@@ -397,10 +411,11 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
     setBusy(docType);
     try {
       await adminPartnerApplications.acceptDocument(id, docType);
+      setNotice(null);
       toast.success("Đã chấp nhận giấy tờ");
       onChanged();
     } catch (e) {
-      toast.error(friendlyError(e).message);
+      reportFailure(e);
     } finally {
       setBusy(null);
     }
@@ -409,6 +424,11 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
   return (
     <section className={box}>
       <h3 className="text-sm font-bold text-zinc-200 mb-3">Giấy tờ</h3>
+      {notice && (
+        <p role="alert" data-testid="admin-application-doc-notice" className="mb-3 rounded-lg border border-st-warning-border bg-st-warning-bg px-3 py-2 text-xs text-st-warning">
+          {notice}
+        </p>
+      )}
       <ul className="space-y-2.5">
         {d.documents.map((doc) => (
           <li key={doc.docType} className="rounded-lg border border-zinc-800 p-3">
@@ -593,7 +613,7 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
           {!canApprove && (
             <ul className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-1">
               {d.approve.blockers.map((b: any, i: number) => (
-                <li key={i} className="text-[11px] text-st-warning">• {b?.message ?? String(b)}</li>
+                <li key={i} className="text-[11px] text-st-warning">• {humanizeCodes(b?.message ?? String(b))}</li>
               ))}
             </ul>
           )}
@@ -684,7 +704,7 @@ function History({ d }: { d: AdminApplicationDetail }) {
           {d.history.map((h) => (
             <li key={h.id} className="flex items-start justify-between gap-3 text-xs">
               <span className="text-zinc-300">
-                {HISTORY_LABEL[h.action] ?? h.action}
+                {HISTORY_LABEL[h.action] ?? partnerAuditActionVi(h.action)}
                 {h.reason ? <span className="text-zinc-500"> — {h.reason}</span> : null}
               </span>
               <span className="text-zinc-600 shrink-0">{dt(h.at)}</span>

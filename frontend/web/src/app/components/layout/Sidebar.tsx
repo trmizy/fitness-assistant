@@ -337,10 +337,12 @@ export function Sidebar() {
           imgClassName="h-12 w-[132px] object-left"
         />
         <button
-          className="lg:hidden text-zinc-500 hover:text-white p-1 rounded transition-colors"
+          type="button"
+          aria-label="Đóng menu"
+          className="lg:hidden inline-flex min-h-10 min-w-10 items-center justify-center text-zinc-500 hover:text-white rounded-lg transition-colors"
           onClick={() => setSidebarOpen(false)}
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 
@@ -361,7 +363,7 @@ export function Sidebar() {
           <div className="flex bg-zinc-900/40 border border-zinc-700/50 rounded-xl p-1 gap-1">
             <button
               onClick={switchToClientView}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 flex min-h-10 items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "client"
                   ? "bg-zinc-700 text-zinc-100 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-300"
@@ -372,7 +374,7 @@ export function Sidebar() {
             </button>
             <button
               onClick={switchToPTView}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 flex min-h-10 items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "pt"
                   ? "bg-green-500 text-black shadow-sm shadow-green-500/30"
                   : "text-zinc-500 hover:text-zinc-300"
@@ -429,7 +431,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 w-full px-3 py-2 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 rounded-lg text-sm transition-all"
+          className="flex items-center gap-2 w-full min-h-10 px-3 py-2 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 rounded-lg text-sm transition-all"
         >
           <LogOut className="w-4 h-4" />
           <AutoText>Đăng xuất</AutoText>

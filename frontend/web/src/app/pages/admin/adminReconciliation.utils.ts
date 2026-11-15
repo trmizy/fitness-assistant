@@ -325,6 +325,7 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
   LATE_ARRIVAL: "PT đến trễ — chưa đền đủ",
   REFUND_SHORT: "Hoàn tiền còn thiếu",
   OVER_RELEASED: "Đã giải ngân vượt mức",
+  GYM_DEBT: "Phòng gym còn nợ nền tảng",
 };
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
 

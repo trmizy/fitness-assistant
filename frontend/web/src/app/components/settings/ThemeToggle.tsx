@@ -16,7 +16,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="theme-control flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+      className="theme-control flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
       aria-label={ariaLabel}
       title={ariaLabel}
     >

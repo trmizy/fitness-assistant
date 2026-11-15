@@ -42,14 +42,19 @@ export function AdminComplaintCasePage() {
   });
   const detail: GymCaseDetail | undefined = query.data;
 
+  // N14A-08: after a write, re-read through the query CLIENT (the detail key itself + the case list, the complaint queue and the history), not
+  // through the `query` object captured at render time, so the page cannot keep showing the pre-write case. A failed re-read still surfaces
+  // (the caller shows the "Không làm mới được hồ sơ" banner).
   const onChanged = useCallback(async () => {
-    if (keys) {
-      void queryClient.invalidateQueries({ queryKey: keys.caseListAll() });
-      if (caseId) void queryClient.invalidateQueries({ queryKey: [...keys.all, "history", caseId] });
-    }
-    const fresh = await query.refetch();
-    if (fresh.isError) throw fresh.error;
-  }, [keys, queryClient, query, caseId]);
+    if (!keys) return;
+    void queryClient.invalidateQueries({ queryKey: keys.caseListAll() });
+    void queryClient.invalidateQueries({ queryKey: keys.complaintsAll() });
+    if (!caseId) return;
+    void queryClient.invalidateQueries({ queryKey: [...keys.all, "history", caseId] });
+    await queryClient.invalidateQueries({ queryKey: keys.detail(caseId), exact: true, refetchType: "all" });
+    const st = queryClient.getQueryState(keys.detail(caseId));
+    if (st?.status === "error") throw st.error;
+  }, [keys, queryClient, caseId]);
   const reload = useCallback(() => {
     void query.refetch();
   }, [query]);

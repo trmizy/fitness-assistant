@@ -421,7 +421,7 @@ export const translationService = {
     targetLang,
     sourceLang = "en",
   }: TranslateRequest): Promise<string> => {
-    const { data } = await api.post("/api/translate", {
+    const { data } = await api.post("/translate", {
       text,
       targetLang,
       sourceLang,
@@ -4042,12 +4042,18 @@ export const adminService = {
     const { data } = await api.patch(`/admin/gyms/${gymId}/status`, { status });
     return data?.data ?? data;
   },
+  // FIX2-ADMIN Q5 — tạm khoá / bỏ tạm khoá / tạm đóng cửa / mở cửa lại MỘT chi nhánh, mỗi thao tác có lý do + nhật ký kiểm toán.
+  setGymLifecycle: async (gymId: string, body: { action: 'SUSPEND' | 'LIFT_SUSPENSION' | 'CLOSE_TEMPORARILY' | 'REOPEN'; reason?: string; expectedReopenAt?: string }) => {
+    const { data } = await api.patch(`/admin/gyms/${gymId}/lifecycle`, body);
+    return data?.data ?? data;
+  },
   // "Quản lý gym & owner" — admin editing a branch's details directly (name/address take
   // effect immediately, no owner-approval round-trip). Creating a NEW branch is still owner-
   // only (unchanged) — this only covers editing an existing one.
   updateGymDetails: async (
     gymId: string,
-    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string }>,
+    // `reason` (>= 10 ký tự) bắt buộc khi payload có `description` (phần giới thiệu công khai).
+    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string; reason: string }>,
   ) => {
     const { data } = await api.patch(`/admin/gyms/${gymId}`, payload);
     return data?.data ?? data;

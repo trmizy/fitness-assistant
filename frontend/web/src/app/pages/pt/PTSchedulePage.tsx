@@ -11,7 +11,7 @@ import type {
   PTScheduleException,
 } from "../../types";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { useNavigate } from "react-router";
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
@@ -282,7 +282,6 @@ export function PTSchedulePage() {
   // the client side already had. requestReschedule doesn't care which side calls it; only
   // the frontend never let the PT reach it.
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
-  useBackDismissible(!!rescheduleTarget, () => setRescheduleTarget(null));
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState("");
   const requestRescheduleMut = useMutation({
@@ -985,11 +984,17 @@ export function PTSchedulePage() {
       )}
 
       {/* ─── PT ĐỀ XUẤT DỜI LỊCH ─── */}
-      {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <Modal
+        open={!!(rescheduleTarget)}
+        onClose={() => setRescheduleTarget(null)}
+        closeOnBackdrop={false}
+        placement="sheet"
+        data-testid="pt-reschedule-modal"
+      >
+        {rescheduleTarget && (
           <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
             <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
-              <h3 className="text-zinc-100 font-bold tracking-tight">Đề xuất dời lịch</h3>
+              <ModalTitle className="text-zinc-100 font-bold tracking-tight">Đề xuất dời lịch</ModalTitle>
               <p className="text-xs text-zinc-500 mt-0.5">
                 Buổi hiện tại: {new Date(rescheduleTarget.scheduledStartAt).toLocaleString("vi-VN")}
               </p>
@@ -1013,16 +1018,18 @@ export function PTSchedulePage() {
             </div>
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
+                type="button"
                 onClick={() => {
                   setRescheduleTarget(null);
                   setRescheduleSlot(null);
                   setRescheduleReason("");
                 }}
-                className="flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (!rescheduleTarget || !rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim()) return;
                   const start = new Date(`${rescheduleSlot.dateStr}T${rescheduleSlot.slot}:00`);
@@ -1035,15 +1042,15 @@ export function PTSchedulePage() {
                   });
                 }}
                 disabled={!rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim() || requestRescheduleMut.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {requestRescheduleMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Gửi yêu cầu
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

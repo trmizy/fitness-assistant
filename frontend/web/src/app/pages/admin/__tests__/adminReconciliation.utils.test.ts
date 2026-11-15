@@ -85,7 +85,7 @@ const sessionsFixture = () => ({
 
 describe("labels follow the real enums and never leak a raw code to the admin", () => {
   it("ContractUnpaidObligationKind (payment-service)", () => {
-    for (const k of ["NO_SHOW", "LATE_ARRIVAL", "REFUND_SHORT", "OVER_RELEASED"]) assert.ok(OBLIGATION_KIND_LABEL[k], k);
+    for (const k of ["NO_SHOW", "LATE_ARRIVAL", "REFUND_SHORT", "OVER_RELEASED", "GYM_DEBT"]) assert.ok(OBLIGATION_KIND_LABEL[k], k);
     assert.equal(obligationKindLabel("SOMETHING_NEW"), "Nghĩa vụ khác");
     assert.equal(obligationKindLabel(null), "Nghĩa vụ khác");
   });

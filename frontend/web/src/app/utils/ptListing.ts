@@ -75,6 +75,15 @@ export const TRAINING_GOAL_OPTIONS: ListingOption[] = [
 export const LANGUAGE_OPTIONS = ["Tiếng Việt", "English", "中文", "한국어", "日本語"] as const;
 
 /**
+ * Vietnamese label for a STORED value (target group / training goal). A value that is not in the known list — custom or
+ * legacy text the PT typed — is shown exactly as entered (never dropped, never guessed). Used by the client-facing PT
+ * detail sheet, where the stored English strings (Seniors, Rehab clients…) must not reach a Vietnamese user (N14T-09).
+ */
+export function optionLabel(known: ListingOption[], value: string): string {
+  return known.find((o) => o.value === value)?.label ?? value;
+}
+
+/**
  * The options to render for a field: the known list first, then any SAVED value that is not in it
  * (legacy / custom data must stay visible and removable — never silently dropped).
  */

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   CameraIcon as Camera,
@@ -33,6 +33,7 @@ import {
   type PhotoCategory,
 } from "../../services/partnerApplication";
 import { inputCls } from "./ui";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 
 function checkFile(file: File, accepted: string[]): string | null {
   if (!accepted.includes(file.type)) return "Định dạng không được hỗ trợ.";
@@ -408,23 +409,16 @@ export function DocumentUpload({
 
 /** Lớp phủ phóng to ảnh giấy tờ: bấm nền, nút đóng hoặc phím Esc để thoát. */
 function ImagePreview({ title, url, onClose }: { title: string; url: string; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
   return (
-    <div role="dialog" aria-modal="true" aria-label={title} onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl">
+    <Modal open onClose={onClose} backdropClassName="bg-black/85" className="p-4" data-testid="document-image-preview">
+      <div className="w-full max-w-3xl on-media">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-zinc-200 truncate">{title}</p>
-          <button type="button" onClick={onClose} aria-label="Đóng" className="rounded-full bg-zinc-800 p-1.5 text-zinc-200 hover:bg-zinc-700">
-            <X className="w-4 h-4" />
-          </button>
+          <ModalTitle className="text-sm font-semibold text-zinc-200 truncate">{title}</ModalTitle>
+          <ModalClose className="rounded-full bg-black/60 text-white hover:bg-black/80" />
         </div>
         <img src={url} alt={title} className="max-h-[80vh] w-full rounded-lg bg-black object-contain" />
       </div>
-    </div>
+    </Modal>
   );
 }
 

@@ -6,9 +6,9 @@ import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { Drawer } from "../ui/Modal";
 import { PageSkeleton } from "./PageSkeleton";
 import { CallOverlay } from "../call/CallOverlay";
-import { ForceChangePasswordScreen } from "../auth/ForceChangePasswordScreen";
 import { PartnerOnboardingWizard } from "../auth/PartnerOnboardingWizard";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
@@ -24,7 +24,7 @@ import { isAiCoachFabHiddenOn } from "./aiCoachFab";
 const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
-  const { isAuthenticated, isPT, setActiveView, user, role } = useApp();
+  const { isAuthenticated, isPT, setActiveView, role } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,7 +34,7 @@ export function AppShell() {
   const onboardingQuery = useQuery({
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
-    enabled: isAuthenticated && role === "gym_owner" && !user?.mustChangePassword,
+    enabled: isAuthenticated && role === "gym_owner",
     staleTime: 60_000,
   });
 
@@ -68,16 +68,7 @@ export function AppShell() {
 
   if (!isAuthenticated) return null;
 
-  // Blocks the entire app behind a forced password change for an admin-created account
-  // (currently gym owners) still on its random temporary password — see
-  // ForceChangePasswordScreen's own doc comment. Checked here, above everything else in the
-  // authenticated tree, so there is no route that can be reached around it.
-  if (user?.mustChangePassword) {
-    return <ForceChangePasswordScreen />;
-  }
-
-  // Đặt SAU mustChangePassword (đặt mật khẩu trước, thiết lập đối tác sau) — chỉ chặn khi
-  // đã biết chắc CHƯA hoàn tất (query đã có dữ liệu và completed === false). Đang tải hoặc
+  // Chỉ chặn khi đã biết chắc CHƯA hoàn tất (query đã có dữ liệu và completed === false). Đang tải hoặc
   // lỗi mạng thì cho qua, không khoá cả app vì một request chưa kịp trả lời.
   if (role === "gym_owner" && onboardingQuery.data && onboardingQuery.data.completed === false) {
     return <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />;
@@ -99,6 +90,17 @@ function AppShellInner() {
   // The floating AI Coach button (client/PT) sits over the bottom-right corner of whatever page is open. Leave
   // room under the page equal to the button + its margin so the last row of any page can always be scrolled
   // clear of it. Not reserved where the button is not drawn (chat, AI Coach) - those pages fill the screen exactly.
+  // The drawer is for phones/tablets only; if the window grows past the `lg` breakpoint while it is open, close it so
+  // the focus trap / scroll lock do not outlive the (now hidden) drawer.
+  useEffect(() => {
+    if (!sidebarOpen || typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (mq.matches) setSidebarOpen(false); };
+    closeOnDesktop();
+    mq.addEventListener("change", closeOnDesktop);
+    return () => mq.removeEventListener("change", closeOnDesktop);
+  }, [sidebarOpen, setSidebarOpen]);
+
   const reserveForAiFab = (role === "client" || role === "pt") && !isAiCoachFabHiddenOn(location.pathname);
 
   return (
@@ -113,18 +115,20 @@ function AppShellInner() {
         <Sidebar />
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside className="relative w-72 flex-shrink-0 flex flex-col shadow-2xl z-10">
-            <Sidebar />
-          </aside>
-        </div>
-      )}
+      {/* Mobile sidebar: shared accessible drawer (Esc, backdrop, focus trap + return, scroll lock) */}
+      <Drawer
+        side="left"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        ariaLabel="Menu điều hướng"
+        backdropClassName="bg-black/70 backdrop-blur-sm"
+        className="lg:hidden"
+        data-testid="app-mobile-drawer"
+      >
+        <aside className="relative w-72 max-w-[85vw] flex-shrink-0 flex flex-col bg-zinc-900 shadow-2xl">
+          <Sidebar />
+        </aside>
+      </Drawer>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCardIcon as CreditCard, CircleNotchIcon as Loader2, WarningIcon as AlertTriangle, XIcon as X } from "@phosphor-icons/react";
+import { CreditCardIcon as CreditCard, CircleNotchIcon as Loader2, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { paymentService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 
 export interface PaymentMethod {
   provider: string;
@@ -45,7 +45,6 @@ export function PaymentMethodDialog({
   // Android Back closes this dialog instead of navigating the page behind it — but not
   // mid-submit, when a checkout is already being created and closing would leave the user
   // unsure whether it went through.
-  useBackDismissible(!isSubmitting, onClose);
 
   // A real touch on the emulator (host mouse click translated through QEMU's virtual
   // touchscreen) was confirmed, directly, to sometimes dispatch the confirm button's click
@@ -78,26 +77,19 @@ export function PaymentMethodDialog({
   const usable = methods.filter((m) => m.configured);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+    <Modal open onClose={() => { if (!isSubmitting) onClose(); }} closeOnBackdrop={false} placement="sheet" className="z-[70]" backdropClassName="z-[70]" data-testid="payment-method-modal">
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-full overflow-y-auto">
         <div className="p-5 border-b border-zinc-800/60 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-zinc-100 font-bold flex items-center gap-2">
+            <ModalTitle className="text-zinc-100 font-bold flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-green-400" /> {title}
-            </h3>
+            </ModalTitle>
             <p className="text-sm text-zinc-500 mt-0.5">
               Số tiền cần thanh toán:{" "}
               <span className="text-green-400 font-bold">{formatVND(amount)}</span>
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-            aria-label="Đóng"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <ModalClose className="-mt-1 -mr-2 text-zinc-500 hover:text-zinc-200" disabled={isSubmitting} />
         </div>
 
         <div className="p-5 space-y-2">
@@ -170,7 +162,7 @@ export function PaymentMethodDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+            className="flex-1 min-h-10 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
           >
             Huỷ
           </button>
@@ -182,13 +174,13 @@ export function PaymentMethodDialog({
               onConfirm(selected);
             }}
             disabled={!selected || isSubmitting}
-            className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+            className="flex-1 min-h-10 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
           >
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
             Thanh toán
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

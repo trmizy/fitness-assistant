@@ -12,7 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ptCoachService } from "../../services/api";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 
 const NUTRITION_DECISION_LABEL: Record<string, string> = {
   KEEP_PLAN: "Giữ nguyên",
@@ -83,15 +83,15 @@ function ModifyNutritionSheet({
   const [fat, setFat] = useState(String(initial.fat));
   const [note, setNote] = useState("");
 
-  useBackDismissible(true, onCancel);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={onCancel}>
+    <Modal open onClose={onCancel} placement="sheet" closeOnBackdrop={false} className="sm:p-4" data-testid="pt-nutrition-adjust-modal">
       <div
-        className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-4 space-y-3"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-4 space-y-3 max-h-full overflow-y-auto"
       >
-        <h4 className="text-sm font-bold text-zinc-100">Điều chỉnh mục tiêu dinh dưỡng</h4>
+        <div className="flex items-center justify-between gap-2">
+          <ModalTitle className="text-sm font-bold text-zinc-100">Điều chỉnh mục tiêu dinh dưỡng</ModalTitle>
+          <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-zinc-500">
             Calories
@@ -144,7 +144,7 @@ function ModifyNutritionSheet({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-semibold"
+            className="flex-1 min-h-10 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-semibold"
           >
             Hủy
           </button>
@@ -162,13 +162,13 @@ function ModifyNutritionSheet({
                 note,
               )
             }
-            className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 min-h-10 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Lưu điều chỉnh"}
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

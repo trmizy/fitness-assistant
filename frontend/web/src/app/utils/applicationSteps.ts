@@ -56,8 +56,22 @@ export const CATEGORY_STEP: Record<ReviewCategory, StepId> = {
   OTHER: "review",
 };
 
-export const stepIsDone = (step: WizardStep, missing: readonly Pick<MissingItem, "section">[]): boolean =>
-  !missing.some((m) => step.sections.includes(m.section));
+/** Steps whose content only exists once the first branch does: with no branch yet the server lists no LOCATION / AMENITIES item, which is NOT "done". */
+const NEEDS_BRANCH: ReadonlySet<StepId> = new Set<StepId>(["location", "amenities"]);
+
+export const stepIsDone = (step: WizardStep, missing: readonly Pick<MissingItem, "section">[], hasBranch = true): boolean =>
+  (hasBranch || !NEEDS_BRANCH.has(step.id)) && !missing.some((m) => step.sections.includes(m.section));
+
+/**
+ * N14G-09: the progress bar used to read 33% on an empty application - "Mạng xã hội" (optional, no section the server can list) and the two
+ * branch-dependent steps (Vị trí, Tiện ích: nothing is listed until a branch exists) counted as done. Now only steps that can really be
+ * missing count, and a branch-dependent step is done only once the branch exists. The review step is never counted.
+ */
+export function applicationProgress(missing: readonly Pick<MissingItem, "section">[], hasBranch: boolean): { done: number; total: number; percent: number } {
+  const counted = STEPS.filter((s) => s.id !== "review" && s.sections.length > 0);
+  const done = counted.filter((s) => stepIsDone(s, missing, hasBranch)).length;
+  return { done, total: counted.length, percent: counted.length === 0 ? 0 : Math.round((done / counted.length) * 100) };
+}
 
 /** The first step (other than the review) that still has something missing; the review when nothing is. */
 export function firstIncompleteIndex(missing: readonly Pick<MissingItem, "section">[]): number {

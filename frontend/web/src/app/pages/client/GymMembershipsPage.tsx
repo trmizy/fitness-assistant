@@ -194,7 +194,7 @@ export function GymMembershipsPage() {
 
       {scanning && <CheckinScanModal onClose={() => setScanning(false)} />}
 
-      {reportTarget && <ReportIssueDialog gymId={reportTarget.gymId} onClose={() => setReportTarget(null)} />}
+      {reportTarget && <ReportIssueDialog gymId={reportTarget.gymId} gymName={reportTarget.gymName} onClose={() => setReportTarget(null)} />}
 
       <ConfirmDialog
         open={!!cancelTarget}

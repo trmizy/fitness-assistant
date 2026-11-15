@@ -58,13 +58,13 @@ export function PtBookableSchedule({ ptUserId }: { ptUserId: string }) {
       </div>
 
       <div className="mt-4 flex items-center gap-1">
-        <button type="button" aria-label="Tuần trước" disabled={weekOffset === 0} onClick={() => changeWeek(-1)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-700/60 disabled:cursor-not-allowed disabled:opacity-35">
+        <button type="button" aria-label="Tuần trước" disabled={weekOffset === 0} onClick={() => changeWeek(-1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-700/60 disabled:cursor-not-allowed disabled:opacity-35">
           <CaretLeftIcon className="h-4 w-4" />
         </button>
         <p className="min-w-0 flex-1 text-center text-xs font-semibold text-zinc-300">
           {days[0].toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} – {days[6].toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
         </p>
-        <button type="button" aria-label="Tuần sau" onClick={() => changeWeek(1)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-700/60">
+        <button type="button" aria-label="Tuần sau" onClick={() => changeWeek(1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-700/60">
           <CaretRightIcon className="h-4 w-4" />
         </button>
       </div>
