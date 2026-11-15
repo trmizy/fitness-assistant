@@ -572,7 +572,8 @@ exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidOblig
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
   RESOLVE_OTHER: 'RESOLVE_OTHER',
   SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER',
-  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL'
+  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL',
+  RECOVER_FROM_INCOME: 'RECOVER_FROM_INCOME'
 };
 
 exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {

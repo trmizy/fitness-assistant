@@ -332,7 +332,8 @@ export const ContractUnpaidObligationEventAction: {
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
   RESOLVE_OTHER: 'RESOLVE_OTHER',
   SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER',
-  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL'
+  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL',
+  RECOVER_FROM_INCOME: 'RECOVER_FROM_INCOME'
 };
 
 export type ContractUnpaidObligationEventAction = (typeof ContractUnpaidObligationEventAction)[keyof typeof ContractUnpaidObligationEventAction]

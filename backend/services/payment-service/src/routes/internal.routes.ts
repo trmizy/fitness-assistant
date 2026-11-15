@@ -6,6 +6,8 @@ import { logger } from '@gym-coach/shared';
 import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
+import { gymDebtSummary } from '../services/gym-debt-recovery';
+import { prisma } from '../repositories/prisma';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
 import {
@@ -1158,6 +1160,8 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
     return res.status(400).json({ success: false, error: { code: 'INVALID_OWNER_TYPE' } });
   }
   const wallet = await walletService.getOrCreateWallet(ownerType, req.params.ownerId);
+  // FIX3-PAY: a gym wallet also says what the platform has recovered from its income and what it still owes (additive field; other owner types unchanged).
+  if (ownerType === 'GYM') return res.json({ success: true, data: { ...wallet, gymDebt: await gymDebtSummary(prisma, req.params.ownerId) } });
   return res.json({ success: true, data: wallet });
 });
 

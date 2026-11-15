@@ -4,6 +4,7 @@ import { withdrawalRepository } from '../repositories/withdrawal.repository';
 import { walletRepository } from '../repositories/wallet.repository';
 import { prisma } from '../repositories/prisma';
 import { walletService } from './wallet.service';
+import { gymDebtUnpaid } from './gym-debt-recovery';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { notifyAdminsAwaitingSecondApproval, notifyWithdrawalOwner } from './withdrawal-notification.service';
 
@@ -207,11 +208,22 @@ export const withdrawalService = {
     // (into lockedBalance), so it must not be subtracted here a second time.
     withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved));
 
+    // FIX3-PAY: a gym cannot withdraw money that is needed to cover what it owes the platform (an open GYM_DEBT). New income repays the debt automatically
+    // (gym-debt-recovery.ts), so this only bites on money that reached the available bucket by a path that does not recover (a debt being collected by hand,
+    // or opened after the money arrived). NET rule - not a blanket block: the gym may still withdraw whatever exceeds its debt.
+    let gymDebt = new Prisma.Decimal(0);
+    if (ownerType === 'GYM') {
+      gymDebt = await gymDebtUnpaid(prisma, ownerId);
+      if (gymDebt.greaterThan(0)) withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved).minus(gymDebt));
+    }
+
     if (amountDecimal.greaterThan(withdrawable)) {
       throw err(
         ownerType === 'CLIENT'
           ? 'Số tiền vượt quá phần tiền hoàn trả có thể rút'
-          : 'Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)',
+          : gymDebt.greaterThan(0)
+            ? `Số tiền vượt quá số dư có thể rút: chi nhánh còn nợ nền tảng ${gymDebt.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}đ và khoản này được giữ lại để trừ nợ`
+            : 'Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)',
         400,
         'EXCEEDS_WITHDRAWABLE_BALANCE',
       );

@@ -43,6 +43,7 @@ export type WalletEntryCategory =
   | 'REFERRAL_COMMISSION'
   | 'REFERRAL_CLAWBACK'
   | 'DEBT_WITHHELD'
+  | 'GYM_DEBT_RECOVERED'
   | 'PENDING_REVERSED'
   | 'OTHER_CREDIT'
   | 'OTHER_DEBIT';
@@ -86,6 +87,9 @@ export function classifyWalletEntry(
   if (/^Withdrawal \S+ approved — locked for payout/.test(d)) return 'WITHDRAWAL_LOCKED';
   if (/^Withdrawal \S+ rejected — restored from lock/.test(d)) return 'WITHDRAWAL_RESTORED';
   if (/^Withdrawal \S+ paid\b/.test(d)) return 'WITHDRAWAL_PAID';
+
+  // FIX3-PAY: a gym's open GYM_DEBT repaid automatically from its new income (both legs carry the fragment; gym-debt-recovery.ts).
+  if (d.includes('— gym debt recovered from income')) return 'GYM_DEBT_RECOVERED';
 
   const product = productOf(d, txn);
 

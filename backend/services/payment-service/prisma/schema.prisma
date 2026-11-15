@@ -545,6 +545,8 @@ enum ContractUnpaidObligationEventAction {
   SETTLE_VIA_LEDGER
   /// E5: the append-only record of an obligation created from a won appeal.
   CREATE_FROM_APPEAL
+  /// FIX3-PAY (15/11/2026): GYM_DEBT repaid automatically from the gym's next AVAILABLE income (actor SYSTEM:GYM_DEBT_AUTO_RECOVERY, approvalRef = the credit's ledger entry id).
+  RECOVER_FROM_INCOME
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
