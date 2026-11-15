@@ -25,6 +25,12 @@ const GymManagementKitchenSink = lazy(() =>
   import("./pages/dev/GymManagementKitchenSink").then((m) => ({ default: m.GymManagementKitchenSink })),
 );
 
+// M8-D: internal OFFLINE demo of Multi-Agent V2 (mock model, fixture data). The lazy import sits behind import.meta.env.DEV, which Vite
+// replaces with false in a production build, so the page chunk is never emitted and the route is never registered there.
+const AiV2DemoPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/internal/AiV2DemoPage").then((m) => ({ default: m.AiV2DemoPage })))
+  : null;
+
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
@@ -233,6 +239,8 @@ export const router = createBrowserRouter([
       // unless import.meta.env.DEV, so it's inert even if this route ships in a prod bundle.
       { path: "dev/icons", Component: IconGalleryPage },
       { path: "dev/gym-management-kitchen-sink", Component: GymManagementKitchenSink },
+      // M8-D: /internal/ai-v2-demo — registered only in a DEV build (see AiV2DemoPage above). Not linked from any navigation.
+      ...(AiV2DemoPage ? [{ path: "internal/ai-v2-demo", Component: AiV2DemoPage }] : []),
 
       // ── Client workspace ────────────────────────────────────────────────
       {

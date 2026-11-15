@@ -112,6 +112,13 @@ export default defineConfig({
         changeOrigin: true,
         configure: forwardRealHost,
       },
+      // M8-D: LOCAL Multi-Agent V2 demo launcher (loopback only; see backend/services/ai-service/src/__tests__/m8-demo/web-demo-server.ts).
+      // Dev-server proxy only — `server.proxy` is never part of a production build. The browser sends a fixture scenario id, nothing secret.
+      "/internal-demo-api": {
+        target: process.env.AI_V2_DEMO_PROXY_TARGET || "http://127.0.0.1:4799",
+        changeOrigin: false,
+        rewrite: (requestPath: string) => requestPath.slice("/internal-demo-api".length) || "/",
+      },
       // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". A plain <img src="/uploads/
       // gym-photos/...">, same-origin like every other request — the gateway's own route is
       // NOT under /api (see proxy.routes.ts), so no rewrite here either.
