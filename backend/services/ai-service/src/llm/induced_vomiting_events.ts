@@ -512,8 +512,84 @@ function adjacentPhrases(ctx: Ctx, clauses: Clause[], i: number): Adjacent {
   return out;
 }
 
-function analyze(question: string, collect: boolean): InducedVomitingAnalysis {
-  let raw = nfc(String(question ?? "")).toLowerCase();
+// ── Unicode canonical views (M8b-S2) ─────────────────────────────────────────────────────────────────────────────────────────────
+// The lexicon above recognises words by their EXACT NFC spelling ("ói", "mửa", "ôm", "ôi/ơi/ối", the first-person / relation-head words). Anything that
+// changes that spelling without changing what the reader sees hides the word: an invisible default-ignorable code point inside or after it (U+034F CGJ,
+// U+200B..U+200D, U+2060, U+FEFF, U+00AD, variation selectors ...), a combining mark Vietnamese orthography does not use (U+0483, U+20DD ...) or a
+// second tone mark on the syllable (ói + U+0301 = "óí", ó + U+0323 + i). The ORIGINAL text is analysed FIRST and unchanged (so separator semantics such as
+// "ói<ZWSP>để" and every existing verdict are untouched); ONLY when it gives no disclosure AND a canonical form differs from it, that canonical form is
+// analysed too, and a disclosure in ANY view refuses. Refusals can only be ADDED, and only for text that carries such marks. Per view: classification only.
+//
+// Canonical form (the UTS #39 "skeleton" idea restricted to what Vietnamese needs; one linear pass over the NFD code points, no regex over the text):
+//   1. every Default_Ignorable_Code_Point is DELETED (it renders as nothing, so it is not part of the visible word: "ó|i" = "ói"; for the reader it neither
+//      glues nor splits). Its other reading - a separator between two words - is what the ORIGINAL view already gives for the format characters (U+200B ...),
+//      so a second "replace by a space" view is not used (it would split a word that merely CONTAINS the code point, e.g. "khô|ng");
+//   2. combining marks are removed unless they are a Vietnamese vowel-quality mark (U+0302 circumflex, U+0306 breve, U+031B horn) or tone mark (U+0300
+//      U+0301 U+0303 U+0309 U+0323) sitting on a VOWEL (a e i o u y): Vietnamese puts no mark on a consonant or a digit and uses no other mark;
+//   3. a Vietnamese syllable carries ONE tone. A syllable with >= 2 tone marks is malformed and its tone is UNIDENTIFIABLE (NFD reorders marks, so "first"
+//      and "last" are not reliable), so exactly one of the tones present is kept: the one that makes the syllable a word this detector already knows
+//      (lexicon below: first-person / relation-head / third-person words, ói, mửa, ôm, ôi/ơi/ối); none does => the first mark. At most 5 distinct tones =>
+//      at most 10 candidates per syllable (the first and the last mark of each tone). No word is added to the lexicon, no pattern is added: unknown tone => the known word is read, never a new trigger.
+const DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/u;
+const COMBINING_MARK = /\p{M}/u;
+const WORD_BASE = /[\p{L}\p{N}]/u;
+const VOWEL_BASES = /^[aeiouy]$/;
+const VI_TONE_MARKS = new Set([0x0300, 0x0301, 0x0303, 0x0309, 0x0323]);
+const VI_QUALITY_MARKS = new Set([0x0302, 0x0306, 0x031b]);
+const TONE_SENSITIVE_WORDS = setOf([...FIRST_PERSON, ...HEADS_ACCENTED, ...THIRD_MARK_ACCENTED, "ói", "mửa", "ôm"]);
+const INTERJECTION = /^[ôơốồổỗộớờởỡợ]i$/u;
+const isKnownWord = (w: string): boolean => TONE_SENSITIVE_WORDS.has(w) || INTERJECTION.test(w);
+/** `word` = NFD code points of one syllable run (letters + kept marks); `tonesAt` = ascending indexes of its tone marks. Returns it with <= 1 tone mark. */
+function resolveSyllableTone(word: string[], tonesAt: number[]): string {
+  if (tonesAt.length <= 1) return word.join("");
+  const keepOnly = (keep: number): string => {
+    const out: string[] = [];
+    let t = 0;
+    for (let i = 0; i < word.length; i++) {
+      if (t < tonesAt.length && tonesAt[t] === i) { if (i === keep) out.push(word[i]); t++; } else out.push(word[i]);
+    }
+    return out.join("");
+  };
+  const first = new Map<string, number>();
+  const last = new Map<string, number>();
+  for (const at of tonesAt) { if (!first.has(word[at])) first.set(word[at], at); last.set(word[at], at); }
+  for (const [tone, at] of first) { // <= 5 distinct tones: the first and the last mark of each one
+    for (const keep of at === last.get(tone) ? [at] : [at, last.get(tone) as number]) {
+      const candidate = keepOnly(keep);
+      if (isKnownWord(candidate.normalize("NFC"))) return candidate;
+    }
+  }
+  return keepOnly(tonesAt[0]);
+}
+function canonicalizeVietnameseMarks(text: string): string {
+  const out: string[] = [];
+  let word: string[] = [];
+  let tonesAt: number[] = [];
+  let onVowel = false; // the last base letter of the current word is a vowel (a e i o u y)
+  const flush = (): void => {
+    if (word.length > 0) out.push(resolveSyllableTone(word, tonesAt));
+    word = [];
+    tonesAt = [];
+  };
+  for (const ch of text.normalize("NFD")) {
+    if (DEFAULT_IGNORABLE.test(ch)) continue;
+    if (COMBINING_MARK.test(ch)) {
+      const cp = ch.codePointAt(0) as number;
+      if (!onVowel) continue; // a mark on a consonant / digit / nothing is stray
+      if (VI_QUALITY_MARKS.has(cp)) word.push(ch);
+      else if (VI_TONE_MARKS.has(cp)) { tonesAt.push(word.length); word.push(ch); }
+      continue; // any other mark: dropped
+    }
+    if (WORD_BASE.test(ch)) { word.push(ch); onVowel = VOWEL_BASES.test(ch); }
+    else { flush(); out.push(ch); onVowel = false; } // a separator ends the syllable
+  }
+  flush();
+  return out.join("").normalize("NFC");
+}
+
+
+function analyzeView(text: string, collect: boolean, stats: InducedVomitingStats): InducedVomitingAnalysis {
+  let raw = text;
   const hasDiacritics = HAS_DIACRITIC.test(raw);
   const result: InducedVomitingAnalysis = {
     hasDiacritics,
@@ -522,7 +598,7 @@ function analyze(question: string, collect: boolean): InducedVomitingAnalysis {
     clauseCount: 0,
     events: [],
     disclosure: false,
-    stats: { chars: raw.length, tokens: 0, tokenVisits: 0, regexChars: 0 },
+    stats,
   };
   if (!QUICK_VERB.test(raw)) return result;
   raw = raw.replaceAll(BREAK, " ");
@@ -576,6 +652,18 @@ function analyze(question: string, collect: boolean): InducedVomitingAnalysis {
     }
   }
   return result;
+}
+
+function analyze(question: string, collect: boolean): InducedVomitingAnalysis {
+  const base = nfc(String(question ?? "")).toLowerCase();
+  const stats: InducedVomitingStats = { chars: base.length, tokens: 0, tokenVisits: 0, regexChars: 0 };
+  const original = analyzeView(base, collect, stats);
+  if (original.disclosure) return original;
+  const canonical = canonicalizeVietnameseMarks(base);
+  if (canonical === base) return original; // no invisible / stray / duplicate mark: nothing new to read
+  const view = analyzeView(canonical, collect, stats);
+  if (view.disclosure) return view;
+  return original;
 }
 
 /** Structured classification (tests / inspection): every vomit verb with its actor, anchor, negation, owned phrases and outcome. */
