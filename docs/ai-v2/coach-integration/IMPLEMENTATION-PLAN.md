@@ -7,7 +7,7 @@ Quy ước trạng thái task: `DONE` · `ACTIVE` · `READY` (đủ điều ki�
 Ràng buộc chung cho mọi milestone: V1 phải còn chạy; không deploy (D-001); không gọi AWS/Nova/Bedrock/DB thật khi chưa có phê duyệt riêng; không sửa benchmark để tăng điểm; không vượt release blocker (CURRENT-STATE §Known); thay đổi phía V1 chạm `agent-v2` cần phê duyệt pin.
 
 ---
-## M9.1 — Audit, bản đồ chức năng và hạ tầng tiếp nối  `ACTIVE → COMPLETE khi §Verify của CURRENT-STATE đạt`
+## M9.1 — Audit, bản đồ chức năng và hạ tầng tiếp nối  `COMPLETE` (commit `37f3d99a`)
 Phạm vi: chỉ tài liệu + `CLAUDE.md` ở worktree `ai-v2-coach-integration-plan`. Không đụng runtime.
 | ID | Task | File | Dependencies | Acceptance | Tests / bằng chứng | Status |
 |---|---|---|---|---|---|---|
@@ -16,21 +16,22 @@ Phạm vi: chỉ tài liệu + `CLAUDE.md` ở worktree `ai-v2-coach-integration
 | M9.1-T3 | Nhật ký quyết định tách APPROVED/PROPOSED | `DECISIONS.md` | T2 | Không có đề xuất AI nào ở APPROVED | rà soát | DONE |
 | M9.1-T4 | Kế hoạch và checkpoint | `IMPLEMENTATION-PLAN.md`, `CURRENT-STATE.md` | T1–T3 | Next action chính xác, STOP conditions | rà soát | DONE |
 | M9.1-T5 | `CLAUDE.md` bootstrap | `CLAUDE.md` | T4 | Một mục ngắn, không trùng quy tắc cũ | diff | DONE |
-| M9.1-T6 | Verify tài liệu (commit local nếu được phép) | — | T1–T5 | Đường dẫn tồn tại; chỉ file tài liệu thay đổi | script kiểm tra: 50 tên file + đường dẫn đều resolve; scan secret sạch | DONE (verify); **commit bị hook chặn, không vượt hook** |
-Blockers: hook pre-commit chặn `docs/` và `.md` (chính sách dự án). **Dừng sau M9.1.**
+| M9.1-T6 | Verify tài liệu (commit local nếu được phép) | — | T1–T5 | Đường dẫn tồn tại; chỉ file tài liệu thay đổi | script kiểm tra: 50 tên file + đường dẫn đều resolve; scan secret sạch | DONE — commit `37f3d99a` sau khi có ngoại lệ hẹp cho hook (D-010); không dùng `ALLOW_TEST_ARTIFACTS=1` |
+Hook pre-commit đã được xử lý bằng ngoại lệ đường dẫn chính xác (D-010) + test `scripts/git/check-staged-test-artifacts.test.mjs`.
 
 ---
-## M9.2 — Cầu nối AI Coach ↔ V2 phía server (cờ OFF, chỉ fake)  `NOT_STARTED / BLOCKED_ON_DECISION`
-Mục tiêu: một lớp tích hợp mỏng, **không nhân đôi logic**, giữ lịch sử V1 và có đường lui V1. Giả thiết thiết kế **B** (ARCHITECTURE §3) — chỉ làm khi D-P01 được duyệt.
+## M9.2 — Cầu nối AI Coach ↔ V2 phía server (cờ OFF, chỉ fake)  `ACTIVE` — chỉ T1 đã làm; T2–T5 CHƯA mở
+Mục tiêu: một lớp tích hợp mỏng, **không nhân đôi logic**, giữ lịch sử V1 và có đường lui V1. Phương án **B** đã được chủ dự án chốt (D-008).
 | ID | Task | File dự kiến | Dependencies | Acceptance | Tests | Status |
 |---|---|---|---|---|---|---|
-| M9.2-T0 | Chủ dự án chọn phương án adapter và duyệt ngoại lệ pin | `DECISIONS.md` | M9.1 | D-P01, D-P02 chuyển APPROVED | — | BLOCKED_ON_DECISION |
-| M9.2-T1 | Ánh xạ kết quả V2 → payload AI Coach (`answer`, `sessionId`, `safetyNotes`; không bịa `structuredBlocks`/`evidenceUsed`) | file mới phía ai-service (tên do T0 quyết) | T0 | hàm thuần, mọi `status` V2 có ánh xạ | unit (fixture) | NOT_STARTED |
+| M9.2-T0 | Chủ dự án chọn phương án adapter và duyệt ngoại lệ pin | `DECISIONS.md` | M9.1 | D-P01 → D-008 APPROVED (B). **D-P02 (ngoại lệ pin) vẫn PROPOSED** | — | DONE một phần: adapter chốt; pin chưa duyệt |
+| M9.2-T1 | Lõi cầu nối: chọn capability trước runtime, V1 mặc định, một nhánh chính, phân loại kết quả V2 (answered/partial/blocked/unavailable), SAFETY INVARIANT không fallback, không bịa metadata. **Chưa gắn vào route** | `backend/services/ai-service/src/services/coach-v2-bridge.ts` + `__tests__/coach-v2-bridge.test.ts` | T0 | mọi `status` V2 có ánh xạ; flag OFF ⇒ V1 | TEST FIXTURE: 13/13 pass; `tsc --noEmit` sạch; pin cô lập/HR-27/V1 safety + endpoint policy xanh; commit `76ae18e1` | **DONE (PASS)** |
 | M9.2-T2 | Ghi lượt V2 vào lịch sử V1 (`ChatSession`/`Conversation`) | như trên + `repositories/conversation.repository.ts` (dùng, không sửa) | T1 | `/ai/sessions` thấy lượt V2; không ghi khi V2 bị chặn trước routing nếu chính sách V1 yêu cầu | integration với **DB test cô lập** hoặc repository giả | NOT_STARTED |
 | M9.2-T3 | Chọn V1/V2 theo cờ + danh sách người dùng; V2 lỗi/404/503 → V1 | như trên + `agent-v2/flag.ts` (đọc) | T1 | cờ OFF ⇒ hành vi V1 **y hệt**; V2 lỗi ⇒ trả lời bằng V1, không đổi danh tính | test hồi quy V1 (`ai-endpoint-policy`, `safety-*`) + test fallback | NOT_STARTED |
 | M9.2-T4 | Tương thích SSE: phát `status` → một `token` → `done` từ kết quả JSON, hoặc để FE dùng đường JSON | như trên | T1 | FE hiện có parse được | test parser phía FE (fixture) | NOT_STARTED |
-| M9.2-T5 | Cập nhật pin (isolation allowlist, RI-2, HR-27) theo phê duyệt | `agent-v2-isolation.test.ts`, `agent-v2-release-identity.test.ts`, `agent-v2-hybrid-router.test.ts` | T0 | mọi pin xanh sau cập nhật có ghi chú owner | các test pin | BLOCKED_ON_DECISION |
-Blockers: D-P01, D-P02; P1 an toàn mở **không** chặn M9.2 vì cờ OFF, nhưng chặn bất kỳ phơi bày người dùng (M9.5).
+| M9.2-T5 | Cập nhật pin (isolation allowlist, RI-2, HR-27) theo phê duyệt | `agent-v2-isolation.test.ts`, `agent-v2-release-identity.test.ts`, `agent-v2-hybrid-router.test.ts` | T0 | mọi pin xanh sau cập nhật có ghi chú owner | các test pin | **PIN UPDATE REQUIRED** — RI-2 hiện fail có chủ đích (thêm `services/coach-v2-bridge.ts`, `CLAUDE.md`, `scripts/git/check-staged-test-artifacts*.mjs`). Chờ chủ dự án duyệt (D-P02). Pin chưa bị sửa |
+Ghi chú T2–T4: T2 (lịch sử) cần quyết định D-P04; T3 (nối route + `V2Executor` thật qua `multi-agent-runtime` bằng dynamic import) sẽ chạm file V1 và allowlist cô lập; T4 (SSE) cần D-P07. Bridge hiện loại mọi yêu cầu có `clientRequestId` (FE luôn gửi) nên chưa phục vụ FE thật cho tới D-P08.
+Blockers: D-P02; P1 an toàn mở **không** chặn M9.2 vì cờ OFF, nhưng chặn bất kỳ phơi bày người dùng (M9.5).
 
 ---
 ## M9.3 — Tích hợp frontend (chỉ DEV/cờ)  `NOT_STARTED`
@@ -66,4 +67,4 @@ Blockers: M9.2; mobile 360–412px chưa kiểm (demo M8-D mới desktop).
 `M9.1 → M9.2 → M9.3` làm được hoàn toàn offline với cờ OFF/fixture. `M9.4` có thể song song một phần với M9.2–M9.3 nhưng **chặn mọi phơi bày người dùng**. `M9.5` cuối cùng. Chỉ một milestone ACTIVE; song song kỹ thuật bên trong cần chủ dự án cho phép.
 
 ## Task đầu tiên có thể làm sau M9.1
-`M9.2-T0` — quyết định của chủ dự án (không phải việc code). Nếu D-P01 chọn B: `M9.2-T1`.
+`M9.2-T2` (ghi lượt V2 vào lịch sử V1) **hoặc** `M9.2-T3` (nối route + executor thật + fallback "chưa bắt đầu") — chỉ khi chủ dự án mở rõ ràng; cả hai chạm file V1 và cần chốt D-P02 trước. Không tự mở.

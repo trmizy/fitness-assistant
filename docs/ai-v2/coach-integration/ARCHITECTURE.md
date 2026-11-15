@@ -49,7 +49,7 @@ Không suy từ web demo rằng chức năng đã có ở repo chính.
 Người dùng → AI Coach UI hiện có → API/Gateway hiện có → [Coach integration layer] → Supervisor V2 → Router
   → Training | Nutrition | Recovery | Progress → dịch vụ Gymini hiện có + dữ liệu được phép → Answer safety → AI Coach UI
 ```
-**Coach integration layer** là phần *duy nhất* cần thiết kế mới. Nhiệm vụ đề xuất (PROPOSED, chưa được phê duyệt — DECISIONS P-001):
+**Coach integration layer** là phần *duy nhất* cần thiết kế mới. Nhiệm vụ (phương án B đã được chủ dự án chọn — DECISIONS D-008; các chi tiết còn lại vẫn PROPOSED):
 1. Quyết định lượt nào đi V2 (cờ/tập người dùng), **mặc định V1**; V2 lỗi/404/503 thì **quay về V1** mà không đổi danh tính.
 2. Chuyển kết quả V2 (JSON) thành hợp đồng mà UI đã hiểu (`answer`, `sessionId`, `safetyNotes`), và giữ UI hiện có: loading, retry, lịch sử, xác thực, phiên.
 3. Ghi lượt trò chuyện vào lịch sử V1 (`ChatSession`/`Conversation`) để `/ai/sessions` thấy lượt V2.
@@ -64,7 +64,9 @@ Người dùng → AI Coach UI hiện có → API/Gateway hiện có → [Coach 
 | SSE | UI phải bỏ stream cho V2 | có thể phát một `token` + `done` | khó |
 | Ràng buộc kiến trúc | không chạm V1 | **cần ngoại lệ** pin isolation/RI-2 (file V1 mới được chạm `agent-v2`) | trộn trách nhiệm |
 | Rủi ro | lệch hành vi, mất history | cần phê duyệt chủ dự án | dùng cờ ở nhiều lớp |
-Khuyến nghị của AI (PROPOSED): **B**, vì giữ lịch sử, xác thực và idempotency ở một nơi, và frontend chỉ cần một khác biệt nhỏ. Quyết định thuộc chủ dự án.
+**Đã chốt: B** (D-008, 2026-11-16). Lý do: giữ lịch sử, xác thực và idempotency ở một nơi, frontend chỉ cần khác biệt nhỏ.
+
+**Đã cài ở M9.2-T1 (`services/coach-v2-bridge.ts`, commit `76ae18e1`):** lõi quyết định + điều phối thuần, tắt mặc định, *chưa gắn vào route nào*. (1) `decideCoachRoute` chọn capability trước khi chạm runtime: chỉ câu hỏi read-only thường qua JSON, từ người dùng cuối đã xác minh và nằm trong allowlist (mặc định từ chối tất cả), không có `clientRequestId`, hội thoại chưa thuộc V1. (2) `runCoachBridge` chạy V2 tối đa một lần qua `V2Executor` được tiêm; kết quả ánh xạ answered/partial/blocked/unavailable. (3) **SAFETY INVARIANT (D-009):** sau khi V2 đã xử lý, quyết định của V2 là cuối cùng — không về V1; chỉ về V1 khi V2 chứng minh chưa bắt đầu (`DISABLED`, `V2NotStartedError`). (4) Không bịa `structuredBlocks`/`evidenceUsed`/`safetyNotes`/lịch sử. Việc nối vào `/ai/ask`, lịch sử, SSE là các task sau (T2–T4), chưa mở.
 
 ## 4. Quyền truy cập và dòng dữ liệu
 - Danh tính: chỉ từ `req.context` do `requireAuth` (`middleware/auth.middleware.ts`); `callerKind` = `user` hoặc `gateway_user` (V2 yêu cầu bearer). **Không** tin `userId` trong body.
