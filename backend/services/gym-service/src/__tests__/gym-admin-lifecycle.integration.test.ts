@@ -6,8 +6,10 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '../repositories/prisma';
-import { call, cleanup, installStubs, makeGym, newAdmin, removeStubs, skip, startApp, stopApp, token } from './complaint-case.test-helpers';
+import { userClient } from '../clients/user.client';
+import { call, cleanup, installStubs, makeGym, newAdmin, notices, patch, removeStubs, skip, startApp, stopApp, token } from './complaint-case.test-helpers';
 
 test.before(async () => {
   if (skip) return;
@@ -121,4 +123,89 @@ test('Q5: only an admin may call it; unknown action / extra keys / unknown branc
   await prisma.gym.update({ where: { id: g.gym.id }, data: { status: 'PENDING_REVIEW' } });
   assert.equal((await lifecycle(g.gym.id, admin.tok, okBody)).status, 409, 'a branch that was never approved is in review, not suspended');
   assert.equal((await lifecycle(g.gym.id, admin.tok, { action: 'CLOSE_TEMPORARILY', reason: 'Lý do đủ dài để qua kiểm tra' })).status, 409);
+});
+
+// ── FIX3-NOTIFY: owner + scoped-manager notices ──
+async function addManager(partnerId: string, scopedGymIds: string[], status: 'ACTIVE' | 'REVOKED' | 'INVITED' = 'ACTIVE') {
+  const userId = `mgr-${randomUUID().slice(0, 8)}`;
+  await prisma.gymPartnerAccount.create({ data: { partnerId, userId, role: 'MANAGER', scopedGymIds, status, activatedAt: status === 'ACTIVE' ? new Date() : null } });
+  return userId;
+}
+
+test('FIX3-NOTIFY: each of the four actions sends exactly one notice to the owner and to every ACTIVE manager scoped to the branch (nobody else), with action, branch, reason and reopen date', { skip }, async () => {
+  const g = await makeGym();
+  const admin = newAdmin();
+  const mgr = await addManager(g.partner.id, [g.gym.id]);
+  const mgrOther = await addManager(g.partner.id, [randomUUID()]); // scoped to a different branch
+  const mgrRevoked = await addManager(g.partner.id, [g.gym.id], 'REVOKED');
+  const mgrInvited = await addManager(g.partner.id, [g.gym.id], 'INVITED');
+  const expected = [g.ownerId, mgr].sort();
+  const run = async (body: unknown) => {
+    notices.length = 0;
+    const r = await lifecycle(g.gym.id, admin.tok, body);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    return notices.filter((n) => n.eventType.startsWith('GYM_BRANCH_'));
+  };
+  const check = (got: typeof notices, eventType: string) => {
+    assert.equal(got.length, 2, 'exactly one notice per recipient');
+    assert.deepEqual(got.map((n) => n.userId).sort(), expected);
+    for (const n of got) {
+      assert.equal(n.eventType, eventType);
+      assert.equal(n.entityId, g.gym.id);
+      assert.ok(n.text.includes('Case Gym'), 'names the branch');
+    }
+    for (const bad of [mgrOther, mgrRevoked, mgrInvited]) assert.ok(!got.some((n) => n.userId === bad));
+  };
+
+  const reason = 'Có nhiều báo cáo về vệ sinh phòng tập';
+  const suspended = await run({ action: 'SUSPEND', reason });
+  check(suspended, 'GYM_BRANCH_SUSPENDED');
+  assert.ok(suspended[0].text.includes(`Lý do: ${reason}.`));
+  assert.ok(suspended[0].text.includes('Hội viên đang có gói vẫn check-in bình thường tới hết hạn'));
+  assert.ok(suspended[0].text.includes('không bán gói mới'));
+
+  const lifted = await run({ action: 'LIFT_SUSPENSION', reason: 'Đã khắc phục xong' });
+  check(lifted, 'GYM_BRANCH_SUSPENSION_LIFTED');
+  assert.ok(lifted[0].text.includes('Đã khắc phục xong'));
+
+  const reopenAt = new Date(Date.now() + 7 * 86_400_000);
+  const vn = new Date(reopenAt.getTime() + 7 * 3_600_000);
+  const dateStr = `${String(vn.getUTCDate()).padStart(2, '0')}/${String(vn.getUTCMonth() + 1).padStart(2, '0')}/${vn.getUTCFullYear()}`;
+  const closed = await run({ action: 'CLOSE_TEMPORARILY', reason: 'Sửa chữa hệ thống điện', expectedReopenAt: reopenAt.toISOString() });
+  check(closed, 'GYM_BRANCH_TEMPORARILY_CLOSED');
+  assert.ok(closed[0].text.includes('Lý do: Sửa chữa hệ thống điện.'));
+  assert.ok(closed[0].text.includes(`đến ${dateStr}`), closed[0].text);
+  assert.ok(closed[0].text.includes('tạm dừng check-in'));
+
+  const reopened = await run({ action: 'REOPEN', reason: 'Đã sửa xong' });
+  check(reopened, 'GYM_BRANCH_REOPENED');
+
+  // a refused action (409 / 400) sends nothing
+  notices.length = 0;
+  assert.equal((await lifecycle(g.gym.id, admin.tok, { action: 'REOPEN' })).status, 409);
+  assert.equal((await lifecycle(g.gym.id, admin.tok, { action: 'SUSPEND', reason: 'ngắn' })).status, 400);
+  assert.equal(notices.length, 0);
+});
+
+test('FIX3-NOTIFY: no reopen date -> no date in the text; an owner who is not in the partner table is still told once; a failing notification never fails the admin action', { skip }, async () => {
+  const g = await makeGym();
+  const admin = newAdmin();
+  notices.length = 0;
+  const r = await lifecycle(g.gym.id, admin.tok, { action: 'CLOSE_TEMPORARILY', reason: 'Nâng cấp phòng tập' });
+  assert.equal(r.status, 200);
+  assert.equal(notices.length, 1);
+  assert.equal(notices[0].userId, g.ownerId);
+  assert.ok(!/\d{2}\/\d{2}\/\d{4}/.test(notices[0].text), 'no date when none was given');
+
+  const restore = patch(userClient, 'notifyUser', async () => {
+    throw new Error('user-service down');
+  });
+  try {
+    const down = await lifecycle(g.gym.id, admin.tok, { action: 'REOPEN' });
+    assert.equal(down.status, 200, JSON.stringify(down.body));
+    assert.equal(down.body.data.operationalStatus, 'OPEN');
+  } finally {
+    restore();
+  }
+  assert.equal((await prisma.gym.findUniqueOrThrow({ where: { id: g.gym.id } })).operationalStatus, 'OPEN');
 });

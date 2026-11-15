@@ -35,7 +35,7 @@ const TOKENS: Record<string, string> = {
 };
 const O = 'tok-owner-a', M = 'tok-manager-a', R1 = 'tok-recep-a1', R2 = 'tok-recep-a2', ACCT = 'tok-acct-a', OB = 'tok-owner-b', RB = 'tok-recep-b';
 
-const gym = { a1: randomUUID(), a2: randomUUID(), a3closed: randomUUID(), b1: randomUUID() };
+const gym = { a1: randomUUID(), a2: randomUUID(), a3closed: randomUUID(), a4susp: randomUUID(), b1: randomUUID() };
 const brand = { a: randomUUID(), b: randomUUID() };
 const plan = { a: randomUUID(), aVisits: randomUUID(), b: randomUUID() };
 const partnerIds: string[] = [];
@@ -122,6 +122,7 @@ test.before(async () => {
       { id: gym.a1, ownerId: id.ownerA, brandId: brand.a, name: 'Assist A1', address: '1 A St', status: 'APPROVED' },
       { id: gym.a2, ownerId: id.ownerA, brandId: brand.a, name: 'Assist A2', address: '2 A St', status: 'APPROVED' },
       { id: gym.a3closed, ownerId: id.ownerA, brandId: brand.a, name: 'Assist A3', address: '3 A St', status: 'APPROVED', operationalStatus: 'TEMPORARILY_CLOSED' },
+      { id: gym.a4susp, ownerId: id.ownerA, brandId: brand.a, name: 'Assist A4', address: '4 A St', status: 'SUSPENDED', operationalStatus: 'OPEN' },
       { id: gym.b1, ownerId: id.ownerB, brandId: brand.b, name: 'Assist B1', address: '1 B St', status: 'APPROVED' },
     ],
   });
@@ -529,6 +530,12 @@ integrationTest('luật gói: chi nhánh đang tạm đóng → GYM_NOT_ACTIVE (
   const other = await call(R2, 'POST', `${FD(gym.a2)}/assisted-checkin`, photoBody(mm)); // mua ở a1, vào ở a2
   assert.equal(other.status, 201, JSON.stringify(other.body));
   assert.equal((await prisma.gymCheckIn.findUniqueOrThrow({ where: { id: other.body.data.checkinId } })).gymId, gym.a2);
+});
+
+integrationTest('chi nhánh bị admin SUSPENDED nhưng vẫn OPEN: lễ tân vẫn check-in được hội viên đang có gói (quyết định 15/11 4a)', async () => {
+  const mm = await mkMember();
+  const r = await call(O, 'POST', `${FD(gym.a4susp)}/assisted-checkin`, photoBody(mm));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
 });
 
 integrationTest('trừ buổi đúng như QR: buổi CUỐI chuyển gói sang EXPIRED ngay; sau đó không check-in thêm được', async () => {

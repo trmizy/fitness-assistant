@@ -4,6 +4,7 @@ import { logger } from '@gym-coach/shared';
 import { resolvePartnerId } from './gym-listing.helpers';
 import { partnerAuditService } from './partner-audit.service';
 import { MIN_ADMIN_REASON_LENGTH } from './gym-listing.schemas';
+import { sendLifecycleNotices } from './gym-lifecycle-notify';
 
 /**
  * FIX2-ADMIN Q5 (15/11/2026, Ngài approved): the admin's own "tạm khoá / mở khoá / tạm đóng cửa / mở cửa lại" of ONE branch.
@@ -12,14 +13,15 @@ import { MIN_ADMIN_REASON_LENGTH } from './gym-listing.schemas';
  * `operationalStatus` (is it physically open). The admin gets one action on each, every one with a reason that lands on the
  * PartnerAuditLog row (action GYM_ADMIN_STATUS_CHANGED, metadata.axis says which switch):
  *
- *   SUSPEND            APPROVED  -> SUSPENDED   reason required. Hidden from search, no new purchase, no check-in. Existing memberships are
+ *   SUSPEND            APPROVED  -> SUSPENDED   reason required. Hidden from search, no new purchase; members with a running membership still check in (owner decision 15/11). Existing memberships are
  *                                              NOT cancelled or refunded here (refund stays the separate, deliberate admin action).
  *   LIFT_SUSPENSION    SUSPENDED -> APPROVED    reason optional.
  *   CLOSE_TEMPORARILY  OPEN      -> TEMPORARILY_CLOSED  reason required (shown to the public + owner), optional expected reopen date.
  *   REOPEN             TEMPORARILY_CLOSED -> OPEN       reason optional.
  *
  * PERMANENTLY_CLOSED stays an OWNER-only, one-way decision (gymService.setOperationalStatus) and is not offered here.
- * No owner notification: user-service's NotificationEventType has no value for it yet (needs a user-service enum migration).
+ * FIX3-NOTIFY: after the change + audit row the owner and the managers scoped to the branch get one in-app notice each
+ * (gym-lifecycle-notify.ts, best-effort - a notification failure never fails the action).
  */
 export const GYM_LIFECYCLE_ACTIONS = ['SUSPEND', 'LIFT_SUSPENSION', 'CLOSE_TEMPORARILY', 'REOPEN'] as const;
 export type GymLifecycleAction = (typeof GYM_LIFECYCLE_ACTIONS)[number];
@@ -105,6 +107,7 @@ export const gymAdminLifecycleService = {
     } else {
       logger.warn({ gymId, action: input.action }, '[Gym] owner has no partner record - PartnerAuditLog row skipped');
     }
+    await sendLifecycleNotices({ gym, partnerId, action: input.action, reason, expectedReopenAt: input.action === 'CLOSE_TEMPORARILY' ? input.expectedReopenAt ?? null : null });
     return updated;
   },
 };
