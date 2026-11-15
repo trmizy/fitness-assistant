@@ -48,6 +48,18 @@ export interface CheckoutResult {
   provider: string;
 }
 
+/** payment-service's answer to the supplementary membership refund (see refundMembershipSupplement). */
+export interface MembershipSupplementAnswer {
+  refundedToClient: string;
+  shortfall: string;
+  gymShare?: string;
+  gymDebited?: string;
+  gymShortfall?: string;
+  platformShare?: string;
+  platformDebited?: string;
+  obligationId?: string;
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a membership. The client pays the gateway directly; the
@@ -193,10 +205,12 @@ export const paymentClient = {
   },
 
   /**
-   * Q5 (14/11/2026): the SUPPLEMENTARY refund of an after-refund appeal won by the member - ONLY the difference, idempotent on `idempotencyKey`.
-   * CONTRACT with payment-service: POST /internal/contracts/membership-appeal-supplement  { transactionId, gymId, clientId, amount, label, idempotencyKey, entityOrigin? }
-   *   -> data { refundedToClient: string, shortfall: string }. NOTE: that route is NOT built yet (open question: which wallet funds the difference). Until it exists the call fails 404/501,
-   * the executor records the case as EXEC_BLOCKED (nothing moved, retriable) - it never invents a ledger movement of its own.
+   * Q5/Q1: the SUPPLEMENTARY refund of an after-refund appeal won by the member - ONLY the difference, idempotent on `idempotencyKey` (GYM_CASE_APPEAL_SUPPLEMENT:<approvalId>).
+   * payment-service route: POST /internal/contracts/membership-appeal-supplement  { transactionId, gymId, clientId, amount, label, idempotencyKey, entityOrigin? }
+   *   -> data { refundedToClient, shortfall, gymShare, gymDebited, gymShortfall, platformShare, platformDebited, obligationId? }.
+   * `shortfall` is what the MEMBER is still short and is always "0.00" (the member is paid in full); `gymShortfall` is the part of the gym's 90 % share its wallet could not fund -
+   * the platform fronted it and payment-service recorded a GYM_DEBT obligation (obligationId). A 4xx (409 EXCEEDS_REFUNDABLE / PLATFORM_FUNDS_INSUFFICIENT / MEMBERSHIP_PENDING_NOT_RELEASED ...)
+   * means nothing moved: the executor records the case as EXEC_BLOCKED (retriable). It never invents a ledger movement of its own.
    */
   async refundMembershipSupplement(body: {
     transactionId: string;
@@ -208,7 +222,7 @@ export const paymentClient = {
     entityOrigin?: EntityOrigin;
   }) {
     try {
-      return await paymentRequest<{ refundedToClient: string; shortfall: string }>({ method: 'POST', path: '/internal/contracts/membership-appeal-supplement', timeout: 20_000, body });
+      return await paymentRequest<MembershipSupplementAnswer>({ method: 'POST', path: '/internal/contracts/membership-appeal-supplement', timeout: 20_000, body });
     } catch (e: any) {
       const status: number | undefined = e?.response?.status ?? e?.status;
       throw Object.assign(new Error(e?.response?.data?.error?.code || e?.message || 'SUPPLEMENT_REFUND_FAILED'), status ? { status } : {});

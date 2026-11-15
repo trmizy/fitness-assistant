@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { gymController } from '../controllers/gym.controller';
+import { gymAdminLifecycleController } from '../controllers/gym-admin-lifecycle.controller';
 import { brandController } from '../controllers/brand.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -33,6 +34,8 @@ router.use('/amenities', adminAmenityRouter);
 // phase; ?status= defaults to everything (the UI defaults it to PENDING_REVIEW itself).
 router.get('/gyms', asyncHandler(gymController.listAllForAdmin));
 router.patch('/gyms/:id/status', asyncHandler(gymController.setStatus));
+// FIX2-ADMIN Q5 - suspend / lift suspension / temporarily close / reopen ONE branch, each with a reason + audit row.
+router.patch('/gyms/:id/lifecycle', asyncHandler(gymAdminLifecycleController.apply));
 // "Quản lý gym & owner" — admin editing a branch's own details directly (name/address take
 // effect immediately, no owner-approval round-trip — see gymService.updateGymAsAdmin).
 router.patch('/gyms/:id', validateBody(gymAdminUpdateSchema), asyncHandler(gymController.updateAsAdmin));

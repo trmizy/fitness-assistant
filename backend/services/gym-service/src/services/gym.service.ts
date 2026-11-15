@@ -14,7 +14,8 @@ import { LEGACY_NO_HEADER, createdFlowVersionData, amenitiesRequired, amenitiesR
 import { listingReviewRequiredError } from './client-compat.service';
 import type { GymOperationalStatus, PartnerAccountRole } from '../generated/prisma';
 import { brandLogoUrl } from './gym-photo-url';
-import { gymPublicRepository, toPublicGymDto, toPublicGymPhotos } from './gym-public';
+import { gymPublicRepository, toPublicGymDto, toPublicGymPhotos, toPublicOperatingHours } from './gym-public';
+import { gymHoursRepository } from '../repositories/gym-hours.repository';
 import { directEditTx } from './gym-listing-apply.service';
 import { recordPartnerAudit, resolvePartnerId } from './gym-listing.helpers';
 import { partnerAuditService } from './partner-audit.service';
@@ -108,10 +109,11 @@ export const gymService = {
   async getApprovedById(id: string) {
     const gym = await gymPublicRepository.findPublishedById(id);
     if (!gym) throw err('Gym not found', 404);
-    const [r, siblings, logoUrl] = await Promise.all([
+    const [r, siblings, logoUrl, hoursRows] = await Promise.all([
       reviewRepository.aggregateForGym(id),
       gym.brandId ? gymPublicRepository.findPublishedBranchesOfBrand(gym.brandId) : Promise.resolve([]),
       brandLogoUrl(gym.brand?.logoKey),
+      gymHoursRepository.findByGym(id),
     ]);
     return {
       ...toPublicGymDto(gym, { brandLogoUrl: logoUrl }),
@@ -124,6 +126,8 @@ export const gymService = {
       // Chỉ ảnh PUBLISHED (kiểu PublishedGymSource bảo đảm), URL cố định /media/gym-photos/:id — bucket vẫn riêng tư,
       // mỗi lần tải lại sẽ được chuyển hướng sang link ký tạm mới.
       photos: toPublicGymPhotos(gym),
+      // Giờ mở cửa chủ gym nhập ở wizard (Q8/N14G-03). [] = chưa có dữ liệu → client ẩn mục này.
+      operatingHours: toPublicOperatingHours(hoursRows),
       // Mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ chi nhánh.
       brandBranches: siblings.map((b) => ({
         id: b.id,

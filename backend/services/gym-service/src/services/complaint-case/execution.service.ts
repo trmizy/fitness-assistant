@@ -73,7 +73,7 @@ export interface ExecDeps {
   /** The money exit. Default: membershipService.refundByAdmin. */
   refund: (membershipId: string, actorId: string, reason: 'TRANSACTION_ERROR' | 'GYM_CLOSED' | 'GYM_VIOLATION_SUSPENDED', caseDecisionId: string, fixedAmount: number) => Promise<RefundResult>;
   /** Q5: the supplementary refund of an after-refund appeal (ONLY the difference). Default: paymentClient.refundMembershipSupplement, idempotent on the key. */
-  supplement?: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string }, amount: number, decisionId: string) => Promise<{ refundedToClient?: string; shortfall?: string }>;
+  supplement?: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string }, amount: number, decisionId: string) => Promise<{ refundedToClient?: string; shortfall?: string; gymShortfall?: string; obligationId?: string }>;
   /** Replays the payment-service release of a membership by its key (idempotent read of the first answer). Default: paymentClient.releaseMembershipPending with refund 0. */
   replayRelease: (m: { id: string; paymentTxnId: string; gymId: string; clientId: string; ptUserId: string | null }) => Promise<{ refundedToClient?: string; shortfall?: string }>;
   /** TEST SEAM - awaited after the case was set to EXECUTING and before money is asked to move. */
@@ -291,11 +291,15 @@ async function runAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string
     if (!m || !m.paymentTxnId) throw caseError(409, 'MEMBERSHIP_NOT_REFUNDABLE', 'Gói hội viên không còn giao dịch thanh toán để hoàn thêm');
     let refundedNow = '0.00';
     let shortfall = '0.00';
+    let gymShortfall: string | null = null;
+    let gymDebtObligationId: string | null = null;
     if (amount > 0) {
       try {
         const r = await (deps.supplement ?? defaultExecDeps().supplement!)({ id: m.id, paymentTxnId: m.paymentTxnId, gymId: m.gymId, clientId: m.clientId }, amount, approval.id);
         refundedNow = String(r?.refundedToClient ?? amount.toFixed(2));
-        shortfall = String(r?.shortfall ?? '0.00');
+        shortfall = String(r?.shortfall ?? '0.00'); // what the MEMBER is short: payment-service pays the member in full, so this is 0.00
+        gymShortfall = r?.gymShortfall && Number(r.gymShortfall) > 0 ? String(r.gymShortfall) : null; // Q1: the gym's unfunded share (platform fronted it, GYM_DEBT obligation)
+        gymDebtObligationId = r?.obligationId ? String(r.obligationId) : null;
       } catch (e: any) {
         if (typeof e?.status === 'number' && e.status >= 400 && e.status < 500) {
           await recordBlocked(c, approval, actor, `SUPPLEMENT_REFUSED:${String(e?.message ?? e?.status)}`.slice(0, 200), 'Hệ thống chưa hoàn thêm được phần chênh lệch (cổng thanh toán từ chối hoặc chưa hỗ trợ). Chưa có khoản tiền nào được chuyển');
@@ -303,7 +307,7 @@ async function runAndFinish(l: Loaded, actor: Actor, deps: ExecDeps, via: string
         throw e; // 5xx / network: stays EXECUTING; reconcile re-runs it (same payment idempotency key)
       }
     }
-    observation = { refundAmount: String(amount), refundedToClient: refundedNow, releaseShortfall: shortfall, clawbackObserved: true, observedAt: new Date().toISOString() };
+    observation = { refundAmount: String(amount), refundedToClient: refundedNow, releaseShortfall: shortfall, clawbackObserved: true, ...(gymShortfall ? { gymShortfall, gymDebtObligationId } : {}), observedAt: new Date().toISOString() };
     if (deps.afterRefund) await deps.afterRefund();
     return finish(c, approval, actor, via, observation);
   }

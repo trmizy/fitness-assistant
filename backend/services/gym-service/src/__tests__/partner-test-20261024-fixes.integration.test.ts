@@ -234,6 +234,9 @@ integrationTest('C1-11: a revoked staff account gets 403 PARTNER_ACCESS_REVOKED 
   assert.equal(r.status, 403);
   assert.equal(r.body.error.code, 'PARTNER_ACCESS_REVOKED');
   assert.equal(r.body.error.message, 'Quyền truy cập của bạn vào phòng gym đã bị thu hồi');
+  // FIX2 Q9: the revoked screen names the gym (the brand's public name) — nothing else about the partner leaks.
+  assert.equal(r.body.error.gymName, 'C Brand');
+  assert.deepEqual(Object.keys(r.body.error).sort(), ['code', 'gymName', 'message']);
   // an invited-but-not-active account keeps the generic code
   const invited = user('GYM_OWNER', 'invited');
   await prisma.gymPartnerAccount.create({ data: { partnerId: o.partner.id, userId: invited.id, role: 'ACCOUNTANT', scopedGymIds: [], status: 'INVITED' } as any });
@@ -270,4 +273,27 @@ integrationTest('C3-11: opening the Add-Branch wizard repeatedly reuses the one 
   gymIds.push(oldA, oldB);
   assert.notEqual(oldA, oldB);
   assert.ok(![a, b].includes(oldA) && ![a, b].includes(oldB));
+});
+
+// ── FIX2 Q8 / N14G-03 ─────────────────────────────────────────────────────────────────────────
+integrationTest('FIX2-Q8: the PUBLIC gym detail (no token) carries the wizard opening hours; no hours saved -> [] (not seven closed days); nothing private leaks', async () => {
+  const o = await operationalOwner();
+  const before = await call(null, 'GET', `/gyms/${o.gym.id}`);
+  assert.equal(before.status, 200, JSON.stringify(before.body));
+  assert.deepEqual(before.body.data.operatingHours, []);
+
+  const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day) =>
+    day === 'SUNDAY' ? { day, type: 'CLOSED' } : day === 'SATURDAY' ? { day, type: 'ALL_DAY' } : { day, type: 'OPEN', openMinute: 300, closeMinute: 1260 },
+  );
+  const put = await call(o.token, 'PUT', `/owner/gyms/${o.gym.id}/hours`, { days });
+  assert.equal(put.status, 200, JSON.stringify(put.body));
+
+  const after = await call(null, 'GET', `/gyms/${o.gym.id}`);
+  assert.equal(after.status, 200);
+  const hours = after.body.data.operatingHours;
+  assert.equal(hours.length, 7);
+  assert.deepEqual(hours[0], { day: 'MONDAY', type: 'OPEN', openMinute: 300, closeMinute: 1260 });
+  assert.deepEqual(hours[5], { day: 'SATURDAY', type: 'ALL_DAY', openMinute: null, closeMinute: null });
+  assert.deepEqual(hours[6], { day: 'SUNDAY', type: 'CLOSED', openMinute: null, closeMinute: null });
+  assert.ok(hours.every((h: any) => !('id' in h) && !('gymId' in h)), 'no row ids on the public detail');
 });

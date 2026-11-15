@@ -4,7 +4,7 @@
  * to 1,000, four-eyes, idempotent), OVERTURN in favour of the gym (decision + a manual-handling record, the member's wallet is never debited).
  *
  * BACKEND INTEGRATION: REAL HTTP into the real gym-service app + real service code on the isolated *_test database. TEST FIXTURE: gym / membership rows, the auth token
- * table, captured notifications, a RECORDING FAKE of payment-service's HTTP client (the real ledger has no supplementary-refund route yet), and the case's refund quote
+ * table, captured notifications, a RECORDING FAKE of payment-service's HTTP client (it answers with the REAL route's response shape; the route itself - gym 90 % from the gym wallet, platform 10 % from REVENUE, GYM_DEBT when the gym is short, idempotent, over-cap refused - is covered by payment-service's membership-appeal-supplement.integration.test.ts), and the case's refund quote
  * (price 700,000, amount set to a chosen value so the money arithmetic is exact and independent of the clock).
  */
 import test from 'node:test';
@@ -20,7 +20,8 @@ import { approve, call, cleanup, driveToProposal, installStubs, newAdmin, ok, pa
 const pay = {
   releases: [] as Array<{ id: string; refund: string }>,
   supplements: [] as Array<{ amount: string; key: string; transactionId: string; clientId: string }>,
-  supplementFailure: null as null | { status: number },
+  supplementFailure: null as null | { status: number; code?: string },
+  gymShortfall: null as null | string,
   adminNotices: [] as string[],
   restore: [] as Array<() => void>,
 };
@@ -36,9 +37,16 @@ test.before(async () => {
     }),
     patch(paymentClient, 'clawbackReferral', async () => ({ recovered: '0.00', shortfall: '0.00' })),
     patch(paymentClient, 'refundMembershipSupplement', async (b: any) => {
-      if (pay.supplementFailure) throw Object.assign(new Error('NOT_FOUND'), { status: pay.supplementFailure.status });
+      if (pay.supplementFailure) throw Object.assign(new Error(pay.supplementFailure.code ?? 'NOT_FOUND'), { status: pay.supplementFailure.status });
       pay.supplements.push({ amount: b.amount, key: b.idempotencyKey, transactionId: b.transactionId, clientId: b.clientId });
-      return { refundedToClient: b.amount, shortfall: '0.00' };
+      // the REAL route's answer (payment-service Q1): the member is paid in full (shortfall 0.00); gymShortfall is the gym's unfunded share, fronted by the platform
+      const amount = Number(b.amount);
+      const gymShare = Math.floor(amount * 0.9);
+      const gymShortfall = Number(pay.gymShortfall ?? 0);
+      return {
+        refundedToClient: b.amount, shortfall: '0.00', gymShare: gymShare.toFixed(2), gymDebited: (gymShare - gymShortfall).toFixed(2), gymShortfall: gymShortfall.toFixed(2),
+        platformShare: (amount - gymShare).toFixed(2), platformDebited: (amount - gymShare + gymShortfall).toFixed(2), ...(gymShortfall > 0 ? { obligationId: 'obl-test-1' } : {}),
+      };
     }),
     patch(userClient, 'notifyAdmins', async (p: any) => {
       pay.adminNotices.push(p.eventType);
@@ -61,6 +69,7 @@ test.beforeEach(() => {
   pay.supplements.length = 0;
   pay.adminNotices.length = 0;
   pay.supplementFailure = null;
+  pay.gymShortfall = null;
 });
 test.afterEach(async () => {
   if (skip) return;
@@ -282,4 +291,39 @@ test('Q5: choosing an after-refund result when NO refund was ever executed is re
   assert.equal(normal.status, 201, JSON.stringify(normal.body));
   assert.equal(normal.body.data.outcome, 'REFUND_TRANSACTION_ERROR');
   assert.equal(normal.body.data.afterRefundAppeal, undefined);
+});
+
+test('Q1 OVERTURN for the MEMBER with a SHORT gym wallet: the member is still paid in full (case BUSINESS_DONE, LEDGER_POSTED_FULL), the gym shortfall + GYM_DEBT obligation id are recorded in the execution answer', { skip }, async () => {
+  const { d, rev } = await refundedThenReviewed(630_000, 'ESTABLISHED');
+  ok(await call('POST', `/admin/complaint-cases/${d.caseId}/proposal`, rev.tok, { appealResult: 'OVERTURN_MEMBER' }), 201, 'proposal');
+  const approver2 = await decideAndExecute(d, rev);
+  pay.gymShortfall = '5000';
+  const ex = await call('POST', `/admin/complaint-cases/${d.caseId}/execute`, approver2.tok, {});
+  assert.equal(ex.status, 200, JSON.stringify(ex.body));
+  assert.equal(ex.body.data.money.state, 'LEDGER_POSTED_FULL', 'the member is not short: the platform fronted the gym part');
+  assert.equal(ex.body.data.money.postedToMemberWallet, '70000.00');
+  assert.equal(ex.body.data.money.memberShortfall, null);
+  assert.equal(ex.body.data.closure, 'CLOSED');
+  const row = await prisma.gymCaseExecution.findFirstOrThrow({ where: { caseId: d.caseId, state: 'BUSINESS_DONE', outcome: 'REFUND_APPEAL_SUPPLEMENT' } });
+  const payment = (row.response as any).payment;
+  assert.equal(payment.gymShortfall, '5000.00');
+  assert.equal(payment.gymDebtObligationId, 'obl-test-1');
+  assert.equal(pay.supplements.length, 1);
+});
+
+test('Q1 OVERTURN for the MEMBER: payment-service refusing with 409 (EXCEEDS_REFUNDABLE / PLATFORM_FUNDS_INSUFFICIENT) leaves the case EXEC_BLOCKED with that reason, nothing paid, and the retry pays once', { skip }, async () => {
+  const { d, rev } = await refundedThenReviewed(630_000, 'ESTABLISHED');
+  ok(await call('POST', `/admin/complaint-cases/${d.caseId}/proposal`, rev.tok, { appealResult: 'OVERTURN_MEMBER' }), 201, 'proposal');
+  const approver2 = await decideAndExecute(d, rev);
+  pay.supplementFailure = { status: 409, code: 'PLATFORM_FUNDS_INSUFFICIENT' };
+  const blocked = await call('POST', `/admin/complaint-cases/${d.caseId}/execute`, approver2.tok, {});
+  assert.equal(blocked.status, 409);
+  assert.equal(blocked.body.error.code, 'EXEC_BLOCKED');
+  assert.match(String(blocked.body.error.details?.reason ?? ''), /SUPPLEMENT_REFUSED:PLATFORM_FUNDS_INSUFFICIENT/);
+  assert.equal(pay.supplements.length, 0);
+  pay.supplementFailure = null;
+  const retry = await call('POST', `/admin/complaint-cases/${d.caseId}/execute`, approver2.tok, {});
+  assert.equal(retry.status, 200, JSON.stringify(retry.body));
+  assert.equal(pay.supplements.length, 1);
+  assert.equal(retry.body.data.closure, 'CLOSED');
 });

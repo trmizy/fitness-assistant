@@ -244,3 +244,31 @@ export function toPublicGymDto(
 export function toPublicGymPhotos(g: PublishedGymSource): PublicGymPhotoDto[] {
   return g.photos.map((p) => ({ id: p.id, category: p.category, isCover: p.isCover, url: gymPhotoMediaUrl(p.id) }));
 }
+
+export interface PublicOperatingHoursDto {
+  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  type: 'OPEN' | 'CLOSED' | 'ALL_DAY';
+  openMinute: number | null;
+  closeMinute: number | null;
+}
+
+const WEEK_ORDER: PublicOperatingHoursDto['day'][] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+/**
+ * The opening hours the owner entered in the wizard, shaped for the PUBLIC detail (no ids, no timestamps).
+ * A branch that never saved any row (legacy / seeded) answers [] — "no hours known", NOT seven closed days — so
+ * the client hides the section instead of claiming the gym is shut all week. Any day missing from a partial set is
+ * filled as CLOSED; the result is always Monday..Sunday.
+ */
+export function toPublicOperatingHours(
+  rows: { day: string; type: string; openMinute: number | null; closeMinute: number | null }[],
+): PublicOperatingHoursDto[] {
+  if (!rows.length) return [];
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+  return WEEK_ORDER.map((day) => {
+    const r = byDay.get(day);
+    if (!r || (r.type !== 'OPEN' && r.type !== 'ALL_DAY')) return { day, type: 'CLOSED' as const, openMinute: null, closeMinute: null };
+    if (r.type === 'ALL_DAY') return { day, type: 'ALL_DAY' as const, openMinute: null, closeMinute: null };
+    return { day, type: 'OPEN' as const, openMinute: r.openMinute, closeMinute: r.closeMinute };
+  });
+}

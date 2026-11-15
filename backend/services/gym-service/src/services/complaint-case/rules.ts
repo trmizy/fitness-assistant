@@ -370,6 +370,9 @@ export interface PaymentObservation {
   clawbackObserved?: boolean; // false when the clawback answer was not seen (e.g. replay after a crash)
   clawbackRecovered?: string | null;
   clawbackShortfall?: string | null;
+  /** Q1: supplementary refund only - the part of the gym's share its wallet could not fund (the platform fronted it; payment-service holds the GYM_DEBT obligation). The MEMBER is paid in full. */
+  gymShortfall?: string | null;
+  gymDebtObligationId?: string | null;
   observedAt?: string | null;
 }
 const num = (v: unknown) => {
