@@ -18,7 +18,10 @@ export const BLOCKED = [
   [/(^|\/)docs\//, "docs/ reports (kept local)"],
   [/\.md$/i, ".md reports (only README.md is pushed)"],
 ];
-const ALLOWED = [/^README\.md$/i];
+// Narrow, explicit exceptions (owner-approved 2026-11-16 for the M9 AI Coach architecture continuity set).
+// Only these exact paths: the project rules file and the flat coach-integration doc folder. Everything else under
+// docs/ and every other .md stays blocked. Do NOT widen with wildcards over docs/ or **/*.md.
+const ALLOWED = [/^README\.md$/i, /^CLAUDE\.md$/, /^docs\/ai-v2\/coach-integration\/[A-Za-z0-9_-]+\.md$/];
 
 export function blockedReason(file) {
   if (ALLOWED.some((re) => re.test(file))) return null;

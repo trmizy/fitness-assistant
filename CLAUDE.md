@@ -121,3 +121,15 @@ See `gymini-ui-information-architecture`.
 - `gymini-real-e2e-verification` — any "test/verify/done/production-ready" request.
 - `gymini-parallel-agent-safety` — dirty working tree, Codex mentioned, large multi-service change.
 - `gymini-scope-control` — large/ambiguous requests, "continue everything", audits.
+
+## GYMINI AI COACH V2 — ARCHITECTURE CONTINUITY
+
+Multi-Agent V2 exists to **upgrade the existing AI Coach**, not to become a standalone chatbot. V1 must keep working; V2 is a controlled, opt-in capability (never an automatic replacement). Applies to any task touching `agent-v2*`, `/ai/ask`, `/ai/v2/*`, the AI Coach UI, or the V2 demo.
+
+- Before any such task, read `docs/ai-v2/coach-integration/`: `ARCHITECTURE.md`, `IMPLEMENTATION-PLAN.md`, `CURRENT-STATE.md`, `DECISIONS.md` (these exist only on the branch/worktree that contains them — check first; if absent, stop and ask).
+- Verify `git rev-parse HEAD`, branch and worktree against `CURRENT-STATE.md` before editing. Do not guess which milestone is done; use the task table and its evidence.
+- Work only inside the single ACTIVE milestone/task. Do not widen scope. Do not tune benchmarks or labels to raise a score. Do not pass release blockers listed in `CURRENT-STATE.md`.
+- Only the project owner turns a PROPOSED item in `DECISIONS.md` into APPROVED. Never record an AI proposal as an owner decision.
+- If a document contradicts the code, stop and record the contradiction in `CURRENT-STATE.md`; the code wins, and a document is never proof that something ran.
+- At the end of every session update `CURRENT-STATE.md` and the task status. When context or tokens run low, write the checkpoint **before** stopping.
+- No deploy, push, or AWS/Nova/Bedrock/real-DB call without explicit approval (see `DECISIONS.md` D-001, D-006).
