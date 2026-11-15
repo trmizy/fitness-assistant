@@ -21,10 +21,12 @@ export interface OutcomeUsage { modelCalls: number; inputTokens: number; outputT
 /**
  * What a system did on one case (codes and agent ids only — never the question, a prompt or raw model output).
  *   stage              the stage that ENDED the pre-routing part (annotation-schema ObservedStage).
- *   selected           agents the system selected/ran, in the system's own order (the first one is its PRIMARY — see the
- *                      FLAGGED assumption in routing-evaluator-metrics.ts). Must be [] unless stage is REACHED_ROUTING.
- *   executedAgents     OPTIONAL. The agents actually delegated/run — reported SEPARATELY from `selected` (the routing decision) and
- *                      never defaulted from it. A subset of `selected`; [] unless stage is REACHED_ROUTING.
+ *   selected           agents the routing DECISION selected (supervisor trace decision.agents), in the system's own order. The ORDER carries no
+ *                      meaning for G7 / G8 (owner decision F1: membership; selected[0] is not "the primary"). Measured by G7 / G8 (F8).
+ *                      Must be [] unless stage is REACHED_ROUTING.
+ *   executedAgents     OPTIONAL. The agents actually delegated/run (supervisor trace delegations) — reported SEPARATELY from `selected` and
+ *                      NEVER feeding G7 / G8 (owner decision F8); never defaulted from `selected`. A subset of `selected`; [] unless
+ *                      stage is REACHED_ROUTING.
  *   deferred           agents the system itself deferred (cap / session).
  *   deferredDisclosed  the subset of `deferred` that the answer named to the user.
  *   usage              optional model usage of the routing call(s), if the system reports it.
