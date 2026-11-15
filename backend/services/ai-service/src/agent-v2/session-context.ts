@@ -130,7 +130,16 @@ export function statedMinorAgeStatement(ctx: { owner: string; sessionId: string;
 }
 /** Active stated-minor entry present in validated, expiry-applied entries. */
 export function hasStatedMinorAge(entries: ContextEntry[]): boolean {
-  return entries.some((e) => e.subject === STATED_MINOR_SUBJECT && e.kind === "USER_STATEMENT" && isActive(e) && e.value.underEighteen === true);
+  return statedMinorAgeEntry(entries) !== undefined;
+}
+/**
+ * M8-B S1: the EARLIEST active stated-minor entry (validated, expiry-applied entries). Used to promote a session-scoped restriction
+ * into the user-scoped store: only its opaque turn id and creation time are read — never anything else of the session.
+ */
+export function statedMinorAgeEntry(entries: ContextEntry[]): ContextEntry | undefined {
+  return entries
+    .filter((e) => e.subject === STATED_MINOR_SUBJECT && e.kind === "USER_STATEMENT" && isActive(e) && e.value.underEighteen === true)
+    .sort((a, b) => a.createdAt - b.createdAt)[0];
 }
 
 /**

@@ -12,11 +12,14 @@
  *                text), count, expiresAt }. It never stores the question, the stated age, a profile age or any model text.
  *                The only fact kept is the boolean "reported under 18".
  *   TTL          MINOR_RESTRICTION_TTL_MS (30 days), SLIDING: every new minor statement extends expiresAt (it never
- *                shortens, even with a skewed clock). An expired record is "no restriction" ONLY because the clock says so —
- *                never because it could not be read. [OWNER POLICY DECISION: 30 days is a conservative placeholder.]
+ *                shortens, even with a skewed clock). M8-B S1: EXPIRY IS A REVIEW POINT, NOT A PERMISSION. An expired record
+ *                (status "EXPIRED") STILL RESTRICTS exactly like an active one: the user said they are under 18 and nothing
+ *                that happened since is evidence of adulthood, so the clock alone never yields ADULT. Inconsistent timestamps
+ *                (expiresAt <= lastReportedAt, lastReportedAt < firstReportedAt ...) are CORRUPT (fail closed), not "expired".
+ *                [OWNER POLICY DECISION: the 30 days is only the review point; 30 days is a conservative placeholder.]
  *   clearing     NOTHING in this module or in the supervisor clears it. No later statement ("tôi 30 tuổi"), no verified adult
- *                profile age, no new session removes it (a profile >= 18 against an active restriction is only reported as a
- *                conflict by resolveAgeVerdict, status stays MINOR). Removal = expiry, or an out-of-band operator action.
+ *                profile age, no new session, and no elapsed time removes it (a profile >= 18 against a restriction is only
+ *                reported as a conflict by resolveAgeVerdict, status stays MINOR). Removal = an out-of-band operator action only.
  *                [OWNER POLICY DECISION: who may clear it and how (e.g. an account-owner re-verification) is NOT implemented.]
  *   concurrency  versioned compare-and-set: a writer that read an older version is rejected and re-reads (bounded retries),
  *                the merge is monotonic (count up, first report kept, expiry only extends). Two racing writers both land.
@@ -24,6 +27,15 @@
  *                "CORRUPT", which the supervisor treats exactly like an unreadable session (personal advice refused,
  *                general knowledge answered general-only). It is never read as "no restriction". A corrupt record met on
  *                a WRITE (the user just stated a minor age) is replaced by a fresh valid one (strictly more restrictive).
+ *   quarantine   M8-B S1: a restriction that could NOT be persisted (store write error / timeout / CAS conflict / corrupt) is not
+ *                dropped: it is held in a PendingMinorRestrictions registry (write-ahead: registered BEFORE the write attempt),
+ *                keyed by the authenticated owner. While an owner is pending the supervisor treats them as restricted, retries the
+ *                persistence on every turn, and only removes the pending entry after a durable write. The same registry holds a
+ *                restriction found in a legacy SESSION-scoped entry whose promotion to the user store failed.
+ *                MULTI-INSTANCE LIMIT (honest): the registry is in-process memory. Another instance, or this one after a restart,
+ *                does NOT know about it; until the store is writable the restriction is enforced only by the instance that
+ *                received the statement (and by the best-effort session-scoped copy for the same sessionId). This is NOT a
+ *                durable guarantee; only a persistent store satisfying the production conditions below closes it.
  *   isolation    every call carries the owner; the key embeds the owner; a record whose `owner` differs from the caller's is
  *                CORRUPT (defence in depth against a mis-keyed adapter), never applied to another user.
  *
@@ -83,7 +95,10 @@ export interface MinorRestrictionStore {
 export type MinorRestrictionRead =
   | { status: "ACTIVE"; record: MinorRestrictionRecord }
   | { status: "NONE" }
-  /** The record exists but its expiresAt is past (by the injected clock) — not an error, and not active. */
+  /**
+   * The record is valid but its expiresAt is past (by the injected clock) — its REVIEW POINT passed. Not an error, and NOT permission:
+   * the supervisor keeps restricting (see the header). Reported separately only so the trace shows why.
+   */
   | { status: "EXPIRED" }
   | { status: "UNAVAILABLE" | "CORRUPT" };
 
@@ -96,7 +111,9 @@ export function isValidMinorRestriction(raw: unknown, owner: string): raw is Min
   if (!r || typeof r !== "object" || Array.isArray(r)) return false;
   if (r.schema !== MINOR_RESTRICTION_SCHEMA || r.owner !== owner || r.kind !== "SELF_REPORTED_MINOR" || r.provenance !== "USER_REPORTED" || r.underEighteen !== true) return false;
   if (!isTime(r.firstReportedAt) || !isTime(r.lastReportedAt) || !isTime(r.expiresAt)) return false;
-  if (r.firstReportedAt > r.lastReportedAt || r.expiresAt <= r.firstReportedAt) return false;
+  // M8-B S1 (Codex P2): timestamps must be mutually consistent. The expiry has to lie after the LAST report (a sliding TTL can only
+  // extend it), not merely after the first one — an expiresAt earlier than lastReportedAt would read as "expired" = tampering / skew.
+  if (r.firstReportedAt > r.lastReportedAt || r.expiresAt <= r.lastReportedAt) return false;
   if (!isTurnId(r.firstTurnId) || !isTurnId(r.lastTurnId)) return false;
   if (typeof r.reportCount !== "number" || !Number.isSafeInteger(r.reportCount) || r.reportCount < 1) return false;
   return true;
@@ -164,6 +181,95 @@ export async function recordMinorRestriction(store: MinorRestrictionStore, owner
     }
   }
   return "conflict";
+}
+
+// ── M8-B S1: pending (quarantined) restrictions ──────────────────────────────────────────────────────────────────────────
+/** One report not yet durably stored: opaque turn id + report time only — never text, an age or a session id. */
+export interface PendingReport { readonly turnId: string; readonly now: number }
+
+/** Upper bound of owners held in quarantine per process (each entry is ~100 bytes). Beyond it a NEW owner cannot be quarantined (reported, see persist). */
+export const PENDING_MINOR_RESTRICTION_MAX_OWNERS = 10_000;
+
+/**
+ * In-process quarantine of restrictions that could not (yet) be persisted, keyed by the AUTHENTICATED owner. Not durable, not shared
+ * between instances (see the header). Entries are removed only by `remove` after a durable write of exactly that entry.
+ */
+export interface PendingMinorRestrictions {
+  has(owner: string): boolean;
+  get(owner: string): PendingReport | null;
+  /** Idempotent: an owner already pending keeps its (earlier) entry. Returns the entry, or null when the registry is full. */
+  add(owner: string, report: PendingReport): PendingReport | null;
+  /** Removes the owner only if `entry` is still its current entry (a newer concurrent add is never lost). */
+  remove(owner: string, entry: PendingReport): void;
+  readonly size: number;
+}
+
+export function createPendingMinorRestrictions(maxOwners: number = PENDING_MINOR_RESTRICTION_MAX_OWNERS): PendingMinorRestrictions {
+  const m = new Map<string, PendingReport>();
+  return {
+    has: (owner) => m.has(owner),
+    get: (owner) => m.get(owner) ?? null,
+    add(owner, report) {
+      const cur = m.get(owner);
+      if (cur) return cur;
+      if (!OWNER_RE.test(owner) || m.size >= Math.max(0, maxOwners)) return null;
+      const entry: PendingReport = Object.freeze({ turnId: isTurnId(report.turnId) ? report.turnId : "unknown", now: report.now });
+      m.set(owner, entry);
+      return entry;
+    },
+    remove(owner, entry) { if (m.get(owner) === entry) m.delete(owner); },
+    get size() { return m.size; },
+  };
+}
+
+const pendingByStore = new WeakMap<object, PendingMinorRestrictions>();
+/** The quarantine that goes with a store object (one per store = one per runtime / process). */
+export function pendingMinorRestrictionsFor(store: MinorRestrictionStore): PendingMinorRestrictions {
+  let p = pendingByStore.get(store);
+  if (!p) { p = createPendingMinorRestrictions(); pendingByStore.set(store, p); }
+  return p;
+}
+
+export interface PersistResult {
+  outcome: "ok" | "conflict" | "unavailable" | "corrupt";
+  /** True when the owner is (still) quarantined after this call. False after "ok", or when the registry was full. */
+  quarantined: boolean;
+}
+
+/**
+ * Durably record a restriction for `owner`, with quarantine. `report` = a NEW report (a statement this turn, or a legacy session
+ * restriction being promoted) or null (= only retry what is already pending).
+ *   1. an older pending entry is retried FIRST; if it still cannot be stored, the owner stays quarantined and the store is not hit again;
+ *   2. a new report is registered as pending BEFORE the write attempt (write-ahead: an exception or crash window never drops it),
+ *      then written under compare-and-set; only an "ok" removes the entry.
+ * Never throws. A failure is never an "ok" and never an empty state.
+ */
+export async function persistMinorRestriction(store: MinorRestrictionStore, pending: PendingMinorRestrictions, owner: string, report: PendingReport | null): Promise<PersistResult> {
+  const old = pending.get(owner);
+  if (old) {
+    const r = await attempt(store, owner, old);
+    if (r === "ok") pending.remove(owner, old);
+    else return { outcome: r, quarantined: pending.has(owner) };
+  }
+  if (!report) return { outcome: "ok", quarantined: false };
+  const entry = pending.add(owner, report);
+  const outcome = await attempt(store, owner, entry ?? report);
+  if (outcome === "ok" && entry) pending.remove(owner, entry);
+  return { outcome, quarantined: pending.has(owner) };
+}
+
+/**
+ * One write attempt per pending entry at a time: concurrent turns that find the same in-flight entry JOIN the running attempt instead of
+ * writing it again (no double count; the monotonic merge would make a duplicate harmless, but a race should not inflate the record).
+ */
+const inflight = new WeakMap<object, Promise<Awaited<ReturnType<typeof recordMinorRestriction>>>>();
+function attempt(store: MinorRestrictionStore, owner: string, entry: PendingReport): ReturnType<typeof recordMinorRestriction> {
+  let p = inflight.get(entry);
+  if (!p) {
+    p = recordMinorRestriction(store, owner, entry).finally(() => { inflight.delete(entry); });
+    inflight.set(entry, p);
+  }
+  return p;
 }
 
 /**

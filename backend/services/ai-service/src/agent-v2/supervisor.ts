@@ -26,11 +26,11 @@ import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
 import { isAggressiveBodyChangeRequest, isPersonalizedHighRiskRequest } from "./personalized-request";
 import { sanitizeHybridMeta, sanitizeRoutingUsage, ROUTING_MODEL_LIMITS, type HybridRoutingMeta } from "./hybrid-router";
-import { readMinorRestriction, recordMinorRestriction, type MinorRestrictionStore } from "./minor-restriction";
+import { pendingMinorRestrictionsFor, persistMinorRestriction, readMinorRestriction, type MinorRestrictionStore, type PendingMinorRestrictions, type PersistResult } from "./minor-restriction";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
-  agentsSatisfiedBySession, entriesFromFacts, hasCorruptStatedMinorEntry, hasStatedMinorAge, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
-  statedMinorAgeStatement, updateSession, userStatement, type AnySessionStore, type ContextEntry,
+  agentsSatisfiedBySession, entriesFromFacts, hasCorruptStatedMinorEntry, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
+  statedMinorAgeEntry, statedMinorAgeStatement, updateSession, userStatement, type AnySessionStore, type ContextEntry,
 } from "./session-context";
 import type {
   AgentBudget, AgentCapability, AgentCompletion, AgentEvidence, AgentExecutionPolicy, AgentId, AgentRequest, AgentResult,
@@ -281,7 +281,8 @@ export interface SupervisorTrace {
   /** M4: session-context counts (never values, subjects of user data or the session id). */
   session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number; store?: "OK" | "UNAVAILABLE" | "CORRUPT"; saved?: "OK" | "CONFLICT" | "FAILED" } | null;
   /** M8-A2: the user-scoped minor restriction store — codes only (never the record, the owner, a key or a timestamp). Present only when a restriction store is configured. */
-  minorRestriction?: { store: "OK" | "UNAVAILABLE" | "CORRUPT"; state: "NONE" | "ACTIVE" | "EXPIRED" | "UNKNOWN"; written?: "OK" | "CONFLICT" | "FAILED" };
+  /** M8-B S1: state PENDING = a restriction that could not be durably stored yet is quarantined in this process and enforced (EXPIRED = past its review point, STILL restricting). */
+  minorRestriction?: { store: "OK" | "UNAVAILABLE" | "CORRUPT"; state: "NONE" | "ACTIVE" | "EXPIRED" | "PENDING" | "UNKNOWN"; written?: "OK" | "CONFLICT" | "FAILED" };
   /** M7-P0.1: general-only output policy removals at composition (rule → count; never the removed text). */
   generalOnlyOutput?: Record<string, number> | null;
   /** M7-P4.2: hybrid routing record (re-sanitized: enum codes, registered agent ids, bounded numbers — never prompt/output text). */
@@ -341,6 +342,11 @@ export interface SupervisorDeps {
    * (unit tests): the restriction then lives only in the session scope, exactly as before M8-A2 (NOT a production configuration).
    */
   restrictionStore?: MinorRestrictionStore;
+  /**
+   * M8-B S1: the quarantine of restrictions that could not be persisted (in-process, NOT shared between instances). Absent → one per
+   * restriction store object (pendingMinorRestrictionsFor). Tests inject separate ones to model separate instances.
+   */
+  pendingRestrictions?: PendingMinorRestrictions;
   /** M7-P4.3: the runtime's resolved routing mode, recorded in the trace (validated against the known codes). */
   routingMode?: { requested: string; effective: string; reason: string };
 }
@@ -475,21 +481,27 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   const statesMinor = statesMinorAge(question);
   // M8-A2: the AUTHORITATIVE copy is user-scoped (authenticated userId only, no sessionId needed), written first with
   // compare-and-set. If it cannot be persisted this turn is refused — a restriction is never silently dropped.
+  // M8-B S1: a statement that cannot be persisted is QUARANTINED for the authenticated owner (never dropped): the turn is refused and every
+  // later turn of that owner (any session, or none) is treated as restricted while persistence is retried; it is lifted only by a durable write.
   const restrictionStore = deps.restrictionStore ?? null;
-  if (restrictionStore && statesMinor) {
-    const w = await recordMinorRestriction(restrictionStore, identity.userId, { turnId, now: now() });
-    minorRestrictionTrace = w === "ok" ? { store: "OK", state: "ACTIVE", written: "OK" }
-      : { store: w === "corrupt" ? "CORRUPT" : "UNAVAILABLE", state: "UNKNOWN", written: w === "conflict" ? "CONFLICT" : "FAILED" };
-    if (w !== "ok") return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
+  const pending = restrictionStore ? (deps.pendingRestrictions ?? pendingMinorRestrictionsFor(restrictionStore)) : null;
+  const restrictionTrace = (p: PersistResult): NonNullable<SupervisorTrace["minorRestriction"]> => (p.outcome === "ok" ? { store: "OK", state: "ACTIVE", written: "OK" }
+    : { store: p.outcome === "corrupt" ? "CORRUPT" : "UNAVAILABLE", state: p.quarantined ? "PENDING" : "UNKNOWN", written: p.outcome === "conflict" ? "CONFLICT" : "FAILED" });
+  let statementNotPersisted = false;
+  if (restrictionStore && pending && (statesMinor || pending.has(identity.userId))) {
+    // an older pending entry is retried first (also on a turn that states nothing); the new statement is registered BEFORE its write
+    const p = await persistMinorRestriction(restrictionStore, pending, identity.userId, statesMinor ? { turnId, now: now() } : null);
+    minorRestrictionTrace = restrictionTrace(p);
+    statementNotPersisted = statesMinor && p.outcome !== "ok";
   }
   if (store && statesMinor) {
+    // best effort even when the user-scoped write failed: the session copy lets ANY instance that sees this sessionId promote it later
     const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
     const written = await updateSession(store, identity.userId, sessionId!, (cur) => pruneForStorage(mergeEntries(reusableContext(cur, identity.userId, sessionId!, at.now).all, [statedMinorAgeStatement(at)])));
-    if (written !== "ok") {
-      sessionCounts = { ...EMPTY_SESSION_COUNTS, store: written === "corrupt" ? "CORRUPT" : "UNAVAILABLE", saved: "FAILED" };
-      return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
-    }
+    if (written !== "ok") sessionCounts = { ...EMPTY_SESSION_COUNTS, store: written === "corrupt" ? "CORRUPT" : "UNAVAILABLE", saved: "FAILED" };
+    if (written !== "ok" && !statementNotPersisted) return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
   }
+  if (statementNotPersisted) return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
   const safety = checkInputSafety(question);
   if (!safety.safe) return finish("SAFETY_BLOCKED", safety.message ?? TEXT.FAILED);
   const folded = foldVi(question);
@@ -502,12 +514,20 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // M8-A2: the user-scoped restriction is read on EVERY turn (with or without a sessionId). Anything but a definite answer
   // (store error, timeout, corrupt / foreign / malformed record) is "restriction state unknown" → same fail-closed path as an
   // unreadable session. An expired record is "no restriction" only because the clock says so.
-  if (restrictionStore) {
+  // M8-B S1: (a) a record past its review point (EXPIRED) STILL restricts — the clock alone never yields ADULT; (b) an owner whose restriction
+  // is quarantined (not yet durably stored) is restricted whatever the store says — sampled BEFORE the read so a flush completing in between
+  // is seen as an ACTIVE record, never as neither.
+  let userRecordActive = false; let pendingNow = false;
+  if (restrictionStore && pending) {
+    pendingNow = pending.has(identity.userId);
     const rr = await readMinorRestriction(restrictionStore, identity.userId, now());
     const written = minorRestrictionTrace?.written;
-    if (rr.status === "ACTIVE") { sessionMinor = true; minorRestrictionTrace = { store: "OK", state: "ACTIVE", ...(written ? { written } : {}) }; }
-    else if (rr.status === "NONE" || rr.status === "EXPIRED") minorRestrictionTrace = { store: "OK", state: rr.status, ...(written ? { written } : {}) };
-    else { sessionUnavailable = true; minorRestrictionTrace = { store: rr.status, state: "UNKNOWN", ...(written ? { written } : {}) }; }
+    if (rr.status === "ACTIVE" || rr.status === "EXPIRED") sessionMinor = true;
+    if (rr.status === "ACTIVE") userRecordActive = true;
+    if (rr.status === "UNAVAILABLE" || rr.status === "CORRUPT") sessionUnavailable = true;
+    if (pendingNow) sessionMinor = true;
+    minorRestrictionTrace = { store: rr.status === "UNAVAILABLE" || rr.status === "CORRUPT" ? rr.status : "OK",
+      state: pendingNow ? "PENDING" : rr.status === "UNAVAILABLE" || rr.status === "CORRUPT" ? "UNKNOWN" : rr.status, ...(written ? { written } : {}) };
   }
   if (store) {
     const loadedRead = await readSession(store, identity.userId, sessionId!);
@@ -518,8 +538,18 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
     } else if (loadedRead.status === "ok") {
       const loaded = reusableContext(loadedRead.raw, identity.userId, sessionId!, now());
       reuse = loaded.reuse;
-      sessionMinor = sessionMinor || hasStatedMinorAge(loaded.all);
+      const legacy = statedMinorAgeEntry(loaded.all);
+      sessionMinor = sessionMinor || legacy !== undefined;
       sessionCounts = { used: true, ...loaded.reuse.counts, stored: 0, store: "OK" };
+      // M8-B S1 (Codex P1): a valid SESSION-scoped restriction is PROMOTED into the user-scoped store (compare-and-set, with quarantine), so
+      // other sessions / no session are restricted too. If it cannot be stored it is quarantined: this turn stays restricted (sessionMinor)
+      // and so does every later turn of this owner in this process until the write succeeds. Only the opaque turn id + time are carried.
+      if (legacy && restrictionStore && pending && !userRecordActive && !pendingNow) { // (pending: this turn already retried it in stage 1)
+        const at = Number.isSafeInteger(legacy.createdAt) && legacy.createdAt > 0 ? Math.min(legacy.createdAt, now()) : now();
+        const p = await persistMinorRestriction(restrictionStore, pending, identity.userId, { turnId: legacy.source?.turnId ?? "unknown", now: at });
+        minorRestrictionTrace = restrictionTrace(p);
+        if (p.outcome === "ok") userRecordActive = true;
+      }
     } else {
       sessionUnavailable = true;
       sessionCounts = { ...EMPTY_SESSION_COUNTS, store: loadedRead.status === "corrupt" ? "CORRUPT" : "UNAVAILABLE" };
