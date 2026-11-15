@@ -26,9 +26,10 @@ import { progressEvidenceOf } from "./progress-tools";
 import { createIntentDecisionProvider } from "./routing-planner";
 import { isAggressiveBodyChangeRequest, isPersonalizedHighRiskRequest } from "./personalized-request";
 import { sanitizeHybridMeta, sanitizeRoutingUsage, ROUTING_MODEL_LIMITS, type HybridRoutingMeta } from "./hybrid-router";
+import { readMinorRestriction, recordMinorRestriction, type MinorRestrictionStore } from "./minor-restriction";
 import { calendarDateIn, calendarDaysBetween } from "./user-calendar";
 import {
-  agentsSatisfiedBySession, entriesFromFacts, hasStatedMinorAge, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
+  agentsSatisfiedBySession, entriesFromFacts, hasCorruptStatedMinorEntry, hasStatedMinorAge, invalidate, mergeEntries, pruneForStorage, readSession, reusableContext,
   statedMinorAgeStatement, updateSession, userStatement, type AnySessionStore, type ContextEntry,
 } from "./session-context";
 import type {
@@ -279,6 +280,8 @@ export interface SupervisorTrace {
   routing?: { coverage: string; uncertainty: string; primaryNeed: string | null; deferred: Array<{ agentId: AgentId; needs: string[]; reason: string }> } | null;
   /** M4: session-context counts (never values, subjects of user data or the session id). */
   session?: { used: boolean; loaded: number; reused: number; expired: number; superseded: number; droppedInvalid: number; stored: number; store?: "OK" | "UNAVAILABLE" | "CORRUPT"; saved?: "OK" | "CONFLICT" | "FAILED" } | null;
+  /** M8-A2: the user-scoped minor restriction store — codes only (never the record, the owner, a key or a timestamp). Present only when a restriction store is configured. */
+  minorRestriction?: { store: "OK" | "UNAVAILABLE" | "CORRUPT"; state: "NONE" | "ACTIVE" | "EXPIRED" | "UNKNOWN"; written?: "OK" | "CONFLICT" | "FAILED" };
   /** M7-P0.1: general-only output policy removals at composition (rule → count; never the removed text). */
   generalOnlyOutput?: Record<string, number> | null;
   /** M7-P4.2: hybrid routing record (re-sanitized: enum codes, registered agent ids, bounded numbers — never prompt/output text). */
@@ -331,6 +334,13 @@ export interface SupervisorDeps {
   limitOverrides?: Partial<AgentLimits>;
   /** M4: multi-turn context (in-memory in tests). Absent → single-turn behaviour (M1–M3). M7-P3: or a versioned shared store. */
   sessionStore?: AnySessionStore;
+  /**
+   * M8-A2: USER-scoped self-reported minor restriction (minor-restriction.ts), keyed by the authenticated userId only — independent
+   * of sessionId and of the conversation store. The composition root (multi-agent-runtime.ts) ALWAYS injects one and refuses to
+   * build the runtime in production without a persistent implementation. Absent here = only a direct caller of runSupervisorTurn
+   * (unit tests): the restriction then lives only in the session scope, exactly as before M8-A2 (NOT a production configuration).
+   */
+  restrictionStore?: MinorRestrictionStore;
   /** M7-P4.3: the runtime's resolved routing mode, recorded in the trace (validated against the known codes). */
   routingMode?: { requested: string; effective: string; reason: string };
 }
@@ -422,6 +432,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   let generalOnlyCounts: SupervisorTrace["generalOnlyOutput"] = null;
   let hybridRouting: SupervisorTrace["hybridRouting"] = null;
   let routingClearance: SupervisorTrace["routingClearance"];
+  let minorRestrictionTrace: SupervisorTrace["minorRestriction"];
   const MODE = /^(deterministic|selective|always)$/, MODE_REASON = /^(DEFAULT|CONFIGURED|HYBRID_PRODUCTION_NOT_APPROVED)$/;
   const rm = deps.routingMode;
   const routingMode: SupervisorTrace["routingMode"] = rm && MODE.test(rm.requested) && MODE.test(rm.effective) && MODE_REASON.test(rm.reason)
@@ -442,6 +453,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
         budget: { limit: policy.budget, spent: { ...spent, maxWallTimeMs: durationMs, maxCostUsd: Number(spent.maxCostUsd.toFixed(6)) }, overrun },
         routing: routingSummary, session: sessionCounts, generalOnlyOutput: generalOnlyCounts, hybridRouting, routingMode,
         ...(routingClearance ? { routingClearance } : {}),
+        ...(minorRestrictionTrace ? { minorRestriction: { ...minorRestrictionTrace } } : {}),
       });
     } catch { /* tracing must never change the outcome */ }
     return { supervisorTraceId, turnId, status, answer, decision, results, provenance: results.flatMap((r) => r.evidence), conflicts, executedAgents: executedAgentsOf(results) };
@@ -460,7 +472,17 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   const store = deps.sessionStore && sessionId ? deps.sessionStore : null;
   // M7-P3: the user's own statement of an age under 18 is persisted FIRST — before input safety may stop this turn — so a
   // later turn (on any instance) stays restricted. If it cannot be persisted, this turn is refused (never silently lost).
-  if (store && statesMinorAge(question)) {
+  const statesMinor = statesMinorAge(question);
+  // M8-A2: the AUTHORITATIVE copy is user-scoped (authenticated userId only, no sessionId needed), written first with
+  // compare-and-set. If it cannot be persisted this turn is refused — a restriction is never silently dropped.
+  const restrictionStore = deps.restrictionStore ?? null;
+  if (restrictionStore && statesMinor) {
+    const w = await recordMinorRestriction(restrictionStore, identity.userId, { turnId, now: now() });
+    minorRestrictionTrace = w === "ok" ? { store: "OK", state: "ACTIVE", written: "OK" }
+      : { store: w === "corrupt" ? "CORRUPT" : "UNAVAILABLE", state: "UNKNOWN", written: w === "conflict" ? "CONFLICT" : "FAILED" };
+    if (w !== "ok") return finish("SESSION_UNAVAILABLE", TEXT.SESSION_UNAVAILABLE);
+  }
+  if (store && statesMinor) {
     const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
     const written = await updateSession(store, identity.userId, sessionId!, (cur) => pruneForStorage(mergeEntries(reusableContext(cur, identity.userId, sessionId!, at.now).all, [statedMinorAgeStatement(at)])));
     if (written !== "ok") {
@@ -476,12 +498,27 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   // M7-P3: a store that cannot be read is NOT an empty session (it may hold a safety restriction) — see Gate 1 below
   let sessionUnavailable = false;
   let sessionMinor = false;
+  let sessionCorrupt = false; // M8-A2: a corrupt stated-minor entry must survive this turn (never rewritten away by the end-of-turn session write)
+  // M8-A2: the user-scoped restriction is read on EVERY turn (with or without a sessionId). Anything but a definite answer
+  // (store error, timeout, corrupt / foreign / malformed record) is "restriction state unknown" → same fail-closed path as an
+  // unreadable session. An expired record is "no restriction" only because the clock says so.
+  if (restrictionStore) {
+    const rr = await readMinorRestriction(restrictionStore, identity.userId, now());
+    const written = minorRestrictionTrace?.written;
+    if (rr.status === "ACTIVE") { sessionMinor = true; minorRestrictionTrace = { store: "OK", state: "ACTIVE", ...(written ? { written } : {}) }; }
+    else if (rr.status === "NONE" || rr.status === "EXPIRED") minorRestrictionTrace = { store: "OK", state: rr.status, ...(written ? { written } : {}) };
+    else { sessionUnavailable = true; minorRestrictionTrace = { store: rr.status, state: "UNKNOWN", ...(written ? { written } : {}) }; }
+  }
   if (store) {
     const loadedRead = await readSession(store, identity.userId, sessionId!);
-    if (loadedRead.status === "ok") {
+    if (loadedRead.status === "ok" && hasCorruptStatedMinorEntry(loadedRead.raw, identity.userId, sessionId!)) {
+      // M8-A2 (Codex P2): an entry that CLAIMS to be the stated-minor restriction but is malformed / tampered is never silently ignored
+      sessionUnavailable = true; sessionCorrupt = true;
+      sessionCounts = { ...EMPTY_SESSION_COUNTS, store: "CORRUPT" };
+    } else if (loadedRead.status === "ok") {
       const loaded = reusableContext(loadedRead.raw, identity.userId, sessionId!, now());
       reuse = loaded.reuse;
-      sessionMinor = hasStatedMinorAge(loaded.all);
+      sessionMinor = sessionMinor || hasStatedMinorAge(loaded.all);
       sessionCounts = { used: true, ...loaded.reuse.counts, stored: 0, store: "OK" };
     } else {
       sessionUnavailable = true;
@@ -807,7 +844,7 @@ export async function runSupervisorTurn(turn: SupervisorTurn, deps: SupervisorDe
   if (!answer) answer = status === "BUDGET_EXHAUSTED" ? TEXT.BUDGET_EXHAUSTED : TEXT.FAILED;
 
   // M4: session write — tool-derived typed facts, parsed user statements and conflicts only (never agent text)
-  if (store) {
+  if (store && !sessionCorrupt) {
     const at = { owner: identity.userId, sessionId: sessionId!, turnId, now: now() };
     let incoming: ContextEntry[] = [];
     const invalidated: string[] = [];

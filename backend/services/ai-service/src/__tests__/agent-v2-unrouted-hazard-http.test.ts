@@ -213,14 +213,18 @@ for (const [mode, env] of MODES) {
     }
   });
 
-  test(`UHH-3 [${mode}] minor stated in an earlier turn of the SAME session: the hazard is MINOR_PROTECTED over HTTP; another session of the same adult gets the safe text`, async () => {
+  test(`UHH-3 [${mode}] minor stated in an earlier turn of the SAME session: the hazard is MINOR_PROTECTED over HTTP; another session (or none) of the same user is MINOR_PROTECTED too`, async () => {
     const s = rig({ env });
     const w = await turn(s, Q_MINOR_WATER, { sessionId: "uhh3" });
     assert.equal(w.routes, 0, "the minor statement turn never reaches the routing model");
     const t = await turn(s, OWNER, { sessionId: "uhh3" });
     contract(s, t, `session minor ${mode}`, 0); assert.equal(t.status, "MINOR_PROTECTED"); assert.equal(t.answer, MINOR_TEXT); assert.equal(t.reads, 1);
-    const o = await turn(s, OWNER, { sessionId: "uhh3-other" });
-    assert.equal(o.status, "SAFETY_BLOCKED"); assert.ok(o.answer.startsWith(UNSAFE_PREFIX));
+    // M8-A2: the restriction is USER-scoped — another session (and no session) of the same user is MINOR_PROTECTED too; the old
+    // expectation here (the "safe text" for an adult) was the cross-session bypass
+    for (const sessionId of ["uhh3-other", undefined]) {
+      const o = await turn(s, OWNER, sessionId ? { sessionId } : {});
+      assert.equal(o.status, "MINOR_PROTECTED", String(sessionId)); assert.equal(o.answer, MINOR_TEXT, String(sessionId));
+    }
   });
 
   test(`UHH-4 [${mode}] unchanged: benign OOS / educational stay OUT_OF_SCOPE, V1-blocked keeps the V1 message with 0 reads and 0 routing calls`, async () => {

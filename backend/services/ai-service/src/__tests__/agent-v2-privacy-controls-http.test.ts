@@ -270,7 +270,7 @@ test("PH-6 minor claim in the CURRENT question (adult profile): ZERO routing cal
   }
 });
 
-test("PH-7 minor restriction in the SESSION: turn 2 makes no routing call; it survives ACROSS INSTANCES; an adult claim does not lift it; other sessions / other users are unaffected", async () => {
+test("PH-7 minor restriction in the SESSION: turn 2 makes no routing call; it survives ACROSS INSTANCES; an adult claim does not lift it; other sessions of the same user stay restricted, other users are unaffected", async () => {
   const { store } = versionedStore();
   const s = rig({ env: ALWAYS, instances: 2, store });
   s.use(0);
@@ -283,13 +283,14 @@ test("PH-7 minor restriction in the SESSION: turn 2 makes no routing call; it su
   s.use(0);
   const t3 = await turn(s, "tok-a", Q_ADULT_CLAIM, { sessionId: "ph7-sess" });
   assert.equal(s.routerCalls(), 0, "an adult claim after a minor claim does not lift the restriction"); assert.equal(t3.clr?.reason, "MINOR_RESTRICTION");
-  // controls: another session of the same user, and the same session id for another user, route normally
+  // M8-A2: the restriction is USER-scoped — ANOTHER session of the same user (the old control expected it to route normally: that was
+  // the cross-session bypass) is restricted too; the same session id for ANOTHER user still routes normally
   const t4 = await turn(s, "tok-a", Q_PERS, { sessionId: "ph7-other" });
-  assert.equal(s.routerCalls(), 1); assert.equal(t4.clr?.reason, "VERIFIED_ADULT");
+  assert.equal(s.routerCalls(), 0, "a new session of the same user must not lift the restriction"); assert.equal(t4.clr?.reason, "MINOR_RESTRICTION");
   const t5 = await turn(s, "tok-b", Q_PERS, { sessionId: "ph7-sess" });
-  assert.equal(s.routerCalls(), 2, "user B's session of the same id is empty and B's profile is adult"); assert.equal(t5.clr?.reason, "VERIFIED_ADULT");
+  assert.equal(s.routerCalls(), 1, "user B's session of the same id is empty and B's profile is adult"); assert.equal(t5.clr?.reason, "VERIFIED_ADULT");
   const t6 = await turn(s, "tok-a", Q_PERS, { sessionId: "ph7-sess" });
-  assert.equal(s.routerCalls(), 2, "...and A is still restricted afterwards"); assert.equal(t6.clr?.reason, "MINOR_RESTRICTION");
+  assert.equal(s.routerCalls(), 1, "...and A is still restricted afterwards"); assert.equal(t6.clr?.reason, "MINOR_RESTRICTION");
 });
 
 test("PH-8 profile not verifiable: AGE_UNKNOWN (age null / no profile), 401, 403, 503, transport timeout -> ZERO routing calls, one read, nothing personal read", async () => {

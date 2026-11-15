@@ -133,6 +133,20 @@ export function hasStatedMinorAge(entries: ContextEntry[]): boolean {
   return entries.some((e) => e.subject === STATED_MINOR_SUBJECT && e.kind === "USER_STATEMENT" && isActive(e) && e.value.underEighteen === true);
 }
 
+/**
+ * M8-A2 (Codex P2): a raw stored entry that CLAIMS to be the stated-minor restriction (subject `user.statedMinorAge`) but is not a
+ * valid, owned USER_REPORTED statement of `underEighteen: true` (e.g. `value: null`, tampered owner / verification) is CORRUPT.
+ * `reusableContext` silently drops invalid entries; for this subject that would turn a damaged restriction into "no restriction",
+ * so the supervisor treats it like an unreadable session (fail closed). Superseded / expired history entries are valid and ignored.
+ */
+export function hasCorruptStatedMinorEntry(raw: unknown[], owner: string, sessionId: string): boolean {
+  return raw.some((e) => {
+    const x = e as ContextEntry | null;
+    if (!x || typeof x !== "object" || x.subject !== STATED_MINOR_SUBJECT) return false;
+    return !(validateEntry(x, owner, sessionId) && x.kind === "USER_STATEMENT" && (x.value as Record<string, unknown>).underEighteen === true);
+  });
+}
+
 /** In-memory store (tests / local). Keyed by owner AND session; load re-checks ownership of every entry. */
 export function createInMemorySessionStore(): SessionContextStore & { raw: Map<string, ContextEntry[]> } {
   const raw = new Map<string, ContextEntry[]>();

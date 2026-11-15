@@ -248,7 +248,7 @@ for (const [mode, env] of MODES) {
     }
   });
 
-  test(`SH-3 [${m}] HIGH_RISK + SESSION minor restriction (turn 1 states the age, turn 2 asks), ACROSS INSTANCES sharing one store: 0 routing calls on both; an adult claim does not lift it; another session routes normally`, async () => {
+  test(`SH-3 [${m}] HIGH_RISK + SESSION minor restriction (turn 1 states the age, turn 2 asks), ACROSS INSTANCES sharing one store: 0 routing calls on both; an adult claim does not lift it; another session of the same user stays restricted`, async () => {
     for (const { id, q, routerSays } of HIGH_RISK) {
       const { store } = versionedStore();
       const s = rig({ env, instances: 2, store });
@@ -259,8 +259,11 @@ for (const [mode, env] of MODES) {
       assert.equal(t2.status, "MINOR_PROTECTED", id); assert.equal(t2.answer, MINOR_TEXT, id); assert.deepEqual(t2.tr.ageGate?.minorBy, ["HISTORY"], id);
       s.use(0); const t3 = await turn(s, "tok-a", Q_ADULT_BENCH, { sessionId: "sh3" });
       assert.equal(t3.status, "MINOR_PROTECTED", `${id}: an adult claim cannot lift the restriction`); assert.equal(s.routerCalls(), 0);
+      // M8-A2: the restriction is USER-scoped — another session of the same user is restricted too (the old expectation here, "routes
+      // normally", was the cross-session bypass)
       const t4 = await turn(s, "tok-a", q, { sessionId: "sh3-other", says: routerSays });
-      assert.equal(s.routerCalls(), 1, `${id}: another session of the same verified adult routes (one call)`); assert.equal(t4.status, "ANSWERED", id);
+      assert.equal(s.routerCalls(), 0, `${id}: a NEW session of the same user must not lift the restriction (no routing call)`); assert.equal(t4.status, "MINOR_PROTECTED", id);
+      assert.equal(t4.answer, MINOR_TEXT, id);
     }
   });
 

@@ -26,6 +26,7 @@ import type { AgentId } from "../agent-v2/multi-agent-contracts";
 import type { SupervisorTrace } from "../agent-v2/supervisor";
 import type { TurnTrace } from "../agent-v2/turn-trace";
 import type { AgentModelProvider, AgentModelResponse } from "../agent-v2/model-provider";
+import { createInMemoryMinorRestrictionStore } from "../agent-v2/minor-restriction";
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
 const USER_B = "22222222-2222-4222-8222-222222222222";
@@ -111,6 +112,8 @@ function rig(o: { env?: Partial<Record<(typeof ENV_KEYS)[number], string>>; worl
   let runtime: ReturnType<typeof rt.createMultiAgentRuntime> | null = null;
   seam.factory = () => (runtime ??= (runtimeCreated++, rt.createMultiAgentRuntime({
     providerFor: (a) => prov[a], now: clock, sessionStore: createSessionStore(),
+    // M8-A2: a production runtime REQUIRES a restriction store (none is persistent yet → 503 without one); like sessionStore, injected here
+    restrictionStore: createInMemoryMinorRestrictionStore(),
     deps: { training: w.training, nutrition: w.nutrition, recovery: w.recovery, progress: w.progress },
     routingModelFactory: () => { routerCreated++; return o.routingModel ? o.routingModel() : router; },
     traceSink: (x) => traces.push(x), agentTraceSink: (x) => agentTraces.push(x),

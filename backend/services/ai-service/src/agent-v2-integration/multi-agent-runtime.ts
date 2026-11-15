@@ -15,6 +15,9 @@
  *   session         M7-P3 resolveSessionStore(): AGENT_V2_SESSION_STORE=memory (local default, one process only) or
  *                   redis (AGENT_V2_SESSION_REDIS_URL; versioned compare-and-set store shared by instances). On
  *                   NODE_ENV=production persistence is REQUIRED: no in-memory fallback, a missing config is a 503.
+ *   minor safety    M8-A2 resolveMinorRestrictionStore(): the self-reported "under 18" restriction is USER-scoped (authenticated userId,
+ *                   independent of sessionId and of the session store). Only an in-memory store exists → outside production it is
+ *                   used; on NODE_ENV=production the runtime is refused (503) until a persistent implementation exists.
  *   routing         M7-P4.3: deterministic intent-v1.3 by default; selective / always = agent-v2/hybrid-router.ts over the same
  *                   Bedrock adapter (one bounded call per turn inside the global budget), chosen by server configuration
  *                   only (agent-v2/flag.ts resolveRoutingConfig — invalid value → 503, production needs its own approval)
@@ -29,6 +32,7 @@ import { DEFAULT_EXECUTION_POLICY, runSupervisorTurn, type SupervisorResult, typ
 import { resolveRoutingConfig } from "../agent-v2/flag";
 import { createHybridDecisionProvider } from "../agent-v2/hybrid-router";
 import { createInMemorySessionStore, type AnySessionStore } from "../agent-v2/session-context";
+import { createInMemoryMinorRestrictionStore, type MinorRestrictionStore } from "../agent-v2/minor-restriction";
 import { createNodeRedisSessionClient, createRedisSessionStore, type SessionRedisClient } from "./redis-session-store";
 import { createDynamoSessionSend, createDynamoSessionStore, type DynamoSend } from "./dynamodb-session-store";
 import { ApiError } from "../errors/api-error";
@@ -61,6 +65,8 @@ export interface MultiAgentRuntimeOptions {
   profileGet?: ProfileServiceGet;
   /** Absent → resolveSessionStore(process.env). */
   sessionStore?: AnySessionStore;
+  /** M8-A2: the USER-scoped minor-restriction store. Absent → resolveMinorRestrictionStore(env): in-memory outside production, a 503 on production (no persistent implementation exists yet). */
+  restrictionStore?: MinorRestrictionStore;
   now?: () => number;
   traceSink?: (trace: SupervisorTrace) => void;
   agentTraceSink?: (trace: TurnTrace) => void;
@@ -82,6 +88,8 @@ export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): Multi
   const runners = createAgentRunners({ providerFor, deps: o.deps ?? defaultDomainDeps({ request: o.readRequest }), now, toolTraceSink: o.toolTraceSink });
   const profileReader = createProfileReader({ get: o.profileGet ?? ((req) => requestService(req)), now });
   const sessionStore = o.sessionStore ?? resolveSessionStore();
+  // M8-A2: the self-reported minor restriction is user-scoped and ALWAYS present (never a silent "no store")
+  const restrictionStore = o.restrictionStore ?? resolveMinorRestrictionStore(o.env ?? process.env);
   // deterministic: no routing model exists at all (the supervisor's default intent-v1.3 provider is used)
   const decisionProvider = routing.effective === "deterministic" ? null : createHybridDecisionProvider({
     model: (o.routingModelFactory ?? (() => createBedrockConverseProvider()))(),
@@ -92,7 +100,7 @@ export function createMultiAgentRuntime(o: MultiAgentRuntimeOptions = {}): Multi
     ask: ({ question, identity, sessionId }) => runSupervisorTurn(
       { question, context: { userId: identity.userId, ...(identity.authorizationHeader ? { authorizationHeader: identity.authorizationHeader } : {}) }, ...(sessionId ? { sessionId } : {}) },
       {
-        runners, profileReader, sessionStore, now, routingMode, ...(decisionProvider ? { decisionProvider } : {}),
+        runners, profileReader, sessionStore, restrictionStore, now, routingMode, ...(decisionProvider ? { decisionProvider } : {}),
         ...(o.traceSink ? { traceSink: o.traceSink } : {}), ...(o.agentTraceSink ? { agentTraceSink: o.agentTraceSink } : {}),
       },
     ),
@@ -125,6 +133,17 @@ export function resolveSessionStore(env: Record<string, string | undefined> = pr
     return createDynamoSessionStore({ tableName: table, send: createDynamoSend(region) });
   }
   throw fail();
+}
+
+/**
+ * M8-A2: which USER-scoped minor-restriction store this process uses. Only an in-memory implementation exists (ONE process, lost on
+ * restart). Outside production it is used (local / tests). On NODE_ENV=production there is NO acceptable implementation yet
+ * (the Redis / DynamoDB SESSION adapters do not implement MinorRestrictionStore) → a configuration error (503), never an
+ * in-memory fallback and never "no store": the runtime refuses to start rather than run without the cross-session restriction.
+ */
+export function resolveMinorRestrictionStore(env: Record<string, string | undefined> = process.env): MinorRestrictionStore {
+  if (env.NODE_ENV === "production") throw new ApiError("SERVICE_UNAVAILABLE", "The assistant's safety storage is not configured", 503);
+  return createInMemoryMinorRestrictionStore();
 }
 
 /**
