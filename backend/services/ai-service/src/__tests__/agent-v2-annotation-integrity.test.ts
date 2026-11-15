@@ -12,7 +12,7 @@ import { testHooks } from "./m7-benchmark/annotation-cli";
 import { SCHEMA_VERSION } from "./m7-benchmark/annotation-schema";
 import {
   acceptArgs, adjRows, agreementArgs, anchorsOf, cleanup, freezeArgs, jsonl, mergeArgs, pipeline, prepareArgs, questionRows, readJsonl,
-  roleRows, run, sha, signFromRefusal, workspace, type Obj, type Ws,
+  reseal, roleRows, run, sha, signFromRefusal, workspace, type Obj, type Ws,
 } from "./m7-benchmark/annotation-test-scenario";
 
 const hashes = (w: Ws) => ["A.jsonl", "B.jsonl", "questions.jsonl", "adjudicator.jsonl"].map((f) => [f, sha(w.p(f))]);
@@ -94,6 +94,7 @@ test("INT-C1e an edited prepare receipt is detected; a re-generated receipt does
     const rc = JSON.parse(fs.readFileSync(w.p("prep/prepare-manifest.json"), "utf8"));
     rc.questions[0].tags = ["minor"];
     fs.writeFileSync(w.p("prep/prepare-manifest.json"), JSON.stringify(rc, null, 2) + "\n");
+    reseal(w.p("prep")); // the forger controls the directory and re-seals the marker (G3: otherwise the marker check refuses first)
     assert.deepEqual(run(mergeArgs(w, "m2")).codes, ["RECEIPT_INCONSISTENT"]);
     // regenerate a full new receipt from edited questions (an internally consistent rewrite)
     setQuestions(w, (q) => (q.id === "Q-0001" ? { ...q, question: "Tối nay ăn khoai lang luộc thay cơm trắng có ổn không bạn?" } : q));
@@ -159,6 +160,7 @@ test("INT-C3a merged A/B edited + manifest hashes rewritten: refused by the acce
     const mm = JSON.parse(fs.readFileSync(w.p("m/merge-manifest.json"), "utf8"));
     mm.outputs.datasetSha256 = sha(w.p("m/dataset.jsonl"));
     fs.writeFileSync(w.p("m/merge-manifest.json"), JSON.stringify(mm, null, 2) + "\n");
+    reseal(w.p("m")); // forger re-seals (G3)
     const r1 = run(freezeArgs(w, an));
     assert.deepEqual(r1.codes, ["ANCHOR_MISMATCH"]); noOutput(w, "freeze.json");
     const r2 = run(freezeArgs(w, { ...an, mm: sha(w.p("m/merge-manifest.json")) }));
@@ -166,6 +168,7 @@ test("INT-C3a merged A/B edited + manifest hashes rewritten: refused by the acce
     // a label edit (not only a rationale) is caught the same way
     ds[0].annotatorA.rationale = readJsonl(w.p("A.jsonl"))[0].rationale; ds[0].annotatorB.primaryAgent = "progress";
     fs.writeFileSync(w.p("m/dataset.jsonl"), jsonl(ds));
+    reseal(w.p("m")); // forger re-seals (G3)
     assert.ok(run(freezeArgs(w, { ...an, mm: sha(w.p("m/merge-manifest.json")) })).codes.includes("DATASET_NOT_REPRODUCIBLE"));
   } finally { cleanup(w); }
 });
@@ -178,8 +181,10 @@ test("INT-C3b the adjudication file / original A file edited after acceptance: r
     const adj = readJsonl(w.p("m/adjudication.jsonl")); adj[2].rationaleBy = "ADJ09";
     fs.copyFileSync(w.p("m/adjudication.jsonl"), w.p("adj.bak"));
     fs.writeFileSync(w.p("m/adjudication.jsonl"), jsonl(adj));
+    reseal(w.p("m")); // forger re-seals (G3)
     assert.ok(run(freezeArgs(w, an)).codes.includes("ADJUDICATION_NOT_REPRODUCIBLE"));
     fs.copyFileSync(w.p("adj.bak"), w.p("m/adjudication.jsonl"));
+    reseal(w.p("m"));
     const original = fs.readFileSync(w.p("A.jsonl"), "utf8");
     fs.writeFileSync(w.p("A.jsonl"), original.replace("lý do của A cho Q-0001", "lý do đã sửa"));
     const r = run(freezeArgs(w, an));

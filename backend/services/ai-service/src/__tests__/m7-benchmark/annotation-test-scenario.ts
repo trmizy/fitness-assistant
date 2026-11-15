@@ -133,3 +133,15 @@ export function signFromRefusal(w: Ws, an: Anchors, o: { m?: string; src?: Param
   fs.writeFileSync(w.p("signoff.json"), JSON.stringify({ schemaVersion: SCHEMA_VERSION, reviews, agreementReview }));
   return { binding, reviews };
 }
+
+/**
+ * TEST FIXTURE: rewrites a bundle's PUBLISHED.json so it is CONSISTENT with the files now on disk (G3). This is the forger who
+ * controls the whole directory: the marker is consistency metadata, not authentication, so such a bundle passes the marker
+ * check and only the later content checks (receipt / reproducibility / acceptance record) can refuse it.
+ */
+export function reseal(dir: string, names?: string[]): void {
+  const mp = path.join(dir, "PUBLISHED.json");
+  const o = JSON.parse(fs.readFileSync(mp, "utf8"));
+  o.files = (names ?? o.files.map((f: Obj) => f.name)).map((n: string) => ({ name: n, sha256: sha(path.join(dir, n)) }));
+  fs.writeFileSync(mp, JSON.stringify(o, null, 2) + "\n");
+}

@@ -17,7 +17,7 @@ import { AGREEMENT_POLICY_SHA256, PUBLICATION_MARKER, testHooks } from "./m7-ben
 import { SCHEMA_VERSION } from "./m7-benchmark/annotation-schema";
 import {
   FIXTURE_APPROVAL, acceptArgs, acceptanceDraftArgs, acceptanceRecord, acceptanceVerifyArgs, adjRows, agreementArgs, anchorsOf, cleanup,
-  freezeArgs, jsonl, lab, mergeArgs, pipeline, prepareArgs, questionRows, readJsonl, roleRows, run, sha, signFromRefusal, workspace,
+  freezeArgs, jsonl, lab, mergeArgs, pipeline, prepareArgs, questionRows, readJsonl, reseal, roleRows, run, sha, signFromRefusal, workspace,
   type Anchors, type Obj, type Ws,
 } from "./m7-benchmark/annotation-test-scenario";
 
@@ -99,11 +99,11 @@ test("HF-F2 writer attribution is bound at prepare: changed author / source reco
     assert.equal(fz.code, 1); has(fz.codes, "WRITER_ATTRIBUTION_CHANGED"); noOutput(w, "freeze.json");
     // the receipt itself cannot be edited, and an older receipt without writer attribution is not accepted
     const bad = { ...rc, questions: rc.questions.map((q: Obj, i: number) => (i === 0 ? { ...q, writerKey: "owner01" } : q)) };
-    fs.mkdirSync(w.p("prep-x")); fs.writeFileSync(w.p("prep-x/prepare-manifest.json"), JSON.stringify(bad, null, 2));
-    fs.copyFileSync(w.p(`prep/${PUBLICATION_MARKER}`), w.p(`prep-x/${PUBLICATION_MARKER}`));
+    fs.cpSync(w.p("prep"), w.p("prep-x"), { recursive: true }); fs.writeFileSync(w.p("prep-x/prepare-manifest.json"), JSON.stringify(bad, null, 2));
+    reseal(w.p("prep-x")); // a complete, consistently re-sealed forgery (G3 refuses incomplete / inconsistent markers earlier)
     has(run(mergeArgs(w, "mx", { prep: "prep-x" })).codes, "RECEIPT_INCONSISTENT");
     const old = { ...rc, questions: rc.questions.map(({ writerKey: _w, sourceSha256: _s, ...q }: Obj) => q) };
-    fs.writeFileSync(w.p("prep-x/prepare-manifest.json"), JSON.stringify(old, null, 2));
+    fs.writeFileSync(w.p("prep-x/prepare-manifest.json"), JSON.stringify(old, null, 2)); reseal(w.p("prep-x"));
     const oldR = run(mergeArgs(w, "my", { prep: "prep-x" }));
     has(oldR.codes, "RECEIPT_INVALID"); assert.match(oldR.out.join("\n"), /earlier tool revision; re-run prepare/);
     // the curator is never a writer (the current file names OWNER01 as writer)
@@ -351,6 +351,7 @@ test("HF-AM3 forged manifests: a rewritten merge manifest with a matching owner 
     signFromRefusal(w, an);
     const mm = json(w, "m/merge-manifest.json"); mm.counts.cases = 99;
     fs.writeFileSync(w.p("m/merge-manifest.json"), JSON.stringify(mm, null, 2) + "\n");
+    reseal(w.p("m")); // the forger re-seals the marker (G3: the marker is consistency metadata, not authentication)
     const forgedAn: Anchors = { ...an, mm: sha(w.p("m/merge-manifest.json")) };
     const r = run(freezeArgs(w, forgedAn));
     assert.equal(r.code, 1); has(r.codes, "MERGE_MANIFEST_NOT_REPRODUCIBLE"); noOutput(w, "freeze.json");

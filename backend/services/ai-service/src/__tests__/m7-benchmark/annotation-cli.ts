@@ -27,13 +27,20 @@
  *
  * Rules: offline; never creates, guesses, repairs or resolves a label; every input is read ONCE into memory and parsed,
  * hashed and used from those same bytes (the in-memory snapshot); the files on disk are re-checked against the snapshot after
- * validation, after staging and after the members are linked, before the success marker (a change after the marker is not
- * prevented — no lock binds other writers — but every output names the bytes actually used, so downstream steps detect it);
+ * validation, after staging, after the members are linked (before the success marker) and, for a bundle, once more AFTER the
+ * success marker (G2: a change found then INVALIDATES the bundle with a notice file and the command exits non-zero). GUARANTEE
+ * (the only honest one): a consistent in-memory snapshot plus best-effort rechecks. RESIDUAL WINDOW: no lock binds other writers
+ * and there is no immutable source store, so a source can still change after the LAST recheck (or change and change back between
+ * two rechecks); every output names the bytes actually used, so downstream steps detect it;
  * outputs are never overwritten, replaced or removed; deterministic output (rows sorted by id, fixed key order, LF, UTF-8
  * without BOM, no timestamps, no file names in identities).
  * Publication (F4): files are staged privately, the destination directory is CLAIMED with an exclusive mkdir (fails on any
  * existing path, empty or not, on POSIX and Windows), members are hard-linked in with no-replace semantics, and the success
  * marker PUBLISHED.json is linked LAST. A bundle without the marker (killed run, foreign directory) is never consumed.
+ * G1: rollback is by lstat IDENTITY (device + inode), never by pathname alone; if the output name no longer identifies the directory
+ * this run created, nothing is deleted (PUBLICATION_ABANDONED). G3: a consumer accepts a bundle only if PUBLISHED.json is
+ * well-formed, lists EXACTLY the expected member set for that bundle kind and every hash matches the bytes read; the marker is
+ * CONSISTENCY metadata, NOT authentication and NOT tamper-proof (anyone who can write the directory can write a consistent one).
  * Supported: a local filesystem with hard links and atomic mkdir / link(2) (NTFS, ext4, xfs, apfs). Not claimed: network or
  * FAT/exFAT filesystems (no hard links → WRITE_FAILED, fail closed).
  * Exit codes: 0 clean · 1 error / refused · 3 no error but human review / sign-off required · 2 usage.
@@ -77,12 +84,14 @@ export const ACCEPTANCE_RECORD_KIND = "m7-p5a2-owner-acceptance-record";
 /**
  * Test-only hooks (never set by the CLI): simulate an interruption, a concurrent writer, or a file changed mid-run.
  * Order inside a publication: stage files (failAfterFiles) → beforePublish → check sources → claim → link each member
- * (failAfterLinks, afterLink) → check sources → link the marker → afterPublish. Single file: temp → beforePublish → check →
+ * (failAfterLinks, afterLink) → check sources → link the marker → check sources (G2) → afterPublish. Single file: temp → beforePublish → check →
  * link → afterLink → check → afterPublish.
  */
 export const testHooks: {
   afterLoad?: (file: string) => void; failAfterFiles?: number; beforePublish?: (target: string) => void;
   failAfterLinks?: number; afterLink?: (target: string, name: string) => void; afterPublish?: (target: string) => void;
+  /** G1: fires in rollback after this run's members were unlinked and before the directory identity is rechecked and rmdir'd. */
+  beforeRollbackRemove?: (target: string) => void;
 } = {};
 
 // ── small utilities ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -125,28 +134,100 @@ function loadSource(file: string, fx: Findings): Src | null {
   return { path: file, name, text, sha256: sha256(buf) };
 }
 /**
- * F3: every input must still hold the bytes of the in-memory snapshot. Called after validation, after staging and after the
- * members are linked (before the success marker). A change after the last check is not prevented (no lock binds other
- * writers); the outputs then still name the snapshot bytes that were actually used.
+ * F3 / G2 / G3: every input must still hold the bytes of the in-memory snapshot. Called after validation, after staging, after
+ * the members are linked (before the success marker) and, for a bundle, AFTER the success marker. The marker of a consumed
+ * bundle (see checkPublished) is rechecked together with its member (PUBLICATION_MARKER_CHANGED). No lock binds other
+ * writers, so a change after the LAST observation is still not prevented (residual window, see the header); the outputs then
+ * still name the snapshot bytes that were actually used.
  */
-function verifyUnchanged(srcs: ReadonlyArray<Src | null | undefined>, fx: Findings, stage = "after validation"): boolean {
+function verifyUnchanged(srcs: ReadonlyArray<Src | null | undefined>, fx: Findings, stage = "after validation", tail = "nothing was published"): boolean {
   let ok = true;
+  const seenMarkers = new Set<Src>();
+  const drifted = (s: Src): boolean => { let now: string | null = null; try { now = sha256(fs.readFileSync(s.path)); } catch { now = null; } return now !== s.sha256; };
   for (const s of srcs) {
     if (!s) continue;
-    let now: string | null = null;
-    try { now = sha256(fs.readFileSync(s.path)); } catch { now = null; }
-    if (now !== s.sha256) { ok = false; fx.add(s.name, 0, null, "SOURCE_CHANGED_DURING_RUN", `${s.path} changed while the command ran (detected ${stage}; the run used sha256 ${s.sha256}); nothing was published`); }
+    if (drifted(s)) { ok = false; fx.add(s.name, 0, null, "SOURCE_CHANGED_DURING_RUN", `${s.path} changed while the command ran (detected ${stage}; the run used sha256 ${s.sha256}); ${tail}`); }
+    const m = markerOf.get(s);
+    if (m && !seenMarkers.has(m)) {
+      seenMarkers.add(m);
+      if (drifted(m)) { ok = false; fx.add(m.name, 0, null, "PUBLICATION_MARKER_CHANGED", `${m.path} changed while the command ran (detected ${stage}; the run used sha256 ${m.sha256}): the consumed bundle is no longer the one that was checked; ${tail}`); }
+    }
   }
   return ok;
 }
-/** F4: a bundle member is consumed only from a COMPLETED publication (its directory's success marker lists it). */
-function checkPublished(src: Src | null | undefined, fx: Findings) {
-  if (!src) return;
-  const dir = path.dirname(src.path);
+
+/**
+ * G3: the member sets of the two bundle kinds the tool publishes (EXACT: no missing, no extra). A consumer states which kind
+ * it expects; a bundle of the other kind, or one with any other member, is never consumed.
+ */
+export const PUBLICATION_KINDS = Object.freeze({
+  prepare: Object.freeze(["for-annotator-A.jsonl", "for-annotator-B.jsonl", "prepare-manifest.json"]),
+  merge: Object.freeze(["dataset.jsonl", "adjudication.jsonl", "merge-manifest.json"]),
+} as const);
+export type PublicationKind = keyof typeof PUBLICATION_KINDS;
+/** G2: written (exclusive create, never overwriting) into a bundle whose sources drifted AFTER its success marker was linked. */
+export const INVALIDATION_NOTICE = "PUBLICATION_INVALIDATED.json";
+/** The marker bytes a consumed member was checked against; rechecked by verifyUnchanged until the command finishes (G3). */
+const markerOf = new WeakMap<Src, Src>();
+const MARKER_KEYS = ["kind", "tool", "schemaVersion", "files"];
+const regularFile = (p: string) => { try { return fs.lstatSync(p).isFile(); } catch { return false; } };
+/**
+ * F4 / G3: a bundle member is consumed only from a COMPLETED publication. `consumed` are the members this command actually read
+ * (loadSource), all from bundles of the given kind. Per bundle directory, in this order:
+ *   no invalidation notice (G2) · a regular PUBLISHED.json · it parses and has exactly the fields kind / tool / schemaVersion /
+ *   files with this tool's identity · it lists EXACTLY the member set of `kind` (none missing, none extra) with well-formed,
+ *   non-zero sha256 values · the directory holds exactly those members plus the marker, as regular files · every member's bytes
+ *   hash to the marker's value (a consumed member by the bytes this run actually read, the others by reading them now).
+ * The marker bytes read here are remembered and rechecked until the command finishes (PUBLICATION_MARKER_CHANGED).
+ * LIMIT (stated, not hidden): the marker is CONSISTENCY metadata, NOT authentication. Anyone who can write the directory can
+ * write a consistent marker for foreign members; this check refuses interrupted, partial, inconsistent or foreign-shaped
+ * bundles. It does not prove who produced them (freeze still recomputes everything from the sources).
+ */
+function checkPublished(kind: PublicationKind, consumed: ReadonlyArray<Src | null | undefined>, fx: Findings) {
+  const byDir = new Map<string, Src[]>();
+  for (const s of consumed) if (s) { const d = path.dirname(s.path); byDir.set(d, [...(byDir.get(d) ?? []), s]); }
+  for (const [dir, srcs] of byDir) checkPublishedDir(kind, dir, srcs, fx);
+}
+function checkPublishedDir(kind: PublicationKind, dir: string, srcs: Src[], fx: Findings) {
+  const members: readonly string[] = PUBLICATION_KINDS[kind];
+  const at = srcs[0];
+  const bad = (code: string, d: string) => fx.add(at.name, 0, null, code, `${dir}: ${d} (${PUBLICATION_MARKER} is consistency metadata, not authentication; re-run into a NEW directory)`);
+  for (const s of srcs) if (!members.includes(path.basename(s.path))) { fx.add(s.name, 0, null, "PUBLICATION_MEMBER_EXTRA", `${s.name} is not a member of a ${kind} bundle (${members.join(", ")})`); return; }
+  if (fs.existsSync(path.join(dir, INVALIDATION_NOTICE))) { bad("PUBLICATION_INVALIDATED", `${INVALIDATION_NOTICE} exists: a source changed after this bundle's success marker was linked, so it must not be used`); return; }
+  const markerPath = path.join(dir, PUBLICATION_MARKER);
+  if (!fs.existsSync(markerPath)) { fx.add(at.name, 0, null, "PUBLICATION_INCOMPLETE", `${dir} has no ${PUBLICATION_MARKER}: an interrupted, killed or foreign output is never consumed (re-run into a NEW directory)`); return; }
+  if (!regularFile(markerPath)) { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} is not a regular file`); return; }
+  const buf = fs.readFileSync(markerPath);
   let o: unknown = null;
-  try { o = JSON.parse(fs.readFileSync(path.join(dir, PUBLICATION_MARKER), "utf8")); } catch { o = null; }
-  const listed = isObj(o) && o.kind === "m7-p5a2-publication" && Array.isArray(o.files) && o.files.some((f) => isObj(f) && f.name === path.basename(src.path));
-  if (!listed) fx.add(src.name, 0, null, "PUBLICATION_INCOMPLETE", `${dir} has no ${PUBLICATION_MARKER} listing ${path.basename(src.path)}: an interrupted, killed or foreign output is never consumed (re-run into a NEW directory)`);
+  try { o = JSON.parse(buf.toString("utf8")); } catch { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} is not valid JSON`); return; }
+  if (!isObj(o) || Object.keys(o).length !== MARKER_KEYS.length || !MARKER_KEYS.every((k) => k in o)) { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} must have exactly the fields ${MARKER_KEYS.join(", ")}`); return; }
+  if (o.kind !== "m7-p5a2-publication" || o.tool !== TOOL || o.schemaVersion !== SCHEMA_VERSION) { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} kind / tool / schemaVersion are not this tool's (${TOOL}, ${SCHEMA_VERSION})`); return; }
+  const files = o.files;
+  if (!Array.isArray(files) || !files.every((f) => isObj(f) && Object.keys(f).length === 2 && typeof f.name === "string" && "sha256" in f)) { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} files must be a list of { name, sha256 }`); return; }
+  const listed = new Map<string, unknown>();
+  for (const f of files as Obj[]) {
+    if (listed.has(f.name as string)) { bad("PUBLICATION_MARKER_MALFORMED", `${PUBLICATION_MARKER} lists ${JSON.stringify(f.name)} twice`); return; }
+    listed.set(f.name as string, f.sha256);
+  }
+  let ok = true;
+  for (const m of members) if (!listed.has(m)) { ok = false; bad("PUBLICATION_MEMBER_MISSING", `${PUBLICATION_MARKER} does not list the ${kind}-bundle member ${m}`); }
+  for (const n of listed.keys()) if (!members.includes(n)) { ok = false; bad("PUBLICATION_MEMBER_EXTRA", `${PUBLICATION_MARKER} lists ${JSON.stringify(n)}, which is not a ${kind}-bundle member`); }
+  for (const [n, h] of listed) if (members.includes(n) && (!isSha(h) || h === "0".repeat(64))) { ok = false; bad("PUBLICATION_HASH_INVALID", `${PUBLICATION_MARKER} sha256 for ${n} is not a real SHA-256 (malformed or all zeros)`); }
+  let names: string[] = [];
+  try { names = fs.readdirSync(dir); } catch { names = []; }
+  for (const n of names) if (n !== PUBLICATION_MARKER && !members.includes(n)) { ok = false; bad("PUBLICATION_MEMBER_EXTRA", `the directory holds ${JSON.stringify(n)}, which is not part of a ${kind} bundle`); }
+  if (!ok) return;
+  for (const m of members) {
+    const p = path.join(dir, m);
+    if (!regularFile(p)) { ok = false; bad("PUBLICATION_MEMBER_MISSING", `${m} is missing from the directory or is not a regular file`); continue; }
+    const read = srcs.find((s) => path.basename(s.path) === m);
+    let actual: string;
+    try { actual = read ? read.sha256 : sha256(fs.readFileSync(p)); } catch { ok = false; bad("PUBLICATION_MEMBER_MISSING", `${m} cannot be read`); continue; }
+    if (actual !== listed.get(m)) { ok = false; bad("PUBLICATION_HASH_MISMATCH", `${m} hashes to ${actual} but ${PUBLICATION_MARKER} records ${String(listed.get(m))}`); }
+  }
+  if (!ok) return;
+  const markerSrc: Src = { path: markerPath, name: PUBLICATION_MARKER, text: buf.toString("utf8"), sha256: sha256(buf) };
+  for (const s of srcs) markerOf.set(s, markerSrc);
 }
 
 interface Line { line: number; obj: Obj }
@@ -194,20 +275,65 @@ const jsonl = (rows: unknown[]) => rows.map((r) => JSON.stringify(r)).join("\n")
 /** Thrown inside a publication when a check already recorded its own finding. */
 class Refused extends Error {}
 const errCode = (e: unknown) => (e as NodeJS.ErrnoException)?.code;
-/** True when `p` is the very file `ours` (same device + inode): rollback only ever removes this run's own links. */
-function sameFile(p: string, ours: string): boolean {
-  try { const a = fs.statSync(p, { bigint: true }), b = fs.statSync(ours, { bigint: true }); return a.dev === b.dev && a.ino === b.ino; } catch { return false; }
+
+/**
+ * G1: identity of a filesystem entry = device + inode from lstat (bigint). lstat NEVER follows a symlink, so a symlink (or a
+ * junction) is never mistaken for the file or directory it points to. null = not the expected kind, not there, or no stable
+ * identity (inode 0, e.g. some filesystems): then the entry is treated as NOT ours and is never deleted ("prefer NOT deleting
+ * over deleting by name").
+ */
+export interface FileId { dev: bigint; ino: bigint }
+export function lstatId(p: string, kind: "file" | "dir"): FileId | null {
+  try {
+    const s = fs.lstatSync(p, { bigint: true });
+    if (kind === "file" ? !s.isFile() : !s.isDirectory()) return null;
+    return s.ino === 0n ? null : { dev: s.dev, ino: s.ino };
+  } catch { return null; }
+}
+const sameId = (a: FileId | null, b: FileId | null): boolean => a !== null && b !== null && a.dev === b.dev && a.ino === b.ino;
+/**
+ * Unlinks `p` only when it is (by lstat identity) the regular file `id` this run created/linked. RESIDUAL (stated): Node has no
+ * unlink-by-handle, so an entry swapped between this check and the unlink is still removed by name; the window is two syscalls
+ * and only a file with the SAME NAME in a directory this run claimed is at stake. Returns whether it was removed.
+ */
+function unlinkIfOurs(p: string, id: FileId | null): boolean {
+  if (!sameId(lstatId(p, "file"), id)) return false;
+  try { fs.unlinkSync(p); return true; } catch { return false; }
 }
 
 /**
- * Publishes a multi-file bundle as ONE directory, no-replace (F3 / F4):
+ * G2: a source was found changed AFTER the success marker was linked. The marker cannot be taken back without deleting by name
+ * (the very thing G1 forbids), so the bundle is INVALIDATED instead: a notice file is created exclusively (O_EXCL: never
+ * overwrites, never follows a planted symlink) in the directory this run claimed, and every consumer refuses a bundle that holds
+ * it (PUBLICATION_INVALIDATED; it is also an extra member). The command exits non-zero either way.
+ */
+function invalidateBundle(target: string, claimedId: FileId | null, T: string, fx: Findings) {
+  let written = false;
+  if (sameId(lstatId(target, "dir"), claimedId)) {
+    try {
+      fs.writeFileSync(path.join(target, INVALIDATION_NOTICE), stable({ kind: "m7-p5a2-publication-invalidated", tool: TOOL, schemaVersion: SCHEMA_VERSION, reason: "a source changed after the success marker was linked" }, 2) + "\n", { encoding: "utf8", flag: "wx" });
+      written = true;
+    } catch { written = false; }
+  }
+  fx.add(T, 0, null, "PUBLICATION_INVALIDATED", written
+    ? `${target} carries its success marker but a source changed before the run finished; ${INVALIDATION_NOTICE} was written there and consumers refuse the bundle; do NOT use it (re-run into a NEW directory)`
+    : `${target} carries its success marker but a source changed before the run finished, and ${INVALIDATION_NOTICE} could NOT be recorded (the directory is no longer the one this run claimed, or the write failed): do NOT use it (re-run into a NEW directory)`);
+}
+
+/**
+ * Publishes a multi-file bundle as ONE directory, no-replace (F3 / F4 / G1 / G2):
  *   1. refused if `dir` exists (empty or not); 2. members + marker staged in a private `.<dir>.partial-*` directory;
  *   3. sources re-checked; 4. `dir` CLAIMED with a non-recursive mkdir (atomic, fails on any existing path on POSIX and Windows —
- *   never rename onto a directory, which POSIX allows over an empty one); 5. each member hard-linked in (link fails on an
- *   existing name); 6. sources re-checked; 7. the success marker linked LAST.
- * A handled failure removes only this run's own links (same inode) and the claimed directory if it is then empty; anything a
- * competitor wrote stays untouched (PUBLICATION_ABANDONED). A killed run can leave a claimed directory without the marker and a
- * `.partial-*` staging directory: neither is ever consumed or removed by the tool.
+ *   never rename onto a directory, which POSIX allows over an empty one) and the claimed directory's IDENTITY (lstat dev+ino)
+ *   recorded; 5. each member hard-linked in (link fails on an existing name); 6. sources re-checked; 7. the success marker
+ *   linked LAST; 8. sources re-checked AGAIN (G2): a change found now invalidates the bundle (notice file) and the command fails.
+ * G1 rollback after a handled failure is by IDENTITY, never by name alone: a member is unlinked only when its lstat identity is the
+ * inode this run linked; the directory is removed only while its lstat identity is still the claimed one. If the pathname no
+ * longer names the directory this run created (renamed away / replaced by a competitor), NOTHING is removed
+ * (PUBLICATION_ABANDONED). Anything a competitor wrote stays untouched. A killed run can leave a claimed directory without the
+ * marker and a `.partial-*` staging directory: neither is ever consumed or removed by the tool.
+ * RESIDUAL TOCTOU (stated): lstat and unlink/rmdir are separate syscalls (Node has no handle-based removal), so an entry swapped
+ * inside that window is still removed by name; and sources can change after the LAST recheck (no lock, no immutable source store).
  */
 export function publishBundle(dir: string, files: Array<[string, string]>, fx: Findings, sources: ReadonlyArray<Src | null | undefined> = []): boolean {
   const target = path.resolve(dir);
@@ -217,13 +343,17 @@ export function publishBundle(dir: string, files: Array<[string, string]>, fx: F
   fs.mkdirSync(parent, { recursive: true });
   const staging = path.join(parent, `.${T}.partial-${process.pid}-${randomBytes(6).toString("hex")}`);
   fs.mkdirSync(staging);
+  const stagingId = lstatId(staging, "dir");
   const marker = stable({ kind: "m7-p5a2-publication", tool: TOOL, schemaVersion: SCHEMA_VERSION, files: files.map(([n, c]) => ({ name: n, sha256: sha256(c) })) }, 2) + "\n";
   const linked: string[] = [];
+  const stagedId = new Map<string, FileId | null>();
   let claimed = false;
+  let claimedId: FileId | null = null;
   try {
     files.forEach(([n, content], i) => {
       if (testHooks.failAfterFiles !== undefined && i >= testHooks.failAfterFiles) throw new Error("simulated interruption while staging");
       fs.writeFileSync(path.join(staging, n), content, { encoding: "utf8", flag: "wx" });
+      stagedId.set(n, lstatId(path.join(staging, n), "file"));
     });
     fs.writeFileSync(path.join(staging, PUBLICATION_MARKER), marker, { encoding: "utf8", flag: "wx" });
     testHooks.beforePublish?.(target);
@@ -232,6 +362,7 @@ export function publishBundle(dir: string, files: Array<[string, string]>, fx: F
       if (errCode(e) === "EEXIST") throw Object.assign(new Error(`${target} was created by another process during this run (exclusive claim failed)`), { code: "EEXIST" });
       throw e;
     }
+    claimedId = lstatId(target, "dir"); // G1: the directory this run created (RESIDUAL: a swap between mkdir and this lstat is not detectable)
     claimed = true;
     for (const [n] of files) {
       if (testHooks.failAfterLinks !== undefined && linked.length >= testHooks.failAfterLinks) throw new Error("simulated interruption during publication");
@@ -244,39 +375,53 @@ export function publishBundle(dir: string, files: Array<[string, string]>, fx: F
     }
     if (!verifyUnchanged(sources, fx, "after the members were linked, before the success marker")) throw new Refused();
     fs.linkSync(path.join(staging, PUBLICATION_MARKER), path.join(target, PUBLICATION_MARKER));
+    // G2: the success marker is already visible; a source change found NOW means the bundle must not be used. Returning here (not
+    // throwing) keeps the rollback from unlinking members of a bundle that carries its marker.
+    if (!verifyUnchanged(sources, fx, "after the success marker was linked", "the bundle is invalidated")) { invalidateBundle(target, claimedId, T, fx); return false; }
     testHooks.afterPublish?.(target);
     return true;
   } catch (e) {
     if (!(e instanceof Refused)) fx.add(T, 0, null, errCode(e) === "EEXIST" || errCode(e) === "ENOTEMPTY" ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing from this run was published`);
     if (claimed) {
-      for (const n of linked) if (sameFile(path.join(target, n), path.join(staging, n))) fs.unlinkSync(path.join(target, n));
-      try { fs.rmdirSync(target); } catch {
-        fx.add(T, 0, null, "PUBLICATION_ABANDONED", `${target} holds files this run did not write; left untouched; it has no ${PUBLICATION_MARKER} and is not a valid output`);
-      }
+      const stillClaimed = () => sameId(lstatId(target, "dir"), claimedId);
+      let abandoned = !stillClaimed();
+      if (!abandoned) for (const n of linked) { if (!stillClaimed()) { abandoned = true; break; } unlinkIfOurs(path.join(target, n), stagedId.get(n) ?? null); }
+      if (!abandoned) testHooks.beforeRollbackRemove?.(target);
+      if (!abandoned && stillClaimed()) { try { fs.rmdirSync(target); } catch { abandoned = true; } } else abandoned = true;
+      if (abandoned) fx.add(T, 0, null, "PUBLICATION_ABANDONED", `${target} is not (or no longer) an empty directory this run created (it holds files this run did not write, or the name now identifies another directory); left untouched; it has no ${PUBLICATION_MARKER} and is not a valid output`);
     }
     return false;
-  } finally { fs.rmSync(staging, { recursive: true, force: true }); }
+  } finally { if (sameId(lstatId(staging, "dir"), stagingId)) fs.rmSync(staging, { recursive: true, force: true }); }
 }
-/** One output file, no-replace: temp file → sources re-checked → hard link (fails on an existing name) → sources re-checked. */
+/**
+ * One output file, no-replace: temp file → sources re-checked → hard link (fails on an existing name) → sources re-checked.
+ * A change found after the link removes the link only by IDENTITY (G1); if that is impossible the output is reported
+ * PUBLICATION_INVALIDATED and the command fails.
+ */
 function publishFile(file: string, content: string, fx: Findings, sources: ReadonlyArray<Src | null | undefined> = []): boolean {
   const target = path.resolve(file);
   const T = path.basename(target);
   if (fs.existsSync(target)) { fx.add(T, 0, null, "OUTPUT_EXISTS", `${target} already exists; outputs are never overwritten`); return false; }
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const tmp = `${path.join(path.dirname(target), `.${T}`)}.partial-${process.pid}-${randomBytes(6).toString("hex")}`;
+  let tmpId: FileId | null = null;
   try {
     fs.writeFileSync(tmp, content, { encoding: "utf8", flag: "wx" });
+    tmpId = lstatId(tmp, "file");
     testHooks.beforePublish?.(target);
     if (!verifyUnchanged(sources, fx, "after staging")) return false;
     fs.linkSync(tmp, target);
     testHooks.afterLink?.(target, T);
-    if (!verifyUnchanged(sources, fx, "after publication")) { if (sameFile(target, tmp)) fs.unlinkSync(target); return false; }
+    if (!verifyUnchanged(sources, fx, "after publication")) {
+      if (sameId(lstatId(target, "file"), tmpId) && !unlinkIfOurs(target, tmpId)) fx.add(T, 0, null, "PUBLICATION_INVALIDATED", `${target} could not be removed after a source changed during the run: do NOT use it`);
+      return false;
+    }
     testHooks.afterPublish?.(target);
     return true;
   } catch (e) {
     fx.add(T, 0, null, errCode(e) === "EEXIST" ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing written`);
     return false;
-  } finally { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); }
+  } finally { unlinkIfOurs(tmp, tmpId); }
 }
 
 // ── prepare receipt (C1) ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -688,7 +833,7 @@ function cmdAcceptSubmissions(a: Args, io: Io): number {
   const fx = new Findings();
   const rcSrc = loadSource(a.opt.get("--prepare-manifest")!, fx), aSrc = loadSource(a.opt.get("--a")!, fx), bSrc = loadSource(a.opt.get("--b")!, fx);
   if (!rcSrc || !aSrc || !bSrc) return finish(fx, io, "");
-  checkPublished(rcSrc, fx);
+  checkPublished("prepare", [rcSrc], fx);
   const rc = parseReceipt(rcSrc, fx);
   if (!rc || !fx.ok) return finish(fx, io, "");
   const ids = rc.questions.map((q) => q.id);
@@ -711,7 +856,7 @@ function cmdAgreement(a: Args, io: Io): number {
   const fx = new Findings();
   const rcSrc = loadSource(a.opt.get("--prepare-manifest")!, fx), aSrc = loadSource(a.opt.get("--a")!, fx), bSrc = loadSource(a.opt.get("--b")!, fx);
   if (!rcSrc || !aSrc || !bSrc) return finish(fx, io, "");
-  checkPublished(rcSrc, fx);
+  checkPublished("prepare", [rcSrc], fx);
   const rc = parseReceipt(rcSrc, fx);
   if (!rc || !fx.ok) return finish(fx, io, "");
   const ag = buildAgreement(rcSrc, rc, aSrc, bSrc, fx);
@@ -727,7 +872,7 @@ function loadMergeSources(a: Args, fx: Findings): MergeSources | null {
   const l = (k: string) => loadSource(a.opt.get(k)!, fx);
   const s = { receipt: l("--prepare-manifest"), submissions: l("--submissions-receipt"), questions: l("--questions"), a: l("--a"), b: l("--b"), adjudicator: l("--adjudicator"), tagAudit: a.opt.get("--tag-audit") ? l("--tag-audit") : null };
   if (!s.receipt || !s.submissions || !s.questions || !s.a || !s.b || !s.adjudicator || (a.opt.get("--tag-audit") && !s.tagAudit)) return null;
-  checkPublished(s.receipt, fx);
+  checkPublished("prepare", [s.receipt], fx);
   return s as MergeSources;
 }
 const MERGE_KEYS = ["--prepare-manifest", "--submissions-receipt", "--questions", "--a", "--b", "--adjudicator"];
@@ -773,7 +918,7 @@ function loadAcceptInputs(a: Args, fx: Findings): AcceptInputs | null {
   const s = loadMergeSources(a, fx);
   const ds = l("--dataset"), adj = l("--adjudication"), mm = l("--merge-manifest"), guide = l("--guide"), cand = l("--candidate");
   if (!s || !ds || !adj || !mm || !guide || !cand) return null;
-  for (const x of [ds, adj, mm]) checkPublished(x, fx); // F4: only a completed merge publication is consumed
+  checkPublished("merge", [ds, adj, mm], fx); // F4: only a completed merge publication is consumed
   const rc = parseReceipt(s.receipt, fx);
   return rc ? { s, o: { ds, adj, mm }, guide, cand, rc } : null;
 }
