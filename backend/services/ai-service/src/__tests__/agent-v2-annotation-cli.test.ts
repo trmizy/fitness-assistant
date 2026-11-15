@@ -13,7 +13,7 @@ import { computeAgreement } from "./m7-benchmark/annotation-agreement";
 import { REQUIRED_CANDIDATE_FILES } from "./m7-benchmark/annotation-cli";
 import { SCHEMA_VERSION } from "./m7-benchmark/annotation-schema";
 import {
-  CANDIDATE, QUESTIONS, acceptArgs, adjRows, agreementArgs, anchorsOf, cleanup, freezeArgs, jsonl, lab, mergeArgs, pipeline, prepareArgs,
+  CANDIDATE, QUESTIONS, acceptArgs, acceptanceRecord, adjRows, agreementArgs, anchorsOf, cleanup, freezeArgs, jsonl, lab, mergeArgs, pipeline, prepareArgs,
   questionRows, readJsonl, roleRows, run, sha, signFromRefusal, workspace, type Obj,
 } from "./m7-benchmark/annotation-test-scenario";
 
@@ -212,11 +212,11 @@ test("CLI-7 freeze --fixture happy path: anchors, recomputation, content-bound s
     assert.match(fz.status, /^FIXTURE ONLY/); assert.equal(fz.fixture, true); assert.match(fz.trust, /do not prove authenticity/);
     assert.equal(fz.files.adjudicatedLabelsSha256, sha(w.p("m/adjudication.jsonl")), "Q8");
     assert.notEqual(fz.files.adjudicatedLabelsSha256, fz.binding.datasetSha256);
-    assert.deepEqual(fz.acceptedIdentities, { batchId: an.batchId, submissionsReceiptSha256: an.subs, mergeManifestSha256: an.mm });
+    assert.deepEqual(fz.acceptedIdentities, acceptanceRecord(an).identities, "the six identities of the owner acceptance record");
     assert.equal(fz.binding.annotatorASha256, sha(w.p("A.jsonl"))); assert.equal(fz.files.annotationGuideSha256, sha(w.p("guide.md")));
     assert.deepEqual(fz.candidate.requiredFilesQ9, [...REQUIRED_CANDIDATE_FILES]); assert.equal(fz.candidate.modelId, "PENDING");
     assert.equal(fz.validator.reviews, fz.validator.reviewsSigned);
-    assert.deepEqual(fz.agreementReview, { role: "adjudicator", signedBy: "ADJ01", decision: "CALIBRATION_COMPLETED" });
+    assert.deepEqual(fz.agreementReview, { role: "adjudicator", signedBy: "ADJ01", decision: "CALIBRATION_COMPLETED", policyStatus: "CALIBRATION_REQUIRED" });
     assert.equal(run(freezeArgs(w, an)).code, 1, "never overwrites freeze.json");
     assert.equal(run(freezeArgs(w, an, { out: "freeze2.json" })).code, 0);
     assert.equal(sha(w.p("freeze.json")), sha(w.p("freeze2.json")), "deterministic");
@@ -229,12 +229,14 @@ test("CLI-7 freeze --fixture happy path: anchors, recomputation, content-bound s
 test("CLI-8 freeze refuses an unclean candidate or one without the Q9 safety files; a tag-audited merge needs its audit file", () => {
   const w = workspace();
   try {
-    const an = pipeline(w); signFromRefusal(w, an);
+    pipeline(w);
+    // F1: the candidate identity is part of the owner record and of the review binding, so each candidate is re-anchored and re-signed
+    const resign = () => { const x = anchorsOf(w); signFromRefusal(w, x); return x; };
     fs.writeFileSync(w.p("candidate.json"), JSON.stringify(CANDIDATE({ clean: false })));
-    assert.deepEqual(run(freezeArgs(w, an)).codes, ["CANDIDATE_NOT_CLEAN"]);
+    assert.deepEqual(run(freezeArgs(w, resign())).codes, ["CANDIDATE_NOT_CLEAN"]);
     for (const missing of REQUIRED_CANDIDATE_FILES) {
       fs.writeFileSync(w.p("candidate.json"), JSON.stringify(CANDIDATE({ files: REQUIRED_CANDIDATE_FILES.filter((p) => p !== missing).map((p) => ({ path: p, sha256: "b".repeat(64) })) })));
-      assert.deepEqual(run(freezeArgs(w, an)).codes, ["CANDIDATE_MISSING_REQUIRED_FILE"], missing);
+      assert.deepEqual(run(freezeArgs(w, resign())).codes, ["CANDIDATE_MISSING_REQUIRED_FILE"], missing);
     }
     fs.writeFileSync(w.p("candidate.json"), JSON.stringify(CANDIDATE()));
     fs.writeFileSync(w.p("questions.jsonl"), jsonl(questionRows().map((q) => (q.id === "Q-0002" ? { ...q, tags: ["multi_clause"] } : q))));

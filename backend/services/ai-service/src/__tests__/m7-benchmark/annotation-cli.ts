@@ -11,20 +11,31 @@
  *   merge              receipt + submissions receipt + questions + A + B + adjudicator decisions [+ tag-audit]
  *                      → dataset.jsonl, adjudication.jsonl, merge-manifest.json (an all-or-nothing bundle directory)
  *   validate           dataset.jsonl → the official validator
- *   freeze --fixture   RE-COMPUTES merge and agreement from the source files and requires byte equality, checks three
- *                      ACCEPTED identities supplied out of band (--accepted-batch-id, --accepted-submissions-sha256,
- *                      --accepted-merge-manifest-sha256), content-bound review sign-offs, candidate identity → freeze.json
+ *   acceptance-draft   merge sources + outputs + guide + candidate (merge RE-COMPUTED) → a DRAFT owner acceptance record with the
+ *                      six identities and EMPTY approval fields (the CLI never declares that the owner accepted anything)
+ *   acceptance-verify  the owner's record + the same inputs → consistent / not recorded / mismatch (authenticity NOT verified)
+ *   freeze --fixture   RE-COMPUTES merge and agreement from the source files and requires byte equality, checks the owner
+ *                      acceptance record (--acceptance-manifest: batch, submissions receipt, merge manifest, guide, candidate,
+ *                      contract version + approval revision / provenance / recorder), content-bound sign-offs → freeze.json
  *
  * TRUST LIMITATION (stated, not hidden): every hash here proves CONSISTENCY with the bytes that were recorded. It does not
- * prove AUTHENTICITY: someone who can rewrite every file AND the accepted identities can produce a consistent forgery.
- * The accepted identities are only as trustworthy as the place the owner keeps them (outside the artifacts). No signing key
- * or trust root exists, so an OFFICIAL freeze is refused unconditionally (OFFICIAL_FREEZE_NOT_AUTHORIZED); only --fixture runs.
+ * prove AUTHENTICITY: someone who can rewrite every file AND the owner acceptance record can produce a consistent forgery.
+ * The record is an ordinary writable JSON file, NOT tamper-proof; it is only as trustworthy as the place the owner keeps it
+ * (outside the artifacts). No signing key or trust root exists, so an OFFICIAL freeze is refused unconditionally
+ * (OFFICIAL_FREEZE_NOT_AUTHORIZED) until an owner-controlled trust anchor is provisioned and separately approved; only --fixture runs.
  * Declared ids are pseudonyms: they show consistency of roles, never a person's real identity.
  *
- * Rules: offline; never creates, guesses, repairs or resolves a label; every input is read ONCE (parse and hash the same
- * bytes) and re-checked on disk before anything is published; outputs are never overwritten; multi-file outputs are built in a
- * private staging directory and published by one rename (an interrupted run leaves no finalized output); deterministic
- * output (rows sorted by id, fixed key order, LF, UTF-8 without BOM, no timestamps, no file names in identities).
+ * Rules: offline; never creates, guesses, repairs or resolves a label; every input is read ONCE into memory and parsed,
+ * hashed and used from those same bytes (the in-memory snapshot); the files on disk are re-checked against the snapshot after
+ * validation, after staging and after the members are linked, before the success marker (a change after the marker is not
+ * prevented — no lock binds other writers — but every output names the bytes actually used, so downstream steps detect it);
+ * outputs are never overwritten, replaced or removed; deterministic output (rows sorted by id, fixed key order, LF, UTF-8
+ * without BOM, no timestamps, no file names in identities).
+ * Publication (F4): files are staged privately, the destination directory is CLAIMED with an exclusive mkdir (fails on any
+ * existing path, empty or not, on POSIX and Windows), members are hard-linked in with no-replace semantics, and the success
+ * marker PUBLISHED.json is linked LAST. A bundle without the marker (killed run, foreign directory) is never consumed.
+ * Supported: a local filesystem with hard links and atomic mkdir / link(2) (NTFS, ext4, xfs, apfs). Not claimed: network or
+ * FAT/exFAT filesystems (no hard links → WRITE_FAILED, fail closed).
  * Exit codes: 0 clean · 1 error / refused · 3 no error but human review / sign-off required · 2 usage.
  * Run: npx tsx src/__tests__/m7-benchmark/annotation-cli.ts <command> [options]
  */
@@ -54,11 +65,25 @@ export const REQUIRED_CANDIDATE_FILES = Object.freeze([
   "backend/services/ai-service/src/llm/safety-limits.ts",
   "backend/services/ai-service/src/agent-v2/answer-guards.ts",
 ]);
-/** Accepted decisions of an agreement review, by recomputed policy status. */
-export const AGREEMENT_REVIEW_DECISIONS = Object.freeze({ CALIBRATION_REQUIRED: "CALIBRATION_COMPLETED", KAPPA_UNDEFINED_REVIEW: "REVIEWED" } as const);
+/**
+ * Accepted decisions of an agreement review, by RECOMPUTED policy status. NO_CALIBRATION_TRIGGER: a review is not required, but
+ * one that is supplied is still validated and can only be a voluntary REVIEWED (F5).
+ */
+export const AGREEMENT_REVIEW_DECISIONS = Object.freeze({ CALIBRATION_REQUIRED: "CALIBRATION_COMPLETED", KAPPA_UNDEFINED_REVIEW: "REVIEWED", NO_CALIBRATION_TRIGGER: "REVIEWED" } as const);
+/** The success marker of a published bundle, linked last; a bundle without it is never consumed (F4). */
+export const PUBLICATION_MARKER = "PUBLISHED.json";
+export const ACCEPTANCE_RECORD_KIND = "m7-p5a2-owner-acceptance-record";
 
-/** Test-only hooks (never set by the CLI): simulate an interruption, a concurrent writer, or a file changed mid-run. */
-export const testHooks: { afterLoad?: (file: string) => void; failAfterFiles?: number; beforePublish?: (dir: string) => void } = {};
+/**
+ * Test-only hooks (never set by the CLI): simulate an interruption, a concurrent writer, or a file changed mid-run.
+ * Order inside a publication: stage files (failAfterFiles) → beforePublish → check sources → claim → link each member
+ * (failAfterLinks, afterLink) → check sources → link the marker → afterPublish. Single file: temp → beforePublish → check →
+ * link → afterLink → check → afterPublish.
+ */
+export const testHooks: {
+  afterLoad?: (file: string) => void; failAfterFiles?: number; beforePublish?: (target: string) => void;
+  failAfterLinks?: number; afterLink?: (target: string, name: string) => void; afterPublish?: (target: string) => void;
+} = {};
 
 // ── small utilities ──────────────────────────────────────────────────────────────────────────────────────────────────
 export interface Io { out: (s: string) => void; err: (s: string) => void }
@@ -69,6 +94,8 @@ const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !
 const nonEmptyStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isSha = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
 export const sha256 = (buf: Buffer | string) => createHash("sha256").update(buf).digest("hex");
+/** Identity of the κ policy an agreement review was given under (F5: a review for another policy revision never matches). */
+export const AGREEMENT_POLICY_SHA256 = sha256(JSON.stringify(AGREEMENT_POLICY));
 /** JSON.stringify keeping `undefined` visible as null (a κ that is not defined must stay visible, never vanish). */
 const stable = (v: unknown, indent?: number) => JSON.stringify(v, (_k, x) => (x === undefined ? null : x), indent);
 const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
@@ -97,13 +124,29 @@ function loadSource(file: string, fx: Findings): Src | null {
   testHooks.afterLoad?.(file);
   return { path: file, name, text, sha256: sha256(buf) };
 }
-/** Before publishing: every input must still hold the bytes that were parsed. */
-function verifyUnchanged(srcs: ReadonlyArray<Src | null | undefined>, fx: Findings) {
+/**
+ * F3: every input must still hold the bytes of the in-memory snapshot. Called after validation, after staging and after the
+ * members are linked (before the success marker). A change after the last check is not prevented (no lock binds other
+ * writers); the outputs then still name the snapshot bytes that were actually used.
+ */
+function verifyUnchanged(srcs: ReadonlyArray<Src | null | undefined>, fx: Findings, stage = "after validation"): boolean {
+  let ok = true;
   for (const s of srcs) {
     if (!s) continue;
-    const now = fs.existsSync(s.path) ? sha256(fs.readFileSync(s.path)) : null;
-    if (now !== s.sha256) fx.add(s.name, 0, null, "SOURCE_CHANGED_DURING_RUN", `${s.path} changed while the command ran; nothing was published`);
+    let now: string | null = null;
+    try { now = sha256(fs.readFileSync(s.path)); } catch { now = null; }
+    if (now !== s.sha256) { ok = false; fx.add(s.name, 0, null, "SOURCE_CHANGED_DURING_RUN", `${s.path} changed while the command ran (detected ${stage}; the run used sha256 ${s.sha256}); nothing was published`); }
   }
+  return ok;
+}
+/** F4: a bundle member is consumed only from a COMPLETED publication (its directory's success marker lists it). */
+function checkPublished(src: Src | null | undefined, fx: Findings) {
+  if (!src) return;
+  const dir = path.dirname(src.path);
+  let o: unknown = null;
+  try { o = JSON.parse(fs.readFileSync(path.join(dir, PUBLICATION_MARKER), "utf8")); } catch { o = null; }
+  const listed = isObj(o) && o.kind === "m7-p5a2-publication" && Array.isArray(o.files) && o.files.some((f) => isObj(f) && f.name === path.basename(src.path));
+  if (!listed) fx.add(src.name, 0, null, "PUBLICATION_INCOMPLETE", `${dir} has no ${PUBLICATION_MARKER} listing ${path.basename(src.path)}: an interrupted, killed or foreign output is never consumed (re-run into a NEW directory)`);
 }
 
 interface Line { line: number; obj: Obj }
@@ -148,46 +191,90 @@ export const labelOut = (l: CaseLabel) => ({
 });
 const jsonl = (rows: unknown[]) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
 
+/** Thrown inside a publication when a check already recorded its own finding. */
+class Refused extends Error {}
+const errCode = (e: unknown) => (e as NodeJS.ErrnoException)?.code;
+/** True when `p` is the very file `ours` (same device + inode): rollback only ever removes this run's own links. */
+function sameFile(p: string, ours: string): boolean {
+  try { const a = fs.statSync(p, { bigint: true }), b = fs.statSync(ours, { bigint: true }); return a.dev === b.dev && a.ino === b.ino; } catch { return false; }
+}
+
 /**
- * Publishes a multi-file bundle as ONE directory: refused when `dir` exists; files are written into a private staging
- * directory next to it and published by a single rename. A failure or an interruption leaves no `dir` (only a `.partial-*`
- * staging directory if the process is killed). A competing writer that creates `dir` first makes this run fail, never overwrite.
+ * Publishes a multi-file bundle as ONE directory, no-replace (F3 / F4):
+ *   1. refused if `dir` exists (empty or not); 2. members + marker staged in a private `.<dir>.partial-*` directory;
+ *   3. sources re-checked; 4. `dir` CLAIMED with a non-recursive mkdir (atomic, fails on any existing path on POSIX and Windows —
+ *   never rename onto a directory, which POSIX allows over an empty one); 5. each member hard-linked in (link fails on an
+ *   existing name); 6. sources re-checked; 7. the success marker linked LAST.
+ * A handled failure removes only this run's own links (same inode) and the claimed directory if it is then empty; anything a
+ * competitor wrote stays untouched (PUBLICATION_ABANDONED). A killed run can leave a claimed directory without the marker and a
+ * `.partial-*` staging directory: neither is ever consumed or removed by the tool.
  */
-export function publishBundle(dir: string, files: Array<[string, string]>, fx: Findings): boolean {
+export function publishBundle(dir: string, files: Array<[string, string]>, fx: Findings, sources: ReadonlyArray<Src | null | undefined> = []): boolean {
   const target = path.resolve(dir);
-  if (fs.existsSync(target)) { fx.add(path.basename(target), 0, null, "OUTPUT_EXISTS", `${target} already exists; outputs are never overwritten (choose a new --out-dir)`); return false; }
+  const T = path.basename(target);
+  if (fs.existsSync(target)) { fx.add(T, 0, null, "OUTPUT_EXISTS", `${target} already exists; an existing destination (empty or not) is never replaced or removed (choose a new --out-dir)`); return false; }
   const parent = path.dirname(target);
   fs.mkdirSync(parent, { recursive: true });
-  const staging = path.join(parent, `.${path.basename(target)}.partial-${process.pid}-${randomBytes(6).toString("hex")}`);
+  const staging = path.join(parent, `.${T}.partial-${process.pid}-${randomBytes(6).toString("hex")}`);
   fs.mkdirSync(staging);
+  const marker = stable({ kind: "m7-p5a2-publication", tool: TOOL, schemaVersion: SCHEMA_VERSION, files: files.map(([n, c]) => ({ name: n, sha256: sha256(c) })) }, 2) + "\n";
+  const linked: string[] = [];
+  let claimed = false;
   try {
     files.forEach(([n, content], i) => {
-      if (testHooks.failAfterFiles !== undefined && i >= testHooks.failAfterFiles) throw new Error("simulated interruption");
+      if (testHooks.failAfterFiles !== undefined && i >= testHooks.failAfterFiles) throw new Error("simulated interruption while staging");
       fs.writeFileSync(path.join(staging, n), content, { encoding: "utf8", flag: "wx" });
     });
+    fs.writeFileSync(path.join(staging, PUBLICATION_MARKER), marker, { encoding: "utf8", flag: "wx" });
     testHooks.beforePublish?.(target);
-    if (fs.existsSync(target)) throw Object.assign(new Error(`${target} was created by another process during this run`), { code: "EEXIST" });
-    fs.renameSync(staging, target);
+    if (!verifyUnchanged(sources, fx, "after staging")) throw new Refused();
+    try { fs.mkdirSync(target); } catch (e) {
+      if (errCode(e) === "EEXIST") throw Object.assign(new Error(`${target} was created by another process during this run (exclusive claim failed)`), { code: "EEXIST" });
+      throw e;
+    }
+    claimed = true;
+    for (const [n] of files) {
+      if (testHooks.failAfterLinks !== undefined && linked.length >= testHooks.failAfterLinks) throw new Error("simulated interruption during publication");
+      try { fs.linkSync(path.join(staging, n), path.join(target, n)); } catch (e) {
+        if (errCode(e) === "EEXIST") throw Object.assign(new Error(`another process wrote ${n} into ${target} during publication`), { code: "EEXIST" });
+        throw e;
+      }
+      linked.push(n);
+      testHooks.afterLink?.(target, n);
+    }
+    if (!verifyUnchanged(sources, fx, "after the members were linked, before the success marker")) throw new Refused();
+    fs.linkSync(path.join(staging, PUBLICATION_MARKER), path.join(target, PUBLICATION_MARKER));
+    testHooks.afterPublish?.(target);
     return true;
   } catch (e) {
-    fs.rmSync(staging, { recursive: true, force: true });
-    const exists = (e as NodeJS.ErrnoException).code === "EEXIST" || (e as NodeJS.ErrnoException).code === "ENOTEMPTY" || fs.existsSync(target);
-    fx.add(path.basename(target), 0, null, exists ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing from this run was published`);
+    if (!(e instanceof Refused)) fx.add(T, 0, null, errCode(e) === "EEXIST" || errCode(e) === "ENOTEMPTY" ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing from this run was published`);
+    if (claimed) {
+      for (const n of linked) if (sameFile(path.join(target, n), path.join(staging, n))) fs.unlinkSync(path.join(target, n));
+      try { fs.rmdirSync(target); } catch {
+        fx.add(T, 0, null, "PUBLICATION_ABANDONED", `${target} holds files this run did not write; left untouched; it has no ${PUBLICATION_MARKER} and is not a valid output`);
+      }
+    }
     return false;
-  }
+  } finally { fs.rmSync(staging, { recursive: true, force: true }); }
 }
-/** One output file, created atomically (temp file + no-replace hard link). */
-function publishFile(file: string, content: string, fx: Findings): boolean {
+/** One output file, no-replace: temp file → sources re-checked → hard link (fails on an existing name) → sources re-checked. */
+function publishFile(file: string, content: string, fx: Findings, sources: ReadonlyArray<Src | null | undefined> = []): boolean {
   const target = path.resolve(file);
-  if (fs.existsSync(target)) { fx.add(path.basename(target), 0, null, "OUTPUT_EXISTS", `${target} already exists; outputs are never overwritten`); return false; }
+  const T = path.basename(target);
+  if (fs.existsSync(target)) { fx.add(T, 0, null, "OUTPUT_EXISTS", `${target} already exists; outputs are never overwritten`); return false; }
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  const tmp = `${path.join(path.dirname(target), `.${path.basename(target)}`)}.partial-${process.pid}-${randomBytes(6).toString("hex")}`;
+  const tmp = `${path.join(path.dirname(target), `.${T}`)}.partial-${process.pid}-${randomBytes(6).toString("hex")}`;
   try {
     fs.writeFileSync(tmp, content, { encoding: "utf8", flag: "wx" });
+    testHooks.beforePublish?.(target);
+    if (!verifyUnchanged(sources, fx, "after staging")) return false;
     fs.linkSync(tmp, target);
+    testHooks.afterLink?.(target, T);
+    if (!verifyUnchanged(sources, fx, "after publication")) { if (sameFile(target, tmp)) fs.unlinkSync(target); return false; }
+    testHooks.afterPublish?.(target);
     return true;
   } catch (e) {
-    fx.add(path.basename(target), 0, null, (e as NodeJS.ErrnoException).code === "EEXIST" ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing written`);
+    fx.add(T, 0, null, errCode(e) === "EEXIST" ? "OUTPUT_EXISTS" : "WRITE_FAILED", `${(e as Error).message}; nothing written`);
     return false;
   } finally { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); }
 }
@@ -197,11 +284,13 @@ function publishFile(file: string, content: string, fx: Findings): boolean {
 export const questionContentSha = (id: string, question: string, accented: boolean) => sha256(JSON.stringify({ schemaVersion: SCHEMA_VERSION, id, question, accented }));
 /** Content without the id: detects the same question re-issued under another id. */
 const questionTextSha = (question: string, accented: boolean) => sha256(JSON.stringify({ question, accented }));
-interface ReceiptQuestion { id: string; contentSha256: string; textSha256: string; tags: string[] }
+/** F2: identity of a question's source record (kind, author spelling, note) — bound at prepare. */
+const sourceSha = (s: { kind: string; author: string; note: string }) => sha256(JSON.stringify({ kind: s.kind, author: s.author, note: s.note }));
+interface ReceiptQuestion { id: string; contentSha256: string; textSha256: string; writerKey: string; sourceSha256: string; tags: string[] }
 export interface Receipt { batchId: string; curatorId: string; writerKeys: string[]; questions: ReceiptQuestion[] }
 const batchIdOf = (r: Omit<Receipt, "batchId">) => sha256(JSON.stringify({
-  kind: "m7-p5a2-prepare-batch", schemaVersion: SCHEMA_VERSION, curatorId: r.curatorId, writerKeys: r.writerKeys,
-  questions: r.questions.map((q) => ({ id: q.id, contentSha256: q.contentSha256, textSha256: q.textSha256, tags: q.tags })),
+  kind: "m7-p5a2-prepare-batch-v2", schemaVersion: SCHEMA_VERSION, curatorId: r.curatorId, writerKeys: r.writerKeys,
+  questions: r.questions.map((q) => ({ id: q.id, contentSha256: q.contentSha256, textSha256: q.textSha256, writerKey: q.writerKey, sourceSha256: q.sourceSha256, tags: q.tags })),
 }));
 function parseReceipt(src: Src, fx: Findings): Receipt | null {
   const o = readJson(src, fx);
@@ -211,12 +300,14 @@ function parseReceipt(src: Src, fx: Findings): Receipt | null {
   if (!isValidLabelerId(o.curatorId) || !Array.isArray(o.writerKeys) || !o.writerKeys.every((x) => typeof x === "string") || !Array.isArray(o.questions)) return bad("curatorId / writerKeys / questions missing or malformed");
   const qs: ReceiptQuestion[] = [];
   for (const q of o.questions) {
-    if (!isObj(q) || !nonEmptyStr(q.id) || !isSha(q.contentSha256) || !isSha(q.textSha256) || !Array.isArray(q.tags) || !q.tags.every((t) => typeof t === "string")) return bad(`malformed question entry ${stable(q)}`);
-    qs.push({ id: q.id, contentSha256: q.contentSha256, textSha256: q.textSha256, tags: [...(q.tags as string[])] });
+    if (isObj(q) && (q.writerKey === undefined || q.sourceSha256 === undefined)) return bad(`question entry ${stable(q.id)} has no writer attribution (writerKey / sourceSha256): the receipt was made by an earlier tool revision; re-run prepare into a new directory (F2)`);
+    if (!isObj(q) || !nonEmptyStr(q.id) || !isSha(q.contentSha256) || !isSha(q.textSha256) || !nonEmptyStr(q.writerKey) || !isSha(q.sourceSha256) || !Array.isArray(q.tags) || !q.tags.every((t) => typeof t === "string")) return bad(`malformed question entry ${stable(q)}`);
+    qs.push({ id: q.id, contentSha256: q.contentSha256, textSha256: q.textSha256, writerKey: q.writerKey, sourceSha256: q.sourceSha256, tags: [...(q.tags as string[])] });
   }
   const r = { curatorId: o.curatorId, writerKeys: [...(o.writerKeys as string[])], questions: qs };
   if (new Set(qs.map((q) => idKey(q.id))).size !== qs.length) return bad("duplicate id in the receipt");
-  if (o.batchId !== batchIdOf(r)) { fx.add(src.name, 0, null, "RECEIPT_INCONSISTENT", "batchId does not match the receipt's own question entries (the receipt was edited)"); return null; }
+  const derivedWriters = [...new Set(qs.map((q) => q.writerKey))].sort(byId);
+  if (o.batchId !== batchIdOf(r) || stable(derivedWriters) !== stable(r.writerKeys)) { fx.add(src.name, 0, null, "RECEIPT_INCONSISTENT", "batchId / writerKeys do not match the receipt's own question entries (the receipt was edited)"); return null; }
   return { batchId: o.batchId as string, ...r };
 }
 /**
@@ -232,6 +323,9 @@ function checkAgainstReceipt(qs: readonly QuestionRow[], rc: Receipt, expectedTa
     if (!q) { fx.add(file, 0, p.id, "MISSING_PREPARED_QUESTION", `prepared question ${p.id} is missing from the question file`); continue; }
     if (q.id !== p.id) fx.add(file, q.line, q.id, "QUESTION_ID_CHANGED", `id must be written exactly as prepared (${p.id})`);
     else if (questionContentSha(q.id, q.question, q.accented) !== p.contentSha256) fx.add(file, q.line, q.id, "QUESTION_CONTENT_CHANGED", "question / accented differ from the prepared revision: the existing labels belong to the old text; a changed question needs a new id and new annotation");
+    // F2: the writer attribution is part of the prepared revision; it is never re-attributed after annotation
+    if (canonicalWriterKey(q.source.author) !== p.writerKey) fx.add(file, q.line, q.id, "WRITER_ATTRIBUTION_CHANGED", `source.author ${JSON.stringify(q.source.author)} is not the writer recorded at prepare (${p.writerKey}): a changed writer attribution needs a new source revision (new prepare) and renewed annotation / review; labels are never migrated`);
+    else if (sourceSha(q.source) !== p.sourceSha256) fx.add(file, q.line, q.id, "SOURCE_CHANGED", "source record (kind / author spelling / note) differs from the prepared revision: a new source revision needs a new prepare and renewed review");
     const want = expectedTags.get(p.id) ?? p.tags;
     if (!(want.length === q.tags.length && want.every((t) => q.tags.includes(t)))) fx.add(file, q.line, q.id, "TAG_CHANGED_WITHOUT_AUDIT", `tags ${stable(q.tags)} differ from the prepared tags after the tag audit ${stable(want)}; every tag change goes through the tag audit (Q3)`);
   }
@@ -428,7 +522,7 @@ function buildAgreement(rcSrc: Src, rc: Receipt, aSrc: Src, bSrc: Src, fx: Findi
 
 // ── merge (pure: the same function is re-run by freeze) ──────────────────────────────────────────────────────────────
 interface MergeSources { receipt: Src; submissions: Src; questions: Src; a: Src; b: Src; adjudicator: Src; tagAudit: Src | null }
-interface MergeBuild { dataset: string; adjudication: string; manifest: string; reviews: Finding[]; rc: Receipt; adjudicatorId: string; annotatorA: string; annotatorB: string; datasetIds: string[] }
+interface MergeBuild { dataset: string; adjudication: string; manifest: string; reviews: Finding[]; rc: Receipt; adjudicatorId: string; annotatorA: string; annotatorB: string; datasetIds: string[]; tagAuditEntries: number }
 function buildMerge(s: MergeSources, vopts: ValidateOptions, fx: Findings): MergeBuild | null {
   const rc = parseReceipt(s.receipt, fx);
   const sr = parseSubmissionsReceipt(s.submissions, fx);
@@ -496,7 +590,7 @@ function buildMerge(s: MergeSources, vopts: ValidateOptions, fx: Findings): Merg
     roles: { annotatorA: A.annotatorId, annotatorB: B.annotatorId, adjudicator: J.adjudicatorId, curator: rc.curatorId },
     validator: { options: vopts, errors: 0, reviews: v.reviews.length, reviewsByCode: v.stats.reviewsByCode },
   };
-  return { dataset, adjudication, manifest: stable(manifest, 2) + "\n", reviews: v.reviews, rc, adjudicatorId: J.adjudicatorId, annotatorA: A.annotatorId!, annotatorB: B.annotatorId!, datasetIds: ids };
+  return { dataset, adjudication, manifest: stable(manifest, 2) + "\n", reviews: v.reviews, rc, adjudicatorId: J.adjudicatorId, annotatorA: A.annotatorId!, annotatorB: B.annotatorId!, datasetIds: ids, tagAuditEntries: audit?.entries ?? 0 };
 }
 
 // ── commands ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -555,7 +649,7 @@ function cmdPrepare(a: Args, io: Io): number {
   const task = (q: QuestionRow) => ({ id: q.id, question: q.question, accented: q.accented });
   const A = jsonl(shuffled(sorted, seed).map(task));
   const B = jsonl(shuffled(sorted, (seed + 1) >>> 0).map(task));
-  const questions = sorted.map((q) => ({ id: q.id, contentSha256: questionContentSha(q.id, q.question, q.accented), textSha256: questionTextSha(q.question, q.accented), tags: q.tags }));
+  const questions = sorted.map((q) => ({ id: q.id, contentSha256: questionContentSha(q.id, q.question, q.accented), textSha256: questionTextSha(q.question, q.accented), writerKey: canonicalWriterKey(q.source.author), sourceSha256: sourceSha(q.source), tags: q.tags }));
   const batchId = batchIdOf({ curatorId: curator, writerKeys, questions });
   const receipt = {
     kind: "m7-p5a2-prepare-manifest", tool: TOOL, schemaVersion: SCHEMA_VERSION, batchId, curatorId: curator, writerKeys,
@@ -565,7 +659,7 @@ function cmdPrepare(a: Args, io: Io): number {
     questions,
   };
   verifyUnchanged([qSrc], fx);
-  if (!fx.ok || !publishBundle(a.opt.get("--out-dir")!, [["for-annotator-A.jsonl", A], ["for-annotator-B.jsonl", B], ["prepare-manifest.json", stable(receipt, 2) + "\n"]], fx)) return finish(fx, io, "");
+  if (!fx.ok || !publishBundle(a.opt.get("--out-dir")!, [["for-annotator-A.jsonl", A], ["for-annotator-B.jsonl", B], ["prepare-manifest.json", stable(receipt, 2) + "\n"]], fx, [qSrc])) return finish(fx, io, "");
   io.out(stable({ batchId }));
   return finish(fx, io, `OK prepared ${qs.length} case(s) (seed ${seed}); record batchId ${batchId} OUTSIDE the artifacts (accepted identity)`);
 }
@@ -594,8 +688,9 @@ function cmdAcceptSubmissions(a: Args, io: Io): number {
   const fx = new Findings();
   const rcSrc = loadSource(a.opt.get("--prepare-manifest")!, fx), aSrc = loadSource(a.opt.get("--a")!, fx), bSrc = loadSource(a.opt.get("--b")!, fx);
   if (!rcSrc || !aSrc || !bSrc) return finish(fx, io, "");
+  checkPublished(rcSrc, fx);
   const rc = parseReceipt(rcSrc, fx);
-  if (!rc) return finish(fx, io, "");
+  if (!rc || !fx.ok) return finish(fx, io, "");
   const ids = rc.questions.map((q) => q.id);
   const A = parseRoleFile(aSrc, "A", ids, fx), B = parseRoleFile(bSrc, "B", ids, fx);
   checkAnnotatorRoles(A, B, rc, "A+B", fx);
@@ -606,7 +701,7 @@ function cmdAcceptSubmissions(a: Args, io: Io): number {
   };
   const text = stable(out, 2) + "\n";
   verifyUnchanged([rcSrc, aSrc, bSrc], fx);
-  if (!fx.ok || !publishFile(a.opt.get("--out")!, text, fx)) return finish(fx, io, "");
+  if (!fx.ok || !publishFile(a.opt.get("--out")!, text, fx, [rcSrc, aSrc, bSrc])) return finish(fx, io, "");
   io.out(stable({ submissionsReceiptSha256: sha256(text) }));
   return finish(fx, io, `OK original submissions accepted; record submissionsReceiptSha256 ${sha256(text)} OUTSIDE the artifacts (accepted identity)`);
 }
@@ -616,12 +711,13 @@ function cmdAgreement(a: Args, io: Io): number {
   const fx = new Findings();
   const rcSrc = loadSource(a.opt.get("--prepare-manifest")!, fx), aSrc = loadSource(a.opt.get("--a")!, fx), bSrc = loadSource(a.opt.get("--b")!, fx);
   if (!rcSrc || !aSrc || !bSrc) return finish(fx, io, "");
+  checkPublished(rcSrc, fx);
   const rc = parseReceipt(rcSrc, fx);
-  if (!rc) return finish(fx, io, "");
+  if (!rc || !fx.ok) return finish(fx, io, "");
   const ag = buildAgreement(rcSrc, rc, aSrc, bSrc, fx);
   if (!ag || !fx.ok) { io.out(stable({ missingLabels: ag?.missing ?? null })); return finish(fx, io, ""); }
   verifyUnchanged([rcSrc, aSrc, bSrc], fx);
-  if (!fx.ok || !publishFile(a.opt.get("--out")!, ag.text, fx)) return finish(fx, io, "");
+  if (!fx.ok || !publishFile(a.opt.get("--out")!, ag.text, fx, [rcSrc, aSrc, bSrc])) return finish(fx, io, "");
   io.out(stable({ primaryKappa: ag.policy.primaryKappa, status: ag.policy.status, adjudicationQueue: ag.queue.length }));
   if (ag.policy.reviewRequired) fx.review(path.basename(a.opt.get("--out")!), 0, null, ag.policy.status, `${ag.policy.reasons.join("; ")} — review + one calibration round on a subset OUTSIDE the dataset; existing labels are not edited`);
   return finish(fx, io, "OK agreement computed; no calibration trigger (kappa is not a PASS / FAIL verdict)");
@@ -631,6 +727,7 @@ function loadMergeSources(a: Args, fx: Findings): MergeSources | null {
   const l = (k: string) => loadSource(a.opt.get(k)!, fx);
   const s = { receipt: l("--prepare-manifest"), submissions: l("--submissions-receipt"), questions: l("--questions"), a: l("--a"), b: l("--b"), adjudicator: l("--adjudicator"), tagAudit: a.opt.get("--tag-audit") ? l("--tag-audit") : null };
   if (!s.receipt || !s.submissions || !s.questions || !s.a || !s.b || !s.adjudicator || (a.opt.get("--tag-audit") && !s.tagAudit)) return null;
+  checkPublished(s.receipt, fx);
   return s as MergeSources;
 }
 const MERGE_KEYS = ["--prepare-manifest", "--submissions-receipt", "--questions", "--a", "--b", "--adjudicator"];
@@ -639,12 +736,12 @@ function cmdMerge(a: Args, io: Io): number {
   if (!need(a, [...MERGE_KEYS, "--out-dir"], io)) return 2;
   const fx = new Findings();
   const s = loadMergeSources(a, fx);
-  if (!s) return finish(fx, io, "");
+  if (!s || !fx.ok) return finish(fx, io, "");
   const vopts: ValidateOptions = { checkDistribution: !a.flags.has("--no-distribution"), checkBenchmarkOverlap: !a.flags.has("--no-overlap") };
   const m = buildMerge(s, vopts, fx);
   if (!m) return finish(fx, io, "");
   verifyUnchanged(Object.values(s), fx);
-  if (!fx.ok || !publishBundle(a.opt.get("--out-dir")!, [["dataset.jsonl", m.dataset], ["adjudication.jsonl", m.adjudication], ["merge-manifest.json", m.manifest]], fx)) return finish(fx, io, "");
+  if (!fx.ok || !publishBundle(a.opt.get("--out-dir")!, [["dataset.jsonl", m.dataset], ["adjudication.jsonl", m.adjudication], ["merge-manifest.json", m.manifest]], fx, Object.values(s))) return finish(fx, io, "");
   for (const r of m.reviews) fx.review("dataset.jsonl", r.line, r.id, r.code, r.detail);
   io.out(stable({ mergeManifestSha256: sha256(m.manifest) }));
   return finish(fx, io, `OK merged; record mergeManifestSha256 ${sha256(m.manifest)} OUTSIDE the artifacts (accepted identity)`);
@@ -666,48 +763,200 @@ function cmdValidate(a: Args, io: Io): number {
 /** C4: the identity of a REVIEW finding (what exactly was approved). */
 export const findingSha = (f: Finding) => sha256(JSON.stringify({ id: f.id, code: f.code, line: f.line, detail: f.detail }));
 
+// ── shared checks: merge outputs, candidate identity, owner acceptance record ────────────────────────────────────────
+const OUTPUT_KEYS = ["--dataset", "--adjudication", "--merge-manifest"];
+const ACCEPT_INPUT_KEYS = [...MERGE_KEYS, ...OUTPUT_KEYS, "--guide", "--candidate"];
+interface Outputs { ds: Src; adj: Src; mm: Src }
+interface AcceptInputs { s: MergeSources; o: Outputs; guide: Src; cand: Src; rc: Receipt }
+function loadAcceptInputs(a: Args, fx: Findings): AcceptInputs | null {
+  const l = (k: string) => loadSource(a.opt.get(k)!, fx);
+  const s = loadMergeSources(a, fx);
+  const ds = l("--dataset"), adj = l("--adjudication"), mm = l("--merge-manifest"), guide = l("--guide"), cand = l("--candidate");
+  if (!s || !ds || !adj || !mm || !guide || !cand) return null;
+  for (const x of [ds, adj, mm]) checkPublished(x, fx); // F4: only a completed merge publication is consumed
+  const rc = parseReceipt(s.receipt, fx);
+  return rc ? { s, o: { ds, adj, mm }, guide, cand, rc } : null;
+}
+/** C3: the dataset, the adjudication file and the merge manifest must be EXACTLY what merge produces from the sources. */
+function reproduceMerge(s: MergeSources, o: Outputs, fx: Findings): MergeBuild | null {
+  const mmObj = readJson(o.mm, fx);
+  const vo = isObj(mmObj) && isObj(mmObj.validator) && isObj(mmObj.validator.options) ? (mmObj.validator.options as Obj) : null;
+  if (!vo || typeof vo.checkDistribution !== "boolean" || typeof vo.checkBenchmarkOverlap !== "boolean") { fx.add(o.mm.name, 0, null, "MERGE_MANIFEST_INVALID", "validator options missing"); return null; }
+  const m = buildMerge(s, { checkDistribution: vo.checkDistribution, checkBenchmarkOverlap: vo.checkBenchmarkOverlap }, fx);
+  if (!m) return null;
+  if (m.dataset !== o.ds.text) fx.add(o.ds.name, 0, null, "DATASET_NOT_REPRODUCIBLE", "dataset differs from what merge produces from the accepted sources (an edited A / B block, label, rationale or tag)");
+  if (m.adjudication !== o.adj.text) fx.add(o.adj.name, 0, null, "ADJUDICATION_NOT_REPRODUCIBLE", "adjudication.jsonl differs from what merge produces from the adjudicator decisions");
+  if (m.manifest !== o.mm.text) fx.add(o.mm.name, 0, null, "MERGE_MANIFEST_NOT_REPRODUCIBLE", "merge manifest differs from what merge produces from the sources");
+  return fx.ok ? m : null;
+}
+/** Q9: the candidate identity is clean and contains the safety files. */
+function checkCandidate(cand: Src, fx: Findings): Obj | null {
+  const candObj = readJson(cand, fx);
+  const files = candObj && Array.isArray(candObj.files) ? candObj.files.filter(isObj) : [];
+  if (candObj && candObj.clean !== true) fx.add("candidate", 0, null, "CANDIDATE_NOT_CLEAN", "candidate identity is not clean (clean !== true)");
+  for (const req of REQUIRED_CANDIDATE_FILES) {
+    const hit = files.find((x) => x.path === req);
+    if (!hit || !isSha(hit.sha256)) fx.add("candidate", 0, null, "CANDIDATE_MISSING_REQUIRED_FILE", `${req} (owner decision Q9) is missing from the candidate identity or has no sha256`);
+  }
+  return candObj;
+}
+
+/**
+ * The owner-controlled acceptance record (§7). The CLI drafts it with EMPTY approval fields; only the owner fills `approval`
+ * (revision, provenance = where the record is kept, recordedBy) and keeps it outside the artifacts. It is an ordinary writable
+ * JSON file: checking it proves the artifacts are CONSISTENT with what it states — never who wrote it, when, or that it is the
+ * owner's. No signature, signer identity, trust root or timestamp is created or implied.
+ */
+const IDENTITY_KEYS = ["contractVersion", "batchId", "submissionsReceiptSha256", "mergeManifestSha256", "annotationGuideSha256", "candidateIdentitySha256"] as const;
+type Identities = Record<(typeof IDENTITY_KEYS)[number], string>;
+const APPROVAL_KEYS = ["revision", "provenance", "recordedBy"] as const;
+const ACCEPTANCE_KEYS = ["kind", "schemaVersion", "tool", "notice", "identities", "approval"];
+export const ACCEPTANCE_NOTICE = "DRAFT prepared by the annotation CLI, which cannot declare owner acceptance. Only the owner fills `approval` (revision, provenance = where this record is kept, recordedBy) after reviewing the identities, and keeps the record OUTSIDE the artifacts. This is an ordinary writable JSON file and NOT tamper-proof: it shows consistency with what it states, not who wrote it or when. Official freeze stays blocked until an owner-controlled trust anchor is provisioned and separately approved.";
+const identitiesOf = (x: AcceptInputs): Identities => ({
+  contractVersion: SCHEMA_VERSION, batchId: x.rc.batchId, submissionsReceiptSha256: x.s.submissions.sha256, mergeManifestSha256: x.o.mm.sha256,
+  annotationGuideSha256: x.guide.sha256, candidateIdentitySha256: x.cand.sha256,
+});
+interface Approval { revision: number; provenance: string; recordedBy: string }
+function checkAcceptance(src: Src, want: Identities, annotators: readonly string[], fx: Findings): { approval: Approval | null } | null {
+  const F = src.name;
+  const o = readJson(src, fx);
+  if (!o) return null;
+  const before = fx.list.length;
+  const bad = (d: string) => fx.add(F, 0, null, "ACCEPTANCE_RECORD_INVALID", d);
+  for (const k of Object.keys(o)) if (!ACCEPTANCE_KEYS.includes(k)) bad(`unexpected key '${k}'`);
+  if (o.kind !== ACCEPTANCE_RECORD_KIND || o.schemaVersion !== SCHEMA_VERSION) bad(`kind must be "${ACCEPTANCE_RECORD_KIND}" and schemaVersion "${SCHEMA_VERSION}"`);
+  const ids = isObj(o.identities) ? o.identities : null;
+  const ap = isObj(o.approval) ? o.approval : null;
+  if (!ids) bad("identities missing or not an object");
+  else for (const k of Object.keys(ids)) if (!(IDENTITY_KEYS as readonly string[]).includes(k)) bad(`identities: unexpected key '${k}'`);
+  if (!ap) bad("approval missing or not an object");
+  else for (const k of Object.keys(ap)) if (!(APPROVAL_KEYS as readonly string[]).includes(k)) bad(`approval: unexpected key '${k}'`);
+  if (fx.list.length > before || !ids || !ap) return null;
+  for (const k of IDENTITY_KEYS) {
+    const v = ids[k];
+    if (k === "contractVersion") { if (v !== want[k]) fx.add(F, 0, null, "CONTRACT_VERSION_MISMATCH", `contractVersion ${stable(v)} is not the contract of these artifacts (${want[k]})`); continue; }
+    if (!isSha(v)) fx.add(F, 0, null, "ANCHOR_INVALID", `identities.${k} must be a full lowercase SHA-256 (64 hex characters), got ${stable(v)}`);
+    else if (v !== want[k]) fx.add(F, 0, null, "ANCHOR_MISMATCH", `${k}: the artifact (${want[k]}) differs from the identity the owner recorded (${v})`);
+  }
+  if (APPROVAL_KEYS.every((k) => ap[k] === null)) return { approval: null };
+  if (!(Number.isInteger(ap.revision) && (ap.revision as number) >= 1) || !nonEmptyStr(ap.provenance) || humanTextProblem(ap.provenance) || !isValidLabelerId(ap.recordedBy)) {
+    bad("approval needs ALL of revision (integer ≥ 1), provenance (where the owner keeps this record; canonical text) and recordedBy (pseudonym) — or all three null in a draft");
+    return null;
+  }
+  if (annotators.map(labelerRoleKey).includes(labelerRoleKey(ap.recordedBy as string))) fx.add(F, 0, null, "ACCEPTANCE_BY_ANNOTATOR", `${ap.recordedBy} is annotator A or B; the acceptance is recorded by the owner`);
+  return { approval: { revision: ap.revision as number, provenance: ap.provenance as string, recordedBy: ap.recordedBy as string } };
+}
+
+function cmdAcceptanceDraft(a: Args, io: Io): number {
+  if (!need(a, [...ACCEPT_INPUT_KEYS, "--out"], io)) return 2;
+  const fx = new Findings();
+  const x = loadAcceptInputs(a, fx);
+  if (!x || !fx.ok) return finish(fx, io, "");
+  const m = reproduceMerge(x.s, x.o, fx);
+  checkCandidate(x.cand, fx);
+  if (!m || !fx.ok) return finish(fx, io, "");
+  const identities = identitiesOf(x);
+  const draft = { kind: ACCEPTANCE_RECORD_KIND, schemaVersion: SCHEMA_VERSION, tool: TOOL, notice: ACCEPTANCE_NOTICE, identities, approval: { revision: null, provenance: null, recordedBy: null } };
+  const text = stable(draft, 2) + "\n";
+  const all = [...Object.values(x.s), x.o.ds, x.o.adj, x.o.mm, x.guide, x.cand];
+  verifyUnchanged(all, fx);
+  if (!fx.ok || !publishFile(a.opt.get("--out")!, text, fx, all)) return finish(fx, io, "");
+  io.out(stable({ draftSha256: sha256(text), identities }));
+  fx.review(path.basename(a.opt.get("--out")!), 0, null, "OWNER_ACCEPTANCE_REQUIRED", "DRAFT only: the owner reviews the six identities, fills approval {revision, provenance, recordedBy} and keeps the record outside the artifacts; the CLI never declares acceptance");
+  return finish(fx, io, "");
+}
+
+function cmdAcceptanceVerify(a: Args, io: Io): number {
+  if (!need(a, [...ACCEPT_INPUT_KEYS, "--acceptance-manifest"], io)) return 2;
+  const fx = new Findings();
+  const x = loadAcceptInputs(a, fx);
+  const rec = loadSource(a.opt.get("--acceptance-manifest")!, fx);
+  if (!x || !rec || !fx.ok) return finish(fx, io, "");
+  const m = reproduceMerge(x.s, x.o, fx);
+  checkCandidate(x.cand, fx);
+  if (!m || !fx.ok) return finish(fx, io, "");
+  const acc = checkAcceptance(rec, identitiesOf(x), [m.annotatorA, m.annotatorB], fx);
+  verifyUnchanged([...Object.values(x.s), x.o.ds, x.o.adj, x.o.mm, x.guide, x.cand, rec], fx);
+  if (!acc || !fx.ok) return finish(fx, io, "");
+  io.out(stable({ acceptanceRecordSha256: rec.sha256, identities: identitiesOf(x), approval: acc.approval }));
+  if (!acc.approval) { fx.review(rec.name, 0, null, "OWNER_ACCEPTANCE_NOT_RECORDED", "identities are consistent, but approval {revision, provenance, recordedBy} is empty: the owner has not recorded acceptance"); return finish(fx, io, ""); }
+  return finish(fx, io, `OK the artifacts are CONSISTENT with the owner record (revision ${acc.approval.revision}); its authenticity and custody are NOT verified by this tool (an ordinary writable file, no trust root)`);
+}
+
+/**
+ * F5: a supplied agreementReview is ALWAYS validated — signer identity, role, content binding, policy identity (status + policy
+ * sha256), decision and evidence; only its REQUIRED PRESENCE depends on the recomputed policy. Returns the accepted review or null.
+ */
+const AGREEMENT_REVIEW_KEYS = ["role", "signedBy", "decision", "bindingSha256", "policyStatus", "agreementPolicySha256", "note", "calibration"];
+function checkAgreementReview(raw: unknown, policy: AgreementPolicyResult, bindingSha256: string, m: MergeBuild, fx: Findings): Obj | null {
+  const bad = (code: string, d: string) => fx.add("signoff", 0, null, code, d);
+  const expectDecision = AGREEMENT_REVIEW_DECISIONS[policy.status as keyof typeof AGREEMENT_REVIEW_DECISIONS];
+  const ask = `{decision ${expectDecision}, policyStatus ${policy.status}, agreementPolicySha256 ${AGREEMENT_POLICY_SHA256}, bindingSha256 ${bindingSha256}, role "adjudicator" | "reviewer", signedBy, note${policy.calibrationRequired ? ", calibration {caseIds, ref}" : ""}}`;
+  if (raw === undefined || raw === null) {
+    if (policy.reviewRequired) bad("AGREEMENT_REVIEW_NOT_SIGNED", `an agreementReview ${ask} is required (recomputed agreement policy ${policy.status}: ${policy.reasons.join("; ")})`);
+    return null;
+  }
+  if (!isObj(raw)) { bad("AGREEMENT_REVIEW_INVALID", `agreementReview must be an object or null; a supplied review is always validated, expected ${ask}`); return null; }
+  const before = fx.list.length;
+  for (const k of Object.keys(raw)) if (!AGREEMENT_REVIEW_KEYS.includes(k)) bad("AGREEMENT_REVIEW_INVALID", `agreementReview: unexpected key '${k}'`);
+  if (!isValidLabelerId(raw.signedBy) || !nonEmptyStr(raw.note)) { bad("AGREEMENT_REVIEW_INVALID", "agreementReview needs a valid signedBy and a note"); return null; }
+  const annKeys = [m.annotatorA, m.annotatorB].map(labelerRoleKey);
+  if (annKeys.includes(labelerRoleKey(raw.signedBy))) bad("AGREEMENT_REVIEWER_IS_ANNOTATOR", `${raw.signedBy} is annotator A or B; the agreement reviewer must be someone else`);
+  if (raw.role === "adjudicator") { if (labelerRoleKey(raw.signedBy) !== labelerRoleKey(m.adjudicatorId)) bad("AGREEMENT_REVIEW_ROLE", `role adjudicator but ${raw.signedBy} is not the adjudicator ${m.adjudicatorId}`); }
+  else if (raw.role === "reviewer") { if (m.rc.writerKeys.includes(canonicalWriterKey(raw.signedBy))) bad("AGREEMENT_REVIEW_ROLE", `${raw.signedBy} is a writer (writer attribution bound at prepare)`); }
+  else bad("AGREEMENT_REVIEW_ROLE", `role must be "adjudicator" or "reviewer", got ${JSON.stringify(raw.role)}`);
+  if (raw.bindingSha256 !== bindingSha256) bad("AGREEMENT_REVIEW_BINDING_MISMATCH", `agreementReview was given for other content (replayed or stale); expected bindingSha256 ${bindingSha256}`);
+  if (raw.policyStatus !== policy.status || raw.agreementPolicySha256 !== AGREEMENT_POLICY_SHA256) bad("AGREEMENT_REVIEW_POLICY_MISMATCH", `agreementReview was given under another policy state / revision; expected policyStatus ${policy.status}, agreementPolicySha256 ${AGREEMENT_POLICY_SHA256}`);
+  if (raw.decision !== expectDecision) bad("AGREEMENT_REVIEW_DECISION", `decision must be ${expectDecision} for the recomputed policy ${policy.status}${policy.reviewRequired ? "" : " (no review is required; only a voluntary REVIEWED is accepted)"}`);
+  if (policy.calibrationRequired || raw.calibration !== undefined) {
+    const c = isObj(raw.calibration) ? raw.calibration : null;
+    const caseIds = c && Array.isArray(c.caseIds) && c.caseIds.length && c.caseIds.every(nonEmptyStr) ? (c.caseIds as string[]) : null;
+    if (!c || !caseIds || !nonEmptyStr(c.ref)) bad("CALIBRATION_NOT_DOCUMENTED", "calibration {caseIds (non-empty), ref (where the calibration round is documented)} is required");
+    else {
+      const inDataset = new Set(m.datasetIds.map(idKey));
+      for (const x of caseIds) if (inDataset.has(idKey(x))) bad("CALIBRATION_CASE_IN_DATASET", `calibration case ${x} is part of the evaluation dataset; calibration uses a subset OUTSIDE the dataset`);
+    }
+  }
+  return fx.list.length === before ? raw : null;
+}
+
 function cmdFreeze(a: Args, io: Io): number {
-  const keys = [...MERGE_KEYS, "--dataset", "--adjudication", "--merge-manifest", "--agreement", "--guide", "--candidate", "--signoff", "--out",
-    "--accepted-batch-id", "--accepted-submissions-sha256", "--accepted-merge-manifest-sha256"];
+  const keys = [...ACCEPT_INPUT_KEYS, "--agreement", "--signoff", "--out", "--acceptance-manifest"];
   if (!need(a, keys, io)) return 2;
   const fx = new Findings();
-  // No trust root / signing authority exists: an OFFICIAL freeze cannot be authorized by this tool (owner decision pending).
-  if (!a.flags.has("--fixture")) { fx.add("freeze", 0, null, "OFFICIAL_FREEZE_NOT_AUTHORIZED", "official dataset freeze is not authorized: no owner-approved trust anchor custody exists and hashes alone prove consistency, not authenticity; only --fixture runs"); return finish(fx, io, ""); }
-  const s = loadMergeSources(a, fx);
+  // No owner-controlled trust anchor is provisioned / approved: an OFFICIAL freeze cannot be authorized by this tool.
+  if (!a.flags.has("--fixture")) { fx.add("freeze", 0, null, "OFFICIAL_FREEZE_NOT_AUTHORIZED", "official dataset freeze is not authorized: no owner-controlled trust anchor is provisioned and separately approved, and hashes alone prove consistency, not authenticity; only --fixture runs"); return finish(fx, io, ""); }
+  const x = loadAcceptInputs(a, fx);
   const l = (k: string) => loadSource(a.opt.get(k)!, fx);
-  const ds = l("--dataset"), adj = l("--adjudication"), mm = l("--merge-manifest"), ag = l("--agreement"), guide = l("--guide"), cand = l("--candidate"), so = l("--signoff");
-  if (!s || !ds || !adj || !mm || !ag || !guide || !cand || !so) return finish(fx, io, "");
-  const F = "freeze";
-  // 1. accepted identities, supplied OUTSIDE the artifacts (the merged output and its manifest cannot redefine them)
-  const anchor = (k: string, actual: string, what: string) => { const v = a.opt.get(k)!; if (!isSha(v)) fx.add(F, 0, null, "ANCHOR_INVALID", `${k} must be a sha256 hex value`); else if (v !== actual) fx.add(F, 0, null, "ANCHOR_MISMATCH", `${what} differs from the accepted identity ${k}`); };
-  const rc = parseReceipt(s.receipt, fx);
-  if (rc) anchor("--accepted-batch-id", rc.batchId, "prepare batch");
-  anchor("--accepted-submissions-sha256", s.submissions.sha256, "submissions receipt");
-  anchor("--accepted-merge-manifest-sha256", mm.sha256, "merge manifest");
-  if (!fx.ok || !rc) return finish(fx, io, "");
-  // 2. C3: the dataset, the adjudication file and the merge manifest must be EXACTLY what merge produces from the sources
-  const mmObj = readJson(mm, fx);
-  const vo = isObj(mmObj) && isObj(mmObj.validator) && isObj(mmObj.validator.options) ? (mmObj.validator.options as Obj) : null;
-  if (!vo || typeof vo.checkDistribution !== "boolean" || typeof vo.checkBenchmarkOverlap !== "boolean") { fx.add(mm.name, 0, null, "MERGE_MANIFEST_INVALID", "validator options missing"); return finish(fx, io, ""); }
-  const m = buildMerge(s, { checkDistribution: vo.checkDistribution, checkBenchmarkOverlap: vo.checkBenchmarkOverlap }, fx);
+  const ag = l("--agreement"), so = l("--signoff"), rec = l("--acceptance-manifest");
+  if (!x || !ag || !so || !rec || !fx.ok) return finish(fx, io, "");
+  const { s, o, guide, cand, rc } = x;
+  // 1. the owner acceptance record (supplied OUTSIDE the artifacts; the merged output and its manifest cannot redefine it)
+  const sr = parseSubmissionsReceipt(s.submissions, fx);
+  const identities = identitiesOf(x);
+  const acc = checkAcceptance(rec, identities, sr ? [sr.a.annotatorId, sr.b.annotatorId] : [], fx);
+  if (!acc || !fx.ok) return finish(fx, io, "");
+  if (!acc.approval) { fx.add("freeze", 0, null, "ACCEPTANCE_NOT_RECORDED", `${rec.name} is a draft: approval {revision, provenance, recordedBy} is empty; the owner has not recorded acceptance of these identities`); return finish(fx, io, ""); }
+  // 2. C3: outputs must be EXACTLY what merge produces from the sources
+  const m = reproduceMerge(s, o, fx);
   if (!m) return finish(fx, io, "");
-  if (m.dataset !== ds.text) fx.add(ds.name, 0, null, "DATASET_NOT_REPRODUCIBLE", "dataset differs from what merge produces from the accepted sources (an edited A / B block, label, rationale or tag)");
-  if (m.adjudication !== adj.text) fx.add(adj.name, 0, null, "ADJUDICATION_NOT_REPRODUCIBLE", "adjudication.jsonl differs from what merge produces from the adjudicator decisions");
-  if (m.manifest !== mm.text) fx.add(mm.name, 0, null, "MERGE_MANIFEST_NOT_REPRODUCIBLE", "merge manifest differs from what merge produces from the sources");
   // 3. C2: agreement is RECOMPUTED from the original submissions; the supplied report must equal it byte for byte
   const agb = buildAgreement(s.receipt, rc, s.a, s.b, fx);
   if (!agb || !fx.ok) return finish(fx, io, "");
   if (agb.text !== ag.text) fx.add(ag.name, 0, null, "AGREEMENT_REPORT_MISMATCH", "agreement report differs from the agreement recomputed from the original A / B submissions (edited metrics or policy flags are never trusted)");
   const policy = agb.policy;
   // 4. official validator on the dataset (fixture: distribution off)
-  const v = validateRoutingAnnotations(ds.text, { checkDistribution: false, checkBenchmarkOverlap: true });
+  const v = validateRoutingAnnotations(o.ds.text, { checkDistribution: false, checkBenchmarkOverlap: true });
   for (const e of v.errors) fx.add("dataset", e.line, e.id, "VALIDATOR_ERROR", `${e.code}: ${e.detail}`);
-  // 5. C4: every approval is bound to the exact content identities (any material change invalidates old approvals)
+  // 5. C4 / F1: every approval is bound to ALL material content identities (any change invalidates old approvals)
   const binding = {
-    kind: "m7-p5a2-review-binding", schemaVersion: SCHEMA_VERSION, agreementPolicy: AGREEMENT_POLICY, batchId: rc.batchId,
-    prepareManifestSha256: s.receipt.sha256, submissionsReceiptSha256: s.submissions.sha256, annotatorASha256: s.a.sha256, annotatorBSha256: s.b.sha256,
-    adjudicatorDecisionsSha256: s.adjudicator.sha256, tagAuditSha256: s.tagAudit?.sha256 ?? null, mergeManifestSha256: mm.sha256,
-    datasetSha256: ds.sha256, adjudicationSha256: adj.sha256, agreementReportSha256: ag.sha256,
+    kind: "m7-p5a2-review-binding-v2", contractVersion: SCHEMA_VERSION,
+    agreementPolicy: AGREEMENT_POLICY, agreementPolicySha256: AGREEMENT_POLICY_SHA256, agreementPolicyStatus: policy.status,
+    batchId: rc.batchId, prepareManifestSha256: s.receipt.sha256, submissionsReceiptSha256: s.submissions.sha256,
+    annotatorASha256: s.a.sha256, annotatorBSha256: s.b.sha256, adjudicatorDecisionsSha256: s.adjudicator.sha256,
+    tagAuditSha256: s.tagAudit?.sha256 ?? null, tagAuditEntries: m.tagAuditEntries,
+    mergeManifestSha256: o.mm.sha256, datasetSha256: o.ds.sha256, adjudicationSha256: o.adj.sha256, agreementReportSha256: ag.sha256,
+    annotationGuideSha256: guide.sha256, candidateIdentitySha256: cand.sha256,
   };
   const bindingSha256 = sha256(JSON.stringify(binding));
   const soObj = readJson(so, fx);
@@ -723,55 +972,27 @@ function cmdFreeze(a: Args, io: Io): number {
   const wanted = new Set(v.reviews.map(findingSha));
   for (const r of v.reviews) if (!signed.has(findingSha(r))) fx.add("dataset", r.line, r.id, "REVIEW_NOT_SIGNED", `${r.code}: ${r.detail} — sign with findingSha256 ${findingSha(r)} and bindingSha256 ${bindingSha256}`);
   for (const k of signed.keys()) if (!wanted.has(k)) fx.add("signoff", 0, null, "SIGNOFF_UNMATCHED", `sign-off for finding ${k} matches no current REVIEW item (stale or for other content)`);
-  // agreement review — required by the RECOMPUTED policy, never by a flag in a file
-  const ar = isObj(soObj.agreementReview) ? soObj.agreementReview : null;
-  if (policy.reviewRequired) {
-    const bad = (code: string, d: string) => fx.add("signoff", 0, null, code, d);
-    const expectDecision = AGREEMENT_REVIEW_DECISIONS[policy.status as keyof typeof AGREEMENT_REVIEW_DECISIONS];
-    if (!ar) bad("AGREEMENT_REVIEW_NOT_SIGNED", `recomputed agreement policy ${policy.status} (${policy.reasons.join("; ")}): an agreementReview {role, signedBy, decision ${expectDecision}, bindingSha256 ${bindingSha256}, note${policy.calibrationRequired ? ", calibration {caseIds, ref}" : ""}} is required`);
-    else if (!isValidLabelerId(ar.signedBy) || !nonEmptyStr(ar.note)) bad("AGREEMENT_REVIEW_INVALID", "agreementReview needs a valid signedBy and a note");
-    else {
-      if (annKeys.includes(labelerRoleKey(ar.signedBy))) bad("AGREEMENT_REVIEWER_IS_ANNOTATOR", `${ar.signedBy} is annotator A or B; the agreement reviewer must be someone else`);
-      if (ar.role === "adjudicator") { if (labelerRoleKey(ar.signedBy) !== labelerRoleKey(m.adjudicatorId)) bad("AGREEMENT_REVIEW_ROLE", `role adjudicator but ${ar.signedBy} is not the adjudicator ${m.adjudicatorId}`); }
-      else if (ar.role === "reviewer") { if (m.rc.writerKeys.includes(canonicalWriterKey(ar.signedBy))) bad("AGREEMENT_REVIEW_ROLE", `${ar.signedBy} is a writer`); }
-      else bad("AGREEMENT_REVIEW_ROLE", `role must be "adjudicator" or "reviewer", got ${JSON.stringify(ar.role)}`);
-      if (ar.bindingSha256 !== bindingSha256) bad("AGREEMENT_REVIEW_BINDING_MISMATCH", `agreementReview was given for other content; expected bindingSha256 ${bindingSha256}`);
-      if (ar.decision !== expectDecision) bad("AGREEMENT_REVIEW_DECISION", `decision must be ${expectDecision} for policy ${policy.status}`);
-      if (policy.calibrationRequired) {
-        const c = isObj(ar.calibration) ? ar.calibration : null;
-        const caseIds = c && Array.isArray(c.caseIds) && c.caseIds.length && c.caseIds.every(nonEmptyStr) ? (c.caseIds as string[]) : null;
-        if (!c || !caseIds || !nonEmptyStr(c.ref)) bad("CALIBRATION_NOT_DOCUMENTED", "calibration {caseIds (non-empty), ref (where the calibration round is documented)} is required");
-        else {
-          const inDataset = new Set(m.datasetIds.map(idKey));
-          for (const x of caseIds) if (inDataset.has(idKey(x))) bad("CALIBRATION_CASE_IN_DATASET", `calibration case ${x} is part of the evaluation dataset; calibration uses a subset OUTSIDE the dataset`);
-        }
-      }
-    }
-  }
+  // agreement review — presence required by the RECOMPUTED policy; content validated whenever supplied (F5)
+  const ar = checkAgreementReview(soObj.agreementReview, policy, bindingSha256, m, fx);
   // 6. candidate identity: clean, and contains the Q9 safety files
-  const candObj = readJson(cand, fx);
-  const files = candObj && Array.isArray(candObj.files) ? candObj.files.filter(isObj) : [];
-  if (candObj && candObj.clean !== true) fx.add("candidate", 0, null, "CANDIDATE_NOT_CLEAN", "candidate identity is not clean (clean !== true)");
-  for (const req of REQUIRED_CANDIDATE_FILES) {
-    const hit = files.find((x) => x.path === req);
-    if (!hit || !isSha(hit.sha256)) fx.add("candidate", 0, null, "CANDIDATE_MISSING_REQUIRED_FILE", `${req} (owner decision Q9) is missing from the candidate identity or has no sha256`);
-  }
+  const candObj = checkCandidate(cand, fx);
   if (!fx.ok || !candObj) return finish(fx, io, "");
   const live = isObj(candObj.liveModel) ? candObj.liveModel : {};
   const out = {
     kind: "m7-p5a2-freeze-manifest", tool: TOOL, schemaVersion: SCHEMA_VERSION, fixture: true,
     status: "FIXTURE ONLY — synthetic test data; NOT a dataset freeze",
-    trust: "hashes prove consistency with the accepted identities supplied out of band; they do not prove authenticity (no signing key / trust root)",
-    acceptedIdentities: { batchId: rc.batchId, submissionsReceiptSha256: s.submissions.sha256, mergeManifestSha256: mm.sha256 },
+    trust: "hashes prove consistency with the owner acceptance record supplied out of band; they do not prove authenticity: the record is an ordinary writable file (no signing key / trust root), so this shows consistency, not authenticity",
+    acceptedIdentities: identities, acceptanceRecord: { sha256: rec.sha256, ...acc.approval },
     bindingSha256, binding,
-    files: { annotationGuideSha256: guide.sha256, adjudicatedLabelsSha256: adj.sha256, candidateIdentitySha256: cand.sha256, signoffSha256: so.sha256 },
+    files: { annotationGuideSha256: guide.sha256, adjudicatedLabelsSha256: o.adj.sha256, candidateIdentitySha256: cand.sha256, signoffSha256: so.sha256 },
     candidate: { head: isObj(candObj.git) ? candObj.git.head ?? null : null, clean: true, requiredFilesQ9: [...REQUIRED_CANDIDATE_FILES], modelId: live.modelId ?? null, awsRegion: live.awsRegion ?? null },
     dataset: { cases: v.stats.cases, byCategory: v.stats.byCategory, scoring: v.stats.scoring, quotas: v.stats.quotas, roles: v.stats.roles },
     validator: { errors: 0, reviews: v.reviews.length, reviewsSigned: v.reviews.length },
-    agreementPolicy: policy, agreementReview: ar ? { role: ar.role ?? null, signedBy: ar.signedBy ?? null, decision: ar.decision ?? null } : null,
+    agreementPolicy: policy, agreementReview: ar ? { role: ar.role, signedBy: ar.signedBy, decision: ar.decision, policyStatus: ar.policyStatus } : null,
   };
-  verifyUnchanged([...Object.values(s), ds, adj, mm, ag, guide, cand, so], fx);
-  if (!fx.ok || !publishFile(a.opt.get("--out")!, stable(out, 2) + "\n", fx)) return finish(fx, io, "");
+  const all = [...Object.values(s), o.ds, o.adj, o.mm, ag, guide, cand, so, rec];
+  verifyUnchanged(all, fx);
+  if (!fx.ok || !publishFile(a.opt.get("--out")!, stable(out, 2) + "\n", fx, all)) return finish(fx, io, "");
   return finish(fx, io, `OK ${out.status}`);
 }
 
@@ -784,9 +1005,11 @@ export function main(argv: readonly string[], io: Io = defaultIo): number {
     case "agreement": return cmdAgreement(a, io);
     case "merge": return cmdMerge(a, io);
     case "validate": return cmdValidate(a, io);
+    case "acceptance-draft": return cmdAcceptanceDraft(a, io);
+    case "acceptance-verify": return cmdAcceptanceVerify(a, io);
     case "freeze": return cmdFreeze(a, io);
     default:
-      io.err("usage: annotation-cli.ts prepare|check-role|accept-submissions|agreement|merge|validate|freeze [options] (see the file header)");
+      io.err("usage: annotation-cli.ts prepare|check-role|accept-submissions|agreement|merge|validate|acceptance-draft|acceptance-verify|freeze [options] (see the file header)");
       return 2;
   }
 }

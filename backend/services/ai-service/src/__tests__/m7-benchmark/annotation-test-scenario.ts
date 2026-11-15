@@ -1,6 +1,8 @@
 /**
  * TEST FIXTURE scenario for the annotation CLI tests (synthetic, disposable, OS temp dir). Not evaluation data.
  * Runs the full provenance chain: prepare → accept-submissions → agreement → merge → (sign from the tool's own refusal) → freeze --fixture.
+ * The owner-controlled acceptance record is WRITTEN BY THE TEST here (TEST FIXTURE approval values, clearly synthetic): in real use
+ * only the owner records it, outside the artifacts. A test that writes it is exactly the "attacker who controls the anchors" case.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -69,16 +71,33 @@ export const sourceArgs = (w: Ws, o: { prep?: string; subs?: string; adj?: strin
   "--a", w.p("A.jsonl"), "--b", w.p("B.jsonl"), "--adjudicator", w.p(o.adj ?? "adjudicator.jsonl"), ...(o.audit ? ["--tag-audit", w.p(o.audit)] : []),
 ];
 export const mergeArgs = (w: Ws, out = "m", o: Parameters<typeof sourceArgs>[1] = {}) => ["merge", ...sourceArgs(w, o), "--out-dir", w.p(out), "--no-distribution"];
-export interface Anchors { batchId: string; subs: string; mm: string }
+/** The identities an owner records out of band (captured when this is called: guide and candidate as they are on disk now). */
+export interface Anchors { batchId: string; subs: string; mm: string; guide: string; cand: string }
 export const anchorsOf = (w: Ws, m = "m", prep = "prep", subs = "subs.json"): Anchors => ({
   batchId: JSON.parse(fs.readFileSync(w.p(`${prep}/prepare-manifest.json`), "utf8")).batchId, subs: sha(w.p(subs)), mm: sha(w.p(`${m}/merge-manifest.json`)),
+  guide: sha(w.p("guide.md")), cand: sha(w.p("candidate.json")),
 });
-export const freezeArgs = (w: Ws, an: Anchors, o: { m?: string; out?: string; signoff?: string; fixture?: boolean; src?: Parameters<typeof sourceArgs>[1] } = {}) => {
+export const FIXTURE_APPROVAL = Object.freeze({ revision: 1, provenance: "TEST FIXTURE owner record (synthetic, written by the test)", recordedBy: "OWNER01" });
+/** An owner acceptance record (m7-p5a2-owner-acceptance-record) for these identities. */
+export const acceptanceRecord = (an: Anchors, approval: Obj | null = FIXTURE_APPROVAL) => ({
+  kind: "m7-p5a2-owner-acceptance-record", schemaVersion: SCHEMA_VERSION,
+  identities: { contractVersion: SCHEMA_VERSION, batchId: an.batchId, submissionsReceiptSha256: an.subs, mergeManifestSha256: an.mm, annotationGuideSha256: an.guide, candidateIdentitySha256: an.cand },
+  approval: approval ?? { revision: null, provenance: null, recordedBy: null },
+});
+export const mergeOutputArgs = (w: Ws, m = "m") => ["--dataset", w.p(`${m}/dataset.jsonl`), "--adjudication", w.p(`${m}/adjudication.jsonl`), "--merge-manifest", w.p(`${m}/merge-manifest.json`)];
+export const acceptanceDraftArgs = (w: Ws, out = "acceptance-draft.json", o: { m?: string; src?: Parameters<typeof sourceArgs>[1] } = {}) =>
+  ["acceptance-draft", ...sourceArgs(w, o.src), ...mergeOutputArgs(w, o.m), "--guide", w.p("guide.md"), "--candidate", w.p("candidate.json"), "--out", w.p(out)];
+export const acceptanceVerifyArgs = (w: Ws, record: string, o: { m?: string; src?: Parameters<typeof sourceArgs>[1] } = {}) =>
+  ["acceptance-verify", ...sourceArgs(w, o.src), ...mergeOutputArgs(w, o.m), "--guide", w.p("guide.md"), "--candidate", w.p("candidate.json"), "--acceptance-manifest", w.p(record)];
+/** freeze --fixture; unless o.acceptance names an existing record file, an owner record for `an` is written next to the output. */
+export const freezeArgs = (w: Ws, an: Anchors, o: { m?: string; out?: string; signoff?: string; fixture?: boolean; acceptance?: string; src?: Parameters<typeof sourceArgs>[1] } = {}) => {
   const m = o.m ?? "m";
-  return ["freeze", ...(o.fixture === false ? [] : ["--fixture"]), ...sourceArgs(w, o.src),
-    "--dataset", w.p(`${m}/dataset.jsonl`), "--adjudication", w.p(`${m}/adjudication.jsonl`), "--merge-manifest", w.p(`${m}/merge-manifest.json`),
-    "--agreement", w.p("agreement.json"), "--guide", w.p("guide.md"), "--candidate", w.p("candidate.json"), "--signoff", w.p(o.signoff ?? "signoff.json"), "--out", w.p(o.out ?? "freeze.json"),
-    "--accepted-batch-id", an.batchId, "--accepted-submissions-sha256", an.subs, "--accepted-merge-manifest-sha256", an.mm];
+  const out = o.out ?? "freeze.json";
+  const rec = o.acceptance ?? `acceptance.${out}`;
+  if (!o.acceptance) fs.writeFileSync(w.p(rec), JSON.stringify(acceptanceRecord(an)));
+  return ["freeze", ...(o.fixture === false ? [] : ["--fixture"]), ...sourceArgs(w, o.src), ...mergeOutputArgs(w, m),
+    "--agreement", w.p("agreement.json"), "--guide", w.p("guide.md"), "--candidate", w.p("candidate.json"), "--signoff", w.p(o.signoff ?? "signoff.json"), "--out", w.p(out),
+    "--acceptance-manifest", w.p(rec)];
 };
 
 /** prepare → accept-submissions → agreement → merge; returns the accepted identities (as the owner would record them). */
@@ -91,7 +110,8 @@ export function pipeline(w: Ws, o: { audit?: string } = {}): Anchors {
 }
 /**
  * Signs what the tool says must be signed: freeze with an empty sign-off prints, for every REVIEW item, the findingSha256 and the
- * bindingSha256 to approve (a human does this; here a TEST FIXTURE signer). Agreement review by the adjudicator by default.
+ * bindingSha256 to approve (a human does this; here a TEST FIXTURE signer). When the recomputed policy asks for an agreement review,
+ * the default one is by the adjudicator with exactly the decision / policy identity the refusal names; otherwise none is supplied.
  */
 export function signFromRefusal(w: Ws, an: Anchors, o: { m?: string; src?: Parameters<typeof sourceArgs>[1]; agreementReview?: Obj | null; signer?: string } = {}) {
   fs.writeFileSync(w.p("signoff.empty.json"), JSON.stringify({ schemaVersion: SCHEMA_VERSION, reviews: [], agreementReview: null }));
@@ -103,9 +123,13 @@ export function signFromRefusal(w: Ws, an: Anchors, o: { m?: string; src?: Param
     const f = l.split("\t");
     return { id: f[3], code: f[5].split(":")[0], findingSha256: /findingSha256 ([0-9a-f]{64})/.exec(l)![1], bindingSha256: binding, decision: "APPROVED", signedBy: o.signer ?? "OWNER01", note: "TEST FIXTURE sign-off" };
   });
-  const agreementReview = o.agreementReview === undefined
-    ? { role: "adjudicator", signedBy: "ADJ01", decision: "CALIBRATION_COMPLETED", bindingSha256: binding, note: "TEST FIXTURE: calibration round outside the dataset", calibration: { caseIds: ["CAL-001", "CAL-002"], ref: "TEST FIXTURE calibration log" } }
-    : o.agreementReview;
+  const ask = r.out.find((l) => l.includes("AGREEMENT_REVIEW_NOT_SIGNED"));
+  const word = (k: string) => (ask ? new RegExp(`${k} ([0-9A-Za-z_]+)`).exec(ask)?.[1] : undefined);
+  const agreementReview = o.agreementReview !== undefined ? o.agreementReview : !ask ? null : {
+    role: "adjudicator", signedBy: "ADJ01", decision: word("decision"), bindingSha256: binding, policyStatus: word("policyStatus"), agreementPolicySha256: word("agreementPolicySha256"),
+    note: "TEST FIXTURE: calibration round outside the dataset",
+    ...(ask.includes("calibration {") ? { calibration: { caseIds: ["CAL-001", "CAL-002"], ref: "TEST FIXTURE calibration log" } } : {}),
+  };
   fs.writeFileSync(w.p("signoff.json"), JSON.stringify({ schemaVersion: SCHEMA_VERSION, reviews, agreementReview }));
   return { binding, reviews };
 }

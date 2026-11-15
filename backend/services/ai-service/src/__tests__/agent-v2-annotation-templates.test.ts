@@ -48,7 +48,7 @@ test("TPL-1 template keys are exactly the contract / CLI keys; values are placeh
   const signoff = JSON.parse(fs.readFileSync(path.join(T, "signoff.template.json"), "utf8"));
   assert.deepEqual(Object.keys(signoff), ["schemaVersion", "reviews", "agreementReview"]);
   assert.deepEqual(Object.keys(signoff.reviews[0]), ["id", "code", "findingSha256", "bindingSha256", "decision", "signedBy", "note"], "C4: approvals are content-bound");
-  assert.deepEqual(Object.keys(signoff.agreementReview), ["role", "signedBy", "decision", "bindingSha256", "note", "calibration"]);
+  assert.deepEqual(Object.keys(signoff.agreementReview), ["role", "signedBy", "decision", "bindingSha256", "policyStatus", "agreementPolicySha256", "note", "calibration"], "F5: policy-bound");
   assert.deepEqual(Object.keys(signoff.agreementReview.calibration), ["caseIds", "ref"]);
   for (const f of files) {
     const text = fs.readFileSync(path.join(T, f), "utf8");
