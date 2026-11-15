@@ -50,9 +50,11 @@ export async function observeTurn(id: string, question: string, provider: Provid
   const stage = observedPreflightStage({ status: r.status, safetyType: r.status === "SAFETY_BLOCKED" ? checkInputSafety(question).type : null, routingReached });
   const selected = stage === "REACHED_ROUTING" ? ((tr.decision?.agents ?? []) as AgentId[]) : [];
   const deferred = [...new Set((tr.decision?.dropped ?? []).filter((d) => /:(max_agents|from_session)$/.test(d)).map((d) => d.split(":")[0] as AgentId))];
+  // executed = the agents the supervisor actually delegated to (trace.delegations) — reported apart from the decision (`selected`)
+  const executedAgents = stage === "REACHED_ROUTING" ? ([...new Set(tr.delegations.map((d) => d.agentId))] as AgentId[]) : [];
   const noteLine = r.answer.split("\n\n").find((l) => /chưa được xử lý trong lượt này/.test(l)) ?? "";
   const deferredDisclosed = deferred.filter((a) => noteLine.includes(LABEL_VI[a]));
-  const out: EvalOutcome = { id, stage, selected, deferred: stage === "REACHED_ROUTING" ? deferred : [], deferredDisclosed: stage === "REACHED_ROUTING" ? deferredDisclosed : [] };
+  const out: EvalOutcome = { id, stage, selected, executedAgents, deferred: stage === "REACHED_ROUTING" ? deferred : [], deferredDisclosed: stage === "REACHED_ROUTING" ? deferredDisclosed : [] };
   const problems = outcomeProblems(out);
   if (problems.length) throw new Error(`ADAPTER_OUTCOME_INVALID: ${problems.join("; ")}`);
   return out;

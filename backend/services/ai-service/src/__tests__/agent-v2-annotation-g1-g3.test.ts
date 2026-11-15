@@ -179,7 +179,7 @@ test("G1-i a single-file run's temp file is unlinked only while it is still this
   const w = prepared();
   try {
     const B0 = fs.readFileSync(w.p("B.jsonl"));
-    testHooks.afterLink = (target) => {
+    testHooks.afterLink = () => {
       fs.appendFileSync(w.p("B.jsonl"), "\n"); // forces the failure path
       const tmp = stagingOf(w, ".ag-tmp.json.partial-");
       fs.unlinkSync(tmp); fs.writeFileSync(tmp, "competitor\n"); // a different file now has the temp name

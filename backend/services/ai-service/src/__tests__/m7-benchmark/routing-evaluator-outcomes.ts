@@ -23,6 +23,8 @@ export interface OutcomeUsage { modelCalls: number; inputTokens: number; outputT
  *   stage              the stage that ENDED the pre-routing part (annotation-schema ObservedStage).
  *   selected           agents the system selected/ran, in the system's own order (the first one is its PRIMARY — see the
  *                      FLAGGED assumption in routing-evaluator-metrics.ts). Must be [] unless stage is REACHED_ROUTING.
+ *   executedAgents     OPTIONAL. The agents actually delegated/run — reported SEPARATELY from `selected` (the routing decision) and
+ *                      never defaulted from it. A subset of `selected`; [] unless stage is REACHED_ROUTING.
  *   deferred           agents the system itself deferred (cap / session).
  *   deferredDisclosed  the subset of `deferred` that the answer named to the user.
  *   usage              optional model usage of the routing call(s), if the system reports it.
@@ -31,11 +33,12 @@ export interface EvalOutcome {
   id: string;
   stage: ObservedStage;
   selected: AgentLabel[];
+  executedAgents?: AgentLabel[];
   deferred: AgentLabel[];
   deferredDisclosed: AgentLabel[];
   usage?: OutcomeUsage;
 }
-const OUTCOME_KEYS = ["id", "stage", "selected", "deferred", "deferredDisclosed", "usage"] as const;
+const OUTCOME_KEYS = ["id", "stage", "selected", "executedAgents", "deferred", "deferredDisclosed", "usage"] as const;
 const USAGE_KEYS = ["modelCalls", "inputTokens", "outputTokens", "costUsd"] as const;
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
 const isAgent = (x: unknown): x is AgentLabel => typeof x === "string" && (AGENTS as readonly string[]).includes(x);
@@ -58,6 +61,11 @@ export function outcomeProblems(raw: unknown): string[] {
   const sel = agentList(raw.selected, "selected", p);
   const def = agentList(raw.deferred, "deferred", p);
   const dis = agentList(raw.deferredDisclosed, "deferredDisclosed", p);
+  if (raw.executedAgents !== undefined) {
+    const exe = agentList(raw.executedAgents, "executedAgents", p);
+    if (exe && raw.stage !== "REACHED_ROUTING" && exe.length) p.push(`executedAgents must be [] when stage is ${String(raw.stage)}`);
+    if (exe && sel && exe.some((a) => !sel.includes(a))) p.push("executedAgents must be a subset of selected");
+  }
   if (sel && raw.stage !== "REACHED_ROUTING" && sel.length) p.push(`selected must be [] when stage is ${String(raw.stage)} (only a turn that reached routing selects agents)`);
   if (sel && def && def.some((a) => sel.includes(a))) p.push("an agent cannot be both selected and deferred");
   if (def && dis && dis.some((a) => !def.includes(a))) p.push("deferredDisclosed must be a subset of deferred");
@@ -103,3 +111,13 @@ export function reconcileOutcomes(caseIds: readonly string[], raw: readonly unkn
   if (!errors.length) for (const o of raw as EvalOutcome[]) byId.set(o.id, o);
   return { ok: errors.length === 0, errors, byId };
 }
+
+/**
+ * ELIGIBILITY (CODE AUDIT vs the contract): EVERY dataset case needs exactly one outcome — not only the routing-scored ones.
+ * Grounding: decision sheet §9(c) "đúng một outcome cho mỗi case×cấu hình×lần lặp, từ chối thiếu/trùng/NOT_EVALUABLE trong mẫu số";
+ * and the safety / OOS-preflight / validation / long-question groups are scored from the OBSERVED STAGE of their case, so a case that is
+ * not routing-scored still needs an outcome (it is reported in its own group). An outcome for any id that is not a dataset case is
+ * OUTCOME_UNKNOWN_ID; there is no "ineligible but present" state.
+ */
+export const ELIGIBILITY_RULE = "every dataset case: exactly one outcome (routing-scored cases feed G7/G8; all others feed their own preflight / validation / long-question group)";
+export const eligibleCaseIds = (rows: ReadonlyArray<{ id: string }>): string[] => rows.map((r) => r.id);

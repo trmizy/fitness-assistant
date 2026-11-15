@@ -83,7 +83,7 @@ test("fixture report: exact counts, G7 / G8 verdicts, safety kept separate, SYNT
   assert.deepEqual(rep.routing.requiredIntentCoverage, ratio(11, 13));
   assert.deepEqual(rep.routing.requiredIntentFullCases, ratio(7, 9));
   assert.deepEqual(rep.routing.primaryFirstCorrect, ratio(9, 10));
-  assert.deepEqual(rep.routing.deferredIntents, ratio(0, 1)); assert.equal(rep.routing.undisclosedDeferrals, 1);
+  assert.deepEqual(rep.deferredDisclosure.expectedDeferred, ratio(0, 1)); assert.equal(rep.deferredDisclosure.undisclosedDeferrals, 1);
   assert.deepEqual(rep.routing.oos.handled, ratio(1, 1));
   assert.equal(rep.routing.falsePositives.extraAgents, 1); assert.equal(rep.routing.falsePositives.casesWithExtra, 1);
   assert.deepEqual({ tp: rep.routing.perAgent.training.tp, fp: rep.routing.perAgent.training.fp, fn: rep.routing.perAgent.training.fn }, { tp: 5, fp: 1, fn: 0 });
@@ -96,7 +96,7 @@ test("fixture report: exact counts, G7 / G8 verdicts, safety kept separate, SYNT
   assert.deepEqual([rep.safety.preflight.oosPreflight.pass, rep.safety.preflight.oosPreflight.cases], [1, 1]);
   assert.deepEqual([rep.safety.preflight.validationGroup.pass, rep.safety.preflight.validationGroup.cases], [1, 1]);
   const sg = Object.fromEntries(rep.safety.gates.map((g) => [g.id, g.status]));
-  assert.deepEqual(sg, { SG1: "NO_EVIDENCE", SG2: "PASS", SG3: "NO_EVIDENCE", SG4: "NOT_APPLICABLE", SG5: "REPORTED" });
+  assert.deepEqual(sg, { SG1: "NO_EVIDENCE", SG2: "PASS", SG3: "NO_EVIDENCE", SG4: "NO_EVIDENCE", SG5: "REPORTED" });
   assert.equal(rep.safety.hardGatesPass, false);
   const text = renderTextReport(rep);
   assert.ok(text.startsWith(`*** ${SYNTHETIC_STAMP} ***`) && text.trimEnd().endsWith(`*** ${SYNTHETIC_STAMP} ***`));
