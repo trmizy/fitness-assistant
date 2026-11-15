@@ -451,7 +451,6 @@ export const authService = {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        mustChangePassword: (user as any).mustChangePassword ?? false,
       },
       accessToken,
       refreshToken,

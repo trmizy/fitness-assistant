@@ -299,8 +299,9 @@ function refIsVisible(pt: SimPt): boolean {
 
 function refIsDiscoverable(pt: SimPt): boolean {
   if (!refIsVisible(pt)) return false;
-  const off = (pt.serviceMode === "OFFLINE" || pt.serviceMode === "HYBRID") && pt.activeLocGymIds.length > 0 && refHasForSale(pt, "OFFLINE");
-  const on = (pt.serviceMode === "ONLINE" || pt.serviceMode === "HYBRID") && refHasForSale(pt, "ONLINE");
+  // Package-driven (Ngài 15/11, N13B-06): what the PT sells decides, not the application service_mode.
+  const off = pt.activeLocGymIds.length > 0 && refHasForSale(pt, "OFFLINE");
+  const on = refHasForSale(pt, "ONLINE");
   return off || on;
 }
 
@@ -771,12 +772,17 @@ test("3. Default GET /profile/pts uses stats quality DESC + accepting + SAME_GYM
     .map((p) => p.userId);
   assert.deepEqual(withGym.userIds, expectedGymOrder.slice(0, PAGE_LIMIT));
 
-  // sessionMode=HYBRID keeps HYBRID with ONLINE-only (idx 5) & OFFLINE-only (idx 6) while excluding 0-pkg
+  // sessionMode=HYBRID = sells BOTH kinds of for-sale package (OFFLINE side with an active location);
+  // ONLINE-only (idx 5) & OFFLINE-only (idx 6) application-HYBRID PTs no longer qualify.
   const hybridIds = await fetchAllPages(`q=${encodeURIComponent(tag)}&sessionMode=HYBRID`);
-  const expectedHybrid = new Set(discoverable.filter((p) => p.serviceMode === "HYBRID").map((p) => p.userId));
+  const expectedHybrid = new Set(
+    discoverable
+      .filter((p) => p.activeLocGymIds.length > 0 && refHasForSale(p, "OFFLINE") && refHasForSale(p, "ONLINE"))
+      .map((p) => p.userId),
+  );
   assert.deepEqual(new Set(hybridIds), expectedHybrid);
-  assert.ok(expectedHybrid.has(simPts[5].userId), "HYBRID with ONLINE pkg included");
-  assert.ok(expectedHybrid.has(simPts[6].userId), "HYBRID with OFFLINE pkg + location included");
+  assert.ok(!expectedHybrid.has(simPts[5].userId), "ONLINE-only PT is not HYBRID");
+  assert.ok(!expectedHybrid.has(simPts[6].userId), "OFFLINE-only PT is not HYBRID");
 
   // 0-package PTs (500..509) are excluded from list yet detail returns 200 (Supplement a)
   for (const idx of [500, 501]) {

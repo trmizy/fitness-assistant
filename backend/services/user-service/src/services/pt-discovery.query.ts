@@ -410,19 +410,21 @@ export async function findDiscoveryPtPageIds(
   const hasExplicitLocFilter = filters.provinceCode !== undefined || filters.wardCode !== undefined;
   const activeLocCond = hasExplicitLocFilter ? Prisma.sql`true` : hasActiveLocationSql();
 
+  // Mode filter is driven by the packages the PT is currently selling (Ngài 15/11, N13B-06), not by
+  // the application's service_mode: for ONLINE/OFFLINE the pkg_flags CTE is already restricted to
+  // for-sale packages of that session_mode, so the pkg_flags inner join is the filter itself.
   if (filters.sessionMode === "OFFLINE") {
-    where.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
     if (!hasExplicitLocFilter) where.push(hasActiveLocationSql());
   } else if (filters.sessionMode === "ONLINE") {
-    where.push(Prisma.sql`pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+    // for-sale ONLINE package required by the pkg_flags join.
   } else if (filters.sessionMode === "HYBRID") {
-    where.push(Prisma.sql`pa.service_mode = 'HYBRID'::"ServiceMode"`);
-    where.push(Prisma.sql`((pf.has_offline_pkg AND ${activeLocCond}) OR pf.has_online_pkg)`);
+    // Sells both kinds; the OFFLINE side needs a usable location.
+    where.push(Prisma.sql`(pf.has_offline_pkg AND ${activeLocCond} AND pf.has_online_pkg)`);
   } else {
     where.push(
       Prisma.sql`(
-        (pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_offline_pkg AND ${activeLocCond})
-        OR (pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_online_pkg)
+        (pf.has_offline_pkg AND ${activeLocCond})
+        OR pf.has_online_pkg
       )`,
     );
   }
@@ -677,10 +679,6 @@ export async function searchDiscoveryPtPageIds(
     gymId: input.gymId,
     specialties: specialtiesNormalized ?? undefined,
   });
-  if (mode === "HYBRID") {
-    baseWhere.push(Prisma.sql`pa.service_mode = 'HYBRID'::"ServiceMode"`);
-  }
-
   const safeLat = pLat ?? 0;
   const safeLng = pLng ?? 0;
   const dLat = radiusKm / 110.574 + 0.02;
@@ -804,22 +802,26 @@ export async function searchDiscoveryPtPageIds(
       ? Prisma.sql`false`
       : mode === "OFFLINE"
         ? offlineScopeMatchSql
-        : Prisma.sql`(pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_offline_pkg AND ${offlineScopeMatchSql})`;
+        : Prisma.sql`(pf.has_offline_pkg AND ${offlineScopeMatchSql})`;
 
   const canOnlineSql =
     mode === "OFFLINE"
       ? Prisma.sql`false`
       : mode === "ONLINE"
         ? Prisma.sql`true`
-        : Prisma.sql`(pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode") AND pf.has_online_pkg)`;
+        : Prisma.sql`pf.has_online_pkg`;
 
+  // Package-driven (Ngài 15/11, N13B-06): ONLINE/OFFLINE rely on pkg_flags being restricted to
+  // for-sale packages of that session_mode (inner join); HYBRID needs both kinds of package.
   if (mode === "ONLINE") {
-    baseWhere.push(Prisma.sql`pa.service_mode IN ('ONLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
+    // nothing extra: pkg_flags inner join already requires a for-sale ONLINE package.
   } else if (mode === "OFFLINE") {
-    baseWhere.push(Prisma.sql`pa.service_mode IN ('OFFLINE'::"ServiceMode", 'HYBRID'::"ServiceMode")`);
     if (appliedScope === "near") {
       baseWhere.push(offlineScopeMatchSql);
     }
+  } else if (mode === "HYBRID") {
+    // Any active location (not scope-limited): an out-of-scope hybrid PT still shows up as tier 1 (online).
+    baseWhere.push(Prisma.sql`(pf.has_offline_pkg AND pf.has_online_pkg AND ${hasActiveLocationSql()})`);
   } else {
     baseWhere.push(Prisma.sql`(${canOfflineSql} OR ${canOnlineSql})`);
   }
