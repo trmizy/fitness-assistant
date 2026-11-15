@@ -20,6 +20,7 @@ import { Refused, readJson } from './util.mjs';
 import { makeKeep } from './policy.mjs';
 import { rulesFor, paramList, GUARD } from './engine.mjs';
 import { computeTriggerPreflight } from './triggers.mjs';
+import { anyBalanceSql, readDrift } from './drift.mjs';
 
 export const DENY_KEYS = ['gymNameLike', 'amenityNameLike', 'proposalNameLike', 'packageNameLike'];
 // Name patterns must start with E2E. The explicit id lists and the wallet acknowledgements are separate keys: they name exact rows.
@@ -233,23 +234,39 @@ export async function computeGuards(ctx, plan, cleanDbs) {
       [denied],
     );
     if (uc.length) live.push({ db: userDat, table: 'contracts', reason: 'live PT contract on a denied gym', gyms: uc });
+    // N13F-01: money in a denied gym's wallet is ALWAYS a blocker now (it is also named by the general "deletedWalletsWithMoney" blocker below).
+    // The old acknowledgement (acknowledgedWalletsWithMoney) used to waive it - that waiver deleted 29 GYM wallets with 1,110,243 VND without debiting ESCROW and is gone: it is still
+    // accepted in the file (so old deny files load) but waives nothing, and is only reported.
     const w = await dbs.payment.json(
       `SELECT COALESCE(json_agg(json_build_object('walletId', id, 'gymId', owner_id, 'available', available_balance::text, 'pending', pending_balance::text, 'locked', locked_balance::text, 'holdback', holdback_balance::text)), '[]'::json)
-         FROM wallets WHERE owner_type::text = 'GYM' AND owner_id = ANY($1::text[]) AND (available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 OR holdback_balance <> 0)`,
+         FROM wallets WHERE owner_type::text = 'GYM' AND owner_id = ANY($1::text[]) AND (${anyBalanceSql()})`,
       [denied],
     );
-    const acks = ctx.denyPatterns?.[ACK_KEY] ?? plan.deny?.patterns?.[ACK_KEY] ?? [];
-    const waived = [];
-    const stillBlocking = w.filter((x) => {
-      const ok = acks.find((a) => a.walletId === x.walletId && a.gymId === x.gymId && Number(x.available) === a.availableVnd && Number(x.pending) === 0 && Number(x.locked) === 0 && Number(x.holdback) === 0);
-      if (ok) waived.push({ ...x, acknowledgedVnd: ok.availableVnd });
-      return !ok;
-    });
-    info.waivedWalletsWithMoney = waived;
-    if (stillBlocking.length) live.push({ db: payDat, table: 'wallets', reason: 'a denied gym wallet still holds money (not acknowledged with exactly this wallet id, gym id and amount)', wallets: stillBlocking });
+    info.ignoredWalletAcknowledgements = ctx.denyPatterns?.[ACK_KEY] ?? plan.deny?.patterns?.[ACK_KEY] ?? [];
+    if (w.length) live.push({ db: payDat, table: 'wallets', reason: 'a denied gym wallet still holds money (no waiver: ESCROW would not be debited)', wallets: w });
     info.deniedGymContractsNotLive = await dbs.user.json(`SELECT count(*)::int FROM contracts WHERE gym_id = ANY($1::text[]) AND status::text NOT IN ${LIVE_USER_CONTRACT}`, [denied]);
   }
   if (live.length) blockers.deniedGymLiveRefs = live;
+
+  // ---- N13F-01: a wallet that holds money is never deleted (a deleted claim with an untouched ESCROW is a permanent reconciliation drift). No waiver.
+  if (cleanDbs.includes('payment')) {
+    const Kp = makeKeep(rulesFor('payment', ctx.policy));
+    const wm = await dbs.payment.json(
+      `SELECT COALESCE(json_agg(json_build_object('walletId', w.id, 'ownerType', w.owner_type::text, 'ownerId', w.owner_id,
+                'available', w.available_balance::text, 'pending', w.pending_balance::text, 'locked', w.locked_balance::text, 'holdback', w.holdback_balance::text) ORDER BY w.id), '[]'::json)
+         FROM wallets w WHERE w.owner_type::text <> 'PLATFORM' AND NOT COALESCE(${Kp('wallets', 'w')}, FALSE) AND ${GUARD} AND (${anyBalanceSql('w')})`,
+      P,
+    );
+    if (wm.length) {
+      blockers.deletedWalletsWithMoney = wm.map((w) => ({
+        db: payDat,
+        table: 'wallets',
+        ...w,
+        reason: 'the wallet would be deleted while it still holds money; ESCROW would not be debited and the reconciliation would drift. Settle it first or have the payment owner make an audited ESCROW-debit adjustment; this tool has no waiver',
+      }));
+    }
+    info.reconciliationDriftAtAudit = await readDrift(dbs.payment);
+  }
 
   // ---- explicit amenities must not be used by anything that survives
   const expl = plan.params.deny?.amenityIds ?? [];
