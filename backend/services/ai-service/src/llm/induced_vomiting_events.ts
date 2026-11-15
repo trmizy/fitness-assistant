@@ -373,7 +373,9 @@ function absorbRun(f: Frame, text: string, ctx: Ctx): void {
     const fo = markedFold(o);
     if (isVomitWord(fo)) { f.indep = true; return; }
     if (ASIDE_MARKERS.has(fo)) { f.marker = true; fs = null; }
-    else if (fs) fs.push(fo);
+    // A token made only of combining marks (U+0300–U+036F) folds to "": joining it would put a run of spaces into the phrase text and break the
+    // "every phrase match is <= 22 chars" assumption of the window. No phrase regex counts whitespace (every gap is \s+), so dropping it is exact.
+    else if (fs && fo.length > 0) fs.push(fo);
   }
   if (fs && fs.length > 0) f.s = catStreams(f.s, runStream(fs, ctx.stats), ctx.stats);
 }

@@ -154,3 +154,74 @@ test("BPC.5 the stats field is additional: the structured fields keep their shap
   assert.deepEqual(Object.keys(a).sort(), ["clauseCount", "disclosure", "events", "hasDiacritics", "relationHeads", "sentenceCount", "stats"]);
   assert.deepEqual(a.stats, { chars: "Hôm nay tập chân.".length, tokens: 0, tokenVisits: 0, regexChars: 0 });
 });
+
+// ── BPC.6 standalone combining marks / empty tokens (Codex P1 on 298da52a, reproduced by the lead) ─────────────────────────────────────────
+// A token made only of combining marks (U+0300–U+036F) folds to the EMPTY string. The pre-298da52a code joined those empty tokens with single spaces, so a
+// run of them was a long whitespace gap that "giu\s+can" / "can(?!\s+bang)" still matched across. The single-pass summary assumed "every match is <= 22
+// characters" and lost "giu" on a gap wider than its 48-char window => purpose lost => disclosure became a symptom (and `safe`). The fix drops empty folded
+// tokens before joining, so the summary text is exactly the old joined text up to whitespace (which no phrase regex counts). The ground truth of every
+// expectation below is the behaviour of 687eb583 (the pre-298da52a detector), checked by a differential harness; the INVARIANCE assertion (a gap of
+// any size / kind decides like a single space) is the property the regression broke.
+// (every gap holds a separator: a mark glued between two letters with no whitespace is part of the LETTER token, which is the same under both detectors)
+const MARK_GAPS = ["\u0301 ", " \u0301", " \u0301 ", "\u0301\u0301 ", "\u0300 \u0323 ", "\t", "\u00a0", "\u0301\u00a0", "  "];
+const GAP_SIZES = [0, 1, 7, 15, 16, 30, 60, 120, 400];
+const joinWith = (words: string[], g: string, k: number): string => words.reduce((acc, w, i) => (i === 0 ? w : acc + (k === 0 ? " " : g.repeat(k)) + w), "");
+const outcomes = (q: string): string[] => analyzeInducedVomiting(q).events.map((e) => e.outcome);
+const GAP_PHRASES: Array<{ words: string[]; disclosure: boolean }> = [
+  { words: ["giữ", "cân"], disclosure: true },
+  { words: ["giữ", "cân", "bằng"], disclosure: false }, // "cân" followed by "bằng" is not a purpose phrase
+  { words: ["giảm", "cân"], disclosure: true },
+  { words: ["nhẹ", "cân"], disclosure: false }, // "nhẹ cân" is a purpose only after "cho" / "để"
+  { words: ["tránh", "tăng", "cân"], disclosure: true },
+  { words: ["kiểm", "soát", "cân"], disclosure: true },
+  { words: ["giữ", "dáng"], disclosure: true },
+];
+
+test("BPC.6.1 the exact lead repro: a purpose phrase split by 60 standalone combining marks inside a parenthetical stays a DISCLOSURE", () => {
+  const q = "Ăn xong mình ói (giữ " + "\u0301 ".repeat(60) + "cân).";
+  assert.equal(q.length, 146);
+  assert.equal(detectBareVomitingDisclosure(q), true);
+  assert.equal(analyzeInducedVomiting(q).disclosure, true);
+  assert.deepEqual(outcomes(q), ["DISCLOSURE"]);
+});
+
+test("BPC.6.2 invariance: gaps of standalone combining marks / whitespace of any kind and width decide exactly like a single space (nested 0..3 levels)", () => {
+  for (const { words, disclosure } of GAP_PHRASES) {
+    for (let depth = 0; depth <= 3; depth++) {
+      const wrap = (inner: string): string => `Ăn xong mình ói ${"(".repeat(depth || 1)}${inner}${")".repeat(depth || 1)}.`;
+      const ref = wrap(words.join(" "));
+      assert.equal(detectBareVomitingDisclosure(ref), disclosure, `reference ${JSON.stringify(ref)}`);
+      for (const g of MARK_GAPS) {
+        for (const k of GAP_SIZES) {
+          const q = wrap(joinWith(words, g, k));
+          const where = JSON.stringify(q.length > 120 ? q.slice(0, 120) + "…" : q);
+          assert.equal(detectBareVomitingDisclosure(q), disclosure, `detect ${where}`);
+          assert.deepEqual(outcomes(q), outcomes(ref), `outcomes ${where}`);
+        }
+      }
+    }
+  }
+});
+
+test("BPC.6.3 invariance for a benign cause phrase and for the unaccented / NFD spellings with a long mark gap", () => {
+  const gap = "\u0301 ".repeat(60);
+  const cause = `Ăn xong mình ói (vì${gap}say${gap}xe) để giảm cân.`;
+  assert.equal(detectBareVomitingDisclosure(cause), false); // same-event benign cause wins
+  assert.equal(detectBareVomitingDisclosure(cause), detectBareVomitingDisclosure("Ăn xong mình ói (vì say xe) để giảm cân."));
+  const unaccented = `an xong minh non (giu${gap}can).`;
+  assert.equal(detectBareVomitingDisclosure(unaccented), detectBareVomitingDisclosure("an xong minh non (giu can)."));
+  assert.equal(detectBareVomitingDisclosure(unaccented), true);
+  const nfdQ = `Ăn xong mình ói (giữ${gap}cân).`.normalize("NFD");
+  assert.equal(detectBareVomitingDisclosure(nfdQ), true);
+  const noPurpose = `Ăn xong mình ói (hằng${gap}ngày).`;
+  assert.equal(detectBareVomitingDisclosure(noPurpose), false);
+});
+
+test("BPC.6.4 bounded: a long run of standalone combining marks still costs a bounded number of operations per token", () => {
+  const q = "Ăn xong mình ói (giữ " + "\u0301 ".repeat(900) + "cân).";
+  assert.ok(q.length <= 2000);
+  const { stats, disclosure } = analyzeInducedVomiting(q);
+  assert.equal(disclosure, true);
+  assert.ok(stats.tokens > 0 && stats.tokenVisits / stats.tokens <= 40, `${stats.tokenVisits} / ${stats.tokens}`);
+  assert.ok(stats.regexChars <= 8 * (q.length + 64), `regex chars ${stats.regexChars}`);
+});
