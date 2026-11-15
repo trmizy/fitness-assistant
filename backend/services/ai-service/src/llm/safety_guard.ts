@@ -516,7 +516,9 @@ export type SafetyResult =
   | { type: "prolonged_extreme_calorie_disclosure"; messageVi: string; messageEn: string };
 
 // ── Public API ────────────────────────────────────────────────────────────────
-export const safetyGuard = {
+// The detector set below is evaluated on ONE text view. The public `safetyGuard` object (end of file) evaluates it on every invisible-character
+// reading of the question (M8c-C2) and is the only entry point; this core object is module-private.
+const safetyGuardCore = {
   /**
    * Minor-age result. Also used by the orchestrator when the user's PROFILE (not the question) says they are under 18 —
    * the question-only detector cannot see the profile (found by test/ai-quality-eval SF-D1, 2026-11-08: a 16-year-old's
@@ -934,5 +936,133 @@ export const safetyGuard = {
     }
 
     return { type: "safe" };
+  },
+};
+
+// ── Invisible-character canonicalisation (M8c-C2) ───────────────────────────────────────────────────────────────────────────────
+// An INVISIBLE code point renders as nothing (or, for a mark, as a decoration the reader ignores) and does not change which word the reader sees, so
+// "gi<ZWSP>ảm" LOOKS like "giảm" but is two tokens to every detector. Class (`INVISIBLE_ANY`): Unicode `Default_Ignorable_Code_Point` (U+200B..U+200D, U+2060..U+2064,
+// U+FEFF, U+00AD soft hyphen, U+034F CGJ, U+180B..U+180F, variation selectors U+FE00..U+FE0F, bidi controls, Hangul fillers, tag characters ...), every other format
+// character (Cf), and the combining marks (Mn / Me) OUTSIDE U+0300..U+036F - Vietnamese uses no mark outside that block and `foldSafetyText` already deletes the marks
+// inside it, so those are not part of the class. Why a word breaks today: the folds (NFC / NFD / lower-case / diacritic strip) keep these code points, JS `\s` does not
+// match them (except U+FEFF), `\b` and TOKEN_RE treat them as a boundary; a code point AFTER a word is therefore a separator by accident, INSIDE a word it hides it.
+//
+// Rule (ONE linear pass; no regex over attacker text except per piece of at most 24 code units). A "chain" is letters / marks / digits separated ONLY by invisible runs
+// ("gi<ZWSP>ảm", "mình<ZWSP>hay<ZWSP>tự"). An invisible run next to whitespace, punctuation or the string edge only decorates that boundary: DELETED. A run INSIDE a chain is
+// ambiguous (a joiner / soft hyphen / CGJ / variation selector / mark means "same word", a ZWSP means "word break"); a blind join breaks "tôi<ZWSP>nôn" and a blind separation
+// breaks "k<ZWSP>hông" (it would erase the negation). Tie-break: Vietnamese writes ONE syllable per space-delimited word, so two neighbouring pieces are SEPARATED (one space)
+// iff each is itself a possible Vietnamese syllable (accent-folded) while their concatenation is not ("tôi"+"nôn" -> "tôinôn" is not a syllable), or one is a syllable and the other contains a
+// digit ("giảm"+"10kg"), or both are words of at least 3 letters ("giảm"+"calo"); in every other case the run is
+// DELETED (joined): "gi"+"ảm" -> "giảm", "n"+"ôn", "k"+"hông" (a syllable), and "w"+"eight", "10"+"kg", "te"+"xt" (a piece that is no syllable is a fragment of a non-Vietnamese
+// word or a number, never split). The guard classifies the ORIGINAL text first (unchanged), then this canonical text, then the fully-joined text (below): a refusal in any
+// view refuses; a text without an invisible code point has exactly one view = the original (zero behaviour change). Classification only: the user's message sent on is never rewritten.
+const INVISIBLE_ANY = /[\p{Default_Ignorable_Code_Point}\p{Cf}\p{Me}]|(?![\u0300-\u036f])\p{Mn}/u;
+const WORD_CHAR = /[\p{L}\p{M}\p{N}]/u;
+// Possible Vietnamese syllable, accent-folded and lower-case: optional onset + 1-3 vowel letters + optional coda (a syllable has at most 8 letters).
+const VI_SYLLABLE = /^(?:ngh|ng|nh|ch|gh|gi|kh|ph|qu|th|tr|[bcdghklmnpqrstvx])?[aeiouy]{1,3}(?:ch|ng|nh|[cmnpt])?$/;
+const HAS_DIGIT = /\p{N}/u;
+const LETTER = /\p{L}/u;
+function isViSyllable(piece: string): boolean {
+  if (piece.length > 24) return false; // 8 letters x (base + up to 2 marks): longer cannot be one syllable (keeps the fold O(1) per call)
+  return VI_SYLLABLE.test(piece.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase());
+}
+/** What `mergeChain` needs to know about a piece or a merged group; combined in O(1) so a long chain stays linear. */
+interface PieceInfo { letters: number; allLetters: boolean; digit: boolean }
+const pieceInfo = (piece: string): PieceInfo => {
+  let letters = 0;
+  let all = true;
+  for (const ch of piece) { if (LETTER.test(ch)) letters++; else all = false; }
+  return { letters, allLetters: all, digit: HAS_DIGIT.test(piece) };
+};
+function mergeChain(chain: string[]): string {
+  let out = "";
+  let cur = chain[0];
+  let curInfo = pieceInfo(cur);
+  for (let i = 1; i < chain.length; i++) {
+    const next = chain[i];
+    const nextInfo = pieceInfo(next);
+    const curSyllable = isViSyllable(cur);
+    const nextSyllable = isViSyllable(next);
+    const bothSyllables = curSyllable && nextSyllable;
+    const numberAndSyllable = (curInfo.digit && nextSyllable) || (curSyllable && nextInfo.digit); // "giảm"+"10kg", "trong"+"1"
+    const bothWords = curInfo.allLetters && curInfo.letters >= 3 && nextInfo.allLetters && nextInfo.letters >= 3; // "giảm"+"calo", "rapid"+"weight": a fragment of <= 2 letters ("w", "xt", "kg") is never a word
+    if (!isViSyllable(cur + next) && (bothSyllables || numberAndSyllable || bothWords)) {
+      out += cur + " ";
+      cur = next;
+      curInfo = nextInfo;
+    } else {
+      cur += next;
+      curInfo = { letters: curInfo.letters + nextInfo.letters, allLetters: curInfo.allLetters && nextInfo.allLetters, digit: curInfo.digit || nextInfo.digit };
+    }
+  }
+  return out + cur;
+}
+/**
+ * Readings of a question that carries invisible code points: `canonical` = the question as a reader sees it (invisible code points removed, or turned into a
+ * word break per the rule above); `joined` = every invisible code point simply deleted (covers a loanword written as two syllables, "ca<ZWSP>lo" -> "calo", that the
+ * canonical reading would split). Identity (both = the original) for text without an invisible code point.
+ */
+function invisibleReadings(original: string): { canonical: string; joined: string } {
+  if (!INVISIBLE_ANY.test(original)) return { canonical: original, joined: original };
+  const canonical: string[] = [];
+  const joined: string[] = [];
+  let chain: string[] = []; // pieces of the current chain
+  let piece: string[] = []; // code points of the piece being read
+  const closePiece = (): void => { if (piece.length > 0) { chain.push(piece.join("")); piece = []; } };
+  const closeChain = (): void => { closePiece(); if (chain.length > 0) { canonical.push(mergeChain(chain)); joined.push(chain.join("")); chain = []; } };
+  for (const ch of original) {
+    if (INVISIBLE_ANY.test(ch)) closePiece();
+    else if (WORD_CHAR.test(ch)) piece.push(ch);
+    else { closeChain(); canonical.push(ch); joined.push(ch); }
+  }
+  closeChain();
+  return { canonical: canonical.join(""), joined: joined.join("") };
+}
+export function canonicalizeInvisibles(text: string): string {
+  return invisibleReadings(String(text ?? "")).canonical;
+}
+/**
+ * Texts the guard classifies, in order: the ORIGINAL (unchanged, so every verdict it already gave stays: refusals are only ADDED), then the canonical reading, then the
+ * joined reading. Exactly ONE view (the original) when the text has no invisible code point.
+ */
+export function safetyInputViews(text: string): string[] {
+  const original = String(text ?? "");
+  const { canonical, joined } = invisibleReadings(original);
+  const views = [original];
+  for (const v of [canonical, joined]) if (!views.includes(v)) views.push(v);
+  return views;
+}
+/** Gates that are not a health-safety verdict (a deflection, not a refusal of a hazard). */
+const NON_HEALTH_GATES = new Set<string>(["off_topic", "prompt_injection_attempt"]);
+
+export const safetyGuard = {
+  minorAgeResult(): SafetyResult {
+    return safetyGuardCore.minorAgeResult();
+  },
+  /** Backward-compatible single-purpose check for rapid weight loss (every reading of the question). */
+  evaluate(question: string): UnsafeGuidance | undefined {
+    for (const view of safetyInputViews(question)) {
+      const guidance = safetyGuardCore.evaluate(view);
+      if (guidance) return guidance;
+    }
+    return undefined;
+  },
+  /**
+   * Full safety gate. The ORIGINAL text decides exactly as before; when it carries invisible code points its other readings (see above) are classified too and a HEALTH
+   * refusal in any of them refuses. A prompt-injection gate found in any reading counts; an off-topic gate found only in an other reading counts only when the fully-JOINED reading
+   * finds it: a word split apart by the canonical reading ("nutri tion") must not turn a fitness question into an off-topic one.
+   */
+  check(question: string, options?: SafetyCheckOptions): SafetyResult {
+    const views = safetyInputViews(question);
+    const original = safetyGuardCore.check(views[0], options);
+    if (views.length === 1 || (original.type !== "safe" && !NON_HEALTH_GATES.has(original.type))) return original;
+    const others = views.slice(1).map((view) => safetyGuardCore.check(view, options));
+    const health = others.find((r) => r.type !== "safe" && !NON_HEALTH_GATES.has(r.type));
+    if (health) return health;
+    const injection = others.find((r) => r.type === "prompt_injection_attempt"); // a split cannot fabricate an injection phrase
+    if (injection) return injection;
+    if (original.type !== "safe") return original; // the original's own deflection gate stays
+    const joined = others[others.length - 1]; // "off-topic" is the ABSENCE of a fitness anchor: only the fully-joined reading may add it (a split "nutri tion" must not)
+    return joined.type === "off_topic" ? joined : { type: "safe" };
   },
 };
