@@ -47,6 +47,11 @@ const CASES: [eventType: string, entityType: string][] = [
   ["WITHDRAWAL_APPROVED", "WITHDRAWAL_REQUEST"],
   ["WITHDRAWAL_PAID", "WITHDRAWAL_REQUEST"],
   ["WITHDRAWAL_REJECTED", "WITHDRAWAL_REQUEST"],
+  // FIX3-NOTIFY: gym-service branch lifecycle notices (admin suspend / lift / temporary close / reopen) to the owner and scoped managers
+  ["GYM_BRANCH_SUSPENDED", "GYM_BRANCH"],
+  ["GYM_BRANCH_SUSPENSION_LIFTED", "GYM_BRANCH"],
+  ["GYM_BRANCH_TEMPORARILY_CLOSED", "GYM_BRANCH"],
+  ["GYM_BRANCH_REOPENED", "GYM_BRANCH"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

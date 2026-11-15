@@ -577,6 +577,13 @@ enum NotificationEventType {
   WITHDRAWAL_APPROVED
   WITHDRAWAL_PAID
   WITHDRAWAL_REJECTED
+  // Gym branch lifecycle (FIX3-NOTIFY, 15/11/2026) - sent by gym-service via POST /internal/notifications (entity GYM_BRANCH, entityId = the branch id) to the branch's
+  // owner and the managers scoped to it when an admin suspends / lifts the suspension of / temporarily closes / reopens the branch. Direct consequences of an admin
+  // decision about the recipient's own branch, so no opt-out entry.
+  GYM_BRANCH_SUSPENDED
+  GYM_BRANCH_SUSPENSION_LIFTED
+  GYM_BRANCH_TEMPORARILY_CLOSED
+  GYM_BRANCH_REOPENED
 }
 
 enum NotificationEntityType {
