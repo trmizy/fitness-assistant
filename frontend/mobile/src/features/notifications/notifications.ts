@@ -132,6 +132,15 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Tin đăng chi nhánh vừa được cập nhật", icon: "file", tone: "warning" };
     case "GYM_AMENITY_PROPOSAL_REVIEWED":
       return { title: "Đề xuất tiện ích đã được xử lý", icon: "sparkles", tone: "primary" };
+    // Gym branch lifecycle (FIX3-NOTIFY): the admin suspended / lifted / temporarily closed / reopened the owner's (or manager's) branch. All four open that branch.
+    case "GYM_BRANCH_SUSPENDED":
+      return { title: "Chi nhánh bị tạm khoá", icon: "alert", tone: "danger" };
+    case "GYM_BRANCH_SUSPENSION_LIFTED":
+      return { title: "Chi nhánh được mở khoá", icon: "check", tone: "primary" };
+    case "GYM_BRANCH_TEMPORARILY_CLOSED":
+      return { title: "Chi nhánh tạm đóng cửa", icon: "alert", tone: "warning" };
+    case "GYM_BRANCH_REOPENED":
+      return { title: "Chi nhánh mở cửa lại", icon: "check", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
   }
@@ -167,11 +176,23 @@ export function gymListingRoute(link: string): string | null {
   return id ? `/gym-owner/listing?gymId=${id}` : "/gym-owner/listing";
 }
 
+/**
+ * Gym branch lifecycle notices (FIX3-NOTIFY): gym-service links them to the web branch page `/gym-owner/gyms/<id>`; the mobile screen is
+ * `/gym-owner/branch?gymId=<id>`.
+ */
+const GYM_BRANCH_LINK = /^\/gym-owner\/gyms\/([A-Za-z0-9_-]+)$/;
+export function gymBranchRoute(link: string): string | null {
+  const id = GYM_BRANCH_LINK.exec(link.split("#")[0].split("?")[0].replace(/\/+$/, ""))?.[1];
+  return id ? `/gym-owner/branch?gymId=${id}` : null;
+}
+
 /** Where tapping a notification goes on mobile, or null when there is nothing to open. */
 export function notificationRoute(n: Pick<AppNotification, "link" | "entityType">): string | null {
   if (n.link) {
     const gymListing = gymListingRoute(n.link);
     if (gymListing) return gymListing;
+    const gymBranch = gymBranchRoute(n.link);
+    if (gymBranch) return gymBranch;
     const path = n.link.split("?")[0].replace(/\/+$/, "");
     if (LINK_MAP[path]) return LINK_MAP[path];
     for (const [prefix, target] of Object.entries(LINK_MAP)) if (path.startsWith(`${prefix}/`)) return target;

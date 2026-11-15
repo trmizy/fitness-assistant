@@ -57,7 +57,7 @@ import {
 import { CLIENT_HEADER, LISTING_FLOW_HEADER, clientHeaderValue, isListingFlowRequest, listingFlowHeaders } from "../../services/listingFlow";
 import { STEPS, applicationAmenityIds, applicationPendingProposals, firstIncompleteStep, missingForStep, stepDone, type ApplicationView } from "../partnerApplication/partnerApplication";
 import { amenityChips, isGymGone, normalizeAmenities, normalizeGym } from "../services/gymDirectory";
-import { gymListingRoute, notificationMeta, notificationRoute } from "../notifications/notifications";
+import { gymBranchRoute, gymListingRoute, notificationMeta, notificationRoute } from "../notifications/notifications";
 import { queryKeysForEvent } from "../notifications/eventRefresh";
 import { pushTapRoute, readPushData } from "../push/pushRouting";
 
@@ -624,5 +624,34 @@ describe("notifications: gym listing events", () => {
       for (const n of ["notifications", "gym-listing", "owner-amenities", "owned-gyms", "partner-application", "gyms", "gym"]) assert.ok(keys.includes(n), `${t} → ${n}`);
     }
     assert.ok(!queryKeysForEvent("PT_LISTING_APPROVED", "PT_LISTING").map((k) => k[0]).includes("gym-listing"));
+  });
+});
+
+describe("notifications: gym branch lifecycle events (FIX3-NOTIFY)", () => {
+  const types = ["GYM_BRANCH_SUSPENDED", "GYM_BRANCH_SUSPENSION_LIFTED", "GYM_BRANCH_TEMPORARILY_CLOSED", "GYM_BRANCH_REOPENED"];
+
+  it("has a Vietnamese title for each, danger for a suspension", () => {
+    for (const t of types) assert.notEqual(notificationMeta(t).title, "Thông báo", t);
+    assert.equal(notificationMeta("GYM_BRANCH_SUSPENDED").tone, "danger");
+  });
+
+  it("opens the branch screen on that branch (the server links to the web /gym-owner/gyms/<id>)", () => {
+    assert.equal(notificationRoute({ link: `/gym-owner/gyms/${G}`, entityType: "GYM_BRANCH" }), `/gym-owner/branch?gymId=${G}`);
+    assert.equal(gymBranchRoute(`/gym-owner/gyms/${G}/`), `/gym-owner/branch?gymId=${G}`);
+    assert.equal(gymBranchRoute("/gym-owner/gyms"), null);
+    assert.equal(gymBranchRoute("/gym-owner/plans"), null);
+  });
+
+  it("a push tap routes a gym owner there; a client never lands in the owner workspace", () => {
+    const push = readPushData({ notificationId: "n", userId: "u1", link: `/gym-owner/gyms/${G}`, entityType: "GYM_BRANCH", eventType: "GYM_BRANCH_SUSPENDED" });
+    assert.equal(pushTapRoute(push, "u1", "gym_owner"), `/gym-owner/branch?gymId=${G}`);
+    assert.equal(pushTapRoute(push, "u1", "client"), "/client/notifications");
+  });
+
+  it("each event refreshes the bell and the owner's branch lists", () => {
+    for (const t of types) {
+      const keys = queryKeysForEvent(t, "GYM_BRANCH").map((k) => k[0]);
+      for (const n of ["notifications", "owned-gyms", "owned-gym", "gyms", "gym"]) assert.ok(keys.includes(n), `${t} -> ${n}`);
+    }
   });
 });

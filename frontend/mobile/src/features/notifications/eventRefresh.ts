@@ -61,7 +61,7 @@ export function queryKeysForEvent(eventType: string | null | undefined, entityTy
   const entity = String(entityType ?? "");
   if (event.startsWith("CONTRACT_") || (!event && entity === "CONTRACT")) return [...BELL, ...CONTRACT_LISTS];
   if (event.startsWith("SESSION_") || (!event && entity === "SESSION")) return [...BELL, ...SESSION_LISTS];
-  if (event.startsWith("GYM_LISTING_") || event === "GYM_AMENITY_PROPOSAL_REVIEWED") return [...BELL, ...GYM_LISTING_LISTS];
+  if (event.startsWith("GYM_LISTING_") || event.startsWith("GYM_BRANCH_") || event === "GYM_AMENITY_PROPOSAL_REVIEWED") return [...BELL, ...GYM_LISTING_LISTS];
   if (event.startsWith("PT_LISTING_") || entity === "PT_LISTING") return [...BELL, ...PT_LISTING_LISTS];
   if (event.startsWith("PT_APPLICATION_") || entity === "PT_APPLICATION") return [...BELL, ["pt-application-me"]];
   return BELL;

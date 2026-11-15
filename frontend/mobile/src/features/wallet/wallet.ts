@@ -58,6 +58,7 @@ export const WALLET_ENTRY_LABEL: Record<string, string> = {
   REFERRAL_COMMISSION: "Hoa hồng giới thiệu",
   REFERRAL_CLAWBACK: "Thu hồi hoa hồng giới thiệu",
   DEBT_WITHHELD: "Trừ vào khoản đang nợ",
+  GYM_DEBT_RECOVERED: "Đã trừ nợ nền tảng",
   PENDING_REVERSED: "Hoàn lại khoản đang giữ (thanh toán đã hoàn)",
   OTHER_CREDIT: "Tiền vào ví",
   OTHER_DEBIT: "Tiền ra khỏi ví",
