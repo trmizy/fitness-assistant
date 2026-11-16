@@ -38,7 +38,11 @@ function hasVietnameseDiacritic(text: string): boolean {
   return /[\p{M}đĐ]/u.test(text.normalize("NFD"));
 }
 
+const UNASSESSABLE_MESSAGE = "Mình không thể hỗ trợ yêu cầu này một cách an toàn. Hãy trao đổi với bác sĩ hoặc chuyên gia.";
+
 export function checkInputSafety(question: string): InputSafetyVerdict {
+  // F2: not text at all → nothing can be assessed → fail CLOSED (it used to throw on `.length`, an unhandled error is not a safety verdict either).
+  if (typeof question !== "string") return { safe: false, type: "emergency_unassessable", message: UNASSESSABLE_MESSAGE };
   // Bounded computation (owner Q3): an over-limit question is refused BEFORE any scan, normalization or detector runs — fail-CLOSED
   // (never "safe", never truncated, never echoed). Unreachable over HTTP (zod and the supervisor / bounded agent already reject
   // > MAX_QUESTION_CHARS earlier); this is function-level defence in depth for any other caller. Unit: UTF-16 code units (`.length`).
@@ -50,8 +54,16 @@ export function checkInputSafety(question: string): InputSafetyVerdict {
   // The induced-vomiting detector reads the ORIGINAL accents ("ói"/"ơi", "cô"/"có"), so when the original HAS diacritics the folded retry
   // skips only that detector (accentFoldedRetry) — otherwise an accented third-person sentence folds into a first-person lookalike. A fully
   // unaccented original is evaluated unchanged (folded == original), so unaccented first-person disclosures keep being refused.
-  let r: any = safetyGuard.check(question);
-  if (!r || r.type === "safe") r = hasVietnameseDiacritic(question) ? safetyGuard.check(foldVi(question), { accentFoldedRetry: true }) : safetyGuard.check(foldVi(question));
+  // F2: ONE emergency assessment per message. The first call assesses the ORIGINAL text (the engine reads both of its normalization views); the folded retry of an ACCENTED original
+  // (`accentFoldedRetry`) does not assess the derived string again — it used to turn "Tôi muốn từ từ." (slowly) into a suicide verdict that V1 never gave. The other detectors still
+  // read the folded copy. A guard that throws is not "safe": fail closed.
+  let r: any;
+  try {
+    r = safetyGuard.check(question);
+    if (!r || r.type === "safe") r = hasVietnameseDiacritic(question) ? safetyGuard.check(foldVi(question), { accentFoldedRetry: true }) : safetyGuard.check(foldVi(question));
+  } catch {
+    return { safe: false, type: "emergency_unassessable", message: UNASSESSABLE_MESSAGE };
+  }
   if (!r || r.type === "safe") return { safe: true, type: "safe" };
   const message = typeof r.messageVi === "string" && r.messageVi
     ? r.messageVi

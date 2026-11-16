@@ -482,55 +482,120 @@ function detectDiagnosisRequest(question: string): boolean {
   return asksDiagnosis && personal && asksForIt;
 }
 
-// ── M9.5-T1B: emergency decision = the bounded engine (llm/emergency/*) + the legacy cardio / respiratory detectors, under an explicit priority policy ─────────────
+// ── M9.5-T1B / F2: emergency decision = the bounded engine (llm/emergency/*) + the legacy cardio / respiratory detectors, under an explicit priority policy ────────────
 // The T1 / T1S regex pipeline that used to live here is replaced by `assessEmergency` (pure; subject / tense / negation per event; no silent cap; same function for V1 and V2).
 // This file is only the ADAPTER to the existing contract: the `medical_emergency` result, `emergencyKind` and the reply templates are unchanged for the first four kinds.
+// F2 (adapter consistency) rules — FAIL CLOSED, never a wrong template:
+//   • every engine state is mapped explicitly; a state the adapter does not know (malformed assessment, unknown risk class, unmapped domain, UNABLE_TO_ASSESS with an unknown reason)
+//     is `emergency_unassessable` — never `safe`, never the heat / chest-pain text;
+//   • an ambiguous pronoun reference (`uncertainty = AMBIGUOUS_REFERENCE`) is NOT diagnosed as an emergency and NOT read as clear: it is `emergency_unassessable` (a certain legacy
+//     emergency in the same message still gets its own reply);
+//   • SEVERAL simultaneous risks are all kept: the decisive one picks the reply, the others are listed in `emergencyRisks` (kind / subject / class only — no user text) and the reply
+//     carries the existing neutral referral block; a combination has no approved template ⇒ `RESPONSE_POLICY_PENDING`;
+//   • the engine assesses the ORIGINAL text once; V2's diacritic-folded retry (`accentFoldedRetry`) must not assess a derived string again.
 // Wording of every reply below is PROPOSED and NOT clinically approved; two kinds have no approved template at all (RESPONSE_POLICY_PENDING).
 export type EmergencyKind = "self_harm" | "self_harm_other" | "seizure" | "heat_illness" | "overdose_poisoning" | "neurological_emergency";
 export type EmergencyRiskClass = "IMMEDIATE_EMERGENCY" | "POSSIBLE_HIGH_RISK";
 export type EmergencyResponsePolicy = "PROPOSED_PENDING_CLINICAL_REVIEW" | "RESPONSE_POLICY_PENDING";
-interface EmergencyDecision { kind: EmergencyKind; riskClass: EmergencyRiskClass }
-type EngineVerdict = { tag: "EMERGENCY"; decision: EmergencyDecision } | { tag: "UNASSESSABLE"; reason: "INPUT_LIMIT" | "INTERNAL_ERROR" } | null;
+/** One simultaneous risk of a message. Deliberately carries NO user text (no span, no person key): safe to log. "legacy_medical_emergency" = the pre-existing medical detectors (chest pain, breathing, faint, safety narratives). */
+export type EmergencyRiskKind = EmergencyKind | "legacy_medical_emergency" | "unrecognised";
+export interface EmergencyRiskSummary { kind: EmergencyRiskKind; subject: "SELF" | "OTHER" | "UNKNOWN"; riskClass: EmergencyRiskClass }
+export type UnassessableReason = "INPUT_LIMIT" | "INTERNAL_ERROR" | "AMBIGUOUS_REFERENCE" | "UNSUPPORTED_STATE";
+interface EmergencyDecision { kind: EmergencyKind; riskClass: EmergencyRiskClass; risks: EmergencyRiskSummary[] }
+export type EngineVerdict = { tag: "EMERGENCY"; decision: EmergencyDecision } | { tag: "UNASSESSABLE"; reason: UnassessableReason } | null;
 
-function kindOfAssessment(a: EmergencyAssessment): EmergencyKind | null {
-  switch (a.domain) {
-    case "SELF_HARM": return a.subject === "OTHER" ? "self_harm_other" : "self_harm";
+const KNOWN_KINDS: ReadonlySet<string> = new Set<EmergencyKind>(["self_harm", "self_harm_other", "seizure", "heat_illness", "overdose_poisoning", "neurological_emergency"]);
+function kindOfDomain(domain: unknown, subject: unknown): EmergencyKind | null {
+  switch (domain) {
+    case "SELF_HARM": return subject === "OTHER" ? "self_harm_other" : "self_harm";
     case "SEIZURE": return "seizure";
     case "HEAT_ILLNESS": return "heat_illness";
     case "OVERDOSE_POISONING": return "overdose_poisoning";
     case "NEUROLOGICAL": return "neurological_emergency";
-    default: return null;
+    default: return null; // an unknown domain is NOT "no emergency": the caller fails closed
   }
 }
-function engineVerdict(question: string): EngineVerdict {
-  // legacy tolerance of this function (IV-6): null / undefined / non-strings are read as text, as `String(text ?? "")` always did; the ENGINE itself stays strict
-  const a = assessEmergency(typeof question === "string" ? question : String(question ?? ""));
-  if (a.riskClass === "IMMEDIATE_EMERGENCY" || a.riskClass === "POSSIBLE_HIGH_RISK") {
-    const kind = kindOfAssessment(a);
-    if (kind) return { tag: "EMERGENCY", decision: { kind, riskClass: a.riskClass } };
+const subjectOf = (s: unknown): "SELF" | "OTHER" | "UNKNOWN" => (s === "SELF" || s === "OTHER" ? s : "UNKNOWN");
+const UNSUPPORTED: EngineVerdict = { tag: "UNASSESSABLE", reason: "UNSUPPORTED_STATE" };
+
+/**
+ * Pure mapping of ONE engine assessment to the guard's verdict (also the test seam for states the real engine cannot be made to produce on demand). Total: every input —
+ * including a malformed or future-version assessment — yields a verdict; "I could not tell" is `UNASSESSABLE`, never `null` (= no emergency verdict, the rest of the guard decides).
+ */
+export function adaptAssessment(raw: unknown, options?: SafetyCheckOptions): EngineVerdict {
+  const a = raw as Partial<EmergencyAssessment> | null;
+  if (!a || typeof a !== "object" || typeof a.riskClass !== "string") return UNSUPPORTED;
+  switch (a.riskClass) {
+    case "IMMEDIATE_EMERGENCY":
+    case "POSSIBLE_HIGH_RISK": {
+      const kind = kindOfDomain(a.domain, a.subject);
+      if (!kind) return UNSUPPORTED; // a counted risk whose domain this adapter cannot map: never dropped, never given a guessed template
+      const risks: EmergencyRiskSummary[] = [{ kind, subject: subjectOf(a.subject), riskClass: a.riskClass }];
+      for (const r of Array.isArray(a.risks) ? a.risks : []) {
+        const k = kindOfDomain(r?.domain, r?.subject);
+        const entry: EmergencyRiskSummary = { kind: k ?? "unrecognised", subject: subjectOf(r?.subject), riskClass: r?.riskClass === "IMMEDIATE_EMERGENCY" ? "IMMEDIATE_EMERGENCY" : "POSSIBLE_HIGH_RISK" };
+        if (!risks.some((x) => x.kind === entry.kind && x.subject === entry.subject)) risks.push(entry);
+      }
+      return { tag: "EMERGENCY", decision: { kind, riskClass: a.riskClass, risks } };
+    }
+    case "UNABLE_TO_ASSESS":
+      if (a.uncertainty === "INPUT_LIMIT") {
+        // over the length limit but scanned COMPLETELY with no evidence: the legacy `check()` abstains (IV-6, frozen: it must tolerate 100 000-character input); the limit is enforced at
+        // the boundaries (zod, V2 `checkInputSafety`). `strictInputLimit` makes it fail closed for a caller that has no such boundary (T1C: the V1 pre-gate). Not scanned: always closed.
+        return a.scanned === true && !options?.strictInputLimit ? null : { tag: "UNASSESSABLE", reason: "INPUT_LIMIT" };
+      }
+      return a.uncertainty === "INTERNAL_ERROR" ? { tag: "UNASSESSABLE", reason: "INTERNAL_ERROR" } : UNSUPPORTED;
+    case "NO_EMERGENCY_DETECTED":
+    case "HISTORICAL_OR_THIRD_PARTY_CONCERN":
+    case "GENERAL_EDUCATION_OR_HYPOTHETICAL":
+      if (a.uncertainty === "NONE") return null;
+      return a.uncertainty === "AMBIGUOUS_REFERENCE" ? { tag: "UNASSESSABLE", reason: "AMBIGUOUS_REFERENCE" } : UNSUPPORTED;
+    default:
+      return UNSUPPORTED; // a risk class this adapter has never seen
   }
-  if (a.riskClass === "UNABLE_TO_ASSESS") {
-    // an over-limit input that was scanned COMPLETELY and showed no evidence: the engine abstains (the length limit is enforced at the boundaries — zod schema, V2
-    // `checkInputSafety` — and the legacy detectors keep their own behaviour, IV-6); nothing was skipped, so nothing is claimed either way.
-    if (a.uncertainty === "INPUT_LIMIT" && a.scanned) return null;
-    return { tag: "UNASSESSABLE", reason: a.uncertainty === "INPUT_LIMIT" ? "INPUT_LIMIT" : "INTERNAL_ERROR" };
+}
+function engineVerdict(question: string, options?: SafetyCheckOptions): EngineVerdict {
+  // V2's retry on the diacritic-folded copy of an ACCENTED original: the engine already read BOTH views of the original in the first call — a second assessment of a DERIVED string
+  // could only disagree ("Tôi muốn từ từ." folds to "toi muon tu tu.", which reads as a suicide phrase). One assessment per message for V1 and V2.
+  if (options?.accentFoldedRetry) return null;
+  try {
+    // legacy tolerance of this function (IV-6): null / undefined / non-strings are read as text, as `String(text ?? "")` always did; the ENGINE itself stays strict
+    return adaptAssessment(assessEmergency(typeof question === "string" ? question : String(question ?? "")), options);
+  } catch {
+    return { tag: "UNASSESSABLE", reason: "INTERNAL_ERROR" };
   }
-  return null;
 }
 /** Compatibility wrapper (T1 / T1S exported this): which acute emergency kind, if any, the engine reports. */
-export function emergencyKindOf(question: string, _options?: SafetyCheckOptions): EmergencyKind | null {
-  const v = engineVerdict(question);
+export function emergencyKindOf(question: string, options?: SafetyCheckOptions): EmergencyKind | null {
+  const v = engineVerdict(question, options);
   return v && v.tag === "EMERGENCY" ? v.decision.kind : null;
 }
+/** Test / T1C seam: the full verdict (decisive kind + every simultaneous risk) for a text, without building any reply. */
+export function emergencyVerdictOf(question: string, options?: SafetyCheckOptions): EngineVerdict { return engineVerdict(question, options); }
 const UNASSESSABLE_VI = "Mình không thể hỗ trợ yêu cầu này một cách an toàn. Hãy trao đổi với bác sĩ hoặc chuyên gia.";
 const UNASSESSABLE_EN = "I can't help with this request safely. Please talk to a doctor or a qualified professional.";
-function unassessableResult(reason: "INPUT_LIMIT" | "INTERNAL_ERROR"): SafetyResult {
-  return { type: reason === "INPUT_LIMIT" ? "input_too_long" : "emergency_unassessable", messageVi: UNASSESSABLE_VI, messageEn: UNASSESSABLE_EN };
+function unassessableResult(reason: UnassessableReason): SafetyResult {
+  return { type: reason === "INPUT_LIMIT" ? "input_too_long" : "emergency_unassessable", messageVi: UNASSESSABLE_VI, messageEn: UNASSESSABLE_EN, reason };
 }
-function emergencyResult(d: EmergencyDecision): SafetyResult {
-  const base = emergencyTemplate(d.kind) as Extract<SafetyResult, { type: "medical_emergency" }>;
-  const pending = d.kind === "overdose_poisoning" || d.kind === "neurological_emergency";
-  return { ...base, riskClass: d.riskClass, responsePolicy: pending ? "RESPONSE_POLICY_PENDING" : "PROPOSED_PENDING_CLINICAL_REVIEW" };
+/** The reply for ONE emergency kind; an unknown kind is `emergency_unassessable` — never the heat-stroke (or any other) text by fall-through. */
+export function emergencyReplyForKind(kind: string): SafetyResult {
+  return KNOWN_KINDS.has(kind) ? emergencyTemplate(kind as EmergencyKind) : unassessableResult("UNSUPPORTED_STATE");
+}
+const SEPARATOR = "\n\n---\n\n";
+function emergencyResult(d: EmergencyDecision, legacyCardio: boolean): SafetyResult {
+  const base = emergencyReplyForKind(d.kind);
+  if (base.type !== "medical_emergency") return base; // unreachable for a mapped kind; kept so that a missing template can never become another one
+  const risks: EmergencyRiskSummary[] = legacyCardio ? [...d.risks, { kind: "legacy_medical_emergency", subject: "UNKNOWN", riskClass: "IMMEDIATE_EMERGENCY" }] : d.risks;
+  const pendingKind = d.kind === "overdose_poisoning" || d.kind === "neurological_emergency";
+  const multi = risks.length > 1;
+  let result: Extract<SafetyResult, { type: "medical_emergency" }> = { ...base, riskClass: d.riskClass, responsePolicy: pendingKind || multi ? "RESPONSE_POLICY_PENDING" : "PROPOSED_PENDING_CLINICAL_REVIEW" };
+  if (multi) {
+    // No approved template covers a combination (and none is invented here): the decisive risk's reply, then the EXISTING neutral referral block (the same text overdose / stroke-like
+    // signs use) so no simultaneous emergency is left unmentioned. When the decisive reply already IS the neutral block, it is not repeated.
+    const neutral = emergencyTemplate("neurological_emergency") as Extract<SafetyResult, { type: "medical_emergency" }>;
+    result = { ...result, emergencyRisks: risks, ...(pendingKind ? {} : { messageVi: base.messageVi + SEPARATOR + neutral.messageVi, messageEn: base.messageEn + SEPARATOR + neutral.messageEn }) };
+  }
+  return result;
 }
 
 function emergencyTemplate(kind: EmergencyKind): SafetyResult {
@@ -647,6 +712,7 @@ function emergencyTemplate(kind: EmergencyKind): SafetyResult {
       ].join("\n"),
     };
   }
+  if (kind !== "heat_illness") return unassessableResult("UNSUPPORTED_STATE"); // F2: never the heat-stroke text by fall-through for a kind nobody wrote a reply for
   return {
     type: "medical_emergency", emergencyKind: kind,
     messageVi: [
@@ -683,18 +749,30 @@ function emergencyTemplate(kind: EmergencyKind): SafetyResult {
  * "cô"/"chị"/"chú" relation heads vs "có"/"chỉ") are skipped, so the folded copy cannot re-introduce a false verdict the original did not give.
  * Every other detector runs unchanged. The result type is unchanged.
  */
-export interface SafetyCheckOptions { accentFoldedRetry?: boolean }
+export interface SafetyCheckOptions {
+  accentFoldedRetry?: boolean;
+  /**
+   * F2: `accentFoldedRetry` also means the emergency engine has ALREADY assessed the ORIGINAL text (accent-aware AND accent-less views) in the first call — it does not assess the folded
+   * copy again. Every other detector still runs on it. Without this, "Tôi muốn từ từ." (slowly) was safe in V1 and a suicide verdict in V2 ("toi muon tu tu." read alone). A fully
+   * unaccented original needs no flag: its retry is the same text, so the engine returns the same verdict.
+   */
+  /**
+   * F2: fail CLOSED (`input_too_long`) for an over-limit text in which the engine found nothing, instead of abstaining. Default false: `check()` must keep tolerating very long input
+   * (IV-6, frozen) because the 2 000-unit limit is enforced at the boundaries. A caller without such a boundary (T1C: the V1 pre-gate / orchestrator) passes true.
+   */
+  strictInputLimit?: boolean;
+}
 /**
  * M9.5-T1B: the emergency engine could not complete an assessment (over its ceiling / internal fault). FAIL CLOSED — never `safe`. Declared as its own alias (not inline in the
  * union) so the frozen policy-matrix test PO-1, which parses the union text, keeps seeing the same V1 refusal types: this is not a new V1 refusal in that matrix's sense.
  * Not yet handled by the V1 orchestrator's early-return list (unreachable over HTTP: the schema caps the input at 2 000 units) — T1C must adopt it at the pre-gate.
  * V2 `checkInputSafety` already turns any non-safe type into a block.
  */
-export type SafetyUnassessable = { type: "input_too_long" | "emergency_unassessable"; messageVi: string; messageEn: string };
+export type SafetyUnassessable = { type: "input_too_long" | "emergency_unassessable"; messageVi: string; messageEn: string; reason?: UnassessableReason };
 export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
-  | { type: "medical_emergency"; messageVi: string; messageEn: string; emergencyKind?: EmergencyKind; riskClass?: EmergencyRiskClass; responsePolicy?: EmergencyResponsePolicy }
+  | { type: "medical_emergency"; messageVi: string; messageEn: string; emergencyKind?: EmergencyKind; riskClass?: EmergencyRiskClass; responsePolicy?: EmergencyResponsePolicy; emergencyRisks?: EmergencyRiskSummary[] }
   | SafetyUnassessable
   | { type: "post_exercise_symptoms"; messageVi: string; messageEn: string }
   | { type: "medical_diagnosis_request"; messageVi: string; messageEn: string }
@@ -718,6 +796,36 @@ export type SafetyResult =
   | { type: "unsafe_weight_loss_behavior"; messageVi: string; messageEn: string }
   | { type: "severe_allergy_disclosure"; messageVi: string; messageEn: string }
   | { type: "prolonged_extreme_calorie_disclosure"; messageVi: string; messageEn: string };
+
+/** The pre-existing cardio / respiratory / faint reply (text unchanged since before B-03). */
+function legacyMedicalEmergencyResult(): SafetyResult {
+  return {
+    type: "medical_emergency",
+    messageVi: [
+      "## ⚠️ Cần Tham Khảo Ý Kiến Bác Sĩ",
+      "",
+      "Mình là **AI Fitness Coach** và không thể tư vấn về các triệu chứng y tế như đau ngực, khó thở đột ngột, ngất xỉu, hoặc chấn thương nghiêm trọng.",
+      "",
+      "🏥 **Hành động ngay:**",
+      "- **Dừng tập ngay**, ngồi hoặc nằm nghỉ — không cố tập tiếp.",
+      "- Nếu đây là tình trạng khẩn cấp, hãy gọi **115** (cấp cứu) ngay lập tức.",
+      "- Nếu triệu chứng ổn hơn, hãy đặt lịch khám với bác sĩ trước khi tiếp tục tập luyện.",
+      "",
+      "Sau khi bác sĩ cho phép, mình rất sẵn lòng giúp bạn xây dựng chương trình tập an toàn và hiệu quả! 💪",
+    ].join("\n"),
+    messageEn: [
+      "## ⚠️ Please Consult a Doctor First",
+      "",
+      "I am an **AI Fitness Coach** and cannot advise on medical symptoms such as chest pain, sudden shortness of breath, fainting, or serious injuries.",
+      "",
+      "🏥 **Take action now:**",
+      "- If this is an emergency, call emergency services immediately.",
+      "- For less urgent symptoms, schedule a doctor appointment before resuming exercise.",
+      "",
+      "Once you have medical clearance, I'm here to help you build a safe and effective training program! 💪",
+    ].join("\n"),
+  };
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 export const safetyGuard = {
@@ -771,9 +879,13 @@ export const safetyGuard = {
     const hit = (detect: (q: string) => boolean) => forms.some((form) => detect(form));
     // M9.5-T1B — EMERGENCY PRECEDENCE as an explicit policy, not as detector order: (1) the bounded engine's verdict (self-harm, seizure, heat illness, overdose, stroke-like
     // signs); (2) the legacy cardio / respiratory / faint detectors; BOTH beat the weight-loss, diagnosis, minors' and every other rule below.
-    const verdict = engineVerdict(question);
-    if (verdict && verdict.tag === "EMERGENCY") return emergencyResult(verdict.decision);
-    if (verdict && verdict.tag === "UNASSESSABLE") return unassessableResult(verdict.reason);
+    const verdict = engineVerdict(question, options);
+    if (verdict && verdict.tag === "EMERGENCY") return emergencyResult(verdict.decision, hit(detectMedicalEmergency)); // every simultaneous risk is kept (F2)
+    if (verdict && verdict.tag === "UNASSESSABLE") {
+      // an ambiguous pronoun is not a diagnosis, and it must not hide a CERTAIN emergency stated in the same message
+      if (verdict.reason === "AMBIGUOUS_REFERENCE" && hit(detectMedicalEmergency)) return legacyMedicalEmergencyResult();
+      return unassessableResult(verdict.reason);
+    }
     const legacyEmergency = hit(detectMedicalEmergency);
     if (!legacyEmergency && hit(detectUnsafeWeightLoss)) {
       // A minor (stated age < 18) never gets the adult safe-rate guidance (kcal deficits): the minor gate wins.
@@ -812,34 +924,7 @@ export const safetyGuard = {
       };
     }
 
-    if (hit(detectMedicalEmergency)) {
-      return {
-        type: "medical_emergency",
-        messageVi: [
-          "## ⚠️ Cần Tham Khảo Ý Kiến Bác Sĩ",
-          "",
-          "Mình là **AI Fitness Coach** và không thể tư vấn về các triệu chứng y tế như đau ngực, khó thở đột ngột, ngất xỉu, hoặc chấn thương nghiêm trọng.",
-          "",
-          "🏥 **Hành động ngay:**",
-          "- **Dừng tập ngay**, ngồi hoặc nằm nghỉ — không cố tập tiếp.",
-          "- Nếu đây là tình trạng khẩn cấp, hãy gọi **115** (cấp cứu) ngay lập tức.",
-          "- Nếu triệu chứng ổn hơn, hãy đặt lịch khám với bác sĩ trước khi tiếp tục tập luyện.",
-          "",
-          "Sau khi bác sĩ cho phép, mình rất sẵn lòng giúp bạn xây dựng chương trình tập an toàn và hiệu quả! 💪",
-        ].join("\n"),
-        messageEn: [
-          "## ⚠️ Please Consult a Doctor First",
-          "",
-          "I am an **AI Fitness Coach** and cannot advise on medical symptoms such as chest pain, sudden shortness of breath, fainting, or serious injuries.",
-          "",
-          "🏥 **Take action now:**",
-          "- If this is an emergency, call emergency services immediately.",
-          "- For less urgent symptoms, schedule a doctor appointment before resuming exercise.",
-          "",
-          "Once you have medical clearance, I'm here to help you build a safe and effective training program! 💪",
-        ].join("\n"),
-      };
-    }
+    if (hit(detectMedicalEmergency)) return legacyMedicalEmergencyResult();
 
     // Acute symptoms right after/while training (no chest/fainting red flag — those took the emergency reply above). Found by
     // test/ai-quality-eval coach SC-A3 (2026-11-08): "Tập xong tôi bị chóng mặt, buồn nôn, tay chân run" got a LEG WORKOUT ("chân").
