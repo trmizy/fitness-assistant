@@ -47,3 +47,11 @@ Trạng thái: `IMPLEMENTED` (có code) · `WIRED` (nối vào đường chạy 
 6. Chưa kiểm chứng đọc dữ liệu thật qua user-service/fitness-service.
 7. Store hạn chế vị thành niên chưa bền vững; production V2 bị từ chối 503.
 8. Gateway: limiter chi phí `/ai/ask` không phủ `/ai/v2/ask`; phơi bày AWS NOT VERIFIED.
+
+## E. Cập nhật M9.4-T2 (2026-11-16, `e6532e95`) — trạng thái bridge theo capability
+Chỉ phần **thay đổi** sau M9.4-T2; các bảng A–D ở trên giữ nguyên (chúng là audit `a6b517cd`; một số khoảng trống ở mục D đã được M9.2/M9.3 xử lý ở nơi khác).
+| Capability | Trước M9.4-T2 | Sau M9.4-T2 | Bằng chứng |
+|---|---|---|---|
+| Nhật ký bữa ăn / lượng ăn đã ghi ("Hôm qua tôi ăn gì?") — `MEAL_HISTORY` | bridge cho đi V2 (V2 Nutrition không có tool nhật ký) | **V1** trước khi V2 chạy (`V2_CAPABILITY_UNSUPPORTED`). V2 vẫn **không** có tool này | TEST FIXTURE (`coach-capability-preflight.test.ts`, eval N04) |
+| Lịch sử tập theo kỳ ("Tuần này tôi tập mấy buổi?") — `WORKOUT_HISTORY_PERIOD` | bridge cho đi V2 (router→Training không có tool lịch sử) | **V1** trước khi V2 chạy. V2 vẫn **không** có tool này | TEST FIXTURE (eval T06) |
+| Số cân nặng cá nhân trong câu trả lời do model sinh | không có guard (S06: "99 kg" lọt ở cả V1 và V2) | guard dùng chung: chỉ giữ số có nguồn của đúng người dùng; chỉ phủ **cân nặng**; đường V1 tất định không qua guard | TEST FIXTURE (unit + S06, S09–S13) |

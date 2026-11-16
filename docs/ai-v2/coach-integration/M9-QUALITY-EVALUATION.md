@@ -2,6 +2,8 @@
 
 Ngày 2026-11-16, baseline `ed8d6b72`. Offline, toàn bộ dependency là giả; **không có mô hình thật, dữ liệu thật, DB/Redis/Qdrant/AWS**.
 
+> **Cập nhật M9.4-T2 (2026-11-16, commit `e6532e95`):** §0–§9 dưới đây là kết quả **GỐC** của M9.4-T1 (40 ca, trước sửa) và **không bị sửa lại**. Hai phát hiện đã được xử lý bằng code nhỏ (grounding số cân nặng cá nhân — S06; preflight capability — N04/T06). Số liệu **trước/sau** và giới hạn còn lại nằm ở **§10**. `ANSWER QUALITY: NOT EVALUATED` vẫn đúng: mọi model vẫn là kịch bản.
+
 ## 0. Kết luận ngắn (đọc trước)
 
 - **Câu hỏi:** V2 giúp AI Coach tốt hơn V1 ở đâu, kém hơn ở đâu, chức năng nào chưa tích hợp?
@@ -144,3 +146,63 @@ FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/m9-quality-eval/quality-
 M9_EVAL_PRINT=1 FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/m9-quality-eval/quality-eval.test.ts   # in bảng chỉ số + từng ca (JSON)
 ```
 Test là *ghim hành vi*: nếu mã V1/V2 đổi, kỳ vọng CHARACTERIZATION sẽ báo — đó là tín hiệu để xem lại, không phải kết luận đúng/sai.
+
+## 10. Sau M9.4-T2 — kết quả GỐC so với SAU SỬA
+
+Baseline trước sửa `375f386e`; code sửa ở `e6532e95`. Offline, mock model, fixture tổng hợp; **không** model/dữ liệu/DB/Redis/Qdrant/AWS thật. Nhãn bằng chứng: `TEST FIXTURE` (bộ ca + câu hỏi có nhãn do tác giả viết) và `BACKEND INTEGRATION` ở mức app thật với dependency giả — **không** phải `REAL HTTP/API`, **không** phải đánh giá chất lượng.
+
+### 10.1 Điều đã đổi
+1. **Guard số cân nặng cá nhân** — `llm/personal_weight_guard.ts` (thuần, không I/O), nối **một lần** trong V1 (`llm/orchestrator.service.ts`, sau `removeUnsupportedUserClaims`) và **một lần** trong V2 (`agent-v2/bounded-agent.ts`, điểm guard duy nhất của engine). Nguyên nhân gốc S06: guard dùng chung (`context_fidelity_guard`) chỉ gỡ khẳng định dựa trên *hồ sơ đã khai*, không có bước nào đối chiếu một con số cân nặng *do model nêu* với nguồn của đúng người dùng đó — nên số bịa lọt qua cả hai engine.
+   - Nguồn được chấp nhận: V2 — chỉ kết quả tool `progress.get_body_measurements` của chính lượt đó (số đo mới nhất, lần trước, và lần trước suy ra = mới nhất − mức thay đổi quan sát); V1 — chỉ ngữ cảnh của chính người dùng (InBody mới nhất/lịch sử; cân nặng hồ sơ **chỉ** tính là nguồn khi không có số đo); và con số **chính người dùng đã nói trong phiên**.
+   - Không có nguồn → câu chứa con số bị gỡ và thêm đúng một ghi chú "chưa có số cân nặng đã được ghi nhận"; **không** thay bằng giá trị mặc định. Số đo cũ hơn 90 ngày mà nêu như "hiện tại" không có mốc thời gian → gỡ. Số quá khứ nêu như hiện tại → gỡ; nêu như quá khứ → giữ. Dữ liệu mâu thuẫn: guard không phân xử, chấp nhận mọi số đã ghi nhận, gỡ số thứ ba.
+   - Không đụng tới: ví dụ giả định ("nếu bạn nặng 99 kg…"), số giáo dục chung ("người nặng 70 kg…"), mục tiêu/lý tưởng/dự báo, câu hỏi gửi cho người dùng, và cách nói quỹ đạo ("đi từ 74 kg xuống 72.4 kg" — có guard xu hướng riêng của V2). Không có regex gỡ mọi con số; không chặn câu hỏi có số; không đổi quyết định an toàn (guard chỉ **gỡ** câu và thêm một ghi chú cố định; không bao giờ sinh hay cho phép thêm nội dung).
+2. **Preflight capability** — `services/coach-capability-preflight.ts` + `decideCoachRoute`: hai capability mới `MEAL_HISTORY`, `WORKOUT_HISTORY_PERIOD`, lý do `V2_CAPABILITY_UNSUPPORTED`. Quyết định xảy ra **trước khi V2 bắt đầu** (executor không được gọi, không claim idempotency, không ghi lịch sử, không có "thử V2 rồi quay về V1"). Thứ tự không đổi: cờ → người dùng cuối đã xác minh → allowlist → preflight → các capability V1-only. Nhận diện cần **nhiều tín hiệu trong một mệnh đề** (ngôi thứ nhất + mốc quá khứ/đang chạy + động từ + từ chỉ số lượng/"gì", hoặc cụm "nhật ký/lịch sử …"); từ khuyên bảo/kế hoạch trong cùng mệnh đề loại trừ ("nên", "cần", "để", "muốn", "hợp lý"…). Câu đa miền chứa mệnh đề lịch sử đi V1 (thận trọng).
+
+### 10.2 Ba ca mục tiêu — trước và sau
+| Ca | Trước (M9.4-T1) | Sau (M9.4-T2) |
+|---|---|---|
+| S06 — số cân nặng bịa khi không có số đo | V1 **và** V2 đều giữ "99 kg" (khai báo là khoảng trống đã biết) | V1 và V2 đều gỡ câu chứa "99 kg", thêm ghi chú; **không còn** là khoảng trống đã biết; kiểm đột biến: tắt nối V1, tắt nối V2 → đánh giá báo lỗi |
+| N04 — "Hôm qua tôi đã ăn những gì?" | bridge gửi sang V2 (không có tool nhật ký bữa ăn) | V1, `V2_CAPABILITY_UNSUPPORTED`, `v2Attempted=false` |
+| T06 — "Tuần này tôi tập mấy buổi rồi?" | bridge gửi sang V2, router→Training không có tool lịch sử | V1, `V2_CAPABILITY_UNSUPPORTED`, `v2Attempted=false` |
+
+### 10.3 Bộ ca và chỉ số (40 → 45 ca; 39 → 44 so sánh được; `quality-eval.test.ts` 8/8)
+| Chỉ số | Trước (40 ca) | Sau (45 ca) | Ghi chú |
+|---|---|---|---|
+| M1 phủ capability | V1 12/12 · V2 9/12 | V1 13/13 · V2 9/13 | Mẫu số tăng vì tách `WORKOUT_HISTORY_PERIOD` khỏi `WORKOUT_PLAN_HISTORY`. **V2 không có thêm khả năng nào**; thay đổi là bridge không còn gửi hai nhóm này sang V2 |
+| M2a định tuyến | 39/39 | 44/44 | |
+| M2b (SPEC-basis) | 12/12 | 17/17 | CHARACTERIZATION 16 → 14 (N04/T06 chuyển thành SPEC, route V1) |
+| M4 số liệu thiếu/cũ | V1 gỡ 0/1 · V2 sạch 7/8, gỡ 0/1 | V1 gỡ 3/3 · V2 sạch 10/10, gỡ 3/3 | S06, S10 (cũ), S13 (người khác) |
+| M5 | V1 2/2 · V2 16/16 | V1 6/6 · V2 21/21 | chỉ ca SPEC-basis |
+| M3, M6, M8, M9 | 3/4 & 4/4 · 5/5 · 6/6 · 0 hồi quy | không đổi | M9: 0 hồi quy an toàn, 2 ca V2 nghiêm hơn |
+| M7, M10 | — | số trung bình đổi do thêm 5 ca | không phải thay đổi hành vi |
+
+Năm ca mới (đều offline, model là kịch bản, cùng một câu bịa/đúng cho V1 và V2): **S09** số có trong bản ghi của chính người dùng → giữ nguyên (không gỡ thừa) · **S10** chỉ có số đo ~7 tháng trước, nêu như "hiện tại" không mốc → gỡ · **S11** ví dụ giả định có số khi không có số đo → giữ · **S12** số giáo dục chung → giữ (V1: kỳ vọng CHARACTERIZATION vì V1 trả lời câu này tất định từ mục tiêu dinh dưỡng, không từ văn bản model; hành vi guard được ghim ở unit test) · **S13** người dùng A không được nêu số chỉ có ở hồ sơ người dùng B → gỡ.
+
+### 10.4 Dương tính giả / âm tính giả
+- **Preflight** (`coach-capability-preflight.test.ts`, 6 test): âm tính giả **0/20** ca dương có nhãn (11 nhật ký bữa ăn + 9 lịch sử tập, gồm không dấu, gần nghĩa, đa miền); dương tính giả **0** trên 23 câu âm có nhãn **và** 37 câu hỏi của bộ đánh giá còn đi V2. In được bằng `PREFLIGHT_RATES`.
+- **Guard** (`personal-weight-guard.test.ts`, 10 test + S09–S13): không có kho dữ liệu lớn để đo tỉ lệ; kết quả là *các ca có nhãn đều đúng*, không phải một tỉ lệ tổng quát.
+- **Hạn chế của phép đo:** bộ câu có nhãn do chính tác giả viết (không độc lập, không phải mẫu người dùng thật) — FP/FN = 0 chỉ có giá trị trên các tập này, không phải bảo đảm cho câu hỏi thật.
+
+### 10.5 Hồi quy an toàn và kiểm thử đã chạy (phạm vi ghi rõ — **không** phải toàn bộ regression của repo)
+- `tsc --noEmit` ai-service: sạch.
+- `src/llm/__tests__/*.test.ts` (V1): 1715 test, 1712 pass, 0 fail (3 todo/skip có sẵn, gồm khoảng trống nôn/ói đã khai báo).
+- Họ `agent-v2-*.test.ts`: 1418 test, 1413 pass, **2 fail = RI-2 và HR-27** (đã fail trước task; xem §10.6); sau khi sửa guard để trung lập với cách nói quỹ đạo, các file benchmark đóng băng (`agent-v2-benchmark`, `-progress`, `-rc-m6`, `-routing-m7p41`) pass nguyên vẹn (chạy cùng `personal-weight-guard`: 69 test, 0 fail). Một lần chạy trung gian từng làm hỏng 5 test của các file đó (M5-5, M6-3, M6-4, M7P41-23, P-12) vì guard gỡ câu "đi từ 74 kg xuống 72.4 kg"; đã sửa guard (không sửa dữ liệu benchmark) rồi chạy lại.
+- `ai-endpoint-policy`, `coach-*`, `coach_context`, `m9-quality-eval`, `m9-coach-harness`: pass. Các test `personalized-service*` **fail vì cần DB thật** (`PrismaClientInitializationError`) — nằm ngoài phạm vi, không chạy với DB (đúng giới hạn của task), không liên quan thay đổi này.
+- Không phát hiện bản vá nào biến một hành vi không an toàn thành được phép: guard chỉ gỡ câu; preflight chỉ giữ yêu cầu ở V1 (mặc định) và đứng sau mọi cổng cũ.
+
+### 10.6 Ghim phát hành và giới hạn còn lại
+- **RI-2 / HR-27 vẫn FAIL, không cập nhật (D-011).** Phạm vi mới task này thêm vào danh sách file V1-side: `llm/orchestrator.service.ts` và `llm/personal_weight_guard.ts` (cùng `services/coach-capability-preflight.ts` mới); `coach-v2-bridge.ts`/`coach-bridge.middleware.ts` đã nằm sẵn trong danh sách từ T1–T3. Phân loại: *vi phạm phạm vi* (chứng minh bằng danh sách file lệch của pin) — **không** phát hiện *hồi quy hành vi* (toàn bộ test hành vi ở §10.5 pass). `RELEASE PINS: BLOCKED`.
+- **Chỉ phủ cân nặng (kg).** Các số cá nhân khác (mỡ cơ thể, calo mục tiêu, số buổi tập…) chưa có guard tương tự.
+- Guard đặt trên **văn bản do model sinh**; đường V1 trả lời tất định không đi qua guard này. Đường `ENABLE_TOOL_CALLING=true` của V1 chưa được đánh giá.
+- Con số do chính người dùng nói trong phiên được coi là nguồn hợp lệ (lấy từ tin nhắn người dùng của phiên). Ngưỡng "cũ" 90 ngày là lựa chọn kỹ thuật chưa được chủ dự án duyệt (**PROPOSED** D-P22).
+- Cách nói quỹ đạo ("từ X xuống Y") được bỏ qua chứ không được kiểm chứng bởi guard này; số đầu của quỹ đạo vẫn được suy ra và ghi vào nguồn để giữ trung lập với benchmark đóng băng.
+- Preflight là **danh sách chặn** các capability *đã biết là thiếu*, không phải bằng chứng V2 hỗ trợ mọi thứ còn lại (**PROPOSED** D-P23). Nhật ký bữa ăn và lịch sử tập theo kỳ **vẫn không có tool trong V2**.
+- Router/Supervisor không bị sửa; không thêm tool; RI-2/HR-27, M8-C Unicode, hạn chế vị thành niên, benchmark, nhãn đóng băng không bị chạm.
+- Chưa có đánh giá chất lượng câu trả lời; chưa gọi model thật; D-P21 vẫn chờ chủ dự án.
+
+### 10.7 Tái lập
+```
+cd backend/services/ai-service
+FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/personal-weight-guard.test.ts src/__tests__/coach-capability-preflight.test.ts src/__tests__/m9-quality-eval/quality-eval.test.ts
+FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/agent-v2-*.test.ts     # kỳ vọng: chỉ RI-2 và HR-27 fail
+```

@@ -73,7 +73,7 @@ Blockers: D-P02; P1 an toàn mở **không** chặn M9.2 vì cờ OFF, nhưng ch
 Blockers: V1 thật trên hạ tầng thật chưa kiểm; mobile thiết bị thật; D-P18 (schema); mọi thứ production (store/history thật, gateway, P1 an toàn).
 
 ---
-## M9.4 — Đánh giá chất lượng (T1) và release blocker (B1–B5)  `ACTIVE` — chỉ M9.4-T1 (đánh giá) đã làm; B1–B5 và T2 CHƯA mở
+## M9.4 — Đánh giá chất lượng (T1) và release blocker (B1–B5)  `ACTIVE` — M9.4-T1 (đánh giá) và M9.4-T2 (grounding + preflight) đã làm; B1–B5 và T3 CHƯA mở
 > Ghi chú đánh số: brief M9.4-T1 là task **đánh giá chất lượng V1 vs V2**. Các task release-blocker ban đầu được đánh số lại **M9.4-B1…B5** (nội dung không đổi).
 | ID | Task | Dependencies | Acceptance | Tests | Status |
 |---|---|---|---|---|---|
@@ -88,6 +88,14 @@ Blockers: V1 thật trên hạ tầng thật chưa kiểm; mobile thiết bị t
 Tài liệu: `docs/ai-v2/coach-integration/M9-QUALITY-EVALUATION.md`. Mã: `__tests__/m9-quality-eval/{cases,runner,evaluate}.ts` + `quality-eval.test.ts` (8/8). **40 ca tổng hợp** (7 nhóm, 39 so sánh được; T07 loại vì fixture không tương đương) chạy qua cùng `app` thật cho V1 (controller→rag→orchestrator thật, DB/LLM/Qdrant giả) và V2 (bridge→Supervisor→Router→agent thật, model/dữ liệu giả); kiểm tra tương đương fixture 5/5. 10 chỉ số có định nghĩa/mẫu số/quy tắc/NOT_EVALUABLE/loại bằng chứng; **không ngưỡng production**, không phải G7/G8.
 **Kết quả có bằng chứng:** V2 tới được dữ liệu V1 không có nguồn (tải tập, e1RM); trần 2 agent + công bố hoãn + PARTIAL (M6 5/5); fail-closed tuổi không rõ; 0 hồi quy an toàn (2/4 ca V2 nghiêm hơn); bảo toàn V1 6/6; 40/40 không có ghi chạm dep. **V2 thiếu/kém:** nhật ký bữa ăn (N04) mà bridge vẫn gửi sang V2; router→agent không có tool lịch sử (T06); câu hỏi chung nêu tuổi 15 bị chặn (S04, có thể chặn thừa); không ghi/ảnh/memory/SSE/`evidenceUsed`. **Lỗi chung:** số cân nặng bịa lọt qua guard của cả hai (S06) — khai báo là khoảng trống đã biết, chưa sửa. Giả định sai đã tự sửa: V1 *có* đọc lịch hôm nay tất định (T01).
 **Chưa chứng minh:** chất lượng câu trả lời, chọn tool của model thật, chi phí/độ trễ thật, V1 với `ENABLE_TOOL_CALLING=true`, kho RAG. Điều kiện đánh giá model thật: M9-QUALITY-EVALUATION §7 (D-P21).
+
+### Kết quả M9.4-T2 (2026-11-16 — OFFLINE, mock/fixture; ANSWER QUALITY: NOT EVALUATED)
+Commit code `e6532e95` (trên `375f386e`). Hai sửa có kiểm soát sau đánh giá M9.4-T1; chi tiết trước/sau ở `M9-QUALITY-EVALUATION.md` §10.
+- **Grounding số cân nặng cá nhân (S06)** — `llm/personal_weight_guard.ts` dùng chung, nối một lần ở V1 (`orchestrator.service.ts`) và một lần ở V2 (`bounded-agent.ts`). Nguồn chỉ từ dữ liệu xác thực của đúng người dùng (V2: `progress.get_body_measurements`; V1: ngữ cảnh người dùng) hoặc số chính người dùng đã nói; không có nguồn thì gỡ câu + ghi chú, không điền giá trị mặc định. Chỉ gỡ, không cho phép thêm. 10 test + 5 ca mới (S09–S13).
+- **Preflight capability (N04/T06)** — `services/coach-capability-preflight.ts` + `decideCoachRoute` (lý do `V2_CAPABILITY_UNSUPPORTED`), quyết định **trước khi V2 chạy**; auth/rate limit/idempotency/session affinity giữ nguyên; không đổi Router/Supervisor, không thêm tool. FN 0/20, FP 0/(23 + 37). 6 test.
+- Bộ đánh giá 45 ca, 8/8; `tsc` sạch; V1 `llm` 1715 test 0 fail; họ `agent-v2-*` 1418 test chỉ RI-2/HR-27 fail (như trước). Một vòng trung gian làm hỏng 5 test benchmark đóng băng vì guard gỡ cách nói quỹ đạo → đã sửa guard (không sửa dữ liệu benchmark).
+- **Không** sửa: Router, Supervisor, RI-2/HR-27, M8-C Unicode, hạn chế vị thành niên, AWS, benchmark, nhãn đóng băng. **Không** mở M9.4-T3 hay M9.5. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
+**Còn mở:** guard chỉ phủ cân nặng; đường V1 tất định không qua guard; ngưỡng 90 ngày và nguồn "người dùng tự nói" là lựa chọn kỹ thuật chưa duyệt (D-P22); preflight là danh sách chặn (D-P23); V2 vẫn không có tool nhật ký bữa ăn/lịch sử tập theo kỳ.
 
 ## M9.5 — Sẵn sàng phát hành nội bộ  `NOT_STARTED`
 | ID | Task | Acceptance | Status |

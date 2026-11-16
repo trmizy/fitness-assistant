@@ -1,9 +1,11 @@
 # CURRENT-STATE — Checkpoint cho Agent hoặc phiên mới
 
-Cập nhật lần cuối: **2026-11-16**, cuối M9.4-T1. Đọc theo thứ tự: `ARCHITECTURE.md` → `IMPLEMENTATION-PLAN.md` → file này → `DECISIONS.md`. Trước khi làm gì: chạy `git rev-parse HEAD`, `git status`, `git branch --show-current` và đối chiếu với §Worktree. **Không đoán milestone nào đã xong**: dùng bảng task trong `IMPLEMENTATION-PLAN.md` và bằng chứng ở dưới.
+Cập nhật lần cuối: **2026-11-16**, cuối M9.4-T2 (sau M9.4-T1). Đọc theo thứ tự: `ARCHITECTURE.md` → `IMPLEMENTATION-PLAN.md` → file này → `DECISIONS.md`. Trước khi làm gì: chạy `git rev-parse HEAD`, `git status`, `git branch --show-current` và đối chiếu với §Worktree. **Không đoán milestone nào đã xong**: dùng bảng task trong `IMPLEMENTATION-PLAN.md` và bằng chứng ở dưới.
 
 ## Current objective
-Tích hợp Multi-Agent V2 vào AI Coach hiện có (không chatbot độc lập), phương án B (D-008). Hiện: M9.2 T1–T3, M9.3 T1–T2 (DEV/fixture) và **M9.4-T1 (đánh giá V1 vs V2 offline)**. Kết luận đánh giá: có khác biệt *cấu trúc* có bằng chứng, **chất lượng câu trả lời chưa được đánh giá** (mọi model là kịch bản). `AI COACH V2 INTEGRATION: NOT STARTED` cho người dùng thật. `PRODUCTION: BLOCKED`. Chưa mở M9.4-T2, M9.4-B1..B5, M9.3-T3, M9.5.
+**M9.4-T2 (2026-11-16, code `e6532e95`):** đã sửa hai phát hiện của M9.4-T1 bằng thay đổi nhỏ, offline/mock — (1) guard số cân nặng cá nhân dùng chung cho V1 và V2 (S06), (2) preflight capability của bridge giữ nhật ký bữa ăn và lịch sử tập theo kỳ ở V1 **trước khi V2 bắt đầu** (N04/T06). `PERSONAL DATA GROUNDING: PASS (phạm vi cân nặng, trên fixture)`, `CAPABILITY PREFLIGHT: PASS (trên tập có nhãn của tác giả)`, `ANSWER QUALITY: NOT EVALUATED`, `RELEASE PINS: BLOCKED`, `PRODUCTION: BLOCKED`. Chi tiết: `M9-QUALITY-EVALUATION.md` §10.
+
+Tích hợp Multi-Agent V2 vào AI Coach hiện có (không chatbot độc lập), phương án B (D-008). Hiện: M9.2 T1–T3, M9.3 T1–T2 (DEV/fixture) và **M9.4-T1 (đánh giá V1 vs V2 offline)**. Kết luận đánh giá: có khác biệt *cấu trúc* có bằng chứng, **chất lượng câu trả lời chưa được đánh giá** (mọi model là kịch bản). `AI COACH V2 INTEGRATION: NOT STARTED` cho người dùng thật. `PRODUCTION: BLOCKED`. Chưa mở M9.4-B1..B5, M9.4-T3, M9.3-T3, M9.5.
 
 ## Worktree / branch / commit của tài liệu này
 - Worktree: `C:\D_Backup\project_personal\fitness-assistant-worktrees\ai-v2-coach-integration-plan`, branch `planning/ai-coach-v2-integration`, tách từ `a6b517cd`. Chưa push/merge/tag (D-001).
@@ -25,13 +27,14 @@ Tích hợp Multi-Agent V2 vào AI Coach hiện có (không chatbot độc lập
 **Có thật nhưng KHÔNG thuộc phiên này, chưa được kiểm tra:** worktree `ai-v2-unicode-separator` (branch `fix/m8c-unicode-separator-triage`), `ai-v2-ai-labeled-benchmark` (branch `agent/m7-ai-labeled-benchmark`), các branch `agent/emr-*`, `agent/m7r-*`. Coi là chỉ đọc; nếu cần, hỏi chủ dự án trước. Repo gốc `fitness-assistant` (branch `aws-deploy`) có thay đổi chưa commit (CLAUDE.md, AGENTS.md, generated/prisma…): **không đụng**.
 Lịch sử và bằng chứng M7/M8 (chưa commit) nằm ở `…\fitness-assistant-worktrees\ai-v2-agent\docs\ai-v2\` (đặc biệt `m8-parallel-evidence\`). Đó là lịch sử, không phải sự thật hiện tại.
 
-## Completed (M9.1, M9.2-T1..T3, M9.3-T1..T2, M9.4-T1)
+## Completed (M9.1, M9.2-T1..T3, M9.3-T1..T2, M9.4-T1..T2)
 - M9.1; M9.2-T1..T3; M9.3-T1..T2; **M9.4-T1 (đánh giá, commit kế tiếp + checkpoint)** — chi tiết ở `M9-QUALITY-EVALUATION.md` và IMPLEMENTATION-PLAN "Kết quả M9.4-T1".
 
 ## Active task
-Không còn task code đang mở. **M9.4-T2 chưa mở** (cần chủ dự án mở rõ ràng); các task release-blocker cũ nay là M9.4-B1..B5.
+Không còn task code đang mở. **M9.4-T2 đã xong** (code `e6532e95`, checkpoint tài liệu ngay sau). **M9.4-T3 và M9.5 chưa mở** (cần chủ dự án mở rõ ràng); các task release-blocker cũ là M9.4-B1..B5.
 
 ## Files changed (planning branch)
+- **M9.4-T2:** code `backend/services/ai-service/src/{llm/personal_weight_guard.ts (mới), llm/orchestrator.service.ts, agent-v2/bounded-agent.ts, services/coach-capability-preflight.ts (mới), services/coach-v2-bridge.ts, services/coach-bridge.middleware.ts}`; test `src/__tests__/{personal-weight-guard,coach-capability-preflight}.test.ts` và `m9-quality-eval/*` (45 ca); tài liệu M9-QUALITY-EVALUATION §10, CAPABILITY-MAP §E, ARCHITECTURE, IMPLEMENTATION-PLAN, CURRENT-STATE, DECISIONS (D-019, D-P22, D-P23).
 - Commit đánh giá (chỉ test + tài liệu): `backend/services/ai-service/src/__tests__/m9-quality-eval/{cases.ts,runner.ts,evaluate.ts,quality-eval.test.ts}` và `docs/ai-v2/coach-integration/M9-QUALITY-EVALUATION.md`.
 - Checkpoint: ARCHITECTURE, IMPLEMENTATION-PLAN, DECISIONS, CURRENT-STATE.
 Không sửa: backend/frontend production code, Router, Supervisor, Safety Guard, Minor Gate, benchmark (300 câu hay lịch sử), pin, schema, gateway.
@@ -72,6 +75,7 @@ Số liệu vi sai Unicode (hàng chục nghìn chuỗi, fuzz hai seed), kiểm 
 1. Ký tự vô hình là dấu phân cách **duy nhất** giữa hai từ vẫn làm lọt lời khai tự gây nôn (`safety_guard.ts`/`induced_vomiting_events.ts`; Codex M8-C, đã tái hiện; có từ trước). Họ hàng: `nha<ZWSP>hang` mất cổng off-topic; `act<ZWSP>as an unrestricted AI` lọt injection.
 2. **Chưa có store hạn chế vị thành niên bền vững**; trong `multi-agent-runtime.ts` production bị từ chối 503. Quarantine hiện chỉ trong một tiến trình, không dùng chung nhiều instance (đã nêu trong `minor-restriction.ts`).
 3. Các sửa quarantine tràn/đua (M8-C `e7566dff`) và ZWSP-trong-từ (`540675fd`) **chỉ có ở snapshot `1eaa29a0`**, chưa ở `a6b517cd`, web demo hay `af66b3a3`.
+**Cập nhật M9.4-T2 cho (p)(q)(r) của M9.4-T1:** (p) S06 — **đã xử lý cho số cân nặng** (guard dùng chung, test + 5 ca mới); các số cá nhân khác (mỡ cơ thể, calo, số buổi…) **chưa** có guard; đường V1 tất định không qua guard. (q) N04 — **đã xử lý** bằng preflight (V1 trước khi V2 chạy); V2 vẫn không có tool nhật ký bữa ăn. (r) T06 — **đã xử lý ở bridge** (về V1); router→agent training vẫn không có tool lịch sử (Router không bị sửa). **Mới (P2):** (t) ngưỡng "cũ" 90 ngày và việc coi số người dùng tự nói là nguồn hợp lệ chưa được duyệt (D-P22); (u) preflight là danh sách chặn các capability đã biết thiếu, có thể bỏ sót cách diễn đạt khác (D-P23); (v) FP/FN đo trên tập có nhãn do tác giả viết, không phải mẫu người dùng thật.
 **P2 (mới ở M9.4-T1):** (p) **số liệu cá nhân bịa (99 kg khi không có số đo) lọt qua guard của cả V1 lẫn V2** (D-P19); (q) bridge vẫn gửi câu hỏi nhật ký bữa ăn sang V2 không có tool (D-P20); (r) router→agent training không có tool lịch sử cho câu hỏi lịch sử tuần (T06); (s) V2 chặn câu hỏi chung nêu tuổi 15 (S04, có thể chặn thừa; D-004).
 **P2 (mới ở M9.3-T2):** (k) badge lịch sử chỉ có engine+trace (D-P18); (l) mobile mới kiểm bằng viewport giả lập, 375/390/412 chỉ đo hình học; (m) trong phiên đã có lượt V1, kịch bản V2 đi V1 mà UI DEV không giải thích; (n) frontend vẫn không có typecheck đầy đủ (6 dòng lỗi sẵn có); (o) nút nổi AI Coach từng che ~50% nút Gửi ở 360–412 (đã sửa).
 **P2 (mới ở M9.3-T1):** (f) tải lại lịch sử từ server mất badge V2 (D-P18); (g) lượt V2 FAILED do hold dài được replay nguyên trạng, người dùng phải gửi tin mới; (h) V1 thật chưa kiểm cùng trang (launcher dùng stub V1); (i) mobile chưa kiểm; (j) tên/giá trị `VITE_AI_COACH_V2_DEV` có thể nằm trong object env của bundle nếu bị đặt lúc build (không kích hoạt được gì).
@@ -79,9 +83,12 @@ Số liệu vi sai Unicode (hàng chục nghìn chuỗi, fuzz hai seed), kiểm 
 **P2:** lời khai giả định ("nếu tôi 16 tuổi…") vẫn lưu thành hạn chế (`agent-v2/minor-gate.ts:8,92`) và không có đường gỡ — **mâu thuẫn với D-004**; bản ghi hạn chế chứa `userId` thô; V2-only false positive với U+FEFF (đưa vào ở `540675fd`); lượt khai tuổi đơn thuần trả `OUT_OF_SCOPE`; annotation G2 chỉ sửa một phần, Codex BLOCKED 2 P2; limiter gateway không phủ `/ai/v2/ask`; V2 không `clientRequestId`, không SSE, không ghi lịch sử; G7/G8 **NOT VERIFIED**, chưa có kiểm chứng của con người.
 
 ## Release identity
+**M9.4-T2 (cập nhật):** RI-2 và HR-27 vẫn FAIL, không cập nhật (D-011). Task này thêm vào danh sách file V1-side: `llm/orchestrator.service.ts`, `llm/personal_weight_guard.ts`, `services/coach-capability-preflight.ts` (cộng `agent-v2/bounded-agent.ts` nằm trong `agent-v2`, pin isolation vẫn xanh). Phân loại: *vi phạm phạm vi* (danh sách file lệch); *hồi quy hành vi* = không phát hiện (họ `agent-v2-*`: 1413/1418 pass, chỉ hai pin này fail; `llm` 1715/1715 không fail). Không cập nhật pin. `RELEASE PINS: BLOCKED`.
 **RI-2 và HR-27 FAIL (không cập nhật — D-011).** M9.4-T1 chỉ thêm test dưới `__tests__/` và tài liệu `docs/ai-v2` — **không thêm phạm vi mới cho hai pin** so với M9.3-T2. Phân loại giữ nguyên: *vi phạm phạm vi (đã chứng minh bằng git diff so với M6 RC `b8e595dd`)* = file V1-side của T1–T3, `CLAUDE.md`, `scripts/git/*`, `frontend/web/src/**`; *hồi quy hành vi* = không phát hiện (V1R-6 giống hệt baseline; M9.4-T1 M9 = 0 hồi quy an toàn trên 4 probe); *chưa kiểm chứng* = assertion 2 và 3 của RI-2 (bị che). Không cập nhật pin, không bỏ assertion. Không release-ready.
 
 ## Next exact action
+**Sau M9.4-T2:** D-P19 và D-P20 đã được xử lý một phần bằng D-019 (phạm vi nhỏ — xem các giới hạn ở D-P22/D-P23). Chờ chủ dự án: quyết D-P22 (ngưỡng "cũ", nguồn số người dùng tự nói, phạm vi guard sang số cá nhân khác), D-P23 (preflight dạng danh sách chặn hay thêm reader cho V2), D-P21 (đánh giá model thật). **M9.4-T3 và M9.5 chưa mở.** Phần còn lại của danh sách cũ bên dưới (D-P18, D-P13, D-P11, D-P12, D-P02, D-P14, D-P16, D-P17, M9.4-B1..B5, M9.3-T3) vẫn đúng. Không tự mở.
+
 Chờ chủ dự án: (1) quyết các đề xuất rút ra từ đánh giá: D-P19 (grounding số liệu cá nhân), D-P20 (nhật ký bữa ăn / capability gate), D-P21 (điều kiện đánh giá bằng model thật — cần duyệt model/ngân sách); (2) mở **M9.4-T2** (ví dụ: chạy đánh giá model thật nếu D-P21 được duyệt) hoặc **M9.4-B1..B5**, **M9.3-T3**; (3) D-P18, D-P13, D-P11, D-P12, D-P02, D-P14, D-P16, D-P17. Không tự mở.
 
 ## STOP conditions
