@@ -3724,6 +3724,22 @@ function newClientRequestId(): string {
   return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+/**
+ * Failure of a JSON chat send. `message` is the same friendly text the UI always showed; `status` / `code` additionally let the
+ * caller tell the two HTTP 409s apart (OPERATION_IN_PROGRESS vs IDEMPOTENCY_KEY_CONFLICT) without parsing text. Existing callers
+ * that only read `.message` are unaffected.
+ */
+export class CoachRequestError extends Error {
+  readonly status?: number;
+  readonly code?: string;
+  constructor(message: string, status?: number, code?: string) {
+    super(message);
+    this.name = "CoachRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 export const coachService = {
   chat: async (message: string, sessionId?: string, clientRequestId: string = newClientRequestId()) => {
     try {
@@ -3738,7 +3754,9 @@ export const coachService = {
       // AI service wraps responses in {success, data}; unwrap to get answer at top level.
       return data?.data ?? data;
     } catch (err: any) {
-      throw new Error(aiFriendlyErrorMessage(err?.response?.status));
+      const status: number | undefined = err?.response?.status;
+      const code: string | undefined = err?.response?.data?.error?.code;
+      throw new CoachRequestError(aiFriendlyErrorMessage(status), status, code);
     }
   },
 

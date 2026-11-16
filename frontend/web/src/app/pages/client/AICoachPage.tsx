@@ -8,6 +8,10 @@ import { useApp } from "../../context/AppContext";
 import { FitnessAgentBlock } from "../../components/agent/FitnessAgentBlocks";
 import { fitnessAgentService, type AgentReply } from "../../services/fitnessAgent";
 import { appendAgentReply, appendImageChatExchange } from "../../stores/pendingAiTasks";
+import { CoachV2Badge } from "../../components/coach/CoachV2Badge";
+import { AiCoachV2DevPanel } from "../../components/dev/AiCoachV2DevPanel";
+import { useCoachV2DevMode, V2_DEV_COMPOSER_PLACEHOLDER } from "../../dev/coachV2Dev";
+import type { CoachV2View } from "../../services/coachV2Response";
 import {
   getLastActiveCoachSessionId,
   useAiCoachSession,
@@ -33,6 +37,7 @@ type ChatMessage = {
   from: "user" | "ai";
   text: string;
   time: string;
+  v2?: CoachV2View;
   evidenceUsed?: Array<{
     title: string;
     source_url: string;
@@ -199,6 +204,8 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messages = session.messages;
   const aiLoading = session.status === "processing";
+  // DEV-only V2 opt-in (always false in a production build, see dev/coachV2Dev.ts): the free-text composer is disabled while it is on
+  const v2DevOn = useCoachV2DevMode();
   const isStreaming = aiLoading;
   const latestMessage = messages[messages.length - 1];
 
@@ -736,6 +743,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
                 )}
                 {renderText(msg.text)}
                 {renderEvidenceSources(msg)}
+                {msg.from === "ai" && msg.v2 && <CoachV2Badge v2={msg.v2} />}
                 {msg.structuredBlocks?.map((block, index) => <FitnessAgentBlock key={`${msg.id}-block-${index}`} block={block} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} onQuickReply={send} />)}
               </div>
               {msg.from === "user" && (
@@ -918,6 +926,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
               </button>
             </div>
           )}
+          {import.meta.env.DEV && import.meta.env.VITE_AI_COACH_V2_DEV === "1" && <AiCoachV2DevPanel onSend={send} busy={aiLoading} />}
           <div
             className="flex items-end gap-1.5 rounded-3xl border px-2 py-1.5"
             style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--border-color)" }}
@@ -925,7 +934,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
             <button
               type="button"
               onClick={() => setShowAttachMenu((s) => !s)}
-              disabled={aiLoading}
+              disabled={aiLoading || v2DevOn}
               aria-label="Thêm ảnh"
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-50"
             >
@@ -937,13 +946,13 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
               onChange={(e) => setInput(e.target.value)}
               onFocus={() => scrollToLatestMessage("smooth")}
               onKeyDown={(e) => e.key === "Enter" && !aiLoading && (stagedImageFile ? void sendImageChat() : send(input))}
-              placeholder={stagedImageFile ? "Hỏi gì về ảnh này?" : inputPlaceholder}
+              placeholder={v2DevOn ? V2_DEV_COMPOSER_PLACEHOLDER : stagedImageFile ? "Hỏi gì về ảnh này?" : inputPlaceholder}
               className="min-h-9 flex-1 bg-transparent py-1.5 text-sm outline-none"
-              disabled={aiLoading}
+              disabled={aiLoading || v2DevOn}
             />
             <button
               onClick={() => (stagedImageFile ? void sendImageChat() : send(input))}
-              disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy}
+              disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy || v2DevOn}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-40"
               style={{
                 backgroundColor: "var(--button-bg)",

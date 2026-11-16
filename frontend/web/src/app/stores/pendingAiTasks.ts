@@ -2,11 +2,14 @@ import { useEffect, useSyncExternalStore } from "react";
 import {
   planService,
   coachService,
+  CoachRequestError,
   type CoachEvidenceItem,
   type CoachStreamDonePayload,
   type AiSessionMessage,
 } from "../services/api";
 import { describeChatRequest, findRetryable, newChatRequestFields, recoverInterrupted } from "./chat-request-identity";
+import { describeCoachFailure, describeCoachV2, parseCoachV2, type CoachV2View } from "../services/coachV2Response";
+import { isCoachV2DevMode } from "../dev/coachV2Dev";
 
 export type PendingAiTaskKind = "plan-generate" | "plan-adjust" | "chat-ask";
 export type PendingAiTaskStatus =
@@ -46,6 +49,8 @@ export interface AiChatMessage {
   text: string;
   time: string;
   evidenceUsed?: CoachEvidenceItem[];
+  // Set ONLY when the backend served this reply with Multi-Agent V2 (DEV opt-in); a V1 reply never has it.
+  v2?: CoachV2View;
   // A local blob: URL for an image the user attached (image-chat feature).
   // Transient only — like any blob: URL it doesn't survive a reload, so a
   // persisted/reloaded message just won't show the thumbnail again. Never
@@ -653,8 +658,10 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
 
     let isFirstToken = true;
 
+    // V2 has no SSE: in the DEV V2 opt-in the message goes through the JSON endpoint instead of the V1 stream. Default (opt-in OFF,
+    // and every production build) is unchanged: the stream is used whenever the browser supports it.
     const streamAvailable =
-      typeof window !== "undefined" && "ReadableStream" in window;
+      typeof window !== "undefined" && "ReadableStream" in window && !isCoachV2DevMode();
     if (!streamAvailable) {
       void coachService
         .chat(question.trim(), outgoingSessionId, clientRequestId)
@@ -665,10 +672,12 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
           const evidenceUsed = Array.isArray(result?.evidenceUsed)
             ? (result.evidenceUsed as CoachEvidenceItem[])
             : [];
+          // present only for a reply the backend served with Multi-Agent V2; the state (blocked / partial / failed) is kept as returned
+          const v2Meta = parseCoachV2(result);
           applyIfCurrent((sessionState) => {
             const nextMessages = sessionState.messages.map((message) =>
               message.id === placeholderMessage.id
-                ? { ...message, text: replyText, evidenceUsed, structuredBlocks: result?.structuredBlocks ?? [] }
+                ? { ...message, text: replyText, evidenceUsed, structuredBlocks: result?.structuredBlocks ?? [], ...(v2Meta ? { v2: describeCoachV2(v2Meta) } : {}) }
                 : message,
             );
             return {
@@ -692,8 +701,13 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
               : undefined,
           );
         })
-        .catch(() => {
-          const errorText = describeChatRequest({ id: taskId, userId, kind: "chat-ask", status: "FAILED", uncertain: true, clientRequestId, question }).label;
+        .catch((err) => {
+          // DEV V2 opt-in only: tell the two HTTP 409s (+401/403/session/503) apart. A failed V2 send is NEVER re-sent through V1 or
+          // with a new id here: the user's explicit "Thử lại" reuses the original clientRequestId, and a conflict offers no retry.
+          const failure = isCoachV2DevMode() && err instanceof CoachRequestError ? describeCoachFailure(err.status, err.code) : null;
+          const errorText = failure
+            ? failure.message
+            : describeChatRequest({ id: taskId, userId, kind: "chat-ask", status: "FAILED", uncertain: true, clientRequestId, question }).label;
           applyIfCurrent((sessionState) => ({
             ...sessionState,
             messages: sessionState.messages.map((message) =>
@@ -706,7 +720,7 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
             lastError: errorText,
             updatedAt: nowIso(),
           }));
-          updateTaskState("FAILED", errorText, { uncertain: true });
+          updateTaskState("FAILED", errorText, failure && !failure.canRetrySameRequest ? { uncertain: false, clientRequestId: null } : { uncertain: true });
         })
         .finally(() => {
           coachRequests.delete(bucketKey);
