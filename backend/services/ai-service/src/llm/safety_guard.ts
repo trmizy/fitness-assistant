@@ -480,58 +480,146 @@ function detectDiagnosisRequest(question: string): boolean {
   return asksDiagnosis && personal && asksForIt;
 }
 
-// ── M9.5-T1 (B-03): acute self-harm / suicide intent, an ongoing or just-happened seizure, heat illness with confusion ─────────────────────────
-// Before this change none of them was an emergency (V1 gate and V2 input check answered `safe`; only the literal "tự làm hại" matched, and got the
-// CHEST-PAIN reply). Policy (PROPOSED — owner / clinical review pending): FIRST-PERSON current intent or an ACUTE event → emergency. Education,
-// chronic-condition questions ("tôi bị động kinh, tập gym được không?"), negation, quotation, muscle twitch ("co giật cơ"), "mệt muốn chết" hyperbole
-// and hypothetical first-aid questions are NOT emergencies. Third-person CRISIS disclosures ("anh ấy nói muốn tự tử") are left as before (documented gap).
-// Uses the existing fold only (no new normalisation). Over-triage is deliberate for first-person self-harm: "nếu tôi muốn tự tử thì sao" is flagged.
-export type EmergencyKind = "self_harm" | "seizure" | "heat_illness";
-const stripQuoted = (s: string): string => s.replace(/(["“«‘])[^"”»’]{1,200}(["”»’])/g, " ").replace(/(^|\s)'[^']{3,200}'(?=$|[\s.,;:!?])/g, " ");
-const SH_FILL = String.raw`(?:(?:thật sự|thực sự|thật lòng|chỉ|đang|rất|luôn|lại|cứ|bây giờ|giờ|vẫn|hiện|thực ra|đôi khi|có lúc|chỉ còn)\s+){0,3}`;
-const SH_SUBJ = String.raw`(?<![\p{L}])(?:tôi|mình|em|tui|tao)\s+`;
-const SELF_HARM_ACCENTED: RegExp[] = [
-  new RegExp(SH_SUBJ + SH_FILL + String.raw`(?:muốn|định|có ý định|sắp|đã quyết định|quyết định|đang nghĩ (?:đến|tới)(?: chuyện| việc)?|nghĩ (?:đến|tới)(?: chuyện| việc)?)\s+(?:tự tử|tự sát|tự vẫn|kết thúc (?:cuộc đời|cuộc sống|đời mình|mạng sống|tất cả|mọi thứ)|chết(?!\s+(?:đói|mệt|cười|ngượng|thèm|lạnh|nóng|vì mệt|vì đói))(?![\p{L}]))`, "u"),
-  new RegExp(SH_SUBJ + SH_FILL + String.raw`(?:không|chẳng|chả)\s+(?:còn\s+)?muốn\s+(?:tiếp tục\s+)?sống(?![\p{L}])`, "u"),
-  /(?:^|[.!?;,\n]\s*)(?:chỉ\s+)?muốn\s+(?:tự tử|tự sát|tự vẫn|chết quách|chết đi)(?![\p{L}])/u,
-];
-// unaccented writers only (the original has NO diacritics): "tu tu" is also "từ từ" (slowly), so it counts only when it closes the clause; "tu van" (tư vấn) is not used
-const SH_ASCII_FILL = String.raw`(?:(?:that su|thuc su|that long|chi|dang|rat|luon|lai|cu|bay gio|gio|van|hien)\s+){0,3}`;
-const SH_ASCII_SUBJ = String.raw`(?<![a-z])(?:toi|minh|em|tui|tao)\s+`;
-const SH_ASCII_VERB = String.raw`(?:muon|dinh|co y dinh|sap|da quyet dinh|quyet dinh|dang nghi (?:den|toi)(?: chuyen| viec)?|nghi (?:den|toi)(?: chuyen| viec)?)`;
-const CLAUSE_END = String.raw`(?=\s*(?:$|[.!?,;])|\s+(?:vi|boi vi|nhung|ma)\b)`;
-const SELF_HARM_ASCII: RegExp[] = [
-  new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + SH_ASCII_VERB + String.raw`\s+(?:tu sat|ket thuc (?:cuoc doi|cuoc song|doi minh|mang song|tat ca|moi thu)|chet(?!\s+(?:doi|met|cuoi|nguong|them|lanh|nong))(?![a-z]))`),
-  new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + String.raw`(?:khong|chang|cha)\s+(?:con\s+)?muon\s+(?:tiep tuc\s+)?song(?![a-z])`),
-  new RegExp(String.raw`(?:^|[.!?;,\n]\s*)(?:chi\s+)?muon\s+(?:tu sat|chet quach|chet di)(?![a-z])`),
-];
-const SELF_HARM_ASCII_TUTU = new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + SH_ASCII_VERB + String.raw`\s+tu tu` + CLAUSE_END);
-const SELF_HARM_EN: RegExp[] = [
-  /(?<![a-z])i(?:'m| am| feel| have| had)?\s+(?:(?:really|so|now|currently|honestly|just)\s+)*suicidal\b/,
-  /(?<![a-z])(?:i|i'm|i am)\s+(?:(?:really|just|only|now|currently|honestly|so)\s+)*(?:want(?:ing)?|wanna|going|planning|thinking(?: of| about)|decided|ready)\s+(?:to\s+)?(?:kill myself|end my life|end it all|take my (?:own )?life|commit suicide)\b/,
-  /(?<![a-z])i\s+(?:don't|do not|no longer)\s+(?:want to|wanna)\s+(?:live|be alive|go on)\b/,
-];
+// ── M9.5-T1 / T1S (B-03): acute self-harm / suicide intent, an ongoing or just-happened seizure, heat illness with confusion ───────────────────────────
+// Staged pipeline (no giant regex): (1) split the message into CLAUSES; (2) find the SITUATION core in a clause; (3) read SUBJECT (self / another named person /
+// generic / none), TIME (past vs present) and NEGATION / hypothesis / hyperbole inside THAT clause only; (4) PRIORITY self_harm > self_harm_other > seizure > heat.
+// A negator, a hypothesis or a past marker in ANOTHER clause never switches a present risk off ("Nếu cần thì gọi giúp, tôi bị co giật" is an emergency).
+// Policy (PROPOSED — owner / clinical review pending): first-person current intent, a named other person's current risk, or an ACUTE event → emergency. Education,
+// chronic-condition questions, finished past episodes, negation, quotation, fiction, muscle twitch and hyperbole ("mệt muốn chết") are NOT.
+// Uses the existing fold and whitespace collapsing only — NO new Unicode / invisible-character / full-width handling (B-01, B-02 stay OPEN).
+// Over-triage is deliberate for first-person self-harm: "nếu tôi muốn tự tử thì sao" is flagged.
+export type EmergencyKind = "self_harm" | "self_harm_other" | "seizure" | "heat_illness";
 const HAS_MARKS = /[\p{M}đĐ]/u;
+const stripQuoted = (s: string): string => s.replace(/(["“«‘])[^"”»’]{1,200}(["”»’])/g, " ").replace(/(^|\s)'[^']{3,200}'(?=$|[\s.,;:!?])/g, " ");
+/** Clauses: sentence punctuation, commas and "nhưng / mà / thì / but / however / then" split; a bare line break is just whitespace ("tự\nsát" stays one phrase). */
+const CLAUSE_SPLIT = /[.!?;,]+| (?:nhưng|mà|thì|tuy nhiên|but|however|then) /giu; // applied to whitespace-COLLAPSED text (single spaces): linear, no `\s+ … \s+` backtracking
+const rx = (source: string, flags = "u"): RegExp => new RegExp(source.replace(/ /g, String.raw`\s+`), flags);
+const L = "@@"; // placeholder for \p{L}: it must survive foldSafetyText (which lower-cases)
+const compile = (src: string, ascii: boolean): RegExp => {
+  let s = ascii ? foldSafetyText(src.replace(/@@/g, "§§")).replace(/§§/g, "@@") : src;
+  if (ascii) s = s.replace(/\btu tu\b/g, "tu tu(?= vi\\b| boi vi\\b|$)"); // "tu tu" is also "từ từ": only at the end of the clause (or before "vì")
+  return rx(s.replace(/@@/g, String.raw`\p{L}`));
+};
+const SRC = {
+  ACT: String.raw`(?:tự tử|tự sát|tự vẫn|tự kết liễu(?: cuộc đời| bản thân| mình)?|kết thúc (?:cuộc đời|cuộc sống|mạng sống)(?! (?:độc thân|tập|ế))|tự làm hại|tự gây thương tích|tự tổn thương)`,
+  INTENT: String.raw`(?:muốn|định|sắp|nghĩ (?:đến|tới|về)(?: chuyện| việc)?|có ý định|quyết định|chuẩn bị|toan|cố gắng|đang|vừa|để|thử|đã (?:định|thử|quyết định)|sẽ)`,
+  FIRST: String.raw`(?<![${L}])(?:tôi|mình|em|tui|tao|i|me|my|myself)(?![${L}])`,
+  THIRD: String.raw`(?<![${L}])(?:(?:bạn|anh|chị|em|cô|chú|bác|dì|mẹ|ba|bố|cha|con|cháu|ông|bà|vợ|chồng|người yêu|người thân|đồng nghiệp|học viên|khách) (?:tôi|mình|của tôi|của mình|ấy|đó|kia|này)|họ|hắn|ai đó|he|she|they|someone|somebody|my (?:friend|mother|father|mom|dad|brother|sister|wife|husband|partner|son|daughter|colleague|client|girlfriend|boyfriend))(?![${L}])`,
+  GENERIC: String.raw`(?<![${L}])(?:một người|người ta|những người|mọi người|nhiều người|người(?= (?:muốn|định|đang|sắp|có|bị|mà|nào))|ai(?= (?:mà|có|bị))|someone who|somebody who|people who|a person who|anyone who|those who)(?![${L}])`,
+  PAST: String.raw`(?<![${L}])(?:từng|đã từng|hồi (?:nhỏ|trước|cấp|đó|còn|năm|bé)|năm ngoái|trước đây|ngày xưa|ngày trước|từ nhỏ|\d+ (?:năm|tháng) (?:trước|rồi)|(?:mười|vài|nhiều|mấy) (?:năm|tháng) (?:trước|rồi)|(?:years?|months?) ago|last year|used to|in the past|back then|when i was|as a (?:child|kid|teen|teenager))(?![${L}])`,
+  RECENT: String.raw`(?<![${L}])(?:vừa mới|vừa|hôm nay|hôm qua|lúc nãy|tối qua|sáng nay|đêm qua|tuần này|bây giờ|giờ|đang|right now|just|now|today|tonight|this morning|last night|yesterday|minutes? ago|hours? ago|an hour ago)(?![${L}])`,
+  HYPO: String.raw`(?<![${L}])(?:nếu|giả sử|giả dụ|giả định|ví dụ|trường hợp|if|suppose|what if|imagine)(?![${L}])`,
+  ONGOING: String.raw`(?<![${L}])(?:đang|vừa|ngay bây giờ|bây giờ|right now|just)(?![${L}])`,
+  EDU: String.raw`(?<![${L}])(?:là gì|nghĩa là|có nghĩa|dấu hiệu|triệu chứng|nguyên nhân|what is|what are|what does|how does|signs of|symptoms of)(?![${L}])`,
+  FICTION: String.raw`(?<![${L}])(?:phim|truyện|tiểu thuyết|nhân vật|diễn viên|bài hát|movie|film|novel|character|song)(?![${L}])`,
+  SENSATION_BEFORE: String.raw`(?<![${L}])(?:mệt|đau|đói|buồn ngủ|nóng|lạnh|nhức|mỏi|ngại|xấu hổ|chán|sợ|khổ|nực|ê ẩm)(?![${L}])`,
+};
+const NEG_WORDS = ["không", "chưa", "chẳng", "chả", "đâu", "hề", "đừng", "khỏi", "not", "never", "no", "don't", "doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't", "won't", "can't", "cannot", "dont", "without"];
+// Vietnamese cores (accented view) — folded automatically for writers who use no diacritics at all
+const VI_CORES = (ascii: boolean) => ({
+  A: compile(String.raw`(?<![${L}])(?:${SRC.INTENT} ){1,2}(?:(?:thật sự|thực sự|chỉ|rất) )?${SRC.ACT}(?![${L}])`, ascii),
+  B: compile(String.raw`(?<![${L}])(?:không|chẳng|chả) (?:còn )?muốn (?:tiếp tục )?sống(?: nữa)?(?![${L}])`, ascii),
+  C: compile(String.raw`(?<![${L}])(?:(?:muốn|định|quyết định) chết(?! (?:đói|mệt|cười|ngượng|thèm|lạnh|nóng|vì mệt|vì đói))|chết đi(?! (?:sống lại|được))|chết quách)(?![${L}])`, ascii),
+});
+const EN_STRONG = /(?<![a-z])(?:kill (?:myself|himself|herself|themselves)|end (?:my|his|her|their) (?:own )?life|take (?:my|his|her|their) (?:own )?life|end it all|commit(?:ting|ted)? suicide|wish (?:i|he|she) (?:was|were) dead)(?![a-z])/g;
+const EN_DIE = /(?<![a-z])(?:want(?:s|ed)? to|wanna|going to|gonna) die(?![a-z])/g;
+const EN_NOLIVE = /(?<![a-z])(?:don't|doesn't|do not|does not|dont) want to (?:live|be alive|go on)(?![a-z])/g; // negation is part of the meaning
+const EN_WEAK = /(?<![a-z])suicid(?:e|al)(?![a-z])/g; // needs a subject or an intent verb: "what is suicide?" is education
+const EN_INTENT = /(?<![a-z])(?:thinking|considering|planning|contemplating|attempt(?:ing)?|about to|feel(?:ing)?)(?![a-z])/;
+const EN_HYPER = /(?<![a-z])(?:tired|sore|exhaust(?:ed|ing)?|hurts?|leg day|squats?|workout|sweat(?:y|ing)?|lol|haha|lmao|jk|so bad|dying (?:of|from))(?![a-z])/;
+interface View { ascii: boolean; first: RegExp; third: RegExp; generic: RegExp; past: RegExp; recent: RegExp; hypo: RegExp; ongoing: RegExp; edu: RegExp; fiction: RegExp; sens: RegExp; neg: Set<string>; cores: ReturnType<typeof VI_CORES> }
+const buildView = (ascii: boolean): View => ({
+  ascii, first: compile(SRC.FIRST, ascii), third: compile(SRC.THIRD, ascii), generic: compile(SRC.GENERIC, ascii), past: compile(SRC.PAST, ascii), recent: compile(SRC.RECENT, ascii),
+  hypo: compile(SRC.HYPO, ascii), ongoing: compile(SRC.ONGOING, ascii), edu: compile(SRC.EDU, ascii), fiction: compile(SRC.FICTION, ascii), sens: compile(SRC.SENSATION_BEFORE, ascii),
+  neg: new Set(NEG_WORDS.map((w) => (ascii ? foldSafetyText(w) : w))), cores: VI_CORES(ascii),
+});
+const VIEWS = { nfc: buildView(false), ascii: buildView(true) };
 
-function seizureEmergency(nfc: string, f: string): boolean {
-  const ongoing = /\b(?:dang|vua|ngay bay gio|bay gio|ngay luc nay|right now)\b/.test(f);
-  const hypothetical = /\b(?:neu|gia su|gia dinh|gia du|vi du|truong hop|if|suppose)\b/.test(f);
-  if (hypothetical && !ongoing) return false;
-  if (/\b(?:having|had|just had|is having|are having|am having|experiencing|experienced)\s+(?:a |an )?(?:seizure|convulsion)s?\b|\b(?:seizing|convulsing)\b/.test(f)) return true;
-  const severe = /\b(?:toan than|bat tinh|mat y thuc|sui bot mep|khong tinh lai|khong nho gi)\b/.test(f);
-  const acute = /\b(?:(?:len|vua len|dang len|bi len)\s+con\s+(?:dong kinh|co giat)|con (?:dong kinh|co giat)\s+(?:dang|vua|xay ra)|(?:dang|vua|vua moi|dang bi|vua bi|vua lai bi|lai bi|bi)\s+co giat|co giat toan than|sui bot mep)\b/.test(f);
-  if (!acute && !(severe && /\bco giat\b/.test(f))) return false;
-  if (/\b(?:la gi|nghia la)\b/.test(f) && !ongoing) return false; // "co giật là gì" — a definition
-  if (!severe) { // a twitch / cramp of a named muscle is not a seizure ("cơ bắp chân bị co giật nhẹ"); "cơ" is read on the accented text so it is not "có"
-    const i = nfc.search(/co giật/);
-    const win = i >= 0 ? nfc.slice(Math.max(0, i - 22), i + 30) : f.slice(Math.max(0, f.search(/co giat/) - 22), f.search(/co giat/) + 30);
-    if (i >= 0 ? /(?<![\p{L}])(?:cơ|bắp|mí|mắt|đùi|chân|tay|vai|lưng|bụng|cẳng|hàm|nhẹ)(?![\p{L}])/u.test(win) : /\b(?:bap|mi|mat|dui|chan|tay|vai|lung|bung|cang|ham|nhe)\b/.test(win)) return false;
+interface Span { s: number; e: number }
+const spansOf = (re: RegExp, t: string): Span[] => [...t.matchAll(new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`))].map((m) => ({ s: m.index ?? 0, e: (m.index ?? 0) + m[0].length }));
+const within = (a: Span, bs: Span[]) => bs.some((b) => a.s >= b.s && a.e <= b.e);
+/** Who the nearest subject word BEFORE position `start` refers to. "bạn tôi … bạn ấy sắp tự sát" → the last one ("bạn ấy" = another person); "bạn tôi" is not read as "tôi". */
+type SubjectKind = "self" | "other" | "generic" | "none";
+/** Subject candidates of one clause, computed ONCE per clause (bounded work however many events the clause has). */
+function subjectCandidates(v: View, t: string): Array<{ e: number; k: Exclude<SubjectKind, "none"> }> {
+  const third = spansOf(v.third, t), generic = spansOf(v.generic, t), first = spansOf(v.first, t);
+  const c: Array<{ e: number; k: Exclude<SubjectKind, "none"> }> = [];
+  for (const x of third) if (!within(x, generic)) c.push({ e: x.e, k: "other" });
+  for (const x of generic) c.push({ e: x.e, k: "generic" });
+  for (const x of first) if (!within(x, third) && !within(x, generic)) c.push({ e: x.e, k: "self" });
+  return c.sort((a, b) => b.e - a.e);
+}
+const subjectBefore = (cands: ReturnType<typeof subjectCandidates>, start: number): SubjectKind => cands.find((x) => x.e <= start)?.k ?? "none";
+/** A negator within the 3 words immediately before the event (same clause only; a 60-character window, so O(1) per event). */
+const negatedBefore = (v: View, t: string, start: number): boolean => t.slice(Math.max(0, start - 60), start).trim().split(" ").slice(-3).some((w) => v.neg.has(w));
+
+interface Clause { nfc: string; f: string }
+function clausesOf(text: string): Clause[] {
+  return text.replace(/\s+/g, " ").split(CLAUSE_SPLIT).map((c) => c.normalize("NFC").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim()).filter(Boolean).map((nfc) => ({ nfc, f: foldSafetyText(nfc).replace(/[’‘]/g, "'") }));
+}
+
+function selfHarmIn(v: View, t: string, retryFolded: boolean): "self_harm" | "self_harm_other" | null {
+  const events: Array<{ s: number; e: number; inherentNeg: boolean; hyper: boolean; needsSubject: boolean }> = [];
+  const add = (re: RegExp, o: { inherentNeg?: boolean; hyper?: boolean; needsSubject?: boolean } = {}) => { for (const sp of spansOf(re, t)) events.push({ ...sp, inherentNeg: !!o.inherentNeg, hyper: !!o.hyper, needsSubject: !!o.needsSubject }); };
+  add(v.cores.A); add(v.cores.B, { inherentNeg: true }); add(v.cores.C, { hyper: true });
+  add(EN_STRONG, { hyper: false }); add(EN_DIE, { hyper: true }); add(EN_NOLIVE, { inherentNeg: true }); add(EN_WEAK, { needsSubject: true });
+  let other = false;
+  const cands = events.length ? subjectCandidates(v, t) : [];
+  for (const ev of events.slice(0, 200)) { // bounded: a pathological clause with thousands of repeated events is judged on its first 200
+    const text = t.slice(ev.s, ev.e);
+    if (v.ascii && retryFolded && /(^| )tu tu($| )/.test(text)) continue; // the accented original was already read accent-aware
+    if (!ev.inherentNeg && negatedBefore(v, t, ev.s)) continue;
+    if (ev.hyper && (EN_HYPER.test(t) || v.sens.test(t.slice(Math.max(0, ev.s - 14), ev.s)))) continue; // "mệt muốn chết", "my legs hurt so bad I want to die lol"
+    const past = v.past.test(t) && !v.recent.test(t);
+    if (past) continue; // a finished episode / past thought is not an acute emergency (documented limit: the user may still be at risk)
+    const subj = subjectBefore(cands, ev.s);
+    if (subj === "generic") continue;
+    if (ev.needsSubject && subj === "none" && !EN_INTENT.test(t)) continue; // "what is suicide?"
+    const hypo = v.hypo.test(t) && !v.ongoing.test(t);
+    if (subj !== "self") {
+      if (hypo) continue; // a hypothesis about another person / nobody; first-person hypotheses stay flagged on purpose
+      if (v.fiction.test(t)) continue;
+      if (subj === "none" && v.edu.test(t)) continue;
+    }
+    if (subj === "other") { other = true; continue; }
+    return "self_harm";
   }
-  return true;
+  return other ? "self_harm_other" : null;
+}
+
+const SZ_VI = /(?:(?:len|vua len|dang len|bi len) con (?:dong kinh|co giat)|con (?:dong kinh|co giat) (?:dang|vua|xay ra)|(?:dang|vua|vua moi|dang bi|vua bi|vua lai bi|lai bi|bi) co giat|co giat toan than|sui bot mep)/g;
+const SZ_EN = /(?<![a-z])(?:having|had|has) (?:a |an |another )?(?:seizure|convulsion)s?|(?<![a-z])(?:seizing|convulsing)(?![a-z])/g;
+const SZ_BARE = /(?<![a-z])co giat(?![a-z])/;
+const SEVERE_SIGNS = /(?<![a-z])(?:khong noi duoc|noi khong duoc|khong the noi|noi khong ro|noi ngong|noi lap|meo mieng|bi liet|liet (?:mat|tay|chan|nua nguoi)|khong cu dong|mat y thuc|bat tinh|khong tinh lai|khong phan ung|khong nho gi|sui bot mep|ngat|toan than|(?:can't|cannot|unable to) (?:speak|talk)|unresponsive|passed out)(?![a-z])/g;
+const MUSCLE_NFC = /(?<![\p{L}])(?:cơ|bắp|mí|mắt|đùi|chân|tay|vai|lưng|bụng|cẳng|hàm|nhẹ)(?![\p{L}])/u;
+const MUSCLE_F = /\b(?:bap|mi|mat|dui|chan|tay|vai|lung|bung|cang|ham|nhe)\b/;
+const unnegated = (v: View, t: string, re: RegExp): Span[] => spansOf(re, t).filter((sp) => !negatedBefore(v, t, sp.s));
+/** Severe neurological signs anywhere in the message (a named muscle no longer excuses "co giật" when speech / consciousness is affected). */
+const severeSigns = (all: Clause[]): boolean => all.some((c) => unnegated(VIEWS.ascii, c.f, SEVERE_SIGNS).length > 0);
+function seizureIn(c: Clause, severeMsg: boolean, hasMarks: boolean): boolean {
+  const v = VIEWS.ascii, t = c.f;
+  const hits = [...spansOf(SZ_VI, t).map((s) => ({ ...s, en: false })), ...spansOf(SZ_EN, t).map((s) => ({ ...s, en: true }))];
+  if (!hits.length && severeMsg && SZ_BARE.test(t)) hits.push({ s: t.search(SZ_BARE), e: t.search(SZ_BARE) + 7, en: false });
+  const cands = hits.some((h) => h.en) ? subjectCandidates(v, t) : [];
+  for (const h of hits.slice(0, 200)) {
+    if (negatedBefore(v, t, h.s)) continue;
+    const recent = v.recent.test(t);
+    if (v.past.test(t) && !recent) continue; // "I had a seizure ten years ago", "hồi nhỏ tôi từng bị co giật"
+    if (v.hypo.test(t) && !v.ongoing.test(t)) continue;
+    if (h.en && subjectBefore(cands, h.s) === "none" && !recent) continue; // "What does having a seizure feel like?"
+    if (!severeMsg) {
+      const i = hasMarks ? c.nfc.search(/co giật/) : -1;
+      const near = i >= 0 ? c.nfc.slice(Math.max(0, i - 22), i + 30) : t.slice(Math.max(0, h.s - 22), h.e + 30);
+      if (i >= 0 ? MUSCLE_NFC.test(near) : MUSCLE_F.test(near)) continue; // a twitch / cramp of a named muscle
+    }
+    return true;
+  }
+  return false;
 }
 function heatIllnessEmergency(f: string): boolean {
-  const confusion = /\b(?:lu lan|me sang|noi lam nham|noi nham|noi khong ro|khong tinh tao|mat dinh huong|lo mo|confus(?:ed|ion)|disorient(?:ed|ation)|delirious|incoherent)\b/.test(f);
-  const heat = /\b(?:nong ran|nong nguoi|nong bung|soc nhiet|say nong|say nang|kiet suc (?:do )?nhiet|(?:khong|ngung|het) (?:con )?(?:do|ra) mo hoi|(?:troi|ngoai troi|ngoai nang|duoi nang) nong|heat ?stroke|heat exhaustion|overheat(?:ed|ing)|too hot)\b/.test(f);
+  const v = VIEWS.ascii;
+  const confusion = unnegated(v, f, /(?<![a-z])(?:lu lan|me sang|noi lam nham|noi nham|noi khong ro|khong tinh tao|mat dinh huong|lo mo|confus(?:ed|ion)|disorient(?:ed|ation)|delirious|incoherent)(?![a-z])/g).length > 0;
+  const heat = unnegated(v, f, /(?<![a-z])(?:nong ran|nong nguoi|nong bung|soc nhiet|say nong|say nang|kiet suc (?:do )?nhiet|(?:khong|ngung|het) (?:con )?(?:do|ra) mo hoi|(?:troi|ngoai troi|ngoai nang|duoi nang) nong|heat ?stroke|heat exhaustion|overheat(?:ed|ing)|too hot)(?![a-z])/g).length > 0;
   if (!confusion || !heat) return false;
   const acute = /\b(?:dang|vua|bi|i feel|i'm feeling|right now)\b/.test(f);
   const firstPerson = /\b(?:toi|minh|em|tui|i|i'm|my)\b/.test(f);
@@ -541,19 +629,57 @@ function heatIllnessEmergency(f: string): boolean {
 /** Which acute emergency (if any) the message reports. Pure function of the text. `accentFoldedRetry`: the text is the folded re-check of an accented original. */
 export function emergencyKindOf(question: string, options?: SafetyCheckOptions): EmergencyKind | null {
   const original = String(question ?? "");
-  const originalForms = [original.normalize("NFC").toLowerCase(), foldSafetyText(original)];
-  if (originalForms.some((t) => MEDICAL_PATTERNS[4].test(t))) return "self_harm"; // the pre-existing "tự làm hại" rule, evaluated exactly as before (unstripped)
   const stripped = stripQuoted(original);
-  const nfc = stripped.normalize("NFC").toLowerCase().replace(/[’‘]/g, "'");
-  const f = foldSafetyText(stripped).replace(/[’‘]/g, "'");
-  const unaccented = !HAS_MARKS.test(original.normalize("NFD"));
-  if (SELF_HARM_ACCENTED.some((re) => re.test(nfc)) || SELF_HARM_EN.some((re) => re.test(nfc))) return "self_harm";
-  if (unaccented && (SELF_HARM_ASCII.some((re) => re.test(f)) || (!options?.accentFoldedRetry && SELF_HARM_ASCII_TUTU.test(f)))) return "self_harm";
-  if (seizureEmergency(nfc, f)) return "seizure";
-  if (heatIllnessEmergency(f)) return "heat_illness";
+  const hasMarks = HAS_MARKS.test(original.normalize("NFD"));
+  const view = hasMarks ? VIEWS.nfc : VIEWS.ascii;
+  const clauses = clausesOf(stripped);
+  let other = false;
+  for (const c of clauses) {
+    const r = selfHarmIn(view, hasMarks ? c.nfc : c.f, !!options?.accentFoldedRetry);
+    if (r === "self_harm") return "self_harm";
+    if (r === "self_harm_other") other = true;
+  }
+  if (other) return "self_harm_other";
+  const severeMsg = severeSigns(clauses);
+  if (clauses.some((c) => seizureIn(c, severeMsg, hasMarks))) return "seizure";
+  if (heatIllnessEmergency(clauses.map((c) => c.f).join(" , "))) return "heat_illness";
+  // the pre-existing "tự làm hại / self-harm" rule, evaluated exactly as before (unstripped), kept as the last resort so nothing it caught is lost
+  const originalForms = [original.normalize("NFC").toLowerCase(), foldSafetyText(original)];
+  if (originalForms.some((t) => MEDICAL_PATTERNS[4].test(t))) return "self_harm";
   return null;
 }
+
 function emergencyResult(kind: EmergencyKind): SafetyResult {
+  if (kind === "self_harm_other") {
+    // M9.5-T1S: another person is at CURRENT risk. Same elements as the first-person reply, re-addressed to the carer (wording PROPOSED — clinical review pending).
+    return {
+      type: "medical_emergency", emergencyKind: kind,
+      messageVi: [
+        "## 💙 Mình rất tiếc — bạn đang lo cho một người đang gặp nguy hiểm",
+        "",
+        "Mình là **AI Fitness Coach**, không phải chuyên gia sức khỏe tâm thần và không thể đánh giá nguy cơ của người đó — nhưng đây là điều cần được xử lý nghiêm túc ngay.",
+        "",
+        "🏥 **Nếu người đó có nguy cơ làm hại bản thân ngay lúc này:**",
+        "- Gọi **115** (cấp cứu) hoặc đưa họ đến cơ sở y tế/cấp cứu gần nhất.",
+        "- Đừng để họ ở một mình: hãy ở bên cạnh hoặc nhờ người thân khác đến ngay.",
+        "- Nếu có thể, hãy để các vật hoặc chất có thể gây hại ở xa tầm với của họ.",
+        "",
+        "💙 Nếu hiện tại chưa nguy cấp, hãy khuyến khích họ liên hệ bác sĩ, chuyên gia tâm lý hoặc đường dây hỗ trợ sức khỏe tâm thần tại nơi bạn sống; bạn cũng có thể tìm hỗ trợ cho chính mình nếu thấy quá tải. Lúc này mình sẽ không bàn về tập luyện hay ăn uống.",
+      ].join("\n"),
+      messageEn: [
+        "## 💙 I'm really sorry — you're worried about someone who may be in danger",
+        "",
+        "I'm an **AI Fitness Coach**, not a mental-health professional, and I can't assess that person's risk — but this needs to be taken seriously right away.",
+        "",
+        "🏥 **If the person may harm themselves right now:**",
+        "- Call your local emergency number (115 in Vietnam) or take them to the nearest emergency department.",
+        "- Don't leave them alone: stay with them or ask another family member or friend to come right away.",
+        "- If you can, keep anything they could use to hurt themselves out of their reach.",
+        "",
+        "💙 If it isn't urgent right now, encourage them to contact a doctor, a therapist or a mental-health support line where you live; you can also seek support for yourself if this feels overwhelming. I won't talk about training or meals at this moment.",
+      ].join("\n"),
+    };
+  }
   if (kind === "self_harm") {
     return {
       type: "medical_emergency", emergencyKind: kind,
