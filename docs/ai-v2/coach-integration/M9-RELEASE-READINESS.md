@@ -6,6 +6,8 @@ Nhãn: `CODE FACT` / `CONFIG FACT` (đọc trực tiếp trong repo ở RC-0) ·
 
 ## 0. Kết luận
 
+**Cập nhật M9.5-T1:** B-03 (emergency tự hại/co giật/sốc nhiệt) → `FIXED OFFLINE` ở commit `3fee5775` (chỉ `llm/safety_guard.ts`, allowlist sẵn nên **không** thêm file vào delta RI-2/HR-27). **Chưa VERIFIED**, nội dung câu trả lời PROPOSED, lỗi có sẵn ở V1 (`aws-deploy`) nên có đề xuất hotfix V1 độc lập ở §10. Mọi blocker khác không đổi trạng thái. `LIVE AWS IMPACT: NOT VERIFIED`.
+
 - `MULTI-AGENT V2 PRODUCTION: BLOCKED`. `RELEASE CANDIDATE: NOT READY`.
 - Có **15 P1** và 11 P2 mở (`M9-BLOCKER-REGISTER.md`); **0 mục VERIFIED**. Hai P1 an toàn (ký tự vô hình, khoảng hở emergency) và thiếu hụt chuẩn hoá Unicode là lỗi **đã có ở V1 đang chạy** — không do V2 gây ra, nhưng là điều kiện phát hành.
 - **An toàn theo thiết kế (CODE FACT):** dù mọi cờ bật, V2 **không thể phục vụ** trên AWS hiện nay: Lambda chạy `NODE_ENV=production` ⇒ cần cả cờ phê duyệt production, store session bền vững, store hạn chế vị thành niên (**không tồn tại** ⇒ 503) và port idempotency/lịch sử (**không tồn tại** ⇒ về V1). Đây là lớp phòng vệ, không phải sự sẵn sàng.
@@ -88,3 +90,11 @@ Fail-closed (bất biến): lỗi đọc/ghi store an toàn ⇒ coi là bị h�
 
 ## 9. Giới hạn của lần audit này
 Không chạy test/CI/reproducer mới; mức P1 của B-02, B-03 dựa trên đọc source; hạ tầng chỉ đọc IaC/workflow trong repo (không biết trạng thái live, không biết tài nguyên ngoài IaC); không biết cấu hình timeout/bộ nhớ Lambda thật; các báo cáo M8/Codex là `HISTORICAL REPORT`. Không dùng tài liệu `docs/*.md` khác làm sự thật hiện tại.
+
+## 10. Đề xuất hotfix V1 độc lập cho B-03 (PROPOSED — chưa duyệt; D-001 **không** được coi là cho phép)
+**Bối cảnh (`CODE FACT`):** khoảng hở B-03 có ở source `aws-deploy` (`e703b714`) — bản V1 trong repo — chứ không chỉ ở RC-0. Phiên bản **đang chạy thật** trên AWS là `LIVE NOT VERIFIED` (có thể map CodeSha256 → commit bằng workflow `dev-preflight` read-only, do con người chạy). Người dùng thật có thể bị ảnh hưởng nếu V1 live giống `aws-deploy`: một tin nhắn tự hại/co giật/sốc nhiệt được trả lời như câu hỏi fitness thường.
+- **Phạm vi tối thiểu:** chỉ guard an toàn V1 (`llm/safety_guard.ts`) + test của nó; không V2, không bridge, không guard cân nặng, không thay đổi Unicode. **Không thể áp thẳng bản vá M9.5-T1:** guard của `aws-deploy` chưa có `foldSafetyText`, `safetyForms`, `SafetyCheckOptions` (đã kiểm: 0 lần xuất hiện) — cần một bản *port* tự chứa (hàm fold nội bộ nhỏ, không `accentFoldedRetry`), viết và kiểm thử riêng trên nền `aws-deploy`.
+- **Điều kiện trước khi trình duyệt:** (1) rà soát lâm sàng/chủ dự án nội dung 3 câu trả lời và quyết định D-P29 (ngôi thứ ba, over-triage, đường dây hỗ trợ địa phương); (2) Codex/đánh giá độc lập không còn P0/P1 trên diff; (3) bộ test RED/GREEN + differential trên nền `aws-deploy` (0 Unsafe→Safe; mọi câu lành tính giữ verdict); (4) toàn bộ suite V1 của `aws-deploy` xanh; (5) xác định bản đang chạy (preflight) và nhánh/commit gốc cho artifact.
+- **Kiểm thử:** như (3)/(4); smoke `/health` của pipeline hiện có **không** gọi AI nên không chứng minh hành vi — cần kiểm tra có điều kiện trên DEV bằng tài khoản thử nghiệm được phép (REAL HTTP/API), không bằng người dùng thật.
+- **Rollback:** triển khai lại artifact trước đó theo `rollback-record` (CodeSha256) của `dev-deploy`, xác minh bằng `dev-preflight`; thay đổi chỉ là code (không cờ, không dữ liệu, không migration) nên rollback không để lại trạng thái.
+- **Phê duyệt:** chủ dự án phê duyệt riêng từng bước (build artifact → `dev-deploy` dry-run → deploy thật → xác minh); không tự động, không gộp vào phát hành Multi-Agent (D-001 giữ nguyên cho V2). Không có hotfix production nào được thực hiện trong M9.5-T1.
