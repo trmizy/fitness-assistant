@@ -16,19 +16,20 @@
  *   --embed-price-per-1k=USD   override the assumed embedding price used for the cost estimate
  *   --verify                   after the writes: wait out NextGen's ~5 s read-after-write latency, count each index, and look up up to 3 ingested documents by their OWN vector — the top hit must be that
  *                              document's stable id (proves the document, the vector and the id round-trip). With --dry-run it is ignored.
+ *   --ensure-empty-indexes     also create (mapping only, no documents) the index of a selected dataset that has no documents — e.g. fitness_faq in the demo profile, which V1 queries on every chat turn
  *   --yes                      required for any write against OpenSearch (the local Qdrant flow does not need it)
  */
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
-  ALL_DATASETS, LEGACY_COLLECTION_TO_DATASET, LOADERS, buildManifest, resolveDataRoot, selectDocs, sha256,
+  ALL_DATASETS, INDEX_OF, LEGACY_COLLECTION_TO_DATASET, LOADERS, buildManifest, resolveDataRoot, selectDocs, sha256,
   type DatasetName, type IngestDoc, type IngestManifest, type IngestProfile, type LoadedDataset, type SelectionResult,
 } from "./rag-ingest-core";
 
 export interface IngestArgs {
   datasets: DatasetName[]; profile: IngestProfile; limit?: number; dryRun: boolean; checkEmpty: boolean; manifestPath?: string; canary: boolean; indexSuffix: string;
-  exportCorpusPath?: string; corpusFile?: string; embedPricePer1k: number; yes: boolean; verify: boolean;
+  exportCorpusPath?: string; corpusFile?: string; embedPricePer1k: number; yes: boolean; verify: boolean; ensureEmptyIndexes: boolean;
 }
 /** Assumed Cohere Embed v3 list price, USD per 1 000 input tokens. NOT verified against the AWS Pricing API — it only sizes the estimate. */
 export const DEFAULT_EMBED_PRICE_PER_1K_USD = 0.0001;
@@ -39,7 +40,7 @@ export function parseIngestArgs(argv: string[]): IngestArgs {
     if (!a.startsWith("--")) throw new Error(`Unexpected argument "${a}". Flags look like --name or --name=value.`);
     const eq = a.indexOf("="); flags.set(eq < 0 ? a.slice(2) : a.slice(2, eq), eq < 0 ? true : a.slice(eq + 1));
   }
-  const KNOWN = new Set(["dataset", "collection", "profile", "limit", "dry-run", "check-empty", "manifest", "canary", "index-suffix", "export-corpus", "corpus-file", "embed-price-per-1k", "yes", "verify"]);
+  const KNOWN = new Set(["dataset", "collection", "profile", "limit", "dry-run", "check-empty", "manifest", "canary", "index-suffix", "export-corpus", "corpus-file", "embed-price-per-1k", "yes", "verify", "ensure-empty-indexes"]);
   for (const k of flags.keys()) if (!KNOWN.has(k)) throw new Error(`Unknown flag --${k}. Known: ${[...KNOWN].map((x) => `--${x}`).join(" ")}`);
   const str = (k: string): string | undefined => { const v = flags.get(k); if (v === undefined) return undefined; if (v === true) throw new Error(`--${k} needs a value (--${k}=...)`); return v; };
   const bool = (k: string): boolean => { const v = flags.get(k); if (v === undefined) return false; if (v !== true) throw new Error(`--${k} takes no value`); return true; };
@@ -62,7 +63,7 @@ export function parseIngestArgs(argv: string[]): IngestArgs {
   if (!Number.isFinite(embedPricePer1k) || embedPricePer1k < 0) throw new Error(`--embed-price-per-1k must be a non-negative number, got "${price}"`);
   return {
     datasets, profile, limit, dryRun: bool("dry-run"), checkEmpty: bool("check-empty"), manifestPath: str("manifest"), canary, indexSuffix: str("index-suffix") ?? (canary ? "_canary" : ""),
-    exportCorpusPath: str("export-corpus"), corpusFile: str("corpus-file"), embedPricePer1k, yes: bool("yes"), verify: bool("verify"),
+    exportCorpusPath: str("export-corpus"), corpusFile: str("corpus-file"), embedPricePer1k, yes: bool("yes"), verify: bool("verify"), ensureEmptyIndexes: bool("ensure-empty-indexes"),
   };
 }
 
@@ -120,8 +121,11 @@ export async function runIngest(args: IngestArgs, deps: RunDeps = {}): Promise<R
   if (args.dryRun) { log("  DRY RUN: nothing was embedded, nothing was written, no AWS call was made."); return { manifest, written, skipped, exportedCorpus }; }
 
   const store = deps.store!; const embed = deps.embed!; const batchSize = deps.batchSize ?? 64;
-  for (const { docs } of plan) {
-    if (docs.length === 0) continue;
+  for (const { loaded, docs } of plan) {
+    if (docs.length === 0) {
+      if (args.ensureEmptyIndexes) { const empty = `${INDEX_OF[loaded.dataset]}${args.indexSuffix}`; const r = await store.ensureIndex(empty, dimension); written[empty] = 0; log(`  ${empty}: empty index ${r.created ? "created" : "already present"} (mapping only)`); }
+      continue;
+    }
     const index = `${docs[0].index}${args.indexSuffix}`;
     if (args.checkEmpty) {
       const status = await store.getIndexStatus(index, dimension).catch(() => ({ kind: "missing" as const, pointsCount: undefined }));
