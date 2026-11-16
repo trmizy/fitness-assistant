@@ -86,6 +86,11 @@ export interface CoachRequestFacts {
    * is never moved to V2 mid-way (history and context would split); resolving this is part of M9.2-T2, not this task.
    */
   sessionAffinity: "none" | "v1" | "v2";
+  /**
+   * The caller's own bearer (from req.context). V2's profile / domain reads act as the user, so the executor needs it. It is
+   * forwarded to the executor ONLY: never traced, never part of the action fingerprint, never returned in a result.
+   */
+  authorizationHeader?: string;
 }
 
 export type CoachRouteDecision = { route: "v1"; reason: Exclude<CoachRouteReason, "ELIGIBLE_READ_ONLY" | "V2_NOT_STARTED" | "CONTINUITY_NOT_CONFIGURED"> } | { route: "v2"; reason: "ELIGIBLE_READ_ONLY" };
@@ -128,7 +133,7 @@ export interface V2RawResult {
   supervisorTraceId?: string;
 }
 export interface V2Executor {
-  ask(input: { question: string; sessionId?: string; userId: string }): Promise<V2RawResult>;
+  ask(input: { question: string; sessionId?: string; userId: string; authorizationHeader?: string }): Promise<V2RawResult>;
 }
 /** Raised by an executor/adapter ONLY when it failed before V2 started any turn (e.g. runtime not constructible). Nothing was processed. */
 export class V2NotStartedError extends Error {
@@ -215,7 +220,7 @@ export async function dispatchV2(facts: CoachRequestFacts, deps: CoachBridgeDeps
   }
   let raw: V2RawResult;
   try {
-    raw = await deps.executor.ask({ question: facts.question, userId: facts.userId, ...(facts.sessionId ? { sessionId: facts.sessionId } : {}) });
+    raw = await deps.executor.ask({ question: facts.question, userId: facts.userId, ...(facts.sessionId ? { sessionId: facts.sessionId } : {}), ...(facts.authorizationHeader ? { authorizationHeader: facts.authorizationHeader } : {}) });
   } catch (err) {
     if ((err as { v2NotStarted?: unknown } | null)?.v2NotStarted === true) {
       deps.trace?.({ route: "v1", reason: "V2_NOT_STARTED" });

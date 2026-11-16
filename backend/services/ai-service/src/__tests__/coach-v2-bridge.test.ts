@@ -214,13 +214,17 @@ test("the bridge imports nothing from agent-v2, touches no I/O and does not read
   assert.doesNotMatch(code, /^\s*import\s/m, "the bridge has no imports at all (pure module)");
 });
 
-test("V1 backward compatibility: the bridge is mounted nowhere — V1 routes, controllers and app are unaware of it", () => {
+test("V1 backward compatibility: only the HTTP boundary, the V2 composition root and the V2 route file reference the bridge; V1 controllers / app / stream route do not", () => {
   const referrers = walk(SRC)
     .filter((f) => !f.includes(`${path.sep}__tests__${path.sep}`))
-    .filter((f) => ![path.join("services", "coach-v2-bridge.ts"), path.join("services", "coach-v2-continuity.ts")].includes(path.relative(SRC, f)))
+    .filter((f) => path.relative(SRC, f) !== path.join("services", "coach-v2-bridge.ts"))
     .filter((f) => /coach-v2-bridge|runCoachBridge|AI_COACH_V2_BRIDGE/.test(fs.readFileSync(f, "utf8")));
-  assert.deepEqual(referrers.map((f) => path.relative(SRC, f)), [], "wiring is a later, separately approved task (M9.2-T3)");
-  for (const f of [path.join("routes", "ai.routes.ts"), path.join("controllers", "ai.controller.ts"), "app.ts"]) {
-    assert.doesNotMatch(fs.readFileSync(path.join(SRC, f), "utf8"), /coach-v2-bridge/, f);
+  assert.deepEqual(referrers.map((f) => path.relative(SRC, f)).sort(), [
+    path.join("agent-v2-integration", "multi-agent-runtime.ts"), // createCoachV2Executor (V2NotStartedError / V2Executor)
+    path.join("services", "coach-bridge.middleware.ts"),
+    path.join("services", "coach-v2-continuity.ts"),
+  ].sort());
+  for (const f of [path.join("controllers", "ai.controller.ts"), "app.ts", path.join("routes", "session.routes.ts")]) {
+    assert.doesNotMatch(fs.readFileSync(path.join(SRC, f), "utf8"), /coach-v2-bridge|coach-bridge|coachBridge/, f);
   }
 });

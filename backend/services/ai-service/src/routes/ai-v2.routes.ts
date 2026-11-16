@@ -19,6 +19,11 @@ import { askRateLimiter } from "../middleware/ai-rate-limiters";
 import { validateBody } from "../middleware/validate.middleware";
 import { ApiError, formatErrorResponse } from "../errors/api-error";
 import { MAX_QUESTION_CHARS } from "../llm/safety-limits";
+import { coachBridgeSeam } from "../services/coach-bridge.middleware";
+
+// M9.2-T3: how the AI Coach bridge (POST /ai/ask, default OFF) reaches the V2 runtime. Nothing is loaded here: the loader runs
+// only when a request has passed every bridge gate AND claimed its idempotency key. V1 route files never import agent-v2.
+coachBridgeSeam.loadExecutor = async () => (await import("../agent-v2-integration/multi-agent-runtime")).createCoachV2Executor();
 
 const AskV2Schema = z.object({
   question: z.string().trim().min(1).max(MAX_QUESTION_CHARS),

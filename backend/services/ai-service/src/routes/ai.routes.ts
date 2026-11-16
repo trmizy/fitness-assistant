@@ -11,6 +11,7 @@ import { inbodyExplanationController } from "../controllers/inbody-explanation.c
 import { requireAuth } from "../middleware/auth.middleware";
 import { askRateLimiter, expensiveRateLimiter, internalAiRateLimiter } from "../middleware/ai-rate-limiters";
 import { bindRequestIdentity } from "../services/request-identity";
+import { coachBridgeAsk } from "../services/coach-bridge.middleware";
 import { requireTrustedService } from "../middleware/require-trusted-service.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
@@ -41,6 +42,9 @@ router.post(
   askRateLimiter,
   validateBody(AskRequestSchema),
   bindRequestIdentity,
+  // AI Coach V1/V2 bridge (default OFF → next() immediately). Runs after auth, the shared ask rate limiter, body validation and
+  // request identity, so V2 never bypasses any of them. /ask/stream is deliberately NOT bridged (V2 has no SSE).
+  coachBridgeAsk,
   aiController.ask,
 );
 

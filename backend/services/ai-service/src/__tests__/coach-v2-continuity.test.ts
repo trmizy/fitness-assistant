@@ -11,52 +11,13 @@ import net from "node:net";
 import { V2NotStartedError, type V2Executor, type V2RawResult } from "../services/coach-v2-bridge";
 import {
   runCoachTurn, shouldRecordHistory, coachActionFingerprint, V2_ENGINE_MARKER,
-  type CoachIdempotencyStore, type CoachHistoryPort, type CoachTurnDeps, type CoachTurnInput, type IdempotencyRecord,
-  type V2HistoryTurnInput, type HistorySession,
+  type CoachTurnDeps, type CoachTurnInput,
 } from "../services/coach-v2-continuity";
 
 const SRC = path.resolve(__dirname, "..");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-// ── fakes ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-function fakeStore(over: { failClaim?: boolean; failComplete?: boolean; failRelease?: boolean; corrupt?: boolean } = {}) {
-  const recs = new Map<string, IdempotencyRecord>();
-  const k = (u: string, id: string) => JSON.stringify([u, id]);
-  const store: CoachIdempotencyStore = {
-    async claim(u, id, fp) {
-      if (over.failClaim) throw new Error("store down");
-      const cur = recs.get(k(u, id));
-      if (cur) return { claimed: false, record: over.corrupt ? ({ state: "???", fingerprint: fp } as unknown as IdempotencyRecord) : cur };
-      recs.set(k(u, id), { state: "IN_PROGRESS", fingerprint: fp }); // atomic: no await between check and set
-      return { claimed: true };
-    },
-    async complete(u, id, fp, outcome) { if (over.failComplete) throw new Error("x"); recs.set(k(u, id), { state: "COMPLETED", fingerprint: fp, outcome }); },
-    async markInDoubt(u, id, fp) { recs.set(k(u, id), { state: "IN_DOUBT", fingerprint: fp }); },
-    async release(u, id) { if (over.failRelease) throw new Error("x"); const c = recs.get(k(u, id)); if (c?.state === "IN_PROGRESS") recs.delete(k(u, id)); },
-  };
-  return { store, recs, key: k };
-}
-
-interface Turn extends V2HistoryTurnInput { id: string; [extra: string]: unknown }
-function fakeHistory(over: { failCreateTurnTimes?: number; failFind?: boolean } = {}) {
-  const sessions = new Map<string, HistorySession & { title?: string }>();
-  const turns: Turn[] = [];
-  const legacyEngines = new Map<string, string[]>(); // engines of turns that were not created through this port (e.g. V1 turns)
-  let failTimes = over.failCreateTurnTimes ?? 0;
-  const history: CoachHistoryPort = {
-    async findSession(id) { if (over.failFind) throw new Error("db down"); return sessions.get(id) ?? null; },
-    async listSessionTurnEngines(u, s) { return [...(legacyEngines.get(s) ?? []), ...turns.filter((t) => t.userId === u && t.sessionId === s).map((t) => t.modelUsed)]; },
-    async findTurnByClientRequestId(u, id) { return turns.find((t) => t.userId === u && t.clientRequestId === id) ?? null; },
-    async createSession(d) { if (sessions.has(d.id)) throw Object.assign(new Error("dup"), { code: "P2002" }); sessions.set(d.id, { id: d.id, userId: d.userId, archivedAt: null, title: d.title }); },
-    async createTurn(d) {
-      if (failTimes > 0) { failTimes--; throw new Error("db write failed"); }
-      if (turns.some((t) => t.userId === d.userId && t.clientRequestId === d.clientRequestId)) throw Object.assign(new Error("dup"), { code: "P2002" });
-      turns.push({ ...d, id: `turn-${turns.length + 1}` });
-    },
-    async touchSession() { /* no-op */ },
-  };
-  return { history, sessions, turns, legacyEngines };
-}
+import { fakeStore, fakeHistory } from "./coach-continuity-fakes";
 
 const raw = (status: string, answer = `answer ${status}`): V2RawResult => ({ status, answer, executedAgents: ["training"], turnId: `turn-${status}`, supervisorTraceId: `trace-${status}` });
 
@@ -354,7 +315,7 @@ test("trace carries codes only", async () => {
 });
 
 // ── static pins for the new module ───────────────────────────────────────────────────────────────────────────────────────
-test("continuity module: ports only — no DB / cache / network client, no agent-v2 import, no V2 flag, no in-memory store shipped, mounted nowhere", () => {
+test("continuity module: ports only — no DB / cache / network client, no agent-v2 import, no V2 flag, no in-memory store shipped, used only by the HTTP boundary", () => {
   const src = fs.readFileSync(path.join(SRC, "services", "coach-v2-continuity.ts"), "utf8");
   assert.doesNotMatch(src, /from\s+["'][^"']*agent-v2|require\(\s*["'][^"']*agent-v2|import\(\s*["'][^"']*agent-v2/);
   assert.ok(!src.includes("AI_AGENT_V2"));
@@ -365,13 +326,13 @@ test("continuity module: ports only — no DB / cache / network client, no agent
   const referrers: string[] = [];
   const walk = (d: string) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (!["node_modules", "generated", "dist", "__tests__"].includes(e.name)) walk(p); } else if (/\.ts$/.test(e.name) && /coach-v2-continuity|runCoachTurn/.test(fs.readFileSync(p, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""))) referrers.push(path.relative(SRC, p)); } };
   walk(SRC);
-  assert.deepEqual(referrers, [path.join("services", "coach-v2-continuity.ts")]);
+  assert.deepEqual(referrers.sort(), [path.join("services", "coach-bridge.middleware.ts"), path.join("services", "coach-v2-continuity.ts")], "only the HTTP boundary uses it");
 });
 
-test("V1 idempotency / history code is untouched by this task (request-identity, rag.service, conversation repository, ask schema, routes, controller)", () => {
+test("V1 idempotency / history code is untouched by this task (request-identity, rag.service, conversation repository, ask schema, controller, session routes; ai.routes.ts is pinned in coach-v2-route-http.test.ts)", () => {
   const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
   const root = path.resolve(SRC, "..", "..", "..", "..");
-  const files = ["services/request-identity.ts", "services/rag.service.ts", "repositories/conversation.repository.ts", "schemas/ai.schemas.ts", "routes/ai.routes.ts", "controllers/ai.controller.ts", "routes/session.routes.ts"]
+  const files = ["services/request-identity.ts", "services/rag.service.ts", "repositories/conversation.repository.ts", "schemas/ai.schemas.ts", "controllers/ai.controller.ts", "routes/session.routes.ts"]
     .map((f) => `backend/services/ai-service/src/${f}`);
   const diff = execFileSync("git", ["diff", "--name-only", "a6b517cd", "HEAD", "--", ...files], { cwd: root, encoding: "utf8" }).trim();
   assert.equal(diff, "");

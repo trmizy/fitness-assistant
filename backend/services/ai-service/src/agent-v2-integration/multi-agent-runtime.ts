@@ -29,7 +29,8 @@ import { requestService } from "../clients/service-lambda.client";
 import { createProfileReader, type ProfileServiceGet } from "../agent-v2/profile-reader";
 import { createAgentRunners, type AgentDomainDeps } from "../agent-v2/agent-catalog";
 import { DEFAULT_EXECUTION_POLICY, runSupervisorTurn, type SupervisorResult, type SupervisorTrace } from "../agent-v2/supervisor";
-import { resolveRoutingConfig } from "../agent-v2/flag";
+import { resolveRoutingConfig, isAgentV2HttpEnabled } from "../agent-v2/flag";
+import { V2NotStartedError, type V2Executor } from "../services/coach-v2-bridge";
 import { createHybridDecisionProvider } from "../agent-v2/hybrid-router";
 import { createInMemorySessionStore, type AnySessionStore } from "../agent-v2/session-context";
 import { createInMemoryMinorRestrictionStore, type MinorRestrictionStore } from "../agent-v2/minor-restriction";
@@ -166,6 +167,30 @@ export function defaultDomainDeps(o: { request?: ServiceRequester } = {}): Requi
     progress: {
       getBodyGoalState: reads.getBodyGoalState, getTrainingAnalytics: reads.getTrainingAnalytics,
       getActiveCycle: t.getActiveCycle, getLatestAssessment: t.getLatestAssessment, getCurrentRoadmapForecast: t.getCurrentRoadmapForecast,
+    },
+  };
+}
+
+/**
+ * M9.2-T3: the V2Executor the AI Coach bridge (services/coach-v2-bridge.ts) runs a turn through. It adds no supervisor, agent,
+ * router or tool: it only calls the SAME runtime POST /ai/v2/ask uses, with the SAME gates:
+ *   - V2's own HTTP gate (flag + the production second approval). Closed → V2NotStartedError: nothing was processed, the bridge
+ *     hands the request to V1 (this is how the production second approval of V2 also holds for the bridge).
+ *   - the runtime is created lazily; a failure to create it (routing / session / minor-store configuration) is NOT "not started":
+ *     it propagates, and the bridge treats it as a final V2 failure — never a V1 retry (required safety state may be missing).
+ *   - identity is the verified (userId, bearer) the bridge forwards; the body of a V2 turn is only { question, sessionId? }.
+ * Loaded only through a dynamic import() from routes/ai-v2.routes.ts, after the bridge's own gates passed.
+ */
+export function createCoachV2Executor(o: { runtime?: () => MultiAgentRuntime; env?: Record<string, string | undefined> } = {}): V2Executor {
+  return {
+    async ask({ question, sessionId, userId, authorizationHeader }) {
+      if (!isAgentV2HttpEnabled(o.env ?? process.env)) throw new V2NotStartedError("V2 is not enabled");
+      const runtime = (o.runtime ?? getMultiAgentRuntime)();
+      return runtime.ask({
+        question,
+        identity: { userId, ...(authorizationHeader ? { authorizationHeader } : {}) },
+        ...(sessionId ? { sessionId } : {}),
+      });
     },
   };
 }
