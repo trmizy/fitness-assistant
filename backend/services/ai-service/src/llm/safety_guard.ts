@@ -2,6 +2,7 @@ import type { UnsafeGuidance } from "./types";
 import { resolveSafetySignals, type SafetySignalClass } from "./safety-signals";
 import { classifyMinorRequest, isFirstPersonAboutSelf } from "./minor_safety_policy";
 import { detectBareVomitingDisclosure } from "./induced_vomiting_events";
+import { assessEmergency, type EmergencyAssessment } from "./emergency/assess";
 
 // ── Classification-only text normalisation (V1 safety hotfix 2026-11-12) ──────
 // Deterministic safety classification must not depend on how Vietnamese is typed: accented, unaccented, decomposed
@@ -61,7 +62,8 @@ const MEDICAL_PATTERNS: RegExp[] = [
   /khó thở đột ngột|can't breathe|không thở được/i,
   /ngất xỉu|ngat xiu|\bfaint(ing)?\b|passed? out|blackout|mất ý thức/i,
   /đau tim|dau tim|heart attack|cardiac arrest|trụy tim/i,
-  /\btự làm hại\b|tu lam hai|self.?harm|hurt\s+(my)?self|tự tổn thương/i,
+  // (M9.5-T1B) the literal "tự làm hại / self-harm / hurt myself / tự tổn thương" rule moved into the engine (llm/emergency): it now needs a subject or intent and is
+  // not triggered by educational questions ("Tự làm hại bản thân là gì?"); a bare mention with no subject stays POSSIBLE_HIGH_RISK there.
 ];
 
 // The former `/sudden.*short.*breath/i` (cubic) and `/binge.eat.*disorder/i` (quadratic) backtracked over `.*`. A `.*` never crosses a line terminator, so
@@ -480,176 +482,79 @@ function detectDiagnosisRequest(question: string): boolean {
   return asksDiagnosis && personal && asksForIt;
 }
 
-// ── M9.5-T1 / T1S (B-03): acute self-harm / suicide intent, an ongoing or just-happened seizure, heat illness with confusion ───────────────────────────
-// Staged pipeline (no giant regex): (1) split the message into CLAUSES; (2) find the SITUATION core in a clause; (3) read SUBJECT (self / another named person /
-// generic / none), TIME (past vs present) and NEGATION / hypothesis / hyperbole inside THAT clause only; (4) PRIORITY self_harm > self_harm_other > seizure > heat.
-// A negator, a hypothesis or a past marker in ANOTHER clause never switches a present risk off ("Nếu cần thì gọi giúp, tôi bị co giật" is an emergency).
-// Policy (PROPOSED — owner / clinical review pending): first-person current intent, a named other person's current risk, or an ACUTE event → emergency. Education,
-// chronic-condition questions, finished past episodes, negation, quotation, fiction, muscle twitch and hyperbole ("mệt muốn chết") are NOT.
-// Uses the existing fold and whitespace collapsing only — NO new Unicode / invisible-character / full-width handling (B-01, B-02 stay OPEN).
-// Over-triage is deliberate for first-person self-harm: "nếu tôi muốn tự tử thì sao" is flagged.
-export type EmergencyKind = "self_harm" | "self_harm_other" | "seizure" | "heat_illness";
-const HAS_MARKS = /[\p{M}đĐ]/u;
-const stripQuoted = (s: string): string => s.replace(/(["“«‘])[^"”»’]{1,200}(["”»’])/g, " ").replace(/(^|\s)'[^']{3,200}'(?=$|[\s.,;:!?])/g, " ");
-/** Clauses: sentence punctuation, commas and "nhưng / mà / thì / but / however / then" split; a bare line break is just whitespace ("tự\nsát" stays one phrase). */
-const CLAUSE_SPLIT = /[.!?;,]+| (?:nhưng|mà|thì|tuy nhiên|but|however|then) /giu; // applied to whitespace-COLLAPSED text (single spaces): linear, no `\s+ … \s+` backtracking
-const rx = (source: string, flags = "u"): RegExp => new RegExp(source.replace(/ /g, String.raw`\s+`), flags);
-const L = "@@"; // placeholder for \p{L}: it must survive foldSafetyText (which lower-cases)
-const compile = (src: string, ascii: boolean): RegExp => {
-  let s = ascii ? foldSafetyText(src.replace(/@@/g, "§§")).replace(/§§/g, "@@") : src;
-  if (ascii) s = s.replace(/\btu tu\b/g, "tu tu(?= vi\\b| boi vi\\b|$)"); // "tu tu" is also "từ từ": only at the end of the clause (or before "vì")
-  return rx(s.replace(/@@/g, String.raw`\p{L}`));
-};
-const SRC = {
-  ACT: String.raw`(?:tự tử|tự sát|tự vẫn|tự kết liễu(?: cuộc đời| bản thân| mình)?|kết thúc (?:cuộc đời|cuộc sống|mạng sống)(?! (?:độc thân|tập|ế))|tự làm hại|tự gây thương tích|tự tổn thương)`,
-  INTENT: String.raw`(?:muốn|định|sắp|nghĩ (?:đến|tới|về)(?: chuyện| việc)?|có ý định|quyết định|chuẩn bị|toan|cố gắng|đang|vừa|để|thử|đã (?:định|thử|quyết định)|sẽ)`,
-  FIRST: String.raw`(?<![${L}])(?:tôi|mình|em|tui|tao|i|me|my|myself)(?![${L}])`,
-  THIRD: String.raw`(?<![${L}])(?:(?:bạn|anh|chị|em|cô|chú|bác|dì|mẹ|ba|bố|cha|con|cháu|ông|bà|vợ|chồng|người yêu|người thân|đồng nghiệp|học viên|khách) (?:tôi|mình|của tôi|của mình|ấy|đó|kia|này)|họ|hắn|ai đó|he|she|they|someone|somebody|my (?:friend|mother|father|mom|dad|brother|sister|wife|husband|partner|son|daughter|colleague|client|girlfriend|boyfriend))(?![${L}])`,
-  GENERIC: String.raw`(?<![${L}])(?:một người|người ta|những người|mọi người|nhiều người|người(?= (?:muốn|định|đang|sắp|có|bị|mà|nào))|ai(?= (?:mà|có|bị))|someone who|somebody who|people who|a person who|anyone who|those who)(?![${L}])`,
-  PAST: String.raw`(?<![${L}])(?:từng|đã từng|hồi (?:nhỏ|trước|cấp|đó|còn|năm|bé)|năm ngoái|trước đây|ngày xưa|ngày trước|từ nhỏ|\d+ (?:năm|tháng) (?:trước|rồi)|(?:mười|vài|nhiều|mấy) (?:năm|tháng) (?:trước|rồi)|(?:years?|months?) ago|last year|used to|in the past|back then|when i was|as a (?:child|kid|teen|teenager))(?![${L}])`,
-  RECENT: String.raw`(?<![${L}])(?:vừa mới|vừa|hôm nay|hôm qua|lúc nãy|tối qua|sáng nay|đêm qua|tuần này|bây giờ|giờ|đang|right now|just|now|today|tonight|this morning|last night|yesterday|minutes? ago|hours? ago|an hour ago)(?![${L}])`,
-  HYPO: String.raw`(?<![${L}])(?:nếu|giả sử|giả dụ|giả định|ví dụ|trường hợp|if|suppose|what if|imagine)(?![${L}])`,
-  ONGOING: String.raw`(?<![${L}])(?:đang|vừa|ngay bây giờ|bây giờ|right now|just)(?![${L}])`,
-  EDU: String.raw`(?<![${L}])(?:là gì|nghĩa là|có nghĩa|dấu hiệu|triệu chứng|nguyên nhân|what is|what are|what does|how does|signs of|symptoms of)(?![${L}])`,
-  FICTION: String.raw`(?<![${L}])(?:phim|truyện|tiểu thuyết|nhân vật|diễn viên|bài hát|movie|film|novel|character|song)(?![${L}])`,
-  SENSATION_BEFORE: String.raw`(?<![${L}])(?:mệt|đau|đói|buồn ngủ|nóng|lạnh|nhức|mỏi|ngại|xấu hổ|chán|sợ|khổ|nực|ê ẩm)(?![${L}])`,
-};
-const NEG_WORDS = ["không", "chưa", "chẳng", "chả", "đâu", "hề", "đừng", "khỏi", "not", "never", "no", "don't", "doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't", "won't", "can't", "cannot", "dont", "without"];
-// Vietnamese cores (accented view) — folded automatically for writers who use no diacritics at all
-const VI_CORES = (ascii: boolean) => ({
-  A: compile(String.raw`(?<![${L}])(?:${SRC.INTENT} ){1,2}(?:(?:thật sự|thực sự|chỉ|rất) )?${SRC.ACT}(?![${L}])`, ascii),
-  B: compile(String.raw`(?<![${L}])(?:không|chẳng|chả) (?:còn )?muốn (?:tiếp tục )?sống(?: nữa)?(?![${L}])`, ascii),
-  C: compile(String.raw`(?<![${L}])(?:(?:muốn|định|quyết định) chết(?! (?:đói|mệt|cười|ngượng|thèm|lạnh|nóng|vì mệt|vì đói))|chết đi(?! (?:sống lại|được))|chết quách)(?![${L}])`, ascii),
-});
-const EN_STRONG = /(?<![a-z])(?:kill (?:myself|himself|herself|themselves)|end (?:my|his|her|their) (?:own )?life|take (?:my|his|her|their) (?:own )?life|end it all|commit(?:ting|ted)? suicide|wish (?:i|he|she) (?:was|were) dead)(?![a-z])/g;
-const EN_DIE = /(?<![a-z])(?:want(?:s|ed)? to|wanna|going to|gonna) die(?![a-z])/g;
-const EN_NOLIVE = /(?<![a-z])(?:don't|doesn't|do not|does not|dont) want to (?:live|be alive|go on)(?![a-z])/g; // negation is part of the meaning
-const EN_WEAK = /(?<![a-z])suicid(?:e|al)(?![a-z])/g; // needs a subject or an intent verb: "what is suicide?" is education
-const EN_INTENT = /(?<![a-z])(?:thinking|considering|planning|contemplating|attempt(?:ing)?|about to|feel(?:ing)?)(?![a-z])/;
-const EN_HYPER = /(?<![a-z])(?:tired|sore|exhaust(?:ed|ing)?|hurts?|leg day|squats?|workout|sweat(?:y|ing)?|lol|haha|lmao|jk|so bad|dying (?:of|from))(?![a-z])/;
-interface View { ascii: boolean; first: RegExp; third: RegExp; generic: RegExp; past: RegExp; recent: RegExp; hypo: RegExp; ongoing: RegExp; edu: RegExp; fiction: RegExp; sens: RegExp; neg: Set<string>; cores: ReturnType<typeof VI_CORES> }
-const buildView = (ascii: boolean): View => ({
-  ascii, first: compile(SRC.FIRST, ascii), third: compile(SRC.THIRD, ascii), generic: compile(SRC.GENERIC, ascii), past: compile(SRC.PAST, ascii), recent: compile(SRC.RECENT, ascii),
-  hypo: compile(SRC.HYPO, ascii), ongoing: compile(SRC.ONGOING, ascii), edu: compile(SRC.EDU, ascii), fiction: compile(SRC.FICTION, ascii), sens: compile(SRC.SENSATION_BEFORE, ascii),
-  neg: new Set(NEG_WORDS.map((w) => (ascii ? foldSafetyText(w) : w))), cores: VI_CORES(ascii),
-});
-const VIEWS = { nfc: buildView(false), ascii: buildView(true) };
+// ── M9.5-T1B: emergency decision = the bounded engine (llm/emergency/*) + the legacy cardio / respiratory detectors, under an explicit priority policy ─────────────
+// The T1 / T1S regex pipeline that used to live here is replaced by `assessEmergency` (pure; subject / tense / negation per event; no silent cap; same function for V1 and V2).
+// This file is only the ADAPTER to the existing contract: the `medical_emergency` result, `emergencyKind` and the reply templates are unchanged for the first four kinds.
+// Wording of every reply below is PROPOSED and NOT clinically approved; two kinds have no approved template at all (RESPONSE_POLICY_PENDING).
+export type EmergencyKind = "self_harm" | "self_harm_other" | "seizure" | "heat_illness" | "overdose_poisoning" | "neurological_emergency";
+export type EmergencyRiskClass = "IMMEDIATE_EMERGENCY" | "POSSIBLE_HIGH_RISK";
+export type EmergencyResponsePolicy = "PROPOSED_PENDING_CLINICAL_REVIEW" | "RESPONSE_POLICY_PENDING";
+interface EmergencyDecision { kind: EmergencyKind; riskClass: EmergencyRiskClass }
+type EngineVerdict = { tag: "EMERGENCY"; decision: EmergencyDecision } | { tag: "UNASSESSABLE"; reason: "INPUT_LIMIT" | "INTERNAL_ERROR" } | null;
 
-interface Span { s: number; e: number }
-const spansOf = (re: RegExp, t: string): Span[] => [...t.matchAll(new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`))].map((m) => ({ s: m.index ?? 0, e: (m.index ?? 0) + m[0].length }));
-const within = (a: Span, bs: Span[]) => bs.some((b) => a.s >= b.s && a.e <= b.e);
-/** Who the nearest subject word BEFORE position `start` refers to. "bạn tôi … bạn ấy sắp tự sát" → the last one ("bạn ấy" = another person); "bạn tôi" is not read as "tôi". */
-type SubjectKind = "self" | "other" | "generic" | "none";
-/** Subject candidates of one clause, computed ONCE per clause (bounded work however many events the clause has). */
-function subjectCandidates(v: View, t: string): Array<{ e: number; k: Exclude<SubjectKind, "none"> }> {
-  const third = spansOf(v.third, t), generic = spansOf(v.generic, t), first = spansOf(v.first, t);
-  const c: Array<{ e: number; k: Exclude<SubjectKind, "none"> }> = [];
-  for (const x of third) if (!within(x, generic)) c.push({ e: x.e, k: "other" });
-  for (const x of generic) c.push({ e: x.e, k: "generic" });
-  for (const x of first) if (!within(x, third) && !within(x, generic)) c.push({ e: x.e, k: "self" });
-  return c.sort((a, b) => b.e - a.e);
-}
-const subjectBefore = (cands: ReturnType<typeof subjectCandidates>, start: number): SubjectKind => cands.find((x) => x.e <= start)?.k ?? "none";
-/** A negator within the 3 words immediately before the event (same clause only; a 60-character window, so O(1) per event). */
-const negatedBefore = (v: View, t: string, start: number): boolean => t.slice(Math.max(0, start - 60), start).trim().split(" ").slice(-3).some((w) => v.neg.has(w));
-
-interface Clause { nfc: string; f: string }
-function clausesOf(text: string): Clause[] {
-  return text.replace(/\s+/g, " ").split(CLAUSE_SPLIT).map((c) => c.normalize("NFC").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim()).filter(Boolean).map((nfc) => ({ nfc, f: foldSafetyText(nfc).replace(/[’‘]/g, "'") }));
-}
-
-function selfHarmIn(v: View, t: string, retryFolded: boolean): "self_harm" | "self_harm_other" | null {
-  const events: Array<{ s: number; e: number; inherentNeg: boolean; hyper: boolean; needsSubject: boolean }> = [];
-  const add = (re: RegExp, o: { inherentNeg?: boolean; hyper?: boolean; needsSubject?: boolean } = {}) => { for (const sp of spansOf(re, t)) events.push({ ...sp, inherentNeg: !!o.inherentNeg, hyper: !!o.hyper, needsSubject: !!o.needsSubject }); };
-  add(v.cores.A); add(v.cores.B, { inherentNeg: true }); add(v.cores.C, { hyper: true });
-  add(EN_STRONG, { hyper: false }); add(EN_DIE, { hyper: true }); add(EN_NOLIVE, { inherentNeg: true }); add(EN_WEAK, { needsSubject: true });
-  let other = false;
-  const cands = events.length ? subjectCandidates(v, t) : [];
-  for (const ev of events.slice(0, 200)) { // bounded: a pathological clause with thousands of repeated events is judged on its first 200
-    const text = t.slice(ev.s, ev.e);
-    if (v.ascii && retryFolded && /(^| )tu tu($| )/.test(text)) continue; // the accented original was already read accent-aware
-    if (!ev.inherentNeg && negatedBefore(v, t, ev.s)) continue;
-    if (ev.hyper && (EN_HYPER.test(t) || v.sens.test(t.slice(Math.max(0, ev.s - 14), ev.s)))) continue; // "mệt muốn chết", "my legs hurt so bad I want to die lol"
-    const past = v.past.test(t) && !v.recent.test(t);
-    if (past) continue; // a finished episode / past thought is not an acute emergency (documented limit: the user may still be at risk)
-    const subj = subjectBefore(cands, ev.s);
-    if (subj === "generic") continue;
-    if (ev.needsSubject && subj === "none" && !EN_INTENT.test(t)) continue; // "what is suicide?"
-    const hypo = v.hypo.test(t) && !v.ongoing.test(t);
-    if (subj !== "self") {
-      if (hypo) continue; // a hypothesis about another person / nobody; first-person hypotheses stay flagged on purpose
-      if (v.fiction.test(t)) continue;
-      if (subj === "none" && v.edu.test(t)) continue;
-    }
-    if (subj === "other") { other = true; continue; }
-    return "self_harm";
+function kindOfAssessment(a: EmergencyAssessment): EmergencyKind | null {
+  switch (a.domain) {
+    case "SELF_HARM": return a.subject === "OTHER" ? "self_harm_other" : "self_harm";
+    case "SEIZURE": return "seizure";
+    case "HEAT_ILLNESS": return "heat_illness";
+    case "OVERDOSE_POISONING": return "overdose_poisoning";
+    case "NEUROLOGICAL": return "neurological_emergency";
+    default: return null;
   }
-  return other ? "self_harm_other" : null;
 }
-
-const SZ_VI = /(?:(?:len|vua len|dang len|bi len) con (?:dong kinh|co giat)|con (?:dong kinh|co giat) (?:dang|vua|xay ra)|(?:dang|vua|vua moi|dang bi|vua bi|vua lai bi|lai bi|bi) co giat|co giat toan than|sui bot mep)/g;
-const SZ_EN = /(?<![a-z])(?:having|had|has) (?:a |an |another )?(?:seizure|convulsion)s?|(?<![a-z])(?:seizing|convulsing)(?![a-z])/g;
-const SZ_BARE = /(?<![a-z])co giat(?![a-z])/;
-const SEVERE_SIGNS = /(?<![a-z])(?:khong noi duoc|noi khong duoc|khong the noi|noi khong ro|noi ngong|noi lap|meo mieng|bi liet|liet (?:mat|tay|chan|nua nguoi)|khong cu dong|mat y thuc|bat tinh|khong tinh lai|khong phan ung|khong nho gi|sui bot mep|ngat|toan than|(?:can't|cannot|unable to) (?:speak|talk)|unresponsive|passed out)(?![a-z])/g;
-const MUSCLE_NFC = /(?<![\p{L}])(?:cơ|bắp|mí|mắt|đùi|chân|tay|vai|lưng|bụng|cẳng|hàm|nhẹ)(?![\p{L}])/u;
-const MUSCLE_F = /\b(?:bap|mi|mat|dui|chan|tay|vai|lung|bung|cang|ham|nhe)\b/;
-const unnegated = (v: View, t: string, re: RegExp): Span[] => spansOf(re, t).filter((sp) => !negatedBefore(v, t, sp.s));
-/** Severe neurological signs anywhere in the message (a named muscle no longer excuses "co giật" when speech / consciousness is affected). */
-const severeSigns = (all: Clause[]): boolean => all.some((c) => unnegated(VIEWS.ascii, c.f, SEVERE_SIGNS).length > 0);
-function seizureIn(c: Clause, severeMsg: boolean, hasMarks: boolean): boolean {
-  const v = VIEWS.ascii, t = c.f;
-  const hits = [...spansOf(SZ_VI, t).map((s) => ({ ...s, en: false })), ...spansOf(SZ_EN, t).map((s) => ({ ...s, en: true }))];
-  if (!hits.length && severeMsg && SZ_BARE.test(t)) hits.push({ s: t.search(SZ_BARE), e: t.search(SZ_BARE) + 7, en: false });
-  const cands = hits.some((h) => h.en) ? subjectCandidates(v, t) : [];
-  for (const h of hits.slice(0, 200)) {
-    if (negatedBefore(v, t, h.s)) continue;
-    const recent = v.recent.test(t);
-    if (v.past.test(t) && !recent) continue; // "I had a seizure ten years ago", "hồi nhỏ tôi từng bị co giật"
-    if (v.hypo.test(t) && !v.ongoing.test(t)) continue;
-    if (h.en && subjectBefore(cands, h.s) === "none" && !recent) continue; // "What does having a seizure feel like?"
-    if (!severeMsg) {
-      const i = hasMarks ? c.nfc.search(/co giật/) : -1;
-      const near = i >= 0 ? c.nfc.slice(Math.max(0, i - 22), i + 30) : t.slice(Math.max(0, h.s - 22), h.e + 30);
-      if (i >= 0 ? MUSCLE_NFC.test(near) : MUSCLE_F.test(near)) continue; // a twitch / cramp of a named muscle
-    }
-    return true;
+function engineVerdict(question: string): EngineVerdict {
+  // legacy tolerance of this function (IV-6): null / undefined / non-strings are read as text, as `String(text ?? "")` always did; the ENGINE itself stays strict
+  const a = assessEmergency(typeof question === "string" ? question : String(question ?? ""));
+  if (a.riskClass === "IMMEDIATE_EMERGENCY" || a.riskClass === "POSSIBLE_HIGH_RISK") {
+    const kind = kindOfAssessment(a);
+    if (kind) return { tag: "EMERGENCY", decision: { kind, riskClass: a.riskClass } };
   }
-  return false;
-}
-function heatIllnessEmergency(f: string): boolean {
-  const v = VIEWS.ascii;
-  const confusion = unnegated(v, f, /(?<![a-z])(?:lu lan|me sang|noi lam nham|noi nham|noi khong ro|khong tinh tao|mat dinh huong|lo mo|confus(?:ed|ion)|disorient(?:ed|ation)|delirious|incoherent)(?![a-z])/g).length > 0;
-  const heat = unnegated(v, f, /(?<![a-z])(?:nong ran|nong nguoi|nong bung|soc nhiet|say nong|say nang|kiet suc (?:do )?nhiet|(?:khong|ngung|het) (?:con )?(?:do|ra) mo hoi|(?:troi|ngoai troi|ngoai nang|duoi nang) nong|heat ?stroke|heat exhaustion|overheat(?:ed|ing)|too hot)(?![a-z])/g).length > 0;
-  if (!confusion || !heat) return false;
-  const acute = /\b(?:dang|vua|bi|i feel|i'm feeling|right now)\b/.test(f);
-  const firstPerson = /\b(?:toi|minh|em|tui|i|i'm|my)\b/.test(f);
-  const asksAbout = /\b(?:muon biet|co lam|co gay|co phai|la gi|nghia la|vi sao|tai sao|nguyen nhan|trieu chung|dau hieu|cach|lam sao|lam the nao|nen lam gi|co the|neu|gia su)\b/.test(f);
-  return acute || (firstPerson && !asksAbout);
-}
-/** Which acute emergency (if any) the message reports. Pure function of the text. `accentFoldedRetry`: the text is the folded re-check of an accented original. */
-export function emergencyKindOf(question: string, options?: SafetyCheckOptions): EmergencyKind | null {
-  const original = String(question ?? "");
-  const stripped = stripQuoted(original);
-  const hasMarks = HAS_MARKS.test(original.normalize("NFD"));
-  const view = hasMarks ? VIEWS.nfc : VIEWS.ascii;
-  const clauses = clausesOf(stripped);
-  let other = false;
-  for (const c of clauses) {
-    const r = selfHarmIn(view, hasMarks ? c.nfc : c.f, !!options?.accentFoldedRetry);
-    if (r === "self_harm") return "self_harm";
-    if (r === "self_harm_other") other = true;
+  if (a.riskClass === "UNABLE_TO_ASSESS") {
+    // an over-limit input that was scanned COMPLETELY and showed no evidence: the engine abstains (the length limit is enforced at the boundaries — zod schema, V2
+    // `checkInputSafety` — and the legacy detectors keep their own behaviour, IV-6); nothing was skipped, so nothing is claimed either way.
+    if (a.uncertainty === "INPUT_LIMIT" && a.scanned) return null;
+    return { tag: "UNASSESSABLE", reason: a.uncertainty === "INPUT_LIMIT" ? "INPUT_LIMIT" : "INTERNAL_ERROR" };
   }
-  if (other) return "self_harm_other";
-  const severeMsg = severeSigns(clauses);
-  if (clauses.some((c) => seizureIn(c, severeMsg, hasMarks))) return "seizure";
-  if (heatIllnessEmergency(clauses.map((c) => c.f).join(" , "))) return "heat_illness";
-  // the pre-existing "tự làm hại / self-harm" rule, evaluated exactly as before (unstripped), kept as the last resort so nothing it caught is lost
-  const originalForms = [original.normalize("NFC").toLowerCase(), foldSafetyText(original)];
-  if (originalForms.some((t) => MEDICAL_PATTERNS[4].test(t))) return "self_harm";
   return null;
 }
+/** Compatibility wrapper (T1 / T1S exported this): which acute emergency kind, if any, the engine reports. */
+export function emergencyKindOf(question: string, _options?: SafetyCheckOptions): EmergencyKind | null {
+  const v = engineVerdict(question);
+  return v && v.tag === "EMERGENCY" ? v.decision.kind : null;
+}
+const UNASSESSABLE_VI = "Mình không thể hỗ trợ yêu cầu này một cách an toàn. Hãy trao đổi với bác sĩ hoặc chuyên gia.";
+const UNASSESSABLE_EN = "I can't help with this request safely. Please talk to a doctor or a qualified professional.";
+function unassessableResult(reason: "INPUT_LIMIT" | "INTERNAL_ERROR"): SafetyResult {
+  return { type: reason === "INPUT_LIMIT" ? "input_too_long" : "emergency_unassessable", messageVi: UNASSESSABLE_VI, messageEn: UNASSESSABLE_EN };
+}
+function emergencyResult(d: EmergencyDecision): SafetyResult {
+  const base = emergencyTemplate(d.kind) as Extract<SafetyResult, { type: "medical_emergency" }>;
+  const pending = d.kind === "overdose_poisoning" || d.kind === "neurological_emergency";
+  return { ...base, riskClass: d.riskClass, responsePolicy: pending ? "RESPONSE_POLICY_PENDING" : "PROPOSED_PENDING_CLINICAL_REVIEW" };
+}
 
-function emergencyResult(kind: EmergencyKind): SafetyResult {
+function emergencyTemplate(kind: EmergencyKind): SafetyResult {
+  if (kind === "overdose_poisoning" || kind === "neurological_emergency") {
+    // RESPONSE_POLICY_PENDING: no approved template exists for these classes. This is a NEUTRAL referral only (no first aid, no fitness advice, never the chest-pain text);
+    // the owner / a clinician must define the real reply before any release.
+    return {
+      type: "medical_emergency", emergencyKind: kind,
+      messageVi: [
+        "## ⚠️ Cần hỗ trợ y tế khẩn cấp",
+        "",
+        "Mình là **AI Fitness Coach** và không thể đánh giá hay hướng dẫn xử lý tình huống này.",
+        "",
+        "🏥 Nếu có nguy hiểm đến tính mạng hoặc người đó có dấu hiệu bất thường, hãy gọi số cấp cứu địa phương (115 tại Việt Nam) hoặc đưa đến cơ sở y tế gần nhất ngay.",
+      ].join("\n"),
+      messageEn: [
+        "## ⚠️ Urgent medical help is needed",
+        "",
+        "I'm an **AI Fitness Coach** and can't assess or guide the handling of this situation.",
+        "",
+        "🏥 If someone's life may be in danger or they show unusual signs, call your local emergency number (115 in Vietnam) or get them to the nearest medical facility right away.",
+      ].join("\n"),
+    };
+  }
   if (kind === "self_harm_other") {
     // M9.5-T1S: another person is at CURRENT risk. Same elements as the first-person reply, re-addressed to the carer (wording PROPOSED — clinical review pending).
     return {
@@ -779,10 +684,18 @@ function emergencyResult(kind: EmergencyKind): SafetyResult {
  * Every other detector runs unchanged. The result type is unchanged.
  */
 export interface SafetyCheckOptions { accentFoldedRetry?: boolean }
+/**
+ * M9.5-T1B: the emergency engine could not complete an assessment (over its ceiling / internal fault). FAIL CLOSED — never `safe`. Declared as its own alias (not inline in the
+ * union) so the frozen policy-matrix test PO-1, which parses the union text, keeps seeing the same V1 refusal types: this is not a new V1 refusal in that matrix's sense.
+ * Not yet handled by the V1 orchestrator's early-return list (unreachable over HTTP: the schema caps the input at 2 000 units) — T1C must adopt it at the pre-gate.
+ * V2 `checkInputSafety` already turns any non-safe type into a block.
+ */
+export type SafetyUnassessable = { type: "input_too_long" | "emergency_unassessable"; messageVi: string; messageEn: string };
 export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
-  | { type: "medical_emergency"; messageVi: string; messageEn: string; emergencyKind?: EmergencyKind }
+  | { type: "medical_emergency"; messageVi: string; messageEn: string; emergencyKind?: EmergencyKind; riskClass?: EmergencyRiskClass; responsePolicy?: EmergencyResponsePolicy }
+  | SafetyUnassessable
   | { type: "post_exercise_symptoms"; messageVi: string; messageEn: string }
   | { type: "medical_diagnosis_request"; messageVi: string; messageEn: string }
   | { type: "off_topic"; messageVi: string; messageEn: string }
@@ -856,10 +769,13 @@ export const safetyGuard = {
     // Every detector sees both the NFC original and the diacritic-folded text (classification only; 2026-11-12 hotfix).
     const forms = safetyForms(question);
     const hit = (detect: (q: string) => boolean) => forms.some((form) => detect(form));
-    // M9.5-T1 (B-03): an ACUTE emergency (self-harm intent, seizure, heat illness with confusion) wins over every fitness / weight-loss rule below.
-    const emergencyKind = emergencyKindOf(question, options);
-    if (emergencyKind) return emergencyResult(emergencyKind);
-    if (hit(detectUnsafeWeightLoss)) {
+    // M9.5-T1B — EMERGENCY PRECEDENCE as an explicit policy, not as detector order: (1) the bounded engine's verdict (self-harm, seizure, heat illness, overdose, stroke-like
+    // signs); (2) the legacy cardio / respiratory / faint detectors; BOTH beat the weight-loss, diagnosis, minors' and every other rule below.
+    const verdict = engineVerdict(question);
+    if (verdict && verdict.tag === "EMERGENCY") return emergencyResult(verdict.decision);
+    if (verdict && verdict.tag === "UNASSESSABLE") return unassessableResult(verdict.reason);
+    const legacyEmergency = hit(detectMedicalEmergency);
+    if (!legacyEmergency && hit(detectUnsafeWeightLoss)) {
       // A minor (stated age < 18) never gets the adult safe-rate guidance (kcal deficits): the minor gate wins.
       if (statedMinorAge(question)) return this.minorAgeResult();
       const guidance = this.evaluate(question)!;

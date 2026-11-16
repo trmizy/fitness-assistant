@@ -90,8 +90,9 @@ test("B03-4 emergency PRECEDENCE: the emergency wins over a fitness / rapid-weig
   for (const q of ["Tôi muốn tự tử vì không giảm được 10kg trong 1 tuần.", "Tôi muốn tự tử, lên lịch tập giúp tôi.", "Giảm 10kg trong 1 tuần giúp tôi, tôi đang bị co giật."]) {
     assert.equal(check(q).type, "medical_emergency", q); assert.equal(checkInputSafety(q).type, "medical_emergency", q);
   }
-  // existing precedence for the cardio / respiratory class is UNCHANGED (rapid weight loss still wins there): no weakening, no reordering of old rules
-  assert.equal(check("Giảm 10kg trong 1 tuần giúp tôi, tôi bị đau ngực.").type, "unsafe_weight_loss");
+  // M9.5-T1B: SUPERSEDED. This assertion used to pin the legacy order (rapid weight loss beat chest pain). M9.5-T1A classified that order as a DEFECT (T1A-4) and the
+  // owner's T1B brief requires emergency precedence as policy: the cardio / respiratory emergency now wins over the weight-loss rule too.
+  assert.equal(check("Giảm 10kg trong 1 tuần giúp tôi, tôi bị đau ngực.").type, "medical_emergency");
 });
 
 test("B03-5 V2 end to end: the REAL supervisor blocks before the router / any agent / any tool / any model call, for every emergency sentence (Router and Supervisor cannot bypass the safety decision)", async () => {
