@@ -15,7 +15,7 @@ import { extractEvidence, type RawEvidence } from "./evidence";
 import { decideRisk } from "./policy";
 
 const unable = (uncertainty: Uncertainty, units: number, withinLimit: boolean, scanned: boolean, evidence: Evidence[] = []): EmergencyAssessment =>
-  ({ riskClass: "UNABLE_TO_ASSESS", domain: null, subject: null, evidence, uncertainty, inputUnits: units, withinLimit, scanned });
+  ({ riskClass: "UNABLE_TO_ASSESS", domain: null, subject: null, evidence, risks: [], uncertainty, inputUnits: units, withinLimit, scanned });
 
 export function assessEmergency(rawText: unknown, options: AssessOptions = {}): EmergencyAssessment {
   const maxUnits = options.maxUnits ?? DEFAULT_MAX_UNITS, ceiling = options.hardCeilingUnits ?? DEFAULT_HARD_CEILING_UNITS;
@@ -25,7 +25,7 @@ export function assessEmergency(rawText: unknown, options: AssessOptions = {}): 
     if (units > ceiling) return unable("INPUT_LIMIT", units, false, false);
     const nv = normalizeForEmergency(rawText);
     const toEvidence = (r: RawEvidence, view: { start: Int32Array; end: Int32Array }): Evidence => ({
-      domain: r.domain, subject: r.subject, subjectKey: r.subjectKey, tense: r.tense, negated: r.negated, clause: r.clause, lexicon: r.lexicon, disposition: r.disposition,
+      domain: r.domain, subject: r.subject, subjectKey: r.subjectKey, referenceAmbiguous: r.referenceAmbiguous, tense: r.tense, negated: r.negated, clause: r.clause, lexicon: r.lexicon, disposition: r.disposition,
       span: { start: view.start[r.start] ?? 0, end: view.end[Math.max(0, r.end - 1)] ?? 0 },
     });
     const ascii = extractEvidence(nv.ascii, true, nv.hasMarks).map((r) => toEvidence(r, nv.ascii));

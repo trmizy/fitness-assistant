@@ -17,13 +17,20 @@ export type Tense = "PRESENT_OR_RECENT" | "PAST_FINISHED" | "HYPOTHETICAL" | "UN
 /** What happened to a piece of evidence. Only COUNTED_* evidence can raise the risk class; everything else is kept for audit (never silently dropped). */
 export type Disposition =
   | "COUNTED_IMMEDIATE" | "COUNTED_POSSIBLE"
-  | "NEGATED" | "PAST" | "HYPOTHETICAL_OTHER" | "EDUCATION" | "FICTION" | "GENERIC_SUBJECT" | "BENIGN_HYPERBOLE" | "MUSCLE_TWITCH" | "NO_SUBJECT" | "UNPAIRED";
+  | "NEGATED" | "PAST" | "HYPOTHETICAL_OTHER" | "EDUCATION" | "FICTION" | "GENERIC_SUBJECT" | "BENIGN_HYPERBOLE" | "MUSCLE_TWITCH" | "NO_SUBJECT" | "UNPAIRED"
+  | "NON_CLINICAL_USE" // "confused about the plan": the word is not about the person's mental state
+  | "OUT_OF_SCOPE"; // a sign the engine deliberately does not decide (e.g. one's own faint / an unattributed "unresponsive": the legacy medical detector owns it — F2)
 
 export interface Evidence {
   domain: Domain;
   subject: Subject;
-  /** the person the evidence is about, as written in the text ("bạn tôi", "my friend"); "" for SELF / UNKNOWN. Two different persons are never merged. */
+  /**
+   * the person the evidence is about, as written in the text ("bạn tôi", "my friend"); "" for SELF / UNKNOWN. A pronoun with exactly ONE possible antecedent carries the
+   * antecedent's key ("He" → "my brother"); a pronoun with several possible antecedents carries "?he" and is never paired with anything. Two different persons are never merged.
+   */
   subjectKey: string;
+  /** true when the subject is a pronoun whose antecedent could not be told apart (subjectKey starts with "?"): the evidence is kept, but not combined with any other */
+  referenceAmbiguous: boolean;
   tense: Tense;
   negated: boolean;
   /** offsets into the RAW input (UTF-16 code units), end exclusive */
@@ -33,7 +40,17 @@ export interface Evidence {
   disposition: Disposition;
 }
 
-export type Uncertainty = "NONE" | "AMBIGUOUS_WORDING" | "INPUT_LIMIT" | "INTERNAL_ERROR";
+export type Uncertainty = "NONE" | "AMBIGUOUS_WORDING" | "AMBIGUOUS_REFERENCE" | "INPUT_LIMIT" | "INTERNAL_ERROR";
+
+/** One independent risk: the COUNTED evidence of one domain about one person. Risks of different persons / domains are never merged and none is dropped. */
+export interface IndependentRisk {
+  domain: Domain;
+  subject: Subject;
+  subjectKey: string;
+  riskClass: "IMMEDIATE_EMERGENCY" | "POSSIBLE_HIGH_RISK";
+  /** indices into EmergencyAssessment.evidence */
+  evidence: number[];
+}
 
 export interface EmergencyAssessment {
   riskClass: RiskClass;
@@ -41,6 +58,9 @@ export interface EmergencyAssessment {
   domain: Domain | null;
   subject: Subject | null;
   evidence: Evidence[];
+  /** every independent risk found (most severe first); empty when nothing is counted. `domain` / `subject` above are the decisive one among them. */
+  risks: IndependentRisk[];
+  /** AMBIGUOUS_WORDING: only POSSIBLE evidence. AMBIGUOUS_REFERENCE: no risk counted, but a sign whose owner (a pronoun) could not be determined was left uncombined. */
   uncertainty: Uncertainty;
   inputUnits: number;
   /** false when the text is longer than `maxUnits` (the engine still scanned it completely when it was within `hardCeilingUnits`) */
