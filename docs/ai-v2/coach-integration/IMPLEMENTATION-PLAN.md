@@ -104,7 +104,15 @@ Commit code `c8c05185` (trên `af9b4d4d`). Hardening nhỏ cho hợp đồng gro
 - Test mới: `personal-weight-contract.test.ts` (7), `weight-grounding-engines.test.ts` (7, V1 thật + V2 thật, cùng dữ liệu). Verify: S06 + S09–S13 và bộ M9.4 (45 ca) pass; focused 115/115; `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); `llm` 1715 (0 fail, 3 todo có sẵn); `tsc` sạch.
 - **Không** sửa: Router, Supervisor, orchestrator, pin, benchmark, nhãn đóng băng, AWS. **Không** mở milestone tiếp theo. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 
-## M9.5 — Sẵn sàng phát hành nội bộ  `NOT_STARTED`
+## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — chỉ M9.5-T0 (audit + kế hoạch, chỉ đọc) đã làm; T1–T4 CHƯA mở
+
+### Kết quả M9.5-T0 (2026-11-16 — CHỈ ĐỌC; không runtime/AWS/model/DB, không sửa code/pin/benchmark)
+Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái bền vững, cổng model/chất lượng, thứ tự đóng blocker), `M9-BLOCKER-REGISTER.md` (26 mục: **15 P1**, 11 P2, 0 P0, **0 VERIFIED**), `M9-AWS-ROLLOUT-PLAN.md` (Phase 0–3, kill switch, rollback, tiêu chí STOP — toàn bộ PROPOSED).
+- **Topology (CONFIG VERIFIED cho DEV, live NOT VERIFIED):** API Gateway HTTP API `ANY /ai/{proxy+}` → Lambda `…-dev-ai`; Express gateway **không** triển khai lên AWS; CI/CD = GitHub Actions (OIDC, `dev-deploy` chỉ `update-function-code`, `dev-preflight` read-only là nguồn rollback); Aurora + Secrets Manager; DynamoDB (rate-limit); **không có Redis/ElastiCache**; môi trường duy nhất trong repo là DEV.
+- **Đính chính phạm vi các task bên dưới:** M9.5-T1 (phủ `/ai/v2/ask` bằng limiter ở Gateway) dựa trên Express gateway — nơi đó **không chạy trên AWS**; trên AWS limiter nằm trong ai-service (`RATE_LIMIT_PROVIDER`, cần bảng DynamoDB, trạng thái live NOT VERIFIED) → xem B-24. Route API Gateway cho `/ai/v2/*` đã có (không cần đổi hạ tầng).
+- **Phát hiện chính:** V2 hiện **không thể phục vụ** trên Lambda (`NODE_ENV=production`): thiếu store hạn chế vị thành niên (503), thiếu port idempotency/lịch sử (về V1), thiếu bảng session; P1 an toàn đã có ở V1 đang chạy (ký tự vô hình, emergency hở, không NFKC); RC-0 không chứa sửa M8-C và hotfix `14716edf`; RI-2/HR-27 lệch 7 file V1-side + 12 file ngoài ai-service (không hồi quy hành vi); triển khai V2 = triển khai artifact ai-service mới gồm cả thay đổi V1 (6 file source khác `aws-deploy`).
+- **Không** triển khai, không bật cờ, không mở M9.5-T1. `MULTI-AGENT V2 PRODUCTION: BLOCKED`, `RELEASE CANDIDATE: NOT READY`.
+
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
 | M9.5-T1 | Gateway: phủ `/ai/v2/ask` bằng limiter chi phí; kiểm route/`x-internal-token` | tương đương `/ai/ask` | NOT_STARTED |
