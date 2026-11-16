@@ -104,7 +104,7 @@ Commit code `c8c05185` (trên `af9b4d4d`). Hardening nhỏ cho hợp đồng gro
 - Test mới: `personal-weight-contract.test.ts` (7), `weight-grounding-engines.test.ts` (7, V1 thật + V2 thật, cùng dữ liệu). Verify: S06 + S09–S13 và bộ M9.4 (45 ca) pass; focused 115/115; `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); `llm` 1715 (0 fail, 3 todo có sẵn); `tsc` sạch.
 - **Không** sửa: Router, Supervisor, orchestrator, pin, benchmark, nhãn đóng băng, AWS. **Không** mở milestone tiếp theo. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 
-## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc) và M9.5-T1 (khắc phục B-03, offline) đã làm; T2–T4 CHƯA mở
+## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc), M9.5-T1 (khắc phục B-03, offline) và M9.5-T1S (khắc phục phát hiện review độc lập B-03, offline) đã làm; T2–T4 CHƯA mở
 
 ### Kết quả M9.5-T0 (2026-11-16 — CHỈ ĐỌC; không runtime/AWS/model/DB, không sửa code/pin/benchmark)
 Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái bền vững, cổng model/chất lượng, thứ tự đóng blocker), `M9-BLOCKER-REGISTER.md` (26 mục: **15 P1**, 11 P2, 0 P0, **0 VERIFIED**), `M9-AWS-ROLLOUT-PLAN.md` (Phase 0–3, kill switch, rollback, tiêu chí STOP — toàn bộ PROPOSED).
@@ -116,6 +116,7 @@ Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái b�
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
 | M9.5-T1 | Khắc phục có kiểm soát B-03: guard an toàn dùng chung V1/V2 (tự hại, co giật, sốc nhiệt) — theo brief owner | RED→GREEN, 0 Unsafe→Safe, V1+V2 | **DONE (offline)** `3fee5775` |
+| M9.5-T1S | Khắc phục có kiểm soát các false negative/positive của review độc lập B-03 (một vòng) | RED→GREEN, 0 Unsafe→Safe vs trước B-03, V1+V2 nhất quán | **DONE (offline)** `a6b0f3a4`; chờ review Codex trên chính commit |
 | M9.5-T1b | (dòng T1 cũ) Gateway: phủ `/ai/v2/ask` bằng limiter chi phí — **premise sai trên AWS** (Express gateway không triển khai; xem B-24) | tương đương `/ai/ask` | NOT_STARTED |
 | M9.5-T2 | Kiểm phơi bày AWS API Gateway/Lambda (chỉ đọc) | tài liệu hoá, không đổi hạ tầng | NOT_STARTED |
 | M9.5-T3 | Quan sát được (log mã/đếm), runbook rollback, sinh lại candidate identity | runbook được xem xét | NOT_STARTED |
@@ -127,6 +128,14 @@ Brief owner: khắc phục có kiểm soát **B-03** (khoảng hở tự hại/c
 - **Sửa:** chỉ `llm/safety_guard.ts` (allowlist sẵn): `emergencyKindOf` + 3 câu trả lời theo tình huống (khủng hoảng tự hại, sơ cứu co giật, làm mát sốc nhiệt); cấp cứu thắng quy tắc giảm cân; không đổi chuẩn hoá Unicode/Router/Supervisor/orchestrator/pin/benchmark.
 - **Verify:** 7 test B-03; focused 196/196; `llm` 1715 (0 fail); `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); coach/bridge/eval 162/162; `test:evaluation` 20/20; `test:policy` 5/6 (lỗi VN-SPECIFIC-SCHEDULE **có sẵn**, giống hệt trên guard gốc); `tsc` sạch. Differential 21 577 chuỗi: Unsafe→Safe 0; 25/25 câu lành tính giữ verdict.
 - **Trạng thái:** B-03 = `FIXED OFFLINE`, **chưa VERIFIED**. Nội dung câu trả lời PROPOSED (D-P29, cần rà soát lâm sàng). Hotfix V1 độc lập: chỉ đề xuất (readiness §10), chưa phê duyệt, không port được trực tiếp sang `aws-deploy`. `LIVE AWS IMPACT: NOT VERIFIED`. B-01, B-02, B-05, B-07, B-08, B-14 và các blocker khác **vẫn OPEN**. Chưa mở bước tiếp theo.
+
+### Kết quả M9.5-T1S (2026-11-16 — OFFLINE; không AWS/model/DB; không subagent, không gọi Codex)
+Khắc phục các phát hiện của review độc lập B-03 (báo cáo Codex Desktop không có trong workspace; dùng danh sách trong brief). Candidate `a6b0f3a4`, một vòng sửa.
+- **RED→GREEN:** trên `3fee5775` 15 câu cấp cứu bị bỏ sót (+1 sai loại), 8 câu lành tính bị chặn nhầm; sau sửa 5 test GREEN + 3 `todo` (B-01/B-02).
+- **Sửa:** chỉ `llm/safety_guard.ts` — pipeline tách bước (mệnh đề → tình huống → chủ thể/thời gian/phủ định trong đúng mệnh đề → ưu tiên) + câu trả lời người thứ ba mới (PROPOSED); không đổi Unicode/Router/Supervisor/Agent/Minor Gate/store/orchestrator/pin/benchmark.
+- **Verify:** focused 205 (202 pass, 3 todo, 0 fail); `llm` 1715 (0 fail); `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); coach/bridge/eval 162/162; `test:evaluation` 20/20; `tsc` sạch. Differential: so với guard trước B-03 Unsafe→Safe 0 và Emergency→Safe 0; so với candidate cũ 9 chặn-nhầm được sửa; V1/V2 nhất quán 31/31 câu cấp cứu.
+- **Còn mở:** 10 false negative ngoài phạm vi (ý nghĩ gián tiếp, tự cắt, nhảy lầu, tả co giật không dùng "co giật", sốc nhiệt diễn đạt khác, tin nhắn người thứ ba được trích dẫn); B-01/B-02; nội dung 4 câu trả lời chờ rà soát lâm sàng; `LIVE AWS VERSION: NOT VERIFIED`; hotfix V1 **chưa được phép**.
+- **Bước tiếp theo:** review độc lập Codex trên chính `a6b0f3a4`. Không mở vòng sửa tiếp theo.
 
 ---
 ## Thứ tự và phụ thuộc

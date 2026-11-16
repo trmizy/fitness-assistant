@@ -6,6 +6,8 @@ Nhãn: `CODE FACT` / `CONFIG FACT` (đọc trực tiếp trong repo ở RC-0) ·
 
 ## 0. Kết luận
 
+**Cập nhật M9.5-T1S:** các phát hiện của review độc lập B-03 (false negative/positive) đã được sửa offline ở `a6b0f3a4` (chỉ `llm/safety_guard.ts`, allowlist sẵn → không thêm file vào delta RI-2/HR-27). B-03 vẫn **FIXED OFFLINE, chưa VERIFIED**: cần review độc lập Codex trên chính commit mới + rà soát lâm sàng nội dung 4 câu trả lời; còn 10 false negative ngoài phạm vi và B-01/B-02 OPEN. `LIVE AWS VERSION: NOT VERIFIED`; hotfix V1 chưa được phép. Chi tiết: M9-BLOCKER-REGISTER B-03.
+
 **Cập nhật M9.5-T1:** B-03 (emergency tự hại/co giật/sốc nhiệt) → `FIXED OFFLINE` ở commit `3fee5775` (chỉ `llm/safety_guard.ts`, allowlist sẵn nên **không** thêm file vào delta RI-2/HR-27). **Chưa VERIFIED**, nội dung câu trả lời PROPOSED, lỗi có sẵn ở V1 (`aws-deploy`) nên có đề xuất hotfix V1 độc lập ở §10. Mọi blocker khác không đổi trạng thái. `LIVE AWS IMPACT: NOT VERIFIED`.
 
 - `MULTI-AGENT V2 PRODUCTION: BLOCKED`. `RELEASE CANDIDATE: NOT READY`.
@@ -98,3 +100,6 @@ Không chạy test/CI/reproducer mới; mức P1 của B-02, B-03 dựa trên đ
 - **Kiểm thử:** như (3)/(4); smoke `/health` của pipeline hiện có **không** gọi AI nên không chứng minh hành vi — cần kiểm tra có điều kiện trên DEV bằng tài khoản thử nghiệm được phép (REAL HTTP/API), không bằng người dùng thật.
 - **Rollback:** triển khai lại artifact trước đó theo `rollback-record` (CodeSha256) của `dev-deploy`, xác minh bằng `dev-preflight`; thay đổi chỉ là code (không cờ, không dữ liệu, không migration) nên rollback không để lại trạng thái.
 - **Phê duyệt:** chủ dự án phê duyệt riêng từng bước (build artifact → `dev-deploy` dry-run → deploy thật → xác minh); không tự động, không gộp vào phát hành Multi-Agent (D-001 giữ nguyên cho V2). Không có hotfix production nào được thực hiện trong M9.5-T1.
+
+### 10.1 Cập nhật M9.5-T1S — ảnh hưởng đến khả năng port hotfix V1
+Candidate `a6b0f3a4` lớn hơn bản T1 (đoạn B-03 ~+240/−55 dòng, phụ thuộc `foldSafetyText`, `MEDICAL_PATTERNS`, `SafetyCheckOptions` — **không có** trong guard của `aws-deploy`). Một bản port tự chứa cho `aws-deploy` phải sao chép đoạn B-03 cùng một hàm fold nội bộ nhỏ và tự cài kiểu `SafetyCheckOptions` (hoặc bỏ tham số), rồi chạy **toàn bộ** test trong §10 trên nền `aws-deploy`. Danh sách file tối thiểu không đổi (`safety_guard.ts` + hai file test B-03); khối lượng review tăng, nên review độc lập **phải** nhắm vào đúng commit sẽ được port. Chưa viết bản port nào; hotfix vẫn **chưa được phép** (D-P30).
