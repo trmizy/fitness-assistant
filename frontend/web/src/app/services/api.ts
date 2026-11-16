@@ -97,6 +97,9 @@ export interface AiSessionMessage {
   answer: string;
   createdAt: string;
   evidenceUsed?: CoachEvidenceItem[];
+  // Stored by the server for every turn (existing columns). `modelUsed` identifies the engine; V2 turns carry the V2 marker.
+  modelUsed?: string;
+  traceId?: string | null;
 }
 
 export type TranslationLanguage = "en" | "vi";

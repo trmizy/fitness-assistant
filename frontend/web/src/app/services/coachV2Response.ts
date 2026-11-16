@@ -27,13 +27,14 @@ export interface CoachV2Meta {
   historyRecorded: boolean;
 }
 
-export type CoachV2Tone = "ok" | "partial" | "blocked" | "error";
+export type CoachV2Tone = "ok" | "partial" | "blocked" | "error" | "neutral";
 /** What the message bubble shows under the answer text. */
 export interface CoachV2View {
   engineLabel: string;
   statusLabel: string;
   tone: CoachV2Tone;
-  kind: CoachV2Kind;
+  /** "stored" = restored from the conversation history, where only the engine identity (and trace id) is kept. */
+  kind: CoachV2Kind | "stored";
   status: string;
   /** Only the agents the backend reported as executed; empty → nothing is shown. */
   agents: string[];
@@ -97,6 +98,27 @@ export function describeCoachV2(meta: CoachV2Meta): CoachV2View {
     ...(meta.traceId ? { traceId: meta.traceId } : {}),
     replayed: meta.replayed,
     ...(!meta.historyRecorded ? { historyNote: "Lượt này không được lưu vào lịch sử hội thoại." } : {}),
+  };
+}
+
+// ── history reload ──────────────────────────────────────────────────────────────────────────────────────────────────────
+/** The value the backend bridge writes to Conversation.modelUsed for a turn it served with Multi-Agent V2 (services/coach-v2-continuity.ts V2_ENGINE_MARKER). */
+export const COACH_V2_ENGINE_MARKER = "multi-agent-v2";
+
+/**
+ * Badge for a turn reloaded from GET /ai/sessions/:id/messages. The existing schema stores ONLY the engine identity (`modelUsed`) and the
+ * V2 supervisor trace id (`traceId`) for such a turn — NOT its status, executed agents or whether it was partial. So the restored badge
+ * says exactly that and nothing more: no status, no agents (they are never inferred from the answer text). Returns null for any other
+ * row (V1 turns carry a different `modelUsed`), so a V1 history item is never decorated. Full restoration needs a schema decision (D-P18).
+ */
+export function describeCoachV2History(row: { modelUsed?: unknown; traceId?: unknown }): CoachV2View | null {
+  if (row.modelUsed !== COACH_V2_ENGINE_MARKER) return null;
+  return {
+    engineLabel: "Multi-Agent V2 (DEV)",
+    statusLabel: "Lượt này do Multi-Agent V2 trả lời. Lịch sử chỉ lưu công cụ xử lý — trạng thái chi tiết và agent đã chạy không được lưu.",
+    tone: "neutral", kind: "stored", status: "STORED", agents: [],
+    ...(isStr(row.traceId) && row.traceId ? { traceId: row.traceId } : {}),
+    replayed: false,
   };
 }
 

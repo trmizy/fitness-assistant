@@ -7,7 +7,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { describeCoachFailure, describeCoachV2, parseCoachV2 } from "./coachV2Response";
+import { COACH_V2_ENGINE_MARKER, describeCoachFailure, describeCoachV2, describeCoachV2History, parseCoachV2 } from "./coachV2Response";
 
 const payload = (v2: Record<string, unknown>, over: Record<string, unknown> = {}) => ({
   question: "q", answer: "a", sessionId: "s", engine: "multi-agent-v2",
@@ -79,4 +79,14 @@ test("401 / 403 / 404 session / 503 have their own text; other statuses are left
   assert.equal(u.kind, "unavailable"); assert.equal(u.canRetrySameRequest, true);
   for (const s of [undefined, 400, 404, 429, 500, 502]) assert.equal(describeCoachFailure(s as number | undefined), null, String(s));
   assert.equal(describeCoachFailure(404, "OTHER"), null);
+});
+
+test("history reload: only a turn whose stored engine is the V2 marker gets a REDUCED badge — no status, no agents, no inference from the answer", () => {
+  assert.equal(describeCoachV2History({ modelUsed: "multi-agent-v2", traceId: "trace-abc" })!.traceId, "trace-abc");
+  const v = describeCoachV2History({ modelUsed: COACH_V2_ENGINE_MARKER, traceId: null })!;
+  assert.equal(v.kind, "stored"); assert.equal(v.status, "STORED"); assert.equal(v.tone, "neutral"); assert.deepEqual(v.agents, []); assert.equal(v.traceId, undefined);
+  assert.match(v.statusLabel, /không được lưu/);
+  for (const r of [{}, { modelUsed: undefined }, { modelUsed: "v1-model" }, { modelUsed: "Multi-Agent-V2" }, { modelUsed: null }, { modelUsed: 5 }, { traceId: "t" }]) assert.equal(describeCoachV2History(r), null, JSON.stringify(r));
+  const keys = Object.keys(v);
+  for (const invented of ["block", "turnId", "historyNote"]) assert.ok(!keys.includes(invented), invented);
 });

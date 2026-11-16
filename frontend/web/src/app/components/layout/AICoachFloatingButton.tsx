@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useLocation } from "react-router";
 import { useApp } from "../../context/AppContext";
 import { GyminiMonkeyMark } from "../icons/gymini/mascot";
 
@@ -11,6 +12,7 @@ import { GyminiMonkeyMark } from "../icons/gymini/mascot";
  */
 export function AICoachFloatingButton() {
   const { isAuthenticated, role, isAiCoachOpen, openAiCoach } = useApp();
+  const { pathname } = useLocation();
 
   // AI Coach is a client-side feature only (AICoachPage lives under
   // /client/...). AppShell is shared by client, pt, gym_owner AND admin
@@ -21,6 +23,9 @@ export function AICoachFloatingButton() {
   // viewing their own client-style workspace.
   // A PT also gets it in their own workspace: the PT Copilot (roster overview, drafted client proposals) is the same chat.
   const inClientContext = role === "client" || role === "pt";
+  // Not on the AI Coach page itself: the launcher opens the same coach (redundant there) and, fixed at bottom-right, it covered about half of the
+  // composer's send button at every phone width 360–412 px (measured in M9.3-T2, REAL BROWSER emulated viewport).
+  if (pathname.startsWith("/client/ai-coach")) return null;
   if (!isAuthenticated || !inClientContext || isAiCoachOpen) return null;
 
   return (

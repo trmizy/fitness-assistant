@@ -8,7 +8,7 @@ import {
   type AiSessionMessage,
 } from "../services/api";
 import { describeChatRequest, findRetryable, newChatRequestFields, recoverInterrupted } from "./chat-request-identity";
-import { describeCoachFailure, describeCoachV2, parseCoachV2, type CoachV2View } from "../services/coachV2Response";
+import { describeCoachFailure, describeCoachV2, describeCoachV2History, parseCoachV2, type CoachV2View } from "../services/coachV2Response";
 import { isCoachV2DevMode } from "../dev/coachV2Dev";
 
 export type PendingAiTaskKind = "plan-generate" | "plan-adjust" | "chat-ask";
@@ -442,17 +442,22 @@ export function hydrateSessionMessages(
   const current = getCoachSession(userId, sessionId);
   if (current.messages.length > 0) return;
 
-  const messages: AiChatMessage[] = conversations.flatMap((c) => [
-    { id: `${c.id}-q`, from: "user" as const, text: c.question, time: c.createdAt },
-    {
-      id: `${c.id}-a`,
-      from: "ai" as const,
-      text: c.answer,
-      time: c.createdAt,
-      evidenceUsed: c.evidenceUsed,
-      structuredBlocks: c.structuredBlocks,
-    },
-  ]);
+  const messages: AiChatMessage[] = conversations.flatMap((c) => {
+    // only a turn the server marked as Multi-Agent V2 gets a (reduced) badge; a V1 turn is returned untouched
+    const v2 = describeCoachV2History(c);
+    return [
+      { id: `${c.id}-q`, from: "user" as const, text: c.question, time: c.createdAt },
+      {
+        id: `${c.id}-a`,
+        from: "ai" as const,
+        text: c.answer,
+        time: c.createdAt,
+        evidenceUsed: c.evidenceUsed,
+        structuredBlocks: c.structuredBlocks,
+        ...(v2 ? { v2 } : {}),
+      },
+    ];
+  });
 
   setCoachSession(userId, sessionId, {
     messages,

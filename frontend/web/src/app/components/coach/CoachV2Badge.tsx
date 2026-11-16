@@ -5,6 +5,7 @@ const TONE: Record<CoachV2View["tone"], string> = {
   partial: "border-amber-500/50 text-amber-300",
   blocked: "border-sky-500/50 text-sky-300",
   error: "border-red-500/50 text-red-300",
+  neutral: "border-zinc-600 text-zinc-300",
 };
 
 /**

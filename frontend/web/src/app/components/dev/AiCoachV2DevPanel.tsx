@@ -56,15 +56,15 @@ export function AiCoachV2DevPanel({ onSend, busy }: { onSend: (question: string)
   };
 
   return (
-    <div data-testid="coach-v2-dev-panel" className="mb-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-zinc-300">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div data-testid="coach-v2-dev-panel" className="mb-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-zinc-300 sm:p-3">
+      <div className="flex items-center justify-between gap-2">
         <div>
           <span className="font-semibold text-amber-400">DEV · Multi-Agent V2</span>
-          <span className="ml-2 text-zinc-400">mô hình, dữ liệu và xác thực giả lập · không phải tư vấn sức khỏe · {on ? "V2 đang BẬT (launcher cho phép) — gửi bằng JSON, không có SSE" : "mặc định TẮT (đang dùng V1)"}</span>
+          <span className="ml-2 hidden text-zinc-400 sm:inline">mô hình, dữ liệu và xác thực giả lập · không phải tư vấn sức khỏe · {on ? "V2 đang BẬT (launcher cho phép) — gửi bằng JSON, không có SSE" : "mặc định TẮT (đang dùng V1)"}</span>
         </div>
         <button
           type="button" onClick={() => void toggle()} disabled={pending || busy} aria-pressed={on} data-testid="coach-v2-dev-toggle"
-          className={`rounded-full border px-3 py-1 font-medium disabled:opacity-50 ${on ? "border-amber-400 bg-amber-400 text-black" : "border-zinc-600 text-zinc-200"}`}
+          className={`shrink-0 rounded-full border px-3 py-1 font-medium disabled:opacity-50 ${on ? "border-amber-400 bg-amber-400 text-black" : "border-zinc-600 text-zinc-200"}`}
         >
           {on ? "V2 BẬT — bấm để tắt" : "Bật thử V2"}
         </button>
@@ -72,13 +72,14 @@ export function AiCoachV2DevPanel({ onSend, busy }: { onSend: (question: string)
       {error && <p role="alert" data-testid="coach-v2-dev-error" className="mt-2 text-red-400">{error}</p>}
       {on && (
         <div className="mt-2 space-y-1.5" data-testid="coach-v2-dev-scenarios">
-          <p className="text-zinc-400">Chỉ các kịch bản read-only đã duyệt (không nhập tự do khi V2 bật):</p>
-          <div className="flex flex-wrap gap-1.5">
+          <p className="hidden text-zinc-400 sm:block">Chỉ các kịch bản read-only đã duyệt (không nhập tự do khi V2 bật):</p>
+          {/* one scrollable row on phones (the panel must not push the chat off-screen); wraps from sm: up */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
             {scenarios.map((s) => (
               <button
                 key={s.id} type="button" disabled={busy} onClick={() => onSend(s.question)} title={s.expect}
                 data-testid={`coach-v2-scenario-${s.id}`}
-                className="rounded-full border border-zinc-600 px-3 py-1 text-zinc-200 hover:border-amber-400 disabled:opacity-40"
+                className="shrink-0 whitespace-nowrap rounded-full border border-zinc-600 px-3 py-1 text-zinc-200 hover:border-amber-400 disabled:opacity-40"
               >
                 {s.title}
               </button>
