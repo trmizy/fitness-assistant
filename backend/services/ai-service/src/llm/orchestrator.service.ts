@@ -27,7 +27,8 @@ import { stripInternalReferences } from "./output_hygiene";
 import { fitToBudget, planContext } from "./context_plan";
 import { detectMythClaims, formatClaimRulesForPrompt } from "./claim_rules";
 import { languageGuard } from "./language_guard";
-import { safetyGuard, emergencyReplyForKind, type SafetyUnassessable } from "./safety_guard";
+import { safetyGuard, emergencyReplyForKind, type SafetyUnassessable, type UnassessableReason } from "./safety_guard";
+import { types as utilTypes } from "node:util";
 import { ApiError } from "../errors/api-error";
 import { profileExtractor } from "./profile_extractor";
 import type { PersonalizationContext } from "./profile_extractor";
@@ -79,6 +80,7 @@ import type {
   FinalAnswerPayload,
   LanguageDecision,
   RecommendationResult,
+  UnsafeGuidance,
 } from "./types";
 import {
   buildWorkoutScheduleContextBlock,
@@ -223,27 +225,93 @@ const hasText = (x: unknown): x is string => typeof x === "string" && x.trim().l
 export type VerdictClassification =
   | { ok: true; verdict: SafetyVerdict; disposition: SafetyVerdictDisposition }
   | { ok: false; reason: "MALFORMED" | "UNKNOWN_TYPE" | "GUARD_ERROR" };
+
+// ── M9.5-T1B-F5: TRUSTED SNAPSHOT ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// F4 validated the raw guard object and then KEPT USING it: an inherited `type` / text / guidance passed, a getter ran at every read (and could answer differently the next time), a Proxy
+// trap ran arbitrary code, `guidance.blocked:false` was accepted (and `unsafe?.blocked` is what decides whether the model may run), and the raw object could change after validation.
+// Now the raw value is read exactly ONCE, here, from OWN DATA properties of a PLAIN object/array — no inherited value is read, no getter / setter / Proxy trap is ever executed — and
+// COPIED into a new frozen plain-data snapshot; everything after this point uses the snapshot only, never the raw object (and a second validation, e.g. after
+// `resolveProfileAwareSafety`, parses ITS result into its own snapshot).
+type OwnRead = { ok: true; value: unknown } | { ok: false };
+/** One OWN DATA property, read through its descriptor: missing, inherited or an accessor (get / set) ⇒ `ok:false`; nothing user-defined runs. */
+function ownData(obj: object, key: string): OwnRead {
+  const d = Object.getOwnPropertyDescriptor(obj, key);
+  return d !== undefined && "value" in d && !("get" in d) && !("set" in d) ? { ok: true, value: d.value } : { ok: false };
+}
+/** A plain object: not a Proxy (checked BEFORE anything that could trigger a trap), prototype exactly Object.prototype. Class instances, null-prototype and custom-prototype objects are not. */
+const isPlainObject = (x: unknown): x is object => typeof x === "object" && x !== null && !utilTypes.isProxy(x) && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
+const isPlainArray = (x: unknown): x is unknown[] => Array.isArray(x) && !utilTypes.isProxy(x) && Object.getPrototypeOf(x) === Array.prototype;
+const ownText = (obj: object, key: string): string | undefined => { const r = ownData(obj, key); return r.ok && hasText(r.value) ? r.value : undefined; };
+/** The real guard always builds 4 steps; the bound only stops a hostile huge / sparse array from making the copy loop expensive. */
+const MAX_GUIDANCE_STEPS = 20;
+const UNASSESSABLE_REASONS: ReadonlySet<string> = new Set<UnassessableReason>(["INPUT_LIMIT", "INTERNAL_ERROR", "AMBIGUOUS_REFERENCE", "UNSUPPORTED_STATE"]);
+
 /**
- * Pure runtime check of ONE raw guard result. Accepts only an object whose own, string `type` is a registered verdict (a prototype key such as "constructor" is not registered) AND whose
- * required structure is present: the reply texts of an ANSWER verdict, the guidance of `unsafe_weight_loss`. Everything else (`{}`, unknown / empty / wrong-typed / missing type, `null`,
- * a string, an array…) is rejected. The cast below happens only AFTER these checks.
+ * `unsafe_weight_loss` guidance, contract read from the source (llm/types.ts `UnsafeGuidance`, safety_guard.ts `evaluate`, response_formatter.ts `formatUnsafe`, this file's `unsafe?.blocked`):
+ * `blocked` is the boolean `true` (the guard always builds it so, and `!unsafe?.blocked` is what lets the model run); `reason` / `safeAlternative` are non-empty strings; `firstWeekSteps` is an
+ * array of 1..20 non-empty strings (the formatter prints them as a numbered list). Everything is own-data and copied; nothing is held by reference.
+ */
+function parseGuidance(g: unknown): Readonly<UnsafeGuidance> | null {
+  if (!isPlainObject(g)) return null;
+  const blocked = ownData(g, "blocked"); if (!blocked.ok || blocked.value !== true) return null;
+  const reason = ownText(g, "reason"), safeAlternative = ownText(g, "safeAlternative"); if (!reason || !safeAlternative) return null;
+  const rawSteps = ownData(g, "firstWeekSteps"); if (!rawSteps.ok || !isPlainArray(rawSteps.value)) return null;
+  const arr = rawSteps.value; const len = ownData(arr, "length");
+  if (!len.ok || typeof len.value !== "number" || !Number.isInteger(len.value) || len.value < 1 || len.value > MAX_GUIDANCE_STEPS) return null;
+  const steps: string[] = [];
+  for (let i = 0; i < len.value; i++) { const e = ownData(arr, String(i)); if (!e.ok || !hasText(e.value)) return null; steps.push(e.value); } // a hole, an accessor element or a non-string / blank step ⇒ reject
+  return Object.freeze({ blocked: true, reason, safeAlternative, firstWeekSteps: Object.freeze(steps) as string[] });
+}
+
+/**
+ * Pure runtime parse of ONE raw guard result into a trusted, frozen plain-data snapshot (or a rejection). Accepts only a plain object whose OWN DATA `type` is a registered verdict (a
+ * prototype key such as "constructor" is not registered) AND whose required structure is present as own data: the reply texts of an ANSWER verdict, the guidance of `unsafe_weight_loss`.
+ * Only the fields the orchestrator decides with are copied (`type`, the reply texts, `guidance`, and for a fail-closed verdict the machine `reason`): extra fields are dropped. Everything else
+ * — `{}`, null, a string, an array, an unknown / empty / wrong-typed / missing / inherited / accessor `type`, a Proxy, an abnormal prototype, a broken required structure — is rejected, and
+ * a rejection never carries exception detail. The raw value is not used after this function returns.
  */
 export function classifySafetyVerdict(raw: unknown): VerdictClassification {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, reason: "MALFORMED" };
-  const v = raw as Record<string, unknown>;
-  if (typeof v.type !== "string" || v.type === "") return { ok: false, reason: "MALFORMED" };
-  if (!Object.prototype.hasOwnProperty.call(SAFETY_VERDICT_DISPOSITION, v.type)) return { ok: false, reason: "UNKNOWN_TYPE" };
-  const disposition = SAFETY_VERDICT_DISPOSITION[v.type as SafetyVerdict["type"]];
-  if (disposition === "ANSWER" && !(hasText(v.messageVi) && hasText(v.messageEn))) return { ok: false, reason: "MALFORMED" };
-  if (v.type === "unsafe_weight_loss") {
-    const g = v.guidance as Record<string, unknown> | null | undefined;
-    if (!g || typeof g !== "object" || typeof g.blocked !== "boolean" || !hasText(g.reason) || !hasText(g.safeAlternative) || !Array.isArray(g.firstWeekSteps)) return { ok: false, reason: "MALFORMED" };
+  try {
+    if (!isPlainObject(raw)) return { ok: false, reason: "MALFORMED" };
+    const t = ownData(raw, "type");
+    if (!t.ok || typeof t.value !== "string" || t.value === "") return { ok: false, reason: "MALFORMED" };
+    const type = t.value;
+    if (!Object.prototype.hasOwnProperty.call(SAFETY_VERDICT_DISPOSITION, type)) return { ok: false, reason: "UNKNOWN_TYPE" };
+    const disposition = SAFETY_VERDICT_DISPOSITION[type as SafetyVerdict["type"]];
+    let snapshot: Record<string, unknown>;
+    if (type === "safe") snapshot = { type };
+    else if (type === "unsafe_weight_loss") {
+      const g = ownData(raw, "guidance"); const guidance = g.ok ? parseGuidance(g.value) : null;
+      if (!guidance) return { ok: false, reason: "MALFORMED" };
+      snapshot = { type, guidance };
+    } else {
+      const messageVi = ownText(raw, "messageVi"), messageEn = ownText(raw, "messageEn");
+      if (disposition === "ANSWER") {
+        if (!messageVi || !messageEn) return { ok: false, reason: "MALFORMED" };
+        snapshot = { type, messageVi, messageEn };
+      } else {
+        // FAIL_CLOSED: the turn ends with an error either way, so missing / odd reply texts are replaced by the guard's own neutral refusal instead of being a reason to doubt the verdict
+        const neutral = emergencyReplyForKind("unsupported_verdict") as SafetyUnassessable;
+        const reason = ownData(raw, "reason");
+        snapshot = { type, messageVi: messageVi ?? neutral.messageVi, messageEn: messageEn ?? neutral.messageEn, ...(reason.ok && typeof reason.value === "string" && UNASSESSABLE_REASONS.has(reason.value) ? { reason: reason.value } : {}) };
+      }
+    }
+    return { ok: true, verdict: Object.freeze(snapshot) as unknown as SafetyVerdict, disposition }; // the cast is on OUR OWN frozen copy, built above from validated primitives
+  } catch {
+    return { ok: false, reason: "MALFORMED" }; // an exception while reading (it cannot come from user code: none runs) is a rejection; its detail is not kept
   }
-  return { ok: true, verdict: raw as SafetyVerdict, disposition };
 }
 /** Runs the guard (or any step that produces a verdict) so that a throw is a classification, not an unstructured crash. */
-async function guardedVerdict(produce: () => SafetyVerdict | Promise<SafetyVerdict>): Promise<VerdictClassification> {
-  try { return classifySafetyVerdict(await produce()); } catch { return { ok: false, reason: "GUARD_ERROR" }; } // the exception (and its message) is deliberately not kept or logged
+async function guardedVerdict(produce: () => unknown): Promise<VerdictClassification> {
+  try {
+    // A synchronous result (the guard itself) is parsed IMMEDIATELY, in the same tick: `await`ing a raw value would (a) read its `.then` — running a getter or a Proxy `get` trap — and
+    // (b) yield to the microtask queue before the snapshot exists, letting the producer change the object first. Only a real Promise (resolveProfileAwareSafety) is awaited; it resolves to
+    // one of our own snapshots or to a freshly built plain result, which is parsed again into its own snapshot.
+    const out = produce();
+    return classifySafetyVerdict(utilTypes.isPromise(out) ? await out : out);
+  } catch {
+    return { ok: false, reason: "GUARD_ERROR" }; // the exception (and its message) is deliberately not kept or logged
+  }
 }
 /** True only for a validated `safe` verdict (never from an unrecognised or malformed one, never from a throw). */
 const isSafeVerdict = async (question: string): Promise<boolean> => { const g = await guardedVerdict(() => safetyGuard.check(question)); return g.ok && g.verdict.type === "safe"; };
