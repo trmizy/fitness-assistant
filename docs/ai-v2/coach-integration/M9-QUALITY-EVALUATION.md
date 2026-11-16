@@ -206,3 +206,6 @@ cd backend/services/ai-service
 FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/personal-weight-guard.test.ts src/__tests__/coach-capability-preflight.test.ts src/__tests__/m9-quality-eval/quality-eval.test.ts
 FITNESS_DISABLE_REDIS=true npx tsx --test src/__tests__/agent-v2-*.test.ts     # kỳ vọng: chỉ RI-2 và HR-27 fail
 ```
+
+### 10.8 Đính chính của M9.4-T3 (`c8c05185`)
+Mô tả §10.1 là của guard T2. M9.4-T3 thu hẹp và sửa bốn điểm: (1) "số người dùng tự nói" chỉ tính khi nêu như cân nặng (kg/ký hoặc sau "nặng"), không còn tính mọi số trong phiên; (2) thông báo khi gỡ số cũ/lần trước là "đã cũ", không còn nói "chưa có số cân nặng" (số đó có trong bản ghi); (3) cảnh báo y tế chung câu với số bị gỡ được giữ; (4) câu hệ quả "Vì vậy…" treo trên tiền đề đã gỡ bị gỡ cùng. Bộ 45 ca và các chỉ số ở §10.3 **không đổi**. Chi tiết: `ARCHITECTURE.md` "Hợp đồng grounding cân nặng cá nhân".

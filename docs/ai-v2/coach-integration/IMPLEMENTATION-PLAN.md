@@ -73,7 +73,7 @@ Blockers: D-P02; P1 an toàn mở **không** chặn M9.2 vì cờ OFF, nhưng ch
 Blockers: V1 thật trên hạ tầng thật chưa kiểm; mobile thiết bị thật; D-P18 (schema); mọi thứ production (store/history thật, gateway, P1 an toàn).
 
 ---
-## M9.4 — Đánh giá chất lượng (T1) và release blocker (B1–B5)  `ACTIVE` — M9.4-T1 (đánh giá) và M9.4-T2 (grounding + preflight) đã làm; B1–B5 và T3 CHƯA mở
+## M9.4 — Đánh giá chất lượng (T1) và release blocker (B1–B5)  `ACTIVE` — M9.4-T1 (đánh giá), T2 (grounding + preflight) và T3 (hợp đồng grounding) đã làm; B1–B5 CHƯA mở
 > Ghi chú đánh số: brief M9.4-T1 là task **đánh giá chất lượng V1 vs V2**. Các task release-blocker ban đầu được đánh số lại **M9.4-B1…B5** (nội dung không đổi).
 | ID | Task | Dependencies | Acceptance | Tests | Status |
 |---|---|---|---|---|---|
@@ -96,6 +96,13 @@ Commit code `e6532e95` (trên `375f386e`). Hai sửa có kiểm soát sau đánh
 - Bộ đánh giá 45 ca, 8/8; `tsc` sạch; V1 `llm` 1715 test 0 fail; họ `agent-v2-*` 1418 test chỉ RI-2/HR-27 fail (như trước). Một vòng trung gian làm hỏng 5 test benchmark đóng băng vì guard gỡ cách nói quỹ đạo → đã sửa guard (không sửa dữ liệu benchmark).
 - **Không** sửa: Router, Supervisor, RI-2/HR-27, M8-C Unicode, hạn chế vị thành niên, AWS, benchmark, nhãn đóng băng. **Không** mở M9.4-T3 hay M9.5. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 **Còn mở:** guard chỉ phủ cân nặng; đường V1 tất định không qua guard; ngưỡng 90 ngày và nguồn "người dùng tự nói" là lựa chọn kỹ thuật chưa duyệt (D-P22); preflight là danh sách chặn (D-P23); V2 vẫn không có tool nhật ký bữa ăn/lịch sử tập theo kỳ.
+
+### Kết quả M9.4-T3 (2026-11-16 — OFFLINE, mock/fixture; ANSWER QUALITY: NOT EVALUATED)
+Commit code `c8c05185` (trên `af9b4d4d`). Hardening nhỏ cho hợp đồng grounding cân nặng; chi tiết hợp đồng, bằng chứng, hạn chế, điều kiện lên AWS: `ARCHITECTURE.md` "Hợp đồng grounding cân nặng cá nhân".
+- **Sửa (đều có reproducer fail trên guard T2):** (1) số "người dùng tự nói" chỉ tính khi nêu như cân nặng (kg/ký hoặc sau "nặng") — T2 tính mọi số; (2) thông báo khi gỡ số cũ/lần trước nói đúng sự thật ("đã cũ"), không nói "chưa có số"; (3) cảnh báo y tế chung câu với số bị gỡ được giữ (mệnh đề độc lập hoặc dòng giới thiệu bác sĩ cố định); (4) câu hệ quả "Vì vậy…" treo trên tiền đề đã gỡ bị gỡ cùng.
+- **Đường V1 tất định (Task B):** không có reproducer của số cân nặng không nguồn (không model; dữ liệu của chính người dùng; thiếu số đo thì rơi về model có guard). **Không** thêm guard ở ranh giới chung, **không** đổi orchestrator. Test cảnh báo sớm (EG-6) nếu mẫu tất định bắt đầu phát khẳng định cân nặng.
+- Test mới: `personal-weight-contract.test.ts` (7), `weight-grounding-engines.test.ts` (7, V1 thật + V2 thật, cùng dữ liệu). Verify: S06 + S09–S13 và bộ M9.4 (45 ca) pass; focused 115/115; `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); `llm` 1715 (0 fail, 3 todo có sẵn); `tsc` sạch.
+- **Không** sửa: Router, Supervisor, orchestrator, pin, benchmark, nhãn đóng băng, AWS. **Không** mở milestone tiếp theo. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 
 ## M9.5 — Sẵn sàng phát hành nội bộ  `NOT_STARTED`
 | ID | Task | Acceptance | Status |
