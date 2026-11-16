@@ -17,7 +17,7 @@ const SRC = path.resolve(__dirname, "..");
 
 const facts = (o: Partial<CoachRequestFacts> = {}): CoachRequestFacts => ({
   capability: "CHAT_READONLY_QA", transport: "json", userId: "user-1", callerKind: "gateway_user", hasUserBearer: true,
-  question: "Tuần này tôi nên tập gì?", sessionAffinity: "none", ...o,
+  question: "Tuần này tôi nên tập gì?", sessionAffinity: "none", clientRequestId: "req-00000001", ...o,
 });
 
 /** Harness: counts how often V2 ran and how often the caller would have run V1. */
@@ -72,9 +72,12 @@ test("V1-only capabilities and the SSE transport never reach V2", async () => {
   assert.equal(h.calls.length, 0);
 });
 
-test("a retry key, a conversation already on V1, a non-end-user caller, a missing bearer or a non-allowlisted user stay on V1", async () => {
+test("a missing / malformed retry key (V1 legacy), a conversation already on V1, a non-end-user caller, a missing bearer or a non-allowlisted user stay on V1", async () => {
   const cases: Array<[Partial<CoachRequestFacts>, Partial<CoachBridgeDeps>, string]> = [
-    [{ clientRequestId: "req-1" }, {}, "CLIENT_REQUEST_ID_V1_ONLY"],
+    [{ clientRequestId: undefined }, {}, "NO_VALID_CLIENT_REQUEST_ID"],
+    [{ clientRequestId: "short" }, {}, "NO_VALID_CLIENT_REQUEST_ID"],
+    [{ clientRequestId: "bad id with spaces!" }, {}, "NO_VALID_CLIENT_REQUEST_ID"],
+    [{ clientRequestId: "x".repeat(65) }, {}, "NO_VALID_CLIENT_REQUEST_ID"],
     [{ sessionAffinity: "v1", sessionId: "11111111-1111-4111-8111-111111111111" }, {}, "SESSION_ON_V1"],
     [{ callerKind: "service" }, {}, "NOT_VERIFIED_END_USER"],
     [{ callerKind: undefined }, {}, "NOT_VERIFIED_END_USER"],
@@ -96,7 +99,7 @@ test("eligible read-only question: V2 runs exactly once, V1 does not run, nothin
   const { res, v1Runs } = await h.dispatch(facts({ sessionId: "sess_ok-1" }));
   assert.equal(v1Runs, 0);
   assert.equal(h.calls.length, 1);
-  assert.deepEqual(h.calls[0], { question: "Tuần này tôi nên tập gì?", userId: "user-1", sessionId: "sess_ok-1" });
+  assert.deepEqual(h.calls[0], { question: "Tuần này tôi nên tập gì?", userId: "user-1", sessionId: "sess_ok-1" }, "clientRequestId never reaches the strict V2 input");
   assert.deepEqual(res, {
     handler: "v2", kind: "answered", status: "ANSWERED", answer: "câu trả lời V2", executedAgents: ["training"],
     turnId: "t-1", traceId: "s-1", fallbackAllowed: false,
@@ -214,7 +217,7 @@ test("the bridge imports nothing from agent-v2, touches no I/O and does not read
 test("V1 backward compatibility: the bridge is mounted nowhere — V1 routes, controllers and app are unaware of it", () => {
   const referrers = walk(SRC)
     .filter((f) => !f.includes(`${path.sep}__tests__${path.sep}`))
-    .filter((f) => path.relative(SRC, f) !== path.join("services", "coach-v2-bridge.ts"))
+    .filter((f) => ![path.join("services", "coach-v2-bridge.ts"), path.join("services", "coach-v2-continuity.ts")].includes(path.relative(SRC, f)))
     .filter((f) => /coach-v2-bridge|runCoachBridge|AI_COACH_V2_BRIDGE/.test(fs.readFileSync(f, "utf8")));
   assert.deepEqual(referrers.map((f) => path.relative(SRC, f)), [], "wiring is a later, separately approved task (M9.2-T3)");
   for (const f of [path.join("routes", "ai.routes.ts"), path.join("controllers", "ai.controller.ts"), "app.ts"]) {

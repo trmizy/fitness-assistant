@@ -11,8 +11,8 @@
  *  1. OFF by default. Only the exact value "on" enables it, and on NODE_ENV=production a second explicit approval is needed.
  *  2. The capability is selected BEFORE any runtime is touched. Only a plain read-only question over a JSON transport from a
  *     verified end user on the user allowlist may go to V2. Everything else (streaming, images, confirmed-write workflows,
- *     InBody / macro / memory / feedback / plan generation, retries carrying a clientRequestId, a conversation already on V1)
- *     stays on V1.
+ *     InBody / macro / memory / feedback / plan generation, a request without a valid clientRequestId, a conversation
+ *     already on V1) stays on V1.
  *  3. At most ONE primary branch handles a request: the bridge answers "v1" (the caller runs V1 unchanged) or "v2" (V2 ran
  *     once). It never runs both and never runs V1 itself.
  *  4. SAFETY: once V2 has processed a request, its decision is FINAL. A safety / minor / auth / persistence / routing /
@@ -60,7 +60,8 @@ export type CoachRouteReason =
   | "NOT_VERIFIED_END_USER"
   | "USER_NOT_ALLOWLISTED"
   | "CAPABILITY_V1_ONLY"
-  | "CLIENT_REQUEST_ID_V1_ONLY"
+  | "NO_VALID_CLIENT_REQUEST_ID"
+  | "CONTINUITY_NOT_CONFIGURED"
   | "SESSION_ON_V1"
   | "ELIGIBLE_READ_ONLY"
   | "V2_NOT_STARTED";
@@ -74,7 +75,11 @@ export interface CoachRequestFacts {
   hasUserBearer: boolean;
   question: string;
   sessionId?: string;
-  /** The client's retry-idempotency key. V2 has no idempotency yet (M9.4-T3), so a request carrying one stays on V1. */
+  /**
+   * The client's retry-idempotency key (V1 contract: services/request-identity.ts). It lives at THIS boundary only: V2's strict
+   * request never receives it (the executor input has no such field). V2 serves only requests with a VALID key, because the
+   * continuity layer (coach-v2-continuity.ts) needs one to make a retry safe; none / malformed → V1's own legacy handling.
+   */
   clientRequestId?: string;
   /**
    * Which version owns the conversation `sessionId` belongs to. "none" = a new conversation. A conversation already on V1
@@ -83,7 +88,7 @@ export interface CoachRequestFacts {
   sessionAffinity: "none" | "v1" | "v2";
 }
 
-export type CoachRouteDecision = { route: "v1"; reason: Exclude<CoachRouteReason, "ELIGIBLE_READ_ONLY" | "V2_NOT_STARTED"> } | { route: "v2"; reason: "ELIGIBLE_READ_ONLY" };
+export type CoachRouteDecision = { route: "v1"; reason: Exclude<CoachRouteReason, "ELIGIBLE_READ_ONLY" | "V2_NOT_STARTED" | "CONTINUITY_NOT_CONFIGURED"> } | { route: "v2"; reason: "ELIGIBLE_READ_ONLY" };
 
 export interface CoachBridgeDeps {
   /** Absent → isCoachBridgeEnabled(process.env). */
@@ -96,6 +101,11 @@ export interface CoachBridgeDeps {
   trace?: (event: { route: "v1" | "v2"; reason: CoachRouteReason; kind?: V2Kind }) => void;
 }
 
+/** Same shape V1 accepts (request-identity.ts SAFE_ID); a malformed value is ignored by V1 (legacy), never an error. */
+export function isValidClientRequestId(id: string | undefined): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9-]{8,64}$/.test(id);
+}
+
 /** Pure, synchronous selection — touches no runtime, no I/O. The first failing check wins. */
 export function decideCoachRoute(f: CoachRequestFacts, deps: Pick<CoachBridgeDeps, "enabled" | "userAllowed"> = {}): CoachRouteDecision {
   if (!(deps.enabled ?? (() => isCoachBridgeEnabled()))()) return { route: "v1", reason: "BRIDGE_OFF" };
@@ -103,7 +113,7 @@ export function decideCoachRoute(f: CoachRequestFacts, deps: Pick<CoachBridgeDep
   if ((f.callerKind !== "user" && f.callerKind !== "gateway_user") || !f.hasUserBearer || !f.userId) return { route: "v1", reason: "NOT_VERIFIED_END_USER" };
   if (!(deps.userAllowed ?? defaultCoachUserAllowlist())(f.userId)) return { route: "v1", reason: "USER_NOT_ALLOWLISTED" };
   if (f.capability !== "CHAT_READONLY_QA" || f.transport !== "json") return { route: "v1", reason: "CAPABILITY_V1_ONLY" };
-  if (f.clientRequestId) return { route: "v1", reason: "CLIENT_REQUEST_ID_V1_ONLY" };
+  if (!isValidClientRequestId(f.clientRequestId)) return { route: "v1", reason: "NO_VALID_CLIENT_REQUEST_ID" };
   if (f.sessionAffinity === "v1") return { route: "v1", reason: "SESSION_ON_V1" };
   return { route: "v2", reason: "ELIGIBLE_READ_ONLY" };
 }
@@ -155,6 +165,8 @@ export interface V2Outcome {
   executedAgents: string[];
   turnId?: string;
   traceId?: string;
+  /** True when the outcome came from an error thrown mid-turn (V2 may have partially processed): never replayed as a clean result. */
+  thrown?: true;
   /** Always false: a V2 decision is never re-run on V1. Present so callers cannot "helpfully" add a fallback unnoticed. */
   fallbackAllowed: false;
 }
@@ -171,7 +183,7 @@ function classifyThrown(err: unknown): V2Outcome {
   const authFailure = code === 401 || code === 403;
   return {
     handler: "v2", kind: authFailure ? "blocked" : "unavailable", status: authFailure ? "UNAUTHENTICATED" : "V2_ERROR",
-    ...(authFailure ? { block: "AUTH" as const } : {}),
+    ...(authFailure ? { block: "AUTH" as const } : {}), thrown: true,
     // no internal detail, no error text: the caller shows a generic message; the final answer is never produced by V1
     answer: "", executedAgents: [], fallbackAllowed: false,
   };
@@ -187,6 +199,15 @@ export async function runCoachBridge(facts: CoachRequestFacts, deps: CoachBridge
     deps.trace?.({ route: "v1", reason: decision.reason });
     return { handler: "v1", reason: decision.reason, v2Attempted: false };
   }
+  return dispatchV2(facts, deps);
+}
+
+/**
+ * Runs V2 exactly once for a request that has ALREADY been decided "v2" (by decideCoachRoute, including the client-key rule).
+ * Exported for the continuity layer, which owns the key, claims it atomically and must not hand the key to V2: `facts` here
+ * may carry the key but it is never forwarded: the executor input is built from question / user / session only.
+ */
+export async function dispatchV2(facts: CoachRequestFacts, deps: CoachBridgeDeps = {}): Promise<CoachBridgeResult> {
   // an eligible request but no executor wired: fail to V1 — V2 was never reached, so nothing was processed
   if (!deps.executor) {
     deps.trace?.({ route: "v1", reason: "V2_NOT_STARTED" });
