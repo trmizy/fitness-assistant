@@ -143,8 +143,8 @@ for (const [label, q] of [["zero-width space between the words", "Tôi muốn t�
   test(`F2-GAP B-01/B-02 (not fixed in F2) ${label}: V1 and V2 treat it as an emergency`, { todo: "B-01 invisible separator / B-02 full-width: still OPEN" }, () => { assert.equal(v1(q).type, "medical_emergency"); assert.equal(v2(q).type, "medical_emergency"); });
 }
 
-// ── T1C dependency (outside the F2 allowlist): the V1 orchestrator does not know the two fail-closed types ──
-test("F2-T1C the V1 orchestrator's early-return list handles input_too_long and emergency_unassessable (T1C — NOT done in F2)", { todo: "T1C: llm/orchestrator.service.ts early-return list lacks both types: over HTTP, V1 would continue to the model for these verdicts" }, () => {
+// ── Was a T1C dependency in F2 (todo); CLOSED by F3: the V1 orchestrator now stops on the two fail-closed types (behaviour pinned in safety-v1-orchestrator-failclosed-f3.test.ts) ──
+test("F2-T1C (closed by F3) the V1 orchestrator handles input_too_long and emergency_unassessable before any model call", () => {
   const src = readFileSync(join(__dirname, "../llm/orchestrator.service.ts"), "utf8");
-  for (const t of ["input_too_long", "emergency_unassessable"]) assert.ok(src.includes(`safetyCheck.type === "${t}"`), `orchestrator does not return early for ${t}`);
+  for (const t of ["input_too_long", "emergency_unassessable"]) assert.ok(src.includes(`safetyCheck.type === "${t}"`), `orchestrator does not stop on ${t}`);
 });

@@ -28,6 +28,7 @@ import { fitToBudget, planContext } from "./context_plan";
 import { detectMythClaims, formatClaimRulesForPrompt } from "./claim_rules";
 import { languageGuard } from "./language_guard";
 import { safetyGuard } from "./safety_guard";
+import { ApiError } from "../errors/api-error";
 import { profileExtractor } from "./profile_extractor";
 import type { PersonalizationContext } from "./profile_extractor";
 import { retriever } from "./retriever";
@@ -492,6 +493,18 @@ async function runInner(
     let safetyCheck = safetyGuard.check(question);
     if (userId) {
       safetyCheck = await resolveProfileAwareSafety(question, safetyCheck, async () => (await profileExtractor.extract(userId, authHeader)).profile?.age);
+    }
+
+    // M9.5-T1B-F3 — FAIL CLOSED. The Safety Guard answers `emergency_unassessable` / `input_too_long` when it could NOT assess the message (ambiguous reference, engine fault,
+    // unsupported state, over-limit). That is not "safe": nothing below may run — no memory write, no meta / third-party / day-macro shortcut, no V1 agent or tool, no retrieval, no model,
+    // no turn write. It is also not an emergency (no medical template is used for a technical state) and not an AI answer (nothing is returned as one): the turn ends with an ApiError, which the
+    // controllers already turn into a structured HTTP error (JSON) or an SSE `error` event, and ragService persists no conversation turn for it. The text is the guard's own neutral
+    // refusal; the question is never logged or echoed. (The 2 000-unit limit is still enforced earlier by the request schema.)
+    if (safetyCheck.type === "input_too_long" || safetyCheck.type === "emergency_unassessable") {
+      traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "safety_gate" });
+      logger.warn({ userId, verdict: safetyCheck.type, reason: safetyCheck.reason }, "[safety] fail-closed: the safety gate could not assess the message — no model, tool or retrieval call");
+      const message = language.responseLanguage === "vi" ? safetyCheck.messageVi : safetyCheck.messageEn;
+      throw safetyCheck.type === "input_too_long" ? new ApiError("VALIDATION_ERROR", message, 400) : new ApiError("SERVICE_UNAVAILABLE", message, 503);
     }
 
     // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
