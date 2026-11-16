@@ -11,14 +11,18 @@ import { foldVi } from "./speech_act";
  *   "Cân nặng của bạn hiện là 99 kg" · "Bạn đang nặng 72 kg" · "Số đo cân nặng gần nhất là 72.4 kg" · "your weight is 70 kg"
  * What is NOT a claim (kept, never touched): questions to the user; conditionals / examples / hypotheticals ("nếu bạn nặng 70 kg",
  * "ví dụ", "giả sử"); generic or third-person statements ("người nặng 70 kg cần khoảng 140 g protein", "1 kg mỡ ≈ 7700 kcal"); targets,
- * ideals and forecasts ("cân nặng mục tiêu là 68 kg", "dự báo"); any sentence without a kg figure; a number the user stated in this conversation.
+ * ideals and forecasts ("cân nặng mục tiêu là 68 kg", "dự báo"); any sentence without a kg figure; a weight the user stated in this conversation.
  *
- * Evidence is ONLY: figures from the authenticated user's own records (passed in by the caller, with their role and age) and figures the user
+ * Evidence is ONLY: figures from the authenticated user's own records (passed in by the caller, with their role and age) and weights the user
  * stated in THIS conversation. Missing data stays missing: no default is ever substituted. A claim is supported when its figure matches:
  *   current claim     → the LATEST measurement or the profile-reported weight (not a previous measurement, not the start weight)
  *   historical claim  → any sourced figure (marker: "trước đó", "lần đo trước", "ban đầu", …)
- *   a figure of the latest measurement older than STALE_AFTER_DAYS may not be stated as current without a dating qualifier.
+ *   a figure of the latest measurement older than STALE_AFTER_DAYS may not be stated as current without a dating qualifier (an old measurement is
+ *   NOT worthless: stated with its date, or framed as past, it is kept).
  * Tolerance: ±0.05 kg for a decimal figure, ±0.5 kg for a whole number (rounding), nothing else.
+ *
+ * Source contract (M9.4-T3): a weight the USER stated (kg unit or right after "nặng") is accepted only as "not invented by the model" — user-reported is
+ * NOT verified, and the guard does not relabel it. Another user's figure is never evidence (the caller passes only the authenticated user's own data).
  * Known limits (documented, not hidden): conflicting sources (latest measured vs profile-reported differ) → either is accepted as "current", the
  * guard does not arbitrate; a claim phrased in a way no pattern covers is not seen (a pattern list is a backstop, not a proof of absence).
  */
@@ -34,6 +38,10 @@ export interface PersonalWeightResult { answer: string; removed: string[]; reaso
 
 export const STALE_AFTER_DAYS = 90;
 export const NO_VERIFIED_WEIGHT_NOTICE = "Mình chưa có số cân nặng đã được ghi nhận của bạn cho nội dung này nên không nêu con số cụ thể.";
+/** Used when EVERY removed figure existed in the user's record but was old / a previous measurement: "no weight on record" would be untrue then. */
+export const STALE_OR_HISTORY_NOTICE = "Số đo cân nặng đã ghi nhận của bạn đã cũ hoặc là số đo trước đó, nên mình không nêu nó như cân nặng hiện tại. Bạn cập nhật số đo mới để mình tư vấn chính xác hơn.";
+/** Appended only when a removed sentence carried a safety warning that could not be kept on its own. Carries no number. */
+export const GENERIC_SAFETY_REFERRAL = "Nếu bạn đang có vấn đề sức khoẻ hoặc thấy không khoẻ, hãy trao đổi với bác sĩ hoặc chuyên gia y tế.";
 
 const KG = String.raw`(\d{1,3}(?:[.,]\d{1,2})?)\s*(?:kg|ky|ki|kilo|kilos|kilogram)\b`;
 const CLAIMS: RegExp[] = [
@@ -55,7 +63,22 @@ const LINE_PREFIX = /^(\s*(?:[-*•]|\d+[.)])\s+)/;
 
 const num = (s: string) => Number(s.replace(",", "."));
 const matches = (n: number, kg: number) => Math.abs(n - kg) <= (Number.isInteger(n) ? 0.5 : 0.05);
-const figuresIn = (texts: readonly string[]) => [...texts.flatMap((t) => [...String(t ?? "").matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => num(m[0])))];
+
+// M9.4-T3: a figure the USER stated counts only when it is stated AS A WEIGHT (a number with a kg unit, or right after "nặng"/"cân nặng").
+// M9.4-T2 accepted ANY number in the session (an age, a calorie target, a rep count) as "user-stated", so "Bạn đang nặng 25 kg" passed after "Tôi 25 tuổi".
+const USER_WEIGHT_UNIT = /(\d{1,3}(?:[.,]\d{1,2})?)\s*(?:kg|ky|ki|kilo|kilos|kilogram|can)\b/g;
+const USER_WEIGHT_WORD = /\b(?:can nang|nang)\s*(?:la\s+|khoang\s+|gan\s+)?(\d{1,3}(?:[.,]\d{1,2})?)\b/g;
+const figuresIn = (texts: readonly string[]): number[] => texts.flatMap((t) => {
+  const f = foldVi(String(t ?? ""));
+  return [...f.matchAll(USER_WEIGHT_UNIT), ...f.matchAll(USER_WEIGHT_WORD)].map((m) => num(m[1]));
+});
+
+// M9.4-T3: removing a sentence must not remove a SAFETY warning that shares it ("Cân nặng của bạn là 99 kg, bạn nên đi khám bác sĩ"), and must not
+// leave a consequence sentence ("Vì vậy bạn nên giảm 31 kg") hanging on a premise that was just removed.
+const SAFETY_CUE = /(?<!\p{L})(?:bác sĩ|bác sỹ|y tế|khám|chuyên gia|nguy hiểm|không an toàn|cảnh báo|cấp cứu|dừng tập|ngừng tập|đau|chóng mặt|ngất|rối loạn ăn uống)(?!\p{L})/u;
+const LEAD_CONNECTIVE = /^(?:nên|vì vậy|vì thế|do đó|cho nên|thì|và|nhưng|còn|do vậy)(?!\p{L})[\s,]*/iu;
+const DEPENDENT_SENTENCE = /^(?:vì vậy|vì thế|do đó|do vậy|như vậy|từ đó|theo đó|cho nên|therefore|thus|so)(?!\p{L})/iu;
+const HAS_KG_FIGURE = /\d\s*(?:kg|ký|kilo)/iu;
 
 /** Pure: does this sentence state the user's own current/historical weight as a number? Returns the figure and whether it is framed as past. */
 export function weightClaimIn(sentence: string): { kg: number; historical: boolean; dated: boolean } | null {
@@ -77,10 +100,22 @@ export function weightClaimIn(sentence: string): { kg: number; historical: boole
   return null;
 }
 
+/** The clauses of a removed sentence that carry a safety cue and no weight figure, made standalone; null when none can stand alone. */
+function safetyClausesOf(sentence: string): string | null {
+  const kept = sentence.split(/\s*[,;]\s+/)
+    .filter((c) => SAFETY_CUE.test(c.toLowerCase()) && !HAS_KG_FIGURE.test(c) && !weightClaimIn(c))
+    .map((c) => c.trim().replace(LEAD_CONNECTIVE, "").replace(/[.!?\s]+$/u, ""))
+    .filter((c) => c.length >= 8);
+  if (!kept.length) return null;
+  const joined = kept.join(", ");
+  return `${joined[0].toUpperCase()}${joined.slice(1)}.`;
+}
+
 export function groundPersonalWeightClaims(answer: string, ev: PersonalWeightEvidence): PersonalWeightResult {
   const userFigures = figuresIn([ev.question, ...(ev.sessionUserMessages ?? [])]);
   const reasons: string[] = [];
   const removed: string[] = [];
+  let safetyLost = false;
 
   const supported = (claim: { kg: number; historical: boolean; dated: boolean }): string | null => {
     if (userFigures.some((u) => matches(claim.kg, u))) return null; // the user said it in this conversation (provenance: the user, not a record)
@@ -101,10 +136,18 @@ export function groundPersonalWeightClaims(answer: string, ev: PersonalWeightEvi
     const sentences = body.split(/(?<=[.!?])\s+/);
     const kept: string[] = [];
     let changed = false;
+    let prevRemoved = false;
     for (const s of sentences) {
       const claim = weightClaimIn(s);
       const why = claim ? supported(claim) : null;
-      if (claim && why) { removed.push(s.trim()); reasons.push(why); changed = true; continue; }
+      if (claim && why) {
+        removed.push(s.trim()); reasons.push(why); changed = true; prevRemoved = true;
+        if (SAFETY_CUE.test(s.toLowerCase())) { const standalone = safetyClausesOf(s); if (standalone) kept.push(standalone); else safetyLost = true; }
+        continue;
+      }
+      // a consequence sentence that hangs on the premise just removed ("Vì vậy bạn nên giảm 31 kg…") goes with it — unless it carries a safety cue
+      if (prevRemoved && DEPENDENT_SENTENCE.test(s.trim()) && !SAFETY_CUE.test(s.toLowerCase())) { removed.push(s.trim()); reasons.push("dependent_on_removed"); changed = true; continue; }
+      prevRemoved = false;
       kept.push(s);
     }
     if (!changed) return line;
@@ -116,8 +159,12 @@ export function groundPersonalWeightClaims(answer: string, ev: PersonalWeightEvi
   if (!removed.length) return { answer, removed, reasons };
 
   const cleaned = lines.filter((l): l is string => l !== null).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  // the notice must not say "no weight on record" when every removed figure WAS on record but old / previous
+  const figureReasons = reasons.filter((r) => r !== "dependent_on_removed");
+  const notice = figureReasons.length && figureReasons.every((r) => r === "stale_as_current" || r === "history_as_current") ? STALE_OR_HISTORY_NOTICE : NO_VERIFIED_WEIGHT_NOTICE;
+  const tail = safetyLost && !/bác sĩ|chuyên gia/i.test(cleaned) ? `${notice}\n\n${GENERIC_SAFETY_REFERRAL}` : notice;
   // The original is NEVER returned when something was removed (unlike the fidelity guard): that would let the unsourced figure through.
-  return { answer: cleaned ? `${cleaned}\n\n${NO_VERIFIED_WEIGHT_NOTICE}` : NO_VERIFIED_WEIGHT_NOTICE, removed, reasons };
+  return { answer: cleaned ? `${cleaned}\n\n${tail}` : tail, removed, reasons };
 }
 
 // ── evidence builders (pure) ────────────────────────────────────────────────────────────────────────────────────────────────

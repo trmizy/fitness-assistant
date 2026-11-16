@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  groundPersonalWeightClaims, weightClaimIn, weightEvidenceFromV1Context, weightEvidenceFromV2ToolData, NO_VERIFIED_WEIGHT_NOTICE, STALE_AFTER_DAYS,
+  groundPersonalWeightClaims, weightClaimIn, weightEvidenceFromV1Context, weightEvidenceFromV2ToolData, NO_VERIFIED_WEIGHT_NOTICE, STALE_OR_HISTORY_NOTICE, STALE_AFTER_DAYS,
   type SourcedWeight,
 } from "../llm/personal_weight_guard";
 
@@ -39,7 +39,7 @@ test("WG-2 valid sourced weight is kept byte-identical (latest measured, profile
 test("WG-3 stale weight: an undated 'current' claim from a measurement older than the threshold is removed; a dated or labelled-old one is kept", () => {
   const stale = ev([LATEST(72.4, STALE_AFTER_DAYS + 120)]);
   const r = run("Cân nặng của bạn hiện là 72.4 kg.", stale);
-  assert.equal(r.answer, NO_VERIFIED_WEIGHT_NOTICE); assert.deepEqual(r.reasons, ["stale_as_current"]);
+  assert.equal(r.answer, STALE_OR_HISTORY_NOTICE, "M9.4-T3: the figure IS on record but old — the notice must not claim 'no weight on record'"); assert.deepEqual(r.reasons, ["stale_as_current"]);
   assert.equal(run("Theo lần đo ngày 17/04, cân nặng của bạn là 72.4 kg.", stale).removed.length, 0);
   assert.equal(run("Số đo cân nặng gần nhất của bạn đã cũ (hơn 6 tháng) là 72.4 kg.", stale).removed.length, 0);
   assert.equal(run("Cân nặng của bạn hiện là 72.4 kg.", ev([LATEST(72.4, STALE_AFTER_DAYS)])).removed.length, 0, "at the threshold it is still fresh");
