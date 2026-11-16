@@ -104,7 +104,7 @@ Commit code `c8c05185` (trên `af9b4d4d`). Hardening nhỏ cho hợp đồng gro
 - Test mới: `personal-weight-contract.test.ts` (7), `weight-grounding-engines.test.ts` (7, V1 thật + V2 thật, cùng dữ liệu). Verify: S06 + S09–S13 và bộ M9.4 (45 ca) pass; focused 115/115; `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); `llm` 1715 (0 fail, 3 todo có sẵn); `tsc` sạch.
 - **Không** sửa: Router, Supervisor, orchestrator, pin, benchmark, nhãn đóng băng, AWS. **Không** mở milestone tiếp theo. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 
-## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc), M9.5-T1 (khắc phục B-03, offline) và M9.5-T1S (khắc phục phát hiện review độc lập B-03, offline — sau đó bị review độc lập thứ hai BLOCKED) và M9.5-T1A (thiết kế + test RED cho B-03) và M9.5-T1B (lõi emergency offline) và M9.5-T1B-F1 (ngữ nghĩa lõi) đã làm; F2, T1C và T2–T4 CHƯA mở
+## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc), M9.5-T1 (khắc phục B-03, offline) và M9.5-T1S (khắc phục phát hiện review độc lập B-03, offline — sau đó bị review độc lập thứ hai BLOCKED) và M9.5-T1A (thiết kế + test RED cho B-03) và M9.5-T1B (lõi emergency offline) và M9.5-T1B-F1 (ngữ nghĩa lõi) và M9.5-T1B-F2 (nhất quán adapter) đã làm; T1C và T2–T4 CHƯA mở
 
 ### Kết quả M9.5-T0 (2026-11-16 — CHỈ ĐỌC; không runtime/AWS/model/DB, không sửa code/pin/benchmark)
 Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái bền vững, cổng model/chất lượng, thứ tự đóng blocker), `M9-BLOCKER-REGISTER.md` (26 mục: **15 P1**, 11 P2, 0 P0, **0 VERIFIED**), `M9-AWS-ROLLOUT-PLAN.md` (Phase 0–3, kill switch, rollback, tiêu chí STOP — toàn bộ PROPOSED).
@@ -120,7 +120,7 @@ Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái b�
 | M9.5-T1A | Cổng kiến trúc B-03: nguyên nhân hệ thống, hợp đồng, kiến trúc, test RED độc lập (không sửa implementation) | `M9-B03-SAFETY-ARCHITECTURE.md` + RED suite xác nhận | **DONE (thiết kế + RED)**; lượt triển khai sau chưa mở |
 | M9.5-T1B | Lõi emergency có biên dùng chung V1/V2 (phương án B của T1A): `llm/emergency/*` + adapter `safety_guard.ts` | 11/14 RED GREEN; 0 Unsafe→Safe bất ngờ; không cắt âm thầm; TS + suite tập trung xanh | **DONE (offline, PARTIAL)** — 3 RED integration còn lại → T1C |
 | M9.5-T1B-F1 | Sửa ngữ nghĩa lõi sau review độc lập Codex Desktop trên `039c1dba`: phạm vi phủ định, cô lập chủ thể, đại từ, mô tả cấp cứu, dương tính giả, độ phức tạp (chỉ `llm/emergency/*`) | 27/50 RED → 51/51 GREEN; T1A `B03_ENFORCE=1` 17/20; 0 Unsafe→Safe | **DONE (offline, PARTIAL)** — adapter → F2, integration → T1C |
-| M9.5-F2 | (CHƯA MỞ — cần owner duyệt) Adapter `safety_guard.ts`: đọc `uncertainty`/`risks[]`, precedence cardio, over-limit, bất tỉnh của chính mình | tương thích hợp đồng cũ + differential | NOT_STARTED |
+| M9.5-T1B-F2 | Nhất quán adapter emergency V1/V2: `uncertainty`/`risks[]`, fail-closed (ambiguous, unable, unsupported, over-limit), một assessment/tin nhắn (`llm/safety_guard.ts`, `agent-v2/answer-guards.ts`) | 29/49 RED → 46 PASS; T1A 17/20; 0 Unsafe→Safe; V1≡V2 | **DONE (offline, PARTIAL)** — V1 HTTP + thứ tự → T1C |
 | M9.5-T1C | (CHƯA MỞ — cần owner duyệt) Pre-gate HTTP + thứ tự Supervisor/bridge/V1 + orchestrator xử lý `input_too_long`/`emergency_unassessable` | T1A-7b/7c/7d GREEN | NOT_STARTED |
 | M9.5-T1b | (dòng T1 cũ) Gateway: phủ `/ai/v2/ask` bằng limiter chi phí — **premise sai trên AWS** (Express gateway không triển khai; xem B-24) | tương đương `/ai/ask` | NOT_STARTED |
 | M9.5-T2 | Kiểm phơi bày AWS API Gateway/Lambda (chỉ đọc) | tài liệu hoá, không đổi hạ tầng | NOT_STARTED |
@@ -163,6 +163,14 @@ Sửa ngữ nghĩa lõi `llm/emergency/*` theo các phát hiện độc lập tr
 - **Hiệu năng:** 2k/8k/32k đơn vị đo cho 7 dạng; bốn vòng lặp lồng bậc hai thay bằng `PairIndex` (dạng xen kẽ: ×14 → ×4,1 khi ×4 dữ liệu); đo, không chứng minh O(n).
 - **Chưa làm:** F2 (adapter đọc `AMBIGUOUS_REFERENCE` / `risks[]`, precedence, over-limit), T1C (pre-gate/thứ tự), lâm sàng (lớp `LOC_ALONE`, mẫu neurological/overdose/say nóng), B-01/B-02.
 - **Trạng thái:** `M9.5-T1B-F1: PARTIAL`; `CORE SEMANTICS: VERIFIED OFFLINE`; `INDEPENDENT REGRESSIONS: 17/20`; `ADAPTER CONSISTENCY: PENDING F2`; `INTEGRATION ORDERING: PENDING T1C`; `CLINICAL APPROVAL: PENDING`; `B-03 RELEASE: BLOCKED`. Không mở F2/T1C.
+
+### Kết quả M9.5-T1B-F2 (2026-11-16 — OFFLINE; không AWS/model/DB/Redis; không subagent; không gọi Codex; không đổi lõi/HTTP/Supervisor/bridge/orchestrator)
+Adapter `assessEmergency` → verdict cũ nhất quán và fail-closed; V1 và V2 dùng **một** assessment.
+- **Test:** `safety-emergency-adapter-f2.test.ts` mới 49 = 46 PASS + 3 `todo` (trên HEAD: 29/49 FAIL = 14 hành vi + 15 seam); F1 51/51; engine T1B 11 + 7 `todo`; T1A `B03_ENFORCE=1` **17/20** (3 RED T1C, không đổi expected); 3 test wiring M7-P5A.3d giữ xanh. Hồi quy rộng (scoped): `tsc --noEmit` sạch; `src/__tests__/*.test.ts` (268 file + 2 mới): F1 3 395 test / 2 924 pass / 374 fail / 24 todo → F2 3 444 / 2 970 / 374 / 27 (+49 test mới của adapter: +46 pass, +3 todo); **tập test FAIL giống hệt trước/sau (375 tên gồm mục cấp file; 0 hồi quy)** — 374 fail có sẵn gồm RI-2/HR-27 và các test cần DB thật/dịch vụ không có ở môi trường này; `src/llm/__tests__` 1 715 test / 1 712 pass / 0 fail / 3 todo (IV-6 giữ nguyên); `test:evaluation` 20/20; `test:policy` 5/6 (VN-SPECIFIC-SCHEDULE fail có sẵn).
+- **Differential** (28 633 chuỗi): V1 0 Emergency→Safe / 0 Unsafe→Safe / 0 Safe→Emergency / 0 đổi kind / 1 Safe→Unassessable; V2 10 Emergency→Safe (chỉ "Tôi muốn từ từ"); V1≠V2 10 → 0; kiểm toán 109 downgrade F1: 104 xác nhận, **5 UNRESOLVED**.
+- **Đính chính F1:** differential F1 chạy trên corpus thiếu do lỗi script; khẳng định "27 585 không tái hiện được" là sai (chi tiết `M9-B03-SAFETY-ARCHITECTURE.md` §12.5).
+- **Chưa làm:** T1C (orchestrator early-return list cho `input_too_long`/`emergency_unassessable`, `strictInputLimit` ở pre-gate, thứ tự), lâm sàng (mẫu đa nguy cơ, sốc nhiệt…), B-01/B-02, 5 ca UNRESOLVED (policy sốc nhiệt giả định về bản thân + 2 ca cần bằng chứng).
+- **Trạng thái:** `M9.5-T1B-F2: PARTIAL`; `ADAPTER CONSISTENCY: VERIFIED OFFLINE`; `T1A REGRESSIONS: 17/20`; `CLINICAL APPROVAL: PENDING`; `T1C: NOT AUTHORIZED`. Không mở T1C.
 
 ---
 ## Thứ tự và phụ thuộc
