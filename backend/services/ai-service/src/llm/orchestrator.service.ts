@@ -273,6 +273,7 @@ function parseGuidance(g: unknown): Readonly<UnsafeGuidance> | null {
 export function classifySafetyVerdict(raw: unknown): VerdictClassification {
   try {
     if (!isPlainObject(raw)) return { ok: false, reason: "MALFORMED" };
+    if ("then" in raw) return { ok: false, reason: "MALFORMED" }; // a thenable is not a verdict (`in` runs no getter): it would be assimilated by any later `await` / async return
     const t = ownData(raw, "type");
     if (!t.ok || typeof t.value !== "string" || t.value === "") return { ok: false, reason: "MALFORMED" };
     const type = t.value;
@@ -301,22 +302,28 @@ export function classifySafetyVerdict(raw: unknown): VerdictClassification {
     return { ok: false, reason: "MALFORMED" }; // an exception while reading (it cannot come from user code: none runs) is a rejection; its detail is not kept
   }
 }
-/** Runs the guard (or any step that produces a verdict) so that a throw is a classification, not an unstructured crash. */
-async function guardedVerdict(produce: () => unknown): Promise<VerdictClassification> {
-  try {
-    // A synchronous result (the guard itself) is parsed IMMEDIATELY, in the same tick: `await`ing a raw value would (a) read its `.then` — running a getter or a Proxy `get` trap — and
-    // (b) yield to the microtask queue before the snapshot exists, letting the producer change the object first. Only a real Promise (resolveProfileAwareSafety) is awaited; it resolves to
-    // one of our own snapshots or to a freshly built plain result, which is parsed again into its own snapshot.
-    const out = produce();
-    return classifySafetyVerdict(utilTypes.isPromise(out) ? await out : out);
-  } catch {
-    return { ok: false, reason: "GUARD_ERROR" }; // the exception (and its message) is deliberately not kept or logged
-  }
+// ── M9.5-T1B-RC1: THE SYNCHRONOUS TRUST BOUNDARY ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//   Raw Safety Result  →  synchronous validation  →  trusted safety decision (frozen snapshot)  →  async orchestration.
+// F5 made the PARSER safe but still let a raw verdict cross an async boundary BEFORE it was parsed: a Promise returned by a producer was `await`ed (reading its `constructor` / `then`, running
+// attacker code), and `resolveProfileAwareSafety` — an `async` function — RETURNED the minors' raw verdict, so the return boundary assimilated any thenable and let a microtask change the object
+// before the parse. Patching each getter / Promise / Proxy separately cannot close that; the contract does:
+//   • a raw verdict is produced and parsed in ONE synchronous step (`guardVerdict`): no `await`, no `Promise.resolve`, no `async` return ever touches it; a Promise / thenable is NOT a verdict
+//     and is refused by the parser without being awaited or asked for `.then` / `.constructor`;
+//   • async code only ever receives trusted snapshots or plain I/O DATA that carries no verdict (the profile AGE); a safety result built after an async step (the minors' triage) is
+//     produced and validated synchronously AT its producer (`applyProfileAge`), never returned raw through an async function.
+/** Produces (via `produce`) and parses ONE raw verdict in a single synchronous step. A throw is a classification, never an unstructured crash; its detail is deliberately not kept. */
+export function guardVerdict(produce: () => unknown): VerdictClassification {
+  try { return classifySafetyVerdict(produce()); } catch { return { ok: false, reason: "GUARD_ERROR" }; }
 }
 /** True only for a validated `safe` verdict (never from an unrecognised or malformed one, never from a throw). */
-const isSafeVerdict = async (question: string): Promise<boolean> => { const g = await guardedVerdict(() => safetyGuard.check(question)); return g.ok && g.verdict.type === "safe"; };
+const isSafeVerdict = (question: string): boolean => { const g = guardVerdict(() => safetyGuard.check(question)); return g.ok && g.verdict.type === "safe"; };
 /** A short machine token for logs; anything else (arbitrary injected text) is replaced. */
 const logToken = (x: unknown): string => (typeof x === "string" && /^[A-Za-z_]{1,48}$/.test(x) ? x : "unspecified");
+/** The guard's own neutral refusal as a trusted `emergency_unassessable` snapshot (for a compatibility caller that handed in an invalid verdict). */
+function failClosedVerdict(): SafetyVerdict {
+  const n = emergencyReplyForKind("unsupported_verdict") as SafetyUnassessable;
+  return Object.freeze({ type: "emergency_unassessable", messageVi: n.messageVi, messageEn: n.messageEn, reason: "UNSUPPORTED_STATE" }) as unknown as SafetyVerdict;
+}
 
 /**
  * The question-only safety detector cannot see the profile. A user who is a MINOR by profile age gets the minors' triage
@@ -327,25 +334,45 @@ const logToken = (x: unknown): string => (typeof x === "string" && /^[A-Za-z_]{1
  *    "Tôi 19 tuổi, …" against a 16-year-old profile must keep the minor reading (conservative).
  * The profile is only read on such turns (`getProfileAge` is never called for anything else). A failed lookup keeps the
  * question-only result (logged).
+ * RC1 split — pure / I/O / pure: `needsProfileAge` (does this TRUSTED verdict need the age?), `lookupProfileAge` (the only async step; its result is a number, never a verdict) and
+ * `applyProfileAge` (validates the minors' producer synchronously). Behaviour is unchanged for every valid verdict.
+ */
+function needsProfileAge(question: string, verdict: SafetyVerdict): boolean {
+  if (verdict.type === "minor_age_nutrition_request") return false;
+  const folded = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
+  const isSafe = verdict.type === "safe";
+  const aggressiveWeightLossPlan = isSafe && (AGGRESSIVE_WEIGHT_LOSS_PLAN.test(folded) || WEIGHT_LOSS_GOAL.test(folded));
+  const minorPolicyTurn = isSafe && needsProfileAgeForMinorPolicy(question);
+  return PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(verdict.type) || aggressiveWeightLossPlan || minorPolicyTurn;
+}
+/** The ONLY async step of the profile-aware decision: it returns the age (data), never a safety verdict. A failed lookup is logged and yields `undefined` (question-only result kept). */
+async function lookupProfileAge(getProfileAge: () => Promise<number | null | undefined>): Promise<unknown> {
+  try { return await getProfileAge(); } catch (err) { logger.warn({ err: (err as Error)?.message }, "[safety] profile age lookup failed; question-only safety result kept"); return undefined; }
+}
+/**
+ * Synchronous. A profile minor gets the minors' triage — produced by `safetyGuard.minorAgeResult()` and parsed HERE, at its producer, in the same step. That producer has exactly one legal
+ * result, a recognised `minor_age_nutrition_request`; a `safe`, another type, a Promise / thenable, a malformed value or a throw is a broken producer and must NEVER silently turn the minors'
+ * triage back into the question-only verdict, so it fails closed (it used to: a throw was swallowed by the lookup's `catch`, a `safe` was accepted).
+ */
+function applyProfileAge(trusted: Extract<VerdictClassification, { ok: true }>, age: unknown): VerdictClassification {
+  if (!(typeof age === "number" && age > 0 && age < 18)) return trusted;
+  const minor = guardVerdict(() => safetyGuard.minorAgeResult());
+  return minor.ok && minor.verdict.type === "minor_age_nutrition_request" ? minor : { ok: false, reason: "MALFORMED" };
+}
+/**
+ * Exported compatibility entry (callers and tests pass a verdict and an async age reader). The INPUT verdict is parsed synchronously BEFORE any await; only a trusted frozen snapshot — or
+ * the fail-closed snapshot — is ever returned across this function's async boundary. The orchestrator itself no longer calls it (it uses the three steps above directly).
  */
 export async function resolveProfileAwareSafety(
   question: string,
   safetyCheck: ReturnType<typeof safetyGuard.check>,
   getProfileAge: () => Promise<number | null | undefined>,
 ): Promise<ReturnType<typeof safetyGuard.check>> {
-  if (safetyCheck.type === "minor_age_nutrition_request") return safetyCheck;
-  const folded = question.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
-  const isSafe = safetyCheck.type === "safe";
-  const aggressiveWeightLossPlan = isSafe && (AGGRESSIVE_WEIGHT_LOSS_PLAN.test(folded) || WEIGHT_LOSS_GOAL.test(folded));
-  const minorPolicyTurn = isSafe && needsProfileAgeForMinorPolicy(question);
-  if (!PROFILE_AGE_SENSITIVE_SAFETY_TYPES.has(safetyCheck.type) && !aggressiveWeightLossPlan && !minorPolicyTurn) return safetyCheck;
-  try {
-    const age = await getProfileAge();
-    if (typeof age === "number" && age > 0 && age < 18) return safetyGuard.minorAgeResult();
-  } catch (err) {
-    logger.warn({ err: (err as Error)?.message }, "[safety] profile age lookup failed; question-only safety result kept");
-  }
-  return safetyCheck;
+  const gate = classifySafetyVerdict(safetyCheck); // synchronous, before the first await
+  if (!gate.ok) return failClosedVerdict();
+  if (!needsProfileAge(question, gate.verdict)) return gate.verdict;
+  const resolved = applyProfileAge(gate, await lookupProfileAge(getProfileAge));
+  return resolved.ok ? resolved.verdict : failClosedVerdict();
 }
 
 /** Minor prompt note + supervision line: a minor by the MESSAGE asking a general question, or a minor by PROFILE/TurnFacts. */
@@ -623,10 +650,12 @@ async function runInner(
     // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
     // F4: the verdict is validated BEFORE it is used for anything — including by `resolveProfileAwareSafety` (which may read the profile).
-    let gate = await guardedVerdict(() => safetyGuard.check(question));
-    if (gate.ok && userId) {
-      const checked = gate.verdict;
-      gate = await guardedVerdict(() => resolveProfileAwareSafety(question, checked, async () => (await profileExtractor.extract(userId, authHeader)).profile?.age));
+    // RC1: raw → snapshot in ONE synchronous step (no await touches the raw value); the only async step returns the profile AGE (data, never a verdict); the minors' triage is then produced and
+    // validated synchronously at its producer. Nothing raw ever crosses an async boundary.
+    let gate = guardVerdict(() => safetyGuard.check(question));
+    if (gate.ok && userId && needsProfileAge(question, gate.verdict)) {
+      const age = await lookupProfileAge(async () => (await profileExtractor.extract(userId, authHeader)).profile?.age);
+      gate = applyProfileAge(gate, age);
     }
 
     // M9.5-T1B-F3 / F4 — FAIL CLOSED. Two kinds of verdict forbid coaching:
@@ -1784,7 +1813,7 @@ export const llmOrchestrator = {
     // crisis/off-topic/emergency response). Everything else that reaches this point is a genuine chat-pipeline answer.
     // safetyGuard.check() is synchronous/local (no I/O) — cheap enough to call again here rather than threading a flag
     // through runInner()'s many internal return points.
-    if (userId && sessionId && ciMode() === "on" && payload.routeIntent !== "fitness_agent" && (await isSafeVerdict(question))) {
+    if (userId && sessionId && ciMode() === "on" && payload.routeIntent !== "fitness_agent" && isSafeVerdict(question)) {
       try {
         const text = await pendingWorkflowReminder({ userId, authorizationHeader: authHeader }, sessionId, {
           getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext,
