@@ -18,6 +18,7 @@ import { inputParser } from "./input_parser";
 import { intentRouter } from "./intent_router";
 import { selectPromptMemories } from "./memory_selection";
 import { removeUnsupportedUserClaims } from "./context_fidelity_guard";
+import { groundPersonalWeightClaims, weightEvidenceFromV1Context } from "./personal_weight_guard";
 import { applyTurnFacts, extractTurnFacts, formatTurnFactsForPrompt } from "./turn_facts";
 import { enforceExerciseConstraints } from "./exercise_constraint_guard";
 import { groundBmiClaims } from "./bmi_claim_guard";
@@ -1355,6 +1356,17 @@ async function runInner(
       // Removal would have gutted the answer → the guard kept it and only reported (never an empty answer). Counts only, no text.
       if (fidelity.warnings?.length) {
         logger.warn({ request_id: trace.traceId, suppressedCount: fidelity.suppressed?.length ?? 0 }, "[context-fidelity] unsupported claim kept because removal would empty the answer");
+      }
+      // The user's OWN body weight stated as a number must come from the user's own record or from what the user said in this
+      // session (personal_weight_guard.ts, M9.4-T2). Only removes the unsupported sentence; no default value is ever substituted.
+      const weightGrounding = groundPersonalWeightClaims(llmAnswer, {
+        sourced: weightEvidenceFromV1Context(context),
+        question,
+        sessionUserMessages: Array.isArray(chatHistory) ? chatHistory.map((e: any) => String(e?.question ?? "")) : [],
+      });
+      if (weightGrounding.removed.length) {
+        llmAnswer = weightGrounding.answer;
+        logger.info({ request_id: trace.traceId, removedCount: weightGrounding.removed.length, reasons: weightGrounding.reasons }, "[personal-weight] unsourced personal weight figure removed");
       }
       // Known outdated claims (claim_rules.ts) — observability only, the answer is not rewritten.
       const myths = detectMythClaims(llmAnswer);

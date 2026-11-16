@@ -25,9 +25,9 @@ test.before(async () => {
 });
 test.after(() => runner?.close());
 
-test("QE-1 the suite is 40 synthetic cases over the 7 required groups, with unique ids and a ground-truth statement each", () => {
-  assert.equal(CASE_COUNT, 40);
-  assert.equal(new Set(CASES.map((c) => c.id)).size, 40);
+test("QE-1 the suite is 45 synthetic cases (40 of M9.4-T1 + 5 weight-grounding cases of M9.4-T2) over the 7 required groups, with unique ids and a ground-truth statement each", () => {
+  assert.equal(CASE_COUNT, 45);
+  assert.equal(new Set(CASES.map((c) => c.id)).size, 45);
   assert.deepEqual([...new Set(CASES.map((c) => c.group))].sort(), ["multi", "nutrition", "progress", "recovery", "safety", "training", "v1only"]);
   for (const c of CASES) { assert.ok(c.truth.length > 20, c.id); assert.ok(c.expect.routeBasis && (c.expect.v2?.basis ?? c.expect.v1?.basis), `${c.id} has a basis`); }
   // required situations are present
@@ -47,7 +47,7 @@ test("QE-3 every case ran on both engines through the real app: V1's real chain 
     const c = CASES.find((x) => x.id === r.id)!;
     if (c.expect.route === "V2" && c.expect.http === undefined) assert.equal(r.v2run.v1Entered, false, `${r.id}: a V2-served request never entered V1`);
   }
-  assert.equal(results.length, 40);
+  assert.equal(results.length, 45);
 });
 
 test("QE-4 every expectation holds, except the DECLARED known gaps; and every declared gap still fails (a fix would be noticed)", () => {
@@ -55,7 +55,7 @@ test("QE-4 every expectation holds, except the DECLARED known gaps; and every de
   assert.deepEqual(bad, []);
 });
 
-test("QE-5 SAFETY INVARIANTS across all 40 cases: no V2 write reached a dep; a blocked V2 outcome never fell back to V1; blocked turns are not written to history; ≤ 2 agents", () => {
+test("QE-5 SAFETY INVARIANTS across all 45 cases: no V2 write reached a dep; a blocked V2 outcome never fell back to V1; blocked turns are not written to history; ≤ 2 agents", () => {
   for (const x of ev) {
     const a = x.r.v2run;
     assert.deepEqual(a.writes, [], `${x.c.id}: no WRITE reached any dep`);
@@ -88,7 +88,7 @@ test("QE-8 metrics are computed with explicit denominators, NOT_EVALUABLE where 
     console.log("M9_EVAL_JSON " + JSON.stringify({ cases: s.cases, comparable: s.comparable, metrics: s.metrics, perCapability: s.perCapability,
       perCase: ev.map((x) => ({ id: x.c.id, group: x.c.group, route: x.c.expect.route, v2: { by: x.r.v2run.handledBy, status: x.r.v2run.status, agents: x.r.v2run.agents, tools: x.r.v2run.toolsOk, vis: x.r.v2run.markersVisible, mc: x.r.v2run.modelCalls }, v1: { http: x.r.v1run.http, llm: x.r.v1run.llmCalls, reads: x.r.v1run.readPaths.length, prompt: x.r.v1run.markersInPrompt }, failed: x.failed, comparable: x.c.comparable !== false })) }));
   }
-  assert.equal(s.cases, 40); assert.equal(s.comparable, 39, "T07 is excluded: its fixtures are not equivalent");
+  assert.equal(s.cases, 45); assert.equal(s.comparable, 44, "T07 is excluded: its fixtures are not equivalent");
   assert.deepEqual(s.metrics.map((m) => m.id), ["M1", "M2a", "M2b", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10"]);
   for (const m of s.metrics) { assert.ok(m.denominator && m.rule && m.evidence, m.id); assert.doesNotMatch(JSON.stringify(m), /threshold|PASS|G7|G8/i, `${m.id}: no threshold / official-gate claim`); }
   assert.ok(s.metrics.find((m) => m.id === "M6")!.v1.startsWith("NOT_EVALUABLE"));

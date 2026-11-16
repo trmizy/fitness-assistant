@@ -15,6 +15,7 @@
 import { randomUUID } from "node:crypto";
 import { logger } from "@gym-coach/shared";
 import { foldVi } from "../llm/speech_act";
+import { groundPersonalWeightClaims, weightEvidenceFromV2ToolData } from "../llm/personal_weight_guard";
 import { classifyAgentTurnAct, mayStartMutation } from "../services/agent-turn-act";
 import { checkInputSafety, guardGeneralOnlyAnswer } from "./answer-guards";
 import { isAgentV2Enabled } from "./flag";
@@ -373,6 +374,12 @@ export async function runBoundedAgentTurn(turn: AgentTurn, deps: BoundedAgentDep
           if (generalOnly && guarded.answer) {
             const minor = guardGeneralOnlyAnswer(guarded.answer);
             guarded = { answer: minor.answer, actions: [...guarded.actions, ...minor.actions] };
+          }
+          // M9.4-T2: the user's OWN weight stated as a number must come from this user's own measured / profile record (tool result of THIS
+          // turn) or from what the user said in this session — one shared rule for every agent (llm/personal_weight_guard.ts).
+          if (guarded.answer) {
+            const wg = groundPersonalWeightClaims(guarded.answer, { sourced: weightEvidenceFromV2ToolData(toolData), question, sessionUserMessages: historyUserTexts });
+            if (wg.removed.length) guarded = { answer: wg.answer, actions: [...guarded.actions, `personal_weight:${wg.removed.length}`] };
           }
           if (!guarded.answer) return done("MODEL_REFUSED", MSG.MODEL_REFUSED, { stopDetail: "guards_removed_everything", guardActions: guarded.actions });
           return done("ANSWERED", minorNote ? appendMinorSupervisionNote(guarded.answer, "vi") : guarded.answer, { guardActions: minorNote ? [...guarded.actions, "minor_supervision"] : guarded.actions });

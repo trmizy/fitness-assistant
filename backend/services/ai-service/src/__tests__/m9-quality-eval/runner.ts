@@ -35,7 +35,7 @@ const ALL_AGENTS: AgentId[] = ["training", "nutrition", "recovery", "progress"];
 const todayVN = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 
 // ── V1 HTTP fixture: the facts of a WorldState expressed in the shapes V1's profile extractor reads ─────────────────────────
-export function v1Fixture(world: WorldState, age: number | null): Record<string, { status: number; data?: unknown }> {
+export function v1Fixture(world: WorldState, age: number | null, noProfileWeight = false): Record<string, { status: number; data?: unknown }> {
   const inbody = (() => {
     switch (world.body) {
       case "full": return [{ weight: 72.4, bodyFatPct: 18.5, muscleMass: 33.1, date: "2026-11-10T07:00:00Z" }, { weight: 73.6, bodyFatPct: 19.4, muscleMass: 33.0, date: "2026-10-20T07:00:00Z" }];
@@ -47,7 +47,7 @@ export function v1Fixture(world: WorldState, age: number | null): Record<string,
   const workouts = world.history === "lower_yesterday" ? [{ id: "w1", date: "2026-11-12T09:00:00Z", name: "Leg day", duration: 50, exercises: [{ exercise: { exerciseName: "Barbell Squat", bodyPart: "LOWER_BODY" }, sets: 4, reps: 5, weight: 96 }] }]
     : world.history === "upper_yesterday" ? [{ id: "w1", date: "2026-11-12T09:00:00Z", name: "Push day", duration: 50, exercises: [{ exercise: { exerciseName: "Bench Press", bodyPart: "UPPER_BODY" }, sets: 4, reps: 5, weight: 72 }] }] : [];
   const fx: Record<string, { status: number; data?: unknown }> = {
-    "/profile/me": { status: 200, data: { profile: { ...(age === null ? {} : { age }), gender: "MALE", heightCm: 175, goal: "WEIGHT_LOSS", experienceLevel: "INTERMEDIATE", currentWeight: world.body === "absent" ? undefined : 72.4, targetWeight: 68 } } },
+    "/profile/me": { status: 200, data: { profile: { ...(age === null ? {} : { age }), gender: "MALE", heightCm: 175, goal: "WEIGHT_LOSS", experienceLevel: "INTERMEDIATE", currentWeight: world.body === "absent" || noProfileWeight ? undefined : 72.4, targetWeight: 68 } } },
     "/inbody": world.body === "error" ? { status: 503, data: {} } : { status: 200, data: inbody },
     "/workouts/programs/current": { status: 200, data: { data: { program: { name: "Cut 3 ngày/tuần", daysPerWeek: 3 } } } },
     // V1 reads schedule rows as { date, programDay: { title, exercises, program } } and matches `date` against the REAL today (VN time)
@@ -172,7 +172,7 @@ export async function createRunner() {
     const u = userOf(c);
     traces.length = 0; toolEvents.length = 0; loaderCalls = 0; ragEntered = 0; llm.calls = 0; llm.prompts.length = 0; llm.answer = c.v1Llm ?? V1_FAKE_ANSWER;
     db = installFakePrisma(prisma, models); profileExtractor.invalidateCache(u.id);
-    currentFixture = v1Fixture(world0(c), u.age); currentToken = u.token; trip.v1Http.length = 0;
+    currentFixture = v1Fixture(world0(c), u.age, c.noProfileWeight === true); currentToken = u.token; trip.v1Http.length = 0;
     process.env.AI_COACH_V2_BRIDGE = "on"; process.env.AI_AGENT_V2 = "on"; // BEFORE building the runtime: the tool registries read the V2 flag at creation
     buildV2(c);
     const store = fakeStore(); const history = fakeHistory();
@@ -209,7 +209,7 @@ export async function createRunner() {
     const u = userOf(c);
     ragEntered = 0; llm.calls = 0; llm.prompts.length = 0; llm.answer = c.v1Llm ?? V1_FAKE_ANSWER;
     db = installFakePrisma(prisma, models); profileExtractor.invalidateCache(u.id);
-    currentFixture = v1Fixture(world0(c), u.age); currentToken = u.token; trip.v1Http.length = 0;
+    currentFixture = v1Fixture(world0(c), u.age, c.noProfileWeight === true); currentToken = u.token; trip.v1Http.length = 0;
     const sid = sessionFor(c);
     if (sid) db.sessions.push({ id: sid, userId: sessionOwner(c), title: "seed", lastMessageAt: new Date(), archivedAt: null, createdAt: new Date(), updatedAt: new Date() });
     const r = await request(app).post("/ai/ask").set(bearer(u.token)).send(bodyOf(c, sid));

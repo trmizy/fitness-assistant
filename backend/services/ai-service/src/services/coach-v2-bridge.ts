@@ -53,6 +53,9 @@ export type CoachCapability =
   | "AGENT_WRITE_WORKFLOW"      // propose → choose → confirm → write (fitnessAgent). V2 is read-only: never converted
   | "AGENT_WORKFLOW_CONTINUATION" // a turn inside a pending confirmation / selection
   | "INBODY_INTERPRET" | "DAY_MACRO_ESTIMATE" | "GENERATE_WORKOUT" | "MEMORY" | "FEEDBACK"
+  // capabilities KNOWN to be missing in V2 (M9.4-T1 evaluation): kept on V1 BEFORE V2 starts — never "try V2, then fall back"
+  | "MEAL_HISTORY"              // what the user ate / their intake log — V2 Nutrition has no meal-log reader
+  | "WORKOUT_HISTORY_PERIOD"    // how many / which sessions over a past or running period — no V2 tool answers it for the agent the router picks
   | "UNKNOWN";
 
 export type CoachRouteReason =
@@ -60,6 +63,7 @@ export type CoachRouteReason =
   | "NOT_VERIFIED_END_USER"
   | "USER_NOT_ALLOWLISTED"
   | "CAPABILITY_V1_ONLY"
+  | "V2_CAPABILITY_UNSUPPORTED"
   | "NO_VALID_CLIENT_REQUEST_ID"
   | "CONTINUITY_NOT_CONFIGURED"
   | "SESSION_ON_V1"
@@ -117,6 +121,8 @@ export function decideCoachRoute(f: CoachRequestFacts, deps: Pick<CoachBridgeDep
   // same rule as POST /ai/v2/ask: a verified end user (JWT / gateway-forwarded user) with the user's own bearer
   if ((f.callerKind !== "user" && f.callerKind !== "gateway_user") || !f.hasUserBearer || !f.userId) return { route: "v1", reason: "NOT_VERIFIED_END_USER" };
   if (!(deps.userAllowed ?? defaultCoachUserAllowlist())(f.userId)) return { route: "v1", reason: "USER_NOT_ALLOWLISTED" };
+  // preflight: a capability V2 is known to lack goes to V1 here, before any V2 work (never "try V2, then fall back")
+  if (f.capability === "MEAL_HISTORY" || f.capability === "WORKOUT_HISTORY_PERIOD") return { route: "v1", reason: "V2_CAPABILITY_UNSUPPORTED" };
   if (f.capability !== "CHAT_READONLY_QA" || f.transport !== "json") return { route: "v1", reason: "CAPABILITY_V1_ONLY" };
   if (!isValidClientRequestId(f.clientRequestId)) return { route: "v1", reason: "NO_VALID_CLIENT_REQUEST_ID" };
   if (f.sessionAffinity === "v1") return { route: "v1", reason: "SESSION_ON_V1" };

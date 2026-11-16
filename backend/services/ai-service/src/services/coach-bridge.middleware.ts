@@ -27,6 +27,7 @@ import type { NextFunction, Request, Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { formatErrorResponse } from "../errors/api-error";
 import { classifyAgentTurnAct } from "./agent-turn-act";
+import { isMealLogQuestion, isWorkoutHistoryPeriodQuestion } from "./coach-capability-preflight";
 import { parseFitnessAgentIntent } from "./fitness-agent-intent";
 import { isCoachBridgeEnabled, type CoachCapability, type V2Executor } from "./coach-v2-bridge";
 import {
@@ -47,7 +48,11 @@ export const coachBridgeSeam: CoachBridgeSeam = { loadExecutor: null, ports: nul
 export function classifyCoachCapability(question: string): CoachCapability {
   try {
     if (parseFitnessAgentIntent(question).kind) return "AGENT_WRITE_WORKFLOW";
-    return classifyAgentTurnAct(question) === "QUESTION" ? "CHAT_READONLY_QA" : "AGENT_WRITE_WORKFLOW";
+    if (classifyAgentTurnAct(question) !== "QUESTION") return "AGENT_WRITE_WORKFLOW";
+    // capabilities V2 is KNOWN to lack (M9.4-T2 preflight): decided here, before any V2 work
+    if (isMealLogQuestion(question)) return "MEAL_HISTORY";
+    if (isWorkoutHistoryPeriodQuestion(question)) return "WORKOUT_HISTORY_PERIOD";
+    return "CHAT_READONLY_QA";
   } catch {
     return "UNKNOWN";
   }

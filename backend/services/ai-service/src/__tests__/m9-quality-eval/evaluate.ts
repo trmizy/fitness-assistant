@@ -36,6 +36,7 @@ export function checksFor(c: EvalCase, r: RunResult): Check[] {
     if (e.v2.toolsCalled) add("v2-tools-called", sameSet(a.toolsOk, e.v2.toolsCalled) || (e.v2.toolsCalled.length > 0 && includesAll(a.toolsOk, e.v2.toolsCalled)), `${a.toolsOk.join(",")} vs ${e.v2.toolsCalled.join(",")}`);
     if (e.v2.noWrite) add("v2-no-write", a.writes.length === 0, `writes=${a.writes.join(",")}`);
     if (e.v2.markersVisible) add("v2-markers-visible", e.v2.markersVisible.every((k) => a.markersVisible.includes(k)), `visible=${a.markersVisible.join(",")}`);
+    for (const s of e.v2.present ?? []) add(`v2-present:${s}`, a.answer.includes(s), `answer ${a.answer.includes(s) ? "contains" : "LACKS"} "${s}"`);
     for (const s of e.v2.absent ?? []) add(`v2-absent:${s}`, !a.answer.includes(s), `answer ${a.answer.includes(s) ? "CONTAINS" : "lacks"} "${s}"`);
     if (e.v2.status === "ANSWERED" || e.v2.status === "PARTIAL") add("v2-history-written-policy", a.historyTurns === (a.status === "ANSWERED" ? 1 : 0), `turns=${a.historyTurns} status=${a.status}`);
     else add("v2-blocked-not-written", a.historyTurns === 0, `turns=${a.historyTurns}`);
@@ -72,7 +73,7 @@ const frac = (n: number, d: number) => (d === 0 ? "NOT_EVALUABLE (0 cases)" : `$
 const DATA_CAPS: Partial<Record<Capability, string[]>> = { WORKOUT_PLAN_HISTORY: ["/workouts"], NUTRITION_GOAL: ["/nutrition/goals"], MEAL_HISTORY: ["/nutrition"], RECOVERY: ["/workouts"], PROGRESS: ["/inbody"], INBODY_DATA: ["/inbody"] };
 const V2_SERVES = (x: CaseEval) => x.r.v2run.handledBy === "V2" && ["ANSWERED", "PARTIAL"].includes(x.r.v2run.status) && (!DATA_CAPS[x.c.capability] || x.r.v2run.toolsOk.length > 0);
 const V1_SERVES = (x: CaseEval) => x.r.v1run.http === 200 && x.r.v1run.ragEntered && (!DATA_CAPS[x.c.capability] || (DATA_CAPS[x.c.capability] as string[]).some((p) => x.r.v1run.readPaths.some((q) => q === p || q.startsWith(p + "/") || q === p)));
-const CAPS: Capability[] = ["GENERAL_QA", "WORKOUT_PLAN_HISTORY", "EXERCISE_RECOMMENDATION", "NUTRITION_GOAL", "MEAL_HISTORY", "RECOVERY", "PROGRESS", "INBODY_DATA", "WRITE_WORKFLOW", "CONVERSATION_HISTORY", "MULTI_DOMAIN", "SAFETY_ACCESS"];
+const CAPS: Capability[] = ["GENERAL_QA", "WORKOUT_PLAN_HISTORY", "WORKOUT_HISTORY_PERIOD", "EXERCISE_RECOMMENDATION", "NUTRITION_GOAL", "MEAL_HISTORY", "RECOVERY", "PROGRESS", "INBODY_DATA", "WRITE_WORKFLOW", "CONVERSATION_HISTORY", "MULTI_DOMAIN", "SAFETY_ACCESS"];
 
 export function summarize(ev: CaseEval[]): { metrics: Metric[]; perCapability: Array<{ cap: Capability; v1: boolean | null; v2: boolean | null; cases: string[] }>; cases: number; comparable: number } {
   const cmp = ev.filter((x) => x.c.comparable !== false);
