@@ -222,9 +222,53 @@ export class OpenSearchVectorStore implements VectorStore {
     try {
       const response = await this.client.count({ index });
       const n = ((response.body ?? response) as { count?: unknown }).count;
+      if (typeof n === "number") return n;
+    } catch {
+      /* the _count API may be unavailable on a vector collection: fall back to the total hit count of a size-0 search */
+    }
+    try {
+      const response = await this.client.search({ index, body: { size: 0, track_total_hits: true, query: { match_all: {} } } });
+      const total = ((response.body ?? response) as { hits?: { total?: { value?: unknown } | number } }).hits?.total;
+      const n = typeof total === "number" ? total : total?.value;
       return typeof n === "number" ? n : null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Ingest tooling only (the M9.6 canary): what the collection actually accepted for `index` — vector dimension / method / space type from the mapping and the knn setting. Never throws:
+   * `error` carries only the HTTP status and error type (no request body, no document text).
+   */
+  async describeIndex(index: string): Promise<{ ok: boolean; dimension: number | null; vector: unknown; knn: unknown; error?: { status?: number; type?: string } }> {
+    try {
+      const mapping = await this.client.indices.getMapping({ index });
+      const byIndex = (mapping.body ?? mapping) as Record<string, { mappings?: { properties?: Record<string, unknown> } }>;
+      const props = (byIndex[index] ?? Object.values(byIndex)[0])?.mappings?.properties ?? {};
+      const vector = props[OPENSEARCH_VECTOR_FIELD] as { dimension?: unknown } | undefined;
+      let knn: unknown = null;
+      try { const st = await this.client.indices.getSettings({ index }); const sb = (st.body ?? st) as Record<string, { settings?: { index?: { knn?: unknown } } }>; knn = (sb[index] ?? Object.values(sb)[0])?.settings?.index?.knn ?? null; } catch { /* settings may be unavailable */ }
+      return { ok: true, dimension: typeof vector?.dimension === "number" ? vector.dimension : null, vector: vector ?? null, knn };
+    } catch (err) {
+      const e = err as { statusCode?: number; meta?: { statusCode?: number }; message?: string };
+      return { ok: false, dimension: null, vector: null, knn: null, error: { status: e.statusCode ?? e.meta?.statusCode, type: String(e.message ?? "").split(":")[0].slice(0, 60) } };
+    }
+  }
+
+  /** Ingest tooling only: one document by its _id (`found:false` when absent). Tries GET _doc/<id>; if the collection does not serve it, an `ids` search. `via` says which worked. */
+  async getDocument(index: string, id: string): Promise<{ found: boolean; id: string | null; via: "get" | "search" | "none"; payload: Record<string, unknown> | null }> {
+    try {
+      const r = await this.client.get({ index, id }); const b = (r.body ?? r) as { found?: boolean; _id?: string; _source?: Record<string, unknown> };
+      return b.found === false ? { found: false, id: null, via: "get", payload: null } : { found: true, id: String(b._id ?? id), via: "get", payload: ((b._source?.payload as Record<string, unknown> | undefined) ?? b._source ?? null) };
+    } catch (err) {
+      if ((err as { statusCode?: number }).statusCode === 404) return { found: false, id: null, via: "get", payload: null };
+    }
+    try {
+      const r = await this.client.search({ index, body: { size: 1, query: { ids: { values: [id] } } } });
+      const hit = ((r.body ?? r) as { hits?: { hits?: Array<{ _id?: string; _source?: Record<string, unknown> }> } }).hits?.hits?.[0];
+      return hit ? { found: true, id: String(hit._id ?? id), via: "search", payload: (hit._source?.payload as Record<string, unknown> | undefined) ?? hit._source ?? null } : { found: false, id: null, via: "search", payload: null };
+    } catch {
+      return { found: false, id: null, via: "none", payload: null };
     }
   }
 

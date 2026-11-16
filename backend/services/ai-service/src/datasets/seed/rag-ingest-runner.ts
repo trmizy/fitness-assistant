@@ -82,14 +82,16 @@ export interface IndexVerification { expected: number; count: number | null; cou
 export interface RunResult { manifest: IngestManifest; written: Record<string, number>; skipped: Record<string, string>; exportedCorpus?: string; verified?: Record<string, IndexVerification> }
 
 /** A corpus exported by --export-corpus, read back as loaded datasets (the file's own sha256 is the "source file" hash). */
-export function readCorpusFile(file: string): LoadedDataset[] {
-  const raw = fs.readFileSync(file, "utf8"); const sha = createHash("sha256").update(raw).digest("hex"); const by = new Map<DatasetName, IngestDoc[]>();
+export function readCorpusFile(file: string): LoadedDataset[] { return parseCorpusText(fs.readFileSync(file, "utf8"), path.basename(file)); }
+/** Same as readCorpusFile for corpus text already in memory (the temp runner receives it in the invoke event). Every line's content hash is re-checked. */
+export function parseCorpusText(raw: string, label: string): LoadedDataset[] {
+  const file = label; const sha = createHash("sha256").update(raw).digest("hex"); const by = new Map<DatasetName, IngestDoc[]>();
   for (const line of raw.split("\n").filter(Boolean)) {
     const d = JSON.parse(line) as IngestDoc; if (!d.dataset || !d.id || !d.text || !d.payload) throw new Error(`${file}: malformed corpus line`);
     if (sha256(`${d.text}\u0000${JSON.stringify(Object.fromEntries(Object.entries(d.payload).filter(([k]) => !["id", "document_id", "corpus_dataset"].includes(k))))}`) !== d.contentHash) throw new Error(`${file}: content hash mismatch for ${d.key} (the corpus file was modified after export)`);
     const list = by.get(d.dataset) ?? []; list.push(d); by.set(d.dataset, list);
   }
-  return [...by.entries()].map(([dataset, docs]) => ({ dataset, sourceFile: `prepared-corpus:${path.basename(file)}`, sourceFileSha256: sha, docs, excluded: {}, totalSourceRecords: docs.length }));
+  return [...by.entries()].map(([dataset, docs]) => ({ dataset, sourceFile: `prepared-corpus:${label}`, sourceFileSha256: sha, docs, excluded: {}, totalSourceRecords: docs.length }));
 }
 
 export async function runIngest(args: IngestArgs, deps: RunDeps = {}): Promise<RunResult> {
