@@ -73,16 +73,22 @@ Blockers: D-P02; P1 an toàn mở **không** chặn M9.2 vì cờ OFF, nhưng ch
 Blockers: V1 thật trên hạ tầng thật chưa kiểm; mobile thiết bị thật; D-P18 (schema); mọi thứ production (store/history thật, gateway, P1 an toàn).
 
 ---
-## M9.4 — Release blocker và kiểm chứng dữ liệu thật (hạ tầng dev, chưa AWS)  `NOT_STARTED`
+## M9.4 — Đánh giá chất lượng (T1) và release blocker (B1–B5)  `ACTIVE` — chỉ M9.4-T1 (đánh giá) đã làm; B1–B5 và T2 CHƯA mở
+> Ghi chú đánh số: brief M9.4-T1 là task **đánh giá chất lượng V1 vs V2**. Các task release-blocker ban đầu được đánh số lại **M9.4-B1…B5** (nội dung không đổi).
 | ID | Task | Dependencies | Acceptance | Tests | Status |
 |---|---|---|---|---|---|
-| M9.4-T1 | Đóng P1 "ký tự vô hình là dấu phân cách duy nhất" bằng thay đổi có đo vi sai | quyết định thiết kế (D-P05) | Codex không còn P1 cho phạm vi này | vi sai + suite `llm`/V2 | BLOCKED_ON_DECISION |
-| M9.4-T2 | Store hạn chế vị thành niên bền vững, dùng chung nhiều instance | D-004 (đã duyệt chính sách), D-P06 | CAS, TTL không thành quyền bỏ qua, fail-closed | test trên Redis/DynamoDB **local** trước | NOT_STARTED |
-| M9.4-T3 | Idempotency/`clientRequestId` cho V2 hoặc cầu nối | M9.2 | retry không chạy lại phần ghi | test | NOT_STARTED |
-| M9.4-T4 | Đọc dữ liệu thật qua user/fitness-service (tài khoản test, DB test cô lập) | M9.2 | 4 agent đọc đúng dữ liệu của chính người dùng; không rò rỉ giữa tài khoản | BACKEND INTEGRATION | NOT_STARTED |
-| M9.4-T5 | Xác minh độc lập (Codex chỉ đọc) cho phần an toàn/bảo mật | T1–T4 | không P0/P1 có reproducer | Codex | NOT_STARTED |
+| M9.4-B1 | Đóng P1 "ký tự vô hình là dấu phân cách duy nhất" bằng thay đổi có đo vi sai | quyết định thiết kế (D-P05) | Codex không còn P1 cho phạm vi này | vi sai + suite `llm`/V2 | BLOCKED_ON_DECISION |
+| M9.4-B2 | Store hạn chế vị thành niên bền vững, dùng chung nhiều instance | D-004 (đã duyệt chính sách), D-P06 | CAS, TTL không thành quyền bỏ qua, fail-closed | test trên Redis/DynamoDB **local** trước | NOT_STARTED |
+| M9.4-B3 | Idempotency/`clientRequestId` cho V2 hoặc cầu nối | M9.2 | retry không chạy lại phần ghi | test | NOT_STARTED |
+| M9.4-B4 | Đọc dữ liệu thật qua user/fitness-service (tài khoản test, DB test cô lập) | M9.2 | 4 agent đọc đúng dữ liệu của chính người dùng; không rò rỉ giữa tài khoản | BACKEND INTEGRATION | NOT_STARTED |
+| M9.4-B5 | Xác minh độc lập (Codex chỉ đọc) cho phần an toàn/bảo mật | T1–T4 | không P0/P1 có reproducer | Codex | NOT_STARTED |
 
 ---
+### Kết quả M9.4-T1 (2026-11-16 — đánh giá offline, mock; ANSWER QUALITY: NOT EVALUATED)
+Tài liệu: `docs/ai-v2/coach-integration/M9-QUALITY-EVALUATION.md`. Mã: `__tests__/m9-quality-eval/{cases,runner,evaluate}.ts` + `quality-eval.test.ts` (8/8). **40 ca tổng hợp** (7 nhóm, 39 so sánh được; T07 loại vì fixture không tương đương) chạy qua cùng `app` thật cho V1 (controller→rag→orchestrator thật, DB/LLM/Qdrant giả) và V2 (bridge→Supervisor→Router→agent thật, model/dữ liệu giả); kiểm tra tương đương fixture 5/5. 10 chỉ số có định nghĩa/mẫu số/quy tắc/NOT_EVALUABLE/loại bằng chứng; **không ngưỡng production**, không phải G7/G8.
+**Kết quả có bằng chứng:** V2 tới được dữ liệu V1 không có nguồn (tải tập, e1RM); trần 2 agent + công bố hoãn + PARTIAL (M6 5/5); fail-closed tuổi không rõ; 0 hồi quy an toàn (2/4 ca V2 nghiêm hơn); bảo toàn V1 6/6; 40/40 không có ghi chạm dep. **V2 thiếu/kém:** nhật ký bữa ăn (N04) mà bridge vẫn gửi sang V2; router→agent không có tool lịch sử (T06); câu hỏi chung nêu tuổi 15 bị chặn (S04, có thể chặn thừa); không ghi/ảnh/memory/SSE/`evidenceUsed`. **Lỗi chung:** số cân nặng bịa lọt qua guard của cả hai (S06) — khai báo là khoảng trống đã biết, chưa sửa. Giả định sai đã tự sửa: V1 *có* đọc lịch hôm nay tất định (T01).
+**Chưa chứng minh:** chất lượng câu trả lời, chọn tool của model thật, chi phí/độ trễ thật, V1 với `ENABLE_TOOL_CALLING=true`, kho RAG. Điều kiện đánh giá model thật: M9-QUALITY-EVALUATION §7 (D-P21).
+
 ## M9.5 — Sẵn sàng phát hành nội bộ  `NOT_STARTED`
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
