@@ -18,7 +18,9 @@ Sự thật cần nói thẳng khi trình bày (không che):
 
 ## 0. Điều kiện cần
 
-* Repo ở đúng commit này, đã `pnpm install --frozen-lockfile` (lệnh dùng `node_modules` sẵn có của từng service, không cài gì thêm).
+* Repo ở đúng commit này, đã `pnpm install --frozen-lockfile` (lệnh dùng `node_modules` sẵn có của từng service).
+* **Công cụ offline của seed phải cài riêng** (nằm ngoài workspace pnpm; thiếu nó `generate-avatars`/lớp scale báo lỗi không tìm thấy `@dicebear/*`): `cd scripts/seed-marketplace/tools; npm ci; cd ../../..`.
+* **Cẩn thận với `--target`**: `node scripts/seed-marketplace/index.mjs` **không có `--target` mặc định là target `test`** (DB `*_seed_test` ở cổng 55433, kể cả khi bạn chỉ gõ `--help`; `--help` không phải cờ được hỗ trợ nên nó vẫn chạy thật). Luôn ghi rõ `--target official` cùng `SEED_MARKETPLACE_CONFIRM=official` như các lệnh dưới đây.
 * Docker Desktop; Postgres (container dev `gymcoach-postgres`, cổng `5433`) và MinIO dev (`9000`) đang chạy: `docker compose -f infra/compose/docker-compose.dev.yml up -d postgres redis minio`.
 * Bucket MinIO tồn tại (dev compose tạo sẵn `gymini-user-media` và `gymini-partner-private`; nếu bạn dùng tên khác thì đặt đúng biến môi trường ở bước 3).
 * Ổ đĩa trống ≳ 3 GB cho DB (~1,5 GB), MinIO (~0,5 GB) và avatar (~0,2 GB); RAM ≳ 2 GB cho tiến trình seed (đỉnh ~450 MB).
@@ -94,7 +96,7 @@ Seed kiểm tra kết nối và sự tồn tại của hai bucket **trước khi
 | 4.4 | Business seed (tài khoản REAL): ~1.100 request HTTP, ~200 ghi nghiệp vụ, thanh toán qua simulator | ~20-25 phút (lần chạy lại/resume: ~3-4 phút) |
 | 4.5 | Tắt quyền tạm, chạy chế độ thường | 2-4 phút |
 | 4.6 | Kiểm tra tính toàn vẹn (scale 8 + business 11, gồm kiểm tra file MinIO/avatar) | ~2 phút |
-| 5 | Copy avatar vào user-service | ~1 phút |
+| 5 | Copy avatar (scale + REAL) vào user-service | ~1 phút |
 
 ```powershell
 # 4.1 tọa độ/bbox phường (bắt buộc trước lớp scale: bước verify C6 kiểm GPS từng gym/PT trong bbox phường)
@@ -117,6 +119,7 @@ docker compose -f infra/compose/docker-compose.dev.yml `
 # chờ các container healthy (docker compose ps), rồi:
 
 # 4.4 business seed: Tier A (DB) + Tier B (HTTP qua gateway, đúng các luồng thật). Chạy TRÊN dữ liệu scale; idempotent.
+#     Cuối lượt chạy, seed cũng cấp avatar DiceBear (file <userId>.webp trong SEED_AVATARS_DIR) cho mọi tài khoản REAL còn photo_url NULL.
 node scripts/seed-marketplace/index.mjs --target official --tier all --gateway http://localhost:3000 --fail-fast --evidence _warroom/evidence/official/business-run.json
 #     lỗi giữa chừng: chạy lại cùng lệnh (mỗi bước là "ensure": bước đã xong không ghi thêm)
 
@@ -138,16 +141,45 @@ Rate limit gateway: **không** sửa lâu dài. Bản nới chỉ có trong `com
 
 ## 5. Avatar: đưa file vào user-service
 
-Ảnh PT/gym phục vụ qua MinIO + gateway nên không cần làm gì thêm. **Avatar** (~10.400 file WebP `<userId>.webp`) nằm trong `SEED_AVATARS_DIR` và phải có trong thư mục upload của user-service để `GET /uploads/profile-photos/<userId>.webp` trả 200. Dev compose dùng volume `user_uploads` gắn vào `/app/backend/services/user-service/uploads`:
+Ảnh PT/gym phục vụ qua MinIO + gateway nên không cần làm gì thêm. **Avatar** (~10.400 file WebP `<userId>.webp` của lớp scale + ~1.080 file của tài khoản REAL) nằm trong `SEED_AVATARS_DIR` và phải có trong thư mục upload của user-service để `GET /uploads/profile-photos/<userId>.webp` trả 200. Dev compose dùng volume `user_uploads` gắn vào `/app/backend/services/user-service/uploads`:
 
 ```powershell
 # thư mục đích nằm trong volume => bền qua --force-recreate
 docker exec gymcoach-user-dev mkdir -p /app/backend/services/user-service/uploads/profile-photos
 docker cp "$env:SEED_AVATARS_DIR/." gymcoach-user-dev:/app/backend/services/user-service/uploads/profile-photos/
-docker exec gymcoach-user-dev sh -c "ls /app/backend/services/user-service/uploads/profile-photos | wc -l"   # >= 10.400
+docker exec gymcoach-user-dev sh -c "ls /app/backend/services/user-service/uploads/profile-photos | wc -l"   # >= 11.490 (10.410 scale + 1.080 REAL)
 ```
 
 (Có thể thay bằng bind mount `./scripts/seed-marketplace/.runtime/official/profile-photos:/app/backend/services/user-service/uploads/profile-photos` trong file override của bạn.) Tên file là UUID nên không đè avatar cũ của DB dev.
+
+### 5b. Đã dựng DB từ trước? Sau khi `git pull` hãy chạy bù avatar cho tài khoản REAL
+
+Bản seed trước đây để `photo_url = NULL` cho các tài khoản REAL (`@seed.gymini.test`: PT, khách, chủ gym), nên trang đầu của tìm kiếm PT (PT REAL xếp đầu) có nhiều PT không có ảnh đại diện. Bản này cấp avatar DiceBear tất định (cùng bộ sinh/phong cách CC0/bảng màu Gymini/256px WebP như lớp scale, seed theo `userId`) cho **mọi hồ sơ REAL còn `photo_url` NULL** (PT, khách, và chủ gym nếu đã có hồ sơ). Chỉ điền chỗ NULL: ảnh người dùng tự tải lên, tài khoản `@scale.gymini.test` và mọi tài khoản ngoài hai miền seed **không bị đụng**; chạy lại lần 2 không thêm gì. Nếu bạn dựng mới từ đầu thì bước 4.4 đã làm sẵn, chỉ cần chạy bước 5.
+
+PowerShell, ở gốc repo (cần `tools` đã `npm ci`, xem §0; Postgres dev ở `localhost:5433`):
+
+```powershell
+$env:SEED_PG_HOST = 'localhost'; $env:SEED_PG_PORT = '5433'
+$env:SEED_PG_USER = 'gymcoach';  $env:SEED_PG_PASSWORD = '<mật khẩu Postgres dev của bạn>'
+$env:SEED_MARKETPLACE_CONFIRM = 'official'
+$env:SEED_AVATARS_DIR = "$PWD/scripts/seed-marketplace/.runtime/official/profile-photos"   # cùng thư mục bạn đã dùng ở bước 3 (nếu chưa có thì tự tạo)
+
+# (khuyên dùng) sao lưu hồ sơ trước khi sửa
+cmd /c "docker exec gymcoach-postgres pg_dump -U gymcoach -Fc gymcoach_user_official > pre-real-avatars.dump"
+
+# xem trước (không ghi gì)
+node scripts/seed-marketplace/backfill-dev-photos.mjs --target official --dry-run
+# chạy thật: ghi <userId>.webp vào $env:SEED_AVATARS_DIR và đặt photo_url = /uploads/profile-photos/<userId>.webp (chỉ chỗ NULL)
+node scripts/seed-marketplace/backfill-dev-photos.mjs --target official
+# đưa file vào volume của user-service (lệnh in ra ở cuối bước trên; --docker-cp ở lệnh trên sẽ tự chạy hai dòng này, chỉ vào container gymcoach-user-dev)
+docker exec gymcoach-user-dev mkdir -p /app/backend/services/user-service/uploads/profile-photos
+docker cp "$env:SEED_AVATARS_DIR/." gymcoach-user-dev:/app/backend/services/user-service/uploads/profile-photos/
+
+# kiểm tra: mọi PT REAL công khai có avatar + toàn vẹn (kiểm tra 8 giờ đòi cả PT REAL phải có avatar)
+node scripts/seed-marketplace/verify-integrity.mjs --target official --with-media
+```
+
+Lệnh bù avatar dùng **đúng guard của `--target official`**: chỉ DB tên `gymcoach_<svc>_official`, bắt buộc `SEED_MARKETPLACE_CONFIRM=official`, chỉ Postgres loopback (host khác phải thêm `--allow-remote-host`), từ chối `NODE_ENV=production`; không bao giờ đụng `huytronh4@gmail.com`. Nó **chỉ** ghi `user_profiles.photo_url` (không đụng ảnh thể hình PT, ảnh gym, ví/tiền).
 
 ## 6. Tài khoản & cái gì dùng được
 
@@ -176,5 +208,9 @@ Nếu bạn không dùng dev compose của repo: chỉ cần đặt `DATABASE_UR
 | Tier B: `400 PROVIDER_NOT_CONFIGURED` | payment-service thiếu `VNPAY_TMN_CODE`/`VNPAY_HASH_SECRET` (xem lưu ý VNPay ở bước 4); sửa rồi chạy lại cùng lệnh 4.4, seed tiếp tục từ chỗ dừng |
 | Tier B: `no /payments/vnpay/sim URL` | `VNPAY_SIMULATE` chưa bật trên payment-service (bước 4.3) |
 | Avatar 404 | chưa chạy bước 5 hoặc sai thư mục đích |
+| PT REAL ở trang đầu tìm kiếm không có ảnh đại diện | DB dựng từ bản cũ: chạy §5b (`--target official`) rồi bước 5 |
+| Kiểm tra 8: `public PT without avatar` / kiểm tra 7: `missing local avatar WebP` | thiếu §5b, hoặc `SEED_AVATARS_DIR` của `verify-integrity` không trỏ tới thư mục chứa file `<userId>.webp` (truyền `--avatars-dir`) |
+| `Cannot find module '@dicebear/...'` / `sharp not found` | chưa `npm ci` trong `scripts/seed-marketplace/tools` (§0) / chưa `pnpm install` |
+| `index.mjs ...` chạy vào DB `*_seed_test` | quên `--target official` (mặc định là `test`, §0) |
 | Ảnh PT/gym 404 | service đọc bucket/endpoint khác với bước 3 (so khớp `PT_MEDIA_S3_*` và `PARTNER_S3_*` trong `.env`) |
 | Cần làm lại từ đầu | tạo DB `_official` MỚI (đổi tên cũ sang `_official_old` bằng `ALTER DATABASE ... RENAME` nếu muốn), KHÔNG dùng `down -v` lên volume dev |

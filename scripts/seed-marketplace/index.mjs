@@ -24,6 +24,7 @@ import { buildWorld, summarize } from "./lib/world/index.mjs";
 import { makeClient, redact } from "./lib/tierB/client.mjs";
 import { describeTierB, makeTierBContext, runTierB } from "./lib/tierB/run.mjs";
 import { runScaleSeed } from "./lib/scale/runner.mjs";
+import { applyRealAvatars, planRealAvatars } from "./lib/real-avatars.mjs";
 import { SCALE_NAMESPACE } from "./lib/scale/config.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -134,6 +135,14 @@ async function main() {
       const businessWrites = client.log.filter(r => !['GET','HEAD','OPTIONS'].includes(r.method) && r.path !== '/auth/login' && r.status >= 200 && r.status < 300).length;
       log(`[seed] Tier B done: ${JSON.stringify(redact({ ms: out.ms, requests: out.requests, businessWrites, stats: out.stats, errors: out.errors.length, warnings: out.warnings.length }))}`);
       if (out.errors.length) process.exitCode = 2;
+    }
+    if (guard.kind === "official") {
+      // REAL accounts get the same deterministic DiceBear avatar as the scale tier (only where photo_url IS NULL; idempotent). Files go to the same
+      // dir as the scale avatars (--avatars-dir / SEED_AVATARS_DIR / .runtime/official/profile-photos) and are copied to user-service in README step 5.
+      const avatarsFlag = flag("avatars-dir", process.env.SEED_AVATARS_DIR || null);
+      const avatarsDir = typeof avatarsFlag === "string" ? path.resolve(avatarsFlag) : path.join(OFFICIAL_RUNTIME_DIR, "profile-photos");
+      const av = await applyRealAvatars({ userPool: pools.user, plan: await planRealAvatars(pools.user), avatarsDir, log });
+      log(`[seed] real avatars: ${JSON.stringify({ planned: av.planned, rowsUpdated: av.rowsUpdated, filesWritten: av.filesWritten, raced: av.raced })}`);
     }
     log(`[seed] counts: ${JSON.stringify(await seedCounts(pools))}`);
   } finally {

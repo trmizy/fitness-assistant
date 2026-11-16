@@ -21,6 +21,11 @@
 // Usage (repo root):
 //   node scripts/seed-marketplace/backfill-dev-photos.mjs --target dev --confirm dev [--dry-run] [--plan-out <file.json>]
 //   node scripts/seed-marketplace/backfill-dev-photos.mjs --target test            # *_seed_test on 55433, in-memory object store (no MinIO touched)
+//   SEED_MARKETPLACE_CONFIRM=official node scripts/seed-marketplace/backfill-dev-photos.mjs --target official [--dry-run] [--avatars-dir <dir>] [--docker-cp] [--allow-remote-host]
+//        official = AVATARS ONLY (no PT/gym photos): gives every REAL seed account (@seed.gymini.test) with photo_url NULL the deterministic DiceBear avatar
+//        the scale tier uses (lib/real-avatars.mjs), writes <userId>.webp into --avatars-dir / SEED_AVATARS_DIR / .runtime/official/profile-photos and prints the
+//        exact `docker cp` for the user-service uploads volume (--docker-cp runs it, only into gymcoach-user-dev). Guard = the official target's own
+//        (gymcoach_<svc>_official names, SEED_MARKETPLACE_CONFIRM=official, loopback host unless --allow-remote-host, never NODE_ENV=production).
 // Never prints passwords or keys.
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -30,6 +35,8 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { generateAvatarBuffer } from "./generate-avatars.mjs";
+import { assertSeedAllowed, resolveTarget } from "./lib/guard.mjs";
+import { OFFICIAL_USER_CONTAINER, applyRealAvatars, planRealAvatars, realAvatarCounts } from "./lib/real-avatars.mjs";
 import { GYM_PHOTO_CATEGORY_MAP, loadAwsS3Sdk, loadUsableMasterPools } from "./lib/scale/media.mjs";
 import { rngFrom } from "./lib/util.mjs";
 
@@ -47,8 +54,14 @@ export const USER_UPLOADS_DIR_IN_CONTAINER = "/app/backend/services/user-service
 // ---------------------------------------------------------------------------------------------------------------- targets
 
 /** Hard allow-list: the dev DB on 5433 or (explicit --target test) the dedicated *_seed_test DBs on 55433. */
-export function resolveBackfillTarget({ target, confirm, suffix = "seed_test", env = process.env }) {
+export function resolveBackfillTarget({ target, confirm, suffix = "seed_test", env = process.env, allowRemoteHost = false }) {
   const host = env.SEED_PG_HOST || "localhost";
+  if (target === "official") {
+    // the same guard as `index.mjs --target official` (names, confirm, host, production); the throw is a SeedGuardError
+    const t = resolveTarget({ kind: "official", env });
+    assertSeedAllowed(t, { env, allowRemoteHost: allowRemoteHost === true });
+    return { kind: "official", host: t.host, port: t.port, user: t.user, password: t.password, userDb: t.dbs.user, gymDb: t.dbs.gym };
+  }
   if (target === "dev") {
     if (confirm !== "dev") throw new Error("Refusing: --target dev requires --confirm dev");
     const port = Number(env.SEED_PG_PORT || 5433);
@@ -77,7 +90,7 @@ export function resolveBackfillTarget({ target, confirm, suffix = "seed_test", e
       gymDb: `gymcoach_gym_${suffix}`,
     };
   }
-  throw new Error("Refusing: --target must be `dev` (with --confirm dev) or `test`");
+  throw new Error("Refusing: --target must be `dev` (with --confirm dev), `official` (with SEED_MARKETPLACE_CONFIRM=official) or `test`");
 }
 
 export function makePools(t) {
@@ -490,14 +503,54 @@ function parseArgs(argv) {
     else if (a === "--confirm") o.confirm = argv[++i];
     else if (a === "--dry-run") o.dryRun = true;
     else if (a === "--plan-out") o.planOut = argv[++i];
+    else if (a === "--avatars-dir") o.avatarsDir = argv[++i];
+    else if (a === "--docker-cp") o.dockerCp = true;
+    else if (a === "--allow-remote-host") o.allowRemoteHost = true;
     else throw new Error(`Unknown argument ${a}`);
   }
   return o;
 }
 
+/** `--target official`: REAL seed accounts without photo_url get their DiceBear avatar (files + photo_url). Avatars only. */
+export async function runOfficialAvatarBackfill({ target, args, log = console.log }) {
+  const userPool = new pg.Pool({ host: target.host, port: target.port, user: target.user, password: target.password, database: target.userDb, max: 2 });
+  try {
+    const avatarsDir = path.resolve(args.avatarsDir || process.env.SEED_AVATARS_DIR || path.join(here, ".runtime", "official", "profile-photos"));
+    const before = await realAvatarCounts(userPool);
+    log(`[backfill] target=official db=${target.userDb} before=${JSON.stringify(before)}`);
+    const plan = await planRealAvatars(userPool);
+    log(`[backfill] plan: ${plan.length} REAL seed profile(s) without avatar (PTs ${plan.filter((a) => a.isPt).length}, others ${plan.filter((a) => !a.isPt).length}); avatars-dir=${avatarsDir}`);
+    if (args.dryRun) {
+      log("[backfill] --dry-run: nothing written");
+      return { before, plan };
+    }
+    const done = await applyRealAvatars({ userPool, plan, avatarsDir, log });
+    const after = await realAvatarCounts(userPool);
+    log(`[backfill] after=${JSON.stringify(after)}`);
+    const dest = `${OFFICIAL_USER_CONTAINER}:${USER_UPLOADS_DIR_IN_CONTAINER}/`;
+    const cp = `docker cp "${avatarsDir}${path.sep}." ${dest}`;
+    if (args.dockerCp) {
+      execFileSync("docker", ["exec", OFFICIAL_USER_CONTAINER, "mkdir", "-p", USER_UPLOADS_DIR_IN_CONTAINER], { stdio: "pipe" });
+      execFileSync("docker", ["cp", `${avatarsDir}${path.sep}.`, dest], { stdio: "pipe" });
+      log(`[backfill] --docker-cp done: ${cp}`);
+    } else if (done.rowsUpdated > 0 || plan.length > 0) {
+      log("[backfill] next step (copy the avatar files into the user-service uploads volume):");
+      log(`  docker exec ${OFFICIAL_USER_CONTAINER} mkdir -p ${USER_UPLOADS_DIR_IN_CONTAINER}`);
+      log(`  ${cp}`);
+    }
+    return { before, plan, done, after };
+  } finally {
+    await userPool.end();
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const target = resolveBackfillTarget({ target: args.target, confirm: args.confirm });
+  const target = resolveBackfillTarget({ target: args.target, confirm: args.confirm, allowRemoteHost: args.allowRemoteHost });
+  if (target.kind === "official") {
+    await runOfficialAvatarBackfill({ target, args });
+    return;
+  }
   const pools = makePools(target);
   try {
     const before = await coverageCounts(pools);

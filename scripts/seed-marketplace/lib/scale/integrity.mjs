@@ -1,9 +1,11 @@
 // Set-based SQL integrity verifier for the Scale Marketplace Seed (C6: zero JS N+1 loops).
 import path from "node:path";
 import { C3_PROVINCES, PHOTO_REUSE_CAP, PT_TERMS_VERSION, SCALE_EMAIL_DOMAIN } from "./config.mjs";
+import { SEED_EMAIL_DOMAIN } from "../util.mjs";
 import { verifyLocalAvatars, verifyMinioMediaObjects } from "./media.mjs";
 
 const SCALE_LIKE = `'%@${SCALE_EMAIL_DOMAIN}'`;
+const SEED_LIKE = `'%@${SEED_EMAIL_DOMAIN}'`; // REAL business-seed accounts (official target: they sit on top of the scale tier)
 
 async function rows(pool, sql, params = []) {
   return (await pool.query(sql, params)).rows;
@@ -552,7 +554,7 @@ export async function runScaleIntegrity({
         ),
         rows(
           pools.user,
-          `SELECT "userId" AS uid, photo_url FROM user_profiles WHERE email LIKE ${SCALE_LIKE} AND photo_url LIKE '/uploads/profile-photos/%'`
+          `SELECT "userId" AS uid, photo_url FROM user_profiles WHERE (email LIKE ${SCALE_LIKE} OR email LIKE ${SEED_LIKE}) AND photo_url LIKE '/uploads/profile-photos/%'`
         ),
       ]);
 
@@ -579,7 +581,8 @@ export async function runScaleIntegrity({
   }
 
   // 8. Public-media coverage (decision Ngài 12/11): every PUBLIC PT has >=1 PUBLISHED photo + an avatar,
-  // every APPROVED/SUSPENDED gym has a PUBLISHED cover. "Public PT" = ptPublicWhere in user-service
+  // every APPROVED/SUSPENDED gym has a PUBLISHED cover. Avatar coverage also covers the REAL seed PTs (@seed.gymini.test, official target:
+  // `backfill-dev-photos.mjs --target official` / the business seed fills them); the physique-photo and gym-cover parts stay scale-only. "Public PT" = ptPublicWhere in user-service
   // (isPT, APPROVED application, not ptSuspended, no open ACCOUNT-scope restriction).
   await runCheck("8. Public media coverage (PT >=1 PUBLISHED photo + avatar, gym PUBLISHED cover)", async () => {
     const [ptNoPhoto, ptNoAvatar, ptTotal, gymNoCover, gymTotal] = await Promise.all([
@@ -596,7 +599,7 @@ export async function runScaleIntegrity({
         pools.user,
         `SELECT p."userId" AS uid FROM user_profiles p
          JOIN pt_applications a ON a.user_profile_id = p.id
-         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+         WHERE (p.email LIKE ${SCALE_LIKE} OR p.email LIKE ${SEED_LIKE}) AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
            AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')
            AND (p.photo_url IS NULL OR p.photo_url = '')
          LIMIT 20`
@@ -605,7 +608,7 @@ export async function runScaleIntegrity({
         pools.user,
         `SELECT count(*)::int AS n FROM user_profiles p
          JOIN pt_applications a ON a.user_profile_id = p.id
-         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+         WHERE (p.email LIKE ${SCALE_LIKE} OR p.email LIKE ${SEED_LIKE}) AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
            AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')`
       ),
       rows(
