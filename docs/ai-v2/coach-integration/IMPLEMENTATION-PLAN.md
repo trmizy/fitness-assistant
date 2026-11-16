@@ -104,7 +104,7 @@ Commit code `c8c05185` (trên `af9b4d4d`). Hardening nhỏ cho hợp đồng gro
 - Test mới: `personal-weight-contract.test.ts` (7), `weight-grounding-engines.test.ts` (7, V1 thật + V2 thật, cùng dữ liệu). Verify: S06 + S09–S13 và bộ M9.4 (45 ca) pass; focused 115/115; `agent-v2-*` 1418 (1413 pass, 3 skipped, 2 fail = RI-2/HR-27 như trước); `llm` 1715 (0 fail, 3 todo có sẵn); `tsc` sạch.
 - **Không** sửa: Router, Supervisor, orchestrator, pin, benchmark, nhãn đóng băng, AWS. **Không** mở milestone tiếp theo. `RELEASE PINS: BLOCKED` · `PRODUCTION: BLOCKED`.
 
-## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc), M9.5-T1 (khắc phục B-03, offline) và M9.5-T1S (khắc phục phát hiện review độc lập B-03, offline — sau đó bị review độc lập thứ hai BLOCKED) và M9.5-T1A (thiết kế + test RED cho B-03) đã làm; T2–T4 CHƯA mở
+## M9.5 — Sẵn sàng phát hành nội bộ  `ACTIVE` — M9.5-T0 (audit + kế hoạch, chỉ đọc), M9.5-T1 (khắc phục B-03, offline) và M9.5-T1S (khắc phục phát hiện review độc lập B-03, offline — sau đó bị review độc lập thứ hai BLOCKED) và M9.5-T1A (thiết kế + test RED cho B-03) và M9.5-T1B (lõi emergency offline) đã làm; T1C và T2–T4 CHƯA mở
 
 ### Kết quả M9.5-T0 (2026-11-16 — CHỈ ĐỌC; không runtime/AWS/model/DB, không sửa code/pin/benchmark)
 Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái bền vững, cổng model/chất lượng, thứ tự đóng blocker), `M9-BLOCKER-REGISTER.md` (26 mục: **15 P1**, 11 P2, 0 P0, **0 VERIFIED**), `M9-AWS-ROLLOUT-PLAN.md` (Phase 0–3, kill switch, rollback, tiêu chí STOP — toàn bộ PROPOSED).
@@ -118,6 +118,8 @@ Ba tài liệu mới: `M9-RELEASE-READINESS.md` (topology, pin, trạng thái b�
 | M9.5-T1 | Khắc phục có kiểm soát B-03: guard an toàn dùng chung V1/V2 (tự hại, co giật, sốc nhiệt) — theo brief owner | RED→GREEN, 0 Unsafe→Safe, V1+V2 | **DONE (offline)** `3fee5775` |
 | M9.5-T1S | Khắc phục có kiểm soát các false negative/positive của review độc lập B-03 (một vòng) | RED→GREEN, 0 Unsafe→Safe vs trước B-03, V1+V2 nhất quán | **DONE (offline)** `a6b0f3a4`; chờ review Codex trên chính commit |
 | M9.5-T1A | Cổng kiến trúc B-03: nguyên nhân hệ thống, hợp đồng, kiến trúc, test RED độc lập (không sửa implementation) | `M9-B03-SAFETY-ARCHITECTURE.md` + RED suite xác nhận | **DONE (thiết kế + RED)**; lượt triển khai sau chưa mở |
+| M9.5-T1B | Lõi emergency có biên dùng chung V1/V2 (phương án B của T1A): `llm/emergency/*` + adapter `safety_guard.ts` | 11/14 RED GREEN; 0 Unsafe→Safe bất ngờ; không cắt âm thầm; TS + suite tập trung xanh | **DONE (offline, PARTIAL)** — 3 RED integration còn lại → T1C |
+| M9.5-T1C | (CHƯA MỞ — cần owner duyệt) Pre-gate HTTP + thứ tự Supervisor/bridge/V1 + orchestrator xử lý `input_too_long`/`emergency_unassessable` | T1A-7b/7c/7d GREEN | NOT_STARTED |
 | M9.5-T1b | (dòng T1 cũ) Gateway: phủ `/ai/v2/ask` bằng limiter chi phí — **premise sai trên AWS** (Express gateway không triển khai; xem B-24) | tương đương `/ai/ask` | NOT_STARTED |
 | M9.5-T2 | Kiểm phơi bày AWS API Gateway/Lambda (chỉ đọc) | tài liệu hoá, không đổi hạ tầng | NOT_STARTED |
 | M9.5-T3 | Quan sát được (log mã/đếm), runbook rollback, sinh lại candidate identity | runbook được xem xét | NOT_STARTED |
@@ -143,6 +145,14 @@ Sau hai independent review BLOCKED cho B-03: dừng vá regex lẻ; phân tích 
 - **Tài liệu:** `M9-B03-SAFETY-ARCHITECTURE.md` — nguyên nhân gốc đã xác minh (phân loại DEFECT / POLICY GAP / KNOWN LIMITATION), hợp đồng đánh giá cấp cứu dùng chung (PROPOSED), xử lý input có biên (2 000 đơn vị UTF-16, không cắt âm thầm), cấp cứu so với phụ thuộc phiên/kho (pre-gate; cần owner duyệt phần Supervisor/bridge), cổng nội dung lâm sàng, so sánh A/B/C (**khuyến nghị B**), phạm vi lượt sau + STOP.
 - **Test:** `safety-emergency-b03-independent.test.ts` (mới; không sửa test đóng băng): 20 test = 6 enforced GREEN + **14 RED được giữ** (mặc định `todo`; `B03_ENFORCE=1` bắt buộc). Chạy trên candidate `a6b0f3a4` chưa sửa: RED xác nhận.
 - **Trạng thái:** B-03 = OPEN (review độc lập ×2 BLOCKED); `B-03 DESIGN: PROPOSED`; `CLINICAL APPROVAL: PENDING`; hotfix V1 chưa được phép; V2 production blocked. Không mở task tiếp theo.
+
+### Kết quả M9.5-T1B (2026-11-16 — OFFLINE; không AWS/model/DB/Redis; không subagent; không pre-gate, không đảo thứ tự Supervisor/bridge)
+Triển khai phương án B của T1A: `assessEmergency` (hàm thuần, có biên) trong `llm/emergency/` + adapter ở `llm/safety_guard.ts`; V1 và V2 dùng cùng hàm.
+- **Test:** suite độc lập T1A nguyên văn `B03_ENFORCE=1` = **17/20 PASS** (11/14 RED trước đây GREEN; 3 còn RED = T1A-7b/7c/7d, phụ thuộc T1C); `emergency-engine.test.ts` mới 11 GREEN + 7 `todo`; B-03 T1/T1S giữ GREEN (một assertion cũ đã thay có chủ đích vì T1A xếp thứ tự đó là DEFECT). Hồi quy rộng (scoped): `tsc --noEmit` sạch; `src/__tests__/*.test.ts` (268 file): trước T1B (HEAD `71997aee`) 3 326 test / 2 862 pass / 374 fail / 17 todo → sau T1B 3 344 / 2 873 / 374 / 24 todo (+18 test mới của engine: +11 pass, +7 todo); **tập test FAIL giống hệt trước/sau (375 tên gồm cả mục cấp file; 0 hồi quy, 0 được sửa ngoài ý muốn)** — 374 fail có sẵn gồm RI-2/HR-27 và các test cần DB thật/dịch vụ không có trong môi trường này (nhóm "real DB"), không liên quan safety; `src/llm/__tests__` 1 715 test / 1 712 pass / 0 fail / 3 todo; `test:evaluation` 20/20; `test:policy` 5/6 (VN-SPECIFIC-SCHEDULE fail có sẵn)
+- **Differential:** 27 585 chuỗi (TEST FIXTURE, không phải tin nhắn thật); Unsafe→Safe bất ngờ = 0; mọi Emergency→Safe được giải thích (xem `M9-B03-SAFETY-ARCHITECTURE.md` §10.3).
+- **Đo:** co giãn ≈4,0–4,2× khi ×4 đầu vào (5 dạng đối kháng); ~200k ≤ 233 ms — là phép đo, không phải chứng minh O(n).
+- **Chưa làm / phụ thuộc T1C:** pre-gate HTTP, thứ tự Supervisor (hạn chế vị thành niên ghi trước safety) và bridge, V1 DB, orchestrator chưa xử lý hai kết quả mới, rate-limit lỗi backend, mẫu lâm sàng chưa duyệt (overdose, thần kinh, say nóng + lú lẫn), B-01/B-02.
+- **Trạng thái:** `M9.5-T1B: PARTIAL`; `EMERGENCY CORE: VERIFIED OFFLINE`; `B-03 INDEPENDENT REGRESSIONS: 11/14 CLOSED`; `HTTP/SUPERVISOR PRE-GATE: NOT IMPLEMENTED`; `CLINICAL APPROVAL: PENDING`; `B-03 RELEASE: BLOCKED`; `V1 HOTFIX: NOT AUTHORIZED`; `V2 PRODUCTION: BLOCKED`. Không mở T1C.
 
 ---
 ## Thứ tự và phụ thuộc
