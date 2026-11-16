@@ -52,7 +52,21 @@ export function getOpenSearchClient(): Client {
   return cachedClient;
 }
 
-export function buildOpenSearchIndexBody(dimension = EMBEDDING_VECTOR_SIZE): Record<string, unknown> {
+/**
+ * Index mapping profile. "classic" (DEFAULT, unchanged since the first OpenSearch rollout): explicit faiss / hnsw method with the space type inside `method`.
+ * "nextgen" (opt-in via OPENSEARCH_INDEX_PROFILE=nextgen): the form AWS documents for NextGen vector collections (`*.aoss.<region>.on.aws`): NextGen needs no `engine` / `mode`, the
+ * space type sits on the field, `method` only names the algorithm. Which profile the live collection accepts is verified by the one-document canary; search is unaffected by the choice.
+ */
+export type OpenSearchIndexProfile = "classic" | "nextgen";
+export function resolveOpenSearchIndexProfile(env: NodeJS.ProcessEnv = process.env): OpenSearchIndexProfile {
+  const raw = (env.OPENSEARCH_INDEX_PROFILE || "classic").trim().toLowerCase();
+  if (raw === "classic" || raw === "nextgen") return raw;
+  throw new Error(`Unsupported OPENSEARCH_INDEX_PROFILE "${raw}". Expected "classic" or "nextgen".`);
+}
+export function buildOpenSearchIndexBody(dimension = EMBEDDING_VECTOR_SIZE, profile: OpenSearchIndexProfile = resolveOpenSearchIndexProfile()): Record<string, unknown> {
+  const vectorField = profile === "nextgen"
+    ? { type: "knn_vector", dimension, space_type: OPENSEARCH_SPACE_TYPE, method: { name: "hnsw" } }
+    : { type: "knn_vector", dimension, method: { name: "hnsw", engine: "faiss", space_type: OPENSEARCH_SPACE_TYPE } };
   return {
     settings: {
       index: {
@@ -62,15 +76,7 @@ export function buildOpenSearchIndexBody(dimension = EMBEDDING_VECTOR_SIZE): Rec
     mappings: {
       dynamic: true,
       properties: {
-        [OPENSEARCH_VECTOR_FIELD]: {
-          type: "knn_vector",
-          dimension,
-          method: {
-            name: "hnsw",
-            engine: "faiss",
-            space_type: OPENSEARCH_SPACE_TYPE,
-          },
-        },
+        [OPENSEARCH_VECTOR_FIELD]: vectorField,
         payload: { type: "object", enabled: true },
         text: { type: "text" },
         content: { type: "text" },
@@ -205,6 +211,20 @@ export class OpenSearchVectorStore implements VectorStore {
     } catch (err) {
       if (!isMissingIndex(err)) throw err;
       return { kind: "missing" };
+    }
+  }
+
+  /**
+   * Number of documents currently searchable in `index` (NextGen read-after-write latency is ~5 s, so a count taken right after a write can lag). Used only by the ingest tooling
+   * (`--check-empty`); deliberately NOT part of `getIndexStatus`, which sits on the V1 query path. Returns null when the index is missing or the count API is unavailable.
+   */
+  async countDocuments(index: string): Promise<number | null> {
+    try {
+      const response = await this.client.count({ index });
+      const n = ((response.body ?? response) as { count?: unknown }).count;
+      return typeof n === "number" ? n : null;
+    } catch {
+      return null;
     }
   }
 

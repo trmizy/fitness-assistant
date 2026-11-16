@@ -1,263 +1,40 @@
-import * as fs from "fs";
-import * as path from "path";
-import { embedDocuments, EMBED_BATCH_SIZE } from "./datasets/seed/embedding-backoff";
-import { EMBEDDING_VECTOR_SIZE } from "./services/embedding-config";
-import { getVectorStore } from "./vector-store/provider";
-
 /**
- * RFC 4180-compliant CSV line parser.
- * Handles quoted fields, escaped double-quotes (""), and commas inside quotes.
- * Strips surrounding whitespace from each field.
+ * RAG ingest CLI. Logic lives in datasets/seed/rag-ingest-core.ts (pure: sources, selection, stable ids, manifest) and datasets/seed/rag-ingest-runner.ts (arguments + the ingest loop with
+ * an injected store / embedder). This file only wires the real vector store and embedder — LAZILY, and only for a non-dry run, so `--dry-run` never loads AWS code or calls anything.
+ *
+ *   npx tsx src/ingest.ts --dry-run --profile=demo --manifest=../../../.dev/m96-t5/manifest.json     # review first: documents, ids, tokens, cost
+ *   npx tsx src/ingest.ts --profile=demo --canary --dataset=exercises --yes                           # one document into exercises_canary
+ *   npx tsx src/ingest.ts --profile=demo --check-empty --yes                                          # the demo corpus (exercises + knowledge + evidence; FAQ = 0)
+ *   npx tsx src/ingest.ts                                                                            # legacy: every valid record of exercises, knowledge, faq (needs --yes on OpenSearch / Bedrock)
+ * See rag-ingest-runner.ts for every flag. Document ids are now STABLE (derived from the document's own key), so re-running overwrites instead of duplicating; data ingested earlier
+ * with the old numeric row-index ids is not recognised as the same documents.
  */
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
+import { parseIngestArgs, runIngest, type IngestStore } from "./datasets/seed/rag-ingest-runner";
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      fields.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
+export async function ingestFromArgv(argv: string[]) {
+  const args = parseIngestArgs(argv);
+  if (args.dryRun) {
+    return runIngest(args);
   }
-  fields.push(current.trim());
-  return fields;
-}
-
-function resolveCsvPath(relativePath: string): string {
-  const envPath = process.env.RAG_INGEST_CSV_PATH;
-  const candidates = [
-    envPath ? path.resolve(process.cwd(), envPath) : null,
-    path.resolve(process.cwd(), relativePath),
-    path.resolve(process.cwd(), "../../..", relativePath),
-    path.resolve(__dirname, "../../../..", relativePath),
-  ].filter((p): p is string => Boolean(p));
-
-  const existing = candidates.find((candidate) => fs.existsSync(candidate));
-  if (existing) {
-    return existing;
-  }
-
-  throw new Error(
-    `Cannot find CSV file for ${relativePath}. Checked: ${candidates.join(", ")}.`,
-  );
-}
-
-async function ingestCollection(
-  collectionName: string,
-  csvRelativePath: string,
-  requiredColumns: string[],
-  extractPayload: (
-    parts: string[],
-    col: Record<string, number>,
-    index: number,
-  ) => any,
-  extractTextForEmbedding: (payload: any) => string,
-) {
-  console.log(`\n--- Starting ingestion for ${collectionName} ---`);
-  const csvPath = resolveCsvPath(csvRelativePath);
-  console.log(`Using CSV: ${csvPath}`);
-  const rawLines = fs
-    .readFileSync(csvPath, "utf-8")
-    .split("\n")
-    .map((l) => l.replace(/\r$/, "")); // strip Windows CR
-
-  if (rawLines.length < 2) {
-    throw new Error("CSV file is empty or contains only a header row");
-  }
-
-  const headers = parseCSVLine(rawLines[0]);
-  const missing = requiredColumns.filter((col) => !headers.includes(col));
-  if (missing.length > 0) {
-    throw new Error(`CSV is missing required columns: ${missing.join(", ")}.`);
-  }
-  const col: Record<string, number> = {};
-  headers.forEach((h, i) => {
-    col[h] = i;
-  });
-
-  const dataRows = rawLines.slice(1).filter((l) => l.trim());
-  const items = dataRows
-    .map((line, index) => {
-      const parts = parseCSVLine(line);
-      return extractPayload(parts, col, index);
-    })
-    .filter((item) => item !== null);
-
-  console.log(`Loaded ${items.length} items from CSV for ${collectionName}`);
-
-  // Ensure provider-specific vector index exists and has the configured dimension.
+  const [{ getVectorStore }, { embedDocuments, EMBED_BATCH_SIZE }, { EMBEDDING_VECTOR_SIZE, EMBEDDING_PROVIDER }] = await Promise.all([
+    import("./vector-store/provider"),
+    import("./datasets/seed/embedding-backoff"),
+    import("./services/embedding-config"),
+  ]);
   const store = getVectorStore();
-  await store.ensureIndex(collectionName, EMBEDDING_VECTOR_SIZE);
-  console.log(
-    `Ensured ${store.provider} vector index ${collectionName} at dimension ${EMBEDDING_VECTOR_SIZE}`,
-  );
-
-  // Generate embeddings and upload
-  console.log(`Generating embeddings and uploading to ${store.provider}...`);
-  const batchSize = EMBED_BATCH_SIZE;
-
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    console.log(
-      `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(items.length / batchSize)}...`,
-    );
-
-    // One request per batch on Bedrock (Cohere takes up to 96 texts), with throttle back-off — see embedding-backoff.ts.
-    const vectors = await embedDocuments(batch.map((item) => extractTextForEmbedding(item)));
-    const points = batch.map((item, idx) => ({ id: item.id, vector: vectors[idx], payload: item }));
-
-    await store.upsert(collectionName, points);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-
-  console.log(`✅ Ingestion complete for ${collectionName}!`);
+  console.log(`Vector store: ${store.provider}; embedding provider: ${EMBEDDING_PROVIDER}; dimension ${EMBEDDING_VECTOR_SIZE}`);
+  return runIngest(args, {
+    store: store as unknown as IngestStore,
+    embed: embedDocuments,
+    batchSize: EMBED_BATCH_SIZE,
+    dimension: EMBEDDING_VECTOR_SIZE,
+    requireConfirmation: store.provider === "opensearch", // a write into OpenSearch (AWS) needs an explicit --yes; the established local Qdrant + Bedrock-embedding flow (scripts/dev/local-bedrock.ps1) is unchanged
+  });
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const collectionArg =
-    args.find((a) => a.startsWith("--collection="))?.split("=")[1] || "all";
-  const checkEmpty = args.includes("--check-empty");
-
-  const configs = [
-    {
-      name: "exercises",
-      path: "data/processed/rag/exercises.csv",
-      requiredColumns: [
-        "exercise_name",
-        "type_of_activity",
-        "type_of_equipment",
-        "body_part",
-        "type",
-        "muscle_groups_activated",
-        "instructions",
-      ],
-      extractPayload: (
-        parts: string[],
-        col: Record<string, number>,
-        index: number,
-      ) => {
-        if (!parts[col["exercise_name"]]) return null;
-        return {
-          id: index,
-          exerciseName: parts[col["exercise_name"]] || "",
-          typeOfActivity: parts[col["type_of_activity"]] || "",
-          typeOfEquipment: parts[col["type_of_equipment"]] || "",
-          bodyPart: parts[col["body_part"]] || "",
-          type: parts[col["type"]] || "",
-          muscleGroupsActivated: parts[col["muscle_groups_activated"]] || "",
-          instructions: parts[col["instructions"]] || "",
-        };
-      },
-      extractText: (p: any) =>
-        `${p.exerciseName} ${p.typeOfActivity} ${p.typeOfEquipment} ${p.bodyPart} ${p.muscleGroupsActivated} ${p.instructions}`,
-    },
-    {
-      name: "fitness_knowledge",
-      path: "data/catalog/rag/gym_rag_master_dataset.csv",
-      requiredColumns: ["doc_id", "title_vi", "content_vi", "category", "tags"],
-      extractPayload: (
-        parts: string[],
-        col: Record<string, number>,
-        index: number,
-      ) => {
-        if (!parts[col["doc_id"]]) return null;
-        return {
-          id: index,
-          docId: parts[col["doc_id"]] || "",
-          titleVi: parts[col["title_vi"]] || "",
-          contentVi: parts[col["content_vi"]] || "",
-          category: parts[col["category"]] || "",
-          tags: parts[col["tags"]] || "",
-        };
-      },
-      extractText: (p: any) =>
-        `${p.titleVi} ${p.contentVi} ${p.category} ${p.tags}`,
-    },
-    {
-      name: "fitness_faq",
-      path: "data/catalog/qa/gym_faq_qa.csv",
-      requiredColumns: [
-        "faq_id",
-        "question_vi",
-        "answer_vi",
-        "category",
-        "tags",
-      ],
-      extractPayload: (
-        parts: string[],
-        col: Record<string, number>,
-        index: number,
-      ) => {
-        if (!parts[col["faq_id"]]) return null;
-        return {
-          id: index,
-          faqId: parts[col["faq_id"]] || "",
-          questionVi: parts[col["question_vi"]] || "",
-          answerVi: parts[col["answer_vi"]] || "",
-          category: parts[col["category"]] || "",
-          tags: parts[col["tags"]] || "",
-        };
-      },
-      extractText: (p: any) =>
-        `${p.questionVi} ${p.answerVi} ${p.category} ${p.tags}`,
-    },
-  ];
-
-  if (checkEmpty) {
-    console.log("Checking if collections are already populated...");
-    let allPopulated = true;
-    for (const config of configs) {
-      try {
-        const info = await getVectorStore().getIndexStatus(config.name);
-        if (info.kind !== "ok") {
-          allPopulated = false;
-          console.log(`Collection ${config.name} does not exist or needs reindexing.`);
-          continue;
-        }
-        if (info.pointsCount !== undefined && info.pointsCount === 0) {
-          allPopulated = false;
-          console.log(`Collection ${config.name} is empty.`);
-        }
-      } catch (e) {
-        allPopulated = false;
-        console.log(`Collection ${config.name} does not exist.`);
-      }
-    }
-
-    if (allPopulated) {
-      console.log(
-        "✅ All collections are already populated. Skipping ingestion.",
-      );
-      return;
-    }
-  }
-
-  for (const config of configs) {
-    if (collectionArg === "all" || collectionArg === config.name) {
-      await ingestCollection(
-        config.name,
-        config.path,
-        config.requiredColumns,
-        config.extractPayload,
-        config.extractText,
-      );
-    }
-  }
+if (require.main === module) {
+  ingestFromArgv(process.argv.slice(2)).catch((error) => {
+    console.error("❌ Ingestion failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }
-
-main().catch((error) => {
-  console.error("❌ Ingestion failed:", error);
-  process.exit(1);
-});
