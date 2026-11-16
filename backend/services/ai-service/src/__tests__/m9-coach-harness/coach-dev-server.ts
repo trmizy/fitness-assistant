@@ -141,7 +141,11 @@ export async function startCoachDevServer(opts: { port?: number; host?: string }
     const prior = body.clientRequestId ? await history.history.findTurnByClientRequestId(acct.id, body.clientRequestId) : null;
     if (prior) return { sessionId: prior.sessionId as string, conversationId: prior.id, answer: (prior as any).answer as string, question: body.question };
     if (!sessionId) { sessionId = randomUUID(); await history.history.createSession({ id: sessionId, userId: acct.id, title: body.question.trim().slice(0, 60) }); }
-    const answer = `[Launcher DEV — câu trả lời V1 GIẢ LẬP, không phải V1 thật] Bạn hỏi: “${body.question.trim().slice(0, 120)}”.`;
+    const base = `[Launcher DEV — câu trả lời V1 GIẢ LẬP, không phải V1 thật] Bạn hỏi: “${body.question.trim().slice(0, 120)}”.`;
+    // layout probe for the browser run: a question containing "trả lời dài" gets a long stub reply with a long unbroken token and a list
+    const NL = String.fromCharCode(10);
+    const longTail = Array.from({ length: 14 }, (_, i) => `Ý ${i + 1}: đây là một đoạn văn dài giả lập dùng để kiểm tra việc xuống dòng và cuộn của khung chat trên màn hình điện thoại hẹp.`).join(NL);
+    const answer = /trả lời dài/i.test(body.question) ? `${base}${NL}${NL}${longTail}${NL}${NL}https://example.invalid/${"đường-dẫn-rất-dài-không-có-khoảng-trắng-".repeat(6)}` : base;
     await history.history.createTurn({
       userId: acct.id, sessionId, clientRequestId: body.clientRequestId ?? `v1-${randomUUID()}`, question: body.question, answer, modelUsed: "v1-launcher-stub" as never, responseTime: 0,
       promptTokens: 0, completionTokens: 0, totalTokens: 0, cost: 0, usedFallback: false, usedDeterministicFallback: false, warningCount: 0,
@@ -172,7 +176,7 @@ export async function startCoachDevServer(opts: { port?: number; host?: string }
   (conversationRepository as any).findSessionsByUser = async (userId: string) => [...history.sessions.values()].filter((s) => s.userId === userId && !s.archivedAt).map((s) => sess(s.id)).sort((a, b) => String(b!.lastMessageAt).localeCompare(String(a!.lastMessageAt)));
   (conversationRepository as any).findSessionById = async (id: string) => sess(id);
   (conversationRepository as any).findSessionMessages = async (userId: string, sessionId: string) =>
-    history.turns.filter((t) => t.userId === userId && t.sessionId === sessionId).map((t) => ({ id: t.id, question: t.question, answer: t.answer, createdAt: nowIso() }));
+    history.turns.filter((t) => t.userId === userId && t.sessionId === sessionId).map((t) => ({ ...t, createdAt: nowIso() })); // full rows, like the real findSessionMessages (modelUsed / traceId included)
   (conversationRepository as any).archiveSession = async (id: string) => { const s = history.sessions.get(id); if (s) s.archivedAt = new Date(); return sess(id); };
 
   // ── the real app + the V2 runtime over mocks ────────────────────────────────────────────────────────────────────────────

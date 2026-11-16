@@ -158,3 +158,30 @@ test("DL-9 chaos controls reproduce REAL bridge situations: a lost response is r
   assert.equal(s.counters.v2Runs(), runs0 + 2, "the held turn ran exactly once");
   await optin(t, false);
 });
+
+test("DL-10 history reload metadata: a persisted V2 turn comes back with the V2 engine marker + the real supervisor trace id; a V1 turn does not; nothing beyond that is stored or invented", async () => {
+  const fs = await import("node:fs"); const path = await import("node:path");
+  const t = (await login(A)).accessToken;
+  await optin(t, true);
+  const live = await ask(t, { question: scenario("progress").question, clientRequestId: id() });
+  assert.equal(live.body.data.v2.status, "ANSWERED");
+  const sid = live.body.data.sessionId as string;
+  await optin(t, false);
+  const v1 = await ask(t, { question: "Cho mình hỏi về việc tăng cơ?", clientRequestId: id() }); // new conversation, V1 stub
+  const rows = (await api().get(`/ai/sessions/${sid}/messages`).set("Authorization", `Bearer ${t}`)).body.data.messages as Array<Record<string, unknown>>;
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].modelUsed, "multi-agent-v2"); assert.equal(rows[0].traceId, live.body.data.v2.traceId, "the trace id of the live reply is what history keeps");
+  for (const notStored of ["agents", "executedAgents", "status", "kind", "v2", "engine", "turnId", "block"]) assert.ok(!(notStored in rows[0]), `history has no ${notStored} column — it must not be invented`);
+  const v1rows = (await api().get(`/ai/sessions/${v1.body.data.sessionId}/messages`).set("Authorization", `Bearer ${t}`)).body.data.messages as Array<Record<string, unknown>>;
+  assert.notEqual(v1rows[0].modelUsed, "multi-agent-v2");
+  // blocked / partial / failed turns are not persisted at all (policy), so they can never come back as a restored badge
+  await optin(t, true);
+  const turnsBefore = s.fakes.history.turns.length;
+  for (const sc of ["safety", "partial-cap", "agent-failure"]) await ask(t, { question: scenario(sc).question, clientRequestId: id() });
+  assert.equal(s.fakes.history.turns.length, turnsBefore, "blocked / partial / failed turns were not written");
+  // the frontend constant is the backend marker
+  const { V2_ENGINE_MARKER } = await import("../../services/coach-v2-continuity");
+  const fe = fs.readFileSync(path.resolve(__dirname, "../../../../../../frontend/web/src/app/services/coachV2Response.ts"), "utf8");
+  assert.match(fe, new RegExp(`COACH_V2_ENGINE_MARKER = "${V2_ENGINE_MARKER}"`));
+  await optin(t, false);
+});
