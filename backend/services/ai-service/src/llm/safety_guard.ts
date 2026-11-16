@@ -480,6 +480,171 @@ function detectDiagnosisRequest(question: string): boolean {
   return asksDiagnosis && personal && asksForIt;
 }
 
+// ── M9.5-T1 (B-03): acute self-harm / suicide intent, an ongoing or just-happened seizure, heat illness with confusion ─────────────────────────
+// Before this change none of them was an emergency (V1 gate and V2 input check answered `safe`; only the literal "tự làm hại" matched, and got the
+// CHEST-PAIN reply). Policy (PROPOSED — owner / clinical review pending): FIRST-PERSON current intent or an ACUTE event → emergency. Education,
+// chronic-condition questions ("tôi bị động kinh, tập gym được không?"), negation, quotation, muscle twitch ("co giật cơ"), "mệt muốn chết" hyperbole
+// and hypothetical first-aid questions are NOT emergencies. Third-person CRISIS disclosures ("anh ấy nói muốn tự tử") are left as before (documented gap).
+// Uses the existing fold only (no new normalisation). Over-triage is deliberate for first-person self-harm: "nếu tôi muốn tự tử thì sao" is flagged.
+export type EmergencyKind = "self_harm" | "seizure" | "heat_illness";
+const stripQuoted = (s: string): string => s.replace(/(["“«‘])[^"”»’]{1,200}(["”»’])/g, " ").replace(/(^|\s)'[^']{3,200}'(?=$|[\s.,;:!?])/g, " ");
+const SH_FILL = String.raw`(?:(?:thật sự|thực sự|thật lòng|chỉ|đang|rất|luôn|lại|cứ|bây giờ|giờ|vẫn|hiện|thực ra|đôi khi|có lúc|chỉ còn)\s+){0,3}`;
+const SH_SUBJ = String.raw`(?<![\p{L}])(?:tôi|mình|em|tui|tao)\s+`;
+const SELF_HARM_ACCENTED: RegExp[] = [
+  new RegExp(SH_SUBJ + SH_FILL + String.raw`(?:muốn|định|có ý định|sắp|đã quyết định|quyết định|đang nghĩ (?:đến|tới)(?: chuyện| việc)?|nghĩ (?:đến|tới)(?: chuyện| việc)?)\s+(?:tự tử|tự sát|tự vẫn|kết thúc (?:cuộc đời|cuộc sống|đời mình|mạng sống|tất cả|mọi thứ)|chết(?!\s+(?:đói|mệt|cười|ngượng|thèm|lạnh|nóng|vì mệt|vì đói))(?![\p{L}]))`, "u"),
+  new RegExp(SH_SUBJ + SH_FILL + String.raw`(?:không|chẳng|chả)\s+(?:còn\s+)?muốn\s+(?:tiếp tục\s+)?sống(?![\p{L}])`, "u"),
+  /(?:^|[.!?;,\n]\s*)(?:chỉ\s+)?muốn\s+(?:tự tử|tự sát|tự vẫn|chết quách|chết đi)(?![\p{L}])/u,
+];
+// unaccented writers only (the original has NO diacritics): "tu tu" is also "từ từ" (slowly), so it counts only when it closes the clause; "tu van" (tư vấn) is not used
+const SH_ASCII_FILL = String.raw`(?:(?:that su|thuc su|that long|chi|dang|rat|luon|lai|cu|bay gio|gio|van|hien)\s+){0,3}`;
+const SH_ASCII_SUBJ = String.raw`(?<![a-z])(?:toi|minh|em|tui|tao)\s+`;
+const SH_ASCII_VERB = String.raw`(?:muon|dinh|co y dinh|sap|da quyet dinh|quyet dinh|dang nghi (?:den|toi)(?: chuyen| viec)?|nghi (?:den|toi)(?: chuyen| viec)?)`;
+const CLAUSE_END = String.raw`(?=\s*(?:$|[.!?,;])|\s+(?:vi|boi vi|nhung|ma)\b)`;
+const SELF_HARM_ASCII: RegExp[] = [
+  new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + SH_ASCII_VERB + String.raw`\s+(?:tu sat|ket thuc (?:cuoc doi|cuoc song|doi minh|mang song|tat ca|moi thu)|chet(?!\s+(?:doi|met|cuoi|nguong|them|lanh|nong))(?![a-z]))`),
+  new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + String.raw`(?:khong|chang|cha)\s+(?:con\s+)?muon\s+(?:tiep tuc\s+)?song(?![a-z])`),
+  new RegExp(String.raw`(?:^|[.!?;,\n]\s*)(?:chi\s+)?muon\s+(?:tu sat|chet quach|chet di)(?![a-z])`),
+];
+const SELF_HARM_ASCII_TUTU = new RegExp(SH_ASCII_SUBJ + SH_ASCII_FILL + SH_ASCII_VERB + String.raw`\s+tu tu` + CLAUSE_END);
+const SELF_HARM_EN: RegExp[] = [
+  /(?<![a-z])i(?:'m| am| feel| have| had)?\s+(?:(?:really|so|now|currently|honestly|just)\s+)*suicidal\b/,
+  /(?<![a-z])(?:i|i'm|i am)\s+(?:(?:really|just|only|now|currently|honestly|so)\s+)*(?:want(?:ing)?|wanna|going|planning|thinking(?: of| about)|decided|ready)\s+(?:to\s+)?(?:kill myself|end my life|end it all|take my (?:own )?life|commit suicide)\b/,
+  /(?<![a-z])i\s+(?:don't|do not|no longer)\s+(?:want to|wanna)\s+(?:live|be alive|go on)\b/,
+];
+const HAS_MARKS = /[\p{M}đĐ]/u;
+
+function seizureEmergency(nfc: string, f: string): boolean {
+  const ongoing = /\b(?:dang|vua|ngay bay gio|bay gio|ngay luc nay|right now)\b/.test(f);
+  const hypothetical = /\b(?:neu|gia su|gia dinh|gia du|vi du|truong hop|if|suppose)\b/.test(f);
+  if (hypothetical && !ongoing) return false;
+  if (/\b(?:having|had|just had|is having|are having|am having|experiencing|experienced)\s+(?:a |an )?(?:seizure|convulsion)s?\b|\b(?:seizing|convulsing)\b/.test(f)) return true;
+  const severe = /\b(?:toan than|bat tinh|mat y thuc|sui bot mep|khong tinh lai|khong nho gi)\b/.test(f);
+  const acute = /\b(?:(?:len|vua len|dang len|bi len)\s+con\s+(?:dong kinh|co giat)|con (?:dong kinh|co giat)\s+(?:dang|vua|xay ra)|(?:dang|vua|vua moi|dang bi|vua bi|vua lai bi|lai bi|bi)\s+co giat|co giat toan than|sui bot mep)\b/.test(f);
+  if (!acute && !(severe && /\bco giat\b/.test(f))) return false;
+  if (/\b(?:la gi|nghia la)\b/.test(f) && !ongoing) return false; // "co giật là gì" — a definition
+  if (!severe) { // a twitch / cramp of a named muscle is not a seizure ("cơ bắp chân bị co giật nhẹ"); "cơ" is read on the accented text so it is not "có"
+    const i = nfc.search(/co giật/);
+    const win = i >= 0 ? nfc.slice(Math.max(0, i - 22), i + 30) : f.slice(Math.max(0, f.search(/co giat/) - 22), f.search(/co giat/) + 30);
+    if (i >= 0 ? /(?<![\p{L}])(?:cơ|bắp|mí|mắt|đùi|chân|tay|vai|lưng|bụng|cẳng|hàm|nhẹ)(?![\p{L}])/u.test(win) : /\b(?:bap|mi|mat|dui|chan|tay|vai|lung|bung|cang|ham|nhe)\b/.test(win)) return false;
+  }
+  return true;
+}
+function heatIllnessEmergency(f: string): boolean {
+  const confusion = /\b(?:lu lan|me sang|noi lam nham|noi nham|noi khong ro|khong tinh tao|mat dinh huong|lo mo|confus(?:ed|ion)|disorient(?:ed|ation)|delirious|incoherent)\b/.test(f);
+  const heat = /\b(?:nong ran|nong nguoi|nong bung|soc nhiet|say nong|say nang|kiet suc (?:do )?nhiet|(?:khong|ngung|het) (?:con )?(?:do|ra) mo hoi|(?:troi|ngoai troi|ngoai nang|duoi nang) nong|heat ?stroke|heat exhaustion|overheat(?:ed|ing)|too hot)\b/.test(f);
+  if (!confusion || !heat) return false;
+  const acute = /\b(?:dang|vua|bi|i feel|i'm feeling|right now)\b/.test(f);
+  const firstPerson = /\b(?:toi|minh|em|tui|i|i'm|my)\b/.test(f);
+  const asksAbout = /\b(?:muon biet|co lam|co gay|co phai|la gi|nghia la|vi sao|tai sao|nguyen nhan|trieu chung|dau hieu|cach|lam sao|lam the nao|nen lam gi|co the|neu|gia su)\b/.test(f);
+  return acute || (firstPerson && !asksAbout);
+}
+/** Which acute emergency (if any) the message reports. Pure function of the text. `accentFoldedRetry`: the text is the folded re-check of an accented original. */
+export function emergencyKindOf(question: string, options?: SafetyCheckOptions): EmergencyKind | null {
+  const original = String(question ?? "");
+  const originalForms = [original.normalize("NFC").toLowerCase(), foldSafetyText(original)];
+  if (originalForms.some((t) => MEDICAL_PATTERNS[4].test(t))) return "self_harm"; // the pre-existing "tự làm hại" rule, evaluated exactly as before (unstripped)
+  const stripped = stripQuoted(original);
+  const nfc = stripped.normalize("NFC").toLowerCase().replace(/[’‘]/g, "'");
+  const f = foldSafetyText(stripped).replace(/[’‘]/g, "'");
+  const unaccented = !HAS_MARKS.test(original.normalize("NFD"));
+  if (SELF_HARM_ACCENTED.some((re) => re.test(nfc)) || SELF_HARM_EN.some((re) => re.test(nfc))) return "self_harm";
+  if (unaccented && (SELF_HARM_ASCII.some((re) => re.test(f)) || (!options?.accentFoldedRetry && SELF_HARM_ASCII_TUTU.test(f)))) return "self_harm";
+  if (seizureEmergency(nfc, f)) return "seizure";
+  if (heatIllnessEmergency(f)) return "heat_illness";
+  return null;
+}
+function emergencyResult(kind: EmergencyKind): SafetyResult {
+  if (kind === "self_harm") {
+    return {
+      type: "medical_emergency", emergencyKind: kind,
+      messageVi: [
+        "## 💙 Mình rất tiếc khi nghe bạn đang cảm thấy như vậy",
+        "",
+        "Điều bạn đang trải qua quan trọng hơn mọi mục tiêu tập luyện. Mình là **AI Fitness Coach**, không phải chuyên gia sức khỏe tâm thần và không thể thay thế sự hỗ trợ trực tiếp từ con người — nhưng bạn không phải đối mặt với chuyện này một mình.",
+        "",
+        "🏥 **Nếu bạn đang có nguy cơ làm hại bản thân ngay lúc này:**",
+        "- Gọi **115** (cấp cứu) hoặc đến cơ sở y tế/cấp cứu gần nhất.",
+        "- Đừng ở một mình: hãy nhắn hoặc gọi cho một người thân, bạn bè hay người bạn tin tưởng và nói rằng bạn cần họ ở bên cạnh ngay bây giờ.",
+        "- Nếu có thể, hãy để các vật hoặc chất có thể gây hại cho bản thân ở xa tầm với.",
+        "",
+        "💙 Nếu hiện tại chưa nguy cấp, hãy liên hệ bác sĩ, chuyên gia tâm lý hoặc đường dây hỗ trợ sức khỏe tâm thần tại nơi bạn sống càng sớm càng tốt. Lúc này mình sẽ không bàn về tập luyện hay ăn uống — khi bạn đã được hỗ trợ và thấy ổn hơn, mình luôn sẵn sàng giúp lại.",
+      ].join("\n"),
+      messageEn: [
+        "## 💙 I'm really sorry you're feeling this way",
+        "",
+        "What you're going through matters more than any training goal. I'm an **AI Fitness Coach**, not a mental-health professional, and I can't replace support from real people — but you don't have to face this alone.",
+        "",
+        "🏥 **If you may harm yourself right now:**",
+        "- Call your local emergency number (115 in Vietnam) or go to the nearest emergency department.",
+        "- Don't stay alone: message or call a family member, friend or someone you trust and tell them you need them with you right now.",
+        "- If you can, keep anything you could use to hurt yourself out of reach.",
+        "",
+        "💙 If it isn't urgent right now, please contact a doctor, a therapist or a mental-health support line where you live as soon as you can. I won't talk about training or meals at this moment — once you have support and feel steadier, I'm glad to help again.",
+      ].join("\n"),
+    };
+  }
+  if (kind === "seizure") {
+    return {
+      type: "medical_emergency", emergencyKind: kind,
+      messageVi: [
+        "## 🚨 Co giật có thể là cấp cứu — gọi 115 ngay",
+        "",
+        "Mình là **AI Fitness Coach** và không thể đánh giá y khoa, nhưng co giật đang xảy ra hoặc vừa xảy ra cần được nhân viên y tế đánh giá.",
+        "",
+        "🏥 **Làm ngay (nếu có người đang co giật):**",
+        "- Gọi **115** (cấp cứu) — nhất là nếu co giật kéo dài hơn 5 phút, lặp lại, người đó không tỉnh lại, khó thở, bị chấn thương, đây là lần đầu hoặc người đó đang mang thai/có bệnh nền.",
+        "- Dời các vật cứng, sắc xung quanh và kê vật mềm dưới đầu; **không giữ chặt** người đang co giật và **không nhét bất cứ thứ gì vào miệng**, không cho ăn uống.",
+        "- Khi cơn co giật dừng, đặt người đó **nằm nghiêng**, nới lỏng quần áo quanh cổ, ở bên cạnh và theo dõi hơi thở cho tới khi nhân viên y tế đến. Ghi lại giờ bắt đầu cơn.",
+        "",
+        "🏥 **Nếu chính bạn vừa bị co giật:** hãy ngồi hoặc nằm ở nơi an toàn, nhờ người ở cạnh và đi cấp cứu/khám bác sĩ ngay; không tiếp tục tập luyện.",
+        "",
+        "Sau khi bác sĩ đánh giá và cho phép, mình sẵn sàng giúp bạn điều chỉnh chương trình tập an toàn.",
+      ].join("\n"),
+      messageEn: [
+        "## 🚨 A seizure can be an emergency — call emergency services now",
+        "",
+        "I'm an **AI Fitness Coach** and can't assess this medically, but a seizure that is happening or has just happened needs medical evaluation.",
+        "",
+        "🏥 **Do now (if someone is seizing):**",
+        "- Call emergency services (115 in Vietnam) — especially if it lasts more than 5 minutes, repeats, the person doesn't wake up, has trouble breathing, is injured, it's their first seizure, or they are pregnant or have a medical condition.",
+        "- Move hard or sharp objects away and put something soft under the head; **don't hold the person down** and **don't put anything in their mouth**; no food or drink.",
+        "- When the seizure stops, place the person **on their side**, loosen clothing around the neck, stay with them and watch their breathing until help arrives. Note when it started.",
+        "",
+        "🏥 **If it was you:** sit or lie down somewhere safe, ask someone to stay with you and seek emergency care/see a doctor right away; don't keep training.",
+        "",
+        "Once a doctor has assessed you and cleared you, I'm glad to help adjust your training safely.",
+      ].join("\n"),
+    };
+  }
+  return {
+    type: "medical_emergency", emergencyKind: kind,
+    messageVi: [
+      "## 🚨 Dấu hiệu say nóng/sốc nhiệt — cần cấp cứu",
+      "",
+      "Nóng người kèm lú lẫn hoặc nói lảm nhảm khi hay sau khi tập có thể là say nóng nặng (sốc nhiệt), nguy hiểm đến tính mạng. Mình không thể chẩn đoán, nhưng không nên chờ đợi.",
+      "",
+      "🏥 **Làm ngay:**",
+      "- Gọi **115** (cấp cứu).",
+      "- Dừng tập, đưa người đó vào nơi mát hoặc có bóng râm, cởi bớt quần áo.",
+      "- Làm mát cơ thể ngay: khăn hoặc nước mát lên cổ, nách, bẹn; quạt cho thoáng.",
+      "- Nếu còn tỉnh và nuốt được, cho uống nước từng ngụm; **không ép uống** nếu đang lú lẫn nặng hoặc lơ mơ.",
+      "- Ở bên cạnh và theo dõi cho tới khi nhân viên y tế đến.",
+    ].join("\n"),
+    messageEn: [
+      "## 🚨 Signs of heat stroke — this is an emergency",
+      "",
+      "Feeling very hot together with confusion or incoherent speech during or after exercise can be severe heat illness (heat stroke), which is life-threatening. I can't diagnose, but don't wait.",
+      "",
+      "🏥 **Do now:**",
+      "- Call emergency services (115 in Vietnam).",
+      "- Stop exercising, move the person somewhere cool or shaded and remove extra clothing.",
+      "- Cool the body right away: cool water or wet cloths on the neck, armpits and groin; fan them.",
+      "- If they are alert and able to swallow, give small sips of water; **don't force drinks** if they are very confused or drowsy.",
+      "- Stay with them and monitor until help arrives.",
+    ].join("\n"),
+  };
+}
+
 // ── Exported types ────────────────────────────────────────────────────────────
 /**
  * Optional `check()` options (M7-P5A.3d). `accentFoldedRetry: true` tells the guard that `question` is the DIACRITIC-FOLDED re-check of an original that
@@ -491,7 +656,7 @@ export interface SafetyCheckOptions { accentFoldedRetry?: boolean }
 export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
-  | { type: "medical_emergency"; messageVi: string; messageEn: string }
+  | { type: "medical_emergency"; messageVi: string; messageEn: string; emergencyKind?: EmergencyKind }
   | { type: "post_exercise_symptoms"; messageVi: string; messageEn: string }
   | { type: "medical_diagnosis_request"; messageVi: string; messageEn: string }
   | { type: "off_topic"; messageVi: string; messageEn: string }
@@ -565,6 +730,9 @@ export const safetyGuard = {
     // Every detector sees both the NFC original and the diacritic-folded text (classification only; 2026-11-12 hotfix).
     const forms = safetyForms(question);
     const hit = (detect: (q: string) => boolean) => forms.some((form) => detect(form));
+    // M9.5-T1 (B-03): an ACUTE emergency (self-harm intent, seizure, heat illness with confusion) wins over every fitness / weight-loss rule below.
+    const emergencyKind = emergencyKindOf(question, options);
+    if (emergencyKind) return emergencyResult(emergencyKind);
     if (hit(detectUnsafeWeightLoss)) {
       // A minor (stated age < 18) never gets the adult safe-rate guidance (kcal deficits): the minor gate wins.
       if (statedMinorAge(question)) return this.minorAgeResult();
