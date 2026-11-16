@@ -9,8 +9,6 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { adaptAssessment, emergencyReplyForKind, emergencyVerdictOf, safetyGuard } from "../llm/safety_guard";
 import { checkInputSafety } from "../agent-v2/answer-guards";
 
@@ -144,7 +142,7 @@ for (const [label, q] of [["zero-width space between the words", "Tôi muốn t�
 }
 
 // ── Was a T1C dependency in F2 (todo); CLOSED by F3: the V1 orchestrator now stops on the two fail-closed types (behaviour pinned in safety-v1-orchestrator-failclosed-f3.test.ts) ──
-test("F2-T1C (closed by F3) the V1 orchestrator handles input_too_long and emergency_unassessable before any model call", () => {
-  const src = readFileSync(join(__dirname, "../llm/orchestrator.service.ts"), "utf8");
-  for (const t of ["input_too_long", "emergency_unassessable"]) assert.ok(src.includes(`safetyCheck.type === "${t}"`), `orchestrator does not stop on ${t}`);
+test("F2-T1C (closed by F3, form changed by F4) the V1 orchestrator declares input_too_long and emergency_unassessable as FAIL_CLOSED (behaviour: safety-v1-orchestrator-failclosed-f3 / -verdict-validation-f4 tests)", async () => {
+  const { SAFETY_VERDICT_DISPOSITION } = await import("../llm/orchestrator.service");
+  for (const t of ["input_too_long", "emergency_unassessable"] as const) assert.equal(SAFETY_VERDICT_DISPOSITION[t], "FAIL_CLOSED", `orchestrator does not stop on ${t}`);
 });

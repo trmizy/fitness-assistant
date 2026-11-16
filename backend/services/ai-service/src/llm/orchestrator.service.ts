@@ -27,7 +27,7 @@ import { stripInternalReferences } from "./output_hygiene";
 import { fitToBudget, planContext } from "./context_plan";
 import { detectMythClaims, formatClaimRulesForPrompt } from "./claim_rules";
 import { languageGuard } from "./language_guard";
-import { safetyGuard } from "./safety_guard";
+import { safetyGuard, emergencyReplyForKind, type SafetyUnassessable } from "./safety_guard";
 import { ApiError } from "../errors/api-error";
 import { profileExtractor } from "./profile_extractor";
 import type { PersonalizationContext } from "./profile_extractor";
@@ -185,6 +185,70 @@ function scopeRetryNote(lang: string): string {
 
 /** Folded text: a weight-loss / diet goal. Read with the profile age too, so a minor who does not state their age still gets the minor guidance (eval B2-44). */
 const WEIGHT_LOSS_GOAL = /\b(giam can|giam mo|giam ky|giam beo|an kieng|weight loss|lose weight|fat loss)\b/;
+
+// ── M9.5-T1B-F4: the Safety Guard verdict is VALIDATED AT RUNTIME before anything is done with it ─────────────────────────────────────────────────────────────────────────────
+// TypeScript's `SafetyResult` contract does not exist at runtime: a guard that returns `{}`, an unknown `type`, a recognised `type` without its reply texts, `null`, or throws used to fall
+// through every `if` below and reach the model (and a recognised-but-empty verdict was stored as an empty "answer"). Only a RECOGNISED, WELL-FORMED verdict may proceed; "I could not tell"
+// is never "safe". The registry below is the single list of what V1 does with each verdict; `Record<SafetyVerdict["type"], …>` makes the compiler reject a contract member that has no
+// declared disposition, so the runtime list cannot silently lag the type (F4-REGISTRY also compares it with the union in safety_guard.ts).
+type SafetyVerdict = ReturnType<typeof safetyGuard.check>;
+export type SafetyVerdictDisposition =
+  | "CONTINUE" // `safe`, and `unsafe_weight_loss` (answered by the normal pipeline using its guidance)
+  | "ANSWER" // a static reply from the guard, returned before any downstream service (the pre-existing 15 early-return types)
+  | "FAIL_CLOSED"; // the guard could not assess the message: nothing runs, the turn ends with an error (F3)
+export const SAFETY_VERDICT_DISPOSITION: Readonly<Record<SafetyVerdict["type"], SafetyVerdictDisposition>> = Object.freeze({
+  safe: "CONTINUE",
+  unsafe_weight_loss: "CONTINUE",
+  off_topic: "ANSWER",
+  medical_emergency: "ANSWER",
+  post_exercise_symptoms: "ANSWER",
+  medical_diagnosis_request: "ANSWER",
+  unsafe_ped_request: "ANSWER",
+  unsafe_extreme_calorie_request: "ANSWER",
+  severe_energy_restriction_warning: "ANSWER",
+  prompt_injection_attempt: "ANSWER",
+  medical_nutrition_condition: "ANSWER",
+  minor_age_nutrition_request: "ANSWER",
+  pregnancy_or_breastfeeding_nutrition_request: "ANSWER",
+  eating_disorder_disclosure: "ANSWER",
+  unsafe_weight_loss_behavior: "ANSWER",
+  severe_allergy_disclosure: "ANSWER",
+  prolonged_extreme_calorie_disclosure: "ANSWER",
+  input_too_long: "FAIL_CLOSED",
+  emergency_unassessable: "FAIL_CLOSED",
+});
+type AnswerVerdict = Exclude<SafetyVerdict, { type: "safe" } | { type: "unsafe_weight_loss" } | SafetyUnassessable>;
+const isAnswerVerdict = (v: SafetyVerdict): v is AnswerVerdict => SAFETY_VERDICT_DISPOSITION[v.type] === "ANSWER";
+const hasText = (x: unknown): x is string => typeof x === "string" && x.trim().length > 0;
+export type VerdictClassification =
+  | { ok: true; verdict: SafetyVerdict; disposition: SafetyVerdictDisposition }
+  | { ok: false; reason: "MALFORMED" | "UNKNOWN_TYPE" | "GUARD_ERROR" };
+/**
+ * Pure runtime check of ONE raw guard result. Accepts only an object whose own, string `type` is a registered verdict (a prototype key such as "constructor" is not registered) AND whose
+ * required structure is present: the reply texts of an ANSWER verdict, the guidance of `unsafe_weight_loss`. Everything else (`{}`, unknown / empty / wrong-typed / missing type, `null`,
+ * a string, an array…) is rejected. The cast below happens only AFTER these checks.
+ */
+export function classifySafetyVerdict(raw: unknown): VerdictClassification {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, reason: "MALFORMED" };
+  const v = raw as Record<string, unknown>;
+  if (typeof v.type !== "string" || v.type === "") return { ok: false, reason: "MALFORMED" };
+  if (!Object.prototype.hasOwnProperty.call(SAFETY_VERDICT_DISPOSITION, v.type)) return { ok: false, reason: "UNKNOWN_TYPE" };
+  const disposition = SAFETY_VERDICT_DISPOSITION[v.type as SafetyVerdict["type"]];
+  if (disposition === "ANSWER" && !(hasText(v.messageVi) && hasText(v.messageEn))) return { ok: false, reason: "MALFORMED" };
+  if (v.type === "unsafe_weight_loss") {
+    const g = v.guidance as Record<string, unknown> | null | undefined;
+    if (!g || typeof g !== "object" || typeof g.blocked !== "boolean" || !hasText(g.reason) || !hasText(g.safeAlternative) || !Array.isArray(g.firstWeekSteps)) return { ok: false, reason: "MALFORMED" };
+  }
+  return { ok: true, verdict: raw as SafetyVerdict, disposition };
+}
+/** Runs the guard (or any step that produces a verdict) so that a throw is a classification, not an unstructured crash. */
+async function guardedVerdict(produce: () => SafetyVerdict | Promise<SafetyVerdict>): Promise<VerdictClassification> {
+  try { return classifySafetyVerdict(await produce()); } catch { return { ok: false, reason: "GUARD_ERROR" }; } // the exception (and its message) is deliberately not kept or logged
+}
+/** True only for a validated `safe` verdict (never from an unrecognised or malformed one, never from a throw). */
+const isSafeVerdict = async (question: string): Promise<boolean> => { const g = await guardedVerdict(() => safetyGuard.check(question)); return g.ok && g.verdict.type === "safe"; };
+/** A short machine token for logs; anything else (arbitrary injected text) is replaced. */
+const logToken = (x: unknown): string => (typeof x === "string" && /^[A-Za-z_]{1,48}$/.test(x) ? x : "unspecified");
 
 /**
  * The question-only safety detector cannot see the profile. A user who is a MINOR by profile age gets the minors' triage
@@ -490,22 +554,34 @@ async function runInner(
 
     // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
-    let safetyCheck = safetyGuard.check(question);
-    if (userId) {
-      safetyCheck = await resolveProfileAwareSafety(question, safetyCheck, async () => (await profileExtractor.extract(userId, authHeader)).profile?.age);
+    // F4: the verdict is validated BEFORE it is used for anything — including by `resolveProfileAwareSafety` (which may read the profile).
+    let gate = await guardedVerdict(() => safetyGuard.check(question));
+    if (gate.ok && userId) {
+      const checked = gate.verdict;
+      gate = await guardedVerdict(() => resolveProfileAwareSafety(question, checked, async () => (await profileExtractor.extract(userId, authHeader)).profile?.age));
     }
 
-    // M9.5-T1B-F3 — FAIL CLOSED. The Safety Guard answers `emergency_unassessable` / `input_too_long` when it could NOT assess the message (ambiguous reference, engine fault,
-    // unsupported state, over-limit). That is not "safe": nothing below may run — no memory write, no meta / third-party / day-macro shortcut, no V1 agent or tool, no retrieval, no model,
-    // no turn write. It is also not an emergency (no medical template is used for a technical state) and not an AI answer (nothing is returned as one): the turn ends with an ApiError, which the
-    // controllers already turn into a structured HTTP error (JSON) or an SSE `error` event, and ragService persists no conversation turn for it. The text is the guard's own neutral
-    // refusal; the question is never logged or echoed. (The 2 000-unit limit is still enforced earlier by the request schema.)
-    if (safetyCheck.type === "input_too_long" || safetyCheck.type === "emergency_unassessable") {
+    // M9.5-T1B-F3 / F4 — FAIL CLOSED. Two kinds of verdict forbid coaching:
+    //   • the guard says it could NOT assess the message (`emergency_unassessable`, `input_too_long`: ambiguous reference, engine fault, unsupported state, over-limit) — F3;
+    //   • the verdict is not a recognised, well-formed one (`{}`, unknown / missing / wrong-typed `type`, a recognised type without its required structure, null, or a guard that threw) — F4.
+    // Neither is "safe". Nothing below may run — no memory write, no meta / third-party / day-macro shortcut, no V1 agent or tool, no retrieval, no model, no turn write. Neither is an
+    // emergency (no medical template is used for a technical state) nor an AI answer: the turn ends with an ApiError, which the controllers already turn into a structured HTTP error (JSON)
+    // or an SSE `error` event, and ragService persists no conversation turn for it. The text is the guard's own neutral refusal (single source: the adapter's unsupported-state reply);
+    // the question and any exception detail are never logged or echoed. (The 2 000-unit limit is still enforced earlier by the request schema.)
+    if (!gate.ok || gate.disposition === "FAIL_CLOSED") {
+      const verdict = gate.ok ? (gate.verdict as SafetyUnassessable) : null;
       traceLogger.end(trace, { retrievalEmpty: true, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "safety_gate" });
-      logger.warn({ userId, verdict: safetyCheck.type, reason: safetyCheck.reason }, "[safety] fail-closed: the safety gate could not assess the message — no model, tool or retrieval call");
-      const message = language.responseLanguage === "vi" ? safetyCheck.messageVi : safetyCheck.messageEn;
-      throw safetyCheck.type === "input_too_long" ? new ApiError("VALIDATION_ERROR", message, 400) : new ApiError("SERVICE_UNAVAILABLE", message, 503);
+      logger.warn(
+        { userId, verdict: verdict ? verdict.type : "invalid", reason: verdict ? logToken(verdict.reason) : gate.ok ? "unspecified" : gate.reason },
+        "[safety] fail-closed: the safety gate could not assess the message or returned an unrecognised verdict — no model, tool or retrieval call",
+      );
+      const neutral = emergencyReplyForKind("unsupported_verdict") as SafetyUnassessable;
+      const vi = language.responseLanguage === "vi";
+      const own = verdict ? (vi ? verdict.messageVi : verdict.messageEn) : undefined;
+      const message = hasText(own) ? own : vi ? neutral.messageVi : neutral.messageEn;
+      throw verdict && verdict.type === "input_too_long" ? new ApiError("VALIDATION_ERROR", message, 400) : new ApiError("SERVICE_UNAVAILABLE", message, 503);
     }
+    const safetyCheck: SafetyVerdict = gate.verdict;
 
     // ADV-003 (docs/codex-ai-agent-regression-3-report.md) — deterministic
     // memory-write provenance (see memory_extraction.ts's own doc comment).
@@ -520,23 +596,8 @@ async function runInner(
       knownPromptInjection: safetyCheck.type === "prompt_injection_attempt",
     }).catch((err) => logger.warn({ err: (err as Error)?.message, userId }, "[memory-provenance] unexpected error; chat turn unaffected"));
 
-    if (
-      safetyCheck.type === "off_topic" ||
-      safetyCheck.type === "medical_emergency" ||
-      safetyCheck.type === "post_exercise_symptoms" ||
-      safetyCheck.type === "medical_diagnosis_request" ||
-      safetyCheck.type === "unsafe_ped_request" ||
-      safetyCheck.type === "unsafe_extreme_calorie_request" ||
-      safetyCheck.type === "severe_energy_restriction_warning" ||
-      safetyCheck.type === "prompt_injection_attempt" ||
-      safetyCheck.type === "medical_nutrition_condition" ||
-      safetyCheck.type === "minor_age_nutrition_request" ||
-      safetyCheck.type === "pregnancy_or_breastfeeding_nutrition_request" ||
-      safetyCheck.type === "eating_disorder_disclosure" ||
-      safetyCheck.type === "unsafe_weight_loss_behavior" ||
-      safetyCheck.type === "severe_allergy_disclosure" ||
-      safetyCheck.type === "prolonged_extreme_calorie_disclosure"
-    ) {
+    // The 15 static-reply verdicts (SAFETY_VERDICT_DISPOSITION "ANSWER") — one list, shared with the validation above, instead of a second hand-written chain.
+    if (isAnswerVerdict(safetyCheck)) {
       const answer =
         language.responseLanguage === "vi"
           ? safetyCheck.messageVi
@@ -1655,7 +1716,7 @@ export const llmOrchestrator = {
     // crisis/off-topic/emergency response). Everything else that reaches this point is a genuine chat-pipeline answer.
     // safetyGuard.check() is synchronous/local (no I/O) — cheap enough to call again here rather than threading a flag
     // through runInner()'s many internal return points.
-    if (userId && sessionId && ciMode() === "on" && payload.routeIntent !== "fitness_agent" && safetyGuard.check(question).type === "safe") {
+    if (userId && sessionId && ciMode() === "on" && payload.routeIntent !== "fitness_agent" && (await isSafeVerdict(question))) {
       try {
         const text = await pendingWorkflowReminder({ userId, authorizationHeader: authHeader }, sessionId, {
           getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext,
