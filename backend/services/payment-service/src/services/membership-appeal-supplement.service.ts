@@ -36,6 +36,8 @@ import { RequestDoesNotMatchTransactionError } from './contract-request-guard';
  * returns the first answer and moves nothing; the same key with a different request is refused 409.
  */
 
+const vnd = (d: { toFixed(n: number): string }): string => `${Number(d.toFixed(0)).toLocaleString('vi-VN')} ₫`;
+
 export class MembershipSupplementError extends Error {
   constructor(
     readonly status: number,
@@ -177,7 +179,8 @@ export async function refundMembershipAppealSupplement(p: MembershipSupplementPa
             owed: gymShare,
             paid: gymDebited,
             unpaid: gymShortfall,
-            reason: `Appeal supplement ${amount.toFixed(0)}: gym ${gymId} could fund ${gymDebited.toFixed(0)} of its ${gymShare.toFixed(0)} share from its available balance; the platform fronted ${gymShortfall.toFixed(0)} from REVENUE so the member was paid in full`,
+            // N15A-08: plain Vietnamese for the admin, no ids (the obligation row already links the transaction and the gym)
+            reason: `Hoàn thêm ${vnd(amount)} cho hội viên sau kháng nghị khiếu nại phòng gym: phần của gym là ${vnd(gymShare)}, ví khả dụng của gym chỉ trả được ${vnd(gymDebited)}; nền tảng đã ứng ${vnd(gymShortfall)} từ ví doanh thu để hội viên nhận đủ, gym còn nợ nền tảng khoản này`,
             sourceRef: idempotencyKey,
           },
         });

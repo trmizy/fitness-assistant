@@ -172,6 +172,10 @@ test('SHORT gym balance: gym has 13,000 of its 18,000 share -> member still paid
   assert.equal(ob.length, 1);
   assert.equal(ob[0].id, d.obligationId);
   assert.deepEqual([ob[0].kind, ob[0].party, ob[0].status, ob[0].owed.toFixed(2), ob[0].paid.toFixed(2), ob[0].unpaid.toFixed(2), ob[0].key], ['GYM_DEBT', 'GYM', 'OPEN', '18000.00', '13000.00', '5000.00', `${key}#GYM_DEBT`]);
+  // N15A-08: the reason is plain Vietnamese with the amounts and NO ids
+  assert.match(ob[0].reason ?? '', /^Hoàn thêm .* cho hội viên sau kháng nghị khiếu nại phòng gym/);
+  assert.match(ob[0].reason ?? '', /nền tảng đã ứng 5.000/);
+  assert.doesNotMatch(ob[0].reason ?? '', /[0-9a-f]{8}-[0-9a-f]{4}-|Appeal supplement|gym [0-9a-f]{8}/i);
   assert.equal(ob[0].transactionId, f.txnId);
   assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PartnerReceivable is created (D48 source test stays valid)');
   await m.reconcile.assertInvariant('after short-gym supplement');
