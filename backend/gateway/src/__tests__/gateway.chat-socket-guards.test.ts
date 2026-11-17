@@ -17,7 +17,7 @@ type Handler = (...args: any[]) => any;
 
 let chatStub: http.Server;
 let authStub: http.Server;
-let chatCalls: { method?: string; url?: string; body: string }[] = [];
+let chatCalls: { method?: string; url?: string; body: string; secret?: unknown }[] = [];
 let chatReply: { status: number; body: unknown } = { status: 200, body: [] };
 
 const readBody = (req: http.IncomingMessage) =>
@@ -50,7 +50,7 @@ function fakeSocket(joined: string[] = []) {
 test.before(async () => {
   chatStub = http.createServer(async (req, res) => {
     const body = await readBody(req);
-    chatCalls.push({ method: req.method, url: req.url, body });
+    chatCalls.push({ method: req.method, url: req.url, body, secret: req.headers["x-internal-secret"] });
     res.writeHead(chatReply.status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(chatReply.body));
   });
@@ -169,6 +169,79 @@ test("lockedUserIdFromRequest recognises only PATCH /admin/users/:id/disable", a
   assert.equal(lockedUserIdFromRequest("PATCH", "/admin/users/abc/enable"), null);
   assert.equal(lockedUserIdFromRequest("GET", "/admin/users/abc/disable"), null);
   assert.equal(lockedUserIdFromRequest("PATCH", "/admin/users/abc/role"), null);
+  // N13H-05: the raw /auth passthrough is the same lock
+  assert.equal(lockedUserIdFromRequest("PATCH", "/auth/users/abc/disable"), "abc");
+  assert.equal(lockedUserIdFromRequest("PATCH", "/auth/users/abc/enable"), null);
+  assert.equal(lockedUserIdFromRequest("PATCH", "/auth/users/abc/role"), null);
+  assert.equal(lockedUserIdFromRequest("PATCH", "/other/users/abc/disable"), null);
+});
+
+test("N13H-05 / N11F-03: a lock through /auth/users/:id/disable cuts the gateway sockets too and is relayed to chat-service", async () => {
+  const { initializeSocketServer } = await import("../socket");
+  const { default: app } = await import("../app");
+  const server = http.createServer(app);
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const io = initializeSocketServer(server);
+  const cut: { room: string; close: unknown }[] = [];
+  (io as any).in = (room: string) => ({
+    disconnectSockets: (close: unknown) => cut.push({ room, close }),
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const res = await fetch(`${base}/auth/users/pt-8/disable`, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer admin-token", "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 200);
+    await new Promise((r) => setTimeout(r, 100));
+    assert.deepEqual(cut, [{ room: "user:pt-8", close: true }]);
+    const relay = chatCalls.filter((c) => c.url === "/internal/users/pt-8/disconnect");
+    assert.equal(relay.length, 1);
+    assert.equal(relay[0].method, "POST");
+    assert.equal(relay[0].secret, process.env.INTERNAL_SERVICE_SECRET);
+
+    // a failed lock relays nothing
+    chatCalls = [];
+    cut.length = 0;
+    const bad = await fetch(`${base}/auth/users/missing/disable`, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer admin-token" },
+    });
+    assert.equal(bad.status, 404);
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(cut.length, 0);
+    assert.equal(chatCalls.filter((c) => c.url?.startsWith("/internal/")).length, 0);
+  } finally {
+    io.close();
+    await new Promise<void>((r) => server.close(() => r()));
+  }
+});
+
+test("disconnectChatServiceSockets tries the next secret on 401 and gives up quietly when chat-service is down", async () => {
+  const { disconnectChatServiceSockets } = await import("../socket/lockDisconnect");
+  const seen: unknown[] = [];
+  const stub = http.createServer((req, res) => {
+    seen.push(req.headers["x-internal-secret"]);
+    res.statusCode = req.headers["x-internal-secret"] === "second-secret" ? 200 : 401;
+    res.end("{}");
+  });
+  await new Promise<void>((r) => stub.listen(0, "127.0.0.1", r));
+  const prev = { url: process.env.CHAT_SERVICE_URL, api: process.env.INTERNAL_API_SECRET, svc: process.env.INTERNAL_SERVICE_SECRET };
+  try {
+    process.env.CHAT_SERVICE_URL = `http://127.0.0.1:${(stub.address() as AddressInfo).port}`;
+    process.env.INTERNAL_API_SECRET = "first-secret";
+    process.env.INTERNAL_SERVICE_SECRET = "second-secret";
+    assert.equal(await disconnectChatServiceSockets("u-1"), true);
+    assert.deepEqual(seen, ["first-secret", "second-secret"]);
+    process.env.CHAT_SERVICE_URL = "http://127.0.0.1:1";
+    assert.equal(await disconnectChatServiceSockets("u-1"), false);
+  } finally {
+    process.env.CHAT_SERVICE_URL = prev.url;
+    if (prev.api === undefined) delete process.env.INTERNAL_API_SECRET; else process.env.INTERNAL_API_SECRET = prev.api;
+    process.env.INTERNAL_SERVICE_SECRET = prev.svc;
+    await new Promise<void>((r) => stub.close(() => r()));
+  }
 });
 
 test("N09F-07: a successful admin lock cuts the locked user's sockets; a failed or non-admin one does not", async () => {

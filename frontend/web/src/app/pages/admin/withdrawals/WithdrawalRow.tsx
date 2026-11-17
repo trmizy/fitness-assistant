@@ -97,7 +97,7 @@ export function StatusPill({ status }: { status: WithdrawalRequest["status"] }) 
 
 const CELL_LABEL = "text-[11px] font-medium text-adm-text-2 xl:hidden";
 
-export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; now: number; onActionDone?: () => void }) {
+export function WithdrawalRow({ r, now, ownerName, onActionDone }: { r: WithdrawalRequest; now: number; ownerName?: string; onActionDone?: () => void }) {
   const queryClient = useQueryClient();
   const { user } = useApp();
   const { report } = useAdminError();
@@ -162,7 +162,7 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
   const anyPending = approveMutation.isPending || markPaidMutation.isPending || rejectMutation.isPending;
 
   const parties = [
-    { label: "Người rút", value: `${ownerLabel} · mã ${shortId(r.ownerId)}…` },
+    { label: "Người rút", value: ownerName ? `${ownerName} · ${ownerLabel} · mã ${shortId(r.ownerId)}…` : `${ownerLabel} · mã ${shortId(r.ownerId)}…` },
     { label: "Nhận tiền vào", value: <span className="whitespace-pre-wrap font-normal">{r.payoutInfo || "—"}</span> },
   ];
 
@@ -178,7 +178,8 @@ export function WithdrawalRow({ r, now, onActionDone }: { r: WithdrawalRequest; 
     >
       {/* Người rút */}
       <div role="cell" className="min-w-0">
-        <p className="text-sm font-semibold text-adm-text">{ownerLabel}</p>
+        <p data-testid="admin-withdrawal-owner" className="truncate text-sm font-semibold text-adm-text">{ownerName ?? ownerLabel}</p>
+        {ownerName && <p className="mt-0.5 text-xs text-adm-text-2">{ownerLabel}</p>}
         <p className="mt-0.5 flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
           <span>
             Người dùng <span className="font-mono tabular-nums">{shortId(r.ownerId)}</span>

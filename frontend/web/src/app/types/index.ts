@@ -13,10 +13,6 @@ export interface User {
   isPT?: boolean;
   searchProvinceCode?: number | null;
   searchWardCode?: number | null;
-  /** True only for an admin-created account (currently just gym owners) still on its random
-   * temporary password. AppShell blocks all navigation behind a forced change-password
-   * screen while this is true; cleared server-side the moment any password change succeeds. */
-  mustChangePassword?: boolean;
 }
 
 export interface InBodyEntry {
@@ -303,7 +299,7 @@ export type NotificationEventType =
   | "PT_FEEDBACK_RECEIVED"
   | "DISPUTE_CASE_UPDATED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE" | "WITHDRAWAL_REQUEST";
 
 export interface AppNotification {
   id: string;
@@ -408,6 +404,14 @@ export interface Wallet {
   status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;
   updatedAt: string;
+  /** Chỉ ví chi nhánh (GYM): nền tảng đã tự trừ bao nhiêu nợ từ thu nhập mới và còn nợ bao nhiêu (payment-service, FIX3-PAY). */
+  gymDebt?: GymDebtSummary;
+}
+
+export interface GymDebtSummary {
+  openUnpaid: string;
+  recoveredTotal: string;
+  recent: Array<{ at: string; amount: string; unpaidAfter: string }>;
 }
 
 export interface WalletLedgerEntry {
@@ -625,6 +629,9 @@ export interface Gym {
   /** GYM_MANAGEMENT master spec §61 (Phase 1) — owner-entered expected reopen date, only
    * meaningful while operationalStatus is TEMPORARILY_CLOSED. */
   expectedReopenAt?: string | null;
+  /** N15C-08: only on the owner / manager views of an admin-SUSPENDED branch — why, and when. */
+  adminSuspensionReason?: string | null;
+  adminSuspendedAt?: string | null;
   closedAt?: string | null;
   reopenedAt?: string | null;
   /** GET /gyms/:id (public) — chi nhánh đóng cửa tạm thời vẫn trả về, kèm cờ trạng thái. */
@@ -656,6 +663,8 @@ export interface Gym {
   photos?: { id: string; url: string | null; category?: string | null; isCover?: boolean }[];
   /** Chi tiết công khai: mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ. */
   brandBranches?: { id: string; name: string; address: string; latitude: number | null; longitude: number | null }[];
+  /** Chi tiết công khai: giờ mở cửa chủ gym nhập ở wizard (Thứ 2..Chủ nhật). [] = chưa có dữ liệu. */
+  operatingHours?: { day: WeekDay; type: DayScheduleType; openMinute: number | null; closeMinute: number | null }[];
 }
 
 export interface GymMembershipPlan {
@@ -678,8 +687,12 @@ export interface GymMembershipPlan {
 export interface GymMembershipContract {
   id: string;
   gymId: string;
+  /** GET /me/gym-memberships: tên hiển thị của chi nhánh (đã duyệt), để dialog/thẻ không phải hiện mã. */
+  gymName?: string;
   planId: string;
   clientId: string;
+  /** N13I-04: display name, sent only to the branch owner / manager (absent for other roles or when the name service is down). */
+  clientName?: string;
   status: GymMembershipContractStatus;
   paymentTxnId?: string;
   startDate?: string;

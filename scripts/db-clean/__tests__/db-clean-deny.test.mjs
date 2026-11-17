@@ -334,47 +334,39 @@ const withMoney = async (c) => {
   await c.payment.query(`UPDATE wallets SET available_balance = 5000 WHERE id = 'w-gym-e2e'`);
 };
 
-test('D6 wallet acknowledgement: waived ONLY with exact wallet id + gym id + amount; anything else still blocks; token covers the list', async () => {
+test('D6 wallet acknowledgement (N13F-01): an acknowledgement NO LONGER waives money in a deleted wallet - it still blocks, whatever the id / amount; the file still loads; token covers the list', async () => {
   await build(withMoney);
-  const blockedBy = (m) => m.blockers.deniedGymLiveRefs?.some((b) => b.table === 'wallets');
+  const blockedBy = (m) => m.blockers.deniedGymLiveRefs?.some((b) => b.table === 'wallets') && m.blockers.deletedWalletsWithMoney?.some((w) => w.walletId === 'w-gym-e2e');
   // no acknowledgement -> blocked
   assert.ok(blockedBy(manifestOf(audited('d6a'))));
-  // exact -> waived, no blockers, the waiver is recorded in the metadata
+  // the exact acknowledgement (wallet id + gym id + amount) used to waive it; now it is stored and reported but blocks all the same
   const ok = audited('d6b', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK()] } });
   assert.equal(ok.a.code, 0, ok.a.text);
   const mOk = manifestOf(ok);
-  assert.equal(Object.keys(mOk.blockers).length, 0, JSON.stringify(mOk.blockers));
-  assert.deepEqual(mOk.deny.patterns.acknowledgedWalletsWithMoney, [ACK()], 'the acknowledgement is stored in the manifest');
+  assert.ok(blockedBy(mOk), JSON.stringify(mOk.blockers));
+  assert.deepEqual(mOk.deny.patterns.acknowledgedWalletsWithMoney, [ACK()], 'the acknowledgement is still stored in the manifest (old deny files load)');
   const meta = readJ(path.join(ok.d, 'cleanup-manifest.candidate.metadata.json'));
-  assert.equal(meta.deny.guardInfo.waivedWalletsWithMoney[0].walletId, 'w-gym-e2e');
-  // a different amount / wallet id / gym id -> still blocked
-  for (const bad of [{ availableVnd: 4999 }, { availableVnd: 5001 }, { walletId: 'w-other' }, { gymId: 'gy-lower' }]) {
-    const s = audited('d6c', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK(bad)] } });
-    assert.equal(s.a.code, 0, s.a.text);
-    assert.ok(blockedBy(manifestOf(s)), `still blocked with ${JSON.stringify(bad)}`);
-  }
-  // pending money on top of the acknowledged available amount -> blocked
-  await build(async (c) => {
-    await c.payment.query(`UPDATE wallets SET available_balance = 5000, pending_balance = 1 WHERE id = 'w-gym-e2e'`);
-  });
-  assert.ok(blockedBy(manifestOf(audited('d6d', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK()] } }))));
-  // another wallet with money is not covered by an acknowledgement of a different wallet
+  assert.equal(meta.deny.guardInfo.waivedWalletsWithMoney, undefined, 'nothing is waived any more');
+  assert.deepEqual(meta.deny.guardInfo.ignoredWalletAcknowledgements, [ACK()]);
+  assert.match(ok.a.text, /REFUSED \(N13F-01\)[^]*w-gym-e2e/, 'the audit prints the refusal with the wallet id');
+  // another wallet with money is blocked as well, both are named
   await build(async (c) => {
     await withMoney(c);
     await F.ins(c.gym, 'gyms', { id: 'gy-e2e2', owner_id: F.ID.keepA, name: 'E2E Branch 2', brand_id: 'br-keep' });
     await F.ins(c.payment, 'wallets', { id: 'w-gym-e2e2', owner_type: 'GYM', owner_id: 'gy-e2e2', available_balance: 7 });
   });
   const two = manifestOf(audited('d6e', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK()] } }));
-  const blockedWallets = two.blockers.deniedGymLiveRefs.flatMap((b) => b.wallets || []).map((w) => w.walletId);
-  assert.deepEqual(blockedWallets, ['w-gym-e2e2']);
+  assert.deepEqual(two.blockers.deletedWalletsWithMoney.map((w) => w.walletId), ['w-gym-e2e', 'w-gym-e2e2']);
   // malformed acknowledgements are refused outright
   for (const bad of [[{ walletId: 'w', gymId: 'g' }], [{ walletId: 'w', gymId: 'g', availableVnd: 0 }], [{ walletId: 'w', gymId: 'g', availableVnd: 5, extra: 1 }], 'x']) {
     assert.throws(() => validatePatterns({ acknowledgedWalletsWithMoney: bad }), /acknowledgedWalletsWithMoney/);
   }
-  // token covers the list: with / without the acknowledgement -> different tokens; same content -> same token
-  await build(withMoney);
-  const withAck = finish(audited('d6f', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK()] } })).T;
-  assert.equal(finish(audited('d6g', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK()], explicitAmenities: [] } })).T, withAck, 'same content -> same token');
+  // token covers the list: with / without the acknowledgement -> different tokens; same content -> same token (a zero-balance wallet, so there is no blocker to approve around)
+  await build();
+  const noAck = finish(audited('d6f0')).T;
+  const withAck = finish(audited('d6f', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK({ availableVnd: 1 })] } })).T;
+  assert.notEqual(withAck, noAck);
+  assert.equal(finish(audited('d6g', { deny: { ...DENY, acknowledgedWalletsWithMoney: [ACK({ availableVnd: 1 })], explicitAmenities: [] } })).T, withAck, 'same content -> same token');
 });
 
 async function buildExplicit(extra) {

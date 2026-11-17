@@ -325,8 +325,25 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
   LATE_ARRIVAL: "PT đến trễ — chưa đền đủ",
   REFUND_SHORT: "Hoàn tiền còn thiếu",
   OVER_RELEASED: "Đã giải ngân vượt mức",
+  GYM_DEBT: "Phòng gym còn nợ nền tảng",
 };
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
+
+/**
+ * N15A-08: the reason of an obligation as words for the admin. New GYM_DEBT rows already carry plain Vietnamese; rows written before 15/11 carry an English sentence with
+ * a gym UUID ("Appeal supplement 347000: gym <uuid> could fund 34700 of its 312300 share ...") which is rewritten here, and any other raw UUID is shortened.
+ */
+export function obligationReasonText(reason: string | null | undefined): string {
+  const text = (reason ?? "").trim();
+  if (!text) return "—";
+  const vnd = (n: string) => `${Number(n).toLocaleString("vi-VN")} ₫`;
+  const legacy = /^Appeal supplement (\d+): gym [0-9a-f-]+ could fund (\d+) of its (\d+) share from its available balance; the platform fronted (\d+) from REVENUE so the member was paid in full$/i.exec(text);
+  if (legacy) {
+    const [, amount, funded, share, fronted] = legacy;
+    return `Hoàn thêm ${vnd(amount)} cho hội viên sau kháng nghị khiếu nại phòng gym: phần của gym là ${vnd(share)}, ví khả dụng của gym chỉ trả được ${vnd(funded)}; nền tảng đã ứng ${vnd(fronted)} từ ví doanh thu để hội viên nhận đủ, gym còn nợ nền tảng khoản này`;
+  }
+  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (id) => id.slice(0, 8));
+}
 
 /**
  * Vòng đời: Đang mở -> Đã phê duyệt chi -> Đang chờ chứng từ -> Đã thanh toán được xác minh. Chi ngoài hệ thống: chỉ "được xác minh" mới là đã trả. Ngoài ra PAID_VIA_LEDGER = đã trả vào ví Gymini bằng bút toán sổ cái (không phải chuyển khoản ngân hàng).
@@ -345,6 +362,12 @@ export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
   RESOLVED: "Đã xử lý (bản ghi cũ)",
 };
 export const obligationStatusLabel = (s: string | null | undefined) => lookup(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");
+/**
+ * Nợ của phòng gym (GYM_DEBT) khép lại với `unpaid` = 0 (trạng thái RESOLVED_OTHER, chỉ do hệ thống tự thu hồi từ thu nhập của gym ghi) = nền tảng đã thu hồi đủ.
+ * Một lần "giải quyết bằng phương thức khác" thủ công không đưa `unpaid` về 0 nên vẫn đọc bằng nhãn chung.
+ */
+export const obligationStatusLabelFor = (kind: string | null | undefined, s: string | null | undefined, unpaid?: string | number | null) =>
+  kind === "GYM_DEBT" && s === "RESOLVED_OTHER" && unpaid !== null && unpaid !== undefined && Number(unpaid) === 0 ? "Đã thu hồi từ thu nhập của gym" : obligationStatusLabel(s);
 
 export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
   REVIEW: "Chuyển sang xem xét",
@@ -357,6 +380,7 @@ export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
   RESOLVE_OTHER: "Giải quyết bằng phương thức khác",
   WAIVE: "Quyết định không truy đòi",
   RESOLVE: "Đánh dấu đã xử lý (cách cũ)",
+  RECOVER_FROM_INCOME: "Tự động trừ nợ từ thu nhập mới của gym",
 };
 export const obligationActionLabel = (a: string | null | undefined) => lookup(OBLIGATION_ACTION_LABEL, a, "Thao tác khác");
 
@@ -448,6 +472,11 @@ export function formatObligationEvent(e: ObligationEventRow, fmtMoney: (v: strin
   if (e.action === "VERIFY_PAYMENT" && e.verifiedBy) parts.push(`${e.verifiedBy} đã xác minh`);
   else if (e.action === "SUBMIT_EVIDENCE") parts.push(`${e.actor} nộp chứng từ — chưa xác minh`);
   else if (e.action === "PAY_EXTERNALLY") parts.push("chưa xác minh");
+  if (e.action === "RECOVER_FROM_INCOME") {
+    if (e.unpaidAfter !== null && e.unpaidAfter !== undefined) parts.push(`còn nợ ${fmtMoney(e.unpaidAfter)}`);
+    parts.push("tự động, không cần người duyệt");
+    return parts.join(" · ");
+  }
   parts.push(`${e.approvedBy ?? e.actor} · phê duyệt ${e.approvalRef}`);
   return parts.join(" · ");
 }

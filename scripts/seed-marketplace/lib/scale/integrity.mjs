@@ -1,9 +1,11 @@
 // Set-based SQL integrity verifier for the Scale Marketplace Seed (C6: zero JS N+1 loops).
 import path from "node:path";
 import { C3_PROVINCES, PHOTO_REUSE_CAP, PT_TERMS_VERSION, SCALE_EMAIL_DOMAIN } from "./config.mjs";
+import { SEED_EMAIL_DOMAIN } from "../util.mjs";
 import { verifyLocalAvatars, verifyMinioMediaObjects } from "./media.mjs";
 
 const SCALE_LIKE = `'%@${SCALE_EMAIL_DOMAIN}'`;
+const SEED_LIKE = `'%@${SEED_EMAIL_DOMAIN}'`; // REAL business-seed accounts (official target: they sit on top of the scale tier)
 
 async function rows(pool, sql, params = []) {
   return (await pool.query(sql, params)).rows;
@@ -297,7 +299,6 @@ export async function runScaleIntegrity({
       badSettlements,
       badGymMemStatus,
       badReferrals,
-      badWallets,
       scaleUserRows,
       scalePtContractRows,
       scaleGymContractRows,
@@ -329,11 +330,6 @@ export async function runScaleIntegrity({
         `SELECT count(*)::int AS n FROM gym_membership_referrals r JOIN gym_membership_contracts m ON m.id = r.membership_contract_id
          WHERE m.data_origin = 'SYNTHETIC'::"DataOrigin"`
       ),
-      rows(
-        pools.payment,
-        `SELECT count(*)::int AS n FROM wallets WHERE owner_type <> 'PLATFORM' OR owner_id NOT IN ('ESCROW','REVENUE')
-           OR available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 OR holdback_balance <> 0`
-      ),
       rows(pools.auth, `SELECT array_agg(id) AS ids FROM users WHERE email LIKE ${SCALE_LIKE}`),
       rows(pools.user, `SELECT array_agg(id) AS ids FROM contracts WHERE data_origin = 'SYNTHETIC'`),
       rows(pools.gym, `SELECT array_agg(id) AS ids FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin"`),
@@ -344,7 +340,7 @@ export async function runScaleIntegrity({
     const userIds = scaleUserRows[0]?.ids ?? [];
     const ptCIds = scalePtContractRows[0]?.ids ?? [];
     const gymCIds = scaleGymContractRows[0]?.ids ?? [];
-    const [badTx, badLedger, badWithdraw] = await Promise.all([
+    const [badTx, badLedger, badWithdraw, badWallets] = await Promise.all([
       rows(
         pools.payment,
         `SELECT count(*)::int AS n FROM payment_transactions
@@ -363,6 +359,15 @@ export async function runScaleIntegrity({
          WHERE wl.owner_id = ANY($1::text[])`,
         [userIds]
       ),
+      // Scoped to the SYNTHETIC (scale) domain so the check also holds on the official database, where the REAL business seed
+      // legitimately has user wallets and non-zero ESCROW/REVENUE balances: a scale user must own NO wallet, and the only
+      // platform wallets allowed are the ESCROW/REVENUE system ones (their balances belong to the REAL domain there).
+      rows(
+        pools.payment,
+        `SELECT count(*)::int AS n FROM wallets
+         WHERE owner_id = ANY($1::text[]) OR (owner_type = 'PLATFORM' AND owner_id NOT IN ('ESCROW','REVENUE'))`,
+        [userIds]
+      ),
     ]);
 
     const v = [];
@@ -372,7 +377,7 @@ export async function runScaleIntegrity({
     addIf(badSettlements[0].n, "session_settlements attached to SYNTHETIC contracts");
     addIf(badGymMemStatus[0].n, "SYNTHETIC gym memberships not EXPIRED or carry payment/payout fields");
     addIf(badReferrals[0].n, "gym_membership_referrals attached to SYNTHETIC memberships");
-    addIf(badWallets[0].n, "non-escrow or non-zero wallets exist");
+    addIf(badWallets[0].n, "wallets owned by scale users (or unknown platform wallets) exist");
     addIf(badTx[0].n, "payment_transactions reference scale users/contracts/memberships");
     addIf(badLedger[0].n, "wallet_ledger_entries reference scale transactions");
     addIf(badWithdraw[0].n, "withdrawal_requests reference scale users");
@@ -549,7 +554,7 @@ export async function runScaleIntegrity({
         ),
         rows(
           pools.user,
-          `SELECT "userId" AS uid, photo_url FROM user_profiles WHERE email LIKE ${SCALE_LIKE} AND photo_url LIKE '/uploads/profile-photos/%'`
+          `SELECT "userId" AS uid, photo_url FROM user_profiles WHERE (email LIKE ${SCALE_LIKE} OR email LIKE ${SEED_LIKE}) AND photo_url LIKE '/uploads/profile-photos/%'`
         ),
       ]);
 
@@ -574,6 +579,54 @@ export async function runScaleIntegrity({
       return { examined: localRes.examined + s3Res.examined, violations: v };
     });
   }
+
+  // 8. Public-media coverage (decision Ngài 12/11): every PUBLIC PT has >=1 PUBLISHED photo + an avatar,
+  // every APPROVED/SUSPENDED gym has a PUBLISHED cover. Avatar coverage also covers the REAL seed PTs (@seed.gymini.test, official target:
+  // `backfill-dev-photos.mjs --target official` / the business seed fills them); the physique-photo and gym-cover parts stay scale-only. "Public PT" = ptPublicWhere in user-service
+  // (isPT, APPROVED application, not ptSuspended, no open ACCOUNT-scope restriction).
+  await runCheck("8. Public media coverage (PT >=1 PUBLISHED photo + avatar, gym PUBLISHED cover)", async () => {
+    const [ptNoPhoto, ptNoAvatar, ptTotal, gymNoCover, gymTotal] = await Promise.all([
+      rows(
+        pools.user,
+        `SELECT p."userId" AS uid FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE p.email LIKE ${SCALE_LIKE} AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')
+           AND NOT EXISTS (SELECT 1 FROM pt_physique_photos ph WHERE ph.pt_user_id = p."userId" AND ph.status = 'PUBLISHED')
+         LIMIT 20`
+      ),
+      rows(
+        pools.user,
+        `SELECT p."userId" AS uid FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE (p.email LIKE ${SCALE_LIKE} OR p.email LIKE ${SEED_LIKE}) AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')
+           AND (p.photo_url IS NULL OR p.photo_url = '')
+         LIMIT 20`
+      ),
+      rows(
+        pools.user,
+        `SELECT count(*)::int AS n FROM user_profiles p
+         JOIN pt_applications a ON a.user_profile_id = p.id
+         WHERE (p.email LIKE ${SCALE_LIKE} OR p.email LIKE ${SEED_LIKE}) AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+           AND NOT EXISTS (SELECT 1 FROM pt_restrictions r WHERE r.pt_user_id = p."userId" AND r.ended_at IS NULL AND r.scope = 'ACCOUNT')`
+      ),
+      rows(
+        pools.gym,
+        `SELECT g.id FROM gyms g
+         WHERE g.email LIKE ${SCALE_LIKE} AND g.status IN ('APPROVED','SUSPENDED')
+           AND NOT EXISTS (SELECT 1 FROM gym_photos ph WHERE ph.gym_id = g.id AND ph.status = 'PUBLISHED' AND ph.is_cover = true)
+         LIMIT 20`
+      ),
+      rows(pools.gym, `SELECT count(*)::int AS n FROM gyms g WHERE g.email LIKE ${SCALE_LIKE} AND g.status IN ('APPROVED','SUSPENDED')`),
+    ]);
+    const v = [
+      ...ptNoPhoto.map((r) => ({ ...r, why: "public PT without a PUBLISHED physique photo" })),
+      ...ptNoAvatar.map((r) => ({ ...r, why: "public PT without avatar (photo_url)" })),
+      ...gymNoCover.map((r) => ({ ...r, why: "APPROVED/SUSPENDED gym without a PUBLISHED cover" })),
+    ];
+    return { examined: ptTotal[0].n + gymTotal[0].n, violations: v };
+  });
 
   return results;
 }

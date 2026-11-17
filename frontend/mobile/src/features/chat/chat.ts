@@ -172,3 +172,25 @@ export function sendFailureText(err: unknown): string {
   const e = (err as { response?: { data?: { error?: unknown } } } | undefined)?.response?.data?.error;
   return typeof e === "string" && e.trim() ? e.trim() : "Không gửi được tin nhắn. Nội dung vẫn còn trong ô nhập, hãy thử lại.";
 }
+
+/** N15M-03 — how often an open thread re-reads its messages when no live socket is delivering them. */
+export const THREAD_POLL_MS = 4000;
+
+/**
+ * Poll interval for the open thread, or false for none. With realtime ON (socket connected) pushed
+ * messages arrive on their own; with it OFF (the aws-dev build) or while the socket is down, a light
+ * poll is the only way the peer's new messages show up. Never polls while the screen is not in front
+ * or the app is in the background.
+ */
+export function threadPollInterval(screenActive: boolean, socketConnected: boolean): number | false {
+  return screenActive && !socketConnected ? THREAD_POLL_MS : false;
+}
+
+/**
+ * Merge a freshly fetched newest page into what the thread already holds. A refetch that was already in
+ * flight when the user sent a message returns without it; replacing the cache would make that message
+ * vanish until the next poll. Union by id, oldest first — no duplicates, no reordering.
+ */
+export function mergeThreadPage(cached: readonly ChatMessage[] | undefined, fetched: readonly ChatMessage[]): ChatMessage[] {
+  return mergeMessageLists(cached, fetched);
+}

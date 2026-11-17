@@ -86,8 +86,8 @@ test("agenticFitnessService: confirming the same draft twice creates exactly one
     const draft2 = await agenticFitnessService.createDraft(clientId, ptId, packageId, preferences, actionId);
     assert.equal(draft1.id, draft2.id, "same actionId must produce the exact same deterministic draft id");
 
-    const confirm1 = await agenticFitnessService.confirmDraft(clientId, draft1.id, true);
-    const confirm2 = await agenticFitnessService.confirmDraft(clientId, draft1.id, true);
+    const confirm1 = await agenticFitnessService.confirmDraft(clientId, draft1.id, true, true);
+    const confirm2 = await agenticFitnessService.confirmDraft(clientId, draft1.id, true, true);
     assert.equal(confirm1.contractId, confirm2.contractId, "confirming the same draft twice must return the SAME contract id, not create a second one");
 
     const contracts = await prisma.contract.findMany({ where: { ptUserId: ptId, clientUserId: clientId } });

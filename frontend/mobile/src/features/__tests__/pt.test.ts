@@ -8,6 +8,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  contractTabOf,
+  sessionDayOf,
   CONTRACT_TABS,
   DAY_LABELS,
   EMPTY_PACKAGE,
@@ -484,5 +486,24 @@ describe("time labels", () => {
     assert.equal(relativeDayLabel("2026-09-25T06:00:00", now), "Ngày mai");
     assert.equal(relativeDayLabel("2026-09-23T06:00:00", now), "Hôm qua");
     assert.equal(relativeDayLabel("2026-09-28T06:00:00", now), "T2, 28/09");
+  });
+});
+
+describe("N15M-11 - PT deep links", () => {
+  it("contractTabOf puts a contract on the tab that lists it", () => {
+    assert.equal(contractTabOf({ status: "PENDING_REVIEW" } as any), "requests");
+    assert.equal(contractTabOf({ status: "PENDING_PAYMENT" } as any), "waiting");
+    assert.equal(contractTabOf({ status: "ACTIVE" } as any), "active");
+    assert.equal(contractTabOf({ status: "CANCELLED" } as any), "ended");
+    assert.equal(contractTabOf({ status: "SOMETHING_NEW" } as any), null);
+    assert.equal(contractTabOf(null), null);
+  });
+  it("sessionDayOf finds the local day of the session, null when it is not loaded", () => {
+    const at = new Date(2026, 10, 20, 9, 0).toISOString();
+    const list = [{ id: "s1", scheduledStartAt: at }, { id: "s2", scheduledStartAt: "garbage" }] as any;
+    assert.deepEqual(sessionDayOf(list, "s1"), { year: 2026, month: 10, day: 20 });
+    assert.equal(sessionDayOf(list, "s2"), null);
+    assert.equal(sessionDayOf(list, "nope"), null);
+    assert.equal(sessionDayOf(list, undefined), null);
   });
 });

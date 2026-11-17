@@ -105,6 +105,9 @@ export type PtContract = ClientRef & {
   price?: number | null;
   /** The PT's frozen share of `price` (Decimal string, e.g. "0.5500"). The server sends it only to the contract's own PT. */
   ptRate?: string | number | null;
+  /** ONLINE | OFFLINE | HYBRID, and the Gymini gym the contract runs at (null = a venue outside the Gymini system). */
+  sessionMode?: string | null;
+  gymId?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   createdAt?: string | null;
@@ -773,4 +776,18 @@ export function relativeDayLabel(iso: string | null | undefined, now: Date = new
   if (days === 1) return "Ngày mai";
   if (days === -1) return "Hôm qua";
   return sessionDateLabel(iso);
+}
+
+/** N15M-11 — the "Hợp đồng" tab that holds this contract (so a notification can open it on the right tab); null if its status has none. */
+export function contractTabOf(contract: Pick<PtContract, "status"> | null | undefined): ContractTabKey | null {
+  if (!contract) return null;
+  return CONTRACT_TABS.find((t) => (t.statuses as readonly string[]).includes(contract.status))?.key ?? null;
+}
+
+/** N15M-11 — the calendar day of the session a notification is about, or null when it is not in the loaded list. */
+export function sessionDayOf(sessions: PtSession[], sessionId: string | null | undefined): { year: number; month: number; day: number } | null {
+  const s = sessionId ? sessions.find((x) => x.id === sessionId) : undefined;
+  if (!s) return null;
+  const d = new Date(s.scheduledStartAt);
+  return Number.isNaN(d.getTime()) ? null : { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
 }

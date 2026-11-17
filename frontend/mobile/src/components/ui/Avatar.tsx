@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import { apiBaseUrl } from "../../config/serverUrl";
+import { initialsOf } from "../../utils/initials";
 import { resolveMediaUri } from "../../utils/mediaUrl";
 
 /**
@@ -27,13 +28,7 @@ export function Avatar({
   size?: number;
   className?: string;
 }) {
-  const initials = name
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials = initialsOf(name);
 
   const source = resolveMediaUri(uri, apiBaseUrl());
   // Remembers WHICH picture failed, so a new one gets its own chance without an effect to reset.

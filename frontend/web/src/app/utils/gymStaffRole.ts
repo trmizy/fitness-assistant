@@ -14,6 +14,14 @@ export const PARTNER_ROLE_LABEL: Record<PartnerRole, string> = {
   ACCOUNTANT: "Kế toán (chỉ xem)",
 };
 
+/** Nhãn ngắn hiển thị dưới tên người dùng (chip hồ sơ, menu tài khoản) — đúng vai trò thật, không gộp chung "Chủ phòng gym". */
+export const PARTNER_ROLE_CHIP_LABEL: Record<PartnerRole, string> = {
+  OWNER: "Chủ phòng gym",
+  MANAGER: "Quản lý chi nhánh",
+  RECEPTIONIST: "Lễ tân",
+  ACCOUNTANT: "Kế toán",
+};
+
 /** Các trang của vùng /gym-owner mà từng vai trò được vào. */
 export type StaffFeature =
   | "dashboard"

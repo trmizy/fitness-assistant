@@ -127,6 +127,15 @@ export function GymFinancePage() {
   const available = wallets.reduce((s, w) => s + Number(w.availableBalance || 0), 0);
   const pending = wallets.reduce((s, w) => s + Number(w.pendingBalance || 0), 0);
 
+  // Nợ nền tảng: chỉ hiện khi chi nhánh từng có nợ (nền tảng ứng trước phần hoàn thêm sau khiếu nại thắng) — hệ thống tự trừ vào thu nhập mới.
+  const debtOpen = wallets.reduce((s, w) => s + Number(w.gymDebt?.openUnpaid || 0), 0);
+  const debtRecovered = wallets.reduce((s, w) => s + Number(w.gymDebt?.recoveredTotal || 0), 0);
+  const debtEntries = walletQs
+    .flatMap((q, i) => (q.data?.gymDebt?.recent ?? []).map((r) => ({ ...r, gymName: selected[i]?.name })))
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    .slice(0, 10);
+  const hasDebtActivity = debtOpen > 0 || debtRecovered > 0;
+
   const stamp = new Date().toISOString().slice(0, 10);
 
   return (
@@ -172,6 +181,31 @@ export function GymFinancePage() {
             <Kpi label="Lượt rút tiền" value={loading ? "…" : String(withdrawals.length)} hint="Tất cả trạng thái" />
           </div>
 
+          {hasDebtActivity && (
+            <section className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 space-y-3" data-testid="finance-platform-debt">
+              <h2 className="text-sm font-bold text-zinc-200 flex items-center gap-2"><WalletIc className="w-4 h-4 text-green-400" /> Nợ nền tảng</h2>
+              <p className="text-xs text-zinc-500">
+                Khi hoàn thêm tiền cho hội viên thắng khiếu nại mà ví chi nhánh chưa đủ, nền tảng ứng trước phần thiếu. Khoản đó được tự động trừ vào thu nhập tiếp theo của chi nhánh; bạn không cần thao tác gì.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Kpi label="Còn nợ nền tảng" value={formatVND(debtOpen)} hint={debtOpen > 0 ? "Sẽ trừ vào thu nhập mới" : "Đã trả đủ"} />
+                <Kpi label="Đã trừ nợ nền tảng" value={formatVND(debtRecovered)} hint="Tổng các lần đã trừ" />
+              </div>
+              {debtEntries.length > 0 && (
+                <ul className="space-y-1.5" data-testid="finance-platform-debt-entries">
+                  {debtEntries.map((r, i) => (
+                    <li key={`${r.at}-${i}`} className="flex items-center justify-between gap-3 bg-zinc-800/40 rounded-lg px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-sm text-zinc-200 truncate">Đã trừ nợ nền tảng: {formatVND(Number(r.amount))}</p>
+                        <p className="text-[11px] text-zinc-500 truncate">{fmtDate(r.at)}{r.gymName ? ` · ${r.gymName}` : ""} · {Number(r.unpaidAfter) > 0 ? `còn nợ ${formatVND(Number(r.unpaidAfter))}` : "đã trả đủ"}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
           <section className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 space-y-3" data-testid="finance-sales">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-bold text-zinc-200 flex items-center gap-2"><Receipt className="w-4 h-4 text-green-400" /> Doanh số bán thẻ</h2>
@@ -179,7 +213,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={sales.length === 0}
                 onClick={() => downloadCsv(`gymini-doanh-so-${stamp}.csv`, salesCsv(sales, { gym: gymName, plan: planName }))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>
@@ -208,7 +242,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={!commission || commission.byMonth.length === 0}
                 onClick={() => commission && downloadCsv(`gymini-hoa-hong-pt-${stamp}.csv`, commissionCsv(commission))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>
@@ -275,7 +309,7 @@ export function GymFinancePage() {
                 type="button"
                 disabled={withdrawals.length === 0}
                 onClick={() => downloadCsv(`gymini-rut-tien-${stamp}.csv`, withdrawalsCsv(withdrawals))}
-                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1.5 text-xs font-bold border border-zinc-700 text-zinc-300 px-3 py-2 rounded-lg disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" /> Xuất CSV
               </button>

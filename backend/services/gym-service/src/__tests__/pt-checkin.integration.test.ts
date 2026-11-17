@@ -365,15 +365,22 @@ test('invalid / missing / forged / expired token -> 400 with a code; unknown gym
   assert.equal(userSvcCalls.length, 0);
 });
 
-test('closed / suspended branch is refused exactly like the member path: 409 GYM_NOT_ACTIVE, user-service not asked, no row', async () => {
+test('closed branch is refused exactly like the member path: 409 GYM_NOT_ACTIVE, user-service not asked, no row', async () => {
   userSvcAnswer = middayAnswer();
-  for (const gymId of [fx.gymClosed, fx.gymSuspended]) {
+  for (const gymId of [fx.gymClosed]) {
     const r = await scan('tok-pt', tokenFor(gymId));
     assert.equal(r.status, 409, gymId);
     assert.equal(r.body.error.code, 'GYM_NOT_ACTIVE', gymId);
     assert.equal((await rowsFor(gymId)).length, 0);
   }
   assert.equal(userSvcCalls.length, 0);
+});
+
+test('admin-SUSPENDED branch that is still OPEN (owner decision 15/11 4a): the PT with a session is let in, like members', async () => {
+  userSvcAnswer = middayAnswer();
+  const r = await scan('tok-pt', tokenFor(fx.gymSuspended));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await prisma.gymPtCheckIn.deleteMany({ where: { gymId: fx.gymSuspended } });
 });
 
 test('partner SUSPENDED (branch still APPROVED/OPEN): PT path behaves exactly like the member path (both allowed - partner lock does not gate walking in)', async () => {

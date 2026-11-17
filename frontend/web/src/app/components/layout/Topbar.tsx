@@ -31,9 +31,15 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   GYM_COMPLAINT_CASE_SLA_OVERDUE: "Hồ sơ đã quá hạn xử lý",
   GYM_COMPLAINT_CASE_APPEAL_FILED: "Kháng nghị đã được tiếp nhận",
   GYM_COMPLAINT_CASE_RESOLVED: "Hồ sơ đã có kết luận",
+  WITHDRAWAL_APPROVED: "Yêu cầu rút tiền đã được duyệt",
+  WITHDRAWAL_PAID: "Yêu cầu rút tiền đã chuyển khoản",
+  WITHDRAWAL_REJECTED: "Yêu cầu rút tiền bị từ chối",
 };
 import { useSocket } from "../../hooks/useSocket";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { notificationEventLabel } from "../../utils/notificationEventLabels";
 
 export function Topbar() {
   const {
@@ -153,10 +159,13 @@ export function Topbar() {
       {/* Left: hamburger + search */}
       <div className="flex items-center gap-3">
         <button
-          className="lg:hidden p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+          type="button"
+          aria-label="Mở menu"
+          aria-haspopup="dialog"
+          className="lg:hidden p-2.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
           onClick={() => setSidebarOpen(true)}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5" aria-hidden="true" />
         </button>
         {/* Ô tìm kiếm tổng đã gỡ khỏi thanh trên cùng ở mọi vai trò. Trang /client/search vẫn còn,
             vào từ Thư viện (LibraryPage). */}
@@ -169,7 +178,7 @@ export function Topbar() {
             className={`inline-flex h-2.5 w-2.5 rounded-full ${
               realtimeConnected ? "bg-emerald-400" : "bg-zinc-600"
             }`}
-            title={realtimeConnected ? "Realtime connected" : "Realtime offline"}
+            title={realtimeConnected ? "Đang kết nối trực tiếp" : "Mất kết nối trực tiếp"}
           />
           <LanguageSwitcher />
           <ThemeToggle />
@@ -220,18 +229,26 @@ export function Topbar() {
         </div>
 
         {pendingCount > 0 && (
-          <div className="relative">
-            <button
-              onClick={() => setAiTasksOpen((open) => !open)}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15 transition-colors"
-              title={aiProcessingTitle}
+          <Popover open={aiTasksOpen && pendingAiTasksOpen.length > 0} onOpenChange={setAiTasksOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 min-h-10 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15 transition-colors"
+                title={aiProcessingTitle}
+              >
+                <span className="text-xs font-semibold">
+                  <AutoText>AI đang xử lý</AutoText> {pendingCount}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              collisionPadding={8}
+              aria-label="Tác vụ AI đang chạy"
+              className="w-72 glass-panel rounded-xl p-0 z-50 overflow-hidden border-zinc-700/50 bg-zinc-950/60 text-zinc-100"
             >
-              <span className="text-xs font-semibold">
-                <AutoText>AI đang xử lý</AutoText> {pendingCount}
-              </span>
-            </button>
-            {aiTasksOpen && pendingAiTasksOpen.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-72 glass-panel rounded-xl z-50 overflow-hidden">
+              <div>
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">
                     <AutoText>Tác vụ AI</AutoText>
@@ -267,32 +284,33 @@ export function Topbar() {
                   ))}
                 </div>
               </div>
-            )}
-          </div>
+            </PopoverContent>
+          </Popover>
         )}
 
         {/* Notifications */}
-        <div className="relative">
-          <button
-            data-testid="notification-bell"
-            className="relative p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-            onClick={() => {
-              setNotifOpen(!notifOpen);
-              setUserOpen(false);
-            }}
+        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              data-testid="notification-bell"
+              aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
+              className="relative p-2.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+            >
+              <Bell className="w-5 h-5" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            sideOffset={4}
+            collisionPadding={8}
+            aria-label="Thông báo"
+            className="w-80 max-w-[calc(100vw-1rem)] glass-panel rounded-xl p-0 z-50 overflow-hidden border-zinc-700/50 bg-zinc-950/60 text-zinc-100"
           >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-            )}
-          </button>
-          {notifOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setNotifOpen(false)}
-              />
-              <div className="absolute right-0 top-full mt-1 w-80 glass-panel rounded-xl z-50 overflow-hidden">
+            <div>
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">
                     <AutoText>Thông báo</AutoText>
@@ -305,18 +323,21 @@ export function Topbar() {
                     )}
                     {unreadCount > 0 && (
                       <button
+                        type="button"
                         onClick={() => markAllReadMutation.mutate()}
-                        className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                        className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
                         title={markAllReadTitle}
+                        aria-label={markAllReadTitle}
                       >
-                        <CheckCheck className="w-4 h-4" />
+                        <CheckCheck className="w-4 h-4" aria-hidden="true" />
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.map((n: AppNotification) => (
-                    <div
+                    <button
+                      type="button"
                       key={n.id}
                       data-testid={`notification-item-${n.eventType}`}
                       onClick={() => {
@@ -333,10 +354,10 @@ export function Topbar() {
                           setNotifOpen(false);
                         }
                       }}
-                      className={`px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors ${n.unread ? "bg-green-500/5" : ""}`}
+                      className={`block w-full text-left px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors ${n.unread ? "bg-green-500/5" : ""}`}
                     >
-                      <p className="text-sm text-zinc-200">{n.text}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <span className="block text-sm text-zinc-200">{n.text}</span>
+                      <span className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-zinc-500">
                           {new Date(n.createdAt).toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
@@ -344,10 +365,10 @@ export function Topbar() {
                           })}
                         </span>
                         <span className="text-xs text-zinc-700">
-                          {EVENT_TYPE_LABELS_VI[n.eventType] ?? n.eventType.replace(/_/g, " ").toLowerCase()}
+                          {EVENT_TYPE_LABELS_VI[n.eventType] ?? notificationEventLabel(n.eventType)}
                         </span>
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   ))}
                 </div>
                 {notifications.length === 0 && (
@@ -355,178 +376,162 @@ export function Topbar() {
                     <AutoText>Chưa có thông báo nào.</AutoText>
                   </div>
                 )}
-              </div>
-            </>
-          )}
-        </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
-        {/* User menu */}
-        <div className="relative">
-          <button
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-            onClick={() => {
-              setUserOpen(!userOpen);
-              setNotifOpen(false);
-            }}
-          >
-            <UserAvatar
-              className="w-7 h-7"
-              fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
-            />
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-500 hidden sm:block" />
-          </button>
-
-          {userOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setUserOpen(false)}
+        {/* User menu (Radix DropdownMenu: Esc / Tab / arrows / focus return come with it) */}
+        <DropdownMenu open={userOpen} onOpenChange={setUserOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Menu tài khoản"
+              className="flex items-center gap-2 p-1.5 min-h-10 min-w-10 rounded-lg hover:bg-zinc-800 transition-colors"
+            >
+              <UserAvatar
+                className="w-7 h-7"
+                fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
               />
-              <div className="absolute right-0 top-full mt-1 w-60 glass-panel rounded-xl z-50 overflow-hidden">
-                {/* User info */}
-                <div className="px-4 py-3 border-b border-zinc-800">
-                  <div className="flex items-center gap-2.5">
-                    <UserAvatar
-                      className="w-9 h-9 shadow-md"
-                      fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-100">
-                        {user
-                          ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-                            user.email.split("@")[0]
-                          : "Hồ sơ cá nhân"}
-                      </p>
-                      <p className="text-xs text-zinc-500">{user?.email}</p>
-                    </div>
-                  </div>
-                  {/* PT account badge */}
-                  {isPT && (
-                    <div className="mt-2.5 flex items-center gap-1.5 px-2 py-1.5 bg-green-500/8 border border-green-500/15 rounded-lg">
-                      <Zap className="w-3 h-3 text-green-400" />
-                      <span className="text-xs text-green-400 font-semibold">
-                        <AutoText>Tài khoản PT</AutoText>
-                      </span>
-                      <span className="ml-auto text-xs text-zinc-600">
-                        {activeView === "pt"
-                          ? "Chế độ PT"
-                          : "Chế độ thành viên"}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-500 hidden sm:block" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
 
-                {/* PT: workspace switcher in dropdown */}
-                {isPT && (
-                  <div className="px-3 py-2 border-b border-zinc-800">
-                    <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">
-                      <AutoText>Chuyển chế độ</AutoText>
-                    </p>
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={() => switchToView("client")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          activeView === "client"
-                            ? "bg-zinc-700 text-zinc-100 border-zinc-600"
-                            : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
-                        }`}
-                      >
-                        <User className="w-3 h-3" /> Thành viên
-                      </button>
-                      <button
-                        onClick={() => switchToView("pt")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          activeView === "pt"
-                            ? "bg-green-500 text-black border-green-500 shadow-sm shadow-green-500/30"
-                            : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
-                        }`}
-                      >
-                        <Zap className="w-3 h-3" /> Huấn luyện viên
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Menu items */}
-                <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-zinc-800">
-                  <LanguageSwitcher />
-                  <ThemeToggle />
-                </div>
-
-                {/* Mỗi vai trò có trang hồ sơ của riêng mình. Admin chưa có — trước đây admin và chủ gym
-                    đều bị đưa sang /client/profile và dính 403 (RequireRole client). */}
-                {!isAdmin && (
-                  <button
-                    onClick={() => {
-                      setUserOpen(false);
-                      navigate(role === "pt" ? "/pt/profile" : role === "gym_owner" ? "/gym-owner/profile" : "/client/profile");
-                    }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-                  >
-                    <User className="w-4 h-4" /> <AutoText>Hồ sơ cá nhân</AutoText>
-                  </button>
-                )}
-                {/* Settings Center is a client-workspace surface for now
-                    (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
-                    §12) — admin/gym_owner accounts have no client fitness
-                    data and no Settings surface of their own yet, so this
-                    entry point is scoped exactly like "Hồ sơ cá nhân" above. */}
-                {!isAdmin && role !== "gym_owner" && (
-                  <button
-                    data-testid="topbar-settings-link"
-                    onClick={() => {
-                      setUserOpen(false);
-                      navigate("/client/settings");
-                    }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-                  >
-                    <Settings className="w-4 h-4" /> <AutoText>Cài đặt</AutoText>
-                  </button>
-                )}
-
-                {/* Admin link */}
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setUserOpen(false);
-                      navigate("/admin/dashboard");
-                    }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-violet-400 hover:bg-violet-500/10 transition-colors"
-                  >
-                    <Shield className="w-4 h-4" /> <AutoText>Trang Admin</AutoText>
-                  </button>
-                )}
-
-                {/* PT quick switch (mobile-friendly) */}
-                {isPT && (
-                  <button
-                    onClick={() => {
-                      setUserOpen(false);
-                      switchToView(activeView === "pt" ? "client" : "pt");
-                    }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-                  >
-                    <ArrowLeftRight className="w-4 h-4" />
-                    <AutoText>
-                      {activeView === "pt"
-                        ? "Chuyển sang chế độ thành viên"
-                        : "Chuyển sang chế độ PT"}
-                    </AutoText>
-                  </button>
-                )}
-
-                <div className="border-t border-zinc-800">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" /> <AutoText>Đăng xuất</AutoText>
-                  </button>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={4}
+            collisionPadding={8}
+            className="w-60 max-w-[calc(100vw-1rem)] glass-panel rounded-xl p-0 z-50 overflow-hidden border-zinc-700/50 bg-zinc-950/60 text-zinc-100"
+          >
+            {/* User info */}
+            <div className="px-4 py-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <UserAvatar
+                  className="w-9 h-9 shadow-md"
+                  fallbackClassName={`text-xs font-bold text-black ${avatarBg}`}
+                />
+                <div>
+                  <p className="text-sm font-semibold text-zinc-100">
+                    {user
+                      ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                        user.email.split("@")[0]
+                      : "Hồ sơ cá nhân"}
+                  </p>
+                  <p className="text-xs text-zinc-500">{user?.email}</p>
                 </div>
               </div>
-            </>
-          )}
-        </div>
+              {/* PT account badge */}
+              {isPT && (
+                <div className="mt-2.5 flex items-center gap-1.5 px-2 py-1.5 bg-green-500/8 border border-green-500/15 rounded-lg">
+                  <Zap className="w-3 h-3 text-green-400" />
+                  <span className="text-xs text-green-400 font-semibold">
+                    <AutoText>Tài khoản PT</AutoText>
+                  </span>
+                  <span className="ml-auto text-xs text-zinc-600">
+                    {activeView === "pt"
+                      ? "Chế độ PT"
+                      : "Chế độ thành viên"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* PT: workspace switcher in dropdown */}
+            {isPT && (
+              <div className="px-3 py-2 border-b border-zinc-800">
+                <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">
+                  <AutoText>Chuyển chế độ</AutoText>
+                </p>
+                <div className="flex gap-1.5">
+                  <DropdownMenuItem
+                    onSelect={() => switchToView("client")}
+                    className={`flex-1 justify-center gap-1.5 min-h-10 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      activeView === "client"
+                        ? "bg-zinc-700 text-zinc-100 border-zinc-600 focus:bg-zinc-600 focus:text-zinc-100"
+                        : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300 focus:bg-zinc-800 focus:text-zinc-200"
+                    }`}
+                  >
+                    <User className="w-3 h-3 text-current" /> Thành viên
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => switchToView("pt")}
+                    className={`flex-1 justify-center gap-1.5 min-h-10 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      activeView === "pt"
+                        ? "bg-green-500 text-black border-green-500 shadow-sm shadow-green-500/30 focus:bg-green-400 focus:text-black"
+                        : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300 focus:bg-zinc-800 focus:text-zinc-200"
+                    }`}
+                  >
+                    <Zap className="w-3 h-3 text-current" /> Huấn luyện viên
+                  </DropdownMenuItem>
+                </div>
+              </div>
+            )}
+
+            {/* Language / theme (phones only: from md up they sit in the top bar) */}
+            <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-zinc-800">
+              <LanguageSwitcher />
+              <ThemeToggle />
+            </div>
+
+            {/* Mỗi vai trò có trang hồ sơ của riêng mình. Admin chưa có — trước đây admin và chủ gym
+                đều bị đưa sang /client/profile và dính 403 (RequireRole client). */}
+            {!isAdmin && (
+              <DropdownMenuItem
+                onSelect={() => navigate(role === "pt" ? "/pt/profile" : role === "gym_owner" ? "/gym-owner/profile" : "/client/profile")}
+                className="gap-2 rounded-none min-h-10 px-4 py-2.5 text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 transition-colors"
+              >
+                <User className="w-4 h-4 text-current" /> <AutoText>Hồ sơ cá nhân</AutoText>
+              </DropdownMenuItem>
+            )}
+            {/* Settings Center is a client-workspace surface for now
+                (docs/features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md
+                §12) — admin/gym_owner accounts have no client fitness
+                data and no Settings surface of their own yet, so this
+                entry point is scoped exactly like "Hồ sơ cá nhân" above. */}
+            {!isAdmin && role !== "gym_owner" && (
+              <DropdownMenuItem
+                data-testid="topbar-settings-link"
+                onSelect={() => navigate("/client/settings")}
+                className="gap-2 rounded-none min-h-10 px-4 py-2.5 text-sm text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100 transition-colors"
+              >
+                <Settings className="w-4 h-4 text-current" /> <AutoText>Cài đặt</AutoText>
+              </DropdownMenuItem>
+            )}
+
+            {/* Admin link */}
+            {isAdmin && (
+              <DropdownMenuItem
+                onSelect={() => navigate("/admin/dashboard")}
+                className="gap-2 rounded-none min-h-10 px-4 py-2.5 text-sm text-violet-400 focus:bg-violet-500/10 focus:text-violet-400 transition-colors"
+              >
+                <Shield className="w-4 h-4 text-current" /> <AutoText>Trang Admin</AutoText>
+              </DropdownMenuItem>
+            )}
+
+            {/* PT quick switch (mobile-friendly) */}
+            {isPT && (
+              <DropdownMenuItem
+                onSelect={() => switchToView(activeView === "pt" ? "client" : "pt")}
+                className="gap-2 rounded-none min-h-10 px-4 py-2.5 text-sm text-zinc-400 focus:bg-zinc-800 focus:text-zinc-200 transition-colors"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-current" />
+                <AutoText>
+                  {activeView === "pt"
+                    ? "Chuyển sang chế độ thành viên"
+                    : "Chuyển sang chế độ PT"}
+                </AutoText>
+              </DropdownMenuItem>
+            )}
+
+            <div className="border-t border-zinc-800">
+              <DropdownMenuItem
+                onSelect={handleLogout}
+                className="gap-2 rounded-none min-h-10 px-4 py-2.5 text-sm text-red-400 focus:bg-red-500/10 focus:text-red-400 transition-colors"
+              >
+                <LogOut className="w-4 h-4 text-current" /> <AutoText>Đăng xuất</AutoText>
+              </DropdownMenuItem>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

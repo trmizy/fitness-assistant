@@ -7,6 +7,7 @@ import { Expand, LocateFixed, MapPin, X } from "lucide-react-native";
 
 import { Button, Tappable, useToast } from "../../components/ui";
 import { darkColors, designTokens } from "../../theme/colors";
+import { isInVietnam } from "../../utils/geo";
 import { baseTilesScript } from "../services/mapTiles";
 
 /**
@@ -120,8 +121,8 @@ function MapView({
 }
 
 export function MapPinPicker({
-  latitude,
-  longitude,
+  latitude: storedLatitude,
+  longitude: storedLongitude,
   onChange,
   hint,
 }: {
@@ -132,6 +133,10 @@ export function MapPinPicker({
 }) {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  // N15M-13: stored coordinates outside Vietnam are treated as "not pinned" - no marker, map starts on Vietnam.
+  const inVn = isInVietnam(storedLatitude, storedLongitude);
+  const latitude = inVn ? storedLatitude : null;
+  const longitude = inVn ? storedLongitude : null;
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
 

@@ -19,6 +19,7 @@ import { sendListingError } from './gym-listing.controller';
 import { listingCompatOf } from '../services/legacy-compat.service';
 import { filterByScope } from '../services/partner-permissions';
 import { branchInfoFor } from '../services/staff-views';
+import { withAdminSuspension } from '../services/gym-suspension-info';
 import { prisma } from '../repositories/prisma';
 import { amenityDto, proposalDto } from '../services/gym-amenity-catalog.service';
 
@@ -152,14 +153,19 @@ export const gymController = {
     // bộ) — phạm vi là chuyện của người gọi, không phải của kho dữ liệu. Lễ tân/kế toán nhận bản rút gọn.
     const ctx = req.partner;
     const visible = ctx ? filterByScope(ctx, gyms) : gyms;
-    res.json({ success: true, data: ctx ? visible.map((g: any) => branchInfoFor(ctx.role, g)) : visible });
+    // N15C-08: owner / manager (and the legacy owner without a partner context) also learn WHY an admin suspended a branch.
+    const withReason = !ctx || ctx.role === 'OWNER' || ctx.role === 'MANAGER' ? await withAdminSuspension(visible as any[]) : visible;
+    res.json({ success: true, data: ctx ? (withReason as any[]).map((g: any) => branchInfoFor(ctx.role, g)) : withReason });
   },
 
   async getOwnedById(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
       const gym = await gymService.getOwnedGym(req.params.id, ownerId);
-      const data: Record<string, unknown> = req.partner ? branchInfoFor(req.partner.role, gym) : gym;
+      const base: Record<string, unknown> = req.partner ? branchInfoFor(req.partner.role, gym) : gym;
+      // N15C-08: owner / manager see the admin's suspension reason (never the receptionist / accountant reduced view).
+      const data: Record<string, unknown> =
+        !req.partner || req.partner.role === 'OWNER' || req.partner.role === 'MANAGER' ? (await withAdminSuspension([gym as any]))[0] : base;
       // Listing Management: the OWNER's branch view carries the real amenity selection (gym_amenities, custom ones
       // included) and the owner's PENDING proposals for this branch — `facilities` is only the SYSTEM mirror, so a
       // wizard re-opened on another device could otherwise silently drop a custom amenity on its next save.
@@ -203,8 +209,13 @@ export const gymController = {
 
   async setStatus(req: Request, res: Response) {
     try {
-      const { status } = req.body;
-      const gym = await gymService.setStatus(req.params.id, status, req.user!.userId);
+      const { status } = req.body ?? {};
+      // N13E-10 (14/11/2026): "BOGUS" (or a missing / non-string value) fell through to Prisma and answered 500. Only the three moderation results exist on this route.
+      if (typeof status !== 'string' || !['APPROVED', 'REJECTED', 'SUSPENDED'].includes(status)) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: 'Trạng thái không hợp lệ — chỉ nhận APPROVED, REJECTED hoặc SUSPENDED' } });
+        return;
+      }
+      const gym = await gymService.setStatus(req.params.id, status as 'APPROVED' | 'REJECTED' | 'SUSPENDED', req.user!.userId);
       res.json({ success: true, data: gym });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });

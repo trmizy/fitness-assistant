@@ -140,7 +140,7 @@ export const agenticFitnessService = {
       snapshot: { ptName: pt.name, ...pkg, preferences }, expiresAt: new Date(Date.now() + 15 * 60000) } });
     return { id: draft.id, snapshot: draft.snapshot, expiresAt: draft.expiresAt, status: draft.status };
   },
-  async confirmDraft(userId: string, draftId: string, confirmed: boolean) {
+  async confirmDraft(userId: string, draftId: string, confirmed: boolean, acknowledgedIndependentVenue?: boolean) {
     if (confirmed !== true) throw fail("Explicit confirmation required", 400);
     return prisma.$transaction(async tx => {
       // Same-user confirmations serialize; the contract's unique action key also survives
@@ -154,7 +154,7 @@ export const agenticFitnessService = {
       const snapshot = draft.snapshot as any;
       const eligible = await this.candidates(userId, snapshot.preferences);
       if (!eligible.candidates.some(p => p.id === draft.ptId && p.packages.some(pkg => pkg.id === draft.packageId))) throw fail("Availability changed. Choose another PT or refresh.", 409);
-      const contract = await agenticFitnessDeps.requestContract(userId, { ptUserId: draft.ptId, packageId: draft.packageId }, {
+      const contract = await agenticFitnessDeps.requestContract(userId, { ptUserId: draft.ptId, packageId: draft.packageId, ...(acknowledgedIndependentVenue === true ? { acknowledgedIndependentVenue: true } : {}) }, {
         actionId: draft.id, expectedPrice: snapshot.price, expectedSessions: snapshot.sessions,
         expectedMinutes: snapshot.sessionMinutes, expectedMode: snapshot.mode,
       });

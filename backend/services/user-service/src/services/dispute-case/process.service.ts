@@ -84,7 +84,12 @@ export const processService = {
         await ctx.tx.disputeCaseAgreementConfirmation.create({ data: { agreementId: ag.id, partyRole: role, userId: actor.id, confirmedHash: b.contentHash } });
         const both = new Set([...ag.confirmations.map((x) => x.partyRole), role]).size === 2;
         if (both) await ctx.tx.disputeCaseAgreement.update({ where: { id: ag.id }, data: { status: "AGREED", agreedAt: clockNow() } });
-        return { caseId: c.id, result: { agreementId: ag.id, partyRole: role, status: both ? "AGREED" : "PROPOSED", bothConfirmed: both }, note: `${role} xác nhận phương án chung`, detail: { agreementId: ag.id, partyRole: role, bothConfirmed: both } };
+        // N13D-04: once both sides agree there is nothing left to wait for from the parties - the case moves to ASSESSING by itself (existing
+        // COLLECTING / AWAITING_PARTIES -> ASSESSING transitions) so the investigator can record the finding without a manual status change.
+        if (both && (c.status === "COLLECTING" || c.status === "AWAITING_PARTIES")) {
+          await __internals.casStatus(ctx, c, "ASSESSING", "Hai bên đã cùng xác nhận phương án chung");
+        }
+        return { caseId: c.id, result: { agreementId: ag.id, partyRole: role, status: both ? "AGREED" : "PROPOSED", bothConfirmed: both, caseStatus: c.status }, note: `${role} xác nhận phương án chung`, detail: { agreementId: ag.id, partyRole: role, bothConfirmed: both } };
       },
     });
   },
@@ -194,7 +199,7 @@ export const processService = {
         if (ap.status === "DECIDED") throw caseError(409, "APPEAL_ALREADY_DECIDED", "Yêu cầu này đã có kết quả");
         await assertIndependentReviewer(ctx.tx, c, b.reviewerId);
         await ctx.tx.disputeCaseAppeal.update({ where: { id: ap.id }, data: { reviewerId: b.reviewerId, reviewerAssignedBy: actor.id, status: "UNDER_REVIEW" } });
-        return { caseId: c.id, result: { appealId: ap.id, reviewerId: b.reviewerId, status: "UNDER_REVIEW" }, note: `reviewer ${b.reviewerId}`, detail: { appealId: ap.id, reviewerId: b.reviewerId } };
+        return { caseId: c.id, result: { appealId: ap.id, reviewerId: b.reviewerId, status: "UNDER_REVIEW" }, note: "Đã giao người xem xét lại yêu cầu", detail: { appealId: ap.id, reviewerId: b.reviewerId } };
       },
     });
   },
@@ -356,7 +361,7 @@ export const processService = {
     });
     if (moved.count === 1) {
       await prisma.disputeCaseEvent.create({
-        data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_CREATED", note: `obligation ${answer.obligationId}`, payload: { consequenceId: cons.id, obligation, moneyMoved: false } as any },
+        data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_CREATED", note: "Đã ghi nhận khoản nghĩa vụ từ kết quả xem xét lại", payload: { consequenceId: cons.id, obligation, moneyMoved: false } as any },
       });
     }
     return { consequenceId: cons.id, status: "OBLIGATION_OPEN" as string, obligation };
@@ -385,7 +390,7 @@ export const processService = {
         data: { status: "RESOLVED", resolvedAt: clockNow(), resolvedBy: actor.id, detail: { ...((cons.detail as object) ?? {}), obligation: { ...((cons.detail as any)?.obligation ?? {}), status: live.status, unpaid: live.unpaid } } },
       });
       if (moved.count === 1) {
-        await prisma.disputeCaseEvent.create({ data: { caseId, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_SETTLED", note: `obligation ${live.obligationId} ${live.status}`, payload: { consequenceId: cons.id, obligation: live } as any } });
+        await prisma.disputeCaseEvent.create({ data: { caseId, actorUserId: actor.id, actorRole: actor.role, action: "APPEAL_OBLIGATION_SETTLED", note: "Đã cập nhật khoản nghĩa vụ từ kết quả xem xét lại", payload: { consequenceId: cons.id, obligation: live } as any } });
       }
     }
     const after = await prisma.disputeCaseAppealConsequence.findUniqueOrThrow({ where: { id: cons.id } });

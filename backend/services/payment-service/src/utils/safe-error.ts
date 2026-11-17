@@ -27,6 +27,7 @@ const MESSAGES: Record<string, string> = {
   REFERRAL_SETTLE_FAILED: 'Không ghi nhận được hoa hồng giới thiệu. Hãy thử lại sau.',
   REFERRAL_CLAWBACK_FAILED: 'Không thu hồi được hoa hồng giới thiệu. Hãy thử lại sau.',
   MEMBERSHIP_RELEASE_FAILED: 'Không giải ngân được tiền gói tập. Hãy thử lại sau.',
+  MEMBERSHIP_SUPPLEMENT_FAILED: 'Không hoàn thêm được tiền cho hội viên. Hãy thử lại sau.',
   INTERNAL_ERROR: GENERIC_FAILURE_MESSAGE,
 };
 

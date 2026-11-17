@@ -6,7 +6,6 @@ import { useSettings } from "../../../context/SettingsContext";
 import { useNativeBackNavigation } from "../../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../../hooks/useNativeStatusBar";
 import { PageSkeleton } from "../PageSkeleton";
-import { ForceChangePasswordScreen } from "../../auth/ForceChangePasswordScreen";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
@@ -50,7 +49,7 @@ function useSidebarCollapsed(): [boolean, () => void] {
  * (the route wrapper) + the backend; nothing here widens access.
  */
 export function AdminShell() {
-  const { isAuthenticated, user } = useApp();
+  const { isAuthenticated } = useApp();
   const { registerDefaultTheme } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,7 +68,6 @@ export function AdminShell() {
   useNativeStatusBar();
 
   if (!isAuthenticated) return null;
-  if (user?.mustChangePassword) return <ForceChangePasswordScreen />;
   return <AdminShellInner />;
 }
 

@@ -88,9 +88,13 @@ export const OBLIGATION_KIND_LABELS: Record<string, string> = {
   REFUND_SHORT: "Hoàn tiền còn thiếu",
   OVER_RELEASED: "Đã giải phóng vượt mức",
   APPEAL_AWARD: "Khoản phải trả sau khiếu nại",
+  GYM_DEBT: "Phòng gym còn nợ nền tảng",
 };
 export const obligationKindLabel = (k: string | null | undefined) => pick(OBLIGATION_KIND_LABELS, k, "Nghĩa vụ khác");
 export const obligationStatusLabel = (s: string | null | undefined) => pick(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");
+/** GYM_DEBT đã khép lại với unpaid = 0 (hệ thống tự thu hồi từ thu nhập của gym, FIX3-PAY) -> "Đã thu hồi từ thu nhập của gym". */
+export const obligationStatusLabelFor = (kind: string | null | undefined, s: string | null | undefined, unpaid?: string | number | null) =>
+  kind === "GYM_DEBT" && s === "RESOLVED_OTHER" && unpaid !== null && unpaid !== undefined && Number(unpaid) === 0 ? "Đã thu hồi từ thu nhập của gym" : obligationStatusLabel(s);
 
 export const HOLDBACK_KIND_LABELS: Record<string, string> = {
   OPEN_OBLIGATION: "Còn nghĩa vụ chưa trả",

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   MagnifyingGlassIcon as Search,
@@ -29,6 +28,7 @@ import {
   buildPtSearchBody,
   formatPtDistanceBadge,
   isCursorResetError,
+  isSearchRegionReady,
   nextRadiusStep,
   normalizeVnCoords,
   ptDiscoveryKeys,
@@ -49,6 +49,7 @@ import { formatVND } from "../../utils/currency";
 import { ListingImage } from "../../components/listing/ListingImage";
 import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageChanged } from "../../utils/listingErrors";
 import { QUICK_FILTERS } from "../../constants/specialties";
+import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
 import { Stars } from "../../components/gym/Stars";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
 import {
@@ -57,7 +58,15 @@ import {
   readEligibilityRefusal,
   type EligibilityReason,
 } from "../../utils/contractGymOptions";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { IndependentVenueDialog } from "../../components/booking/IndependentVenueDialog";
+import {
+  INDEPENDENT_VENUE_NOTE,
+  isIndependentVenue,
+  readIndependentVenueRequired,
+  venueAckField,
+  venueGate,
+} from "../../utils/independentVenue";
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
 
@@ -141,6 +150,9 @@ export function PTDiscoveryPage() {
   const [cursorResetSeq, setCursorResetSeq] = useState(0);
   const [listUpdatedNotice, setListUpdatedNotice] = useState(false);
   const hydratedUserRef = useRef<string | null>(null);
+  // The user id whose saved region has been applied to the state above. The first search waits for it so a
+  // stale scope:"national" request is never sent before the saved area resolves.
+  const [regionHydratedFor, setRegionHydratedFor] = useState<string | null>(null);
   const userChangedRegionRef = useRef(false);
   // Mirrors this page's own `lg` (1024px) breakpoint exactly (the list/detail layout
   // switches from flex-col to flex-row there) — deliberately not the shared useIsMobile
@@ -207,7 +219,11 @@ export function PTDiscoveryPage() {
     staleTime: 24 * 60 * 60_000,
   });
 
-  const { data: profileRegion } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
+  const {
+    data: profileRegion,
+    isSuccess: profileRegionLoaded,
+    isError: profileRegionFailed,
+  } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
     queryKey: ptKeys.profileRegion(),
     queryFn: async () => (await profileService.getProfile())?.profile ?? null,
     enabled: !!userId,
@@ -215,11 +231,12 @@ export function PTDiscoveryPage() {
   });
 
   useEffect(() => {
-    if (!userId || !profileRegion || hydratedUserRef.current === userId) return;
+    if (!userId || !profileRegionLoaded || hydratedUserRef.current === userId) return;
     hydratedUserRef.current = userId;
+    setRegionHydratedFor(userId);
     if (userChangedRegionRef.current) return;
-    const pCode = typeof profileRegion.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
-    const wCode = pCode && typeof profileRegion.searchWardCode === "number" ? profileRegion.searchWardCode : null;
+    const pCode = typeof profileRegion?.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
+    const wCode = pCode && typeof profileRegion?.searchWardCode === "number" ? profileRegion.searchWardCode : null;
     setProvinceCode(pCode);
     setWardCode(wCode);
     setNational(!pCode);
@@ -228,7 +245,9 @@ export function PTDiscoveryPage() {
     } else {
       setWards([]);
     }
-  }, [userId, profileRegion]);
+  }, [userId, profileRegion, profileRegionLoaded]);
+
+  const regionReady = isSearchRegionReady({ userId, hydratedForUserId: regionHydratedFor, profileRegionFailed });
 
   const saveRegionMutation = useMutation({
     mutationFn: (payload: { searchProvinceCode: number | null; searchWardCode: number | null }) =>
@@ -248,13 +267,15 @@ export function PTDiscoveryPage() {
 
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
-  useBackDismissible(!!showRequestModal, () => setShowRequestModal(false));
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState("");
   // Which partner gym the sessions run at. "" means independent — the PT keeps the gym's
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
+  // N15M-14: the venue is outside Gymini -> the client must press "Tôi đồng ý" before the request can be sent.
+  const [venueDialog, setVenueDialog] = useState(false);
+  const [venueAck, setVenueAck] = useState(false);
   // P3.6: the server's own 422 on the membership rule (wins over what was shown before sending),
   // and the branch whose membership plans are open on top of the request dialog.
   const [eligibilityRefusal, setEligibilityRefusal] = useState<{
@@ -399,11 +420,19 @@ export function PTDiscoveryPage() {
       setRequestMessage("");
       setSelectedPackage(null);
       setSelectedGymId("");
+      setVenueAck(false);
+      setVenueDialog(false);
       setEligibilityRefusal(null);
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      if (readIndependentVenueRequired(err)) {
+        // The server asks for the acknowledgement (e.g. the package switched to offline after this page loaded).
+        setVenueAck(false);
+        setVenueDialog(true);
+        return;
+      }
       const changed = readPackageChanged(err);
       if (changed) {
         setPackageChanged(changed);
@@ -448,10 +477,12 @@ export function PTDiscoveryPage() {
     setLowAvailabilityData(null);
     setEligibilityRefusal(null);
     setSelectedGymId("");
+    setVenueAck(false);
+    setVenueDialog(false);
     setShowRequestModal(true);
   };
 
-  const submitRequest = (acknowledgedLowAvailability = false) => {
+  const submitRequest = (acknowledgedLowAvailability = false, venueAcked = venueAck) => {
     if (!selectedPT || !selectedPackage) return;
     
     // Only an offline package can run at a gym; an online one never carries a gym share. A branch
@@ -459,12 +490,20 @@ export function PTDiscoveryPage() {
     const gymId =
       selectedPackage.sessionMode === "OFFLINE" && pickedGym ? pickedGym.gymId : undefined;
 
+    // N15M-14: a venue outside Gymini -> show the warning first; nothing is sent until the client agrees.
+    const venue = { sessionMode: selectedPackage.sessionMode, gymId, acknowledged: venueAcked };
+    if (venueGate(venue) === "dialog") {
+      setVenueDialog(true);
+      return;
+    }
+
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
       packageId: selectedPackage.id,
       clientMessage: requestMessage || undefined,
       gymId,
       acknowledgedLowAvailability,
+      ...venueAckField(venue),
       // The version of the package as this page showed it: a package edited since then answers 409 PACKAGE_CHANGED.
       ...(Number.isInteger(selectedPackage.version) ? { expectedPackageVersion: selectedPackage.version } : {}),
     });
@@ -540,7 +579,7 @@ export function PTDiscoveryPage() {
 
   const {
     data: ptsData,
-    isLoading,
+    isLoading: searchLoading,
     isError,
     error,
     hasNextPage,
@@ -549,6 +588,7 @@ export function PTDiscoveryPage() {
     isFetchNextPageError,
   } = useInfiniteQuery({
     queryKey: ptKeys.search(searchBody, cursorResetSeq),
+    enabled: regionReady,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage: any) => nextCursorParam(lastPage),
     queryFn: ({ pageParam }) =>
@@ -557,6 +597,9 @@ export function PTDiscoveryPage() {
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
   });
+
+  // While the saved region is still resolving the query is disabled (not "loading"): show the skeleton, never "no results".
+  const isLoading = searchLoading || !regionReady;
 
   // 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH: reload from page 1 cleanly + notify user
   useEffect(() => {
@@ -931,7 +974,7 @@ export function PTDiscoveryPage() {
                             .map((s: string) => (
                               <span
                                 key={s}
-                                className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                                className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                               >
                                 {s}
                               </span>
@@ -1051,9 +1094,9 @@ export function PTDiscoveryPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-zinc-100">
+                          <ModalTitle className="text-zinc-100">
                             {selectedPT.firstName} {selectedPT.lastName}
-                          </h2>
+                          </ModalTitle>
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
@@ -1071,14 +1114,7 @@ export function PTDiscoveryPage() {
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(null)}
-                          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
-                          aria-label="Đóng"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <ModalClose className="-mt-1 -mr-2 text-zinc-500 hover:text-zinc-200" />
                       </div>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 flex-wrap">
                         {(() => {
@@ -1117,10 +1153,10 @@ export function PTDiscoveryPage() {
                       </div>
                       {app?.mainSpecialties?.length > 0 && (
                         <div className="flex gap-1.5 mt-2 flex-wrap">
-                          {app.mainSpecialties.map((s: string) => (
+                          {app.mainSpecialties.map((s: string, i: number) => (
                             <span
-                              key={s}
-                              className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                              key={`${s}-${i}`}
+                              className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                             >
                               {s}
                             </span>
@@ -1132,7 +1168,7 @@ export function PTDiscoveryPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
+                <div role="tablist" aria-label="Thông tin huấn luyện viên" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
                   {(
                     [
                       { key: "detail", label: "Chi tiết" },
@@ -1143,8 +1179,10 @@ export function PTDiscoveryPage() {
                     <button
                       key={t.key}
                       type="button"
+                      role="tab"
+                      aria-selected={detailTab === t.key}
                       onClick={() => setDetailTab(t.key)}
-                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                         detailTab === t.key
                           ? "bg-green-500 text-black shadow-sm"
                           : "text-zinc-500 hover:text-zinc-300"
@@ -1167,9 +1205,9 @@ export function PTDiscoveryPage() {
                     {/* Certifications */}
                     {certs.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {certs.map((c: any) => (
+                        {certs.map((c: any, i: number) => (
                           <span
-                            key={c.certificateName}
+                            key={`${c.certificateName}-${i}`}
                             className="flex items-center gap-1 text-[10px] px-2 py-1 bg-green-500/5 border border-green-500/15 rounded-lg text-green-400"
                           >
                             <Award className="w-3 h-3" /> {c.certificateName}
@@ -1254,24 +1292,24 @@ export function PTDiscoveryPage() {
                       </h4>
                       {app.targetClientGroups?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1.5">
-                          {app.targetClientGroups.map((g: string) => (
+                          {app.targetClientGroups.map((g: string, i: number) => (
                             <span
-                              key={g}
+                              key={`${g}-${i}`}
                               className="text-[10px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400"
                             >
-                              {g}
+                              {optionLabel(TARGET_GROUP_OPTIONS, g)}
                             </span>
                           ))}
                         </div>
                       )}
                       {app.primaryTrainingGoals?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                          {app.primaryTrainingGoals.map((g: string) => (
+                          {app.primaryTrainingGoals.map((g: string, i: number) => (
                             <span
-                              key={g}
-                              className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                              key={`${g}-${i}`}
+                              className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                             >
-                              {g}
+                              {optionLabel(TRAINING_GOAL_OPTIONS, g)}
                             </span>
                           ))}
                         </div>
@@ -1560,15 +1598,17 @@ export function PTDiscoveryPage() {
               </>
             );
 
-            return createPortal(
-              <div
-                className={`fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex justify-center ${
-                  isDesktopView ? "items-center p-4" : "items-end"
-                }`}
-                onClick={() => setSelectedId(null)}
+            // <Modal> portals to <body> itself (see above) and adds role=dialog, Esc, focus trap/return, scroll lock.
+            return (
+              <Modal
+                open
+                onClose={() => setSelectedId(null)}
+                placement={isDesktopView ? "center" : "sheet"}
+                className={isDesktopView ? "z-[60]" : "z-[60] sm:items-end sm:p-0"}
+                backdropClassName="bg-black/70 backdrop-blur-sm z-[60]"
+                data-testid="pt-detail-modal"
               >
                 <div
-                  onClick={(e) => e.stopPropagation()}
                   className={
                     isDesktopView
                       ? "w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-zinc-800/60 bg-zinc-900 shadow-2xl"
@@ -1577,38 +1617,48 @@ export function PTDiscoveryPage() {
                 >
                   {content}
                 </div>
-              </div>,
-              document.body,
+              </Modal>
             );
           })()}
       </div>
 
       {/* Trainer no longer visible (404 on the detail): a calm empty state, not a broken panel. */}
-      {selectedId && ptGone && createPortal(
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedId(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+      <Modal
+        open={!!selectedId && ptGone}
+        onClose={() => setSelectedId(null)}
+        className="z-[60]"
+        backdropClassName="bg-black/70 backdrop-blur-sm z-[60]"
+        data-testid="pt-gone-modal"
+      >
+          <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+            <ModalClose className="absolute right-2 top-2 text-zinc-500 hover:text-zinc-200" />
             <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <h3 className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</h3>
+            <ModalTitle className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</ModalTitle>
             <p className="text-sm text-zinc-500 mt-1">Hồ sơ có thể đã được ẩn hoặc tạm ngưng. Hãy chọn một huấn luyện viên khác trong danh sách.</p>
             <button
               onClick={() => {
                 setSelectedId(null);
                 queryClient.invalidateQueries({ queryKey: ptKeys.all });
               }}
-              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              className="mt-4 w-full min-h-10 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
             >
               Quay lại danh sách
             </button>
           </div>
-        </div>,
-        document.body,
-      )}
+      </Modal>
 
       {/* 409 PACKAGE_CHANGED — shown above the request modal (z-[70]). "Xem giá mới" closes the request and opens the (re-fetched) price list. */}
-      {packageChanged && createPortal(
-        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div role="alertdialog" aria-labelledby="pkg-changed-title" className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
-            <h3 id="pkg-changed-title" className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</h3>
+      <Modal
+        open={!!packageChanged}
+        onClose={() => setPackageChanged(null)}
+        closeOnBackdrop={false}
+        className="z-[80]"
+        backdropClassName="bg-black/70 backdrop-blur-sm z-[80]"
+        data-testid="pt-package-changed-modal"
+      >
+        {packageChanged && (
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
+            <ModalTitle className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</ModalTitle>
             <p className="text-sm text-zinc-400 mt-2">{PACKAGE_CHANGED_MESSAGE}</p>
             {packageChanged.current && (
               <div className="mt-3 rounded-xl border border-zinc-700/60 bg-zinc-800/40 p-3 text-sm">
@@ -1629,14 +1679,13 @@ export function PTDiscoveryPage() {
                 setSelectedPackage(null);
                 setDetailTab("pricing");
               }}
-              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              className="mt-4 w-full min-h-10 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
             >
               Xem giá mới
             </button>
           </div>
-        </div>,
-        document.body,
-      )}
+        )}
+      </Modal>
 
       {/* Request Coaching Modal — portaled to <body> and above the mobile detail sheet's
           z-[60] (see the PT-detail bottom sheet above). Without the portal, this fixed
@@ -1644,17 +1693,19 @@ export function PTDiscoveryPage() {
           (it applies a `transform`, which per spec creates a new containing block for any
           `position: fixed` descendant) instead of the real viewport — same class of bug as
           the PT-detail panel fix, just left unfixed here originally. */}
-      {showRequestModal && selectedPT && !membershipGymId && createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+      <Modal
+        open={showRequestModal && !!selectedPT && !membershipGymId}
+        onClose={() => setShowRequestModal(false)}
+        closeOnBackdrop={false}
+        className="z-[70]"
+        backdropClassName="z-[70]"
+        data-testid="pt-request-modal"
+      >
+        {selectedPT && (
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md max-h-full overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Yêu cầu huấn luyện</h3>
-              <button
-                onClick={() => setShowRequestModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <ModalTitle className="text-zinc-100 font-bold">Yêu cầu huấn luyện</ModalTitle>
+              <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-3 bg-zinc-800/50 rounded-xl p-3">
@@ -1786,6 +1837,7 @@ export function PTDiscoveryPage() {
                         aria-checked={!pickedGym}
                         onClick={() => {
                           setSelectedGymId("");
+                          setVenueAck(false);
                           setEligibilityRefusal(null);
                         }}
                         className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
@@ -1814,6 +1866,7 @@ export function PTDiscoveryPage() {
                               disabled={!g.selectable}
                               onClick={() => {
                                 setEligibilityRefusal(null);
+                                setVenueAck(false);
                                 setSelectedGymId(g.gymId);
                               }}
                               className="w-full text-left disabled:cursor-not-allowed"
@@ -1857,6 +1910,16 @@ export function PTDiscoveryPage() {
                 <p className="text-[11px] text-zinc-600 leading-snug">{gymOptionsView.gymsReasonCopy}</p>
               )}
 
+              {isIndependentVenue(selectedPackage?.sessionMode, pickedGym?.gymId) && (
+                <p
+                  className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-snug text-amber-500"
+                  data-testid="independent-venue-note"
+                >
+                  <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{INDEPENDENT_VENUE_NOTE}. Bạn sẽ được hỏi xác nhận trước khi gửi yêu cầu.</span>
+                </p>
+              )}
+
               {eligibilityRefusal && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 space-y-2">
                   <p className="text-xs leading-snug">{eligibilityRefusal.message}</p>
@@ -1887,16 +1950,18 @@ export function PTDiscoveryPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowRequestModal(false)}
-                className="flex-1 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 min-h-10 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               {!lowAvailabilityData && (
                 <button
+                  type="button"
                   onClick={() => submitRequest()}
                   disabled={requestMutation.isPending || !!gymOptionsView?.requestBlockedCode}
-                  className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-10 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                 >
                   {requestMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1906,9 +1971,27 @@ export function PTDiscoveryPage() {
               )}
             </div>
           </div>
-        </div>,
-        document.body,
-      )}
+        )}
+      </Modal>
+
+      {/* N15M-14 - venue outside the Gymini system: explicit consent before the request is sent. */}
+      <IndependentVenueDialog
+        open={venueDialog && showRequestModal}
+        pending={requestMutation.isPending}
+        onAgree={() => {
+          setVenueAck(true);
+          setVenueDialog(false);
+          submitRequest(lowAvailabilityData != null, true);
+        }}
+        onDecline={() => {
+          // Back to the price list: pick another package, or another trainer from there.
+          setVenueDialog(false);
+          setVenueAck(false);
+          setShowRequestModal(false);
+          setSelectedPackage(null);
+          setDetailTab("pricing");
+        }}
+      />
 
       {/* P3.6 - buy a gym membership from inside the request flow. The trainer's referral code is
           only PRE-FILLED in the (optional) referral field; the client still presses buy. */}

@@ -69,10 +69,12 @@ export default function AdminWithdrawalsScreen() {
   const rows = sortOldestFirst(withdrawalRows(query.data));
 
   // Tên người rút là phụ: tải hỏng thì hàng chờ vẫn dùng được với mã rút gọn.
+  // Chỉ tra tên đúng những tài khoản có trong hàng chờ (tối đa 200 mã/lần), không tải cả danh bạ.
+  const ownerIds = [...new Set(rows.filter((r) => r.ownerType !== "GYM").map((r) => r.ownerId))].sort();
   const usersQuery = useQuery({
-    queryKey: ["admin-user-directory"],
-    queryFn: () => adminService.listUserDirectory(),
-    enabled: rows.some((r) => r.ownerType !== "GYM"),
+    queryKey: ["admin-withdrawal-owner-names", ownerIds.join(",")],
+    queryFn: () => adminService.lookupUsers(ownerIds),
+    enabled: ownerIds.length > 0,
     staleTime: 5 * 60_000,
   });
   const gymsQuery = useQuery({

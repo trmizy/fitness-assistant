@@ -32,7 +32,12 @@ export async function canInitiateCallFromChat(
     if (data.blocked) {
       return { allowed: false, reason: "One or both accounts are deactivated" };
     }
-  } catch {
+  } catch (err) {
+    // The caller's own token is refused: 403 = auth-service says THIS account is locked (N11F-03: it used to read
+    // "cannot verify status", which blamed an outage); 401 = the token captured at connect time has expired.
+    const status = Number((err as any)?.response?.status ?? (err as any)?.status);
+    if (status === 403) return { allowed: false, reason: "Your account is deactivated" };
+    if (status === 401) return { allowed: false, reason: "Session expired" };
     // Fail closed: if the account-status check cannot be made (user-service or auth-service down), the call is
     // not started. Being permissive here let a deactivated/banned account call during an outage.
     return { allowed: false, reason: "Cannot verify account status right now" };

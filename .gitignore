@@ -73,13 +73,6 @@ yarn-error.log*
 Thumbs.db
 .idea/
 .vscode/
-# .claude/ used to be blanket-ignored, which silently meant the
-# project-scoped skills/CLAUDE.md guidance system could never be
-# committed/pushed — the opposite of "travels with the repository".
-# Keep machine-local state ignored; track the durable guidance layer.
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
-.claude/*.lock
 .expo/
 **/.expo/
 .playwright-cli/
@@ -199,3 +192,43 @@ test/*.png
 test/InBody*/
 test/**/*.rar
 test/**/*.zip
+
+# ── AI-agent tooling & internal documents stay local (2026-11-12) ───────────────────────────────────────────
+# NOTE: .gitignore only affects UNTRACKED files. Files already tracked must be removed from the index with
+#       `git rm -r --cached <path>` (keeps them on disk) — see the commands given when this block was added.
+# Matches the pre-commit rule in scripts/git/check-staged-test-artifacts.mjs (docs/ and .md reports are never pushed).
+
+# AI agent / assistant config, skills, memory, instructions (Claude Code, Codex, Gemini, ...)
+.claude/
+**/.claude/
+.agents/
+.codex/
+.gemini/
+.cursor/
+.windsurf/
+.aider*
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+**/CLAUDE.md
+**/AGENTS.md
+**/GEMINI.md
+Skill_Repo/
+_warroom/
+.dev/
+
+# Internal documents / reports / QA evidence
+/docs/*
+# CI reads this generated file (.github/workflows/pr-validation.yml, ci/service-impact-map.json) — keep it pushed.
+!/docs/deployment/
+/docs/deployment/*
+!/docs/deployment/generated/
+/reports/
+/qa-audit/
+/GYM_*.md
+/MOBILE_*.md
+/PERFORMANCE_BASELINE.md
+**/*_VERIFICATION_REPORT.md
+**/*_IMPLEMENTATION_REPORT.md
+**/CODEX_*.md
+**/GEMINI_*.md

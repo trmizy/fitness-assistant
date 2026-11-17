@@ -18,6 +18,7 @@ export function useGymOwnerAccessState() {
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
-    retry: 1,
+    // 403 (vd. quyền đã bị thu hồi) là câu trả lời dứt khoát — thử lại chỉ làm màn hình treo lâu hơn.
+    retry: (count, error) => (error as { response?: { status?: number } })?.response?.status !== 403 && count < 1,
   });
 }

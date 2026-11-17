@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } f
 import { HandshakeIcon as Handshake, CircleNotchIcon as Loader2, CheckIcon as Check, XIcon as X, RepeatIcon as Repeat, TrashIcon as Trash2, WarningIcon as AlertTriangle, StorefrontIcon as Storefront } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { collaborationService, gymService, profileService } from "../../services/api";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle } from "../ui/Modal";
 import { useApp } from "../../context/AppContext";
 import { collabQueryKeys } from "../../utils/discoverySearch";
 import { mergeUniquePages, nextCursorParam } from "../../utils/ptPaging";
@@ -85,7 +85,6 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
   const [inviteePtId, setInviteePtId] = useState("");
   const [ptSearch, setPtSearch] = useState("");
   // One dialog serves every flow; Back closes whichever is open.
-  useBackDismissible(!!dialog, () => setDialog(null));
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedBrandSearch(brandSearch.trim()), 200);
@@ -462,21 +461,21 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
       <Section id="current" title="Đang hiệu lực / đang chờ" cards={sections.current} />
       <Section id="ended" title="Đã kết thúc" cards={sections.ended} />
 
-      {dialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
+      <Modal open={!!dialog} onClose={() => setDialog(null)} closeOnBackdrop={false} data-testid="collab-dialog">
+        {dialog && (
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl max-h-full overflow-y-auto">
             {dialog.type === "terminate" ? (
               <>
                 <div className="p-5 border-b border-zinc-800/60">
-                  <h3 data-testid="collab-terminate-title" className="text-zinc-100 font-bold">{dialog.title}</h3>
+                  <ModalTitle data-testid="collab-terminate-title" className="text-zinc-100 font-bold">{dialog.title}</ModalTitle>
                 </div>
                 <ul className="p-5 space-y-2 text-sm text-zinc-400 list-disc list-inside">
                   {dialog.lines.map((l) => <li key={l}>{l}</li>)}
                 </ul>
                 <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-                  <button type="button" onClick={() => setDialog(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Không</button>
+                  <button type="button" onClick={() => setDialog(null)} className="flex-1 min-h-10 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Không</button>
                   <button type="button" data-testid="collab-terminate-confirm" disabled={terminate.isPending} onClick={() => terminate.mutate(dialog.id)}
-                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:opacity-60 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2">
+                    className="flex-1 min-h-10 py-2.5 bg-red-500 hover:bg-red-400 disabled:opacity-60 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2">
                     {terminate.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                     Chấm dứt
                   </button>
@@ -485,9 +484,9 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
             ) : (
               <>
                 <div className="p-5 border-b border-zinc-800/60">
-                  <h3 className="text-zinc-100 font-bold">
+                  <ModalTitle className="text-zinc-100 font-bold">
                     {dialog.type === "counter" ? `Đề xuất lại (vòng ${dialog.round + 1})` : proposeCopy(as, !!dialog.repartner).title}
-                  </h3>
+                  </ModalTitle>
                   {dialog.type === "counter" && <p className="text-xs text-zinc-500 mt-1">{dialog.title}</p>}
                 </div>
                 <div className="p-5 space-y-3">
@@ -605,7 +604,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
                   )}
                 </div>
                 <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-                  <button type="button" onClick={() => setDialog(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Huỷ</button>
+                  <button type="button" onClick={() => setDialog(null)} className="flex-1 min-h-10 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Huỷ</button>
                   <button type="button" data-testid="collab-submit"
                     disabled={dialog.type === "counter" ? !sumOk || respond.isPending : !canSubmitPropose}
                     onClick={() =>
@@ -613,7 +612,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
                         ? respond.mutate({ id: dialog.id, action: "COUNTER" })
                         : propose.mutate({ doorBranchId, ptUserId: proposePtId })
                     }
-                    className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg flex items-center justify-center gap-2">
+                    className="flex-1 min-h-10 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg flex items-center justify-center gap-2">
                     {(propose.isPending || respond.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
                     Gửi
                   </button>
@@ -621,8 +620,8 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
               </>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

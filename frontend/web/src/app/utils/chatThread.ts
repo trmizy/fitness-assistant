@@ -101,3 +101,37 @@ export function chatSendErrorText(err: unknown): string {
   if (status && status >= 500) return "Máy chủ đang bận. Tin nhắn chưa được gửi, hãy thử lại.";
   return "Chưa gửi được tin nhắn. Kiểm tra kết nối rồi thử lại.";
 }
+
+/**
+ * True when a failed send says nothing about the message itself - the request never got an answer (offline,
+ * dropped connection) or the server was merely busy. Those banners may disappear on their own once the
+ * connection is back; a refusal (locked recipient, too long, session expired) must stay until the user acts.
+ */
+export function isTransientSendError(err: unknown): boolean {
+  const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
+  return !status || status >= 500;
+}
+
+const stripMarks = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .toLocaleLowerCase("vi-VN")
+    .trim();
+
+/**
+ * Conversations whose partner name matches the search box. Case- and accent-insensitive ("hoang" finds "Hoàng"),
+ * every word typed must appear. An empty query keeps the list as it is.
+ */
+export function filterConversationsByPartner<T extends { otherUser?: Partner }>(
+  conversations: readonly T[],
+  query: string,
+): T[] {
+  const words = stripMarks(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [...conversations];
+  return conversations.filter((c) => {
+    const name = stripMarks(chatPartnerName(c.otherUser));
+    return words.every((w) => name.includes(w));
+  });
+}

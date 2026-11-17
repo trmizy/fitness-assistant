@@ -13,6 +13,7 @@
 import type { PartnerAccessState } from "../../services/api";
 import { canRespondAs, collabStatusFor, type CollabRow } from "../collaboration/collaboration";
 import { awaitingMyReplyCount, partneredPtCount } from "../collaboration/brandPartnership";
+import { fullAddress } from "../services/gymDirectory";
 export { withdrawableCeiling } from "../wallet/wallet";
 
 // ── Access state: who may see the operational workspace ────────────────────────────────────
@@ -118,14 +119,14 @@ export function partnerAccessError(error: unknown): PartnerAccessError | null {
     return {
       kind: "revoked",
       title: "Quyền truy cập đã bị thu hồi",
-      body: "Quyền truy cập của bạn vào phòng gym này đã bị thu hồi. Hãy liên hệ chủ phòng gym nếu bạn cho rằng đây là nhầm lẫn, hoặc đăng xuất để dùng tài khoản khác.",
+      body: "Quyền truy cập của bạn vào phòng gym này đã bị thu hồi. Bạn có thể đăng xuất để dùng tài khoản khác.",
     };
   }
   if (typeof code === "string" && /^(PARTNER_|OWNER_ROLE_REQUIRED|STAFF_)/.test(code)) {
     return {
       kind: "forbidden",
       title: "Không có quyền truy cập",
-      body: "Tài khoản của bạn hiện không có quyền dùng khu vực quản lý phòng gym. Hãy liên hệ chủ phòng gym hoặc đăng xuất để dùng tài khoản khác.",
+      body: "Tài khoản của bạn hiện không có quyền dùng khu vực quản lý phòng gym. Bạn có thể đăng xuất để dùng tài khoản khác.",
     };
   }
   return null;
@@ -206,7 +207,7 @@ export function branchName(g: OwnedGym): string {
 export function branchAddress(g: OwnedGym): string {
   const base = (g.pendingAddress ?? g.address ?? "").trim();
   if (!base) return "Chưa có địa chỉ";
-  return g.city?.trim() ? `${base}, ${g.city.trim()}` : base;
+  return fullAddress({ address: base, city: g.city?.trim() || null }, {});
 }
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral" | "info";
@@ -363,8 +364,13 @@ export function pendingCollabCount(collabs: unknown) {
   return awaitingMyReplyCount(collabs, "GYM");
 }
 
-/** Members are anonymous to the owner beyond their id — never invent a name. */
-export function memberLabel(clientId: string | null | undefined): string {
+/**
+ * N13I-04: the owner sees the member's display name when the server supplies one (`clientName`, same field the owner/manager
+ * check-in rows carry); until a row has it, the short id stays — a name is never invented.
+ */
+export function memberLabel(clientId: string | null | undefined, clientName?: string | null): string {
+  const name = (clientName ?? "").trim();
+  if (name) return name;
   const id = (clientId ?? "").trim();
   return id ? `Khách #${id.slice(0, 8)}` : "Khách";
 }

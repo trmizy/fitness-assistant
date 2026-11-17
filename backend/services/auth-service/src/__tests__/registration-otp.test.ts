@@ -174,7 +174,7 @@ test("verifyRegistration() past expiresAt is rejected even with the correct OTP"
   try {
     await assert.rejects(
       () => authService.verifyRegistration({ email: "expired@example.com", otp }),
-      (err: any) => err.status === 400 && /expired/i.test(err.message),
+      (err: any) => err.status === 400 && err.code === "OTP_EXPIRED" && /hết hạn/.test(err.message),
     );
   } finally {
     restoreFind();

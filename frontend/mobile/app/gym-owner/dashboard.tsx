@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Redirect, router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { Redirect, router, useFocusEffect } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   ChevronRight,
@@ -26,6 +26,7 @@ import { formatVND } from "../../src/utils/currency";
 import { money } from "../../src/features/wallet/wallet";
 import { membershipStatusLabel } from "../../src/features/services/gymDirectory";
 import { BranchSwitcher } from "../../src/features/gymOwner/BranchSwitcher";
+import { WalletLoadError } from "../../src/features/gymOwner/WalletLoadError";
 import {
   acceptedCollabCount,
   attentionItems,
@@ -39,9 +40,9 @@ import {
   ownedGyms,
   pendingCollabCount,
   recentMemberships,
-  staffRoleOf,
   todayCheckinCount,
 } from "../../src/features/gymOwner/gymOwner";
+import { canUseOperationsDashboard, staffHomeRoute } from "../../src/features/gymOwner/staffRoles";
 
 /**
  * GY-01 — "Tổng quan" of the gym owner workspace: web's `GymOwnerDashboard`, same seven reads,
@@ -58,9 +59,10 @@ import {
  * dashboard and sees what needs them first), and is derived from the branch rows already fetched.
  */
 /**
- * NE-13 — an accountant's bar holds "Hồ sơ" only (gym-service 403s their check-in reads), so the
- * operations dashboard is not theirs: send them to the one tab they have BEFORE any of its reads
- * fire. Other roles — and an unreadable role, which the server still polices — see the dashboard.
+ * NE-13 / N15M-07 — the operations dashboard reads memberships and plans, which gym-service answers 403 for a
+ * receptionist and an accountant. Drawing "0 hội viên / 0 gói / Chưa có hội viên" from those 403s would be a false
+ * report, so these two roles never reach it: each is sent to its own home (Quầy lễ tân / Tài chính) BEFORE any
+ * of its reads fire. Owner, manager — and an unreadable role, which the server still polices — see the dashboard.
  */
 export default function GymOwnerDashboardScreen() {
   const { user } = useApp();
@@ -76,7 +78,7 @@ export default function GymOwnerDashboardScreen() {
       </View>
     );
   }
-  if (staffRoleOf(statusQuery.data) === "ACCOUNTANT") return <Redirect href="/gym-owner/profile" />;
+  if (!canUseOperationsDashboard(statusQuery.data)) return <Redirect href={staffHomeRoute(statusQuery.data) as never} />;
   return <OperationsDashboard />;
 }
 
@@ -84,6 +86,7 @@ function OperationsDashboard() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const { user } = useApp();
+  const queryClient = useQueryClient();
   const uid = user?.id ?? "guest";
 
   const [selectedId, setSelectedId] = useState<string>("");
@@ -108,6 +111,12 @@ function OperationsDashboard() {
     queryFn: () => gymService.getOwnedWallet(activeId),
     enabled: !!activeId && ownerKnown,
   });
+  // N13I-01: a tab/stack screen stays mounted — a wallet read that timed out (api.ts 10 s) must be re-read when the owner comes back.
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.refetchQueries({ queryKey: ["owned-gym-wallet", activeId] }, { cancelRefetch: false });
+    }, [queryClient, activeId]),
+  );
   const plansQuery = useQuery({
     queryKey: ["owned-brand-plans", brandId],
     queryFn: () => gymService.listOwnedPlans(brandId!),
@@ -242,7 +251,7 @@ function OperationsDashboard() {
                   {walletQuery.isLoading ? (
                     <ActivityIndicator className="mt-3 self-start" color={accent.primary} />
                   ) : walletQuery.isError ? (
-                    <Text className="mt-2 font-body text-sm text-destructive">Không tải được ví chi nhánh.</Text>
+                    <WalletLoadError onRetry={() => void walletQuery.refetch()} retrying={walletQuery.isFetching} />
                   ) : (
                     <CountUp
                       to={money((walletQuery.data as any)?.availableBalance)}
@@ -348,7 +357,7 @@ function OperationsDashboard() {
                         <View key={m.id} className={`flex-row items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
                           <View className="min-w-0 flex-1">
                             <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                              {memberLabel(m.clientId)}
+                              {memberLabel(m.clientId, m.clientName)}
                             </Text>
                             <Text className="font-body text-xs text-muted-foreground">
                               {m.usedVisits ?? 0} / {m.totalVisits ?? "∞"} lượt · {formatVND(money(m.priceAtPurchase))}

@@ -7,7 +7,8 @@ import { onTablistKeyDown, tabProps } from "../shared/tablistKeys";
 import { SlotNotes, useSlotNotes } from "./gymCaseKit";
 import { gymCaseApi } from "./gymCaseApi";
 import { parseGymError, parseGymErrorBody } from "./gymCaseErrors";
-import { gymClassLabel, gymStatusLabel, gymStatusTone, gymWaitingNote } from "./gymCaseLabels";
+import { gymClassLabel, gymStatusLabelFor, gymStatusTone, gymWaitingNote } from "./gymCaseLabels";
+import { useGymAdminNames } from "./useGymAdminNames";
 import { GYM_QUERY_OPTIONS, useGymQueryKeys } from "./gymCaseQueryKeys";
 import { GYM_TABS, describeMoney, gymTabCounts, gymTabLabel, gymTabParam, investigatorText, isWriteLayerOff, parseGymCaseId, parseGymTab, type GymTab } from "./gymCaseModel";
 import { formatDateTimeSafe } from "./gymFormat";
@@ -33,6 +34,7 @@ export function AdminComplaintCasePage() {
   const { keys, userId } = useGymQueryKeys();
   const queryClient = useQueryClient();
   const { notes, push } = useSlotNotes();
+  useGymAdminNames(); // N15A-03: admins are shown by name; this re-renders when the directory arrives
 
   const query = useQuery({
     queryKey: keys && caseId ? keys.detail(caseId) : ["gym-complaint", "disabled"],
@@ -42,14 +44,19 @@ export function AdminComplaintCasePage() {
   });
   const detail: GymCaseDetail | undefined = query.data;
 
+  // N14A-08: after a write, re-read through the query CLIENT (the detail key itself + the case list, the complaint queue and the history), not
+  // through the `query` object captured at render time, so the page cannot keep showing the pre-write case. A failed re-read still surfaces
+  // (the caller shows the "Không làm mới được hồ sơ" banner).
   const onChanged = useCallback(async () => {
-    if (keys) {
-      void queryClient.invalidateQueries({ queryKey: keys.caseListAll() });
-      if (caseId) void queryClient.invalidateQueries({ queryKey: [...keys.all, "history", caseId] });
-    }
-    const fresh = await query.refetch();
-    if (fresh.isError) throw fresh.error;
-  }, [keys, queryClient, query, caseId]);
+    if (!keys) return;
+    void queryClient.invalidateQueries({ queryKey: keys.caseListAll() });
+    void queryClient.invalidateQueries({ queryKey: keys.complaintsAll() });
+    if (!caseId) return;
+    void queryClient.invalidateQueries({ queryKey: [...keys.all, "history", caseId] });
+    await queryClient.invalidateQueries({ queryKey: keys.detail(caseId), exact: true, refetchType: "all" });
+    const st = queryClient.getQueryState(keys.detail(caseId));
+    if (st?.status === "error") throw st.error;
+  }, [keys, queryClient, caseId]);
   const reload = useCallback(() => {
     void query.refetch();
   }, [query]);
@@ -128,7 +135,7 @@ export function AdminComplaintCasePage() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5" data-testid="d6-case-chips">
             <span data-testid="d6-status-pill">
-              <Pill tone={gymStatusTone(c.status)}>{gymStatusLabel(c.status)}</Pill>
+              <Pill tone={gymStatusTone(c.status)}>{gymStatusLabelFor(c.status, detail.moreInfo)}</Pill>
             </span>
             <span data-testid="d6-money-chip">
               <Pill tone={money.tone}>{`Tiền: ${money.chip}`}</Pill>
@@ -136,7 +143,7 @@ export function AdminComplaintCasePage() {
           </div>
         </div>
         <p className="text-sm text-adm-text" data-testid="d6-waiting-header">
-          {gymWaitingNote(c.status, c.execStatus)}
+          {gymWaitingNote(c.status, c.execStatus, detail.moreInfo)}
         </p>
         <div className="-mx-1 overflow-x-auto px-1">
           <div role="tablist" aria-label="Các mục của hồ sơ" onKeyDown={onTablistKeyDown} className="flex min-w-max gap-1 border-b border-adm-border" data-testid="d6-tablist">

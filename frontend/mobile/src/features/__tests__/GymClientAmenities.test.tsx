@@ -8,6 +8,7 @@ import { GymCard } from "../services/GymCard";
 import { normalizeGym } from "../services/gymDirectory";
 import GymDetailScreen from "../../../app/client/services/gyms/[id]";
 import { gymService, locationService } from "../../services/api";
+import { ToastProvider } from "../../components/ui";
 
 /**
  * Phase M2 — the client side of the gym amenities: the 30 icons, the directory card (cover + up to 4 chips), the detail page
@@ -95,6 +96,13 @@ describe("directory card", () => {
     expect(view.getByText("+2")).toBeTruthy();
   });
 
+  it("N16M-01: the list card shows the address once when the stored line already ends with the province (= city)", async () => {
+    const dup = { ...RAW, address: "388 Đường Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", city: "Tỉnh An Giang" };
+    const view = await render(<GymCard gym={normalizeGym(dup)} onPress={jest.fn()} />);
+    expect(view.getByText("388 Đường Cầu Giấy, Xã Tân Hội, Tỉnh An Giang")).toBeTruthy();
+    expect(view.queryByText(/Tỉnh An Giang, Tỉnh An Giang/)).toBeNull();
+  });
+
   it("no cover and no amenities: a plain card, no empty chip row", async () => {
     const view = await render(<GymCard gym={normalizeGym({ ...RAW, coverPhotoUrl: null, amenities: [] })} onPress={jest.fn()} />);
     expect(view.queryByLabelText("Ảnh Gymini Quận 1")).toBeNull();
@@ -121,7 +129,9 @@ describe("detail page", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
       <QueryClientProvider client={client}>
-        <GymDetailScreen />
+        <ToastProvider>
+          <GymDetailScreen />
+        </ToastProvider>
       </QueryClientProvider>,
     );
   };
@@ -143,6 +153,39 @@ describe("detail page", () => {
     expect(await view.findByText("Tiện ích & dịch vụ")).toBeTruthy();
     for (const g of ["Cơ sở vật chất", "Khu tập luyện", "Dịch vụ", "Phục hồi"]) expect(view.getByText(g)).toBeTruthy();
     for (const n of ["Wifi miễn phí", "Phòng boxing", "Quầy nước ép", "Xông hơi"]) expect(view.getByText(n)).toBeTruthy();
+  });
+
+  it("FIX5/Q8: shows the weekly opening hours (today highlighted) and the share + copy-link buttons", async () => {
+    const week = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) =>
+      day === "SUNDAY" ? { day, type: "CLOSED", openMinute: null, closeMinute: null } : { day, type: "OPEN", openMinute: 300, closeMinute: 1260 },
+    );
+    gymSvc.getGym.mockResolvedValue({ ...RAW, operatingHours: week });
+    const view = await renderDetail();
+    expect(await view.findByText("Giờ mở cửa")).toBeTruthy();
+    expect(view.getByText("Chủ nhật")).toBeTruthy();
+    expect(view.getByText("Đóng cửa")).toBeTruthy();
+    expect(view.getAllByText("05:00 - 21:00").length).toBe(6);
+    expect(view.getByText("Hôm nay")).toBeTruthy();
+    expect(view.getByText("Nghỉ: Chủ nhật")).toBeTruthy();
+    expect(view.getByLabelText("Chia sẻ phòng gym")).toBeTruthy();
+    expect(view.getByLabelText("Sao chép liên kết phòng gym")).toBeTruthy();
+  });
+
+  it("FIX5/Q8: no hours data draws no hours block", async () => {
+    gymSvc.getGym.mockResolvedValue(RAW);
+    const none = await renderDetail();
+    await none.findByText("Tiện ích & dịch vụ");
+    expect(none.queryByText("Giờ mở cửa")).toBeNull();
+  });
+
+  it("FIX5/Q8: temporarily closed shows the badge and the reopen date", async () => {
+    const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => ({ day, type: "ALL_DAY", openMinute: null, closeMinute: null }));
+    gymSvc.getGym.mockResolvedValue({ ...RAW, operationalStatus: "TEMPORARILY_CLOSED", expectedReopenAt: "2026-12-01T00:00:00.000Z", operatingHours: days });
+    const closed = await renderDetail();
+    expect(await closed.findByText("Giờ mở cửa")).toBeTruthy();
+    expect(closed.getAllByText("Tạm đóng cửa").length).toBeGreaterThan(0);
+    expect(closed.queryByText("Đang mở cửa")).toBeNull();
+    expect(closed.getAllByText("Dự kiến mở lại: 01/12/2026").length).toBeGreaterThan(0);
   });
 
   it("a gym that is no longer public (404) is a friendly empty state, not a broken page", async () => {

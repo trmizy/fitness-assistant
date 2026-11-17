@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   UsersIcon as Users,
   PlusIcon as Plus,
-  XIcon as X,
   CircleNotchIcon as Loader2,
   CopyIcon as Copy,
   InfoIcon as Info,
   DotsThreeVerticalIcon as MoreVertical,
 } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 
 /** Nhãn ngắn + mô tả quyền cho từng vai trò mời được (D15). Quyền thật nằm ở gym-service/partner-permissions.ts. */
 type StaffRole = "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
@@ -35,6 +37,7 @@ const STAFF_ROLES: Record<StaffRole, { label: string; chip: string; needsBranch:
   },
 };
 const roleChip = (role: string) => STAFF_ROLES[role as StaffRole]?.chip ?? role;
+const staffName = (a: any): string => `${a.identity?.firstName ?? ""} ${a.identity?.lastName ?? ""}`.trim() || a.identity?.email || "nhân sự này";
 
 /**
  * Phase 3 mục 3.2 + D15 — chủ sở hữu tự mời/thu hồi nhân sự (quản lý, lễ tân, kế toán), không cần admin.
@@ -43,7 +46,16 @@ export function ManageManagersPage() {
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [createdInvite, setCreatedInvite] = useState<{ email: string; inviteLink: string; emailSent: boolean } | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const menuTriggers = useRef(new Map<string, HTMLButtonElement>());
+  // N14G-06: thu hồi quyền là việc không hoàn tác được ngay (nhân viên bị cắt khỏi hệ thống) → luôn hỏi xác nhận.
+  const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string; role: string } | null>(null);
+
+  // Đóng hộp thu hồi → trả con trỏ về nút ⋮ của dòng đó (nếu dòng còn, tức là chưa thu hồi xong / bị lỗi).
+  const closeRevokeDialog = () => {
+    const id = revokeTarget?.id;
+    setRevokeTarget(null);
+    if (id) requestAnimationFrame(() => setTimeout(() => menuTriggers.current.get(id)?.focus(), 0));
+  };
 
   const gymsQuery = useQuery({ queryKey: ["owner-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const accountsQuery = useQuery({ queryKey: ["owner-partner-accounts"], queryFn: () => gymService.listPartnerAccounts() });
@@ -113,20 +125,29 @@ export function ManageManagersPage() {
                       (a.role === "ACCOUNTANT" ? "Tất cả chi nhánh" : "Chưa gán chi nhánh")}
                   </p>
                 </div>
-                <div className="relative flex-shrink-0">
-                  <button onClick={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)} className="p-1.5 text-zinc-500 hover:text-zinc-300">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                  {menuOpenId === a.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-10 overflow-hidden" onMouseLeave={() => setMenuOpenId(null)}>
+                <div className="flex-shrink-0">
+                  {/* N15C-02: Radix DropdownMenu — Esc / bấm ngoài tự đóng, aria-expanded đúng, con trỏ về nút khi đóng. */}
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
                       <button
-                        onClick={() => { revokeMutation.mutate(a.id); setMenuOpenId(null); }}
-                        className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-zinc-800"
+                        type="button"
+                        ref={(el) => { if (el) menuTriggers.current.set(a.id, el); else menuTriggers.current.delete(a.id); }}
+                        aria-label={`Thao tác với ${staffName(a)}`}
+                        data-testid="staff-menu-button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl overflow-hidden">
+                      <DropdownMenuItem
+                        onSelect={() => setRevokeTarget({ id: a.id, name: staffName(a), role: a.role })}
+                        className="min-h-10 rounded-none px-3 py-2.5 text-xs text-red-400 focus:bg-zinc-800 focus:text-red-400"
                       >
                         Thu hồi
-                      </button>
-                    </div>
-                  )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -155,6 +176,28 @@ export function ManageManagersPage() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onOpenChange={(open) => { if (!open) closeRevokeDialog(); }}
+        title={revokeTarget ? `Thu hồi quyền của ${revokeTarget.name}?` : "Thu hồi quyền"}
+        description={
+          revokeTarget
+            ? `${roleChip(revokeTarget.role)} này sẽ không còn truy cập được phòng gym của bạn ngay khi bạn xác nhận. Muốn cấp lại, bạn cần mời họ lần nữa.`
+            : undefined
+        }
+        confirmLabel="Thu hồi quyền"
+        danger
+        onConfirm={async () => {
+          if (!revokeTarget) return;
+          try {
+            await revokeMutation.mutateAsync(revokeTarget.id);
+          } catch {
+            /* revokeMutation.onError đã hiện thông báo */
+          }
+          closeRevokeDialog();
+        }}
+      />
+
       {showInvite && (
         <InviteManagerModal
           gyms={gymsQuery.data ?? []}
@@ -162,21 +205,21 @@ export function ManageManagersPage() {
           onCreated={(data) => { setCreatedInvite(data); invalidate(); }}
         />
       )}
-      {createdInvite && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setCreatedInvite(null)}>
-          <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-green-500/20 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm font-bold text-green-400">Đã gửi lời mời tới {createdInvite.email}</p>
+      <Modal open={!!createdInvite} onClose={() => setCreatedInvite(null)} data-testid="invite-created-modal">
+        {createdInvite && (
+          <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-green-500/20 p-5 space-y-3 max-h-full overflow-y-auto">
+            <ModalTitle className="text-sm font-bold text-green-400">Đã gửi lời mời tới {createdInvite.email}</ModalTitle>
             <p className="text-xs text-zinc-500">{createdInvite.emailSent ? "Email đã được gửi." : "Không gửi được email tự động — hãy sao chép liên kết dưới đây."}</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-amber-400 font-mono truncate">{createdInvite.inviteLink}</code>
-              <button onClick={() => { navigator.clipboard.writeText(createdInvite.inviteLink).catch(() => {}); toast.success("Đã sao chép"); }} className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 flex-shrink-0">
-                <Copy className="w-4 h-4" />
+              <button type="button" aria-label="Sao chép liên kết mời" onClick={() => { navigator.clipboard.writeText(createdInvite.inviteLink).catch(() => {}); toast.success("Đã sao chép"); }} className="inline-flex min-h-10 min-w-10 items-center justify-center bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-300 flex-shrink-0">
+                <Copy className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
-            <button onClick={() => setCreatedInvite(null)} className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300">Đóng</button>
+            <button type="button" onClick={() => setCreatedInvite(null)} className="w-full min-h-10 py-2 text-xs text-zinc-500 hover:text-zinc-300">Đóng</button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
@@ -199,11 +242,11 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
   const toggleGym = (id: string) => setScopedGymIds((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <Modal open onClose={onClose} placement="sheet" closeOnBackdrop={false} data-testid="invite-manager-modal">
+      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4 max-h-full overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-200">Mời nhân sự</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
+          <ModalTitle className="text-sm font-bold text-zinc-200">Mời nhân sự</ModalTitle>
+          <ModalClose className="-mr-2" />
         </div>
         <div>
           <label className="text-xs text-zinc-500 mb-1.5 block">Vai trò *</label>
@@ -216,7 +259,7 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
                 aria-checked={role === r}
                 data-testid={`invite-role-${r}`}
                 onClick={() => setRole(r)}
-                className={`px-2 py-2 rounded-lg text-xs font-semibold border ${role === r ? "bg-green-500/10 border-green-500/40 text-green-400" : "border-zinc-700 text-zinc-400"}`}
+                className={`px-2 py-2 min-h-10 rounded-lg text-xs font-semibold border ${role === r ? "bg-green-500/10 border-green-500/40 text-green-400" : "border-zinc-700 text-zinc-400"}`}
               >
                 {STAFF_ROLES[r].chip}
               </button>
@@ -225,13 +268,13 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
         </div>
         <div>
           <label className="text-xs text-zinc-500 mb-1.5 block">Email *</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nhanvien@example.com" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
+          <input aria-label="Email nhân sự" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nhanvien@example.com" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
         </div>
         <div>
           <label className="text-xs text-zinc-500 mb-1.5 block">{roleInfo.needsBranch ? "Chi nhánh phụ trách *" : "Chi nhánh được xem (bỏ trống = tất cả)"}</label>
           <div className="space-y-1.5">
             {gyms.map((g) => (
-              <label key={g.id} className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label key={g.id} className="flex items-center gap-2 min-h-10 text-sm text-zinc-300 cursor-pointer">
                 <input type="checkbox" checked={scopedGymIds.includes(g.id)} onChange={() => toggleGym(g.id)} className="accent-green-500" />
                 {g.name}
               </label>
@@ -243,16 +286,17 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
           {roleInfo.blurb}
         </p>
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Huỷ</button>
+          <button type="button" onClick={onClose} className="flex-1 min-h-10 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Huỷ</button>
           <button
+            type="button"
             onClick={() => inviteMutation.mutate()}
             disabled={!email.trim() || (roleInfo.needsBranch && scopedGymIds.length === 0) || inviteMutation.isPending}
-            className="flex-1 py-2 text-xs font-bold bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black rounded-lg"
+            className="flex-1 min-h-10 py-2 text-xs font-bold bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black rounded-lg"
           >
             {inviteMutation.isPending ? "Đang gửi..." : "Gửi lời mời"}
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

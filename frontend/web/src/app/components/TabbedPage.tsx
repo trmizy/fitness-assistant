@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { onTablistKeyDown, tabProps } from "../pages/admin/shared/tablistKeys";
 
 export interface TabbedPageTab {
   value: string;
@@ -21,6 +22,7 @@ export function TabbedPage({
 }) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.value);
   const activeTab = tabs.find((t) => t.value === active) ?? tabs[0];
+  const baseId = useId();
 
   // React Router can reuse the same page component when a legacy alias changes
   // (for example /contracts -> /booking). Keep the selected tab aligned with
@@ -31,25 +33,28 @@ export function TabbedPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-none flex gap-2 overflow-x-auto px-4 md:px-6 pt-4 pb-2">
+      <div role="tablist" aria-label="Chuyển mục" onKeyDown={onTablistKeyDown} className="flex-none flex gap-2 overflow-x-auto px-4 md:px-6 pt-4 pb-2">
         {tabs.map((t) => (
           <button
             key={t.value}
             type="button"
+            id={`${baseId}-tab-${t.value}`}
+            aria-controls={`${baseId}-panel`}
+            {...tabProps(activeTab?.value === t.value)}
             data-testid={`page-tab-${t.value}`}
             onClick={() => setActive(t.value)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+            className={`inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
               active === t.value
                 ? "bg-green-500 text-black border-green-500"
                 : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40"
             }`}
           >
-            {t.icon && <t.icon className="h-3.5 w-3.5" />}
+            {t.icon && <t.icon className="h-3.5 w-3.5" aria-hidden="true" />}
             {t.label}
           </button>
         ))}
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0" role="tabpanel" id={`${baseId}-panel`} aria-labelledby={activeTab ? `${baseId}-tab-${activeTab.value}` : undefined}>
         {activeTab?.content}
       </div>
     </div>

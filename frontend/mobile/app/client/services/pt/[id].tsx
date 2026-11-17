@@ -38,24 +38,33 @@ import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { useOpenChat } from "../../../../src/features/chat/useOpenChat";
 import { formatVND } from "../../../../src/utils/currency";
 import {
+  INDEPENDENT_VENUE_AGREE,
+  INDEPENDENT_VENUE_DECLINE,
+  INDEPENDENT_VENUE_INTRO,
+  INDEPENDENT_VENUE_NOTE,
+  INDEPENDENT_VENUE_TITLE,
+  INDEPENDENT_VENUE_WARNING,
   PACKAGE_CHANGED_MESSAGE,
   PACKAGE_CHANGED_TITLE,
   buildContractRequestPayload,
+  isIndependentVenue,
   isPtGone,
   lowAvailabilityMessage,
   mergePtSources,
   normalizePackages,
-  normalizePts,
   pricePerSession,
+  readIndependentVenueRequired,
   readLowAvailability,
   readPackageChanged,
   requestBlockedReason,
   serviceModeLabel,
+  venueGate,
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
 import { usePtArea } from "../../../../src/features/services/usePtArea";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { contractRequestError } from "../../../../src/features/services/contracts";
 import {
   normalizeGymOptions,
@@ -65,6 +74,7 @@ import {
   type GymOption,
 } from "../../../../src/features/services/contractGymOptions";
 import { Notice } from "../../../../src/components/payment/PaymentMethodSheet";
+import { designTokens } from "../../../../src/theme/colors";
 import { GOAL_OPTIONS, TARGET_OPTIONS } from "../../../../src/features/ptApplication/ptApplication";
 import { PtBookableSchedule } from "../../../../src/features/services/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../../../src/features/services/PtWeeklySchedule";
@@ -97,6 +107,9 @@ export default function TrainerDetailScreen() {
   const [gymId, setGymId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [lowAvailability, setLowAvailability] = useState<LowAvailability | null>(null);
+  // N15M-14: the venue is outside Gymini -> the client must press "Tôi đồng ý" before the request can be sent.
+  const [venueSheet, setVenueSheet] = useState(false);
+  const [venueAck, setVenueAck] = useState(false);
   // 409 PACKAGE_CHANGED: the trainer changed the package after this screen loaded it. Holds the package as it is NOW.
   const [packageChanged, setPackageChanged] = useState<{ current: ServicePackage | null } | null>(null);
   // The server's own 422 on the membership rule: it wins over anything shown before sending.
@@ -114,21 +127,12 @@ export default function TrainerDetailScreen() {
     enabled: !!ptUserId,
   });
 
-  // The detail endpoint does not return `ptApplication` or the free-slot count — only the list
-  // does (see mergePtSources). This shares the list screen's own query key, so arriving from an
-  // unfiltered list costs nothing; arriving from a filtered one fetches the list once.
-  const listQuery = useQuery({
-    queryKey: ["pts-list", {}],
-    queryFn: () => profileService.listPTs({}),
-    staleTime: 60_000,
-  });
+  // D1: `GET /profile/pts/:id` now answers the full discovery shape (ptApplication, availableSlotsNext28Days, trainingLocations,
+  // avgRating) on its own, so the screen no longer downloads the whole trainer list just to find this one row — which also
+  // could not open a trainer with no package on sale (hidden from the list, still public by id). A hidden one answers 404.
 
   const raw = (detailQuery.data as any)?.pt ?? (detailQuery.data as any)?.profile ?? detailQuery.data;
-  const listRow = useMemo(
-    () => normalizePts(listQuery.data).find((row) => row.userId === ptUserId) ?? null,
-    [listQuery.data, ptUserId],
-  );
-  const pt = useMemo(() => mergePtSources(raw, listRow), [raw, listRow]);
+  const pt = useMemo(() => mergePtSources(raw, null), [raw]);
   const area = usePtArea(pt ?? { area: null });
   const packages = useMemo(() => normalizePackages(packagesQuery.data), [packagesQuery.data]);
   const selected = packages.find((p) => p.id === packageId) ?? null;
@@ -160,18 +164,21 @@ export default function TrainerDetailScreen() {
   const { openChat, opening } = useOpenChat();
 
   const requestMutation = useMutation({
-    mutationFn: (acknowledged: boolean) =>
+    mutationFn: (v: { lowAvailability: boolean; venue: boolean }) =>
       contractService.requestContract(
         buildContractRequestPayload({
           ptUserId,
           pkg: selected!,
           gymId: pickedGym?.gymId ?? null,
           message,
-          acknowledgedLowAvailability: acknowledged,
+          acknowledgedLowAvailability: v.lowAvailability,
+          acknowledgedIndependentVenue: v.venue,
         }) as any,
       ),
     onSuccess: () => {
       setLowAvailability(null);
+      setVenueSheet(false);
+      setVenueAck(false);
       setRefusal(null);
       void queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
       toast.show("Đã gửi yêu cầu — huấn luyện viên sẽ xem xét và phản hồi.", "success");
@@ -179,6 +186,12 @@ export default function TrainerDetailScreen() {
       else router.replace("/client/services");
     },
     onError: (error: any) => {
+      if (readIndependentVenueRequired(error)) {
+        // The server asks for the acknowledgement (e.g. the package switched to offline after this screen loaded).
+        setVenueAck(false);
+        setVenueSheet(true);
+        return;
+      }
       const refused = readEligibilityRefusal(error);
       if (refused) {
         // The server is the authority: show its verdict and re-read the branch list so the
@@ -205,6 +218,16 @@ export default function TrainerDetailScreen() {
       toast.show(contractRequestError(error), "danger");
     },
   });
+
+  /** Submit is impossible without agreeing: a venue outside Gymini shows the warning sheet first. */
+  const submitRequest = (lowAvailabilityAck = false, venueAcked = venueAck) => {
+    if (!selected) return;
+    if (venueGate({ pkg: selected, gymId: pickedGym?.gymId ?? null, acknowledged: venueAcked }) === "sheet") {
+      setVenueSheet(true);
+      return;
+    }
+    requestMutation.mutate({ lowAvailability: lowAvailabilityAck, venue: venueAcked });
+  };
 
   return (
     <View className="flex-1 bg-background">
@@ -335,6 +358,7 @@ export default function TrainerDetailScreen() {
                     photos={pt.physiquePhotos.map((photo) => ({ id: photo.id, url: photo.url, category: null }))}
                   />
                 ) : null}
+                {pt.physiquePhotos.length > 0 ? <PhotoAttribution /> : null}
                 {pt.bio ? (
                   <Text className="font-body text-sm leading-6 text-foreground">{pt.bio}</Text>
                 ) : (
@@ -419,6 +443,7 @@ export default function TrainerDetailScreen() {
                       onPress={() => {
                         setPackageId(pkg.id);
                         setRefusal(null);
+                        setVenueAck(false);
                         if (pkg.sessionMode !== "OFFLINE") setGymId(null);
                       }}
                     />
@@ -455,6 +480,7 @@ export default function TrainerDetailScreen() {
                             active={gym.gymId === pickedGym?.gymId}
                             onPress={() => {
                               setRefusal(null);
+                              setVenueAck(false);
                               setGymId(gym.gymId === gymId ? null : gym.gymId);
                             }}
                             onBuyMembership={() =>
@@ -479,6 +505,13 @@ export default function TrainerDetailScreen() {
                   <Text className="px-1 font-body text-xs text-muted-foreground">
                     {gymOptions.gymsReasonCopy}
                   </Text>
+                ) : null}
+
+                {selected && isIndependentVenue(selected.sessionMode, pickedGym?.gymId ?? null) ? (
+                  <Notice
+                    tone="warning"
+                    text={`${INDEPENDENT_VENUE_NOTE}. Bạn sẽ được hỏi xác nhận trước khi gửi yêu cầu.`}
+                  />
                 ) : null}
 
                 {refusal ? (
@@ -520,7 +553,7 @@ export default function TrainerDetailScreen() {
                 <Button
                   full
                   disabled={!!blocked || requestMutation.isPending}
-                  onPress={() => requestMutation.mutate(false)}
+                  onPress={() => submitRequest()}
                 >
                   {requestMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu huấn luyện"}
                 </Button>
@@ -611,9 +644,47 @@ export default function TrainerDetailScreen() {
             <Button
               className="flex-1"
               disabled={requestMutation.isPending}
-              onPress={() => requestMutation.mutate(true)}
+              onPress={() => requestMutation.mutate({ lowAvailability: true, venue: venueAck })}
             >
               Vẫn gửi yêu cầu
+            </Button>
+          </View>
+        </View>
+      </BottomSheet>
+
+      {/* N15M-14 - venue outside the Gymini system: explicit consent before the request is sent. */}
+      <BottomSheet open={venueSheet} onClose={() => setVenueSheet(false)} title={INDEPENDENT_VENUE_TITLE}>
+        <View className="gap-4 pb-2">
+          <Text className="font-body text-sm leading-6 text-muted-foreground">{INDEPENDENT_VENUE_INTRO}</Text>
+          <View
+            className="flex-row items-start gap-3 rounded-xl border p-3"
+            style={{ borderColor: `${designTokens.warning}55`, backgroundColor: `${designTokens.warning}1a` }}
+          >
+            <TriangleAlert size={18} color={designTokens.warning} />
+            <Text className="flex-1 font-body text-sm leading-6 text-foreground">{INDEPENDENT_VENUE_WARNING}</Text>
+          </View>
+          <View className="gap-2">
+            <Button
+              full
+              disabled={requestMutation.isPending}
+              onPress={() => {
+                setVenueAck(true);
+                setVenueSheet(false);
+                submitRequest(false, true);
+              }}
+            >
+              {INDEPENDENT_VENUE_AGREE}
+            </Button>
+            <Button
+              full
+              variant="secondary"
+              onPress={() => {
+                // Back to the packages: pick another package, or another trainer from the list.
+                setVenueSheet(false);
+                setVenueAck(false);
+              }}
+            >
+              {INDEPENDENT_VENUE_DECLINE}
             </Button>
           </View>
         </View>

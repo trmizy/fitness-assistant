@@ -110,6 +110,23 @@ export const sessionRepository = {
       },
     }),
 
+  /**
+   * N15B-06: a CONFIRMED session whose end has passed but that nobody has closed yet (the PT has not pressed "Hoàn thành"). It is NOT
+   * in findUpcomingByUser (that list drops a session once its end passes), so the PT's schedule never showed it and the only way to
+   * close it was the contract page. Only sessions of a RUNNING contract: completeSession refuses any other.
+   */
+  findAwaitingCompletionByPT: (ptUserId: string, now: Date = new Date()) =>
+    prisma.session.findMany({
+      where: {
+        ptUserId,
+        status: SessionStatus.CONFIRMED,
+        scheduledEndAt: { lt: now },
+        contract: { status: ContractStatus.ACTIVE },
+      },
+      orderBy: { scheduledStartAt: "desc" },
+      include: { contract: true },
+    }),
+
   updateStatus: (
     id: string,
     status: SessionStatus,

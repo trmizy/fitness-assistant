@@ -665,6 +665,17 @@
     color: #be123c;
   }
 
+  /* N14T-11 - blue / violet accents were left at their dark-theme shade (2.1-2.5:1 on a light card). */
+  :root[data-theme="light"] .text-blue-300,
+  :root[data-theme="light"] .text-blue-400 {
+    color: #1d4ed8;
+  }
+
+  :root[data-theme="light"] .text-violet-300,
+  :root[data-theme="light"] .text-violet-400 {
+    color: #6d28d9;
+  }
+
   :root[data-theme="light"] .hover\:text-zinc-300:hover,
   :root[data-theme="light"] .hover\:text-zinc-400:hover,
   :root[data-theme="light"] .hover\:text-zinc-500:hover {
@@ -729,5 +740,41 @@
   :root[data-theme="light"] .text-zinc-800,
   :root[data-theme="light"] .text-zinc-900 {
     color: var(--text-color);
+  }
+}
+
+/*
+ * N13J-03 — text that sits ON a photo + dark scrim (hero cards) must stay light in BOTH themes. The light-theme overrides above
+ * turn text-white / text-zinc-* into dark ink, which is unreadable over the scrim. Put `on-media` on the card to keep the
+ * palette it was designed with.
+ */
+@layer utilities {
+  :root[data-theme="light"] .on-media .text-white,
+  :root[data-theme="light"] .on-media .text-zinc-100,
+  :root[data-theme="light"] .on-media .text-zinc-200 {
+    color: #ffffff;
+  }
+
+  :root[data-theme="light"] .on-media .text-zinc-300,
+  :root[data-theme="light"] .on-media .text-zinc-400,
+  :root[data-theme="light"] .on-media .text-zinc-500 {
+    color: #d4d4d8;
+  }
+
+  :root[data-theme="light"] .on-media .text-emerald-300,
+  :root[data-theme="light"] .on-media .text-emerald-400,
+  :root[data-theme="light"] .on-media .text-green-300,
+  :root[data-theme="light"] .on-media .text-green-400 {
+    color: #6ee7b7;
+  }
+
+  :root[data-theme="light"] .on-media .text-amber-300,
+  :root[data-theme="light"] .on-media .text-amber-400 {
+    color: #fcd34d;
+  }
+
+  :root[data-theme="light"] .on-media .text-red-300,
+  :root[data-theme="light"] .on-media .text-red-400 {
+    color: #fca5a5;
   }
 }

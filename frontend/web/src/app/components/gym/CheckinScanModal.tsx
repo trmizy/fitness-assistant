@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import jsQR from "jsqr";
-import { XIcon as X, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CameraIcon as Camera } from "@phosphor-icons/react";
+import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CameraIcon as Camera } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import type { CheckinResult } from "../../types";
+import { memberScanClosedMessage } from "../../utils/branchCheckinState";
 import {
   normalizePtCheckinResult,
   ptCheckinDateLabel,
@@ -40,7 +41,6 @@ export function CheckinScanModal({
   const queryClient = useQueryClient();
   // Android Back closes the scanner (and releases the camera) rather than navigating away
   // with it still running.
-  useBackDismissible(true, onClose);
   const [camError, setCamError] = useState("");
   const [errorText, setErrorText] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -75,7 +75,9 @@ export function CheckinScanModal({
       } else {
         const code = err?.response?.data?.error?.code;
         setErrorText(
-          ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
+          code === "GYM_NOT_ACTIVE"
+            ? memberScanClosedMessage(err?.response?.data?.error?.expectedReopenAt)
+            : ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
         );
       }
       // Let the member re-aim and try again instead of dead-ending.
@@ -154,15 +156,13 @@ export function CheckinScanModal({
   const done = !!(result || ptResult);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+    <Modal open onClose={onClose} backdropClassName="bg-black/70" data-testid="checkin-scan-modal">
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden max-h-full overflow-y-auto">
         <div className="p-4 border-b border-zinc-800/60 flex items-center justify-between">
-          <h3 className="text-zinc-100 font-bold">
+          <ModalTitle className="text-zinc-100 font-bold">
             {done ? "Check-in thành công" : isPt ? "Check-in phòng gym" : "Quét mã tại phòng gym"}
-          </h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">
-            <X className="w-5 h-5" />
-          </button>
+          </ModalTitle>
+          <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
         </div>
 
         {/* PT success: attendance only — no visits, no plan, no client. */}
@@ -268,7 +268,7 @@ export function CheckinScanModal({
                 <p className="text-xs text-red-400">{camError}</p>
                 <button
                   onClick={startCamera}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-zinc-700/60 text-zinc-300 text-xs hover:bg-zinc-800 transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 min-h-10 rounded-lg border border-zinc-700/60 text-zinc-300 text-xs hover:bg-zinc-800 transition-colors"
                 >
                   <Camera className="w-3.5 h-3.5" /> Thử lại camera
                 </button>
@@ -284,7 +284,7 @@ export function CheckinScanModal({
           </div>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }
 

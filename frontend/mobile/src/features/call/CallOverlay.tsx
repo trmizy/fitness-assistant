@@ -19,6 +19,7 @@ import {
 import { Tappable, useToast } from "../../components/ui";
 import { darkColors, designTokens } from "../../theme/colors";
 import { useWorkspaceAccent } from "../../theme/workspace";
+import { initialsOf } from "../../utils/initials";
 import { useCall } from "./CallProvider";
 import { formatCountdown, formatDuration, ROOM_CLOSING_SOON_MS } from "./callState";
 
@@ -110,7 +111,7 @@ function Initial({ name, color }: { name?: string; color: string }) {
       style={{ backgroundColor: `${color}26` }}
     >
       <Text className="font-display text-3xl" style={{ color }}>
-        {(name?.trim().charAt(0) || "?").toUpperCase()}
+        {initialsOf(name) || "?"}
       </Text>
     </View>
   );

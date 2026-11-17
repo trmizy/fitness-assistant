@@ -88,12 +88,13 @@ export function DateSlotPicker({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Calendar */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <button
             type="button"
             onClick={prevMonth}
-            className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
+            aria-label="Tháng trước"
+            className="inline-flex h-10 w-10 items-center justify-center hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -101,7 +102,8 @@ export function DateSlotPicker({
           <button
             type="button"
             onClick={nextMonth}
-            className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
+            aria-label="Tháng sau"
+            className="inline-flex h-10 w-10 items-center justify-center hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -111,7 +113,7 @@ export function DateSlotPicker({
             <div key={d} className="text-center text-[10px] text-zinc-600 uppercase font-bold">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
@@ -125,9 +127,11 @@ export function DateSlotPicker({
               <button
                 type="button"
                 key={day}
+                aria-label={`Ngày ${day} tháng ${month + 1}`}
+                aria-pressed={isSelected}
                 disabled={disabled}
                 onClick={() => onChange({ dateStr: `${year}-${pad(month + 1)}-${pad(day)}`, slot: "" })}
-                className={`aspect-square flex items-center justify-center rounded-xl text-xs font-medium transition-all ${
+                className={`aspect-square min-h-10 flex items-center justify-center rounded-xl text-xs font-medium transition-all ${
                   isSelected
                     ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
                     : disabled

@@ -29,6 +29,20 @@ export const callRepository = {
     }),
 
   /**
+   * First-accept-wins: moves the call RINGING -> ACCEPTED only if it is still ringing for this callee, in ONE
+   * conditional update, so two tabs accepting at the same instant cannot both win (N13H-06). Returns the updated
+   * row for the winner and null for the loser.
+   */
+  claimRinging: async (id: string, calleeId: string, at: Date = new Date()) => {
+    const won = await prisma.callSession.updateMany({
+      where: { id, calleeId, status: "RINGING" },
+      data: { status: "ACCEPTED", answeredAt: at },
+    });
+    if (won.count === 0) return null;
+    return prisma.callSession.findUnique({ where: { id } });
+  },
+
+  /**
    * A participant's peer connection reached "connected". The FIRST report stamps `startedAt`
    * (the duration shown in the call-log message is measured from here); later reports — the
    * other side's, or a renegotiation after an open-room rejoin — only lift the status back to

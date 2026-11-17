@@ -50,7 +50,7 @@ import {
 import { listAdminOptions } from "./adminDirectory";
 import { CloseCard } from "./CloseActions";
 import { ASSIGN_LIST_EMPTY, ASSIGN_LIST_FAILED, ASSIGN_NOTE, CLASSIFY_NOTE, CONFIRM_ASSIGN, CONFIRM_REJECT_INTAKE } from "./actionText";
-import { shortRef } from "../workspace/format";
+import { adminWhoLabel } from "../workspace/adminNames";
 
 // ───────────────────────────────────────────────────────────── assign ──
 function AssignForm({ detail, currentUserId, onChanged }: ActionSlotProps) {
@@ -87,7 +87,7 @@ function AssignForm({ detail, currentUserId, onChanged }: ActionSlotProps) {
   return (
     <FormCard title="Giao người phụ trách" caption={ASSIGN_NOTE} testId="d3-assign">
       <p className="text-sm text-adm-text" data-testid="d3-assign-current">
-        Hiện tại: {detail.case.investigatorId ? (mine ? "bạn đang phụ trách" : `quản trị viên mã ${shortRef(detail.case.investigatorId)}`) : "chưa có người phụ trách"}.
+        Hiện tại: {detail.case.investigatorId ? (mine ? "bạn đang phụ trách" : `${adminWhoLabel(detail.case.investigatorId, currentUserId)} đang phụ trách`) : "chưa có người phụ trách"}.
       </p>
       {others ? (
         <Field id={`${id}-who`} label="Quản trị viên nhận hồ sơ" error={errs.investigatorId}>

@@ -29,6 +29,17 @@ import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
+import {
+  INDEPENDENT_VENUE_ACK_REQUIRED,
+  INDEPENDENT_VENUE_ACK_REQUIRED_MESSAGE,
+  INDEPENDENT_VENUE_AUDIT_ACTION,
+  INDEPENDENT_VENUE_CONSENT_VERSION,
+  INDEPENDENT_VENUE_LEGACY_AUDIT_ACTION,
+  hasVenueConsentCapability,
+  independentVenueAuditMetadata,
+  isIndependentVenue,
+  legacyVenueGraceActive,
+} from "./independent-venue-consent";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
 import { assertAllNotSynthetic, assertNotSynthetic, isSynthetic, originOf } from "./synthetic-guard.util";
 import {
@@ -51,6 +62,34 @@ function err(message: string, status: number) {
 export const PT_NOT_ACCEPTING_CLIENTS = "PT_NOT_ACCEPTING_CLIENTS";
 /** B44: 400 - a gym contract was requested but the trainer has no active agreement with that gym's brand (none, or it is being terminated). */
 export const GYM_AGREEMENT_NOT_ACTIVE = "GYM_AGREEMENT_NOT_ACTIVE";
+type VenueConsent = "NOT_REQUIRED" | "ACKNOWLEDGED" | "LEGACY_GRACE";
+
+/**
+ * N15M-14: refuse an offline/hybrid request with no Gymini gym unless the client acknowledged the venue warning.
+ * Legacy grace (see independent-venue-consent.ts): a request from an app that predates the consent step - no
+ * X-Gymini-Venue-Consent header, flag field MISSING - is accepted while the grace is on. Only the HTTP route passes `ctx`;
+ * the agent path never does, so it never gets the grace.
+ */
+async function assertIndependentVenueAcknowledged(
+  sessionMode: string,
+  data: { gymId?: string; acknowledgedIndependentVenue?: boolean },
+  clientUserId: string,
+  ctx?: { clientHeader?: string | null; venueConsentHeader?: string | string[] | null },
+): Promise<VenueConsent> {
+  if (!isIndependentVenue(sessionMode, data.gymId)) return "NOT_REQUIRED";
+  if (data.acknowledgedIndependentVenue === true) return "ACKNOWLEDGED";
+  const clientHeader = ctx?.clientHeader ?? null;
+  const flagMissing = data.acknowledgedIndependentVenue === undefined || data.acknowledgedIndependentVenue === null;
+  if (ctx && flagMissing && !hasVenueConsentCapability(ctx.venueConsentHeader) && legacyVenueGraceActive()) return "LEGACY_GRACE";
+  await recordClientCompatEvent({
+    route: "POST /contracts/request",
+    actorUserId: clientUserId,
+    clientHeader,
+    outcome: "INDEPENDENT_VENUE_ACK_MISSING",
+  });
+  throw codedError(INDEPENDENT_VENUE_ACK_REQUIRED_MESSAGE, 409, INDEPENDENT_VENUE_ACK_REQUIRED);
+}
+
 function codedError(message: string, status: number, code: string) {
   return Object.assign(new Error(message), { status, code });
 }
@@ -539,9 +578,20 @@ export const contractService = {
        * client_compat_events (PACKAGE_VERSION_MISSING).
        */
       expectedPackageVersion?: number;
+      /**
+       * N15M-14: the client saw the "venue outside Gymini" warning and chose "Tôi đồng ý". Required (and recorded in
+       * the audit log) when the package is offline/hybrid and no Gymini gym is attached. A missing flag is REFUSED, old apps included.
+       */
+      acknowledgedIndependentVenue?: boolean;
     },
     agent?: { actionId: string; expectedPrice: number; expectedSessions: number; expectedMinutes: number; expectedMode: string },
-    ctx?: { clientHeader?: string | null },
+    ctx?: {
+      clientHeader?: string | null;
+      /** Raw X-Gymini-Venue-Consent header (a NEW client sends it). Only the HTTP route passes it. */
+      venueConsentHeader?: string | string[] | null;
+      ipAddress?: string | null;
+      userAgent?: string | null;
+    },
   ) {
     if (agent) {
       const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
@@ -549,6 +599,11 @@ export const contractService = {
         if (prior.clientUserId !== clientUserId) throw err("Không tìm thấy thao tác", 404);
         return prior;
       }
+    }
+    // N13C-01: a trainer cannot buy their own package - the contract would pay the PT's own wallet and let one
+    // person be both parties of a coaching relationship. The caller identity (token) is authoritative.
+    if (data.ptUserId && data.ptUserId === clientUserId) {
+      throw codedError("Bạn không thể gửi yêu cầu hợp đồng cho chính mình", 400, "SELF_CONTRACT_NOT_ALLOWED");
     }
     // 1. Load the package (source of truth for price/sessions/mode)
     //
@@ -599,6 +654,10 @@ export const contractService = {
     await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
     if (!(ptProfile as any).isAcceptingClients)
       throw codedError("PT hiện đang tạm ngưng nhận khách mới", 422, PT_NOT_ACCEPTING_CLIENTS);
+
+    // 2b. N15M-14: a venue outside Gymini needs the client's explicit acknowledgement. Refused before any slow check and
+    //     before anything is written; re-checked on the locked package row inside the transaction below.
+    await assertIndependentVenueAcknowledged(pkg.sessionMode, data, clientUserId, ctx);
 
     // 3. Slot availability warning (L3 from plan)
     //    Count available slots; if fewer than package.sessionCount, require acknowledgement.
@@ -752,8 +811,11 @@ export const contractService = {
         if (pkg.validityDays != null && locked.validityDays > pkg.validityDays) throw packageChangedError(locked);
       }
 
+      // The package may have been switched to offline since the pre-check above: judge the LOCKED row.
+      const venueConsent = await assertIndependentVenueAcknowledged(locked.sessionMode, data, clientUserId, ctx);
+
       const snapshot = buildPackageSnapshot(locked);
-      return contractRepository.create(
+      const created = await contractRepository.create(
         {
           agentActionId: agent?.actionId,
           ptUserId: data.ptUserId,
@@ -788,6 +850,56 @@ export const contractService = {
         },
         tx,
       );
+      if (venueConsent === "LEGACY_GRACE") {
+        // An app that predates the consent step: accepted (owner decision), but auditable - no text was shown or accepted.
+        await tx.auditLog.create({
+          data: {
+            actorUserId: clientUserId,
+            action: INDEPENDENT_VENUE_LEGACY_AUDIT_ACTION,
+            entityType: AuditEntityType.CONTRACT,
+            entityId: created.id,
+            metadata: {
+              graceReason: "CLIENT_PREDATES_VENUE_CONSENT",
+              consentVersionNotAccepted: INDEPENDENT_VENUE_CONSENT_VERSION,
+              clientVersion: ctx?.clientHeader ?? null,
+              sessionMode: locked.sessionMode,
+              packageId: locked.id,
+              ptUserId: data.ptUserId,
+            },
+            ipAddress: ctx?.ipAddress ?? null,
+            userAgent: ctx?.userAgent ?? null,
+          },
+        });
+        await tx.clientCompatEvent.create({
+          data: {
+            route: "POST /contracts/request",
+            actorUserId: clientUserId,
+            clientHeader: ctx?.clientHeader ?? null,
+            outcome: "INDEPENDENT_VENUE_LEGACY_ACCEPTED",
+          },
+        });
+      }
+      if (venueConsent === "ACKNOWLEDGED") {
+        // Consent evidence, in the SAME transaction as the contract: who (actor), when (createdAt + acknowledgedAt),
+        // which text (version + sha256). Never read by product logic.
+        await tx.auditLog.create({
+          data: {
+            actorUserId: clientUserId,
+            action: INDEPENDENT_VENUE_AUDIT_ACTION,
+            entityType: AuditEntityType.CONTRACT,
+            entityId: created.id,
+            metadata: independentVenueAuditMetadata({
+              sessionMode: locked.sessionMode,
+              packageId: locked.id,
+              ptUserId: data.ptUserId,
+              clientHeader: ctx?.clientHeader ?? null,
+            }),
+            ipAddress: ctx?.ipAddress ?? null,
+            userAgent: ctx?.userAgent ?? null,
+          },
+        });
+      }
+      return created;
     });
 
     // 7. Notify PT

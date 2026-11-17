@@ -23,6 +23,76 @@ function httpError(message: string, status: number, code: string): Error & { sta
 
 const prisma = new PrismaClient();
 
+/** Q1 (owner, 14/11/2026): a rejected applicant may apply again, but an account is rejected at most this many times. */
+export const MAX_PT_APPLICATION_REJECTIONS = 3;
+export const PT_APPLICATION_LIMIT_REACHED = "PT_APPLICATION_LIMIT_REACHED";
+export const INVALID_APPLICATION_TRANSITION = "INVALID_APPLICATION_TRANSITION";
+/** Audit verb written (entityType PT_PROFILE, entityId = applicant userId) each time an application is rejected. */
+export const PT_APPLICATION_REJECTED_AUDIT = "PT_APPLICATION_REJECTED";
+
+/**
+ * How many times this account's PT application has been rejected, derived from the audit trail (no schema change):
+ * one PT_APPLICATION_REJECTED row per rejection. An application that is REJECTED today but predates the audit row
+ * (a legacy rejection) counts as one.
+ */
+export async function countPtApplicationRejections(
+  userId: string,
+  currentStatus?: PTApplicationStatus | string | null,
+): Promise<number> {
+  const audited = await ptApplicationRepository.countRejectionAudits(userId, PT_APPLICATION_REJECTED_AUDIT);
+  return audited === 0 && currentStatus === PTApplicationStatus.REJECTED ? 1 : audited;
+}
+
+async function assertRejectionLimitNotReached(userId: string, currentStatus?: PTApplicationStatus | string | null) {
+  const rejections = await countPtApplicationRejections(userId, currentStatus);
+  if (rejections >= MAX_PT_APPLICATION_REJECTIONS) {
+    throw httpError(
+      `Tài khoản đã bị từ chối ${MAX_PT_APPLICATION_REJECTIONS} lần nên không thể đăng ký làm huấn luyện viên nữa. Vui lòng liên hệ bộ phận hỗ trợ nếu cần xem xét lại.`,
+      409,
+      PT_APPLICATION_LIMIT_REACHED,
+    );
+  }
+}
+
+/**
+ * Admin review state machine (Q2, owner-approved 14/11/2026). Only the applicant moves DRAFT -> SUBMITTED and
+ * NEEDS_MORE_INFO -> SUBMITTED (submit()). An admin acts only on an application that is waiting for review:
+ *   SUBMITTED / UNDER_REVIEW -> UNDER_REVIEW | NEEDS_MORE_INFO | APPROVED | REJECTED
+ * APPROVED -> APPROVED is an idempotent no-op (handled before this check); every other move out of APPROVED, and
+ * every move out of REJECTED (terminal for that application), DRAFT or NEEDS_MORE_INFO is refused. Removing an
+ * approved PT goes through the PT suspend / deactivate flows, not through review actions.
+ */
+export const ADMIN_REVIEWABLE_STATUSES: readonly PTApplicationStatus[] = [
+  PTApplicationStatus.SUBMITTED,
+  PTApplicationStatus.UNDER_REVIEW,
+];
+export const ADMIN_REVIEW_TARGETS: readonly PTApplicationStatus[] = [
+  PTApplicationStatus.UNDER_REVIEW,
+  PTApplicationStatus.NEEDS_MORE_INFO,
+  PTApplicationStatus.APPROVED,
+  PTApplicationStatus.REJECTED,
+];
+
+/** Statuses from which an admin may take a review action (the web page uses the same rule to hide buttons). */
+export function adminMayReview(current: PTApplicationStatus | string): boolean {
+  return (ADMIN_REVIEWABLE_STATUSES as readonly string[]).includes(current);
+}
+
+export function assertAdminTransition(current: PTApplicationStatus, target: PTApplicationStatus) {
+  if (adminMayReview(current) && (ADMIN_REVIEW_TARGETS as readonly string[]).includes(target)) return;
+  const why: Record<string, string> = {
+    DRAFT: "Đơn còn là bản nháp - chỉ người nộp đơn mới nộp được.",
+    NEEDS_MORE_INFO: "Đơn đang chờ người nộp bổ sung - chỉ người nộp đơn mới nộp lại được.",
+    APPROVED: "Đơn đã được duyệt - muốn gỡ huấn luyện viên hãy dùng chức năng tạm khóa / ngừng hoạt động huấn luyện viên.",
+    REJECTED: "Đơn đã bị từ chối - người nộp phải nộp đơn mới.",
+  };
+  throw httpError(
+    `Không thể chuyển đơn từ trạng thái hiện tại sang trạng thái này. ${why[current] ?? ""}`.trim(),
+    409,
+    INVALID_APPLICATION_TRANSITION,
+  );
+}
+
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
@@ -195,6 +265,21 @@ function validatePhoneField(data: any): void {
   if (!isValidPhoneNumber(raw)) throw httpError(PHONE_INVALID_MESSAGE, 400, "INVALID_PHONE_NUMBER");
 }
 
+/**
+ * N13B-05: years of experience is stored as a string. Accepted: a whole number 0-60 ("3", 3), or one of the five band tokens the web select and the
+ * mobile chips send ("<1", "1-3", "3-5", "5-10", "10+"). Free text ("abc") and fractions ("3.5") are refused. Empty / absent is fine for a draft
+ * (submit requires it).
+ */
+const EXPERIENCE_BANDS = new Set(["<1", "1-3", "3-5", "5-10", "10+"]);
+export function validateYearsOfExperienceField(data: any): void {
+  const raw = data?.yearsOfExperience;
+  if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) return;
+  const text = typeof raw === "number" ? String(raw) : typeof raw === "string" ? raw.trim() : "";
+  const isWholeNumber = /^\d{1,2}$/.test(text) && Number(text) >= 0 && Number(text) <= 60;
+  if (isWholeNumber || EXPERIENCE_BANDS.has(text)) return;
+  throw httpError("Số năm kinh nghiệm phải là số nguyên từ 0 đến 60", 400, "INVALID_YEARS_OF_EXPERIENCE");
+}
+
 async function syncRoleToPT(userId: string): Promise<void> {
   try {
     await authServiceClient.internalPatch(
@@ -217,6 +302,11 @@ export const ptApplicationService = {
     const app = await ptApplicationRepository.findByUserId(userId);
     if (app) {
       const signed = signPtApplicationDocumentUrls(app);
+      // Q1: show the applicant how many tries are left.
+      const rejectionCount = await countPtApplicationRejections(userId, app.status);
+      (signed as any).rejectionCount = rejectionCount;
+      (signed as any).maxRejections = MAX_PT_APPLICATION_REJECTIONS;
+      (signed as any).remainingAttempts = Math.max(0, MAX_PT_APPLICATION_REJECTIONS - rejectionCount);
       // B7a: Read availability directly from PTAvailability instead of PTApplication
       const avail = await availabilityService.getAvailability(userId);
       (signed as any).availabilityBlocks = avail.map((a: any) => ({
@@ -242,7 +332,10 @@ export const ptApplicationService = {
 
     // Check if there is already a non-DRAFT/NEEDS_MORE_INFO application
     const existing = await ptApplicationRepository.findByUserId(userId);
-    if (existing && !["DRAFT", "NEEDS_MORE_INFO"].includes(existing.status)) {
+    // Q1: a rejected applicant may start over (REJECTED -> DRAFT below), until the account has been rejected
+    // MAX_PT_APPLICATION_REJECTIONS times.
+    await assertRejectionLimitNotReached(userId, existing?.status);
+    if (existing && !["DRAFT", "NEEDS_MORE_INFO", "REJECTED"].includes(existing.status)) {
       throw new Error(
         "Không thể sửa bản nháp khi đơn ứng tuyển đang được xét duyệt hoặc đã có kết quả",
       );
@@ -252,6 +345,8 @@ export const ptApplicationService = {
     await validateLocationData(data);
     await validatePriceFields(data);
     validatePhoneField(data);
+    validateYearsOfExperienceField(data);
+    if (typeof data?.yearsOfExperience === "number") data.yearsOfExperience = String(data.yearsOfExperience);
 
     // B7a: Save availability to PTAvailability directly
     if (data.availabilityBlocks) {
@@ -260,7 +355,20 @@ export const ptApplicationService = {
       delete data.availabilityBlocks;
     }
 
-    return ptApplicationRepository.upsertDraft(profile.id, data);
+    const saved = await ptApplicationRepository.upsertDraft(profile.id, data);
+    if (existing?.status === PTApplicationStatus.REJECTED) {
+      // The new attempt: reopen the same row as a fresh DRAFT. The old reason stays in the audit trail.
+      await ptApplicationRepository.updateStatus(existing.id, PTApplicationStatus.DRAFT, {
+        rejectionReason: null,
+        adminNote: null,
+        reviewedAt: null,
+        reviewedByUserId: null,
+        approvedAt: null,
+        submittedAt: null,
+      });
+      return ptApplicationRepository.findByUserId(userId);
+    }
+    return saved;
   },
 
   /**
@@ -275,7 +383,8 @@ export const ptApplicationService = {
   ) {
     const app = await ptApplicationRepository.findByUserId(userId);
     if (!app) throw new Error("Chưa có đơn ứng tuyển nào để nộp");
-    if (!["DRAFT", "NEEDS_MORE_INFO"].includes(app.status)) {
+    await assertRejectionLimitNotReached(userId, app.status);
+    if (!["DRAFT", "NEEDS_MORE_INFO", "REJECTED"].includes(app.status)) {
       throw new Error("Đơn ứng tuyển đã được nộp hoặc đã có kết quả");
     }
 
@@ -374,6 +483,10 @@ export const ptApplicationService = {
       PTApplicationStatus.SUBMITTED,
       {
         submittedAt: new Date(),
+        // A re-submission after a rejection starts clean (the rejection stays in the audit trail).
+        ...(app.status === "REJECTED"
+          ? { rejectionReason: null, adminNote: null, reviewedAt: null, reviewedByUserId: null, approvedAt: null }
+          : {}),
       },
     );
 
@@ -432,11 +545,13 @@ export const ptApplicationService = {
 
     // B08: approving an application that is already APPROVED is a no-op that answers with the current
     // state - no second role sync, no location rewrite, no new "approved" notification, no overwritten
-    // reviewer/approval timestamps. A REJECTED application may still be re-approved (the deliberate
-    // "reconsider" path): that is a real transition and runs in full.
+    // reviewer/approval timestamps.
     if (normalizedAction === "APPROVED" && app.status === PTApplicationStatus.APPROVED) {
       return signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
     }
+
+    // Q2: the state machine - an invalid move is a 409 and nothing is written (no role sync, no notice).
+    assertAdminTransition(app.status, status);
 
     // Money-flow plan 5.5: WHO acted, recorded on every review action — not just approval —
     // so a rejection or a request-for-more-info carries the same accountability an approval
@@ -526,6 +641,17 @@ export const ptApplicationService = {
     }
 
     ptApplicationsTotal.inc({ status: normalizedAction });
+    if (normalizedAction === "REJECTED") {
+      // Q1: one durable row per rejection - this is what the 3-strikes limit counts. Written BEFORE the status
+      // change and allowed to throw, so a rejection can never be recorded as a status without being counted.
+      await ptApplicationRepository.recordRejectionAudit({
+        action: PT_APPLICATION_REJECTED_AUDIT,
+        reviewerUserId,
+        applicantUserId: app.userProfile.userId,
+        applicationId: id,
+        rejectionReason: extra.rejectionReason,
+      });
+    }
     await ptApplicationRepository.updateStatus(id, status, extra);
 
     // Tell the applicant — the result they were promised a notification for.

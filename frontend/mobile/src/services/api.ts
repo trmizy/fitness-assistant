@@ -7,6 +7,7 @@ import { fetch as streamingFetch } from "expo/fetch";
 import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
 import Constants from "expo-constants";
 import { listingFlowHeaders } from "./listingFlow";
+import { currentClientHeaders } from "./clientHeader";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { aiStreamUrl, apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -158,7 +159,7 @@ export type TranslateRequest = {
 // eslint-disable-next-line import/no-named-as-default-member -- axios.create() is axios's documented API
 const refreshClient = axios.create({
   baseURL: API_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", ...currentClientHeaders() },
   timeout: 10000,
 });
 
@@ -251,6 +252,8 @@ api.interceptors.request.use(async (config) => {
   const request = config as typeof config & RetriableRequestConfig;
   if (request._sessionGeneration !== undefined) sessionGuard.assertCurrent(request._sessionGeneration);
   request._sessionGeneration = sessionGuard.current();
+  // U2: X-Gymini-Client on every gateway request (measurement only; see services/clientHeader.ts).
+  for (const [name, value] of Object.entries(currentClientHeaders())) config.headers[name] = value;
   // Vòng 4 / Phase D3 — was `await Preferences.get({ key: "accessToken" })` here: a
   // native-bridge round-trip on EVERY single request. tokenStore is kept in sync with
   // storage on every write (see tokenStore.ts's doc comment) — reading it is synchronous.
@@ -480,11 +483,24 @@ export const profileService = {
     return data;
   },
 
-  /** One PT's public profile for the discovery detail modal — adds avgRating/ratingCount
-   *  (already on the list rows too) plus recentReviews: the last 5 commented reviews, which
-   *  the list endpoint never sends. */
-  getPTDetail: async (ptUserId: string) => {
-    const { data } = await api.get(`/profile/pts/${ptUserId}`);
+  /**
+   * Location-aware cursor search (D0b-2). GPS, when the user chose it, travels ONLY in this POST body (rounded to
+   * 3 decimals by discoverySearch.buildPtSearchBody) — never in the URL — and is not logged or stored.
+   */
+  searchPTs: async (body: Record<string, any>) => {
+    const { data } = await api.post("/profile/pts/search", body);
+    return data as {
+      pts: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: "near" | "province" | "national";
+    };
+  },
+
+  /** One PT's public profile (D1): the full discovery fields (ptApplication, availableSlotsNext28Days, trainingLocations,
+   *  avgRating) plus recentReviews and ratingDistribution. A PT with no package on sale still answers 200; a hidden PT 404. */
+  getPTDetail: async (ptUserId: string, region?: { areaProvince?: number; areaWard?: number }) => {
+    const { data } = await api.get(`/profile/pts/${ptUserId}`, region?.areaProvince ? { params: region } : undefined);
     return data;
   },
 
@@ -3846,6 +3862,7 @@ export const coachService = {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              ...currentClientHeaders(),
               ...(hasUsableToken(token)
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
@@ -4002,8 +4019,16 @@ export const adminService = {
 
   // Gateway aggregate (auth + user-service): name/email/role/status per account — the admin
   // "Người dùng" list, and the name lookup for withdrawal/dispute rows that only carry an id.
-  listUserDirectory: async () => {
-    const { data } = await api.get("/admin/users");
+  // FIX5-ADMIN-PERF: the server answers ONE page (37k accounts) — filters and search run there.
+  listUserDirectory: async (params: Record<string, string | number> = { page: 1, limit: 20 }) => {
+    const { data } = await api.get("/admin/users", { params });
+    return data;
+  },
+  // Names behind a list of account ids (withdrawal rows): one call for up to 200 ids, never the whole directory.
+  lookupUsers: async (ids: string[]) => {
+    const unique = [...new Set(ids.filter(Boolean))].slice(0, 200);
+    if (unique.length === 0) return { data: { users: [] } };
+    const { data } = await api.get("/admin/users", { params: { ids: unique.join(","), page: 1, limit: 200 } });
     return data;
   },
   // AD-05 — lock/unlock ANY account (auth-service setUserActive). For a PT this also relays a
@@ -4992,8 +5017,12 @@ export const contractService = {
     acknowledgedLowAvailability?: boolean;
     /** `version` of the package on screen; a changed package answers 409 PACKAGE_CHANGED with the current one. */
     expectedPackageVersion?: number;
+    /** N15M-14: the client accepted the "venue outside Gymini" warning (offline/hybrid with no Gymini gym). */
+    acknowledgedIndependentVenue?: boolean;
   }) => {
-    const { data } = await api.post("/contracts/request", requestData);
+    // N15M-14 grace: this build knows the venue-consent step. The server accepts a request without the flag ONLY from an app that
+    // lacks this header (an older install), so a new client that skips the dialog is still refused.
+    const { data } = await api.post("/contracts/request", requestData, { headers: { "X-Gymini-Venue-Consent": "1" } });
     return data;
   },
   // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
@@ -5692,11 +5721,18 @@ export const adminPartnerApplications = {
 // AD-02 — admin side of PT applications (user-service /pt-applications/admin). The server does NOT
 // check the current status before a review action; the screen gates actions by status itself
 // (features/admin/adminModeration.ts#ptActions).
+// FIX5-ADMIN-PERF: one page; the total is in the X-Total-Count header (10k applications on the official data).
+async function fetchPtApplicationsPage(params: Record<string, string | number> = {}): Promise<{ rows: any[]; total: number }> {
+  const res = await api.get("/pt-applications/admin", { params: { page: 1, limit: 20, ...params } });
+  const rows = Array.isArray(res.data) ? res.data : [];
+  const total = Number((res.headers as any)?.["x-total-count"]);
+  return { rows, total: Number.isFinite(total) && total >= 0 ? total : rows.length };
+}
+
 export const adminPtApplications = {
-  list: async (status?: string) => {
-    const { data } = await api.get("/pt-applications/admin", { params: status ? { status } : undefined });
-    return data;
-  },
+  list: fetchPtApplicationsPage,
+  /** How many applications have this status (one row read, the count comes from the header). */
+  count: async (status: string): Promise<number> => (await fetchPtApplicationsPage({ status, page: 1, limit: 1 })).total,
   get: async (id: string) => {
     const { data } = await api.get(`/pt-applications/admin/${id}`);
     return data;
@@ -6142,6 +6178,37 @@ export const gymService = {
     const { data } = await api.get('/gyms');
     return data?.data ?? data;
   },
+  /** Region / distance / filter cursor search (D2). Coordinates only in the POST body, never in the URL. */
+  searchGyms: async (body: Record<string, any>) => {
+    const { data } = await api.post('/gyms/search', body);
+    return (data?.data ?? data) as {
+      gyms: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: 'near' | 'province' | 'national';
+    };
+  },
+  /** Brand / standalone options for the PT's "Đề nghị hợp tác" picker (D2), cursor paged. */
+  getBrandOptions: async (params?: { q?: string; cursor?: string | null; limit?: number }) => {
+    const { data } = await api.get('/gyms/brand-options', {
+      params: {
+        ...(params?.q ? { q: params.q } : {}),
+        ...(params?.cursor ? { cursor: params.cursor } : {}),
+        ...(params?.limit ? { limit: params.limit } : {}),
+      },
+    });
+    return (data?.data ?? data) as {
+      options: Array<{
+        scope: 'BRAND' | 'BRANCH';
+        brandId: string;
+        brandName: string;
+        branches: { id: string; name: string; city: string | null; closed: boolean }[];
+        proposeBranchId: string;
+      }>;
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
+  },
   getGym: async (gymId: string) => {
     const { data } = await api.get(`/gyms/${gymId}`);
     return data?.data ?? data;
@@ -6436,6 +6503,46 @@ export const gymService = {
   // Owner/manager: trainers who checked in at one branch (never member check-ins, never clients).
   listPtCheckins: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
+    return data?.data ?? data;
+  },
+  // N15M-08 — receptionist front desk (D15b/D15c). Mirrors web's gymService; every route is permission-gated server-side.
+  // Trainers who checked in TODAY at the branch (name + time only) — the receptionist's list; pt-checkins above is owner/manager.
+  listPtCheckinsToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins/today`);
+    return data?.data ?? data;
+  },
+  // Guests with a booking or a check-in at the branch today (display name only).
+  getFrontDeskToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
+    return data?.data ?? data;
+  },
+  getAssistedConfig: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/assisted-checkin/config`);
+    return data?.data ?? data;
+  },
+  searchFrontDeskMembers: async (gymId: string, params: { code?: string; name?: string; last4?: string }) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/members`, { params });
+    return data?.data ?? data;
+  },
+  requestAssistedOtp: async (gymId: string, membershipId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin/otp`, { membershipId });
+    return data?.data ?? data;
+  },
+  assistedCheckIn: async (gymId: string, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin`, payload);
+    return data?.data ?? data;
+  },
+  requestCheckinException: async (gymId: string, payload: { membershipId: string; reason: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions`, payload);
+    return data?.data ?? data;
+  },
+  listCheckinExceptions: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  // N15M-10 — accountant/owner: TOTAL PT commission per period (never per PT, never rates).
+  getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });
     return data?.data ?? data;
   },
   listMyCheckins: async () => {

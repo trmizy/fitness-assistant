@@ -1,13 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CheckCircle2, Clock, XCircle } from "lucide-react-native";
 
 import { Button, Card } from "../../../src/components/ui";
-import { paymentService } from "../../../src/services/api";
-import { destinationFor, phaseFromSync, type ResultPhase } from "../../../src/features/payments/payments";
+import { PaymentMethodSheet } from "../../../src/components/payment/PaymentMethodSheet";
+import { contractService, gymService, paymentService } from "../../../src/services/api";
+import {
+  destinationFor,
+  phaseFromSync,
+  retryActionFor,
+  retryTargetFor,
+  type ResultPhase,
+  type RetryTarget,
+} from "../../../src/features/payments/payments";
+import { useGatewayCheckout } from "../../../src/features/payments/useGatewayCheckout";
+import { normalizeMemberships } from "../../../src/features/services/gymDirectory";
+import { normalizeContracts } from "../../../src/features/services/contracts";
 import { clearPendingCheckout } from "../../../src/features/payments/pendingCheckout";
 import { darkColors, designTokens } from "../../../src/theme/colors";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -25,7 +36,8 @@ const COPY: Record<ResultPhase, { title: string; description: string }> = {
   paid: { title: "Thanh toán thành công", description: "Giao dịch của bạn đã được kích hoạt." },
   pending: {
     title: "Đang chờ xác nhận",
-    description: "Cổng thanh toán chưa xác nhận xong. Nếu bạn đã trả tiền, hãy kiểm tra lại sau ít phút.",
+    description:
+      "Cổng thanh toán chưa xác nhận xong. Nếu bạn đã trả tiền, hãy kiểm tra lại sau ít phút. Nếu bạn đã huỷ, giao dịch sẽ tự đóng sau tối đa 15 phút.",
   },
   failed: { title: "Thanh toán chưa thành công", description: "Giao dịch không hoàn tất. Bạn chưa bị trừ tiền." },
   error: { title: "Không xác nhận được", description: "Có lỗi khi kiểm tra trạng thái giao dịch. Thử lại sau." },
@@ -44,7 +56,7 @@ export default function PaymentResultScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const queryClient = useQueryClient();
-  const { txnId: rawTxnId } = useLocalSearchParams<{ txnId?: string }>();
+  const { txnId: rawTxnId, gw } = useLocalSearchParams<{ txnId?: string; gw?: string }>();
   const txnId = typeof rawTxnId === "string" ? rawTxnId : "";
 
   const [phase, setPhase] = useState<ResultPhase>("checking");
@@ -79,14 +91,53 @@ export default function PaymentResultScreen() {
     void confirm();
   }, [confirm, txnId]);
 
+  // N17M-03 — the gateway's own return link said the checkout did not complete (e.g. "Hủy giao dịch" at ZaloPay,
+  // which keeps its order open ~15 minutes). The server still says pending, so this is only the wording; a
+  // later check that returns PAID replaces it, and "Kiểm tra lại" stays available.
+  const stopped = phase === "pending" && gw === "failed";
+  const shownPhase: ResultPhase = stopped ? "failed" : phase;
   const dest = destinationFor(sync);
-  const copy = COPY[phase];
+  const copy = stopped
+    ? {
+        title: "Thanh toán chưa hoàn tất",
+        description:
+          "Cổng thanh toán báo giao dịch chưa hoàn tất. Nếu tiền đã bị trừ, hệ thống sẽ tự cập nhật sau ít phút; nếu không, bạn có thể thanh toán lại.",
+      }
+    : COPY[phase];
+
+  // N17M-02 — pay again for the same item, with the same calls the Hội viên / Hợp đồng cards use. Only offered
+  // while the item can still be paid (PENDING_PAYMENT); a membership the server already cancelled is bought
+  // again at its gym instead. No new backend: the item's state is read from the lists those cards read.
+  const retryTarget: RetryTarget | null = shownPhase === "failed" ? retryTargetFor(sync) : null;
+  const membershipsQuery = useQuery({
+    queryKey: ["my-memberships"],
+    queryFn: () => gymService.listMyMemberships(),
+    enabled: retryTarget?.kind === "membership",
+  });
+  const contractsQuery = useQuery({
+    queryKey: ["client-contracts"],
+    queryFn: () => contractService.getByClient(),
+    enabled: retryTarget?.kind === "contract",
+  });
+  const retryItem = useMemo(() => {
+    if (!retryTarget) return null;
+    if (retryTarget.kind === "membership") {
+      return normalizeMemberships(membershipsQuery.data).find((m) => m.id === retryTarget.id) ?? null;
+    }
+    return normalizeContracts(contractsQuery.data).find((c) => c.id === retryTarget.id) ?? null;
+  }, [retryTarget, membershipsQuery.data, contractsQuery.data]);
+  const retryAction = retryTarget ? retryActionFor(retryItem, retryTarget.kind) : null;
+  const checkout = useGatewayCheckout<RetryTarget>({
+    start: (target, provider) =>
+      target.kind === "membership" ? gymService.payMembership(target.id, provider) : contractService.pay(target.id, provider),
+    invalidate: [["my-memberships"], ["client-contracts"]],
+  });
   const icon =
-    phase === "checking" ? (
+    shownPhase === "checking" ? (
       <ActivityIndicator size="large" color={accent.primary} />
-    ) : phase === "paid" ? (
+    ) : shownPhase === "paid" ? (
       <CheckCircle2 size={48} color={accent.primary} />
-    ) : phase === "pending" ? (
+    ) : shownPhase === "pending" ? (
       <Clock size={48} color={designTokens.warning} />
     ) : (
       <XCircle size={48} color={darkColors.destructive} />
@@ -105,6 +156,19 @@ export default function PaymentResultScreen() {
         ) : null}
 
         <View className="w-full gap-2 pt-2">
+          {retryAction && retryTarget ? (
+            <Button
+              full
+              disabled={checkout.submitting}
+              onPress={() =>
+                retryAction.type === "pay"
+                  ? checkout.choose(retryTarget)
+                  : router.replace({ pathname: "/client/services/gyms/[id]", params: { id: retryAction.gymId } } as never)
+              }
+            >
+              {retryAction.type === "pay" ? "Thanh toán lại" : "Chọn lại gói tập"}
+            </Button>
+          ) : null}
           {phase === "pending" || phase === "error" ? (
             <Button variant="secondary" full onPress={() => void confirm()}>
               Kiểm tra lại
@@ -112,6 +176,7 @@ export default function PaymentResultScreen() {
           ) : null}
           <Button
             full
+            variant={retryAction ? "secondary" : "primary"}
             disabled={phase === "checking"}
             onPress={() => router.replace((phase === "paid" ? dest.href : "/client/services") as never)}
           >
@@ -119,6 +184,15 @@ export default function PaymentResultScreen() {
           </Button>
         </View>
       </Card>
+      <PaymentMethodSheet
+        open={checkout.target != null}
+        amount={retryAction?.type === "pay" ? retryAction.amount : 0}
+        title={retryTarget?.kind === "contract" ? "Thanh toán hợp đồng" : "Thanh toán gói hội viên"}
+        note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Dịch vụ chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
+        submitting={checkout.submitting}
+        onConfirm={checkout.pay}
+        onClose={checkout.close}
+      />
     </View>
   );
 }

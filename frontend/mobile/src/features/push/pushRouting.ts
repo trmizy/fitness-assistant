@@ -14,6 +14,8 @@ export type PushData = {
   userId: string | null;
   link: string | null;
   entityType: string | null;
+  /** The id of that entity (the contract / session the notice is about) — the tap opens exactly it. */
+  entityId: string | null;
   /** What happened ("CONTRACT_REQUESTED", …) — says which lists the push has made stale. */
   eventType: string | null;
   /** E2/E3 — chat-service's realtime nudges (no notifications row): "CALL" | "CHAT", else null. */
@@ -30,6 +32,7 @@ export function readPushData(raw: unknown): PushData {
     userId: str(data.userId),
     link: str(data.link),
     entityType: str(data.entityType),
+    entityId: str(data.entityId),
     eventType: str(data.eventType),
     kind: data.kind === "CALL" || data.kind === "CHAT" ? data.kind : null,
     callSessionId: str(data.callSessionId),
@@ -71,12 +74,12 @@ export function pushTapRoute(
   // Listing Management (M1): a PT's listing decision opens that PT's "Tin đăng" screen. Only a PT has one;
   // anyone else falls through to their own home like every other workspace-specific link.
   if (!data.kind && role === "pt") {
-    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    const own = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     if (own?.startsWith("/pt/")) return own;
   }
   // Listing Management (M2): the same for a Gym Owner — their listing decisions open "Tin đăng & tiện ích" on that branch.
   if (!data.kind && role === "gym_owner") {
-    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    const own = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     if (own?.startsWith("/gym-owner/")) return own;
   }
   // E2/E3: straight to the conversation (a PT chats from the client-side screen too). An incoming
@@ -87,7 +90,7 @@ export function pushTapRoute(
   }
   const clientSide = role === "client" || (role === "pt" && (data.link ?? "").startsWith("/client"));
   if (clientSide) {
-    const route = notificationRoute({ link: data.link, entityType: data.entityType });
+    const route = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     // A /pt/... target is for the PT workspace (handled above); a plain client has no such screen.
     return route && !route.startsWith("/pt/") && !route.startsWith("/gym-owner/") ? route : "/client/notifications";
   }

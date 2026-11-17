@@ -56,6 +56,7 @@ import {
 import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
 import { ISSUE_TYPE_LABEL, SOURCE_LABEL, statusMeta, ComplaintDetailDialog } from "./AdminComplaintsPage";
 import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
+import { docTypeVi, partnerAuditActionVi, partnerAuditDetailVi } from "../../utils/adminPartnerLabels";
 
 const DOC_TYPE_LABEL: Record<string, { label: string; required: boolean }> = {
   BUSINESS_LICENSE: { label: "Giấy phép kinh doanh", required: true },
@@ -868,7 +869,7 @@ function DocumentsTab({ partnerId }: { partnerId: string }) {
   return (
     <div className="space-y-2.5">
       {(docsQuery.data ?? []).map((doc: any) => {
-        const meta = DOC_TYPE_LABEL[doc.docType] ?? { label: doc.docType, required: false };
+        const meta = DOC_TYPE_LABEL[doc.docType] ?? { label: docTypeVi(doc.docType), required: false };
         const statusCls =
           doc.status === "VERIFIED" ? "bg-green-500/10 border-green-500/20 text-st-success"
           : doc.status === "REJECTED" ? "bg-red-500/10 border-red-500/20 text-st-danger"
@@ -1006,14 +1007,6 @@ function TerminationImpactPreview({ partnerId }: { partnerId: string }) {
 
 // ── Tab: Nhật ký kiểm toán ──────────────────────────────────────────────────
 
-const AUDIT_ACTION_LABEL: Record<string, string> = {
-  PARTNER_CREATED: "Tạo hồ sơ đối tác", PARTNER_UPDATED: "Cập nhật hồ sơ", ACCOUNT_PROVISIONED: "Cấp tài khoản",
-  INVITATION_RESENT: "Gửi lại thư mời", INVITATION_REVOKED: "Thu hồi thư mời", PASSWORD_RESET_SENT: "Phát hành link đặt lại mật khẩu",
-  SESSIONS_REVOKED: "Buộc đăng xuất", ACCOUNT_REVOKED: "Thu hồi tài khoản", OWNERSHIP_TRANSFERRED: "Chuyển quyền sở hữu",
-  PARTNER_SUSPENDED: "Tạm khoá", PARTNER_UNSUSPENDED: "Bỏ tạm khoá", PARTNER_TERMINATED: "Chấm dứt hợp tác",
-  VIEWED_AS_PARTNER: "Xem dưới góc nhìn đối tác",
-};
-
 function AuditTab({ partnerId }: { partnerId: string }) {
   const logQuery = useQuery({ queryKey: ["admin-partner-audit", partnerId], queryFn: () => adminService.getPartnerAuditLog(partnerId) });
   if (logQuery.isLoading) return <Loader2 className="w-5 h-5 text-green-500 animate-spin" />;
@@ -1025,7 +1018,8 @@ function AuditTab({ partnerId }: { partnerId: string }) {
         <div key={l.id} className="flex items-start gap-3 bg-zinc-900 rounded-lg px-3 py-2.5 text-xs">
           <span className="text-zinc-600 whitespace-nowrap flex-shrink-0">{formatDateTime(l.createdAt)}</span>
           <div>
-            <span className="text-zinc-300 font-medium">{AUDIT_ACTION_LABEL[l.action] ?? l.action}</span>
+            <span className="text-zinc-300 font-medium">{partnerAuditActionVi(l.action, l.metadata)}</span>
+            {partnerAuditDetailVi(l.action, l.metadata) && <span className="text-zinc-500"> · {partnerAuditDetailVi(l.action, l.metadata)}</span>}
             {l.reason && <span className="text-zinc-500"> — "{l.reason}"</span>}
           </div>
         </div>
@@ -1062,7 +1056,7 @@ function VerificationPanel({ partner, onChange }: { partner: any; onChange: () =
       )}
       {!canEdit && (
         <p className="text-[11px] text-zinc-600">
-          Chỉ thay đổi được khi hồ sơ đang ở dạng tiềm năng (PROSPECT) — trước khi cấp tài khoản.
+          Chỉ thay đổi được khi hồ sơ đang ở dạng tiềm năng — trước khi cấp tài khoản.
         </p>
       )}
       {canEdit && (

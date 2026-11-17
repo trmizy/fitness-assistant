@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   BarbellIcon as Dumbbell,
   MapPinIcon as MapPin,
@@ -28,6 +29,7 @@ import {
   formatGymDistanceBadge,
   gymDiscoveryKeys,
   isCursorResetError,
+  isSearchRegionReady,
   nextRadiusStep,
   normalizeVnCoords,
   ptDiscoveryKeys,
@@ -155,6 +157,19 @@ export function GymsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [selectedGymId, setSelectedGymId] = useState<string | null>(null);
+  // Liên kết sâu /client/gyms?gym=:id[&tab=pricing|reviews] (nút Chia sẻ, bookmark): mở thẳng chi tiết gym đó.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkGymId = searchParams.get("gym");
+  const deepLinkTab = ["detail", "pricing", "reviews"].find((t) => t === searchParams.get("tab")) as "detail" | "pricing" | "reviews" | undefined;
+  const closeDetail = () => {
+    setSelectedGymId(null);
+    if (searchParams.has("gym") || searchParams.has("tab")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("gym");
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
+    }
+  };
   const [filterOpen, setFilterOpen] = useState(false);
 
   // Region + GPS state — NEVER prompts geolocation on mount; cleared cleanly across account switches
@@ -178,6 +193,9 @@ export function GymsPage() {
 
   const hydratedUserRef = useRef<string | null>(null);
   const userChangedRegionRef = useRef(false);
+  // The user id whose saved region has been applied to the state above. The first search waits for it so a
+  // stale scope:"national" request is never sent before the saved area resolves.
+  const [regionHydratedFor, setRegionHydratedFor] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQ(searchInput.trim()), 250);
@@ -206,7 +224,11 @@ export function GymsPage() {
     staleTime: 24 * 60 * 60_000,
   });
 
-  const { data: profileRegion } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
+  const {
+    data: profileRegion,
+    isSuccess: profileRegionLoaded,
+    isError: profileRegionFailed,
+  } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
     queryKey: ptRegionKey,
     queryFn: async () => (await profileService.getProfile())?.profile ?? null,
     enabled: !!userId,
@@ -214,11 +236,12 @@ export function GymsPage() {
   });
 
   useEffect(() => {
-    if (!userId || !profileRegion || hydratedUserRef.current === userId) return;
+    if (!userId || !profileRegionLoaded || hydratedUserRef.current === userId) return;
     hydratedUserRef.current = userId;
+    setRegionHydratedFor(userId);
     if (userChangedRegionRef.current) return;
-    const pCode = typeof profileRegion.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
-    const wCode = pCode && typeof profileRegion.searchWardCode === "number" ? profileRegion.searchWardCode : null;
+    const pCode = typeof profileRegion?.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
+    const wCode = pCode && typeof profileRegion?.searchWardCode === "number" ? profileRegion.searchWardCode : null;
     setProvinceCode(pCode);
     setWardCode(wCode);
     setNational(!pCode);
@@ -227,7 +250,9 @@ export function GymsPage() {
     } else {
       setWards([]);
     }
-  }, [userId, profileRegion]);
+  }, [userId, profileRegion, profileRegionLoaded]);
+
+  const regionReady = isSearchRegionReady({ userId, hydratedForUserId: regionHydratedFor, profileRegionFailed });
 
   const saveRegionMutation = useMutation({
     mutationFn: (payload: { searchProvinceCode: number | null; searchWardCode: number | null }) =>
@@ -273,7 +298,7 @@ export function GymsPage() {
 
   const {
     data,
-    isLoading,
+    isLoading: searchLoading,
     isError,
     error,
     hasNextPage,
@@ -282,6 +307,7 @@ export function GymsPage() {
     isFetchNextPageError,
   } = useInfiniteQuery({
     queryKey,
+    enabled: regionReady,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage: any) => nextCursorParam(lastPage),
     queryFn: ({ pageParam }) =>
@@ -290,6 +316,9 @@ export function GymsPage() {
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
   });
+
+  // While the saved region is still resolving the query is disabled (not "loading"): show the skeleton, never "no results".
+  const isLoading = searchLoading || !regionReady;
 
   // Handle 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH by resetting to page 1 transparently
   useEffect(() => {
@@ -704,7 +733,13 @@ export function GymsPage() {
         </div>
       )}
 
-      {selectedGymId && <GymDetailModal gymId={selectedGymId} onClose={() => setSelectedGymId(null)} />}
+      {(selectedGymId ?? deepLinkGymId) && (
+        <GymDetailModal
+          gymId={(selectedGymId ?? deepLinkGymId) as string}
+          initialTab={selectedGymId ? undefined : deepLinkTab}
+          onClose={closeDetail}
+        />
+      )}
     </div>
   );
 }

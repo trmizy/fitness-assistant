@@ -12,7 +12,8 @@ import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { withRefundLabel } from "../../utils/sessionRefund";
 import type { Contract, Session, SessionStatus } from "../../types";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { bookableSessionsLeft, formatViDateTime, remainingEntitlements } from "../../utils/contractQuota";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -50,16 +51,7 @@ function formatTime(t: string) {
 }
 
 function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString("vi-VN", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }) +
-    " lúc " +
-    d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-  );
+  return formatViDateTime(iso);
 }
 
 function formatDateShort(iso: string) {
@@ -149,17 +141,13 @@ export function BookingPage() {
   const [bookingNotes, setBookingNotes] = useState("");
   const [tab, setTab] = useState<Tab>("book");
   const [cancelId, setCancelId] = useState<string | null>(null);
-  useBackDismissible(!!cancelId, () => setCancelId(null));
   const [cancelReason, setCancelReason] = useState("");
   const [reviewId, setReviewId] = useState<string | null>(null);
-  useBackDismissible(!!reviewId, () => setReviewId(null));
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [disputeId, setDisputeId] = useState<string | null>(null);
-  useBackDismissible(!!disputeId, () => setDisputeId(null));
   const [disputeReason, setDisputeReason] = useState("");
   const [noShowReportId, setNoShowReportId] = useState<string | null>(null);
-  useBackDismissible(!!noShowReportId, () => setNoShowReportId(null));
   const [noShowReportReason, setNoShowReportReason] = useState("");
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -304,13 +292,10 @@ export function BookingPage() {
   // Remaining sessions count — must also subtract compensatedSessions (PT no-shows already
   // paid out in cash): those consume entitlement exactly like a used session, but totalSessions
   // itself no longer shrinks to reflect them (money-flow plan 1.5).
+  // N15C-10: and also the sessions already booked but not finished (they hold an entitlement) — same rule
+  // as the backend quota gate, so the header never says "còn 1 buổi" while a booking is refused.
   const remainingSessions = selectedContract
-    ? Math.max(
-        0,
-        selectedContract.totalSessions -
-          selectedContract.usedSessions -
-          (selectedContract.compensatedSessions ?? 0),
-      )
+    ? bookableSessionsLeft(selectedContract, contractSessions as Session[])
     : 0;
 
   // Fetch available slots for selected date + PT
@@ -448,7 +433,6 @@ export function BookingPage() {
 
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
   const rescheduleId = rescheduleTarget?.id ?? null;
-  useBackDismissible(!!rescheduleTarget, () => setRescheduleTarget(null));
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState<string>("");
 
@@ -644,7 +628,9 @@ export function BookingPage() {
                       }`}
                     >
                       {c.packageName} (còn{" "}
-                      {Math.max(0, c.totalSessions - c.usedSessions - (c.compensatedSessions ?? 0))})
+                      {c.id === selectedContractId
+                        ? bookableSessionsLeft(c, contractSessions as Session[])
+                        : remainingEntitlements(c)})
                     </button>
                   ))}
                 </div>
@@ -1163,10 +1149,15 @@ export function BookingPage() {
       )}
 
       {/* Dispute reason modal */}
-      {disputeId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Modal
+        open={!!(disputeId)}
+        onClose={() => setDisputeId(null)}
+        closeOnBackdrop={false}
+        data-testid="booking-dispute-modal"
+      >
+        {disputeId && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-zinc-100 font-bold mb-2">Khiếu nại buổi tập</h3>
+            <ModalTitle className="text-zinc-100 font-bold mb-2">Khiếu nại buổi tập</ModalTitle>
             <p className="text-xs text-zinc-500 mb-4">
               Cho biết vì sao bạn không đồng ý với báo cáo của PT. Quản trị viên sẽ xem xét và
               phân xử. Buổi đang chờ kết luận; quyền buổi tuỳ theo kết luận.
@@ -1179,34 +1170,41 @@ export function BookingPage() {
             />
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => {
                   setDisputeId(null);
                   setDisputeReason("");
                 }}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
+                className="min-h-10 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
               >
                 Huỷ
               </button>
               <button
+                type="button"
                 onClick={() =>
                   disputeId &&
                   disputeSessionMutation.mutate({ id: disputeId, reason: disputeReason })
                 }
                 disabled={!disputeReason.trim() || disputeSessionMutation.isPending}
-                className="px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
+                className="min-h-10 px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
               >
                 Gửi khiếu nại
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Report PT no-show modal (money-flow plan 4.3) */}
-      {noShowReportId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Modal
+        open={!!(noShowReportId)}
+        onClose={() => setNoShowReportId(null)}
+        closeOnBackdrop={false}
+        data-testid="booking-noshow-modal"
+      >
+        {noShowReportId && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-zinc-100 font-bold mb-2">Báo huấn luyện viên vắng mặt</h3>
+            <ModalTitle className="text-zinc-100 font-bold mb-2">Báo huấn luyện viên vắng mặt</ModalTitle>
             <p className="text-xs text-zinc-500 mb-4">
               PT sẽ được yêu cầu phản hồi — nếu PT không đồng ý, quản trị viên sẽ phân xử. Buổi
               tập không bị trừ cho tới khi có kết luận.
@@ -1219,28 +1217,30 @@ export function BookingPage() {
             />
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => {
                   setNoShowReportId(null);
                   setNoShowReportReason("");
                 }}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
+                className="min-h-10 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
               >
                 Huỷ
               </button>
               <button
+                type="button"
                 onClick={() =>
                   noShowReportId &&
                   reportNoShowMutation.mutate({ id: noShowReportId, reason: noShowReportReason })
                 }
                 disabled={!noShowReportReason.trim() || reportNoShowMutation.isPending}
-                className="px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
+                className="min-h-10 px-4 py-2 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
               >
                 Gửi báo cáo
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ─── PAST TAB ─── */}
       {tab === "past" && (
@@ -1367,11 +1367,16 @@ export function BookingPage() {
       )}
 
       {/* ─── HỦY LỊCH ─── */}
-      {cancelId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(cancelId)}
+        onClose={() => setCancelId(null)}
+        closeOnBackdrop={false}
+        data-testid="booking-cancel-modal"
+      >
+        {cancelId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Hủy lịch tập</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Hủy lịch tập</ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
@@ -1387,20 +1392,22 @@ export function BookingPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setCancelId(null);
                   setCancelReason("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Giữ lịch
               </button>
               <button
+                type="button"
                 onClick={() =>
                   cancelMutation.mutate({ id: cancelId, reason: cancelReason })
                 }
                 disabled={!cancelReason.trim() || cancelMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1409,20 +1416,25 @@ export function BookingPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ─── ĐÁNH GIÁ ─── */}
-      {reviewId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(reviewId)}
+        onClose={() => setReviewId(null)}
+        closeOnBackdrop={false}
+        data-testid="booking-review-modal"
+      >
+        {reviewId && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Đánh giá buổi tập</h3>
+              <ModalTitle className="text-zinc-100 font-bold">Đánh giá buổi tập</ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-center gap-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <button key={i} onClick={() => setReviewRating(i + 1)}>
+                  <button type="button" key={i} aria-label={`Chấm ${i + 1} sao`} aria-pressed={i < reviewRating} onClick={() => setReviewRating(i + 1)}>
                     <Star
                       className={`w-8 h-8 transition-colors ${i < reviewRating ? "text-amber-400 fill-amber-400" : "text-zinc-700 hover:text-zinc-500"}`}
                     />
@@ -1439,19 +1451,21 @@ export function BookingPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setReviewId(null);
                   setReviewRating(5);
                   setReviewComment("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Bỏ qua
               </button>
               <button
+                type="button"
                 onClick={() => reviewMutation.mutate()}
                 disabled={reviewMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {reviewMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1460,18 +1474,31 @@ export function BookingPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ─── DỜI LỊCH ─── */}
-      {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <Modal
+        open={!!(rescheduleTarget)}
+        onClose={() => {
+          setRescheduleTarget(null);
+          setRescheduleSlot(null);
+          setRescheduleReason("");
+        }}
+        closeOnBackdrop={false}
+        placement="sheet"
+        data-testid="booking-reschedule-modal"
+      >
+        {rescheduleTarget && (
           <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
-            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
-              <h3 className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Buổi hiện tại: {formatDateTime(rescheduleTarget.scheduledStartAt)}
-              </p>
+            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <ModalTitle className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</ModalTitle>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Buổi hiện tại: {formatDateTime(rescheduleTarget.scheduledStartAt)}
+                </p>
+              </div>
+              <ModalClose className="-mr-2 -mt-1" aria-label="Đóng hộp dời lịch" />
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
               <DateSlotPicker
@@ -1492,16 +1519,18 @@ export function BookingPage() {
             </div>
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
+                type="button"
                 onClick={() => {
                   setRescheduleTarget(null);
                   setRescheduleSlot(null);
                   setRescheduleReason("");
                 }}
-                className="flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (!rescheduleId || !rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim()) return;
                   const start = new Date(`${rescheduleSlot.dateStr}T${rescheduleSlot.slot}:00`);
@@ -1514,7 +1543,7 @@ export function BookingPage() {
                   });
                 }}
                 disabled={!rescheduleSlot?.dateStr || !rescheduleSlot?.slot || !rescheduleReason.trim() || rescheduleMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="min-h-10 flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {rescheduleMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1523,8 +1552,8 @@ export function BookingPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

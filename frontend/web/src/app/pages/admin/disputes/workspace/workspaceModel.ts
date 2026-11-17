@@ -41,7 +41,8 @@ import {
   type FindingKind,
   type Outcome,
 } from "../disputeCaseTypes";
-import { asRecord, looksLikeInternalCode, proseOrNull, shortRef } from "./format";
+import { adminWhoLabel } from "./adminNames";
+import { asRecord, looksLikeInternalCode, proseOrNull } from "./format";
 
 // ───────────────────────────────────────────────────────────────── tabs ──
 export const WORKSPACE_TABS = [
@@ -294,7 +295,7 @@ export function blockReasonText(code: string | null | undefined, serverMessage?:
 
 function actorWho(id: string | null | undefined, currentUserId: string | null | undefined): string {
   if (currentUserId && id === currentUserId) return "Bạn";
-  return id ? `Quản trị viên (mã ${shortRef(id)})` : "Hệ thống";
+  return id ? adminWhoLabel(id, currentUserId) : "Hệ thống";
 }
 
 function historyRow(h: ExecutionHistoryItem, currentUserId: string | null | undefined): ExecHistoryRow {
@@ -479,14 +480,18 @@ const ACTOR_ROLE_LABEL: Record<string, string> = { ADMIN: "Quản trị viên", 
 export function eventActor(e: Pick<DisputeEvent, "actorUserId" | "actorRole">, currentUserId: string | null | undefined): string {
   if (currentUserId && e.actorUserId === currentUserId) return "Bạn";
   const role = ACTOR_ROLE_LABEL[e.actorRole] ?? "Người dùng";
-  return e.actorUserId ? `${role} (mã ${shortRef(e.actorUserId)})` : role;
+  if (!e.actorUserId) return role;
+  return e.actorRole === "ADMIN" ? adminWhoLabel(e.actorUserId, currentUserId) : role;
 }
 /** A note typed by a person; codes like CONTRACT_ENDING are mapped, anything else code-like is dropped. */
 export function eventNote(e: Pick<DisputeEvent, "note">): string | null {
   if (!e.note) return null;
   if (e.note in EXEC_BLOCK_REASON_LABEL) return EXEC_BLOCK_REASON_LABEL[e.note as keyof typeof EXEC_BLOCK_REASON_LABEL];
+  // N15B-01: events written before the fix carry "reviewer <uuid>" / "obligation <uuid> STATUS" - show words, never the id.
+  if (UUID_IN_TEXT.test(e.note)) return /^reviewer/i.test(e.note) ? "Đã giao người xem xét lại yêu cầu" : null;
   return proseOrNull(e.note);
 }
+const UUID_IN_TEXT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 export function eventStep(e: Pick<DisputeEvent, "fromStatus" | "toStatus">): string | null {
   const f = e.fromStatus ? CASE_STATUS_LABEL[e.fromStatus] : null;
   const t = e.toStatus ? CASE_STATUS_LABEL[e.toStatus] : null;

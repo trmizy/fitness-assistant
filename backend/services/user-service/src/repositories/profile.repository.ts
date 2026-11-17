@@ -16,6 +16,7 @@ import {
   type PtSearchQueryInput,
   type PtSearchQueryOptions,
 } from "../services/pt-discovery.query";
+import { hydratePublicPtsByIdsSingleQuery } from "../services/pt-public-hydrate.query";
 import type { DiscoveryScope } from "../services/pt-discovery-cursor";
 
 export const prisma = new PrismaClient();
@@ -108,8 +109,16 @@ export const profileRepository = {
    * database, so a column added to UserProfile later cannot leak into discovery by accident. The rows are
    * `PublishedPtSource` - the only input toPublicPtDto accepts.
    */
-  /** Hydrates public PT rows in the exact ID order produced by discovery SQL. */
-  hydratePublicPtsByIds: async (userIds: string[]): Promise<PublishedPtSource[]> => {
+  /**
+   * Hydrates public PT rows in the exact ID order produced by discovery SQL, in ONE SQL statement
+   * (profile + application + certificates + locations + packages + photos + rating aggregate); the rows
+   * already carry `avgRating` / `ratingCount`. {@link profileRepository.hydratePublicPtsByIdsPrisma} is the
+   * reference multi-statement implementation the single-statement path is tested against.
+   */
+  hydratePublicPtsByIds: (userIds: string[]) => hydratePublicPtsByIdsSingleQuery(userIds),
+
+  /** Reference (multi-statement) hydration through Prisma `select`; kept so tests can prove parity. */
+  hydratePublicPtsByIdsPrisma: async (userIds: string[]): Promise<PublishedPtSource[]> => {
     if (userIds.length === 0) return [];
     const rows = await prisma.userProfile.findMany({
       where: { userId: { in: userIds } },

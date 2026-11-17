@@ -18,10 +18,12 @@ import { useApp } from "../../context/AppContext";
 import { authService, gymService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
 import { SectionCard } from "../client/settings/components/SectionCard";
-import { SOCIALS, type SocialKey } from "../../components/gym/SocialLinks";
+import { SOCIALS, SocialLinks, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BrandLogoUpload } from "../partner-application/uploaders";
-import { canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { PARTNER_ROLE_CHIP_LABEL, canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { authErrorMessage } from "../../utils/authErrors";
+import { isValidPhoneNumber } from "../../utils/phone";
 
 const inputCls =
   "w-full px-3 py-2.5 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 disabled:opacity-60 transition-all";
@@ -35,6 +37,9 @@ const errMessage = (e: any, fallback: string) => {
   const err = e?.response?.data?.error;
   return (typeof err === "string" ? err : err?.message) || fallback;
 };
+
+/** N14G-01: nhãn vai trò hiển thị ở đầu hồ sơ — đúng vai trò thật của người đăng nhập, không gộp chung "Quản lý". */
+const ROLE_CHIP_LABEL = PARTNER_ROLE_CHIP_LABEL;
 
 const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Đang hiển thị",
@@ -113,7 +118,7 @@ export function GymOwnerProfilePage() {
   const [phone, setPhone] = useState("");
   useEffect(() => setPhone(status?.contactPhone ?? ""), [status?.contactPhone]);
   const phoneDirty = phone.trim() !== (status?.contactPhone ?? "");
-  const phoneValid = /^\+?[0-9 .-]{8,20}$/.test(phone.trim());
+  const phoneValid = isValidPhoneNumber(phone);
   const phoneMutation = useMutation({
     mutationFn: () => gymService.submitOnboardingContact(phone.trim()),
     onSuccess: () => {
@@ -164,7 +169,7 @@ export function GymOwnerProfilePage() {
       setConfirmPassword("");
       toast.success("Đã đổi mật khẩu");
     },
-    onError: (e) => toast.error(errMessage(e, "Không đổi được mật khẩu — kiểm tra lại mật khẩu hiện tại")),
+    onError: (e) => toast.error(authErrorMessage(e, "Không đổi được mật khẩu — kiểm tra lại mật khẩu hiện tại")),
   });
   const pwMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
   const canChangePassword = currentPassword.length > 0 && newPassword.length >= 8 && newPassword === confirmPassword;
@@ -182,18 +187,39 @@ export function GymOwnerProfilePage() {
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-zinc-100">{brandName ?? "Chưa đặt tên thương hiệu"}</h1>
           <p className="truncate text-sm text-zinc-400">{user?.email}</p>
-          <span className="mt-1 inline-block rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-400">
-            {isOwner ? "Chủ phòng gym" : "Quản lý chi nhánh"}
-          </span>
+          {status?.role && (
+            <span data-testid="profile-role-chip" className="mt-1 inline-block rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-400">
+              {ROLE_CHIP_LABEL[status.role] ?? "Nhân viên"}
+            </span>
+          )}
         </div>
       </div>
 
-      {brand && (
+      {brand && !isOwner && (
+        // Chỉ chủ sở hữu được sửa thương hiệu: vai trò khác (quản lý, kế toán) chỉ xem — không hiện form bị khoá.
+        <SectionCard id="profile-brand" icon={Storefront} title="Thương hiệu" description="Khách thấy các thông tin này khi xem phòng gym. Chỉ chủ phòng gym được chỉnh sửa.">
+          <div className="space-y-3" data-testid="profile-brand-readonly">
+            <div>
+              <Label>Tên thương hiệu</Label>
+              <p className="text-sm text-zinc-200">{brandName}</p>
+            </div>
+            {brand.description?.trim() && (
+              <div>
+                <Label>Giới thiệu thương hiệu</Label>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-300">{brand.description}</p>
+              </div>
+            )}
+            <SocialLinks value={brand} />
+          </div>
+        </SectionCard>
+      )}
+
+      {brand && isOwner && (
         <SectionCard id="profile-brand" icon={Storefront} title="Thương hiệu" description="Khách thấy các thông tin này khi xem phòng gym của bạn.">
           <div className="space-y-3">
             <label className="block">
               <Label>Tên thương hiệu</Label>
-              <input aria-label="Tên thương hiệu" value={brandForm.name} onChange={(e) => setBrandForm((f) => ({ ...f, name: e.target.value }))} disabled={!isOwner} maxLength={100} className={inputCls} />
+              <input aria-label="Tên thương hiệu" value={brandForm.name} onChange={(e) => setBrandForm((f) => ({ ...f, name: e.target.value }))} maxLength={100} className={inputCls} />
               {brand.pendingName ? (
                 <span className="mt-1 block text-[11px] text-amber-300">Tên "{brand.pendingName}" đang chờ Gymini duyệt — khách vẫn thấy "{brand.approvedName ?? brand.name}".</span>
               ) : (
@@ -206,7 +232,7 @@ export function GymOwnerProfilePage() {
             )}
             <label className="block">
               <Label>Giới thiệu thương hiệu</Label>
-              <textarea aria-label="Giới thiệu thương hiệu" value={brandForm.description} onChange={(e) => setBrandForm((f) => ({ ...f, description: e.target.value }))} disabled={!isOwner} rows={3} maxLength={Math.max(ABOUT_MAX, brandForm.description.length)} className={inputCls} />
+              <textarea aria-label="Giới thiệu thương hiệu" value={brandForm.description} onChange={(e) => setBrandForm((f) => ({ ...f, description: e.target.value }))} rows={3} maxLength={Math.max(ABOUT_MAX, brandForm.description.length)} className={inputCls} />
               <AboutCounter value={brandForm.description} />
             </label>
             <div>
@@ -219,7 +245,6 @@ export function GymOwnerProfilePage() {
                       aria-label={so.label}
                       value={brandForm[so.key]}
                       onChange={(e) => setBrandForm((f) => ({ ...f, [so.key]: e.target.value }))}
-                      disabled={!isOwner}
                       inputMode="url"
                       placeholder={so.placeholder}
                       maxLength={300}

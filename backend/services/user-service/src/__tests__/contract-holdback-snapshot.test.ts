@@ -51,7 +51,7 @@ test("requestContract snapshots ptHoldbackRate from resolvePtHoldbackRate: '0' o
     patch(ptServicePackageRepository, "findById", async () => packageRow),
     // requestContract reads + snapshots the package inside a transaction (SELECT ... FOR SHARE): no DB in this unit
     // test, so the transaction runs its callback against a placeholder client and the locked read serves the same row.
-    patch(prisma, "$transaction", async (fn: (tx: unknown) => unknown) => fn({})),
+    patch(prisma, "$transaction", async (fn: (tx: unknown) => unknown) => fn({ auditLog: { create: async () => ({}) } })),
     patch(ptServicePackageRepository, "findByIdForShare", async () => packageRow),
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true })),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),
@@ -68,7 +68,7 @@ test("requestContract snapshots ptHoldbackRate from resolvePtHoldbackRate: '0' o
     patch(notificationService, "create", async () => ({})),
   ];
   try {
-    await contractService.requestContract("client-1", { ptUserId: "pt-1", packageId: "pkg-1" });
+    await contractService.requestContract("client-1", { ptUserId: "pt-1", packageId: "pkg-1", acknowledgedIndependentVenue: true });
     assert.equal(created.length, 1);
     assert.equal(created[0].ptHoldbackRate, "0");
     assert.equal(created[0].platformRate, "0.10");

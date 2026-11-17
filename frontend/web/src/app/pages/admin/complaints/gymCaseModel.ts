@@ -5,6 +5,7 @@
  */
 import { hasErrors, textError, type Errors } from "../disputes/actions/actionModel";
 import { asRecord, formatDateTimeSafe, shortRefSafe } from "./gymFormat";
+import { adminLabel } from "./gymAdminNames";
 import { formatMoneyExact } from "../adminFinanceOverview.utils";
 import {
   DECLARED_HASH_NOTE,
@@ -130,7 +131,7 @@ export function transitionTargets(status: string): TransitionTarget[] {
 export const REQUEST_MORE_STATUSES: readonly string[] = ["COLLECTING", "AWAITING_PARTIES", "ASSESSING", "FINDING_RECORDED"];
 export const STEP_VERB: Record<string, string> = {
   COLLECTING: "Quay lại thu thập bằng chứng",
-  AWAITING_PARTIES: "Chờ hội viên bổ sung",
+  AWAITING_PARTIES: "Chờ bên được hỏi bổ sung",
   ASSESSING: "Chuyển sang đánh giá",
 };
 
@@ -188,20 +189,58 @@ export function gatesOf(detail: GymCaseDetail): Gates {
   };
 }
 
+/** N15A-01: who was asked, from the viewer's side ("Bạn" / "Phòng gym của bạn" / "Hội viên" / "Phòng gym"). */
+export function askedPartiesText(parties: readonly ("MEMBER" | "GYM")[] | undefined, viewer: "MEMBER" | "GYM"): string {
+  return (parties ?? []).map((p) => (p === viewer ? (viewer === "MEMBER" ? "Bạn" : "Phòng gym của bạn") : p === "MEMBER" ? "Hội viên" : "Phòng gym")).join(" và ");
+}
+
+/** N15A-04: the replacement row carries no status; it is read from the timestamps the server does send. */
+export const replacementState = (r: { approvedAt?: string | null; rejectedAt?: string | null } | null | undefined): "APPROVED" | "REJECTED" | "PENDING" | null =>
+  !r ? null : r.approvedAt ? "APPROVED" : r.rejectedAt ? "REJECTED" : "PENDING";
+
+// ───────────────────────────────────────────────────────── execution wording (N15A-05) ──
+/** The "Số tiền" row of the execute confirmation: for an appeal supplement it is the DIFFERENCE, never the first refund. */
+export function executeAmountText(d: Pick<GymCaseDetail, "decision" | "refundQuote" | "supplement">): string {
+  if (d.decision?.outcome === "REFUND_APPEAL_SUPPLEMENT") {
+    return d.supplement
+      ? `${formatMoneyExact(d.supplement.amount)}: chỉ phần chênh lệch hoàn thêm sau kháng nghị (trước đó đã hoàn ${formatMoneyExact(d.supplement.refundedSoFar)}). Máy chủ kiểm lại khi thực thi.`
+      : "Chỉ phần chênh lệch hoàn thêm sau kháng nghị (không hoàn lại số đã hoàn). Số tiền do máy chủ tính khi thực thi.";
+  }
+  return d.refundQuote
+    ? `${formatMoneyExact(d.refundQuote.amount)}: mức hoàn đã chốt theo ngày khiếu nại. Máy chủ kiểm lại khi thực thi; số tiền thực ghi vào ví hiện sau khi thực thi.`
+    : "Do máy chủ tính theo phần chưa dùng của gói, hiện sau khi thực thi";
+}
+/** "Lần 1", "Lần 2": one round per DECISION executed, in order (the attempt counter restarts for each decision). */
+export function executionRound(history: ReadonlyArray<{ decisionId?: string }>, index: number): number {
+  const ids: string[] = [];
+  for (let i = 0; i <= index; i++) {
+    const id = history[i]?.decisionId ?? `row-${i}`;
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return Math.max(1, ids.indexOf(history[index]?.decisionId ?? `row-${index}`) + 1);
+}
+
 // ───────────────────────────────────────────────────────── identities ──
 export function personText(id: string | null | undefined, currentUserId: string | null | undefined, who: string): string {
   if (!id) return `${who}: chưa có`;
   if (currentUserId && id === currentUserId) return `${who}: bạn`;
-  return `${who}: mã ${shortRefSafe(id)}`;
+  return `${who}: ${adminLabel(id, currentUserId)}`;
+}
+/** N15A-03: an admin by DISPLAY NAME ("bạn" for the signed-in admin, a neutral phrase when the directory does not know the account), never an id. */
+export function adminDid(id: string | null | undefined, currentUserId: string | null | undefined, verb = ""): string {
+  const who = id && currentUserId && id === currentUserId ? "bạn" : adminLabel(id, currentUserId);
+  return verb ? `${who} ${verb}` : who;
 }
 export const shortRefOf = shortRefSafe;
-export function reporterText(id: string | null | undefined): string {
-  return id ? `mã ${shortRefSafe(id)}` : "Chưa gắn người phản ánh";
+/** N15A-03: the reporter by name (the case detail carries `reporterName`); when the name could not be read the member is still never shown as a code. */
+export function reporterText(id: string | null | undefined, name?: string | null): string {
+  if (!id) return "Chưa gắn người phản ánh";
+  return name && name.trim() ? name.trim() : "Hội viên (chưa đọc được tên)";
 }
 export function investigatorText(id: string | null | undefined, currentUserId: string | null | undefined): string {
   if (!id) return "Chưa có người phụ trách";
   if (currentUserId && id === currentUserId) return "Bạn phụ trách";
-  return `Người phụ trách: mã ${shortRefSafe(id)}`;
+  return `Người phụ trách: ${adminLabel(id, currentUserId)}`;
 }
 
 // ────────────────────────────────────────────────────────── validation ──
@@ -474,7 +513,7 @@ export function describeEvidence(e: GymEvidence): EvidenceView {
       push(fields, "Tình trạng gói", MEMBERSHIP_STATUS[String(p.status)] ?? null);
       push(fields, "Bắt đầu", date(p.startDate));
       push(fields, "Kết thúc", date(p.endDate));
-      push(fields, "Giá lúc mua", num(p.priceAtPurchase));
+      push(fields, "Giá lúc mua", num(p.priceAtPurchase) ? formatMoneyExact(p.priceAtPurchase) : null);
       push(fields, "Thời hạn gói (ngày)", num(p.durationDaysSnapshot));
       push(fields, "Lượt tập", p.totalVisits === null || p.totalVisits === undefined ? null : `${num(p.usedVisits) ?? "0"}/${num(p.totalVisits) ?? "?"}`);
       push(fields, "Đã chuyển tiền cho phòng tập lúc", date(p.payoutReleasedAt));
@@ -599,7 +638,10 @@ export function sortedEvents(events: GymEvent[] | null | undefined): GymEvent[] 
 export function eventActor(e: Pick<GymEvent, "actorUserId" | "actorRole">, currentUserId: string | null | undefined): string {
   if (e.actorRole === "SYSTEM" || !e.actorUserId) return "Hệ thống";
   if (currentUserId && e.actorUserId === currentUserId) return "Bạn";
-  return `${e.actorRole === "ADMIN" ? "Quản trị viên" : e.actorRole === "CUSTOMER" || e.actorRole === "PT" ? "Hội viên" : "Người dùng"} mã ${shortRefSafe(e.actorUserId)}`;
+  if (e.actorRole === "ADMIN") return adminLabel(e.actorUserId, currentUserId);
+  if (e.actorRole === "CUSTOMER" || e.actorRole === "PT") return "Hội viên";
+  if (e.actorRole === "GYM_OWNER") return "Chủ phòng gym";
+  return "Người dùng khác";
 }
 export function eventStep(e: Pick<GymEvent, "fromStatus" | "toStatus">): string | null {
   if (!e.fromStatus && !e.toStatus) return null;
@@ -610,7 +652,7 @@ export function eventStep(e: Pick<GymEvent, "fromStatus" | "toStatus">): string 
 export function eventNote(e: Pick<GymEvent, "note">): string | null {
   const t = text(e.note);
   if (!t) return null;
-  if (/^[A-Z0-9_:.\- ]+$/.test(t) || /^attempt\s+\d+$/i.test(t) || /^class\s+[A-Z_]+$/i.test(t)) return null;
+  if (/^[A-Z0-9_:.\- ]+$/.test(t) || /^attempt\s+\d+$/i.test(t) || /^class\s+[A-Z_]+$/i.test(t) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t)) return null; // a bare account id (INVESTIGATOR_ASSIGNED) is never shown
   return t;
 }
 export const HISTORY_LIMIT_NOTE = "Tối đa 200 sự kiện gần nhất.";

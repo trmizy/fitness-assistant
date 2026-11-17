@@ -179,7 +179,9 @@ test("the report: each group lists exactly the right rows, without PII, and writ
       assert.equal(r.body.needsAttention, undefined, "no report data in a refusal");
     }
 
-    const res = await get("/admin/sessions/reconciliation", admin);
+    // limit=200 (the cap): the shared *_test database may hold rows left by other suites (older than anything made here, so they sort first);
+    // the default page of 50 could cut this test's own rows off. Every assertion on the oldest-first groups below is scoped to rows made here.
+    const res = await get("/admin/sessions/reconciliation?limit=200", admin);
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("cache-control"), "no-store");
     const r = res.body;
@@ -218,7 +220,10 @@ test("the report: each group lists exactly the right rows, without PII, and writ
     assert.ok(!r.endingsUnconfirmed.items.some((x: any) => x.id === endingSettled.id), "a SETTLED ending is not unconfirmed");
 
     // endedWithoutSettledEnding: the two ended contracts without a SETTLED ending (one has no row at all, one has a PENDING row).
-    const ended = r.endedWithoutSettledEnding.items;
+    // The shared *_test database may hold ended contracts left by OTHER suites (older than anything made here, so they would sort first):
+    // the assertions below are scoped to the contracts THIS test created. Ordering of the rows it created is still asserted.
+    const mine = new Set<string>(all.map((c) => c.id));
+    const ended = r.endedWithoutSettledEnding.items.filter((x: any) => mine.has(x.contractId));
     assert.deepEqual(ended.map((x: any) => x.contractId), [cEndedPending.id, cEndedNoRow.id], "oldest first");
     const noRow = ended.find((x: any) => x.contractId === cEndedNoRow.id);
     assert.equal(noRow.hasIntent, false);
@@ -231,7 +236,8 @@ test("the report: each group lists exactly the right rows, without PII, and writ
     assert.equal(pend.contractStatus, "CANCELLED");
 
     // disputes: oldest first, with age and SLA state.
-    const disp = r.disputes.items;
+    const myDisputes = new Set<string>([d3.id, d11.id, d15.id]);
+    const disp = r.disputes.items.filter((x: any) => myDisputes.has(x.sessionId));
     assert.deepEqual(disp.map((x: any) => x.sessionId), [d15.id, d11.id, d3.id]);
     assert.deepEqual(disp.map((x: any) => [x.ageDays, x.slaState]), [[15, "OVERDUE"], [11, "DUE_SOON"], [3, "WITHIN_SLA"]]);
     assert.equal(disp[2].disputeType, "PT_NO_SHOW_CLAIM");
@@ -255,7 +261,9 @@ test("the report: each group lists exactly the right rows, without PII, and writ
     assert.equal(one.needsAttention.truncated, true);
     assert.equal(one.disputes.items.length, 1);
     assert.equal(one.disputes.truncated, true);
-    assert.equal(one.disputes.items[0].sessionId, d15.id);
+    // The oldest dispute of the whole table (leftovers of other suites may be older than d15): same ordering rule, read from the DB itself.
+    const oldestDispute = await prisma.session.findFirst({ where: { status: "DISPUTED" }, orderBy: [{ disputedAt: "asc" }, { id: "asc" }], select: { id: true } });
+    assert.equal(one.disputes.items[0].sessionId, oldestDispute!.id);
     const huge = (await get("/admin/sessions/reconciliation?limit=999999&endingMinAgeMinutes=abc", admin)).body;
     assert.equal(huge.params.limit, 200, "capped");
     assert.equal(huge.params.endingMinAgeMinutes, 15, "garbage falls back to the default");
@@ -265,7 +273,7 @@ test("the report: each group lists exactly the right rows, without PII, and writ
     // ── the existing disputed listing still works, and nothing was written by any of the calls ──
     const legacy = await get("/admin/sessions/disputed", admin);
     assert.equal(legacy.status, 200);
-    assert.equal(legacy.body.length, 3);
+    assert.deepEqual(new Set(legacy.body.map((x: any) => x.id).filter((id: string) => myDisputes.has(id))), myDisputes, "the legacy listing still holds exactly this test's 3 disputed sessions (others' leftovers ignored)");
     assert.equal(await snapshotTables(), before, "NO row of settlements / sessions / contracts changed and no audit / notification was written");
   } finally {
     await cleanup([pt], all.map((c) => c.id));

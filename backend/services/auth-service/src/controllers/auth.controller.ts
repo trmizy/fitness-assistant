@@ -17,7 +17,9 @@ import {
   changePasswordSchema,
   updateUserRoleSchema,
   PASSWORD_POLICY_MESSAGE_VI,
+  describeValidationError,
 } from "../models/auth.models";
+import { isUserListQueryError, parseUserListQuery } from "../services/admin-user-list-query";
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
@@ -42,8 +44,6 @@ const USER_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 function isWellFormedUserId(value: unknown): boolean {
   return typeof value === "string" && USER_ID_SHAPE.test(value);
 }
-
-const LISTABLE_ROLES = ["CUSTOMER", "PT", "GYM_OWNER"];
 
 function getBearerToken(req: Request): string | null {
   const token = req.headers.authorization?.split(" ")[1];
@@ -74,25 +74,32 @@ export const authController = {
 
       // C1-09: an unrecognised filter used to be silently ignored (every account came back).
       // ADMIN is deliberately not listable here — this endpoint has always excluded admins.
-      const rawRole = req.query.role;
-      let role: any;
-      if (Array.isArray(rawRole) || (rawRole !== undefined && typeof rawRole !== "string")) {
-        res.status(400).json({ error: "Bộ lọc role không hợp lệ", code: "INVALID_ROLE_FILTER" });
+      // FIX5-ADMIN-PERF: status / search / id / page / limit are validated the same way; with none of
+      // them the answer is the unchanged full list, with page/limit it is one page plus `total`.
+      const parsed = parseUserListQuery(req.query as Record<string, unknown>);
+      if (isUserListQueryError(parsed)) {
+        res.status(parsed.status).json({ error: parsed.message, code: parsed.code });
         return;
       }
-      if (typeof rawRole === "string" && rawRole.trim() !== "") {
-        const roleParam = rawRole.trim().toUpperCase();
-        if (!LISTABLE_ROLES.includes(roleParam)) {
-          res.status(400).json({
-            error: `Bộ lọc role không hợp lệ (chấp nhận: ${LISTABLE_ROLES.join(", ")})`,
-            code: "INVALID_ROLE_FILTER",
-          });
-          return;
-        }
-        role = roleParam;
+      const { role, isActive, searchKey, id, ids, paging } = parsed;
+      if (isActive === undefined && !searchKey && !id && !ids && !paging) {
+        const users = await authService.listUsers(role as any);
+        res.json({ users });
+        return;
       }
-      const users = await authService.listUsers(role);
-      res.json({ users });
+      const { users, total } = await authService.listUsersPage({
+        role: role as any,
+        isActive,
+        searchKey,
+        id,
+        ids,
+        ...(paging ? { page: paging.page, limit: paging.limit } : {}),
+      });
+      res.json({
+        users,
+        total,
+        ...(paging ? { page: paging.page, limit: paging.limit, totalPages: Math.max(1, Math.ceil(total / paging.limit)) } : {}),
+      });
     } catch (error: any) {
       if (error.status) {
         res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
@@ -110,9 +117,7 @@ export const authController = {
       res.status(202).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -136,9 +141,7 @@ export const authController = {
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -158,9 +161,7 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -281,6 +282,11 @@ export const authController = {
       }
       res.json({ message: "Logged out successfully" });
     } catch (error: any) {
+      // N13A-07: a missing/invalid body is a client error, not a 500.
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Thiếu refresh token", code: "REFRESH_TOKEN_REQUIRED" });
+        return;
+      }
       logger.error(error, "Logout error");
       res.status(500).json({ error: "Internal server error" });
     }

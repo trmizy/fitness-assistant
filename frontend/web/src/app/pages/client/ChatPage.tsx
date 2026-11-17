@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { PaperPlaneTiltIcon as Send, PaperclipIcon as Paperclip, MagnifyingGlassIcon as Search, DotsThreeVerticalIcon as MoreVertical, PhoneIcon as Phone, VideoCameraIcon as Video, FileTextIcon as FileText, CalendarIcon as Calendar, CaretLeftIcon as ChevronLeft, WarningCircleIcon as AlertCircle, UserIcon as User, CircleNotchIcon as Loader2, PlusIcon as Plus, ChatTextIcon as MessageSquare } from "@phosphor-icons/react";
+import { PaperPlaneTiltIcon as Send, MagnifyingGlassIcon as Search, PhoneIcon as Phone, VideoCameraIcon as Video, FileTextIcon as FileText, CalendarIcon as Calendar, CaretLeftIcon as ChevronLeft, WarningCircleIcon as AlertCircle, UserIcon as User, CircleNotchIcon as Loader2, PlusIcon as Plus, ChatTextIcon as MessageSquare } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -15,6 +15,8 @@ import {
   chatPartnerName,
   chatRoleLabel,
   chatSendErrorText,
+  filterConversationsByPartner,
+  isTransientSendError,
   mergeMessages,
 } from "../../utils/chatThread";
 
@@ -30,6 +32,10 @@ export function ChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // True while the banner comes from a send that got no answer (offline / server busy): such a banner clears
+  // itself when the connection is back. The typed text is never touched.
+  const [sendErrorTransient, setSendErrorTransient] = useState(false);
+  const [convSearch, setConvSearch] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">(
     searchParams.get("conversationId") ? "chat" : "list",
   );
@@ -182,6 +188,7 @@ export function ChatPage() {
     const text = check.text;
     setSending(true);
     setSendError(null);
+    setSendErrorTransient(false);
     try {
       // Resolves only after the server stored the message; the box is cleared then and not before.
       const sent = await realtimeChat.sendMessage(activeConvId, text);
@@ -189,10 +196,35 @@ export function ChatPage() {
       if (sent) setInput((current) => (current.trim() === text ? "" : current));
     } catch (err) {
       setSendError(chatSendErrorText(err));
+      setSendErrorTransient(isTransientSendError(err));
     } finally {
       setSending(false);
     }
   }, [input, activeConvId, realtimeChat, sending]);
+
+  // N11F-02: once the connection is back (live socket reconnected, or the browser is online again) a "could not
+  // send" banner caused by the outage goes away on its own. The text stays in the box; nothing is re-sent.
+  const realtimeStatus = realtimeChat.status;
+  const prevRealtimeStatus = useRef(realtimeStatus);
+  useEffect(() => {
+    const was = prevRealtimeStatus.current;
+    prevRealtimeStatus.current = realtimeStatus;
+    if (realtimeStatus === "connected" && was !== "connected" && sendErrorTransient) {
+      setSendError(null);
+      setSendErrorTransient(false);
+    }
+  }, [realtimeStatus, sendErrorTransient]);
+  useEffect(() => {
+    if (!sendErrorTransient) return;
+    const onOnline = () => {
+      setSendError(null);
+      setSendErrorTransient(false);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [sendErrorTransient]);
+
+  const visibleConversations = filterConversationsByPartner(conversations as any[], convSearch);
 
   if (convsLoading) {
     return (
@@ -214,14 +246,21 @@ export function ChatPage() {
             <Search className="w-4 h-4 text-zinc-500" />
             <input
               type="text"
+              value={convSearch}
+              onChange={(e) => setConvSearch(e.target.value)}
               placeholder="Tìm cuộc trò chuyện..."
+              aria-label="Tìm cuộc trò chuyện"
               className="bg-transparent text-sm outline-none flex-1 text-zinc-300 placeholder-zinc-600"
             />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {conversations.length > 0 ? (
-            conversations.map((c: any) => (
+          {conversations.length > 0 && visibleConversations.length === 0 ? (
+            <div className="p-10 text-center">
+              <p className="text-sm text-zinc-500 break-words">Không tìm thấy cuộc trò chuyện nào khớp với "{convSearch.trim()}".</p>
+            </div>
+          ) : conversations.length > 0 ? (
+            visibleConversations.map((c: any) => (
               <button
                 key={c.id}
                 onClick={() => {
@@ -334,9 +373,6 @@ export function ChatPage() {
                 >
                   <Video className="w-4 h-4" />
                 </button>
-                <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
@@ -435,15 +471,15 @@ export function ChatPage() {
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <button className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
-                  <Paperclip className="w-4 h-4" />
-                </button>
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => {
                     setInput(e.target.value);
-                    if (sendError) setSendError(null);
+                    if (sendError) {
+                      setSendError(null);
+                      setSendErrorTransient(false);
+                    }
                   }}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                   placeholder="Nhập tin nhắn..."

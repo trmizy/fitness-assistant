@@ -60,7 +60,7 @@ test('gym dev-shared: gate opens only with every condition; both gym flags follo
     assert.equal(flagVerdict(dev()).effective, true);
     assert.equal(replacementEnabled(dev()), true);
     assert.notEqual(DEV_MARKER_VALUE, MARKER_VALUE);
-    for (const db of ['gymcoach_user', 'gymcoach_payment', 'gymcoach_gym']) assert.equal(gateVerdict(dev({ DATABASE_URL: `postgresql://u:pw@h/${db}` })).open, true, db);
+    for (const db of ['gymcoach_user', 'gymcoach_payment', 'gymcoach_gym', 'gymcoach_user_official', 'gymcoach_payment_official', 'gymcoach_gym_official']) assert.equal(gateVerdict(dev({ DATABASE_URL: `postgresql://u:pw@h/${db}` })).open, true, db);
     for (const [label, env, why] of [
       ['wrong mode', dev({ DISPUTE_RUNTIME_MODE: 'Dev-shared' }), 'NOT_TEST_ENV'],
       ['no mode', dev({ DISPUTE_RUNTIME_MODE: undefined }), 'NOT_TEST_ENV'],
@@ -71,6 +71,13 @@ test('gym dev-shared: gate opens only with every condition; both gym flags follo
       ['db gymcoach_gym_prod', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_prod' }), 'DEV_DB_NOT_ALLOWLISTED'],
       ['db gymcoach_gym_e2e', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_e2e' }), 'DEV_DB_NOT_ALLOWLISTED'],
       ['db gymini_gym_e2e', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymini_gym_e2e' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['db gymcoach_gym_official2 (near miss)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_official2' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['db gymcoach_gym_official_old (near miss)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_official_old' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['db xgymcoach_gym_official (prefix)', dev({ DATABASE_URL: 'postgresql://u:pw@h/xgymcoach_gym_official' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['db GYMCOACH_GYM_OFFICIAL (case)', dev({ DATABASE_URL: 'postgresql://u:pw@h/GYMCOACH_GYM_OFFICIAL' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['db gymcoach_auth_official (not a dispute service)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_auth_official' }), 'DEV_DB_NOT_ALLOWLISTED'],
+      ['official DB but production', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_official', NODE_ENV: 'production' }), 'DEV_NODE_ENV_NOT_ALLOWED'],
+      ['official DB but no marker', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_gym_official', DISPUTE_DEV_COMPOSE_MARKER: undefined }), 'DEV_MARKER_MISSING'],
       ['db unset', dev({ DATABASE_URL: undefined }), 'DEV_DB_NOT_ALLOWLISTED'],
       ['env-provided allowlist ignored (dev var)', dev({ DATABASE_URL: 'postgresql://u:pw@h/other_db', DISPUTE_DEV_DB_ALLOWLIST: 'other_db' }), 'DEV_DB_NOT_ALLOWLISTED'],
       ['env-provided allowlist ignored (e2e var)', dev({ DATABASE_URL: 'postgresql://u:pw@h/other_db', DISPUTE_E2E_DB_ALLOWLIST: 'other_db' }), 'DEV_DB_NOT_ALLOWLISTED'],

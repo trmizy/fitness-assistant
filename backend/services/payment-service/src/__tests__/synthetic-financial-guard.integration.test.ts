@@ -255,6 +255,15 @@ test('Dot X: every /internal money endpoint refuses entityOrigin=SYNTHETIC with 
       idempotencyKey: `MEMBERSHIP_RELEASE:${entityId}`,
       entityOrigin: 'SYNTHETIC',
     }],
+    ['/contracts/membership-appeal-supplement', {
+      transactionId: txnId,
+      gymId,
+      clientId: u2,
+      amount: '70000.00',
+      label: 'Membership appeal supplement',
+      idempotencyKey: `GYM_CASE_APPEAL_SUPPLEMENT:${entityId}`,
+      entityOrigin: 'SYNTHETIC',
+    }],
     [`/withdrawals/gym/${gymId}`, {
       amount: '100000',
       payoutInfo: 'VCB 0123456789',

@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../../services/api";
 import { toast } from "sonner";
 import { feetInchesFromCm, cmFromFeetInches, kgFromLb, lbFromKg } from "../../utils/units";
+import { fullName } from "../../utils/fullName";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
 const goals = [
@@ -371,7 +372,7 @@ export function ProfilePage() {
             }}
           />
           <h2 className="text-zinc-100 font-bold">
-            {user ? `${user.firstName} ${user.lastName}` : "Client"}
+            {fullName(user, "Client")}
           </h2>
           <p className="text-zinc-500 text-sm mt-0.5">
             {isPT ? "Huấn luyện viên PT" : "Thành viên"} · Từ 2026
@@ -407,7 +408,7 @@ export function ProfilePage() {
               {[
                 {
                   label: "Họ và tên",
-                  value: user ? `${user.firstName} ${user.lastName}` : "",
+                  value: fullName(user),
                 },
                 { label: "Email", value: user?.email || "" },
                 {

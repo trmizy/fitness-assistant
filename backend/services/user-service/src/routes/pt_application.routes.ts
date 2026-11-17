@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { roleMiddleware } from "../middleware/role.middleware";
 import { ptApplicationController } from "../controllers/pt_application.controller";
 import { isLambdaRuntime } from "../utils/runtime.util";
+import { requireRealPtDocument } from "../utils/uploaded-file-sniff";
 
 const router = Router();
 
@@ -108,6 +109,7 @@ router.post(
   "/me/upload",
   authMiddleware,
   handleDocumentUpload,
+  requireRealPtDocument,
   ptApplicationController.upload as any,
 );
 router.post(

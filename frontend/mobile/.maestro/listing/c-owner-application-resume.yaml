@@ -23,8 +23,8 @@ appId: vn.fitnessassistant.app
 - takeScreenshot: c-01-resumed
 # jump to the Tiện ích step (7/10) via the step chips (scroll the chip row to it)
 - swipe:
-    start: 85%, 14%
-    end: 5%, 14%
+    start: 85%, 17%
+    end: 5%, 17%
 - takeScreenshot: c-01b-chips
 - tapOn: "Tiện ích"
 - assertVisible: "Bước 7/10.*"

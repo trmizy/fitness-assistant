@@ -6,6 +6,8 @@ import { logger } from '@gym-coach/shared';
 import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
+import { gymDebtSummary } from '../services/gym-debt-recovery';
+import { prisma } from '../repositories/prisma';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
 import {
@@ -26,6 +28,7 @@ import {
   clawbackMembershipReferral,
   releaseMembershipPending,
 } from '../services/membership-ledger.service';
+import { MembershipSupplementError, refundMembershipAppealSupplement } from '../services/membership-appeal-supplement.service';
 import { releaseOrder, refundOrder } from '../services/personalized-service-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { IdempotencyKeyConflictError } from '../services/ledger-idempotency';
@@ -1082,6 +1085,58 @@ router.post('/contracts/membership-release', handleMembershipRelease);
 // money moves to the client on a self-cancel), and no referral clawback ever precedes it.
 router.post('/contracts/membership-cancel-forfeit', handleMembershipRelease);
 
+const membershipAppealSupplementSchema = z.object({
+  transactionId: z.string().min(1),
+  gymId: z.string().min(1),
+  clientId: z.string().min(1),
+  // whole dong, > 0 (gym-service already rounded the difference DOWN to 1,000)
+  amount: z.string().min(1),
+  label: z.string().min(1),
+  // GYM_CASE_APPEAL_SUPPLEMENT:<approvalId> - one decision pays at most once.
+  idempotencyKey: z.string().min(1),
+  entityOrigin: entityOriginSchema,
+});
+
+// POST /internal/contracts/membership-appeal-supplement - Q1: the member won a gym-complaint appeal AFTER a refund was paid; pay the difference.
+// Funded like the original refund (frozen rates): gym share from the gym wallet AVAILABLE, platform share from REVENUE; a short gym is recorded as a
+// GYM_DEBT obligation and the platform fronts it - the member is paid in full. See services/membership-appeal-supplement.service.ts.
+router.post('/contracts/membership-appeal-supplement', async (req: Request, res: Response) => {
+  const parsed = membershipAppealSupplementSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  if (rejectIfSyntheticOrigin(d.entityOrigin, res)) return;
+  let amount: Prisma.Decimal;
+  try {
+    amount = new Prisma.Decimal(d.amount);
+  } catch {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_AMOUNT', message: 'Số tiền hoàn thêm không hợp lệ' } });
+  }
+  try {
+    const result = await refundMembershipAppealSupplement({
+      transactionId: d.transactionId,
+      gymId: d.gymId,
+      clientId: d.clientId,
+      amount,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof MembershipSupplementError) {
+      logger.warn({ error: 'membership appeal supplement refused', code: err.code });
+      return res.status(err.status).json({ success: false, error: { code: err.code, message: err.message } });
+    }
+    if (respondLedgerRefusal(err, res)) return;
+    if (err instanceof WalletNotActiveError) {
+      return res.status(409).json({ success: false, error: { code: 'WALLET_NOT_ACTIVE', message: ADMIN_WALLET_NOT_ACTIVE_MESSAGE } });
+    }
+    logger.error({ error: 'membership appeal supplement failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'MEMBERSHIP_SUPPLEMENT_FAILED', message: failureMessage('MEMBERSHIP_SUPPLEMENT_FAILED') } });
+  }
+});
+
 // POST /internal/payments/:transactionId/mark-activated
 router.post('/payments/:transactionId/mark-activated', async (req: Request, res: Response) => {
   const txn = await transactionRepository.findById(req.params.transactionId);
@@ -1105,6 +1160,8 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
     return res.status(400).json({ success: false, error: { code: 'INVALID_OWNER_TYPE' } });
   }
   const wallet = await walletService.getOrCreateWallet(ownerType, req.params.ownerId);
+  // FIX3-PAY: a gym wallet also says what the platform has recovered from its income and what it still owes (additive field; other owner types unchanged).
+  if (ownerType === 'GYM') return res.json({ success: true, data: { ...wallet, gymDebt: await gymDebtSummary(prisma, req.params.ownerId) } });
   return res.json({ success: true, data: wallet });
 });
 

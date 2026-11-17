@@ -132,7 +132,7 @@ async function cleanup(w: World) {
 const rowsFor = (w: World) => prisma.contract.count({ where: { clientUserId: w.clientUserId } });
 
 const request = (w: World, gymId?: string) =>
-  contractService.requestContract(w.clientUserId, { ptUserId: w.ptUserId, packageId: w.packageId, gymId });
+  contractService.requestContract(w.clientUserId, { ptUserId: w.ptUserId, packageId: w.packageId, gymId, ...(gymId ? {} : { acknowledgedIndependentVenue: true }) });
 
 dbTest.after(async () => {
   await prisma.$disconnect();
@@ -415,7 +415,7 @@ dbTest("controller body: 422 carries code + details (gymId, brandId / membership
     let body: any;
     const res: any = { status: (s: number) => ((status = s), res), json: (b: any) => ((body = b), res) };
     await contractController.requestContract(
-      { headers: { "x-user-id": w.clientUserId }, body: { ptUserId: w.ptUserId, packageId: w.packageId, gymId } },
+      { headers: { "x-user-id": w.clientUserId }, body: { ptUserId: w.ptUserId, packageId: w.packageId, gymId }, get: () => null, socket: {} },
       res,
     );
     return { status, body };

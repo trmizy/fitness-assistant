@@ -149,6 +149,13 @@ describe("notifications", () => {
       assert.notEqual(notificationMeta(`GYM_COMPLAINT_CASE_${t}`).title, "Thông báo");
     }
     assert.equal(notificationRoute({ link: null, entityType: "GYM_COMPLAINT_CASE" }), null);
+    // Q9: withdrawal notices get their own title and open the right wallet / withdrawals screen.
+    for (const t of ["APPROVED", "PAID", "REJECTED", "AWAITING_SECOND_ADMIN"]) {
+      assert.notEqual(notificationMeta(`WITHDRAWAL_${t}`).title, "Thông báo");
+    }
+    assert.equal(notificationRoute({ link: "/pt/wallet", entityType: "WITHDRAWAL_REQUEST" }), "/pt/wallet");
+    assert.equal(notificationRoute({ link: "/admin/finance/withdrawals", entityType: "WITHDRAWAL_REQUEST" }), "/admin/withdrawals");
+    assert.equal(notificationRoute({ link: "/client/wallet", entityType: "WITHDRAWAL_REQUEST" }), "/client/profile/wallet");
     assert.equal(notificationMeta("CONTRACT_PAUSED_PT_SUSPENDED").title, "Hợp đồng tạm dừng");
     assert.notEqual(notificationMeta("CONTRACT_PAUSED_PT_SUSPENDED").tone, "danger");
     assert.equal(notificationMeta("CONTRACT_RESUMED_PT_REINSTATED").title, "Hợp đồng hoạt động trở lại");

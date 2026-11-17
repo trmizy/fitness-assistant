@@ -14,6 +14,17 @@ function destinationFor(relatedEntityType: RelatedEntityType): { path: string; l
 }
 
 /**
+ * N13C-12 = N11B-01: after a cancelled / failed / unconfirmed payment the only button was "Về Ví" — but no purchase touches the
+ * wallet, so the user was stranded away from the contract or membership they were paying. The retry lives on that item
+ * (the contract's / membership's own "Thanh toán" action), so the primary button goes back there; the wallet stays secondary.
+ */
+function retryDestinationFor(relatedEntityType: RelatedEntityType): { path: string; label: string } | null {
+  if (relatedEntityType === "GYM_MEMBERSHIP") return { path: "/client/gym-memberships", label: "Về gói tập để thanh toán lại" };
+  if (relatedEntityType === "PT_CONTRACT") return { path: "/client/contracts", label: "Về hợp đồng để thanh toán lại" };
+  return null;
+}
+
+/**
  * Landing page for gateway return-URLs (VNPay, ZaloPay — every provider's checkout
  * redirect ends up here: gym membership purchases, PT contract payments, not just the old
  * wallet top-up). The `status` query param from the gateway is DISPLAY-ONLY and never
@@ -51,6 +62,7 @@ export function PaymentResultPage() {
   }, [txnId]);
 
   const dest = destinationFor(relatedEntityType);
+  const retryDest = retryDestinationFor(relatedEntityType);
 
   const view = {
     checking: { icon: <Loader2 className="w-12 h-12 text-green-500 animate-spin" />, title: "Đang xác nhận thanh toán…", desc: "Đang kiểm tra với cổng thanh toán, vui lòng đợi." },
@@ -68,21 +80,41 @@ export function PaymentResultPage() {
         <p className="text-sm text-zinc-500">{view.desc}</p>
         {txnId && <p className="text-xs text-zinc-700 break-all">Mã giao dịch: {txnId}</p>}
 
-        <div className="flex gap-3 pt-2">
-          {phase === "pending" && (
+        <div className="flex flex-col sm:flex-row gap-3 pt-2" data-testid="payment-result-actions">
+          {(phase === "pending" || phase === "error") && (
             <button
               onClick={() => void confirm()}
-              className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              className="flex-1 min-h-11 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
             >
               Kiểm tra lại
             </button>
           )}
-          <button
-            onClick={() => navigate(phase === "paid" ? dest.path : "/client/wallet")}
-            className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-          >
-            {phase === "paid" ? dest.label : "Về Ví"} <ArrowRight className="w-4 h-4" />
-          </button>
+          {phase !== "paid" && phase !== "checking" && retryDest ? (
+            <>
+              <button
+                data-testid="payment-result-primary"
+                onClick={() => navigate(retryDest.path)}
+                className="flex-1 min-h-11 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                {retryDest.label} <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                data-testid="payment-result-wallet"
+                onClick={() => navigate("/client/wallet")}
+                className="flex-1 min-h-11 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Về Ví
+              </button>
+            </>
+          ) : (
+            <button
+              data-testid="payment-result-primary"
+              onClick={() => navigate(phase === "paid" ? dest.path : "/client/wallet")}
+              className="flex-1 min-h-11 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {phase === "paid" ? dest.label : "Về Ví"} <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
  * D6 - investigation controls of a gym case: assign (G5), not accepting at intake and the step changes (G6), request more (G7),
  * recollect (G8) and acknowledge an evidence change (G14). Each form is drawn only when the server's `allowedActions` allows it.
  */
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { listAdminOptions } from "../../disputes/actions/adminDirectory";
@@ -10,6 +10,8 @@ import { gymCaseApi } from "../gymCaseApi";
 import { GYM_QUERY_OPTIONS, useGymQueryKeys } from "../gymCaseQueryKeys";
 import { LIMITS, STEP_VERB, textError, transitionTargets, type Errors } from "../gymCaseModel";
 import { gymStatusLabel } from "../gymCaseLabels";
+import { ASK_CHOICES, clockSentence, partiesOf, previewResponseClocks, type AskChoice, type AskParty } from "../gymResponseClock";
+import { formatDateTimeSafe } from "../gymFormat";
 import type { GymAssignResult } from "../gymCaseTypes";
 import { ActionButton, ButtonRow, ConfirmModal, ErrorBox, Field, FormCard, ResultNote, Select, TextArea, counter, useCloseOnResult, useGymWrite } from "../gymCaseKit";
 import type { FormProps } from "./formTypes";
@@ -216,22 +218,28 @@ export function TransitionCard({ detail, onChanged, push }: FormProps) {
 
 export function RequestMoreCard({ detail, onChanged, push }: FormProps) {
   const id = useId();
-  const w = useGymWrite<{ to: "COLLECTING" | "AWAITING_PARTIES"; note: string }, { status: string }>(onChanged);
+  const w = useGymWrite<{ to: "COLLECTING" | "AWAITING_PARTIES"; note: string; parties: AskParty[] }, { status: string }>(onChanged);
   const [to, setTo] = useState<"COLLECTING" | "AWAITING_PARTIES">("AWAITING_PARTIES");
+  const [ask, setAsk] = useState<AskChoice>("MEMBER");
   const [note, setNote] = useState("");
   const [shown, setShown] = useState(false);
   const err = textError(note, LIMITS.note, true);
   const errs: Errors = { ...w.fieldErrors, ...(shown && err ? { note: err } : {}) };
+  const waiting = to === "AWAITING_PARTIES";
+  const parties = partiesOf(ask);
+  // Q7: which clock each asked party will get (rule of the server: 72h first request, 48h later rounds, a running clock is kept).
+  const clocks = useMemo(() => previewResponseClocks(detail.deadlines, parties), [detail.deadlines, ask]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function send() {
     setShown(true);
     if (err) return;
-    const r = await w.submit({ to, note: note.trim() }, (key, b) => gymCaseApi.requestMore(detail.case.id, b, key));
+    const r = await w.submit({ to, note: note.trim(), parties }, (key, b) => gymCaseApi.requestMore(detail.case.id, b, key));
     if (r.ok) {
+      const who = ask === "MEMBER" ? "Khách" : ask === "GYM" ? "Phòng gym" : "Khách và phòng gym";
       push({
         tone: "success",
         testId: "d6-more-done",
-        text: to === "AWAITING_PARTIES" ? "Đã yêu cầu hội viên bổ sung. Hội viên nhận thông báo trong ứng dụng." : "Đã đưa hồ sơ về bước thu thập bằng chứng.",
+        text: waiting ? `Đã yêu cầu bổ sung. ${who} nhận thông báo trong ứng dụng; hạn phản hồi bắt đầu tính từ lúc thông báo được gửi tới.` : "Đã đưa hồ sơ về bước thu thập bằng chứng.",
       });
       setNote("");
       setShown(false);
@@ -239,19 +247,38 @@ export function RequestMoreCard({ detail, onChanged, push }: FormProps) {
   }
 
   return (
-    <FormCard title="Yêu cầu bổ sung" caption="Hỏi thêm hội viên (họ được báo trong ứng dụng) hoặc quay lại thu thập bằng chứng." testId="d6-request-more">
+    <FormCard title="Yêu cầu bổ sung" caption="Hỏi thêm khách hoặc phòng gym (họ được báo trong ứng dụng) hoặc quay lại thu thập bằng chứng." testId="d6-request-more">
       <Field id={`${id}-to`} label="Bước tiếp theo" required>
         <Select
           id={`${id}-to`}
           value={to}
           onChange={(v) => setTo(v === "COLLECTING" ? "COLLECTING" : "AWAITING_PARTIES")}
           options={[
-            { value: "AWAITING_PARTIES", label: "Chờ hội viên bổ sung thông tin" },
+            { value: "AWAITING_PARTIES", label: "Chờ bên được hỏi bổ sung thông tin" },
             { value: "COLLECTING", label: "Quay lại thu thập bằng chứng" },
           ]}
         />
       </Field>
-      <Field id={`${id}-note`} label="Cần hội viên bổ sung điều gì" required error={errs.note} count={counter(note)} max={LIMITS.note}>
+      {waiting && (
+        <>
+          <Field id={`${id}-ask`} label="Hỏi ai" required>
+            <Select id={`${id}-ask`} value={ask} onChange={(v) => setAsk(v === "GYM" || v === "BOTH" ? v : "MEMBER")} options={ASK_CHOICES.map((c) => ({ value: c.value, label: c.label }))} />
+          </Field>
+          <div role="note" data-testid="d6-more-clocks" className="space-y-1 rounded-lg border border-adm-border-soft bg-adm-surface-2 px-3 py-2.5 text-xs text-adm-text-2">
+            <p className="font-semibold text-adm-text">Hạn phản hồi sẽ bắt đầu</p>
+            <ul className="space-y-1">
+              {clocks.map((c) => (
+                <li key={c.party} data-testid={`d6-more-clock-${c.party}`}>
+                  {clockSentence(c, (d) => formatDateTimeSafe(d instanceof Date ? d.toISOString() : d))}
+                </li>
+              ))}
+            </ul>
+            <p>Đồng hồ chỉ chạy từ lúc thông báo trong ứng dụng thật sự được gửi tới người nhận. Hết hạn chỉ chuyển hồ sơ sang bước đánh giá, không kết luận lỗi của bên nào.</p>
+          </div>
+        </>
+      )}
+      {!waiting && <p className="text-xs text-adm-text-2">Quay lại thu thập bằng chứng không gửi thông báo cho ai và không bắt đầu hạn phản hồi nào.</p>}
+      <Field id={`${id}-note`} label={waiting ? "Cần bên được hỏi bổ sung điều gì" : "Lý do quay lại thu thập bằng chứng"} required error={errs.note} count={counter(note)} max={LIMITS.note}>
         <TextArea
           id={`${id}-note`}
           value={note}

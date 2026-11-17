@@ -80,6 +80,8 @@ export interface TransitionInput {
 export interface RequestMoreInput {
   to?: "COLLECTING" | "AWAITING_PARTIES";
   note: string;
+  /** who is asked (the server defaults to the member only); the response clock starts per asked party */
+  parties?: Array<"MEMBER" | "GYM">;
 }
 export interface ClaimInput {
   claimantRole: GymClaimantRole;
@@ -187,7 +189,7 @@ export function createGymCaseApi(client: GymHttpClient) {
     // ── G5-G17 investigation and four eyes ──
     assign: (caseId: string, input: AssignInput, key: string) => postData<GymAssignResult>(`${A}/${enc(caseId)}/assign`, compact({ investigatorId: input.investigatorId }), key),
     transition: (caseId: string, input: TransitionInput, key: string) => postData<GymTransitionResult>(`${A}/${enc(caseId)}/transition`, compact({ to: input.to, reason: input.reason }), key),
-    requestMore: (caseId: string, input: RequestMoreInput, key: string) => postData<GymRequestMoreResult>(`${A}/${enc(caseId)}/request-more`, compact({ to: input.to, note: input.note }), key),
+    requestMore: (caseId: string, input: RequestMoreInput, key: string) => postData<GymRequestMoreResult>(`${A}/${enc(caseId)}/request-more`, compact({ to: input.to, note: input.note, parties: input.parties }), key),
     recollect: (caseId: string, key: string) => postData<GymRecollectResult>(`${A}/${enc(caseId)}/recollect`, {}, key),
     addClaim: (caseId: string, input: ClaimInput, key: string) => postData<GymCreatedId>(`${A}/${enc(caseId)}/claims`, { claimantRole: input.claimantRole, text: input.text }, key),
     addAssessment: (caseId: string, input: AssessmentInput, key: string) =>
@@ -209,7 +211,7 @@ export function createGymCaseApi(client: GymHttpClient) {
     /** The outcome is computed by the server from (class, finding). */
     recordFinding: (caseId: string, input: FindingInput, key: string) => postData<GymFindingResult>(`${A}/${enc(caseId)}/finding`, { finding: input.finding, reasoning: input.reasoning }, key),
     /** No outcome, no amount: only an optional note. */
-    propose: (caseId: string, input: { note?: string }, key: string) => postData<GymProposalResult>(`${A}/${enc(caseId)}/proposal`, compact({ note: input.note }), key),
+    propose: (caseId: string, input: { note?: string; appealResult?: "UPHOLD" | "OVERTURN_MEMBER" | "OVERTURN_GYM" }, key: string) => postData<GymProposalResult>(`${A}/${enc(caseId)}/proposal`, compact({ note: input.note, appealResult: input.appealResult }), key),
     /** Four eyes: the server re-checks the approver. Approving executes nothing. */
     decide: (caseId: string, input: DecisionInput, key: string) =>
       postData<GymDecideResult>(

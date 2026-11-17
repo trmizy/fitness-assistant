@@ -7,7 +7,7 @@ import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../utils/passwordPolicy";
 
-const ROLE_LABEL: Record<string, string> = { OWNER: "Chủ sở hữu", MANAGER: "Quản lý chi nhánh" };
+const ROLE_LABEL: Record<string, string> = { OWNER: "Chủ sở hữu", MANAGER: "Quản lý chi nhánh", RECEPTIONIST: "Lễ tân", ACCOUNTANT: "Kế toán" };
 
 /**
  * Phase 3 — người nhận thư mời (chủ sở hữu lần đầu HOẶC quản lý chi nhánh mới) mở link,
@@ -22,17 +22,35 @@ export function PartnerInviteAcceptPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  // N15C-11: once the invitation is accepted the preview is switched OFF (a disabled query is skipped by the cache-wide invalidation login() triggers).
+  const [accepted, setAccepted] = useState(false);
 
   const previewQuery = useQuery({
     queryKey: ["partner-invite-preview", token],
     queryFn: () => gymService.previewPartnerInvitation(token!),
-    enabled: !!token,
+    enabled: !!token && !accepted,
     retry: false,
+    // N15C-11: the preview is read ONCE. Accepting the invitation consumes it, so any later automatic re-fetch (window focus, reconnect,
+    // remount while logging in) would only get a pointless 409 "already accepted" and could flip a successful page into an error.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 
   const acceptMutation = useMutation({
-    mutationFn: () => gymService.acceptPartnerInvitation(token!, { password, firstName: firstName.trim(), lastName: lastName.trim() || undefined }),
+    // Q4: a person whose access was revoked and who is invited again already has an account - no new password; the same account is switched back on.
+    mutationFn: () =>
+      previewQuery.data?.existingAccount
+        ? gymService.acceptPartnerInvitation(token!, {})
+        : gymService.acceptPartnerInvitation(token!, { password, firstName: firstName.trim(), lastName: lastName.trim() || undefined }),
     onSuccess: async () => {
+      setAccepted(true);
+      if (previewQuery.data?.existingAccount) {
+        toast.success("Đã kích hoạt lại tài khoản — hãy đăng nhập bằng mật khẩu cũ của bạn");
+        navigate("/login", { replace: true });
+        return;
+      }
       toast.success("Đã tạo tài khoản — đang đăng nhập...");
       try {
         const ok = await login(previewQuery.data.email, password);
@@ -68,7 +86,8 @@ export function PartnerInviteAcceptPage() {
 
   const invite = previewQuery.data;
   const passwordsMatch = password.length > 0 && password === confirmPassword;
-  const canSubmit = firstName.trim().length > 0 && isPasswordPolicyMet(password) && passwordsMatch;
+  const existingAccount = Boolean(invite.existingAccount);
+  const canSubmit = existingAccount || (firstName.trim().length > 0 && isPasswordPolicyMet(password) && passwordsMatch);
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
@@ -83,7 +102,13 @@ export function PartnerInviteAcceptPage() {
           <p className="text-xs text-zinc-600 mt-1">Email: {invite.email}</p>
         </div>
 
+        {existingAccount && (
+          <p className="text-sm text-zinc-400 text-center">
+            Bạn đã có tài khoản Gymini với email này. Bấm nút bên dưới để kích hoạt lại quyền truy cập, rồi đăng nhập bằng mật khẩu cũ.
+          </p>
+        )}
         <div className="space-y-3">
+          {!existingAccount && (<>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-zinc-500 mb-1.5 block">Họ *</label>
@@ -122,6 +147,7 @@ export function PartnerInviteAcceptPage() {
             />
             {confirmPassword.length > 0 && !passwordsMatch && <p className="text-[11px] text-red-400 mt-1">Mật khẩu không khớp</p>}
           </div>
+          </>)}
 
           <button
             onClick={() => acceptMutation.mutate()}
@@ -129,7 +155,7 @@ export function PartnerInviteAcceptPage() {
             className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-4 py-2.5 rounded-lg text-sm font-bold transition-all"
           >
             {acceptMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Tạo tài khoản & tiếp tục
+            {existingAccount ? "Kích hoạt lại tài khoản" : "Tạo tài khoản & tiếp tục"}
           </button>
         </div>
       </div>

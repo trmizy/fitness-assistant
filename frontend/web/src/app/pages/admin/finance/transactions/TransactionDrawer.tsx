@@ -59,8 +59,45 @@ function LedgerTable({ entries, paid }: { entries: LedgerEntryDto[]; paid: boole
       </p>
     );
   }
+  const walletCell = (e: LedgerEntryDto) => (
+    <>
+      {/* G-09: the wallet name opens that wallet in the wallet explorer (read only) */}
+      <AdminLink
+        to={walletLink(e.walletId)}
+        aria-label={`Xem ví ${ownerLabel(e.walletOwnerType)}`}
+        data-testid="admin-transaction-ledger-wallet-link"
+        className={`inline-flex min-h-11 items-center rounded-md text-adm-text underline underline-offset-4 xl:min-h-7 ${FOCUS}`}
+      >
+        {ownerLabel(e.walletOwnerType)}
+      </AdminLink>
+      {/* platform wallets use fixed internal ids (payment-service wallet.service: ESCROW / REVENUE), never show them as a user id */}
+      {e.walletOwnerType === "PLATFORM" ? (
+        <div className="text-xs text-adm-text-2">{platformWalletLabel(e.walletOwnerId)}</div>
+      ) : (
+        <ShortIdCopy id={e.walletOwnerId} label="mã chủ ví" />
+      )}
+    </>
+  );
   return (
-    <div className="overflow-x-auto rounded-lg border border-adm-border">
+    <>
+      {/* N14T-14: below 640px the 5-column table hid its last column behind a sideways scroll, so each entry is a stacked card instead. */}
+      <ul data-testid="admin-transaction-ledger-cards" aria-label="Bút toán của giao dịch" className="space-y-2 sm:hidden">
+        {entries.map((e) => (
+          <li key={e.id} className="space-y-1.5 rounded-lg border border-adm-border bg-adm-surface px-3 py-2.5 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">{walletCell(e)}</div>
+              <span className="shrink-0 text-right font-semibold tabular-nums text-adm-text">{formatMoneyExact(e.amount)}</span>
+            </div>
+            <p className="text-xs text-adm-text-2">
+              {entryTypeLabel(e.entryType)} · {bucketLabel(e.bucket)}
+            </p>
+            <p className="text-xs tabular-nums text-adm-text-2">
+              Số dư: {formatMoneyExact(e.balanceBefore)} → {formatMoneyExact(e.balanceAfter)}
+            </p>
+          </li>
+        ))}
+      </ul>
+    <div className="hidden overflow-x-auto rounded-lg border border-adm-border sm:block">
       <table data-testid="admin-transaction-ledger" className="w-full min-w-[34rem] text-left text-sm">
         <caption className="sr-only">Bút toán của giao dịch</caption>
         <thead className="bg-adm-surface-2 text-xs text-adm-text-2">
@@ -75,23 +112,7 @@ function LedgerTable({ entries, paid }: { entries: LedgerEntryDto[]; paid: boole
         <tbody>
           {entries.map((e) => (
             <tr key={e.id} className="border-t border-adm-border-soft align-top">
-              <td className="px-3 py-2">
-                {/* G-09: the wallet name opens that wallet in the wallet explorer (read only) */}
-                <AdminLink
-                  to={walletLink(e.walletId)}
-                  aria-label={`Xem ví ${ownerLabel(e.walletOwnerType)}`}
-                  data-testid="admin-transaction-ledger-wallet-link"
-                  className={`inline-flex min-h-11 items-center rounded-md text-adm-text underline underline-offset-4 xl:min-h-7 ${FOCUS}`}
-                >
-                  {ownerLabel(e.walletOwnerType)}
-                </AdminLink>
-                {/* platform wallets use fixed internal ids (payment-service wallet.service: ESCROW / REVENUE), never show them as a user id */}
-                {e.walletOwnerType === "PLATFORM" ? (
-                  <div className="text-xs text-adm-text-2">{platformWalletLabel(e.walletOwnerId)}</div>
-                ) : (
-                  <ShortIdCopy id={e.walletOwnerId} label="mã chủ ví" />
-                )}
-              </td>
+              <td className="px-3 py-2">{walletCell(e)}</td>
               <td className="px-3 py-2 whitespace-nowrap text-adm-text">{entryTypeLabel(e.entryType)}</td>
               <td className="px-3 py-2 whitespace-nowrap text-adm-text">{bucketLabel(e.bucket)}</td>
               <td className="px-3 py-2 text-right font-semibold tabular-nums text-adm-text">{formatMoneyExact(e.amount)}</td>
@@ -103,6 +124,7 @@ function LedgerTable({ entries, paid }: { entries: LedgerEntryDto[]; paid: boole
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

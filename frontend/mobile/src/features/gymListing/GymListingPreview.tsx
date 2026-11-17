@@ -6,6 +6,7 @@ import { Badge, Button } from "../../components/ui";
 import { absolutePhotoUrl } from "../../services/api";
 import { designTokens } from "../../theme/colors";
 import { useWorkspaceAccent } from "../../theme/workspace";
+import { fullAddress } from "../services/gymDirectory";
 import { AmenityBadgeGroups } from "./AmenityWidgets";
 import type { GymPreviewView } from "./gymListing";
 
@@ -87,7 +88,7 @@ export function GymListingPreviewPanel({
           {preview.address ? (
             <View className="flex-row items-center gap-1">
               <MapPin size={12} color={designTokens.mutedForeground} />
-              <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground">{[preview.address, preview.city].filter(Boolean).join(", ")}</Text>
+              <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground">{fullAddress({ address: preview.address, city: preview.city }, {})}</Text>
             </View>
           ) : null}
         </View>

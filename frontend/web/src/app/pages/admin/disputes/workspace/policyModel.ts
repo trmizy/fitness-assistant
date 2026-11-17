@@ -9,6 +9,7 @@
 import { POLICY_RESULT_LABEL } from "../disputeCaseLabels";
 import type { DisputeEvidence, PolicyReviewItem, PolicyReviewList } from "../disputeCaseTypes";
 import { evidenceRefText } from "./evidenceModel";
+import { adminWhoLabel } from "./adminNames";
 import { shortRef } from "./format";
 
 export const POLICY_SECTION_TITLE = "Kết luận áp dụng chính sách của hợp đồng";
@@ -52,8 +53,7 @@ export interface PolicyView {
 }
 
 function who(id: string | null | undefined, currentUserId: string | null | undefined): string {
-  if (!id) return "—";
-  return currentUserId && id === currentUserId ? "Bạn" : `Quản trị viên (mã ${shortRef(id)})`;
+  return adminWhoLabel(id, currentUserId);
 }
 
 export function describePolicyReviews(detail: { policyReviews?: PolicyReviewList; case?: { id: string }; evidence?: DisputeEvidence[] }, approvable: readonly string[], currentUserId: string | null | undefined): PolicyView {

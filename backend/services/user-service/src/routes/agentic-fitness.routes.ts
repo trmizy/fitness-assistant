@@ -28,7 +28,7 @@ router.post("/drafts", handle((req, id) => {
   return agenticFitnessService.createDraft(id, data.ptId, data.packageId, data.preferences, data.actionId);
 }));
 router.post("/drafts/:id/confirm", handle((req, id) => {
-  const body = z.object({ confirmed: z.literal(true) }).strict().parse(req.body);
-  return agenticFitnessService.confirmDraft(id, z.string().uuid().parse(req.params.id), body.confirmed);
+  const body = z.object({ confirmed: z.literal(true), acknowledgedIndependentVenue: z.boolean().optional() }).strict().parse(req.body);
+  return agenticFitnessService.confirmDraft(id, z.string().uuid().parse(req.params.id), body.confirmed, body.acknowledgedIndependentVenue);
 }));
 export default router;

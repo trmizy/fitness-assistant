@@ -1,5 +1,6 @@
 import { affiliationRepository } from '../repositories/affiliation.repository';
 import { gymService } from './gym.service';
+import { assertInvitablePt } from './pt-eligibility.service';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
@@ -12,6 +13,8 @@ export const affiliationService = {
 
   async invite(gymId: string, ownerId: string, ptId: string, data: { employmentType?: string; commissionRate?: number; visibility?: string }) {
     await gymService.getOwnedGym(gymId, ownerId);
+    // N13E-04: a real, active trainer only (a customer's id or an unknown id no longer leaves a dangling PENDING invitation); after the ownership check so it is no probe for strangers
+    ptId = await assertInvitablePt(ptId);
     try {
       return await affiliationRepository.create({
         gym: { connect: { id: gymId } },

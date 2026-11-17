@@ -479,7 +479,7 @@ test("2. Full cursor pagination across 5,000 PTs with coordinates: 0 duplicates,
 
   const expectedOrdered = visibleWithPkg
     .map((pt) => {
-      const offline = pt.serviceMode !== "ONLINE" && pt.locations.some((l) => l.isActive);
+      const offline = pt.packages.some((p) => p.sessionMode === "OFFLINE") && pt.locations.some((l) => l.isActive);
       const tier = offline ? 0 : 1;
       let minDist: number | null = null;
       if (tier === 0) {
@@ -1016,4 +1016,72 @@ test("9. Privacy: real user-service pino stdout/stderr logs emit zero GPS coordi
   assert.equal(combined.includes("16.439"), false, "valid/malformed lat must never appear in logs");
   assert.equal(combined.includes("29.999"), false, "invalid lat must never appear in logs");
   assert.equal(combined.includes("107.589"), false, "lng must never appear in logs");
+});
+
+test("10. N13B-06: keyset search mode filter follows the packages the PT sells, not the application service_mode", async () => {
+  const mk = (n: string) => ({ userId: `${prefix}pm${n}`, profileId: `${prefix}pm${n}_p`, appId: `${prefix}pmapp${n}`, name: `Pkgmode${tag}${n}` });
+  const onlineSeller = mk("a"); // OFFLINE application, only an ONLINE package priced 1 VND
+  const offlineOnly = mk("b"); // OFFLINE application, active location, only OFFLINE packages
+  const both = mk("c"); // ONLINE application, active location, both kinds
+  const created = [onlineSeller, offlineOnly, both];
+  for (const [i, x] of created.entries()) {
+    await prisma.userProfile.create({
+      data: {
+        id: x.profileId,
+        userId: x.userId,
+        email: `${x.userId}@d0b2.test.local`,
+        firstName: x.name,
+        lastName: "Coach",
+        firstNameNormalized: x.name.toLowerCase(),
+        lastNameNormalized: "coach",
+        isPT: true,
+        isAcceptingClients: true,
+        createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, i)),
+      },
+    });
+    await prisma.pTApplication.create({
+      data: { id: x.appId, userProfileId: x.profileId, status: "APPROVED", serviceMode: x === both ? "ONLINE" : "OFFLINE", approvedAt: new Date("2026-10-01T00:00:00.000Z") },
+    });
+  }
+  const pkg = (x: { userId: string }, suffix: string, sessionMode: "ONLINE" | "OFFLINE", price: number) =>
+    prisma.pTServicePackage.create({
+      data: { id: `${x.userId}pkg${suffix}`, ptUserId: x.userId, name: `Pkg ${suffix}`, sessionCount: 1, price, sessionMode, sessionDurationMinutes: 60, isActive: true },
+    });
+  const loc = (x: { userId: string }) =>
+    prisma.pTTrainingLocation.create({
+      data: { id: `${x.userId}loc`, ptUserId: x.userId, provinceCode: PROV_A, wardCode: WARD_A1, gymName: "Gym pkgmode", isPrimary: true, isActive: true, latitude: VIEWER_LAT, longitude: VIEWER_LNG },
+    });
+  await pkg(onlineSeller, "on", "ONLINE", 1);
+  await pkg(offlineOnly, "off", "OFFLINE", 200_000);
+  await loc(offlineOnly);
+  await pkg(both, "on", "ONLINE", 300_000);
+  await pkg(both, "off", "OFFLINE", 300_000);
+  await loc(both);
+
+  const idsFor = async (mode: string) => {
+    const r = await postSearch({
+      lat: VIEWER_LAT,
+      lng: VIEWER_LNG,
+      radiusKm: 40,
+      scope: "national",
+      mode,
+      filters: { q: `Pkgmode${tag}` },
+      limit: 50,
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    return (r.body.pts as any[]).map((p) => p.userId);
+  };
+
+  const online = await idsFor("ONLINE");
+  assert.ok(online.includes(onlineSeller.userId), "OFFLINE-application PT selling an ONLINE package appears under ONLINE");
+  assert.ok(online.includes(both.userId));
+  assert.ok(!online.includes(offlineOnly.userId), "PT with only OFFLINE packages does not appear under ONLINE");
+
+  const offline = await idsFor("OFFLINE");
+  assert.ok(offline.includes(offlineOnly.userId));
+  assert.ok(offline.includes(both.userId));
+  assert.ok(!offline.includes(onlineSeller.userId), "PT with only ONLINE packages does not appear under OFFLINE");
+
+  assert.deepEqual(await idsFor("HYBRID"), [both.userId], "HYBRID = sells both kinds");
+  assert.deepEqual(new Set(await idsFor("ANY")), new Set(created.map((x) => x.userId)), "ANY agrees with the mode filters");
 });

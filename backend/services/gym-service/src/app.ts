@@ -13,6 +13,7 @@ import adminRoutes from './routes/admin.routes';
 import internalRoutes from './routes/internal.routes';
 import mediaRoutes from './routes/media.routes';
 import { gymMediaController } from './controllers/gym-media.controller';
+import { extractUser } from './middleware/auth.middleware';
 import { asyncHandler } from './middleware/asyncHandler';
 import { legacyCompatRefusalGuard } from './services/legacy-compat.service';
 import { localizeErrors } from './middleware/localize-errors.middleware';
@@ -69,7 +70,7 @@ if (!isLambdaRuntime()) {
   }
 }
 // Old URLs (`/uploads/gym-photos/<fileName>`, built by apps from the bare file name) keep working — checked per request.
-app.get('/uploads/gym-photos/:file', asyncHandler(gymMediaController.serveLegacyFile));
+app.get('/uploads/gym-photos/:file', asyncHandler(extractUser), asyncHandler(gymMediaController.serveLegacyFile));
 // Stable public photo URL: /media/gym-photos/:photoId (redirect to a short presigned link, or stream a disk photo).
 app.use('/media', mediaRoutes);
 

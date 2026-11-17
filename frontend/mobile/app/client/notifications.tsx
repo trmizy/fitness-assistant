@@ -26,6 +26,7 @@ import {
   groupNotifications,
   normalizeNotifications,
   notificationMeta,
+  notificationPushOptions,
   notificationRoute,
   timeAgo,
   type AppNotification,
@@ -60,7 +61,7 @@ export default function ClientNotificationsScreen() {
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { user } = useApp();
+  const { user, role } = useApp();
   const userId = user?.id ?? "guest";
   const unread = useUnreadNotifications();
 
@@ -98,7 +99,8 @@ export default function ClientNotificationsScreen() {
   const open = (n: AppNotification) => {
     if (n.unread) markRead.mutate(n.id);
     const route = notificationRoute(n);
-    if (route) router.push(route as never);
+    // A PT workspace link means nothing to a plain client (RequireRole would bounce it): just marked read.
+    if (route && !(route.startsWith("/pt/") && role !== "pt")) router.push(route as never, notificationPushOptions(route));
   };
 
   return (

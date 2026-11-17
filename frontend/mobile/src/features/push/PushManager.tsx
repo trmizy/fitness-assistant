@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useApp } from "../../context/AppContext";
 import { notificationService } from "../../services/api";
+import { notificationPushOptions } from "../notifications/notifications";
 import { notificationsKey, unreadCountKey } from "../notifications/useNotifications";
 import { Preferences } from "../../services/storage";
 import { registerPushToken } from "./pushDevice";
@@ -166,7 +167,7 @@ export function PushManager() {
         })
         .catch(() => undefined);
     }
-    router.push(route as never);
+    router.push(route as never, notificationPushOptions(route));
   }, [navigationReady, queryClient, role, userId]);
 
   // Taps: the one that cold-started the app, then every later one.

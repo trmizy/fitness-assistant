@@ -4,8 +4,8 @@
  * migration mapping, the code constant or a label - no reliance on the old migration.
  *
  *   Part 1 (always runs, no database): Prisma enum == SYSTEM_AMENITY_SLUGS == GYM_FACILITY_VALUES (zod) == keys of
- *          FACILITY_LABEL on web (StepFacilities.tsx) and mobile (gymDirectory.ts) - the two frontend files are read as
- *          SOURCE TEXT, never imported - and the Vietnamese names match the seeds.
+ *          FACILITY_LABEL on web (utils/facilityLabels.ts, derived from SYSTEM_FACILITIES; StepFacilities.tsx only re-exports it) and
+ *          mobile (gymDirectory.ts) - the frontend files are read as SOURCE TEXT, never imported - and the Vietnamese names match the seeds.
  *   Part 2 (needs a `*_test` database, via test-db-guard): after `prisma migrate deploy`, the SYSTEM rows of `amenities`
  *          are exactly the enum values with the seeded attributes, and the migration's own verification DO block, re-run
  *          against the live data, passes - and fails in the three mismatch shapes (missing / extra / swapped pair).
@@ -30,7 +30,9 @@ import {
 import { guardedTest, skip } from './test-db-guard';
 
 const REPO_ROOT = path.resolve(__dirname, '../../../../..');
-const WEB_LABELS = path.join(REPO_ROOT, 'frontend/web/src/app/components/gym/AddBranchWizard/StepFacilities.tsx');
+// Since b616ee44 (23/10) StepFacilities.tsx only re-exports FACILITY_LABEL; the real definition lives in utils/facilityLabels.ts.
+const WEB_STEP_FACILITIES = path.join(REPO_ROOT, 'frontend/web/src/app/components/gym/AddBranchWizard/StepFacilities.tsx');
+const WEB_LABELS = path.join(REPO_ROOT, 'frontend/web/src/app/utils/facilityLabels.ts');
 const MOBILE_LABELS = path.join(REPO_ROOT, 'frontend/mobile/src/features/services/gymDirectory.ts');
 const MIGRATIONS_DIR = path.resolve(__dirname, '../../prisma/migrations');
 
@@ -47,6 +49,23 @@ function readFacilityLabels(file: string): Record<string, string> {
   return labels;
 }
 
+/**
+ * Web: FACILITY_LABEL is derived (`Object.entries(SYSTEM_FACILITIES).map(([k, v]) => [k, v.name])`), so the labels are the `name` of each
+ * `KEY: { name: "label", ... }` row of SYSTEM_FACILITIES. The derivation itself is asserted too, so this cannot pass on a stale table.
+ */
+function readWebFacilityLabels(file: string): Record<string, string> {
+  const src = fs.readFileSync(file, 'utf8');
+  assert.match(src, /export const FACILITY_LABEL\b[^=]*=\s*Object\.fromEntries\(\s*Object\.entries\(SYSTEM_FACILITIES\)\.map\(\(\[k, v\]\) => \[k, v\.name\]\)/, `FACILITY_LABEL is no longer derived from SYSTEM_FACILITIES in ${file}`);
+  const start = src.search(/export const SYSTEM_FACILITIES\b/);
+  assert.ok(start >= 0, `SYSTEM_FACILITIES not found in ${file}`);
+  const open = src.indexOf('{', src.indexOf('=', start));
+  const close = src.indexOf('\n};', open);
+  assert.ok(open > 0 && close > open, `SYSTEM_FACILITIES literal not found in ${file}`);
+  const labels: Record<string, string> = {};
+  for (const m of src.slice(open + 1, close).matchAll(/^\s*([A-Z][A-Z_]*)\s*:\s*\{\s*name\s*:\s*"([^"]*)"/gm)) labels[m[1]] = m[2];
+  return labels;
+}
+
 const sorted = (xs: Iterable<string>) => [...xs].sort();
 
 // ── Part 1: no database ────────────────────────────────────────────────────────────────────
@@ -60,7 +79,8 @@ nodeTest('contract: Prisma GymFacility enum == SYSTEM_AMENITY_SLUGS == zod GYM_F
 });
 
 nodeTest('contract: web FACILITY_LABEL keys == enum, and each label == the seeded Vietnamese name', () => {
-  const labels = readFacilityLabels(WEB_LABELS);
+  assert.match(fs.readFileSync(WEB_STEP_FACILITIES, 'utf8'), /export \{ FACILITY_LABEL \} from "\.\.\/\.\.\/\.\.\/utils\/facilityLabels"/, 'StepFacilities.tsx no longer re-exports FACILITY_LABEL from utils/facilityLabels');
+  const labels = readWebFacilityLabels(WEB_LABELS);
   assert.deepEqual(sorted(Object.keys(labels)), sorted(SYSTEM_AMENITY_SLUGS), 'web label table drifted from the GymFacility enum');
   for (const seed of SYSTEM_AMENITY_SEEDS) assert.equal(labels[seed.slug], seed.name, `web label of ${seed.slug}`);
 });

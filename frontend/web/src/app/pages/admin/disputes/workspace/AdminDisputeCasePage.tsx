@@ -12,6 +12,7 @@ import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../disputeQueryKeys"
 import type { DisputeCaseDetail } from "../disputeCaseTypes";
 import { investigatorText } from "../queue/queueModel";
 import { formatDateTime } from "./format";
+import { listAdminOptions } from "../actions/adminDirectory";
 import {
   WORKSPACE_TABS,
   blockedBanner,
@@ -66,6 +67,14 @@ export function AdminDisputeCasePage() {
     enabled: !!keys,
     ...DISPUTE_QUERY_OPTIONS,
   });
+  // N15B-01: names of the other admins (same key/fn as the assign + appeal forms, so one request) - the labels below show a person, not an id.
+  const adminsQuery = useQuery({
+    queryKey: keys ? [...keys.all, "admins"] : ["dispute-case", "disabled", "admins"],
+    queryFn: () => listAdminOptions(userId),
+    enabled: !!keys && !!caseId,
+    ...DISPUTE_QUERY_OPTIONS,
+  });
+  void adminsQuery.dataUpdatedAt; // re-render once the names arrive
   const detail: DisputeCaseDetail | undefined = query.data;
 
   const onChanged = useCallback(async () => {

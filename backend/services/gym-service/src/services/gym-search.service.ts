@@ -464,6 +464,54 @@ export const gymSearchService = {
       }
     }
 
+    const needsBrandJoin = qTokens.length > 0 || qNorm.length > 0;
+    const brandJoinSql = needsBrandJoin ? Prisma.sql`LEFT JOIN gym_brands b ON b.id = g.brand_id` : Prisma.empty;
+
+    const geoFilteredCtesSql =
+      appliedScope === 'near'
+        ? Prisma.sql`
+          filtered AS (
+            SELECT
+              g.id,
+              g.brand_id,
+              CASE
+                WHEN g.latitude IS NOT NULL AND g.longitude IS NOT NULL
+                THEN ${rawDistExpr}
+                ELSE NULL::double precision
+              END AS raw_dist,
+              ${textBoostExpr}::double precision AS text_boost
+            FROM gyms g
+            ${brandJoinSql}
+            WHERE ${baseWhereSql}
+          ),
+          geo_filtered AS MATERIALIZED (
+            SELECT
+              f.id,
+              f.brand_id,
+              CASE
+                WHEN f.raw_dist IS NULL THEN NULL::double precision
+                ELSE ROUND(f.raw_dist::numeric, 6)::double precision
+              END AS distance_km,
+              f.text_boost
+            FROM filtered f
+            WHERE f.raw_dist IS NOT NULL AND f.raw_dist <= ${input.radiusKm}
+          )`
+        : Prisma.sql`
+          geo_filtered AS MATERIALIZED (
+            SELECT
+              g.id,
+              g.brand_id,
+              ${
+                hasCenter
+                  ? Prisma.sql`CASE WHEN g.latitude IS NOT NULL AND g.longitude IS NOT NULL THEN ROUND((${rawDistExpr})::numeric, 6)::double precision ELSE NULL::double precision END`
+                  : Prisma.sql`NULL::double precision`
+              } AS distance_km,
+              ${textBoostExpr}::double precision AS text_boost
+            FROM gyms g
+            ${brandJoinSql}
+            WHERE ${baseWhereSql}
+          )`;
+
     const takeLimit = input.limit + 1;
     const rows = await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = '2s'`);
@@ -471,53 +519,29 @@ export const gymSearchService = {
         await opts.onAfterTimeoutSetInTx(tx);
       }
       return tx.$queryRaw<SearchScoredRow[]>(Prisma.sql`
-        WITH filtered AS MATERIALIZED (
-          SELECT
-            g.id,
-            g.brand_id,
-            CASE
-              WHEN g.latitude IS NOT NULL AND g.longitude IS NOT NULL
-              THEN ${rawDistExpr}
-              ELSE NULL::double precision
-            END AS raw_dist,
-            ${textBoostExpr}::double precision AS text_boost
-          FROM gyms g
-          LEFT JOIN gym_brands b ON b.id = g.brand_id
-          WHERE ${baseWhereSql}
-        ),
-        geo_filtered AS MATERIALIZED (
-          SELECT
-            f.id,
-            f.brand_id,
-            CASE
-              WHEN f.raw_dist IS NULL THEN NULL::double precision
-              ELSE ROUND(f.raw_dist::numeric, 6)::double precision
-            END AS distance_km,
-            f.text_boost
-          FROM filtered f
-          WHERE ${appliedScope === 'near' ? Prisma.sql`f.raw_dist IS NOT NULL AND f.raw_dist <= ${input.radiusKm}` : Prisma.sql`TRUE`}
-        ),
-        review_stats AS MATERIALIZED (
+        WITH ${geoFilteredCtesSql},
+        review_stats AS (
           SELECT
             r.gym_id,
             ROUND(AVG(r.rating)::numeric, 2)::double precision AS rating_avg,
             COUNT(*)::int AS review_count
           FROM gym_reviews r
-          WHERE r.gym_id IN (SELECT id FROM geo_filtered)
+          JOIN geo_filtered gf ON gf.id = r.gym_id
           GROUP BY r.gym_id
         ),
-        brand_prices AS MATERIALIZED (
+        brand_prices AS (
           SELECT
             p.brand_id,
             ROUND(MIN(p.price)::numeric, 2)::double precision AS min_price
           FROM gym_membership_plans p
-          WHERE p.brand_id IN (SELECT DISTINCT brand_id FROM geo_filtered WHERE brand_id IS NOT NULL)
-            AND p.status = 'ACTIVE'
+          JOIN (SELECT DISTINCT brand_id FROM geo_filtered WHERE brand_id IS NOT NULL) gb
+            ON gb.brand_id = p.brand_id
+          WHERE p.status = 'ACTIVE'
             AND (p.sale_start_at IS NULL OR p.sale_start_at <= ${now})
             AND (p.sale_end_at IS NULL OR p.sale_end_at >= ${now})
           GROUP BY p.brand_id
         ),
-        scored AS MATERIALIZED (
+        scored AS (
           SELECT
             gf.id,
             gf.distance_km,

@@ -37,7 +37,7 @@ const WHAT_WAS_BOUGHT: Record<string, string> = {
   PT_CONTRACT: 'hợp đồng PT',
 };
 
-function formatVnd(amount: string): string {
+export function formatVnd(amount: string): string {
   const n = Number(amount);
   return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)}đ`;
 }

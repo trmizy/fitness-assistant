@@ -329,7 +329,7 @@ export const authService = {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName?: string, // optional: a one-word name has no last name (omitted from the JSON body)
   ) => {
     const { data } = await api.post("/auth/register", {
       email,
@@ -421,7 +421,7 @@ export const translationService = {
     targetLang,
     sourceLang = "en",
   }: TranslateRequest): Promise<string> => {
-    const { data } = await api.post("/api/translate", {
+    const { data } = await api.post("/translate", {
       text,
       targetLang,
       sourceLang,
@@ -599,6 +599,12 @@ function sortInBodyHistoryByMeasurementDate(history: any[]) {
 export const inbodyService = {
   create: async (entry: any) => {
     const { data } = await api.post("/inbody", entry);
+    return data;
+  },
+
+  // N13G-04: owner-only delete of a wrong measurement.
+  remove: async (id: string) => {
+    const { data } = await api.delete(`/inbody/${encodeURIComponent(id)}`);
     return data;
   },
 
@@ -4060,12 +4066,18 @@ export const adminService = {
     const { data } = await api.patch(`/admin/gyms/${gymId}/status`, { status });
     return data?.data ?? data;
   },
+  // FIX2-ADMIN Q5 — tạm khoá / bỏ tạm khoá / tạm đóng cửa / mở cửa lại MỘT chi nhánh, mỗi thao tác có lý do + nhật ký kiểm toán.
+  setGymLifecycle: async (gymId: string, body: { action: 'SUSPEND' | 'LIFT_SUSPENSION' | 'CLOSE_TEMPORARILY' | 'REOPEN'; reason?: string; expectedReopenAt?: string }) => {
+    const { data } = await api.patch(`/admin/gyms/${gymId}/lifecycle`, body);
+    return data?.data ?? data;
+  },
   // "Quản lý gym & owner" — admin editing a branch's details directly (name/address take
   // effect immediately, no owner-approval round-trip). Creating a NEW branch is still owner-
   // only (unchanged) — this only covers editing an existing one.
   updateGymDetails: async (
     gymId: string,
-    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string }>,
+    // `reason` (>= 10 ký tự) bắt buộc khi payload có `description` (phần giới thiệu công khai).
+    payload: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string; reason: string }>,
   ) => {
     const { data } = await api.patch(`/admin/gyms/${gymId}`, payload);
     return data?.data ?? data;
@@ -4976,8 +4988,12 @@ export const contractService = {
     clientMessage?: string;
     gymId?: string;
     acknowledgedLowAvailability?: boolean;
+    /** N15M-14: the client accepted the "venue outside Gymini" warning (offline/hybrid with no Gymini gym). */
+    acknowledgedIndependentVenue?: boolean;
   }) => {
-    const { data } = await api.post("/contracts/request", requestData);
+    // N15M-14 grace: this build knows the venue-consent step. The server accepts a request without the flag ONLY from an app that
+    // lacks this header (an older install), so a new client that skips the dialog is still refused.
+    const { data } = await api.post("/contracts/request", requestData, { headers: { "X-Gymini-Venue-Consent": "1" } });
     return data;
   },
   // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
@@ -5333,6 +5349,11 @@ export const sessionService = {
   },
   getMyUpcoming: async () => {
     const { data } = await api.get("/sessions/upcoming");
+    return data;
+  },
+  /** N15B-06 (PT): CONFIRMED sessions whose end has passed but that were never closed - "Cần chốt buổi". */
+  listAwaitingCompletion: async () => {
+    const { data } = await api.get("/sessions/awaiting-completion");
     return data;
   },
   confirmSession: async (id: string) => {
@@ -6187,7 +6208,7 @@ export const gymService = {
     const { data } = await api.get(`/partner-invitations/${token}`);
     return data?.data ?? data;
   },
-  acceptPartnerInvitation: async (token: string, payload: { password: string; firstName: string; lastName?: string }) => {
+  acceptPartnerInvitation: async (token: string, payload: { password?: string; firstName?: string; lastName?: string }) => {
     const { data } = await api.post(`/partner-invitations/${token}/accept`, payload);
     return data?.data ?? data;
   },

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Handshake, Repeat } from "lucide-react-native";
 
 import { BottomSheet, Button, Card, EmptyState, Input, ScreenHeader, useToast } from "../../src/components/ui";
@@ -13,14 +13,21 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { MIN_PLATFORM_RATE, ratesError, ratesPayload } from "../../src/features/collaboration/collaboration";
 import {
   SIGNED_CONTRACTS_NOTE,
-  brandOptionsFromGyms,
   brandsBlockedForProposal,
   buildPartnershipSections,
   optionLabel,
   optionNote,
   proposeCopy,
   terminatedToast,
+  type BrandOption,
 } from "../../src/features/collaboration/brandPartnership";
+import {
+  brandOptionsParams,
+  collabBrandOptionsKey,
+  mergeBrandOptionPages,
+  nextCursorParam,
+  shouldResetCursor,
+} from "../../src/features/services/discoverySearch";
 import {
   PartnershipList,
   TerminateSheet,
@@ -50,6 +57,15 @@ export default function PtCollaborationsScreen() {
 
   const [propose, setPropose] = useState<ProposeTarget | null>(null);
   const [brandId, setBrandId] = useState("");
+  // GET /gyms/brand-options is searched and paged on the server; the option the PT picked is kept here so it survives a new search.
+  const [pickedOption, setPickedOption] = useState<BrandOption | null>(null);
+  const [brandSearch, setBrandSearch] = useState("");
+  const [debouncedBrandSearch, setDebouncedBrandSearch] = useState("");
+  const [brandResetSeq, setBrandResetSeq] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedBrandSearch(brandSearch.trim()), 200);
+    return () => clearTimeout(timer);
+  }, [brandSearch]);
   const [form, setForm] = useState<RateForm>(DEFAULT_RATES);
   const [counterFor, setCounterFor] = useState<CounterTarget | null>(null);
   const [counter, setCounter] = useState<RateForm>(DEFAULT_RATES);
@@ -59,15 +75,31 @@ export default function PtCollaborationsScreen() {
   const sections = useMemo(() => buildPartnershipSections(query.data, "PT"), [query.data]);
   const hasAny = sections.needsReply.length + sections.current.length + sections.ended.length > 0;
 
-  const gymsQuery = useQuery({
-    queryKey: ["all-gyms"],
-    queryFn: () => gymService.listGyms(),
+  const optionsQuery = useInfiniteQuery({
+    queryKey: collabBrandOptionsKey(uid, debouncedBrandSearch, brandResetSeq),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => nextCursorParam(lastPage),
+    queryFn: ({ pageParam }: { pageParam: string | null }) =>
+      gymService.getBrandOptions(brandOptionsParams({ q: debouncedBrandSearch, cursor: pageParam, limit: 20 })),
     staleTime: 5 * 60_000,
     enabled: !!propose,
   });
-  const options = useMemo(() => brandOptionsFromGyms(gymsQuery.data), [gymsQuery.data]);
+  // A cursor 409 (the list changed under the paging) reloads the options from page 1.
+  const { error: optionsError, isError: optionsIsError, isFetchNextPageError: optionsNextError } = optionsQuery;
+  useEffect(() => {
+    if (shouldResetCursor(optionsError, { isError: optionsIsError, isFetchNextPageError: optionsNextError })) {
+      setBrandResetSeq((seq) => seq + 1);
+    }
+  }, [optionsError, optionsIsError, optionsNextError]);
+  const options = useMemo(
+    () => mergeBrandOptionPages<BrandOption>(optionsQuery.data?.pages as { options?: BrandOption[] }[] | undefined),
+    [optionsQuery.data],
+  );
   const blocked = useMemo(() => brandsBlockedForProposal(query.data), [query.data]);
-  const picked = options.find((o) => o.brandId === (propose?.brandId ?? brandId));
+  const targetBrandId = propose?.brandId ?? brandId;
+  const picked = options.find((o) => o.brandId === targetBrandId) ?? (pickedOption?.brandId === targetBrandId ? pickedOption : undefined);
+  // The picked option stays selectable (and labelled) even when a later search no longer lists it.
+  const selectOptions = picked && !options.some((o) => o.brandId === picked.brandId) ? [picked, ...options] : options;
   const doorBranchId = propose?.doorBranchId ?? picked?.proposeBranchId ?? "";
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["pt-collaborations", uid] });
@@ -85,6 +117,7 @@ export default function PtCollaborationsScreen() {
       setPropose(null);
       setForm(DEFAULT_RATES);
       setBrandId("");
+      setPickedOption(null);
       invalidate();
     },
     onError: (e) => fail(e, "Không gửi được đề nghị"),
@@ -122,6 +155,9 @@ export default function PtCollaborationsScreen() {
   const openPropose = (t: ProposeTarget) => {
     setForm(DEFAULT_RATES);
     setBrandId(t.brandId ?? "");
+    setPickedOption(null);
+    setBrandSearch("");
+    setDebouncedBrandSearch("");
     setPropose(t);
   };
 
@@ -179,22 +215,51 @@ export default function PtCollaborationsScreen() {
       <BottomSheet open={!!propose} onClose={() => setPropose(null)} title={proposeCopy("PT", !!propose?.repartner).title}>
         <ScrollView className="max-h-[440px]" keyboardShouldPersistTaps="handled">
           <View className="gap-3 pb-2">
+            {!propose?.brandId ? (
+              <Input
+                testID="collab-brand-search"
+                label="Tìm thương hiệu / phòng gym"
+                value={brandSearch}
+                onChangeText={setBrandSearch}
+                placeholder="Tên thương hiệu, chi nhánh hoặc thành phố…"
+                autoCorrect={false}
+              />
+            ) : null}
             <SelectField
               label="Hợp tác với *"
               value={propose?.brandId ?? brandId}
-              options={options.map((o) => ({
+              options={selectOptions.map((o) => ({
                 value: o.brandId,
                 label: `${optionLabel(o)}${blocked.has(o.brandId) ? " — đã có đề xuất/thỏa thuận" : ""}`,
               }))}
-              loading={gymsQuery.isLoading}
+              loading={optionsQuery.isLoading}
               onChange={(v) => {
-                if (!blocked.has(v)) setBrandId(v);
+                if (blocked.has(v)) return;
+                setBrandId(v);
+                setPickedOption(selectOptions.find((o) => o.brandId === v) ?? null);
               }}
             />
+            {optionsQuery.isError && !shouldResetCursor(optionsError, { isError: optionsIsError, isFetchNextPageError: optionsNextError }) ? (
+              <Text className="font-body text-xs text-destructive">Không tải được danh sách thương hiệu. Thử lại sau.</Text>
+            ) : null}
+            {!propose?.brandId && optionsQuery.hasNextPage ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={optionsQuery.isFetchingNextPage}
+                onPress={() => void optionsQuery.fetchNextPage()}
+              >
+                {optionsQuery.isFetchingNextPage ? "Đang tải thêm…" : "Tải thêm thương hiệu"}
+              </Button>
+            ) : null}
             {picked ? (
               <Text testID="collab-option-note" className="font-body text-xs text-muted-foreground">{optionNote(picked)}</Text>
             ) : null}
-            <RateFields form={form} setForm={setForm} branchOnly={picked?.scope === "BRANCH"} />
+            <RateFields
+              form={form}
+              setForm={setForm}
+              branchOnly={picked?.scope === "BRANCH" || !!propose?.brandId?.startsWith("branch:")}
+            />
             <Input
               label="Lời nhắn"
               value={form.note}

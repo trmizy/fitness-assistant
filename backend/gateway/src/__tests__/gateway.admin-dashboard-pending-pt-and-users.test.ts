@@ -2,8 +2,8 @@
  * N-A-05 — dashboard `kpis.pendingPT` counts PT APPLICATIONS awaiting an admin (SUBMITTED + UNDER_REVIEW,
  * from the X-Total-Count of user-service's paged admin list), not users with a PT profile. null — never a
  * made-up 0 — when the count cannot be read.
- * N-A-06 — GET /admin/users: no params = the whole list (old behaviour); search / status / page / limit are
- * honoured server-side and a bad value is a 400.
+ * N-A-06 — GET /admin/users: search / status / page / limit are honoured server-side and a bad value is a 400.
+ * FIX5-ADMIN-PERF: no params = page 1 (50 rows) with the paging headers, never the whole list.
  * N-A-10 — the dashboard's alerts, role names and month labels are Vietnamese; role/status codes stay.
  *
  * Real gateway app + stub auth/user/payment services (REAL HTTP/API for the gateway half, TEST FIXTURE downstream).
@@ -144,10 +144,11 @@ test("system monitor probes carry a Vietnamese label next to the English name", 
   }
 });
 
-test("/admin/users with no parameters still returns everyone, legacy fields intact + Vietnamese labels", async () => {
+test("/admin/users with no parameters returns page 1 (here all 4 rows), legacy fields intact + Vietnamese labels", async () => {
   const res = await get("/admin/users");
   assert.equal(res.status, 200);
-  assert.equal(res.headers.get("x-total-count"), null, "no paging headers when not paging");
+  assert.equal(res.headers.get("x-total-count"), "4", "the bare answer is one page and says how many there are");
+  assert.equal(res.headers.get("x-limit"), "50");
   const body: any = await res.json();
   assert.equal(body.data.total, 4);
   assert.equal(body.data.users.length, 4);

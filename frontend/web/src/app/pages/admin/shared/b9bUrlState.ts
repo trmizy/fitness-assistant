@@ -20,18 +20,41 @@ export function paginate<T>(items: T[], page: number, size: number): { rows: T[]
 }
 
 // ── Người dùng ──────────────────────────────────────────────────────────────
-export const USER_ROLE_FILTERS = ["All", "Client", "PT", "OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT", "Admin"] as const;
+export const USER_ROLE_FILTERS = ["All", "Client", "PT", "OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT"] as const;
 export type UserRoleFilter = (typeof USER_ROLE_FILTERS)[number];
 export function parseUserRole(raw: string | null | undefined): UserRoleFilter {
   return (USER_ROLE_FILTERS as readonly string[]).includes(raw ?? "") ? (raw as UserRoleFilter) : "All";
 }
-export const USER_STATUS_FILTERS = ["All", "Active", "Inactive", "Pending"] as const;
+export const USER_STATUS_FILTERS = ["All", "Active", "Inactive"] as const;
 export type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number];
 export function parseUserStatus(raw: string | null | undefined): UserStatusFilter {
   return (USER_STATUS_FILTERS as readonly string[]).includes(raw ?? "") ? (raw as UserStatusFilter) : "All";
 }
 export function parseSearchParam(raw: string | null | undefined): string {
   return (raw ?? "").slice(0, 80);
+}
+
+/** Rows per page of the Người dùng list (the server pages; `limit` of GET /admin/users). */
+export const USER_PAGE_SIZE = 20;
+
+/**
+ * FIX5-ADMIN-PERF: the query-string of `GET /admin/users` for the page state (role / status / search / page).
+ * "Client" -> role=CUSTOMER, "PT" -> role=PT, the four partner roles -> partnerRole=… (resolved server-side);
+ * "All" / empty are omitted. The search text is trimmed.
+ */
+export function serverUserQuery(
+  s: { role?: UserRoleFilter; status?: UserStatusFilter; q?: string; page?: number },
+  limit: number = USER_PAGE_SIZE,
+): Record<string, string | number> {
+  const out: Record<string, string | number> = { page: s.page && s.page > 1 ? s.page : 1, limit };
+  if (s.role === "Client") out.role = "CUSTOMER";
+  else if (s.role === "PT") out.role = "PT";
+  else if (s.role && s.role !== "All") out.partnerRole = s.role;
+  if (s.status === "Active") out.status = "ACTIVE";
+  else if (s.status === "Inactive") out.status = "INACTIVE";
+  const q = (s.q ?? "").trim();
+  if (q) out.search = q;
+  return out;
 }
 
 /** Defaults are omitted so the plain URL stays `/admin/users`. */

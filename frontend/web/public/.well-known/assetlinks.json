@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "vn.fitnessassistant.app",
+      "sha256_cert_fingerprints": [
+        "13:25:C8:6D:4A:09:9C:00:9D:30:6D:E0:05:CE:51:2E:73:C2:69:F3:0C:A0:67:77:BB:1C:4C:AD:1C:C8:B3:7D"
+      ]
+    }
+  }
+]

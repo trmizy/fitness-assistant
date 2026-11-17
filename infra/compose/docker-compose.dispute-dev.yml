@@ -4,13 +4,21 @@
 #                  -f infra/compose/docker-compose.low-resource.yml \
 #                  -f infra/compose/docker-compose.dispute-dev.yml up -d --no-deps user-service payment-service gym-service
 #
+# ON THE OFFICIAL DATABASES (thesis defense): layer scripts/seed-marketplace/official/compose.official.override.yml BETWEEN dev.yml and this file:
+#
+#   docker compose -f infra/compose/docker-compose.dev.yml #                  -f scripts/seed-marketplace/official/compose.official.override.yml #                  -f infra/compose/docker-compose.dispute-dev.yml up -d --no-deps --force-recreate user-service payment-service gym-service
+#
+# (user, payment and gym must all be on the same family - all official or all dev; the cross-service check compares mode:open, not the database name.)
+#
 # Whether the Dispute V2.1 features run on dev is decided by ONE thing: whether this file is part of the command.
 #   - WITHOUT this file the dev stack is fully LOCKED (docker-compose.dev.yml sets no DISPUTE_* / GYM_COMPLAINT_* variable at all).
 #   - TO ROLL BACK: drop this file from the command and recreate user-service, payment-service and gym-service. Everything is off again.
 #
 # Runtime gate "dev-shared" (backend/services/{user,payment,gym}-service, runtime-gate.ts) opens ONLY when ALL of these hold in a service:
 #   DISPUTE_RUNTIME_MODE=dev-shared  +  DISPUTE_DEV_COMPOSE_MARKER=gymini-dev-dispute-v1 (set only HERE)  +  NODE_ENV set and not production/test
-#   +  DATABASE_URL names gymcoach_user / gymcoach_payment / gymcoach_gym (a list written in the code, not in any environment variable)
+#   +  DATABASE_URL names gymcoach_user / gymcoach_payment / gymcoach_gym  OR  the OFFICIAL thesis-defense databases gymcoach_user_official /
+#      gymcoach_payment_official / gymcoach_gym_official (Ngai approved 16/11/2026). Exact names from a list written in the code, not in any
+#      environment variable: gymcoach_user_official2, *_prod, *_e2e etc. stay locked.
 # and money flags (execution, D65-B) additionally need user-service and payment-service to report the SAME verdict.
 #
 #   ON  : execution, evidence storage, D65-B resolution, timers, appeals, decision replacement (user-service); gym complaint case + its decision replacement (gym-service).

@@ -32,11 +32,21 @@ export function passwordPolicyViolation(password: unknown): string | null {
 // "Foo@x.com" create a second account next to "foo@x.com".
 const normalizedEmail = z.string().trim().toLowerCase().email().max(254);
 
+// N13A-06: names are capped (the profile update already caps them at 100).
+// N13A-14: older web builds send "." as the last name of a one-word full name. A last name that is empty or only dots is "no last name": it is dropped
+// here, so it is never stored (it would be shown as "Nguyễn ." everywhere).
+const optionalLastName = z
+  .string()
+  .trim()
+  .max(100)
+  .optional()
+  .transform((v) => (v === undefined || /^\.*$/.test(v) ? undefined : v));
+
 export const registerSchema = z.object({
   email: normalizedEmail,
   password: passwordPolicySchema,
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  firstName: z.string().trim().max(100).optional(),
+  lastName: optionalLastName,
 });
 
 export const registerStartSchema = registerSchema;
@@ -96,3 +106,18 @@ export type RefreshDto = z.infer<typeof refreshSchema>;
 export type UpdateMeDto = z.infer<typeof updateMeSchema>;
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
 export type UpdateUserRoleDto = z.infer<typeof updateUserRoleSchema>;
+
+/**
+ * N13A-01: registration / OTP validation failures used to answer a bare English "Validation failed" that the web showed verbatim.
+ * Turn the first Zod issue into a Vietnamese sentence + a stable code (the raw `details` stay for clients that want them).
+ */
+export function describeValidationError(error: z.ZodError): { error: string; code: string } {
+  const paths = error.errors.map((e) => String(e.path[0] ?? ""));
+  if (paths.includes("password") || paths.includes("newPassword")) {
+    return { error: PASSWORD_POLICY_MESSAGE_VI, code: "WEAK_PASSWORD" };
+  }
+  if (paths.includes("email")) return { error: "Email không hợp lệ", code: "INVALID_EMAIL" };
+  if (paths.includes("firstName") || paths.includes("lastName")) return { error: "Họ và tên không hợp lệ (tối đa 100 ký tự)", code: "NAME_TOO_LONG" };
+  if (paths.includes("otp")) return { error: "Mã xác nhận gồm 6 chữ số", code: "OTP_FORMAT_INVALID" };
+  return { error: "Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập.", code: "VALIDATION_FAILED" };
+}

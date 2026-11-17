@@ -35,8 +35,14 @@ function fakeRes() {
   const res: any = {
     statusCode: 200,
     body: undefined,
+    headers: {} as Record<string, string>,
     status(code: number) {
       this.statusCode = code;
+      return this;
+    },
+    // FIX5-ADMIN-PERF: every list answer now carries X-Total-Count / X-Page / X-Limit.
+    setHeader(k: string, v: string) {
+      this.headers[k.toLowerCase()] = v;
       return this;
     },
     json(body: unknown) {
@@ -159,7 +165,7 @@ test("B02: an invalid ?status is a 400 with a Vietnamese message and a machine c
   }
 });
 
-test("B02: a valid status and no status at all still reach the list", async () => {
+test("B02: a valid status and no status at all still reach the list (bare = page 1 of 50 + X-Total-Count)", async () => {
   for (const query of [{}, { status: "APPROVED" }, { status: "NEEDS_MORE_INFO" }, { search: "x" }]) {
     const restore = patch(ptApplicationService, "listApplications", async () => []);
     const res = fakeRes();
@@ -210,8 +216,23 @@ test("B08: approving an already APPROVED application changes nothing and notifie
 });
 
 // Needs a database: the approve path reads the real user_profiles row (profileRepository.findByUserId is not stubbed) - SKIP with a reason when no valid test DB.
-test("B08: a REJECTED application can still be re-approved (the deliberate reconsider path) and runs in full", { skip }, async () => {
+test("B08 (Q2, 14/11): a REJECTED application is terminal - approving it is 409 INVALID_APPLICATION_TRANSITION and writes nothing", async () => {
   const h = approvalHarness("REJECTED");
+  try {
+    await assert.rejects(
+      () => ptApplicationService.adminReviewAction("app-b08", "APPROVE", {}, "admin-1"),
+      (e: any) => e.status === 409 && e.code === "INVALID_APPLICATION_TRANSITION",
+    );
+  } finally {
+    h.restore();
+  }
+  assert.deepEqual(h.calls, [], "no role sync, no profile write, no status write, no notification");
+});
+
+// A SUBMITTED application runs the approve path in full. Needs a database: the approve path reads the real user_profiles row
+// (profileRepository.findByUserId is not stubbed) - SKIP with a reason when no valid test DB.
+test("B08: a SUBMITTED application is approved and runs in full", { skip }, async () => {
+  const h = approvalHarness("SUBMITTED");
   try {
     await ptApplicationService.adminReviewAction("app-b08", "APPROVE", {}, "admin-1");
   } finally {

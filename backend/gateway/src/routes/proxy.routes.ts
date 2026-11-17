@@ -560,6 +560,43 @@ router.get(
 // ── Admin: User Management list ──────────────────────────────────────────────
 // Aggregates auth-service (name/email/role/createdAt) with user-service
 // (isPT flag, contract count) into a single normalized list for the admin UI.
+//
+// FIX5-ADMIN-PERF: with `page` / `limit` the filtering (role, status, search, partnerRole, id) and the
+// slicing happen in the database (auth-service) and only that page is enriched and mapped — 37k accounts
+// used to be pulled, mapped one by one (4 Intl date calls per row) and sliced here, ~30 s. Without them
+// the answer is still ONE page (page 1, ADMIN_USERS_BARE_PAGE_SIZE rows) with X-Total-Count: no caller gets the full list.
+const ADMIN_USERS_DATE_LONG = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+const ADMIN_USERS_DATE_SHORT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+function mapAdminUserRow(u: AuthUser, contractSummary: Record<string, number>) {
+  const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email.split("@")[0];
+  const created = new Date(u.createdAt);
+  const updated = new Date(u.updatedAt);
+  return {
+    id: u.id,
+    name,
+    email: u.email,
+    // `role` / `status` / `joined` / `lastActive` keep their legacy shape: the web and mobile
+    // admin clients key on / parse them. N-A-10: the *Code, *Label (Vietnamese) and ISO
+    // fields below are what to read or display without translating.
+    role: adminRoleLabel(u.role),
+    roleCode: adminRoleCode(u.role),
+    roleLabel: adminRoleLabelVi(u.role),
+    // GAP-21: from auth-service isActive (disable/enable), not a hard-coded "Active".
+    status: adminUserStatus(u.isActive),
+    statusCode: adminStatusCode(u.isActive),
+    statusLabel: adminStatusLabelVi(u.isActive),
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt,
+    joinedLabel: adminDateVi(u.createdAt),
+    lastActiveLabel: adminDateVi(u.updatedAt),
+    joined: ADMIN_USERS_DATE_LONG.format(created),
+    lastActive: ADMIN_USERS_DATE_SHORT.format(updated),
+    sessions: 0, // future: pull from fitness-service
+    contracts: contractSummary[u.id] ?? 0,
+  };
+}
+
 router.get(
   "/admin/users",
   authMiddleware,
@@ -567,6 +604,7 @@ router.get(
   async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
+      const authHeaders = authHeader ? { Authorization: authHeader } : undefined;
 
       // N-A-06: validate search / status / page / limit up front — a bad value is the caller's
       // mistake (400), never silently ignored. No such parameter = the whole list, as before.
@@ -576,99 +614,114 @@ router.get(
         return;
       }
 
-      // Fetch users + PT profiles in parallel
-      const [usersRes, contractsRes] = await Promise.allSettled([
-        axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
-          headers: authHeader ? { Authorization: authHeader } : undefined,
-          // C1-09: forward the role filter; auth-service validates it (unknown value -> 400).
-          params: typeof req.query.role === "string" && req.query.role !== "" ? { role: req.query.role } : undefined,
-          timeout: 6000,
-        }),
-        axios.get(`${USER_SERVICE_URL}/profile/admin/contracts/summary`, {
-          headers: authHeader ? { Authorization: authHeader } : undefined,
-          timeout: 6000,
-        }),
-      ]);
-
       // A rejected filter (auth-service answers 400) is the caller's mistake, not an outage.
-      if (usersRes.status === "rejected" && (usersRes.reason as any)?.response?.status === 400) {
+      const badFilter = (reason: any) => {
         res.status(400).json({
           success: false,
           error: {
-            code: (usersRes.reason as any).response.data?.code || "INVALID_FILTER",
-            message: (usersRes.reason as any).response.data?.error || "Bộ lọc không hợp lệ",
+            code: reason.response.data?.code || "INVALID_FILTER",
+            message: reason.response.data?.error || "Bộ lọc không hợp lệ",
+          },
+        });
+      };
+
+      {
+        const { page, limit } = usersQuery.paging;
+        const common = {
+          ...(usersQuery.ids ? { ids: usersQuery.ids.join(",") } : {}),
+          ...(usersQuery.status ? { status: usersQuery.status } : {}),
+          ...(usersQuery.search ? { search: usersQuery.search } : {}),
+          ...(usersQuery.id ? { id: usersQuery.id } : {}),
+        };
+        let rows: AuthUser[] = [];
+        let total = 0;
+        try {
+          if (usersQuery.partnerRole) {
+            // The partner roles (owner / manager / receptionist / accountant) live in gym-service, not on
+            // the auth account: filtering by one reads the (small) GYM_OWNER set, resolves its roles and
+            // pages that in memory.
+            const owners = await axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
+              headers: authHeaders,
+              params: { role: "GYM_OWNER", ...common },
+              timeout: 8000,
+            });
+            const all = (owners.data?.users || []) as AuthUser[];
+            const partnerRoleById = new Map<string, string | null>();
+            for (let i = 0; i < all.length; i += 200) {
+              const r = await axios.get(`${GYM_SERVICE_URL}/admin/partner-accounts/roles`, {
+                headers: authHeaders,
+                params: { userIds: all.slice(i, i + 200).map((u) => u.id).join(",") },
+                timeout: 8000,
+              });
+              for (const row of (r.data?.data ?? []) as Array<{ userId: string; partnerRole: string | null }>) {
+                partnerRoleById.set(row.userId, row.partnerRole);
+              }
+            }
+            // A GYM_OWNER login with no partner account is a legacy owner (gym-service answers null).
+            const matching = all.filter((u) => (partnerRoleById.get(u.id) ?? "OWNER") === usersQuery.partnerRole);
+            total = matching.length;
+            rows = matching.slice((page - 1) * limit, page * limit);
+          } else {
+            const r = await axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
+              headers: authHeaders,
+              params: {
+                page,
+                limit,
+                ...(typeof req.query.role === "string" && req.query.role !== "" ? { role: req.query.role } : {}),
+                ...common,
+              },
+              timeout: 8000,
+            });
+            rows = (r.data?.users || []) as AuthUser[];
+            if (typeof r.data?.total === "number") {
+              total = r.data.total;
+            } else {
+              // An auth-service that predates paging ignores page/limit and answers every account
+              // (no `total`): filter and slice here instead, exactly as the gateway always did.
+              const picked = selectAdminUsersPage(
+                rows.map((u) => mapAdminUserRow(u, {})),
+                usersQuery,
+              );
+              const keep = new Set(picked.rows.map((x) => x.id));
+              rows = rows.filter((u) => keep.has(u.id));
+              total = picked.total;
+            }
+          }
+        } catch (err: any) {
+          if (err?.response?.status === 400) return badFilter(err);
+          throw err;
+        }
+
+        // Contract counts for just the ids on this page (<= 200). A failure here degrades to 0, as before.
+        let contractSummary: Record<string, number> = {};
+        if (rows.length > 0) {
+          try {
+            const c = await axios.get(`${USER_SERVICE_URL}/profile/admin/contracts/summary`, {
+              headers: authHeaders,
+              params: { userIds: rows.map((u) => u.id).join(",") },
+              timeout: 6000,
+            });
+            contractSummary = c.data?.summary || {};
+          } catch {
+            contractSummary = {};
+          }
+        }
+
+        res.setHeader("X-Total-Count", String(total));
+        res.setHeader("X-Page", String(page));
+        res.setHeader("X-Limit", String(limit));
+        res.json({
+          success: true,
+          data: {
+            total,
+            users: rows.map((u) => mapAdminUserRow(u, contractSummary)),
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(total / limit)),
           },
         });
         return;
       }
-
-      const authUsers = (
-        usersRes.status === "fulfilled" ? usersRes.value.data?.users || [] : []
-      ) as AuthUser[];
-
-      // contractSummary: { [userId]: number } — pre-aggregated counts per user
-      const contractSummary: Record<string, number> =
-        contractsRes.status === "fulfilled"
-          ? contractsRes.value.data?.summary || {}
-          : {};
-
-      const users = authUsers.map((u) => {
-        const name =
-          [u.firstName, u.lastName].filter(Boolean).join(" ") ||
-          u.email.split("@")[0];
-        const role = adminRoleLabel(u.role);
-        const contracts = contractSummary[u.id] ?? 0;
-
-        // GAP-21: from auth-service isActive (disable/enable), not a hard-coded "Active".
-        const status = adminUserStatus(u.isActive);
-
-        return {
-          id: u.id,
-          name,
-          email: u.email,
-          // `role` / `status` / `joined` / `lastActive` keep their legacy shape: the web and mobile
-          // admin clients key on / parse them. N-A-10: the *Code, *Label (Vietnamese) and ISO
-          // fields below are what to read or display without translating.
-          role,
-          roleCode: adminRoleCode(u.role),
-          roleLabel: adminRoleLabelVi(u.role),
-          status,
-          statusCode: adminStatusCode(u.isActive),
-          statusLabel: adminStatusLabelVi(u.isActive),
-          createdAt: u.createdAt,
-          updatedAt: u.updatedAt,
-          joinedLabel: adminDateVi(u.createdAt),
-          lastActiveLabel: adminDateVi(u.updatedAt),
-          joined: new Date(u.createdAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          lastActive: new Date(u.updatedAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
-          sessions: 0, // future: pull from fitness-service
-          contracts,
-        };
-      });
-
-      const picked = selectAdminUsersPage(users, usersQuery);
-      if (picked.page !== null) {
-        res.setHeader("X-Total-Count", String(picked.total));
-        res.setHeader("X-Page", String(picked.page));
-        res.setHeader("X-Limit", String(picked.limit));
-      }
-      res.json({
-        success: true,
-        data: {
-          total: picked.total,
-          users: picked.rows,
-          ...(picked.page !== null
-            ? { page: picked.page, limit: picked.limit, totalPages: picked.totalPages }
-            : {}),
-        },
-      });
     } catch (error: any) {
       logger.error({ error: error?.message }, "Admin users aggregation failed");
       res.status(500).json({
@@ -824,10 +877,24 @@ router.use(
 router.post("/auth/partner-applications/start", partnerApplicationStartLimiter);
 router.use("/auth/partner-applications", partnerApplicationLimiter);
 
+// Apply authRateLimiter only to sensitive credential / OTP / email-spam endpoints;
+// session lifecycle endpoints (/auth/verify, /auth/refresh, /auth/logout, GET/PATCH /auth/me) remain
+// covered by the global rateLimiter (100 req / 60s).
+const SENSITIVE_AUTH_RATE_LIMIT_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/register/verify",
+  "/auth/register/resend",
+  "/auth/password-reset",
+  "/auth/password-reset/request",
+];
+router.post(SENSITIVE_AUTH_RATE_LIMIT_PATHS, authRateLimiter);
+// Change password requires the current password -> password-guessing surface, keep the strict limiter.
+router.patch("/auth/me/password", authRateLimiter);
+
 // Public — Auth Service
 router.use(
   "/auth",
-  authRateLimiter,
   createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,

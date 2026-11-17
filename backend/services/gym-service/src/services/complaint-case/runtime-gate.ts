@@ -14,8 +14,11 @@
  *               a. DISPUTE_RUNTIME_MODE === "dev-shared"
  *               b. NODE_ENV is set and is neither "production" nor "test"
  *               c. DISPUTE_DEV_COMPOSE_MARKER === DEV_MARKER_VALUE (a marker only the dev override file sets; NOT the e2e marker)
- *               d. the database in DATABASE_URL is one of DEV_DB_ALLOWLIST - a list written in THIS file, never read from the environment, so a
- *                  misconfigured production environment cannot widen it
+ *               d. the database in DATABASE_URL is one of DEV_DB_ALLOWLIST (exact names) - the 3 shared dev DBs gymcoach_{user,payment,gym} and the 3
+ *                  official thesis-defense DBs gymcoach_{user,payment,gym}_official (16/11/2026). A list written in THIS file, never read from the
+ *                  environment, so a misconfigured production environment cannot widen it. The peer verdict compares mode:open only (never the
+ *                  database name), so user + payment both official agree; a mixed dev/official pair is not told apart by the gate - the compose
+ *                  layering (dev.yml + official override + dispute-dev.yml) is what keeps the three services on the same database family.
  *         Which flags the dev gate lets through is a fixed list (DEV_SHARED_PERMITTED_FLAGS) in the caller: T0 and late-open OPEN-L settlement are NEVER permitted there.
  *         Money flags additionally need payment-service to report the same verdict (user-service/payment-peer.ts), exactly as in e2e.
  * Anything else - production, a missing marker, a DB name outside the allowlist, a typo in the mode - is LOCKED. Fail closed; read on every call (no cache).
@@ -30,8 +33,19 @@ export const DB_ALLOWLIST_VAR = "DISPUTE_E2E_DB_ALLOWLIST";
 export const DEV_MODE = "dev-shared";
 export const DEV_MARKER_VAR = "DISPUTE_DEV_COMPOSE_MARKER";
 export const DEV_MARKER_VALUE = "gymini-dev-dispute-v1";
-/** The shared dev databases (infra/compose/docker-compose.dev.yml). Hard-coded on purpose: NOT configurable by an environment variable. */
-export const DEV_DB_ALLOWLIST: readonly string[] = Object.freeze(["gymcoach_user", "gymcoach_payment", "gymcoach_gym"]);
+/**
+ * The shared dev databases (infra/compose/docker-compose.dev.yml) AND the OFFICIAL thesis-defense databases (gymcoach_<svc>_official, seeded by
+ * scripts/seed-marketplace/official; Ngai approved 16/11/2026). EXACT names only: no prefix/suffix/regex match, so "gymcoach_user_official2",
+ * "gymcoach_user_prod" etc. stay locked. Hard-coded on purpose: NOT configurable by an environment variable.
+ */
+export const DEV_DB_ALLOWLIST: readonly string[] = Object.freeze([
+  "gymcoach_user",
+  "gymcoach_payment",
+  "gymcoach_gym",
+  "gymcoach_user_official",
+  "gymcoach_payment_official",
+  "gymcoach_gym_official",
+]);
 
 export type GateMode = "test" | "e2e-isolated" | "dev-shared" | "locked";
 export type GateRefusal =

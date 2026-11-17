@@ -523,7 +523,8 @@ exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKi
   LATE_ARRIVAL: 'LATE_ARRIVAL',
   REFUND_SHORT: 'REFUND_SHORT',
   OVER_RELEASED: 'OVER_RELEASED',
-  APPEAL_AWARD: 'APPEAL_AWARD'
+  APPEAL_AWARD: 'APPEAL_AWARD',
+  GYM_DEBT: 'GYM_DEBT'
 };
 
 exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {
@@ -571,7 +572,8 @@ exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidOblig
   CANCEL_APPROVAL: 'CANCEL_APPROVAL',
   RESOLVE_OTHER: 'RESOLVE_OTHER',
   SETTLE_VIA_LEDGER: 'SETTLE_VIA_LEDGER',
-  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL'
+  CREATE_FROM_APPEAL: 'CREATE_FROM_APPEAL',
+  RECOVER_FROM_INCOME: 'RECOVER_FROM_INCOME'
 };
 
 exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {

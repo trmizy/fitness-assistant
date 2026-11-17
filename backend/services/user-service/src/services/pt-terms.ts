@@ -13,16 +13,18 @@
  * (PT_HOLDBACK_TERMS_VERSION). The text says so itself ("hợp đồng được tạo sau khi quy định này có hiệu lực"); it never
  * presents the holdback as applying to a contract that already exists.
  *
- * DRAFT vs OFFICIAL (D74). While the wording awaits the owner's approval `PT_TERMS_IS_DRAFT` is true and the version id is a
- * DRAFT id ("...-pt-draft-N"). A confirmation of a draft is NOT an official acceptance and must never become one by flipping
- * the flag: the official text ships under a NEW, different id ("...-pt-v1"), and the gate only accepts a row for the CURRENT id,
- * so draft rows simply stop matching. `ptTermsReleaseProblem` pins the rule (unit test) and refuses to release draft terms to
- * production (scripts/check-pt-terms-release.ts, post-deploy-state-check T-01) - it is never evaluated at service start, so a
- * running production service cannot be taken down by it.
+ * DRAFT vs OFFICIAL (D74). While the wording awaited the owner's approval `PT_TERMS_IS_DRAFT` was true and the version id was a
+ * DRAFT id ("...-pt-draft-N"; the last draft was "2026-10-pt-draft-6"). A confirmation of a draft is NOT an official acceptance and
+ * must never become one by flipping the flag: the official text ships under a NEW, different id ("...-pt-v1"), and the gate only
+ * accepts a row for the CURRENT id, so draft rows simply stop matching. `ptTermsReleaseProblem` pins the rule (unit test) and refuses
+ * to release draft terms to production (scripts/check-pt-terms-release.ts, post-deploy-state-check T-01) - it is never evaluated at
+ * service start, so a running production service cannot be taken down by it.
+ *
+ * Released as OFFICIAL 2026-11-pt-v1 by the owner's approval (11/11/2026)
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-6";
-export const PT_TERMS_IS_DRAFT = true;
+export const PT_TERMS_VERSION = "2026-11-pt-v1";
+export const PT_TERMS_IS_DRAFT = false;
 
 /** A version id that marks a draft text. */
 export function isDraftTermsVersionId(version: string): boolean {
@@ -85,7 +87,6 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
       "Hợp đồng không qua phòng gym: bạn nhận 90% giá trị hợp đồng, nền tảng nhận 10%.",
       "Hợp đồng qua phòng gym: tỷ lệ của bạn, của phòng gym và của nền tảng theo thỏa thuận hợp tác giữa bạn và thương hiệu gym tại thời điểm tạo hợp đồng.",
       "Tiền của từng buổi chỉ về ví của bạn sau khi buổi đó được xác nhận (xem mục 3).",
-      "(Nội dung khoản tạm giữ dưới đây đang chờ rà soát pháp lý — bản nháp.)",
       "Khoản tạm giữ một phần thu nhập. Quy định này chỉ áp dụng cho hợp đồng được tạo sau khi quy định này có hiệu lực và sau khi bạn đã đồng ý phiên bản điều khoản có nội dung này; hợp đồng đã ký hoặc đang chạy không bị thay đổi.",
       "Mức giữ: 10% thu nhập dự kiến của bạn trên chính hợp đồng đó, tức là 10% của phần bạn được nhận theo tỷ lệ chia đã chốt của hợp đồng đó (không phải 10% số tiền khách trả), làm tròn xuống đồng. Ví dụ: hợp đồng 1.000.000đ, bạn nhận 90%, thu nhập dự kiến 900.000đ, mức giữ 90.000đ. Khoản này chỉ lấy từ phần của bạn, không bao giờ lấy từ phần của phòng gym hay của nền tảng, và không tính trên hợp đồng khác.",
       "Cách giữ: khi một buổi trở thành có thể thanh toán (khách xác nhận, hoặc hệ thống tự xác nhận hợp lệ; không phải lúc bạn bấm hoàn thành), thu nhập thật sự của buổi đó (sau khoản trừ vì vào phòng học muộn nếu có) được tạm giữ cho đến khi đủ mức giữ, phần còn lại về ví khả dụng của bạn như bình thường. Buổi bạn vắng mặt không tạo thu nhập nên không có gì bị giữ. Khi đã đủ mức giữ thì không giữ thêm. Số tiền giữ không bao giờ vượt quá thu nhập bạn đã thật sự kiếm được trên hợp đồng đó.",
@@ -176,7 +177,6 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     id: "privacy-notice",
     title: "10. Thông báo về dữ liệu cá nhân khi bạn đồng ý điều khoản",
     body: [
-      "(Nội dung đang chờ rà soát pháp lý — bản nháp.)",
       "Khi bạn bấm đồng ý điều khoản này, Gymini ghi lại địa chỉ IP và loại trình duyệt (hoặc ứng dụng) bạn đang dùng, cùng thời điểm và phiên bản điều khoản bạn đã đồng ý.",
       "Mục đích: chứng minh bạn đã đồng ý điều khoản và phòng chống gian lận. Gymini không dùng hai thông tin này cho mục đích khác.",
       "Ai xem được: chỉ quản trị viên Gymini. Địa chỉ IP và loại trình duyệt của bạn không hiển thị cho khách hàng hay cho PT khác.",

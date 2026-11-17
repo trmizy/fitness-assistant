@@ -16,11 +16,12 @@ export function WalletStatusPill({ status }: { status: string }) {
  * "Who owns this wallet": the owner's role + the short owner id with a copy button. A platform wallet is named by what it
  * is for ("Ví giữ hộ …") and its internal id (ESCROW / REVENUE) is never printed as if it were a user id.
  */
-export function WalletOwner({ ownerType, ownerId }: { ownerType: string; ownerId: string }) {
+export function WalletOwner({ ownerType, ownerId, withCopy = true }: { ownerType: string; ownerId: string; withCopy?: boolean }) {
   return (
     <div className="min-w-0">
       <div className="text-sm font-medium text-adm-text" data-testid="admin-wallet-owner-title">{walletOwnerTitle(ownerType, ownerId)}</div>
-      {ownerType !== "PLATFORM" && (
+      {/* withCopy=false when this sits inside a <button> (N13J-06: a copy button inside the open-row button is invalid HTML) */}
+      {withCopy && ownerType !== "PLATFORM" && (
         <div className="text-xs text-adm-text-2">
           <ShortIdCopy id={ownerId} label="mã chủ ví" />
         </div>

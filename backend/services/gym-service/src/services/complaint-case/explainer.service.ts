@@ -1,9 +1,9 @@
 import { prisma } from '../../repositories/prisma';
 import { caseError, notFoundCase } from './errors';
-import { logAccess, lockCase, mutate, requireUuid, toJson, type Actor, type CaseRow } from './case.service';
+import { logAccess, lockCase, moreInfoOf, moreInfoViewFor, mutate, partyProgressLabel, requireUuid, toJson, type Actor, type CaseRow, type MoreInfoState } from './case.service';
 import { canAccessGym } from '../partner-permissions';
 import { gymCaseEnabled } from './flags';
-import { PARTY_SUBMIT_STATUSES, evidenceVisibleTo, gymSafePayload, memberProgressLabel, statementVisibleTo, verificationLabelVi, verificationOf, viewerKind, type CaseStatus } from './rules';
+import { PARTY_SUBMIT_STATUSES, evidenceVisibleTo, gymSafePayload, statementVisibleTo, verificationLabelVi, verificationOf, viewerKind, type CaseStatus } from './rules';
 import { contentHashOf } from './canonical';
 
 /**
@@ -50,13 +50,17 @@ export const explainerService = {
       take: 100,
       include: { complaint: { select: { issueType: true } }, deadlines: { where: { status: 'OPEN', partyRole: 'GYM' }, select: { dueAt: true } } },
     });
+    const infos = new Map<string, MoreInfoState | null>();
+    for (const r of rows) infos.set(r.id, await moreInfoOf(prisma, r));
     return {
       items: rows.map((r) => ({
         id: r.id,
         gymId: r.gymId,
         issueType: r.complaint.issueType,
-        progress: memberProgressLabel(r.status as CaseStatus, r.execStatus),
+        progress: partyProgressLabel(r.status, r.execStatus, 'GYM', infos.get(r.id) ?? null),
         canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus),
+        /** N15A-07: true only while the admin is waiting for THIS gym (asked and not answered yet); `canSubmit` merely says the case accepts input */
+        awaitingYou: infos.get(r.id) ? infos.get(r.id)!.pendingParties.includes('GYM') : false,
         respondBy: r.deadlines[0]?.dueAt ?? null,
         createdAt: r.createdAt,
       })),
@@ -77,8 +81,10 @@ export const explainerService = {
     const gymAuthored = new Set(statementsAll.filter((s) => s.partyRole === 'GYM').map((s) => s.id));
     const statements = statementsAll.filter((s) => gymAuthored.has(s.id) || statementVisibleTo(s, kind, actor.id, shares));
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
+    const mi = await moreInfoOf(prisma, c);
     return {
-      case: { id: c.id, gymId: c.gymId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus), respondBy: deadline?.dueAt ?? null },
+      moreInfo: moreInfoViewFor('GYM', mi),
+      case: { id: c.id, gymId: c.gymId, progress: partyProgressLabel(c.status, c.execStatus, 'GYM', mi), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus), respondBy: deadline?.dueAt ?? null },
       complaint: { issueType: c.complaint.issueType, description: c.complaint.description },
       evidence: evidence.map((e) => {
         const v = verificationOf(e.source);

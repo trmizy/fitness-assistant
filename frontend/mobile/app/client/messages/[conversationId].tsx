@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { ChevronLeft, Phone, PhoneOff, Send, Video } from "lucide-react-native";
 
@@ -10,6 +10,7 @@ import { Avatar, inputPlaceholderColor, inputTextColor, useToast } from "../../.
 import { chatService } from "../../../src/services/api";
 import { useApp } from "../../../src/context/AppContext";
 import { useSocketContext } from "../../../src/context/SocketContext";
+import { useScreenActive } from "../../../src/hooks/useScreenActive";
 import { useCall } from "../../../src/features/call/CallProvider";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { darkColors } from "../../../src/theme/colors";
@@ -24,6 +25,8 @@ import {
   systemMessageText,
   MAX_MESSAGE_LENGTH,
   mergeMessageLists,
+  mergeThreadPage,
+  threadPollInterval,
   messageTime,
   normalizeConversations,
   normalizeMessages,
@@ -50,7 +53,9 @@ export default function ConversationScreen() {
   const toast = useToast();
   const { user } = useApp();
   const userId = user?.id ?? "guest";
-  const { socket } = useSocketContext();
+  const { socket, connected: socketConnected } = useSocketContext();
+  const queryClient = useQueryClient();
+  const screenActive = useScreenActive();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const id = String(conversationId ?? "");
   const [input, setInput] = useState("");
@@ -62,9 +67,19 @@ export default function ConversationScreen() {
   const conv = useMemo(() => normalizeConversations(convQuery.data).find((c) => c.id === id) ?? null, [convQuery.data, id]);
   const msgQuery = useQuery({
     queryKey: messagesKey(userId, id),
-    queryFn: async () => normalizeMessages(await chatService.getMessages(id, 1, CHAT_PAGE_SIZE)),
+    queryFn: async () =>
+      mergeThreadPage(queryClient.getQueryData<ChatMessage[]>(messagesKey(userId, id)), normalizeMessages(await chatService.getMessages(id, 1, CHAT_PAGE_SIZE))),
     enabled: !!id && !!user?.id,
+    // N15M-03: no socket (realtime OFF) -> poll while this screen is in front; stops on blur / background.
+    refetchInterval: threadPollInterval(screenActive, socketConnected),
   });
+  // Catch up at once when the thread comes back in front or the app returns to the foreground.
+  const wasActive = useRef(screenActive);
+  useEffect(() => {
+    if (screenActive && !wasActive.current && id && user?.id) void msgQuery.refetch();
+    wasActive.current = screenActive;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenActive]);
   // Older pages ("Xem tin cũ hơn") live beside the query so a refetch never drops history already loaded.
   const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
   const [noMoreOlder, setNoMoreOlder] = useState(false);

@@ -4,6 +4,7 @@ import multer from 'multer';
 import { Request, Response } from 'express';
 import { isLambdaRuntime } from '../utils/runtime.util';
 import { complaintRepository } from '../repositories/complaint.repository';
+import { detectContentType } from '../services/partner-upload.rules';
 
 /**
  * GYM_MANAGEMENT master spec, Phase 5 — "Ảnh minh chứng không bao giờ hiển thị công khai."
@@ -43,6 +44,32 @@ const upload = isLambdaRuntime()
       },
     });
 
+/**
+ * N13E-09 (14/11/2026): the multer filter above only trusts the file NAME and the declared mimetype, so HTML bytes named x.jpg were stored. The real first bytes decide
+ * (same sniffing as the partner uploads: partner-upload.rules.ts detectContentType): they must be a JPEG, PNG or WEBP, and agree with the extension.
+ */
+function realImageMatchesExtension(filePath: string, originalName: string): boolean {
+  let head = Buffer.alloc(0);
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    try {
+      const buf = Buffer.alloc(16);
+      const n = fs.readSync(fd, buf, 0, 16, 0);
+      head = buf.subarray(0, n);
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return false;
+  }
+  const real = detectContentType(head);
+  const ext = path.extname(originalName).toLowerCase();
+  if (real === 'image/jpeg') return ext === '.jpg' || ext === '.jpeg';
+  if (real === 'image/png') return ext === '.png';
+  if (real === 'image/webp') return ext === '.webp';
+  return false;
+}
+
 export const complaintPhotoController = {
   uploadMiddleware(req: Request, res: Response, next: (err?: any) => void) {
     if (!upload) {
@@ -61,6 +88,15 @@ export const complaintPhotoController = {
   async upload(req: Request, res: Response) {
     if (!req.file) {
       res.status(400).json({ success: false, error: { message: 'Chưa chọn ảnh' } });
+      return;
+    }
+    if (!realImageMatchesExtension(req.file.path, req.file.originalname)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch {
+        /* the unreferenced file is harmless: nothing points at it */
+      }
+      res.status(400).json({ success: false, error: { code: 'INVALID_IMAGE_CONTENT', message: 'Tệp không phải ảnh JPG, PNG hoặc WEBP hợp lệ' } });
       return;
     }
     res.status(201).json({ success: true, data: { token: req.file.filename } });

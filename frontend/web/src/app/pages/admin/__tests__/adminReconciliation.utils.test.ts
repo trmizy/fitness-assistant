@@ -27,6 +27,7 @@ import {
   obligationActionLabel,
   obligationKindLabel,
   obligationStatusLabel,
+  obligationStatusLabelFor,
   obligationTone,
   paymentSourceLabel,
   rowsWithStatus,
@@ -85,7 +86,7 @@ const sessionsFixture = () => ({
 
 describe("labels follow the real enums and never leak a raw code to the admin", () => {
   it("ContractUnpaidObligationKind (payment-service)", () => {
-    for (const k of ["NO_SHOW", "LATE_ARRIVAL", "REFUND_SHORT", "OVER_RELEASED"]) assert.ok(OBLIGATION_KIND_LABEL[k], k);
+    for (const k of ["NO_SHOW", "LATE_ARRIVAL", "REFUND_SHORT", "OVER_RELEASED", "GYM_DEBT"]) assert.ok(OBLIGATION_KIND_LABEL[k], k);
     assert.equal(obligationKindLabel("SOMETHING_NEW"), "Nghĩa vụ khác");
     assert.equal(obligationKindLabel(null), "Nghĩa vụ khác");
   });
@@ -482,5 +483,28 @@ describe("FH-9 PT holdback block: normalised from the real report shape; an over
     const calm = withHold({ totalHeld: "90000.00", contractsHolding: 1, waitingReconciliation: { count: 0, held: "0" }, stuck: { count: 0, held: "0" }, overdue: { count: 0, reserved: "0" } });
     const late = withHold({ totalHeld: "90000.00", contractsHolding: 1, waitingReconciliation: { count: 1, held: "90000" }, stuck: { count: 0, held: "0" }, overdue: { count: 1, reserved: "90000" } });
     assert.equal(countAttention(late, null).critical - countAttention(calm, null).critical, 1);
+  });
+});
+
+describe("FIX3-PAY automatic GYM_DEBT recovery (RECOVER_FROM_INCOME)", () => {
+  const rec = {
+    at: "2026-11-15T03:00:00.000Z", action: "RECOVER_FROM_INCOME", fromStatus: "OPEN", toStatus: "OPEN", actor: "SYSTEM:GYM_DEBT_AUTO_RECOVERY", approvedBy: null,
+    approvalRef: "0f9c1d6e-entry", note: "Tự động thu hồi 9.000đ từ khoản thu nhập mới của phòng gym; còn nợ 14.000đ", paidAmount: "9000.00", unpaidAfter: "14000.00",
+  };
+  it("the action has a Vietnamese label", () => {
+    assert.equal(obligationActionLabel("RECOVER_FROM_INCOME"), "Tự động trừ nợ từ thu nhập mới của gym");
+    assert.ok(OBLIGATION_ACTION_LABEL.RECOVER_FROM_INCOME);
+  });
+  it("the timeline line shows amount and what is still owed, and says nobody approved it (no raw system actor / entry id)", () => {
+    const line = formatObligationEvent(rec as any, fmt);
+    for (const part of ["Tự động trừ nợ từ thu nhập mới của gym", "9000.00đ", "còn nợ 14000.00đ", "tự động, không cần người duyệt"]) assert.ok(line.includes(part), `${part} in: ${line}`);
+    assert.ok(!line.includes("SYSTEM:") && !line.includes("phê duyệt"), line);
+  });
+  it("a fully recovered GYM_DEBT is worded as recovered from the gym's income, not as paid into the Gymini wallet", () => {
+    assert.equal(obligationStatusLabelFor("GYM_DEBT", "RESOLVED_OTHER", "0.00"), "Đã thu hồi từ thu nhập của gym");
+    assert.equal(obligationStatusLabelFor("GYM_DEBT", "RESOLVED_OTHER", "5000.00"), "Đã giải quyết bằng phương thức khác", "a manual resolve keeps its unpaid");
+    assert.equal(obligationStatusLabelFor("GYM_DEBT", "RESOLVED_OTHER"), "Đã giải quyết bằng phương thức khác");
+    assert.equal(obligationStatusLabelFor("NO_SHOW", "PAID_VIA_LEDGER", "0.00"), "Đã trả vào ví Gymini");
+    assert.equal(obligationStatusLabelFor("GYM_DEBT", "OPEN", "5000.00"), "Đang mở");
   });
 });

@@ -106,6 +106,8 @@ export const SESSION_STATUS_VI: Record<string, string> = {
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
   NO_SHOW: "Vắng mặt",
+  DISPUTED: "Đang khiếu nại",
+  PT_NO_SHOW_REPORTED: "PT bị báo vắng mặt",
 };
 
 export const SESSION_MODE_VI: Record<string, string> = {
@@ -120,6 +122,15 @@ export const CONTRACT_STATUS_VI: Record<string, string> = {
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
   REJECTED: "Từ chối",
+};
+
+/** Trạng thái gói hội viên phòng gym (GymMembershipContract.status) - N13E-12: trang chi nhánh của chủ gym hiện chữ thô "CANCELLED". */
+export const MEMBERSHIP_STATUS_VI: Record<string, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  ACTIVE: "Đang hoạt động",
+  EXPIRED: "Đã hết hạn",
+  CANCELLED: "Đã huỷ",
+  PENDING_ISSUE: "Có vấn đề thanh toán",
 };
 
 export const MEAL_TYPE_VI: Record<string, string> = {

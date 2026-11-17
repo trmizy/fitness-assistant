@@ -73,7 +73,7 @@ function world(over: { accepting?: boolean; collaboration?: unknown; existingCon
     clientUserId,
     packageId,
     restore: () => restores.forEach((r) => r()),
-    body: (extra: Record<string, unknown> = {}) => ({ ptUserId, packageId, expectedPackageVersion: 1, ...(over.gymId ? { gymId: over.gymId } : {}), ...extra }),
+    body: (extra: Record<string, unknown> = {}) => ({ ptUserId, packageId, expectedPackageVersion: 1, acknowledgedIndependentVenue: true, ...(over.gymId ? { gymId: over.gymId } : {}), ...extra }),
   };
 }
 
@@ -85,7 +85,7 @@ dbTest("B33: a PT who is not accepting clients -> 422 with code PT_NOT_ACCEPTING
       (e: any) => e.status === 422 && e.code === "PT_NOT_ACCEPTING_CLIENTS" && e.message === "PT hiện đang tạm ngưng nhận khách mới",
     );
     const res = fakeRes();
-    await contractController.requestContract({ headers: { "x-user-id": w.clientUserId }, body: w.body() } as any, res);
+    await contractController.requestContract({ headers: { "x-user-id": w.clientUserId }, body: w.body(), get: () => null, socket: {} } as any, res);
     assert.equal(res.statusCode, 422);
     assert.equal(res.body.code, "PT_NOT_ACCEPTING_CLIENTS");
   } finally {
@@ -97,7 +97,7 @@ dbTest("B44: the PT has no (or a terminating) agreement with the gym's brand -> 
   const w = world({ collaboration: null, gymId: "gym-a1" });
   try {
     const res = fakeRes();
-    await contractController.requestContract({ headers: { "x-user-id": w.clientUserId }, body: w.body() } as any, res);
+    await contractController.requestContract({ headers: { "x-user-id": w.clientUserId }, body: w.body(), get: () => null, socket: {} } as any, res);
     assert.equal(res.statusCode, 400);
     assert.equal(res.body.code, "GYM_AGREEMENT_NOT_ACTIVE");
     assert.match(res.body.error, /thoả thuận hợp tác còn hiệu lực/);

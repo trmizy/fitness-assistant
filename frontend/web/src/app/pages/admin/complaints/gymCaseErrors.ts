@@ -82,7 +82,7 @@ export const GYM_ERROR_CODES: Record<string, Entry> = {
         ? `Đã quá thời hạn yêu cầu xem xét lại (hạn chót: ${d.closedAt}).`
         : "Đã quá thời hạn yêu cầu xem xét lại.",
   },
-  APPEAL_ASSESSMENT_REQUIRED: { kind: "blocked", message: "Hồ sơ cần được đánh giá lại trong bước xem xét." },
+  APPEAL_ASSESSMENT_REQUIRED: { kind: "blocked", message: "Chưa ghi được kết luận: hồ sơ đang xem xét lại kháng nghị nhưng người xem xét chưa có đánh giá mới nào. Hãy mở tab «Khẳng định & đánh giá», ghi (hoặc cập nhật) đánh giá cho ít nhất một khẳng định, rồi quay lại ghi kết luận." },
   DECISION_HAS_EFFECT: {
     kind: "blocked",
     message: (d) => {

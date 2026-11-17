@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import { Redirect, router, usePathname } from "expo-router";
 
 import { useApp, type UserRole } from "../../context/AppContext";
 import { ROLE_HOME } from "../../config/landing";
+import { clearReturnPath, resolveReturnPath } from "../../config/returnPath";
 import { Button } from "../ui";
 
 /**
@@ -28,10 +29,20 @@ export function RequireRole({
   const { role, isAuthenticated } = useApp();
   const pathname = usePathname();
 
+  // A signed-in guard means any remembered cold-start link has been served (or is not for this
+  // account) — drop it so it can never carry over to another login (N17M-08, see config/returnPath).
+  useEffect(() => {
+    if (isAuthenticated) clearReturnPath();
+  }, [isAuthenticated]);
+
   // Carry where they were headed, so a session that drops mid-flow (a payment result, say) can
   // return there after logging back in instead of stranding them on a dashboard.
+  //
+  // On a cold start `pathname` is still expo-router's default "/" when this first renders, so the
+  // link the app was opened with (remembered by +native-intent) stands in for it.
   if (!isAuthenticated) {
-    return <Redirect href={{ pathname: "/login", params: { from: pathname } }} />;
+    const from = resolveReturnPath(pathname);
+    return <Redirect href={from ? { pathname: "/login", params: { from } } : "/login"} />;
   }
 
   if (!allow.includes(role)) {

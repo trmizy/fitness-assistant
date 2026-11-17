@@ -7,6 +7,7 @@ import { Expand, MapPin, X } from "lucide-react-native";
 import { Tappable } from "../../components/ui";
 
 import type { BranchPin } from "./gymDirectory";
+import { isInVietnam } from "../../utils/geo";
 import { baseTilesScript } from "./mapTiles";
 
 /**
@@ -95,7 +96,8 @@ function MapWebView({ pins, currentId, interactive }: { pins: BranchPin[]; curre
 
 export function BranchMap({ branches, currentId }: { branches: BranchPin[]; currentId: string }) {
   const insets = useSafeAreaInsets();
-  const pins = useMemo(() => branches.filter((b) => b.latitude != null && b.longitude != null), [branches]);
+  // N15M-13: a branch with coordinates outside Vietnam gets no marker (and never decides where the map is centred).
+  const pins = useMemo(() => branches.filter((b) => isInVietnam(b.latitude, b.longitude)), [branches]);
   const [open, setOpen] = useState(false);
 
   if (pins.length === 0) {

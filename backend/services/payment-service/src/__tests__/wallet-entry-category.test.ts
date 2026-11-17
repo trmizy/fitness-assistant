@@ -38,6 +38,12 @@ test('membership and personalized-order refunds', () => {
   assert.equal(c('something — refund'), 'REFUND_OTHER');
 });
 
+test('N15A-08: the supplementary refund of a won gym-complaint appeal has its own member and gym-share labels', () => {
+  assert.equal(c(`Membership ${ID} appeal supplement - appeal supplement - refund`), 'REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT');
+  assert.equal(c(`Membership ${ID} appeal supplement - appeal supplement - gym share`, 'DEBIT'), 'APPEAL_SUPPLEMENT_GYM_SHARE');
+  assert.equal(c(`Membership ${ID} appeal supplement - appeal supplement - platform share`, 'DEBIT'), 'OTHER_DEBIT');
+});
+
 test('withdrawal legs, top-up', () => {
   assert.equal(c(`Withdrawal ${ID} approved — locked for payout`, 'DEBIT'), 'WITHDRAWAL_LOCKED');
   assert.equal(c(`Withdrawal ${ID} rejected — restored from lock`), 'WITHDRAWAL_RESTORED');

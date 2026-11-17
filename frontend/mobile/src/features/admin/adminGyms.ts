@@ -16,6 +16,7 @@
  */
 import { foldVi } from "../../lib/text";
 import { normalizeEmail } from "../../lib/email";
+import { fullAddress } from "../services/gymDirectory";
 
 export type AdminGym = {
   id: string;
@@ -56,7 +57,7 @@ export const gymRows = (raw: unknown) => list<AdminGym>(raw);
 export const brandRows = (raw: unknown) => list<AdminBrand>(raw);
 
 export const displayName = (g: AdminGym) => g.approvedName ?? g.name;
-export const displayAddress = (g: AdminGym) => [g.approvedAddress ?? g.address, g.city].filter(Boolean).join(", ");
+export const displayAddress = (g: AdminGym) => fullAddress({ address: g.approvedAddress ?? g.address, city: g.city ?? null }, {});
 
 /** Cũ nhất lên đầu — chi nhánh chờ lâu nhất được xem trước. */
 function oldestFirst<T extends { createdAt?: string | null }>(rows: T[]): T[] {

@@ -519,7 +519,7 @@ export function PTProfilePage() {
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-bold text-zinc-200">
-                Availability
+                Lịch rảnh
               </h4>
               <button
                 onClick={() => navigate("/pt/schedule")}

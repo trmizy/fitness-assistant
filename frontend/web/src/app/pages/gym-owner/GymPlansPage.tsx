@@ -6,7 +6,7 @@ import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { GymBrand, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 
 /** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
  * so the badge here always matches what the public listing would actually show. */
@@ -33,7 +33,6 @@ export function GymPlansPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
-  useBackDismissible(!!showCreatePlan, () => setShowCreatePlan(false));
   const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
 
   const { data: brands = [], isLoading: brandsLoading } = useQuery<GymBrand[]>({
@@ -179,25 +178,22 @@ export function GymPlansPage() {
       )}
 
       {/* Create plan dialog */}
-      {showCreatePlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+      <Modal open={showCreatePlan} onClose={() => setShowCreatePlan(false)} closeOnBackdrop={false} data-testid="gym-plan-modal">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-full overflow-y-auto">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">Gói hội viên mới</h3>
-              <button type="button" aria-label="Đóng" onClick={() => setShowCreatePlan(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
+              <ModalTitle className="text-zinc-100 font-bold">Gói hội viên mới</ModalTitle>
+              <ModalClose className="-mr-2" />
             </div>
             <div className="p-5 space-y-3">
               <input
-                aria-label="Plan name"
+                aria-label="Tên gói"
                 value={plan.name}
                 onChange={(e) => setPlan({ ...plan, name: e.target.value })}
                 placeholder="Tên gói (VD: Gói tháng)"
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <input
-                aria-label="Price"
+                aria-label="Giá (VND)"
                 type="number"
                 value={plan.price}
                 onChange={(e) => setPlan({ ...plan, price: e.target.value })}
@@ -205,7 +201,7 @@ export function GymPlansPage() {
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <input
-                aria-label="Duration in days"
+                aria-label="Thời hạn (ngày)"
                 type="number"
                 value={plan.durationDays}
                 onChange={(e) => setPlan({ ...plan, durationDays: e.target.value })}
@@ -213,7 +209,7 @@ export function GymPlansPage() {
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <input
-                aria-label="Visit limit (optional)"
+                aria-label="Giới hạn lượt vào (tuỳ chọn)"
                 type="number"
                 value={plan.visitLimit}
                 onChange={(e) => setPlan({ ...plan, visitLimit: e.target.value })}
@@ -230,14 +226,14 @@ export function GymPlansPage() {
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
-                    aria-label="Sale start date"
+                    aria-label="Ngày bắt đầu mở bán"
                     type="date"
                     value={plan.saleStartAt}
                     onChange={(e) => setPlan({ ...plan, saleStartAt: e.target.value })}
                     className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
                   />
                   <input
-                    aria-label="Sale end date"
+                    aria-label="Ngày kết thúc mở bán"
                     type="date"
                     value={plan.saleEndAt}
                     onChange={(e) => setPlan({ ...plan, saleEndAt: e.target.value })}
@@ -262,8 +258,7 @@ export function GymPlansPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

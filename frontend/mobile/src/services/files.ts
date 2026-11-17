@@ -7,6 +7,7 @@ import * as Sharing from "expo-sharing";
 // address changed in-app applies to the very next download.
 import { apiBaseUrl } from "../config/serverUrl";
 import { tokenStore } from "./tokenStore";
+import { currentClientHeaders } from "./clientHeader";
 
 /**
  * The RN replacement for web's two file idioms, both of which are browser-only:
@@ -51,7 +52,7 @@ export async function downloadAuthenticatedFile(
   const destination = new File(downloadDirectory(), safeFileName(fileName));
 
   const downloaded = await File.downloadFileAsync(`${apiBaseUrl()}${path}`, destination, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...currentClientHeaders(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     // Re-downloading the same document must overwrite, not throw.
     idempotent: true,
   });

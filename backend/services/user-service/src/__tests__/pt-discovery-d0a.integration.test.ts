@@ -490,11 +490,14 @@ function refHasForSalePkg(pt: SimPt, mode?: "ONLINE" | "OFFLINE"): boolean {
   );
 }
 
-/** D0b-1 list rule (ANY = OFFLINE-eligible OR ONLINE-eligible) + base visibility. */
+/**
+ * List rule (ANY = OFFLINE-eligible OR ONLINE-eligible) + base visibility. Package-driven (Ngài 15/11,
+ * N13B-06): eligibility comes from the packages the PT is selling, never from the application's service_mode.
+ */
 function refIsDiscoverable(pt: SimPt): boolean {
   if (!refIsVisible(pt)) return false;
-  const offlineOk = (pt.serviceMode === "OFFLINE" || pt.serviceMode === "HYBRID") && pt.activeLocations.length > 0 && refHasForSalePkg(pt, "OFFLINE");
-  const onlineOk = (pt.serviceMode === "ONLINE" || pt.serviceMode === "HYBRID") && refHasForSalePkg(pt, "ONLINE");
+  const offlineOk = pt.activeLocations.length > 0 && refHasForSalePkg(pt, "OFFLINE");
+  const onlineOk = refHasForSalePkg(pt, "ONLINE");
   return offlineOk || onlineOk;
 }
 
@@ -704,15 +707,13 @@ test("D0a unfiltered global GET /profile/pts (without q) matches independent SQL
         )
         AND (
           (
-            pa.service_mode IN ('OFFLINE', 'HYBRID')
-            AND EXISTS (SELECT 1 FROM pt_training_locations tl WHERE tl.pt_user_id = p."userId" AND tl.is_active = true)
+            EXISTS (SELECT 1 FROM pt_training_locations tl WHERE tl.pt_user_id = p."userId" AND tl.is_active = true)
             AND EXISTS (
               SELECT 1 FROM pt_service_packages pkg
               WHERE pkg.pt_user_id = p."userId" AND pkg.is_active = true AND pkg.archived_at IS NULL AND pkg.session_count >= 1 AND pkg.price > 0 AND pkg.session_mode = 'OFFLINE'
             )
           ) OR (
-            pa.service_mode IN ('ONLINE', 'HYBRID')
-            AND EXISTS (
+            EXISTS (
               SELECT 1 FROM pt_service_packages pkg
               WHERE pkg.pt_user_id = p."userId" AND pkg.is_active = true AND pkg.archived_at IS NULL AND pkg.session_count >= 1 AND pkg.price > 0 AND pkg.session_mode = 'ONLINE'
             )
@@ -732,11 +733,10 @@ test("D0a unfiltered global GET /profile/pts (without q) matches independent SQL
 // ── 4. Mode, price, specialty, location, gymId filters & areaProvince/areaWard badges ─────────
 
 test("D0a filters: sessionMode + price consistency, specialties, province/ward, gymId, and area matchReason", async () => {
-  // OFFLINE: serviceMode in {OFFLINE, HYBRID} AND >= 1 active location AND >= 1 for-sale OFFLINE package
+  // OFFLINE: >= 1 active location AND >= 1 for-sale OFFLINE package (package-driven, not application service_mode)
   const expectedOffline = simPts.filter(
     (p) =>
       refIsVisible(p) &&
-      (p.serviceMode === "OFFLINE" || p.serviceMode === "HYBRID") &&
       p.activeLocations.length > 0 &&
       p.packages.some((pkg) => pkg.isActive && pkg.archivedAt === null && pkg.sessionCount >= 1 && pkg.price > 0 && pkg.sessionMode === "OFFLINE"),
   );
@@ -746,11 +746,10 @@ test("D0a filters: sessionMode + price consistency, specialties, province/ward, 
   assert.ok(!offlineRes.ids.includes(simPts[1101].userId), "OFFLINE with only archived/inactive pkg excluded");
   assert.ok(!offlineRes.ids.includes(simPts[1102].userId), "HYBRID with only ONLINE pkg excluded from OFFLINE");
 
-  // ONLINE: serviceMode in {ONLINE, HYBRID} AND >= 1 for-sale ONLINE package
+  // ONLINE: >= 1 for-sale ONLINE package (package-driven, not application service_mode)
   const expectedOnline = simPts.filter(
     (p) =>
       refIsVisible(p) &&
-      (p.serviceMode === "ONLINE" || p.serviceMode === "HYBRID") &&
       p.packages.some((pkg) => pkg.isActive && pkg.archivedAt === null && pkg.sessionCount >= 1 && pkg.price > 0 && pkg.sessionMode === "ONLINE"),
   );
   const onlineRes = await fetchAllPages(`q=${encodeURIComponent(tag)}&sessionMode=ONLINE&sortBy=priceAsc`);
@@ -759,8 +758,10 @@ test("D0a filters: sessionMode + price consistency, specialties, province/ward, 
   assert.ok(onlineRes.ids.includes(simPts[1102].userId), "HYBRID with ONLINE pkg matches ONLINE");
   assert.ok(!onlineRes.ids.includes(simPts[1103].userId), "ONLINE without ONLINE pkg excluded from ONLINE");
 
-  // HYBRID: serviceMode='HYBRID' AND (OFFLINE-eligible OR ONLINE-eligible) (đổi theo quyết định Ngài 10/11)
-  const expectedHybrid = simPts.filter((p) => refIsDiscoverable(p) && p.serviceMode === "HYBRID");
+  // HYBRID: sells BOTH for-sale kinds, the OFFLINE side with >= 1 active location (package-driven, Ngài 15/11)
+  const expectedHybrid = simPts.filter(
+    (p) => refIsVisible(p) && p.activeLocations.length > 0 && refHasForSalePkg(p, "OFFLINE") && refHasForSalePkg(p, "ONLINE"),
+  );
   const hybridRes = await fetchAllPages(`q=${encodeURIComponent(tag)}&sessionMode=HYBRID`);
   assert.deepEqual(new Set(hybridRes.ids), new Set(expectedHybrid.map((p) => p.userId)));
 
@@ -929,3 +930,94 @@ test("D0a default order SAME_GYM via findDiscoveryPtPageIds: active gymX priorit
   assert.equal(priceWithGym.userIds[1], simPts[1].userId);
 });
 
+
+// ── 7. Mode filter is package-driven (N13B-06, Ngài 15/11) ────────────────────────────────────
+
+test("D0a N13B-06: sessionMode follows the packages the PT sells, not the application service_mode", async () => {
+  const mk = (n: string) => ({
+    userId: `${prefix}pm${n}`,
+    profileId: `${prefix}pm${n}_p`,
+    appId: `${prefix}pmapp${n}`,
+    name: `Pkgmode${tag}${n}`,
+  });
+  const onlineSeller = mk("a"); // OFFLINE application, only an ONLINE package priced 1 VND
+  const offlineOnly = mk("b"); // OFFLINE application, active location, only OFFLINE packages
+  const both = mk("c"); // ONLINE application, active location, both kinds
+  const created = [onlineSeller, offlineOnly, both];
+  const baseCreatedAt = new Date("2026-10-01T00:00:00.000Z");
+  for (const [i, x] of created.entries()) {
+    await prisma.userProfile.create({
+      data: {
+        id: x.profileId,
+        userId: x.userId,
+        email: `${x.userId}@d0a.test.local`,
+        firstName: x.name,
+        lastName: "Coach",
+        firstNameNormalized: x.name.toLowerCase(),
+        lastNameNormalized: "coach",
+        isPT: true,
+        isAcceptingClients: true,
+        createdAt: new Date(baseCreatedAt.getTime() + i * 1000),
+      },
+    });
+    await prisma.pTApplication.create({
+      data: {
+        id: x.appId,
+        userProfileId: x.profileId,
+        status: "APPROVED",
+        serviceMode: x === both ? "ONLINE" : "OFFLINE",
+        approvedAt: baseCreatedAt,
+      },
+    });
+  }
+  const pkg = (x: { userId: string }, suffix: string, sessionMode: "ONLINE" | "OFFLINE", price: number) =>
+    prisma.pTServicePackage.create({
+      data: {
+        id: `${x.userId}pkg${suffix}`,
+        ptUserId: x.userId,
+        name: `Pkg ${suffix}`,
+        sessionCount: 1,
+        price,
+        sessionMode,
+        sessionDurationMinutes: 60,
+        isActive: true,
+      },
+    });
+  const loc = (x: { userId: string }) =>
+    prisma.pTTrainingLocation.create({
+      data: {
+        id: `${x.userId}loc`,
+        ptUserId: x.userId,
+        provinceCode: PROV_A,
+        wardCode: WARD_A1,
+        gymName: "Gym pkgmode",
+        isPrimary: true,
+        isActive: true,
+      },
+    });
+  await pkg(onlineSeller, "on", "ONLINE", 1);
+  await pkg(offlineOnly, "off", "OFFLINE", 200_000);
+  await loc(offlineOnly);
+  await pkg(both, "on", "ONLINE", 300_000);
+  await pkg(both, "off", "OFFLINE", 300_000);
+  await loc(both);
+
+  const idsFor = async (sessionMode?: string) =>
+    (await fetchAllPages(`q=Pkgmode${tag}${sessionMode ? `&sessionMode=${sessionMode}` : ""}`)).ids;
+
+  const online = await idsFor("ONLINE");
+  assert.ok(online.includes(onlineSeller.userId), "OFFLINE-application PT selling an ONLINE package appears under ONLINE");
+  assert.ok(online.includes(both.userId));
+  assert.ok(!online.includes(offlineOnly.userId), "PT with only OFFLINE packages does not appear under ONLINE");
+
+  const offline = await idsFor("OFFLINE");
+  assert.ok(offline.includes(offlineOnly.userId));
+  assert.ok(offline.includes(both.userId), "ONLINE-application PT selling an OFFLINE package (with location) appears under OFFLINE");
+  assert.ok(!offline.includes(onlineSeller.userId), "PT with only ONLINE packages does not appear under OFFLINE");
+
+  const hybrid = await idsFor("HYBRID");
+  assert.deepEqual(hybrid, [both.userId], "HYBRID = sells both kinds");
+
+  const all = await idsFor();
+  assert.deepEqual(new Set(all), new Set(created.map((x) => x.userId)), "unfiltered list agrees with the mode filters");
+});

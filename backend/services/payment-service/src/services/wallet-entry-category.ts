@@ -20,6 +20,8 @@ export type WalletEntryCategory =
   | 'REFUND_PT_CONTRACT'
   | 'REFUND_PT_SESSION_NOT_DELIVERED'
   | 'REFUND_MEMBERSHIP'
+  | 'REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT'
+  | 'APPEAL_SUPPLEMENT_GYM_SHARE'
   | 'REFUND_PERSONALIZED_SERVICE'
   | 'REFUND_OTHER'
   | 'COMPENSATION_PT_NO_SHOW'
@@ -43,6 +45,7 @@ export type WalletEntryCategory =
   | 'REFERRAL_COMMISSION'
   | 'REFERRAL_CLAWBACK'
   | 'DEBT_WITHHELD'
+  | 'GYM_DEBT_RECOVERED'
   | 'PENDING_REVERSED'
   | 'OTHER_CREDIT'
   | 'OTHER_DEBIT';
@@ -86,6 +89,15 @@ export function classifyWalletEntry(
   if (/^Withdrawal \S+ approved — locked for payout/.test(d)) return 'WITHDRAWAL_LOCKED';
   if (/^Withdrawal \S+ rejected — restored from lock/.test(d)) return 'WITHDRAWAL_RESTORED';
   if (/^Withdrawal \S+ paid\b/.test(d)) return 'WITHDRAWAL_PAID';
+
+  // FIX3-PAY: a gym's open GYM_DEBT repaid automatically from its new income (both legs carry the fragment; gym-debt-recovery.ts).
+  if (d.includes('— gym debt recovered from income')) return 'GYM_DEBT_RECOVERED';
+
+  // N15A-08: the supplementary refund of a won gym-complaint appeal (membership-appeal-supplement.service.ts): the member's credit and the gym's share debit
+  if (d.includes(' appeal supplement')) {
+    if (credit && /appeal supplement - refund$/.test(d)) return 'REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT';
+    if (!credit && /appeal supplement - gym share$/.test(d)) return 'APPEAL_SUPPLEMENT_GYM_SHARE';
+  }
 
   const product = productOf(d, txn);
 

@@ -1,4 +1,4 @@
-import { DayOfWeek, SessionStatus } from "../generated/prisma";
+import { DayOfWeek, Prisma, SessionStatus } from "../generated/prisma";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { profileRepository, prisma } from "../repositories/profile.repository";
@@ -238,6 +238,9 @@ export function findEarliestSlotFromRows(input: {
   return null;
 }
 
+/** HH:MM, 00:00-23:59. */
+const AVAILABILITY_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export const availabilityService = {
   // Validate blocks: no overlap, startTime < endTime
   validateAvailabilityBlocks(
@@ -248,15 +251,18 @@ export const availabilityService = {
     for (const slot of slots) {
       if (!DAY_ORDER[slot.dayOfWeek])
         throw err(`Invalid day: ${slot.dayOfWeek}`, 400);
+      // N13B-04: a real clock time, 00:00-23:59 (the old \d{2}:\d{2} accepted "25:00" and "99:99").
       if (
-        !/^\d{2}:\d{2}$/.test(slot.startTime) ||
-        !/^\d{2}:\d{2}$/.test(slot.endTime)
+        typeof slot.startTime !== "string" ||
+        typeof slot.endTime !== "string" ||
+        !AVAILABILITY_TIME_RE.test(slot.startTime) ||
+        !AVAILABILITY_TIME_RE.test(slot.endTime)
       ) {
-        throw err("Time must be in HH:MM format", 400);
+        throw err("Giờ phải đúng định dạng HH:MM trong khoảng 00:00 đến 23:59", 400);
       }
       if (slot.startTime >= slot.endTime) {
         throw err(
-          `Start time must be before end time for ${slot.dayOfWeek}`,
+          `Giờ kết thúc phải sau giờ bắt đầu (${slot.dayOfWeek})`,
           400,
         );
       }
@@ -668,6 +674,63 @@ export const availabilityService = {
       availabilities,
       exceptions,
       bookedSessions,
+      fromDate,
+      toDate,
+      sessionDurationMinutes,
+    });
+  },
+
+  /**
+   * Same result as countAvailableSlotsForPTs, read with ONE SQL statement instead of three (PT discovery
+   * list/search: the statement count per request is a measured plan threshold, and every round trip
+   * queues on the Prisma pool under concurrency). The row filters are identical to the three finders it
+   * replaces (availabilityRepository.findByPTs / findExceptionsByPTsAndRange,
+   * sessionRepository.findBookedByPTsAndRange); timestamps are UTC wall clock exactly as Prisma stores them.
+   */
+  async countAvailableSlotsForPTsOneQuery(
+    ptUserIds: string[],
+    fromDate: Date,
+    toDate: Date,
+    sessionDurationMinutes = 60,
+  ): Promise<Record<string, number>> {
+    if (ptUserIds.length === 0) return {};
+    const fromIso = fromDate.toISOString();
+    const toIso = toDate.toISOString();
+    const iso = (col: string) => Prisma.raw(`to_char(${col}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
+    const rows = await prisma.$queryRaw<{ availabilities: any; exceptions: any; booked: any }[]>(Prisma.sql`
+      SELECT
+        (SELECT COALESCE(json_agg(json_build_object(
+            'ptUserId', a.pt_user_id, 'dayOfWeek', a.day_of_week::text,
+            'startTime', a.start_time, 'endTime', a.end_time, 'isActive', a.is_active)), '[]'::json)
+           FROM pt_availability a
+          WHERE a.pt_user_id = ANY(${ptUserIds}::text[]) AND a.is_active = true) AS availabilities,
+        (SELECT COALESCE(json_agg(json_build_object(
+            'ptUserId', e.pt_user_id, 'date', ${iso("e.date")})), '[]'::json)
+           FROM pt_schedule_exceptions e
+          WHERE e.pt_user_id = ANY(${ptUserIds}::text[])
+            AND e.date >= ${fromIso}::timestamp AND e.date <= ${toIso}::timestamp) AS exceptions,
+        (SELECT COALESCE(json_agg(json_build_object(
+            'ptUserId', s.pt_user_id, 'scheduledStartAt', ${iso("s.scheduled_start_at")})), '[]'::json)
+           FROM sessions s
+          WHERE s.pt_user_id = ANY(${ptUserIds}::text[])
+            AND s.status IN ('REQUESTED'::"SessionStatus", 'CONFIRMED'::"SessionStatus")
+            AND s.scheduled_start_at >= ${fromIso}::timestamp
+            AND s.scheduled_end_at <= ${toIso}::timestamp) AS booked
+    `);
+    const row = rows[0];
+
+    return countSlotsFromRows({
+      ptUserIds,
+      availabilities: (row?.availabilities ?? []) as SlotAvailabilityRow[],
+      exceptions: ((row?.exceptions ?? []) as { ptUserId: string; date: string }[]).map((e) => ({
+        ptUserId: e.ptUserId,
+        date: new Date(e.date),
+      })),
+      bookedSessions: ((row?.booked ?? []) as { ptUserId: string; scheduledStartAt: string }[]).map((s) => ({
+        ptUserId: s.ptUserId,
+        scheduledStartAt: new Date(s.scheduledStartAt),
+      })),
       fromDate,
       toDate,
       sessionDurationMinutes,

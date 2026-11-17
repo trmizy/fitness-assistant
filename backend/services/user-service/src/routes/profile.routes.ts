@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { requirePtForAcceptingClients } from "../middleware/require-pt.middleware";
 import { profileController } from "../controllers/profile.controller";
 import { ptServicePackageController } from "../controllers/pt_service_package.controller";
 import { isLambdaRuntime } from "../utils/runtime.util";
+import { requireRealAvatarImage } from "../utils/uploaded-file-sniff";
 import agenticFitnessRoutes from "./agentic-fitness.routes";
 import { ptRestrictionController } from "../controllers/pt-restriction.controller";
 import { publicNoCache } from "../controllers/pt-listing.controller";
@@ -70,6 +72,7 @@ router.post(
   "/me/photo",
   authMiddleware,
   handlePhotoUpload,
+  requireRealAvatarImage,
   profileController.uploadPhoto as any,
 );
 // AWS Lambda deployment prep — additive S3 presigned-upload alternative,
@@ -92,6 +95,7 @@ router.patch(
 router.patch(
   "/me/accepting-clients",
   authMiddleware,
+  requirePtForAcceptingClients as any,
   profileController.toggleAcceptingClients as any,
 );
 router.delete("/me", authMiddleware, profileController.deleteProfile as any);

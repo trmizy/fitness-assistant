@@ -4,6 +4,7 @@ import { checkinRepository } from '../repositories/checkin.repository';
 import { gymService } from './gym.service';
 import { signGymCheckinToken, verifyGymCheckinToken } from '../utils/checkinToken';
 import { authServiceClient } from '../clients/auth-service.client';
+import { isGymAcceptingCheckin } from './checkin-gym-guard';
 import { applyMemberCheckIn, lockMembershipForCheckIn } from './checkin-core';
 
 const INTERNAL_SERVICE_SECRET =
@@ -32,8 +33,13 @@ export const checkinService = {
     const gym = await gymService.getOwnedGym(gymId, ownerId); // 403/404 if not the owner
     // B46: no new QR for a branch nobody may check in at (temporarily/permanently closed, not approved) - the scan would be
     // refused anyway (assertGymOpenForCheckin), and a printed QR for a closed branch only invites a pointless scan.
-    if (gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
-      throw Object.assign(new Error('Chi nhánh đang đóng cửa hoặc chưa hoạt động nên chưa cấp mã QR check-in'), { status: 409, code: 'GYM_NOT_OPEN' });
+    if (!isGymAcceptingCheckin(gym.status, gym.operationalStatus)) {
+      throw Object.assign(new Error('Chi nhánh đang đóng cửa hoặc chưa hoạt động nên chưa cấp mã QR check-in'), {
+        status: 409,
+        code: 'GYM_NOT_OPEN',
+        // N15C-11: so the desk can say when the branch is expected back (display only; the owner still reopens by hand).
+        ...(gym.operationalStatus === 'TEMPORARILY_CLOSED' && gym.expectedReopenAt ? { expectedReopenAt: gym.expectedReopenAt.toISOString() } : {}),
+      });
     }
     const { token, expiresAt } = signGymCheckinToken(gym.id);
     return { token, expiresAt, gymId: gym.id, gymName: gym.name };

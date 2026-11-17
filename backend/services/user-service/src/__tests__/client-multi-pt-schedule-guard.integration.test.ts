@@ -112,7 +112,7 @@ dbTest("PT limit: client with live contracts at 2 other PTs (pending counts) can
   const pt3 = randomUUID();
   const { packageId, restore } = stubRequestDeps(pt3);
   try {
-    await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId: pt3, packageId }), isCode(CLIENT_PT_LIMIT_REACHED));
+    await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId: pt3, packageId, acknowledgedIndependentVenue: true }), isCode(CLIENT_PT_LIMIT_REACHED));
     assert.equal(await prisma.contract.count({ where: { clientUserId, ptUserId: pt3 } }), 0);
   } finally {
     restore();
@@ -128,7 +128,7 @@ dbTest("PT limit: 1 other live PT -> a 2nd PT is allowed; terminal and marketpla
   const pt2 = randomUUID();
   const { packageId, restore } = stubRequestDeps(pt2);
   try {
-    const c = await contractService.requestContract(clientUserId, { ptUserId: pt2, packageId });
+    const c = await contractService.requestContract(clientUserId, { ptUserId: pt2, packageId, acknowledgedIndependentVenue: true });
     contractIds.push(c.id);
     assert.equal(c.status, ContractStatus.PENDING_REVIEW);
   } finally {
@@ -165,8 +165,8 @@ dbTest("PT limit: two concurrent requests to two different PTs while 1 PT is alr
   ];
   try {
     const results = await Promise.allSettled([
-      contractService.requestContract(clientUserId, { ptUserId: ptA, packageId: idA }),
-      contractService.requestContract(clientUserId, { ptUserId: ptB, packageId: idB }),
+      contractService.requestContract(clientUserId, { ptUserId: ptA, packageId: idA, acknowledgedIndependentVenue: true }),
+      contractService.requestContract(clientUserId, { ptUserId: ptB, packageId: idB, acknowledgedIndependentVenue: true }),
     ]);
     const rows = await prisma.contract.findMany({ where: { clientUserId, ptUserId: { in: [ptA, ptB] } } });
     rows.forEach((r) => contractIds.push(r.id));

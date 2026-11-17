@@ -74,10 +74,11 @@ test('C10: the Gym sees its branch case (complaint text, its own records), write
 
   const list = ok(await call('GET', '/owner/complaint-cases', owner), 200, 'gym list');
   assert.equal(list.items.length, 1);
-  assert.deepEqual(keys(list.items[0]), ['canSubmit', 'createdAt', 'gymId', 'id', 'issueType', 'progress', 'respondBy']);
+  assert.deepEqual(keys(list.items[0]), ['awaitingYou', 'canSubmit', 'createdAt', 'gymId', 'id', 'issueType', 'progress', 'respondBy']);
+  assert.equal(list.items[0].awaitingYou, true, 'the gym was asked and has not answered');
   assert.ok(list.items[0].respondBy, 'the Gym sees its response deadline');
   const view = ok(await call('GET', `/owner/complaint-cases/${d.caseId}`, owner), 200, 'gym detail');
-  assert.deepEqual(keys(view), ['case', 'complaint', 'evidence', 'statements']);
+  assert.deepEqual(keys(view), ['case', 'complaint', 'evidence', 'moreInfo', 'statements']);
   assert.deepEqual(keys(view.case), ['canSubmit', 'createdAt', 'gymId', 'id', 'progress', 'respondBy']);
   assert.deepEqual(keys(view.complaint), ['description', 'issueType']);
   const sources = view.evidence.map((e: any) => e.source).sort();

@@ -99,9 +99,12 @@ test.beforeEach(() => {
 });
 
 test.after(async () => {
-  await new Promise<void>((resolve, reject) => gatewayServer.close((err) => (err ? reject(err) : resolve())));
-  await new Promise<void>((resolve, reject) => userServer.close((err) => (err ? reject(err) : resolve())));
-  await new Promise<void>((resolve, reject) => authServer.close((err) => (err ? reject(err) : resolve())));
+  for (const s of [gatewayServer, userServer, authServer]) {
+    if (s) {
+      (s as any).closeAllConnections?.();
+      await new Promise<void>((resolve, reject) => s.close((err) => (err ? reject(err) : resolve())));
+    }
+  }
 });
 
 test("POST /profile/pts/search without token returns 401 and never hits user-service", async () => {
@@ -202,10 +205,13 @@ test("Privacy: gateway stdout/stderr logs contain zero GPS coordinates during 20
     });
     // Force gateway error handler too (broken upstream proxy socket or invalid header path)
     await fetch("http://127.0.0.1:" + gw.address().port + "/missing-path-for-404");
+    gw.closeAllConnections?.();
+    user.closeAllConnections?.();
+    auth.closeAllConnections?.();
     await new Promise((r) => gw.close(r));
     await new Promise((r) => user.close(r));
     await new Promise((r) => auth.close(r));
-    setTimeout(() => process.exit(0), 50);
+    setTimeout(() => process.exit(0), 250).unref();
   `;
 
   const run = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module"], {

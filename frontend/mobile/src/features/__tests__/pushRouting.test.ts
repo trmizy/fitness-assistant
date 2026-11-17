@@ -18,6 +18,7 @@ describe("readPushData", () => {
       userId: null,
       link: null,
       entityType: null,
+      entityId: null,
       eventType: null,
       kind: null,
       callSessionId: null,
@@ -38,7 +39,9 @@ describe("isForCurrentUser", () => {
 describe("pushTapRoute", () => {
   it("khách: đi theo link như danh sách thông báo trong app", () => {
     assert.equal(pushTapRoute(push({ link: "/client/booking" }), "u1", "client"), "/client/services/booking");
-    assert.equal(pushTapRoute(push({ link: "", entityType: "CONTRACT" }), "u1", "client"), "/client/services");
+    assert.equal(pushTapRoute(push({ link: "", entityType: "CONTRACT" }), "u1", "client"), "/client/services?tab=contracts");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "CONTRACT", entityId: "c1" }), "u1", "client"), "/client/services?tab=contracts&contractId=c1");
+    assert.equal(pushTapRoute(push({ link: "/client/booking", entityType: "SESSION", entityId: "s1" }), "u1", "client"), "/client/services/booking?sessionId=s1");
   });
 
   it("khách: không có chỗ riêng thì mở danh sách thông báo", () => {
@@ -47,7 +50,15 @@ describe("pushTapRoute", () => {
 
   it("PT: link phía khách đi theo khách, còn lại về trang chủ PT — không lạc vào route khách", () => {
     assert.equal(pushTapRoute(push({ link: "/client/booking" }), "u1", "pt"), "/client/services/booking");
-    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "pt"), "/pt/dashboard");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "pt"), "/pt/schedule", "N15M-11: lịch dạy / hợp đồng của PT mở đúng màn hình");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: null }), "u1", "pt"), "/pt/contracts");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: "CONTRACT", entityId: "c9" }), "u1", "pt"), "/pt/contracts?contractId=c9");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/pt/schedule?sessionId=s9");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/pt/schedule?sessionId=s9", "N16M-02: push buổi tập của PT mang link /pt/contracts");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "client"), "/client/services/booking?sessionId=s9");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/client/services/booking?sessionId=s9", "PT bấm thông báo phía khách");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "client"), "/client/notifications", "khách thường không có màn PT");
+    assert.equal(pushTapRoute(push({ link: "/admin/disputes" }), "u1", "pt"), "/pt/dashboard");
     assert.equal(pushTapRoute(push({ link: "" }), "u1", "pt"), "/pt/dashboard");
   });
 

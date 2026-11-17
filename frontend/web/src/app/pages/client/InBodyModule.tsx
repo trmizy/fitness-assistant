@@ -10,8 +10,9 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon as Clock, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, EyeIcon as Eye, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, FileImageIcon as FileImage, ArrowsClockwiseIcon as RefreshCw, CheckIcon as Check, PulseIcon as Activity, ClipboardTextIcon as ClipboardList, CameraIcon as Camera, ArrowRightIcon as ArrowRight, ChartBarIcon as BarChart2, ClockCounterClockwiseIcon as History, ArrowsLeftRightIcon as GitCompare, PlusIcon as Plus, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
+import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon as Clock, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, EyeIcon as Eye, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, FileImageIcon as FileImage, ArrowsClockwiseIcon as RefreshCw, CheckIcon as Check, PulseIcon as Activity, ClipboardTextIcon as ClipboardList, CameraIcon as Camera, ArrowRightIcon as ArrowRight, ChartBarIcon as BarChart2, ClockCounterClockwiseIcon as History, ArrowsLeftRightIcon as GitCompare, PlusIcon as Plus, TrashIcon as Trash2, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WarningIcon as AlertTriangle, CalendarCheckIcon as CalendarClock, FlagIcon as Flag } from "@phosphor-icons/react";
 import { inbodyService, profileService, trainingCycleService } from "../../services/api";
@@ -293,6 +294,17 @@ export function InBodyModule() {
     },
   });
 
+  // N13G-04: xoá bản ghi nhập sai (backend chỉ cho chủ bản ghi; sau khi xoá đồng bộ lại cân nặng hồ sơ).
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => inbodyService.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      toast.success("Đã xoá bản ghi InBody.");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Không xoá được bản ghi. Vui lòng thử lại."),
+  });
+
   const uploadMutation = useMutation({
     mutationFn: inbodyService.upload,
     onSuccess: (data) => {
@@ -366,7 +378,7 @@ export function InBodyModule() {
   const validateManual = () => {
     const e: Record<string, string> = {};
     const w = (document.getElementById("m-weight") as HTMLInputElement)?.value;
-    if (!w || isNaN(Number(w))) e["weight"] = "Valid weight required";
+    if (!w || isNaN(Number(w))) e["weight"] = "Vui lòng nhập cân nặng hợp lệ";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -947,6 +959,11 @@ export function InBodyModule() {
                   </div>
                 </SectionCard>
 
+                {createMutation.isError && (
+                  <p role="alert" className="text-sm text-red-400">
+                    {(createMutation.error as any)?.response?.data?.error || "Không lưu được bản ghi. Vui lòng kiểm tra lại các chỉ số."}
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -1579,14 +1596,35 @@ export function InBodyModule() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => setExplainEntryId(explainEntryId === r.id ? undefined : r.id)}
-                              title="Giải thích lần đo này"
-                              aria-label="Giải thích lần đo này"
-                              className={`transition-colors ${explainEntryId === r.id ? "text-green-400" : "text-zinc-600 hover:text-green-400"}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setExplainEntryId(explainEntryId === r.id ? undefined : r.id)}
+                                title="Giải thích lần đo này"
+                                aria-label="Giải thích lần đo này"
+                                className={`transition-colors ${explainEntryId === r.id ? "text-green-400" : "text-zinc-600 hover:text-green-400"}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Xoá bản ghi InBody"
+                                title="Xoá bản ghi"
+                                disabled={deleteMutation.isPending}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Xoá bản ghi InBody ngày ${formatMeasurementDate(r)}? Thao tác này không hoàn tác được.`,
+                                    )
+                                  ) {
+                                    deleteMutation.mutate(r.id);
+                                  }
+                                }}
+                                className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

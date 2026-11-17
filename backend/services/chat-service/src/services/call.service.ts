@@ -1,4 +1,4 @@
-import { CallStatus, CallType, CallOrigin } from "@prisma/client";
+import { CallStatus, CallType, CallOrigin, type CallSession } from "@prisma/client";
 import { callRepository } from "../repositories/call.repository";
 
 /**
@@ -41,6 +41,9 @@ export const callService = {
     origin?: CallOrigin;
     coachingSessionId?: string;
   }) {
+    // N13H-07: never a call to yourself (it rang the caller's own tabs and left a "nhỡ" line in the chat).
+    if (data.callerId === data.calleeId) return { error: "You cannot call yourself" };
+
     // Open-room redesign: rejoining (or being the second arrival into) THIS session's own
     // room must never trip the busy-check below — an open room's row deliberately stays
     // "active" after someone leaves (see call:leave_room), so the very account rejoining it
@@ -84,24 +87,23 @@ export const callService = {
     return { call };
   },
 
-  async acceptCall(callSessionId: string, userId: string) {
+  async acceptCall(callSessionId: string, userId: string): Promise<{ call?: CallSession; error?: string; alreadyHandled?: boolean }> {
     const call = await callRepository.findById(callSessionId);
     if (!call) return { error: "Call not found" };
     if (call.calleeId !== userId) return { error: "Not authorized" };
 
-    // First-accept-wins: check status is still RINGING (atomic guard for multi-tab)
-    if (call.status !== CallStatus.RINGING) {
-      return { error: "Call is no longer ringing", alreadyHandled: true };
-    }
+    // First-accept-wins. A call someone ELSE (another tab of this callee) already took reads as
+    // "accepted elsewhere"; one that was cancelled/missed/ended is just no longer ringing.
+    const lost = (status?: CallStatus) => ({
+      error: "Call is no longer ringing",
+      alreadyHandled: status === CallStatus.ACCEPTED || status === CallStatus.CONNECTING || status === CallStatus.ACTIVE,
+    });
+    if (call.status !== CallStatus.RINGING) return lost(call.status);
 
-    const updated = await callRepository.updateStatus(
-      callSessionId,
-      CallStatus.ACCEPTED,
-      {
-        answeredAt: new Date(),
-      },
-    );
-    return { call: updated };
+    // The check above is only a fast path; this single conditional update is what makes it atomic.
+    const claimed = await callRepository.claimRinging(callSessionId, userId);
+    if (!claimed) return lost((await callRepository.findById(callSessionId))?.status);
+    return { call: claimed };
   },
 
   async rejectCall(callSessionId: string, userId: string) {

@@ -114,7 +114,7 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
       log: () => {},
     });
     assert.equal(out.metrics.integrityPassed, true);
-    assert.equal(out.integrityResults.length, 7);
+    assert.equal(out.integrityResults.length, 8);
     assert.equal(out.integrityResults.every((r) => r.status === "PASS"), true);
 
     // Generated member_code populated by PostgreSQL & all scale gyms marked SYNTHETIC
@@ -148,6 +148,20 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
     assert.equal(badRes.find((r) => r.name.startsWith("4.")).status, "FAIL");
     await pools.payment.query(`DELETE FROM payment_transactions WHERE id = 'it-pay-bad'`);
 
+    // Fault injection 2b: a wallet owned by a scale user fails check 4; a wallet of a NON-scale (REAL) user, even funded, does not
+    // (official database = scale tier + REAL business seed); a platform wallet other than ESCROW/REVENUE fails.
+    const walletIns = (id, ownerType, ownerId, bal) => pools.payment.query(
+      `INSERT INTO wallets (id, owner_type, owner_id, available_balance, updated_at) VALUES ($1, $2::"WalletOwnerType", $3, $4, now())`, [id, ownerType, ownerId, bal]);
+    const check4 = async () => (await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false })).find((r) => r.name.startsWith("4.")).status;
+    await walletIns("it-w-real", "CLIENT", "it-real-user-not-in-scale", 500000);
+    assert.equal(await check4(), "PASS");
+    await walletIns("it-w-scale", "CLIENT", uRow.rows[0].id, 0);
+    assert.equal(await check4(), "FAIL");
+    await pools.payment.query(`DELETE FROM wallets WHERE id = 'it-w-scale'`);
+    await walletIns("it-w-plat", "PLATFORM", "OTHER", 0);
+    assert.equal(await check4(), "FAIL");
+    await pools.payment.query(`DELETE FROM wallets WHERE id IN ('it-w-plat','it-w-real')`);
+
     // Fault injection 3: scale gym flipped to REAL fails check 3 AND check 5 (SYNTHETIC reviews/memberships pointing to non-SYNTHETIC gym)
     const revGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_reviews WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);
     const memGymRow = await pools.gym.query(`SELECT DISTINCT gym_id AS id FROM gym_membership_contracts WHERE data_origin = 'SYNTHETIC'::"DataOrigin" LIMIT 1`);
@@ -177,6 +191,28 @@ test("scale-seed integration (--scale-factor 0.01): writes all DBs, inert financ
     assert.equal(badCheck5.violations.some((v) => v.why === "SYNTHETIC gym_reviews points to missing/non-SYNTHETIC gym"), true);
     assert.equal(badCheck5.violations.some((v) => v.why === "SYNTHETIC gym_membership_contracts points to missing/non-SYNTHETIC gym"), true);
     await updateGymOrigin("SYNTHETIC");
+
+    // Fault injection 4: a public PT whose photos are un-published / avatar removed fails check 8
+    const covRow = await pools.user.query(
+      `SELECT p."userId" AS uid FROM user_profiles p JOIN pt_applications a ON a.user_profile_id = p.id
+       WHERE p.email LIKE '%@scale.gymini.test' AND p."isPT" = true AND a.status = 'APPROVED' AND p.pt_suspended = false
+         AND EXISTS (SELECT 1 FROM pt_physique_photos ph WHERE ph.pt_user_id = p."userId" AND ph.status = 'PUBLISHED') LIMIT 1`
+    );
+    assert.ok(covRow.rows.length > 0, "no public PT with published photos at 0.01");
+    const covUid = covRow.rows[0].uid;
+    const okCov = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
+    assert.equal(okCov.find((r) => r.name.startsWith("8.")).status, "PASS");
+    await pools.user.query(`UPDATE pt_physique_photos SET status = 'STAGED', is_cover = false WHERE pt_user_id = $1`, [covUid]);
+    badRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
+    const bad8 = badRes.find((r) => r.name.startsWith("8."));
+    assert.equal(bad8.status, "FAIL");
+    assert.equal(bad8.violations.some((v) => v.uid === covUid && v.why === "public PT without a PUBLISHED physique photo"), true);
+    await pools.user.query(`UPDATE pt_physique_photos SET status = 'PUBLISHED' WHERE pt_user_id = $1`, [covUid]);
+    await pools.user.query(`UPDATE pt_physique_photos SET is_cover = true WHERE id = (SELECT id FROM pt_physique_photos WHERE pt_user_id = $1 ORDER BY sort_order LIMIT 1)`, [covUid]);
+    await pools.user.query(`UPDATE user_profiles SET photo_url = NULL WHERE "userId" = $1`, [covUid]);
+    badRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
+    assert.equal(badRes.find((r) => r.name.startsWith("8.")).violations.some((v) => v.uid === covUid && v.why === "public PT without avatar (photo_url)"), true);
+    await pools.user.query(`UPDATE user_profiles SET photo_url = $2 WHERE "userId" = $1`, [covUid, `/uploads/profile-photos/${covUid}.webp`]);
 
     const cleanRes = await runScaleIntegrity({ pools, scaleFactor: 0.01, checkMedia: false });
     assert.equal(cleanRes.every((r) => r.status === "PASS"), true);

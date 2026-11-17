@@ -206,7 +206,7 @@ test("changePassword() rejects a wrong current password and touches neither the 
           currentPassword: "wrong",
           newPassword: "a-brand-new-strong-password",
         } as any),
-      (err: any) => err.status === 401 && err.message === "Current password is incorrect",
+      (err: any) => err.status === 401 && err.message === "Mật khẩu hiện tại không đúng" && err.code === "CURRENT_PASSWORD_INCORRECT",
     );
     assert.equal(spies.updateCalls.length, 0);
     assert.equal(spies.revokedForUserId(), undefined);
@@ -231,7 +231,7 @@ test("changePassword() rejects a new password identical to the current one, with
           currentPassword: "password123",
           newPassword: "password123",
         } as any),
-      (err: any) => err.status === 400 && err.message === "New password must be different",
+      (err: any) => err.status === 400 && err.message === "Mật khẩu mới phải khác mật khẩu hiện tại" && err.code === "NEW_PASSWORD_SAME_AS_CURRENT",
     );
     assert.equal(spies.updateCalls.length, 0, "no write when the new password is rejected");
     assert.equal(spies.revokedForUserId(), undefined, "no session revoked when nothing actually changed");

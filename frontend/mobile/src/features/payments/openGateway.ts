@@ -1,7 +1,7 @@
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 
-import { PAYMENT_RETURN_PREFIX, resultHref, txnIdFromReturnUrl } from "./payments";
+import { PAYMENT_RETURN_PREFIX, resultHref, returnHintFromUrl, txnIdFromReturnUrl } from "./payments";
 import { clearPendingCheckout, rememberPendingCheckout } from "./pendingCheckout";
 
 /**
@@ -41,7 +41,8 @@ export async function openPaymentGateway({
     // Back in the same app process: the tab's own outcome is enough to land on the result screen.
     await clearPendingCheckout();
     const fromLink = result.type === "success" ? txnIdFromReturnUrl(result.url) : null;
-    router.navigate(resultHref(fromLink ?? transactionId) as never);
+    const hint = result.type === "success" ? returnHintFromUrl(result.url) : null;
+    router.navigate(resultHref(fromLink ?? transactionId, hint) as never);
   } finally {
     open = false;
   }

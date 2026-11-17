@@ -10,6 +10,7 @@ import { partnerApplicationService } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import { darkColors } from "../../theme/colors";
 import { accessStateText, ownerLanding, partnerAccessError } from "../../features/gymOwner/gymOwner";
+import { useRevokedAccessSignal } from "../../features/gymOwner/useRevokedAccessSignal";
 import { PartnerOnboardingWizard } from "../../features/gymOwner/PartnerOnboardingWizard";
 import { ApplicantHome } from "../../features/partnerApplication/ApplicantHome";
 
@@ -44,6 +45,9 @@ export function RequirePartnerAccess({ children }: { children: ReactNode }) {
     refetchOnMount: "always",
   });
 
+  // N15M-06: a revoke that lands while the app is open (any /owner/* call answers 403 PARTNER_ACCESS_REVOKED).
+  const revokedLive = useRevokedAccessSignal(user?.id, isAuthenticated && role === "gym_owner");
+
   if (!isAuthenticated || role !== "gym_owner") return <>{children}</>;
 
   if (statusQuery.isLoading) {
@@ -63,7 +67,7 @@ export function RequirePartnerAccess({ children }: { children: ReactNode }) {
    * thái chớp một cái, cả wizard biến mất dù dữ liệu đã lưu. React Query vẫn giữ `data` cũ qua một
    * lần refetch hỏng, nên chỉ chặn khi lỗi mà CHƯA TỪNG có câu trả lời nào.
    */
-  const landing = statusQuery.isError && !statusQuery.data ? "blocked" : ownerLanding(state);
+  const landing = revokedLive || (statusQuery.isError && !statusQuery.data) ? "blocked" : ownerLanding(state);
   if (landing === "operational") return <>{children}</>;
 
   /**
@@ -84,7 +88,7 @@ export function RequirePartnerAccess({ children }: { children: ReactNode }) {
   if (landing === "application" && state) return <ApplicantHome state={state} />;
 
   // NE-12 — an explicit "no access" answer is final: say so plainly and let the person sign out.
-  const denied = statusQuery.isError && !statusQuery.data ? partnerAccessError(statusQuery.error) : null;
+  const denied = revokedLive ?? (statusQuery.isError && !statusQuery.data ? partnerAccessError(statusQuery.error) : null);
 
   const text = denied
     ? { title: denied.title, body: denied.body }

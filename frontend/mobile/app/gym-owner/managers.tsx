@@ -38,6 +38,8 @@ import {
   pendingManagerInvites,
 } from "../../src/features/gymOwner/gymOwner";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
+import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
+import { useRefetchOnReturn } from "../../src/hooks/useRefetchOnReturn";
 
 /**
  * GY-05 — "Người quản lý". Chủ sở hữu tự mời và thu hồi quản lý chi nhánh, không cần quản trị viên.
@@ -97,8 +99,16 @@ function ManagersContent() {
   const [created, setCreated] = useState<{ email: string; inviteLink: string; emailSent: boolean } | null>(null);
 
   const gymsQuery = useQuery({ queryKey: ["owned-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
+  const accountsKey = ["owner-partner-accounts", uid];
+  const invitesKey = ["owner-partner-invitations", uid];
   const accountsQuery = useQuery({ queryKey: ["owner-partner-accounts", uid], queryFn: () => gymService.listPartnerAccounts() });
   const invitesQuery = useQuery({ queryKey: ["owner-partner-invitations", uid], queryFn: () => gymService.listPartnerInvitations() });
+
+  // N15M-12: a manager who accepted from outside the app (email link) is only on the server — re-read the lists whenever
+  // the owner comes back to this screen or the app, and on pull-to-refresh (the spinner now lasts until both lists answer).
+  useRefetchOnReturn(accountsKey);
+  useRefetchOnReturn(invitesKey);
+  const { refreshing, onRefresh } = usePullToRefresh([accountsKey, invitesKey]);
 
   const gyms = ownedGyms(gymsQuery.data);
   const managers = activeManagers(accountsQuery.data);
@@ -179,11 +189,8 @@ function ManagersContent() {
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
-            refreshing={accountsQuery.isRefetching}
-            onRefresh={() => {
-              void accountsQuery.refetch();
-              void invitesQuery.refetch();
-            }}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={accent.primary}
             colors={[accent.primary]}
           />

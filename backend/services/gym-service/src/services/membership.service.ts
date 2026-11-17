@@ -20,6 +20,19 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/**
+ * N13E-02 (14/11/2026): the gateways a membership checkout can use - the two live ones (payment-service/payment.service.ts: VNPAY, ZALOPAY; MOCK/MOMO/PAYOS were
+ * retired 2026-11-11). Checked BEFORE any membership row is created, so a refused provider can never leave a PENDING_PAYMENT membership behind. No provider = the
+ * server default (VNPAY).
+ */
+export const SUPPORTED_CHECKOUT_PROVIDERS = ['VNPAY', 'ZALOPAY'] as const;
+export function assertSupportedProvider(provider: string | undefined): void {
+  if (provider === undefined || provider === '') return;
+  if (!(SUPPORTED_CHECKOUT_PROVIDERS as readonly string[]).includes(provider.toUpperCase())) {
+    throw Object.assign(new Error('Cổng thanh toán không được hỗ trợ — hãy chọn VNPay hoặc ZaloPay'), { status: 400, code: 'INVALID_PAYMENT_PROVIDER' });
+  }
+}
+
 /** B47 (Ngài chốt): clients cannot cancel an ACTIVE membership for now. Read at CALL time so a test (or ops) can flip it. */
 function clientCancelActiveEnabled(): boolean {
   return (process.env.GYM_CLIENT_CANCEL_ACTIVE_ENABLED ?? '').trim().toLowerCase() === 'true';
@@ -124,6 +137,7 @@ export const membershipService = {
     platform?: 'web' | 'mobile',
     returnBaseUrl?: string,
   ) {
+    assertSupportedProvider(provider); // before ANY write: a refused gateway must not leave a PENDING_PAYMENT membership
     // Money-flow plan 2.5 — the first of three status chokepoints: a gym that is not
     // APPROVED (still under review, rejected, or suspended for a violation) must not accept
     // new money. Without this, "suspended" was purely cosmetic on the purchase flow.
@@ -233,6 +247,7 @@ export const membershipService = {
   async retryPay(
     membershipId: string, clientId: string, provider?: string, platform?: 'web' | 'mobile', returnBaseUrl?: string,
   ) {
+    assertSupportedProvider(provider);
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
