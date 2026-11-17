@@ -666,7 +666,7 @@ export function adminRows(raw: unknown): unknown[] | null {
 export function parseAdminOptions(raw: unknown, selfId: string | null | undefined): AdminOption[] {
   const users = adminRows(raw);
   if (!users) return [];
-  const out: AdminOption[] = [];
+  const out: Array<{ id: string; label: string; email?: string }> = [];
   const seen = new Set<string>();
   for (const u of users) {
     const r = u as { id?: unknown; name?: unknown; displayName?: unknown; email?: unknown; role?: unknown; status?: unknown } | null;
@@ -678,8 +678,26 @@ export function parseAdminOptions(raw: unknown, selfId: string | null | undefine
     seen.add(r.id);
     const shown = typeof r.displayName === "string" ? r.displayName : r.name;
     const name = typeof shown === "string" && shown.trim() ? shown.trim() : "Quản trị viên";
-    const email = typeof r.email === "string" && r.email.trim() ? ` (${r.email.trim()})` : "";
-    out.push({ id: r.id, label: `${name}${email}` });
+    const email = typeof r.email === "string" && r.email.trim() ? r.email.trim() : "";
+    out.push({ id: r.id, label: name, email });
+  }
+  return disambiguateAdminLabels(out);
+}
+
+/**
+ * FIX8: a reviewer picker must never print an id. Two admins can share a name; the email then tells them apart when the directory has one,
+ * otherwise a stable "Quản trị viên n" ordinal (by id, so it does not shuffle between reloads). A unique name with no email stays bare.
+ */
+export function disambiguateAdminLabels(rows: Array<{ id: string; label: string; email?: string }>): AdminOption[] {
+  const byName = new Map<string, Array<{ id: string; label: string; email?: string }>>();
+  for (const r of rows) byName.set(r.label, [...(byName.get(r.label) ?? []), r]);
+  const out: AdminOption[] = [];
+  for (const group of byName.values()) {
+    const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id));
+    sorted.forEach((r, i) => {
+      if (r.email) out.push({ id: r.id, label: `${r.label} (${r.email})` });
+      else out.push({ id: r.id, label: sorted.length > 1 ? (r.label === "Quản trị viên" ? `${r.label} ${i + 1}` : `${r.label} · Quản trị viên ${i + 1}`) : r.label });
+    });
   }
   return out.sort((a, b) => a.label.localeCompare(b.label, "vi"));
 }

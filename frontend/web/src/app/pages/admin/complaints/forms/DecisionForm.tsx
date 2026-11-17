@@ -4,7 +4,7 @@
  */
 import { useEffect, useId, useState } from "react";
 import { gymCaseApi } from "../gymCaseApi";
-import { findingConsequence, gymFindingLabel, gymOutcomeLabel } from "../gymCaseLabels";
+import { gymFindingLabel, gymOutcomeLabel, proposalConsequence } from "../gymCaseLabels";
 import { LIMITS, hasErrors, latestFinding, newestProposal, validateDecision, type Errors } from "../gymCaseModel";
 import type { GymDecideResult } from "../gymCaseTypes";
 import { ActionButton, ButtonRow, Check, ConfirmModal, ErrorBox, Field, FormCard, MutedLine, Select, TextArea, counter, useCloseOnResult, useGymWrite } from "../gymCaseKit";
@@ -75,10 +75,10 @@ export function DecisionCard({ detail, onChanged, push }: FormProps) {
               {proposal.outcomeLabel || gymOutcomeLabel(proposal.outcome)}
             </dd>
           </div>
-          {finding && (
+          {proposalConsequence(detail.case.caseClass, proposal.outcome, finding?.finding) && (
             <div className="min-w-0 sm:col-span-2">
               <dt className="text-xs text-adm-text-2">Hệ quả</dt>
-              <dd className="break-words text-adm-text">{findingConsequence(detail.case.caseClass, finding.finding)}</dd>
+              <dd className="break-words text-adm-text" data-testid="d6-decision-consequence">{proposalConsequence(detail.case.caseClass, proposal.outcome, finding?.finding)}</dd>
             </div>
           )}
           {finding?.reasoning && (

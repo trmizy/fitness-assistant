@@ -140,6 +140,21 @@ export const GYM_OUTCOME_CONSEQUENCE: Record<GymOutcome, string> = {
 };
 export const gymOutcomeConsequence = (o: string | null | undefined) => lookup(GYM_OUTCOME_CONSEQUENCE, o, "");
 
+/** What approving a proposal of this outcome leads to: its own wording when the outcome is known (a supplement is not "hoàn gói một lần"), else by class. */
+export function proposalConsequence(caseClass: string, outcome: string | null | undefined, finding: string | null | undefined): string {
+  const own = gymOutcomeConsequence(outcome);
+  if (own) return own;
+  return finding ? findingConsequence(caseClass, finding) : "";
+}
+
+/** Consequence text of the appeal result the reviewer is about to pick when proposing (the generic "hoàn gói đúng một lần" would be wrong for these). */
+export function appealResultConsequence(result: string): string {
+  if (result === "UPHOLD") return "Giữ nguyên kết quả trước đó. Không có khoản tiền nào thay đổi.";
+  if (result === "OVERTURN_MEMBER") return GYM_OUTCOME_CONSEQUENCE.REFUND_APPEAL_SUPPLEMENT;
+  if (result === "OVERTURN_GYM") return "Ghi nhận kháng nghị có lợi cho phòng tập và xử lý thủ công. Hệ thống không trừ ví hội viên.";
+  return "Kết quả cuối do máy chủ tính theo kết luận và khoản hoàn đã chi trước đó.";
+}
+
 /** What a finding leads to, by class. The server computes the real outcome; this only tells the investigator before they write it. */
 export function findingConsequence(caseClass: string, finding: string): string {
   if (finding === "NOT_ESTABLISHED") return "Hồ sơ sẽ kết thúc với kết quả «Chưa đủ căn cứ». Không có hoàn tiền.";
@@ -347,6 +362,7 @@ export const memberProgressTone = (p: string | null | undefined): Tone => (p && 
 export const GYM_CASE_DISABLED_NOTE = "Chức năng xử lý hồ sơ khiếu nại phòng gym chưa được bật trên hệ thống này. Bạn xem được hồ sơ nhưng chưa ghi hay thực thi được gì.";
 export const COMPLAINT_RESOLVE_NOT_REFUND = "Xử lý khiếu nại không tự hoàn tiền.";
 export const CASE_REQUIRED_TEXT = "Khiếu nại này đã có hồ sơ xử lý nên chỉ kết thúc được qua hồ sơ.";
+export const EXECUTE_SUPPLEMENT_CONFIRM_NOTICE = "Hệ thống sẽ hoàn thêm đúng phần chênh lệch sau kháng nghị, một lần, không hoàn lại số đã hoàn trước đó. Số tiền do máy chủ tính, bạn không nhập. Thao tác không thể hoàn tác.";
 export const EXECUTE_CONFIRM_NOTICE = "Hệ thống sẽ hoàn gói hội viên đúng một lần. Số tiền do máy chủ tính, bạn không nhập. Thao tác không thể hoàn tác.";
 export const EXECUTE_WALLET_NOTE = "Khoản hoàn (nếu có) được ghi vào ví Gymini của hội viên, không chuyển về ngân hàng.";
 export const MEMBER_NO_FILE_NOTE =

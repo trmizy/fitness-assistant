@@ -1,5 +1,5 @@
 /** D6 - finding & proposal, and the four-eyes decision tabs of a gym case. */
-import { findingConsequence, gymFindingLabel, gymOutcomeConsequence, gymOutcomeLabel } from "../gymCaseLabels";
+import { gymFindingLabel, gymOutcomeConsequence, gymOutcomeLabel, proposalConsequence } from "../gymCaseLabels";
 import { adminDid, approvalHint, gatesOf, newestProposal } from "../gymCaseModel";
 import { formatDateTimeSafe } from "../gymFormat";
 import { FindingCard, ProposeCard } from "../forms/JudgementForms";
@@ -55,7 +55,7 @@ export function FindingTab(props: FormProps) {
         )}
         <Muted>Kết quả do máy chủ tính từ loại hồ sơ và kết luận. Đề xuất không có số tiền.</Muted>
         {detail.findings.length > 0 && (
-          <Muted testId="d6-consequence">{findingConsequence(classText, detail.findings[detail.findings.length - 1].finding)}</Muted>
+          <Muted testId="d6-consequence">{proposalConsequence(classText, detail.proposals.length ? detail.proposals[detail.proposals.length - 1].outcome : null, detail.findings[detail.findings.length - 1].finding)}</Muted>
         )}
       </Section>
       {!g.writeOff && (

@@ -93,6 +93,8 @@ export function AppealTab({
   // Reviewer assignment state
   const [selectedReviewer, setSelectedReviewer] = useState<Record<string, string>>({});
   const [assignError, setAssignError] = useState<string | null>(null);
+  // FIX8: once a reviewer is assigned the form stays hidden; "Đổi người xét" opens it again (the server allows re-assigning until the appeal is decided).
+  const [reassignOpen, setReassignOpen] = useState<Record<string, boolean>>({});
 
   // Reviewer decision state per appeal
   const [decideResult, setDecideResult] = useState<Record<string, AppealResultChoice>>({});
@@ -151,6 +153,8 @@ export function AppealTab({
       disputeCaseApi.assignAppealReviewer(caseId, appealId, body, key),
     );
     if (res.ok) {
+      setReassignOpen((o) => ({ ...o, [appealId]: false }));
+      setSelectedReviewer((o) => ({ ...o, [appealId]: "" }));
       if (keys) {
         await queryClient.invalidateQueries({ queryKey: keys.appeals(caseId) });
       }
@@ -475,10 +479,25 @@ export function AppealTab({
                 )}
 
                 {/* Assignment section */}
-                {allowedFor(detail, "assignAppealReviewer", item.id) && (
-                  <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3">
+                {allowedFor(detail, "assignAppealReviewer", item.id) && item.reviewerId && !reassignOpen[item.id] && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-adm-border bg-adm-surface p-3" data-testid="appeal-reviewer-assigned">
+                    <p className="min-w-0 text-sm text-adm-text">
+                      Đã giao cho{" "}
+                      <strong className="break-words">{adminDisplayName(item.reviewerId, admins, currentUserId)}</strong>. Muốn thay người khác thì chọn «Đổi người xét».
+                    </p>
+                    <ActionButton
+                      variant="outline"
+                      onClick={() => setReassignOpen((o) => ({ ...o, [item.id]: true }))}
+                      testId="appeal-reviewer-change"
+                    >
+                      Đổi người xét
+                    </ActionButton>
+                  </div>
+                )}
+                {allowedFor(detail, "assignAppealReviewer", item.id) && (!item.reviewerId || reassignOpen[item.id]) && (
+                  <div className="space-y-3 rounded-lg border border-adm-border bg-adm-surface p-3" data-testid="appeal-reviewer-form">
                     <h4 className="text-sm font-semibold text-adm-text">
-                      Phân công người xem xét độc lập
+                      {item.reviewerId ? "Đổi người xem xét lại" : "Phân công người xem xét độc lập"}
                     </h4>
                     <p className="text-xs text-adm-text-2">
                       Người xem xét phải độc lập: chưa từng lập đề xuất, chưa
@@ -488,7 +507,7 @@ export function AppealTab({
                     <Field id={`assign-reviewer-${item.id}`} label="Chọn quản trị viên độc lập" required>
                       <select
                         id={`assign-reviewer-${item.id}`}
-                        className="block w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
+                        className="block min-h-11 w-full rounded-lg border border-adm-border bg-adm-surface px-3 py-2 text-sm text-adm-text"
                         value={selectedReviewer[item.id] ?? ""}
                         onChange={(e) => {
                           setSelectedReviewer({
@@ -499,11 +518,13 @@ export function AppealTab({
                         }}
                       >
                         <option value="">-- Chọn quản trị viên --</option>
-                        {eligibleAdmins.map((adm) => (
-                          <option key={adm.id} value={adm.id}>
-                            {adm.label ?? adm.displayName} ({shortRef(adm.id)})
-                          </option>
-                        ))}
+                        {eligibleAdmins
+                          .filter((adm) => adm.id !== item.reviewerId)
+                          .map((adm) => (
+                            <option key={adm.id} value={adm.id}>
+                              {adm.label}
+                            </option>
+                          ))}
                       </select>
                     </Field>
 
@@ -532,8 +553,13 @@ export function AppealTab({
                         disabled={!selectedReviewer[item.id] || assignWrite.pending}
                         pending={assignWrite.pending}
                       >
-                        Giao người xem xét lại
+                        {item.reviewerId ? "Đổi người xem xét lại" : "Giao người xem xét lại"}
                       </ActionButton>
+                      {item.reviewerId && (
+                        <ActionButton variant="outline" onClick={() => setReassignOpen((o) => ({ ...o, [item.id]: false }))}>
+                          Giữ người hiện tại
+                        </ActionButton>
+                      )}
                     </ButtonRow>
                   </div>
                 )}

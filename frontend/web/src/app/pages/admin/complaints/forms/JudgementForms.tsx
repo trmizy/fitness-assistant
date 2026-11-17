@@ -4,7 +4,7 @@
  */
 import { useId, useState } from "react";
 import { gymCaseApi } from "../gymCaseApi";
-import { findingConsequence, gymFindingLabel, gymOutcomeLabel } from "../gymCaseLabels";
+import { appealResultConsequence, findingConsequence, gymFindingLabel, gymOutcomeLabel } from "../gymCaseLabels";
 import {
   LIMITS,
   evidenceChoices,
@@ -187,7 +187,7 @@ export function FindingCard({ detail, onChanged, push }: FormProps) {
       </Field>
       {finding && (
         <p className="rounded-lg border border-adm-border-soft bg-adm-surface-2 px-3 py-2 text-sm text-adm-text" data-testid="d6-finding-consequence">
-          {findingConsequence(detail.case.caseClass, finding)}
+          {detail.appeal?.status === "REVIEWING" ? appealResultConsequence("") : findingConsequence(detail.case.caseClass, finding)}
         </p>
       )}
       <Field id={`${id}-reasoning`} label="Lập luận của kết luận" required error={errs.reasoning} count={counter(reasoning)} max={LIMITS.reasoning}>
@@ -237,7 +237,7 @@ export function ProposeCard({ detail, onChanged, push }: FormProps) {
     <FormCard title="Lập đề xuất" caption="Đề xuất không có ô kết quả hay số tiền: máy chủ tự tính kết quả từ kết luận và, với hồ sơ có hoàn tiền, kiểm lại gói hội viên còn hoàn được." testId="d6-propose">
       {f && (
         <p className="text-sm text-adm-text">
-          Dựa trên kết luận: <strong>{gymFindingLabel(f.finding)}</strong>. {findingConsequence(detail.case.caseClass, f.finding)}
+          Dựa trên kết luận: <strong>{gymFindingLabel(f.finding)}</strong>. {appealUnderReview ? appealResultConsequence(appealResult) : findingConsequence(detail.case.caseClass, f.finding)}
         </p>
       )}
       {appealUnderReview && (

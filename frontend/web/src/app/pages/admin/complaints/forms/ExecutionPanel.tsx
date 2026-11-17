@@ -8,7 +8,7 @@ import { useId, useState } from "react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { gymCaseApi } from "../gymCaseApi";
 import { execBlockedText } from "../gymCaseErrors";
-import { EXECUTE_CONFIRM_NOTICE, EXECUTE_WALLET_NOTE, gymOutcomeLabel } from "../gymCaseLabels";
+import { EXECUTE_CONFIRM_NOTICE, EXECUTE_SUPPLEMENT_CONFIRM_NOTICE, EXECUTE_WALLET_NOTE, gymOutcomeLabel } from "../gymCaseLabels";
 import { executeAmountText, executeResultText } from "../gymCaseModel";
 import type { GymExecuteResult, GymReconcileResult } from "../gymCaseTypes";
 import { ActionButton, ButtonRow, Check, ConfirmModal, ErrorBox, FormCard, ResultNote, useCloseOnResult, useGymWrite } from "../gymCaseKit";
@@ -80,7 +80,7 @@ export function ExecuteCard({ detail, onChanged, push }: FormProps) {
               ]
             : []),
         ]}
-        notice={refund ? EXECUTE_CONFIRM_NOTICE : "Thao tác ghi nhận kết quả và đóng khiếu nại. Không thể hoàn tác."}
+        notice={supplement ? EXECUTE_SUPPLEMENT_CONFIRM_NOTICE : refund ? EXECUTE_CONFIRM_NOTICE : "Thao tác ghi nhận kết quả và đóng khiếu nại. Không thể hoàn tác."}
         confirmLabel={supplement ? "Thực thi và hoàn thêm" : refund ? "Thực thi và hoàn gói" : "Thực thi"}
         pendingLabel="Đang thực thi…"
         confirmDisabled={refund && !ack}
