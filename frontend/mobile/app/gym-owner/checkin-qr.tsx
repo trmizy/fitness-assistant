@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type Svg from "react-native-svg";
 import { Maximize2, QrCode as QrIcon, RefreshCw, Share2, X } from "lucide-react-native";
 
-import { Button, Card, EmptyState, ScreenHeader, useToast } from "../../src/components/ui";
+import { Badge, Button, Card, EmptyState, ScreenHeader, useToast } from "../../src/components/ui";
 import { QrCode } from "../../src/components/QrCode";
 import { gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
@@ -14,6 +14,8 @@ import { shareLocalFile, writeLocalBase64File } from "../../src/services/files";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { darkColors } from "../../src/theme/colors";
 import { checkinTimeLabel, qrExpiryLabel, shortMemberId } from "../../src/features/gymOwner/checkinQr";
+import { normalizeTodayPts, clockLabel } from "../../src/features/gymOwner/frontDesk";
+import { ptCheckinListMode } from "../../src/features/gymOwner/staffRoles";
 import {
   normalizeOwnerPtCheckins,
   ownerPtCheckinWhen,
@@ -21,7 +23,7 @@ import {
 } from "../../src/features/services/ptCheckin";
 
 type QrResponse = { token: string; expiresAt?: number; gymId: string; gymName: string };
-type Checkin = { id: string; clientId: string; createdAt: string };
+type Checkin = { id: string; clientId?: string | null; clientName?: string | null; source?: string | null; createdAt: string };
 
 /**
  * E1 — the front-desk check-in QR for one branch (web: `GymCheckinPanel` on GymManagePage). The
@@ -61,12 +63,26 @@ export default function GymCheckinQrScreen() {
     refetchInterval: 10_000,
   });
 
+  // N15M-08: a receptionist is allowed `pt-checkins/today` (name + time) but not the full `pt-checkins` history (403).
+  const statusQuery = useQuery({
+    queryKey: ["partner-onboarding-status", uid],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const ptMode = ptCheckinListMode(statusQuery.data);
+  const roleKnown = statusQuery.isSuccess || statusQuery.isError;
+
   // Trainers who scanned the same QR to be let in to teach. A separate list from the members above:
   // it never feeds a member count and it carries no client identity (gym-service guarantees that).
   const ptCheckinsQuery = useQuery({
     queryKey: ["gym-pt-checkins", uid, gymId],
     queryFn: async () => normalizeOwnerPtCheckins(await gymService.listPtCheckins(gymId)),
-    enabled: !!gymId,
+    enabled: !!gymId && roleKnown && ptMode === "all",
+    refetchInterval: 10_000,
+  });
+  const ptTodayQuery = useQuery({
+    queryKey: ["gym-pt-checkins-today", uid, gymId],
+    queryFn: async () => normalizeTodayPts(await gymService.listPtCheckinsToday(gymId)),
+    enabled: !!gymId && roleKnown && ptMode === "today",
     refetchInterval: 10_000,
   });
 
@@ -102,11 +118,12 @@ export default function GymCheckinQrScreen() {
         contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
-            refreshing={qrQuery.isRefetching || checkinsQuery.isRefetching || ptCheckinsQuery.isRefetching}
+            refreshing={qrQuery.isRefetching || checkinsQuery.isRefetching || ptCheckinsQuery.isRefetching || ptTodayQuery.isRefetching}
             onRefresh={() => {
               void qrQuery.refetch();
               void checkinsQuery.refetch();
-              void ptCheckinsQuery.refetch();
+              if (ptMode === "today") void ptTodayQuery.refetch();
+              else void ptCheckinsQuery.refetch();
             }}
             tintColor={accent.primary}
             colors={[accent.primary]}
@@ -120,7 +137,7 @@ export default function GymCheckinQrScreen() {
             icon={QrIcon}
             title={forbidden ? "Không có quyền với chi nhánh này" : "Chưa tải được mã QR"}
             description={
-              forbidden ? "Chỉ chủ phòng gym hoặc quản lý của chi nhánh mới xem được mã." : "Kéo xuống để thử lại."
+              forbidden ? "Chỉ chủ phòng gym, quản lý hoặc lễ tân của chi nhánh mới xem được mã." : "Kéo xuống để thử lại."
             }
           />
         ) : (
@@ -176,8 +193,11 @@ export default function GymCheckinQrScreen() {
             ) : (
               (checkinsQuery.data ?? []).slice(0, 20).map((c) => (
                 <View key={c.id} className="flex-row items-center justify-between rounded-lg bg-panel px-3 py-2">
-                  <Text className="font-body text-xs text-foreground">{shortMemberId(c.clientId)}</Text>
-                  <Text className="font-body text-xs text-muted-foreground">{checkinTimeLabel(c.createdAt)}</Text>
+                  <Text className="min-w-0 flex-1 font-body text-xs text-foreground" numberOfLines={1}>
+                    {c.clientName ?? (c.clientId ? shortMemberId(c.clientId) : "Hội viên")}
+                  </Text>
+                  {c.source === "ASSISTED" ? <Badge tone="warning">Check-in hộ</Badge> : null}
+                  <Text className="ml-2 font-body text-xs text-muted-foreground">{checkinTimeLabel(c.createdAt)}</Text>
                 </View>
               ))
             )}
@@ -185,28 +205,50 @@ export default function GymCheckinQrScreen() {
         ) : null}
 
         {!forbidden ? (
-          <Card className="gap-2 p-4">
-            <Text className="font-body-semibold text-sm text-foreground">Huấn luyện viên đã check-in</Text>
-            {ptCheckinsQuery.isLoading ? (
-              <ActivityIndicator color={accent.primary} />
-            ) : ptCheckinsQuery.isError ? (
-              <Text className="font-body text-xs text-muted-foreground">Chưa tải được danh sách. Kéo xuống để thử lại.</Text>
-            ) : (ptCheckinsQuery.data ?? []).length === 0 ? (
-              <Text className="font-body text-xs text-muted-foreground">Chưa có huấn luyện viên nào check-in.</Text>
-            ) : (
-              (ptCheckinsQuery.data ?? []).slice(0, 20).map((c) => (
-                <View key={c.id} className="flex-row items-center gap-3 rounded-lg bg-panel px-3 py-2">
-                  <View className="min-w-0 flex-1">
-                    <Text className="font-body text-xs text-foreground" numberOfLines={1}>
-                      {c.ptName}
+          ptMode === "today" ? (
+            <Card className="gap-2 p-4">
+              <Text className="font-body-semibold text-sm text-foreground">Huấn luyện viên đã check-in hôm nay</Text>
+              {ptTodayQuery.isLoading ? (
+                <ActivityIndicator color={accent.primary} />
+              ) : ptTodayQuery.isError ? (
+                <Text className="font-body text-xs text-muted-foreground">Chưa tải được danh sách. Kéo xuống để thử lại.</Text>
+              ) : (ptTodayQuery.data ?? []).length === 0 ? (
+                <Text className="font-body text-xs text-muted-foreground">Hôm nay chưa có huấn luyện viên nào check-in.</Text>
+              ) : (
+                (ptTodayQuery.data ?? []).map((p) => (
+                  <View key={p.id} className="flex-row items-center justify-between gap-3 rounded-lg bg-panel px-3 py-2">
+                    <Text className="min-w-0 flex-1 font-body text-xs text-foreground" numberOfLines={1}>
+                      {p.ptName}
                     </Text>
-                    <Text className="font-body text-[11px] text-muted-foreground">{ownerPtCheckinWhen(c)}</Text>
+                    <Text className="font-body text-xs text-muted-foreground">{clockLabel(p.firstScanAt)}</Text>
                   </View>
-                  <Text className="font-body text-xs text-muted-foreground">{ownerPtScanLabel(c.scanCount)}</Text>
-                </View>
-              ))
-            )}
-          </Card>
+                ))
+              )}
+            </Card>
+          ) : (
+            <Card className="gap-2 p-4">
+              <Text className="font-body-semibold text-sm text-foreground">Huấn luyện viên đã check-in</Text>
+              {ptCheckinsQuery.isLoading ? (
+                <ActivityIndicator color={accent.primary} />
+              ) : ptCheckinsQuery.isError ? (
+                <Text className="font-body text-xs text-muted-foreground">Chưa tải được danh sách. Kéo xuống để thử lại.</Text>
+              ) : (ptCheckinsQuery.data ?? []).length === 0 ? (
+                <Text className="font-body text-xs text-muted-foreground">Chưa có huấn luyện viên nào check-in.</Text>
+              ) : (
+                (ptCheckinsQuery.data ?? []).slice(0, 20).map((c) => (
+                  <View key={c.id} className="flex-row items-center gap-3 rounded-lg bg-panel px-3 py-2">
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-body text-xs text-foreground" numberOfLines={1}>
+                        {c.ptName}
+                      </Text>
+                      <Text className="font-body text-[11px] text-muted-foreground">{ownerPtCheckinWhen(c)}</Text>
+                    </View>
+                    <Text className="font-body text-xs text-muted-foreground">{ownerPtScanLabel(c.scanCount)}</Text>
+                  </View>
+                ))
+              )}
+            </Card>
+          )
         ) : null}
       </ScrollView>
 

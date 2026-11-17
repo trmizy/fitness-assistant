@@ -16,6 +16,8 @@
  *    common case) means always on sale.
  */
 
+import { isInVietnam } from "../../utils/geo";
+
 export type GymRow = {
   id: string;
   brandId: string;
@@ -182,17 +184,59 @@ export function aboutText(gym: Pick<GymRow, "description" | "brandDescription">)
   return `${(space > ABOUT_MAX - 40 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
-/** Số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã; thiếu tên tỉnh thì dùng `city` cũ). */
+const ADMIN_PREFIX = /^(tinh|thanh pho|tp|xa|phuong|thi tran|quan|huyen)\s+/;
+/** Lowercase, no diacritics, punctuation -> single spaces: "Xã Tân Hội," and "xa tan hoi" compare equal. */
+const fold = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+/** Does `haystack` already name (a bare numeric ward such as "Phường 1" needs the full name: "Số 1 Nguyễn Huệ" does not name it) this ward/province — with or without its "Xã/Phường/Tỉnh/Thành phố" prefix? */
+function alreadyNames(haystack: string, part: string): boolean {
+  const h = ` ${fold(haystack)} `;
+  const full = fold(part);
+  if (!full) return true;
+  const bare = full.replace(ADMIN_PREFIX, "");
+  return h.includes(` ${full} `) || (/[a-z]{3}/.test(bare) && h.includes(` ${bare} `));
+}
+
+/**
+ * Số nhà/đường + phường/xã + tỉnh/thành (tên tra từ mã; thiếu tên tỉnh thì dùng `city` cũ).
+ *
+ * N15M-13: nhiều chi nhánh đã lưu địa chỉ ĐẦY ĐỦ ("..., Xã Tân Hội, Tỉnh An Giang") trong dòng `address`, nên nối thêm
+ * phường/xã + tỉnh lại in hai lần. Phần nào dòng địa chỉ đã có thì bỏ; đoạn lặp liền nhau trong chính dòng địa chỉ cũng bỏ.
+ */
 export function fullAddress(
   gym: Pick<GymRow, "address" | "city">,
   names: { ward?: string | null; province?: string | null },
 ): string {
-  return [gym.address, names.ward, names.province ?? gym.city].filter(Boolean).join(", ");
+  const street = (gym.address ?? "").trim();
+  const parts = street ? [street] : [];
+  for (const extra of [names.ward, names.province ?? gym.city]) {
+    if (extra && !alreadyNames(parts.join(", "), extra)) parts.push(extra.trim());
+  }
+  const seen = new Set<string>();
+  return parts
+    .join(", ")
+    .split(",")
+    .map((seg) => seg.trim())
+    .filter((seg) => {
+      const key = fold(seg);
+      if (!key) return false;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join(", ");
 }
 
 /** Mở Google Maps chỉ đường tới toạ độ chi nhánh (app Maps nếu có, không thì trình duyệt). */
 export function directionsUrl(gym: Pick<GymRow, "latitude" | "longitude">): string | null {
-  return gym.latitude != null && gym.longitude != null
+  return isInVietnam(gym.latitude, gym.longitude)
     ? `https://www.google.com/maps/dir/?api=1&destination=${gym.latitude},${gym.longitude}`
     : null;
 }

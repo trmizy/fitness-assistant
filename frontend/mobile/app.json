@@ -22,6 +22,17 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "gymini.vn", "pathPrefix": "/gyms/" },
+            { "scheme": "https", "host": "www.gymini.vn", "pathPrefix": "/gyms/" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",

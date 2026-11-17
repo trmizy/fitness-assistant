@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -37,6 +37,8 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { formatVND } from "../../src/utils/currency";
 import { shortDate } from "../../src/features/wallet/wallet";
 import { ptContractShare } from "../../src/features/pt/ptContractShare";
+import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../src/features/services/ptDiscovery";
+import { designTokens } from "../../src/theme/colors";
 import { StarInput, StarRow } from "../../src/features/plans/PlanWidgets";
 import {
   CONTRACT_TABS,
@@ -45,6 +47,7 @@ import {
   type PtContract,
   clientName,
   contractTabCounts,
+  contractTabOf,
   contractsInTab,
   ptContractStatus,
   ptSessionStatus,
@@ -80,6 +83,19 @@ export default function PtContractsScreen() {
   const [feedbackText, setFeedbackText] = useState("");
 
   const contractsQuery = useQuery({ queryKey: ["pt-contracts", uid], queryFn: () => contractService.getByPT() });
+  // N15M-11: a contract notification opens this screen with ?contractId=<id> - that contract's tab, expanded and outlined.
+  const { contractId: contractIdParam } = useLocalSearchParams<{ contractId?: string }>();
+  const openedParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (!contractIdParam || openedParam.current === contractIdParam) return;
+    const list = Array.isArray(contractsQuery.data) ? (contractsQuery.data as PtContract[]) : [];
+    const target = list.find((c) => c?.id === contractIdParam);
+    if (!target) return; // not loaded yet / not this PT's: the tabs stay as they are
+    openedParam.current = contractIdParam;
+    const tabKey = contractTabOf(target);
+    if (tabKey) setTab(tabKey);
+    setExpanded(target.id);
+  }, [contractIdParam, contractsQuery.data]);
   // Coming back to this screen shows what changed while it sat in the stack (a request that
   // arrived, a client who paid) — react-query refetches on mount, and a screen left open never
   // remounts. An in-flight fetch is left alone.
@@ -227,7 +243,7 @@ export default function PtContractsScreen() {
               const isOpen = expanded === c.id;
               return (
                 <StaggerItem key={c.id}>
-                  <Card className="gap-3 p-4">
+                  <Card className={`gap-3 p-4 ${c.id === contractIdParam ? "border-primary bg-primary/5" : ""}`}>
                     <View className="flex-row items-center gap-3">
                       <Avatar name={name} size={44} />
                       <View className="min-w-0 flex-1">
@@ -251,6 +267,12 @@ export default function PtContractsScreen() {
 
                     {st.note ? (
                       <Text className="font-body text-xs text-muted-foreground">{st.note}</Text>
+                    ) : null}
+
+                    {isIndependentVenue(c.sessionMode, c.gymId) ? (
+                      <Text className="font-body text-xs" style={{ color: designTokens.warning }}>
+                        {INDEPENDENT_VENUE_NOTE}
+                      </Text>
                     ) : null}
 
                     <View className="flex-row items-center gap-3">

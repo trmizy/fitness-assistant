@@ -56,6 +56,7 @@ import {
   type PartnerForm,
 } from "./adminPartners";
 import { emailInputProps } from "../../lib/email";
+import { fullAddress } from "../services/gymDirectory";
 
 /**
  * 14B.8 (PG-D1) — the tabs of web AdminPartnersPage's partner detail, one component per tab, plus the
@@ -504,7 +505,7 @@ export function GymsSection({ gyms }: { gyms: any[] }) {
                   {g.approvedName ?? g.name}
                 </Text>
                 <Text className="font-body text-xs text-muted-foreground" numberOfLines={2}>
-                  {[g.approvedAddress ?? g.address, g.city].filter(Boolean).join(", ")}
+                  {fullAddress({ address: g.approvedAddress ?? g.address, city: g.city ?? null }, {})}
                 </Text>
               </View>
               <Badge tone={st.tone}>{st.label}</Badge>

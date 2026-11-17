@@ -219,3 +219,56 @@ describe("trainer detail — Listing Management (client side)", () => {
     expect(mocked.request.mock.calls[1][0].expectedPackageVersion).toBe(5);
   });
 });
+
+describe("trainer detail — N15M-14 venue outside the Gymini system", () => {
+  const openRequest = async (view: any) => {
+    await press(await view.findByText("Gói dịch vụ"));
+    await press(await view.findByText("Gói 10 buổi"));
+  };
+
+  it("offline package, no gym: the warning sheet opens first and NOTHING is sent until 'Tôi đồng ý'", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.request.mockResolvedValue({ id: "c1" });
+    const view = await renderScreen();
+    await openRequest(view);
+
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    expect(await view.findByText("Nơi tập ngoài hệ thống Gymini")).toBeTruthy();
+    expect(view.getByText(/Gymini không chịu trách nhiệm/)).toBeTruthy();
+    expect(mocked.request).not.toHaveBeenCalled();
+
+    // the other choice sends nothing either
+    await press(view.getByText("Chọn gói/PT khác"));
+    expect(mocked.request).not.toHaveBeenCalled();
+
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    await press(await view.findByText("Tôi đồng ý"));
+    await waitFor(() => expect(mocked.request).toHaveBeenCalledTimes(1));
+    expect(mocked.request.mock.calls[0][0].acknowledgedIndependentVenue).toBe(true);
+    expect("gymId" in mocked.request.mock.calls[0][0]).toBe(false);
+  });
+
+  it("an online package never shows the warning and never sends the flag", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "ONLINE" })]);
+    mocked.request.mockResolvedValue({ id: "c1" });
+    const view = await renderScreen();
+    await openRequest(view);
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    await waitFor(() => expect(mocked.request).toHaveBeenCalledTimes(1));
+    expect(view.queryByText("Nơi tập ngoài hệ thống Gymini")).toBeNull();
+    expect("acknowledgedIndependentVenue" in mocked.request.mock.calls[0][0]).toBe(false);
+  });
+
+  it("the server's 409 INDEPENDENT_VENUE_ACK_REQUIRED opens the same sheet instead of a generic error", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "ONLINE" })]);
+    mocked.request.mockRejectedValueOnce({ response: { status: 409, data: { code: "INDEPENDENT_VENUE_ACK_REQUIRED", error: "Nơi tập nằm ngoài hệ thống Gymini ..." } } });
+    const view = await renderScreen();
+    await openRequest(view);
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    expect(await view.findByText("Tôi đồng ý")).toBeTruthy();
+    expect(mockToast).not.toHaveBeenCalledWith(expect.anything(), "danger");
+  });
+});

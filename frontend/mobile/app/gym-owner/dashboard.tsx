@@ -40,9 +40,9 @@ import {
   ownedGyms,
   pendingCollabCount,
   recentMemberships,
-  staffRoleOf,
   todayCheckinCount,
 } from "../../src/features/gymOwner/gymOwner";
+import { canUseOperationsDashboard, staffHomeRoute } from "../../src/features/gymOwner/staffRoles";
 
 /**
  * GY-01 — "Tổng quan" of the gym owner workspace: web's `GymOwnerDashboard`, same seven reads,
@@ -59,9 +59,10 @@ import {
  * dashboard and sees what needs them first), and is derived from the branch rows already fetched.
  */
 /**
- * NE-13 — an accountant's bar holds "Hồ sơ" only (gym-service 403s their check-in reads), so the
- * operations dashboard is not theirs: send them to the one tab they have BEFORE any of its reads
- * fire. Other roles — and an unreadable role, which the server still polices — see the dashboard.
+ * NE-13 / N15M-07 — the operations dashboard reads memberships and plans, which gym-service answers 403 for a
+ * receptionist and an accountant. Drawing "0 hội viên / 0 gói / Chưa có hội viên" from those 403s would be a false
+ * report, so these two roles never reach it: each is sent to its own home (Quầy lễ tân / Tài chính) BEFORE any
+ * of its reads fire. Owner, manager — and an unreadable role, which the server still polices — see the dashboard.
  */
 export default function GymOwnerDashboardScreen() {
   const { user } = useApp();
@@ -77,7 +78,7 @@ export default function GymOwnerDashboardScreen() {
       </View>
     );
   }
-  if (staffRoleOf(statusQuery.data) === "ACCOUNTANT") return <Redirect href="/gym-owner/profile" />;
+  if (!canUseOperationsDashboard(statusQuery.data)) return <Redirect href={staffHomeRoute(statusQuery.data) as never} />;
   return <OperationsDashboard />;
 }
 

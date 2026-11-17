@@ -13,6 +13,9 @@ import {
   phaseFromSync,
   readCheckout,
   resultHref,
+  retryActionFor,
+  retryTargetFor,
+  returnHintFromUrl,
   txnIdFromReturnUrl,
 } from "../payments/payments";
 import { PENDING_CHECKOUT_TTL_MS, resumableTransaction } from "../payments/pendingCheckout";
@@ -164,5 +167,54 @@ describe("resumableTransaction — app bị tắt giữa lúc thanh toán", () =
     assert.equal(resumableTransaction(rec({ transactionId: "" }), "u1", now), null);
     assert.equal(resumableTransaction(rec({ startedAt: now + 5 * 60_000 }), "u1", now), null);
     assert.equal(resumableTransaction(null, "u1", now), null);
+  });
+});
+
+describe("N17M-03 — liên kết quay về báo chưa hoàn tất", () => {
+  it("ZaloPay: status là số khác 1 → gợi ý failed; status=1 hoặc thiếu → không", () => {
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&amount=1&status=-49&checksum=x"), "failed");
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&status=2"), "failed");
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&status=1&checksum=x"), null);
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1"), null);
+    assert.equal(returnHintFromUrl(null), null);
+  });
+  it("VNPay: status là chữ (server đã chốt trước khi chuyển hướng) → không thành gợi ý, sync quyết định", () => {
+    for (const status of ["success", "failed", "invalid"]) {
+      assert.equal(returnHintFromUrl(`fitnessassistant://client/payments/result?txnId=t1&status=${status}`), null);
+    }
+  });
+  it("resultHref chỉ thêm gw khi có gợi ý", () => {
+    assert.equal(resultHref("t1"), "/client/payments/result?txnId=t1");
+    assert.equal(resultHref("t1", "failed"), "/client/payments/result?txnId=t1&gw=failed");
+  });
+  it("+native-intent giữ gợi ý failed của ZaloPay nhưng vẫn bỏ status", () => {
+    assert.equal(
+      redirectSystemPath({ path: "fitnessassistant://client/payments/result?txnId=t9&amount=5&status=-49&checksum=z", initial: false }),
+      "/client/payments/result?txnId=t9&gw=failed",
+    );
+    assert.equal(
+      redirectSystemPath({ path: "fitnessassistant://client/payments/result?txnId=t9&status=1", initial: false }),
+      "/client/payments/result?txnId=t9",
+    );
+  });
+});
+
+describe("N17M-02 — thanh toán lại cùng món", () => {
+  it("chỉ gói hội viên / hợp đồng có id mới thanh toán lại được", () => {
+    assert.deepEqual(retryTargetFor({ relatedEntityType: "GYM_MEMBERSHIP", relatedEntityId: "m1" }), { kind: "membership", id: "m1" });
+    assert.deepEqual(retryTargetFor({ relatedEntityType: "PT_CONTRACT", relatedEntityId: "c1" }), { kind: "contract", id: "c1" });
+    assert.equal(retryTargetFor({ relatedEntityType: "GYM_MEMBERSHIP" }), null);
+    assert.equal(retryTargetFor({ relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE", relatedEntityId: "p1" }), null);
+    assert.equal(retryTargetFor(null), null);
+  });
+  it("PENDING_PAYMENT → thanh toán lại đúng số tiền của món", () => {
+    assert.deepEqual(retryActionFor({ status: "PENDING_PAYMENT", price: 330000, gymId: "g1" }, "membership"), { type: "pay", amount: 330000 });
+    assert.deepEqual(retryActionFor({ status: "PENDING_PAYMENT", price: 500000 }, "contract"), { type: "pay", amount: 500000 });
+  });
+  it("gói đã bị huỷ → chọn lại gói tại phòng gym; hợp đồng đã đóng / món chưa tải → không có nút", () => {
+    assert.deepEqual(retryActionFor({ status: "CANCELLED", price: 1, gymId: "g1" }, "membership"), { type: "rebuy", gymId: "g1" });
+    assert.equal(retryActionFor({ status: "CANCELLED", price: 1, gymId: "g1" }, "contract"), null);
+    assert.equal(retryActionFor({ status: "ACTIVE", price: 1, gymId: "g1" }, "membership"), null);
+    assert.equal(retryActionFor(null, "membership"), null);
   });
 });

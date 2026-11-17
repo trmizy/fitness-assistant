@@ -7,7 +7,7 @@ import { absolutePhotoUrl } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import { formatVND } from "../../utils/currency";
 import { AmenityIcon } from "../gymListing/AmenityIcon";
-import { amenityChips, gymBlockedReason, type GymRow } from "./gymDirectory";
+import { amenityChips, fullAddress, gymBlockedReason, type GymRow } from "./gymDirectory";
 
 /**
  * One branch in the gym directory: cover photo (the published cover, `coverPhotoUrl`), up to four amenity chips with their icons
@@ -62,7 +62,7 @@ export function GymCard({
               <View className="mt-0.5 flex-row items-center gap-1">
                 <MapPin size={12} color="#8b9299" />
                 <Text className="flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
-                  {[gym.address, gym.city].filter(Boolean).join(", ")}
+                  {fullAddress(gym, {})}
                 </Text>
               </View>
             ) : null}

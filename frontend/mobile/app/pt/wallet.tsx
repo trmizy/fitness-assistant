@@ -24,6 +24,7 @@ import { formatVND } from "../../src/utils/currency";
 import { money, parseAmountInput, shortDate, withdrawFormError, withdrawableCeiling, withdrawalStatus } from "../../src/features/wallet/wallet";
 import { ptTransactionLabel } from "../../src/features/pt/pt";
 import { PtContractMoney } from "../../src/features/ptWallet/PtContractMoney";
+import { ptWalletNotWithdrawable } from "../../src/features/ptWallet/ptWalletTotals";
 
 /**
  * PT-05 — "Ví thu nhập". Visual: the design's PTWallet. Behaviour: web's PTWalletPage — the PT
@@ -50,8 +51,8 @@ export default function PtWalletScreen() {
   // Trần rút = số dư khả dụng trừ các yêu cầu còn PENDING, đúng như payment-service tính.
   // Thiếu bước trừ này thì biểu mẫu mời rút một số tiền máy chủ chắc chắn từ chối bằng 400.
   const available = withdrawableCeiling(wallet, wdQuery.data);
-  // FH-9: held back = locked for a payout + not earned yet + earned but held back per contract (holdbackBalance)
-  const held = money(wallet?.lockedBalance) + money(wallet?.pendingBalance) + money(wallet?.holdbackBalance);
+  // N15M-05: the money that is not withdrawable yet, split with the same words as the per-contract cards.
+  const notYet = ptWalletNotWithdrawable(wallet);
   const transactions: any[] = Array.isArray(txQuery.data) ? txQuery.data : [];
   const withdrawals: any[] = Array.isArray(wdQuery.data) ? wdQuery.data : [];
 
@@ -103,10 +104,18 @@ export default function PtWalletScreen() {
               ) : (
                 <CountUp to={available} suffix=" ₫" locale="vi-VN" className="mt-1 font-display text-4xl text-foreground" />
               )}
-              <View className="mt-4 flex-row items-center gap-2 rounded-xl bg-panel px-3.5 py-2.5">
-                <Lock size={14} color={designTokens.mutedForeground} />
-                <Text className="flex-1 font-body text-sm text-muted-foreground">Đang tạm giữ</Text>
-                <Text className="font-body-semibold text-sm text-foreground">{formatVND(held)}</Text>
+              <View className="mt-4 gap-1.5 rounded-xl bg-panel px-3.5 py-2.5">
+                <View className="flex-row items-center gap-2">
+                  <Lock size={14} color={designTokens.mutedForeground} />
+                  <Text className="flex-1 font-body text-sm text-muted-foreground">Chưa rút được</Text>
+                  <Text className="font-body-semibold text-sm text-foreground">{formatVND(notYet.total)}</Text>
+                </View>
+                {notYet.parts.map((p) => (
+                  <View key={p.key} className="flex-row items-center gap-2 pl-[22px]" testID={`pt-wallet-part-${p.key}`}>
+                    <Text className="flex-1 font-body text-xs text-muted-foreground">{p.label}</Text>
+                    <Text className="font-body text-xs text-foreground">{formatVND(p.amount)}</Text>
+                  </View>
+                ))}
               </View>
             </Card>
           </StaggerItem>
@@ -115,8 +124,9 @@ export default function PtWalletScreen() {
             <Card className="flex-row items-start gap-2.5 border-warning/30 bg-warning/5 p-4">
               <Info size={17} color={designTokens.warning} />
               <Text className="flex-1 font-body text-sm leading-5 text-muted-foreground">
-                Tiền mỗi buổi dạy được <Text className="font-body-semibold text-foreground">tạm giữ</Text> rồi mới chuyển
-                sang số dư khả dụng. Mỗi yêu cầu rút được xét rồi chuyển khoản thủ công.
+                Tiền mỗi buổi dạy là <Text className="font-body-semibold text-foreground">chưa kiếm</Text> cho đến khi buổi
+                diễn ra; một phần thu nhập đã kiếm có thể <Text className="font-body-semibold text-foreground">tạm giữ</Text> theo
+                hợp đồng. Phần còn lại chuyển sang số dư khả dụng. Mỗi yêu cầu rút được xét rồi chuyển khoản thủ công.
               </Text>
             </Card>
           </StaggerItem>

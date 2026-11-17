@@ -74,9 +74,11 @@ import {
 import { normalizeCheckoutContext } from "../../../src/features/services/contractGymOptions";
 import {
   EMPTY_PT_FILTERS,
+  INDEPENDENT_VENUE_NOTE,
   SESSION_MODES,
   activeFilterCount,
   filterError,
+  isIndependentVenue,
   normalizePt,
   type PtFilters,
   type PtRow,
@@ -129,13 +131,15 @@ export default function ClientServicesScreen() {
   const area = useSearchArea();
 
   // `?tab=memberships|contracts` — where the payment result screen sends a settled purchase.
-  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
+  const { tab: tabParam, contractId: contractIdParam } = useLocalSearchParams<{ tab?: string; contractId?: string }>();
   const [tab, setTab] = useState<Tab>(TAB_FROM_PARAM[String(tabParam)] ?? "Tìm PT");
   // The tab is already mounted when the result screen navigates back here, so a new param must
   // still switch it — adjusted during render (React's "storing information from previous renders").
-  const [seenParam, setSeenParam] = useState(tabParam);
-  if (tabParam !== seenParam) {
-    setSeenParam(tabParam);
+  // The contract id is part of the key: a second notification for another contract re-opens Hợp đồng.
+  const paramKey = `${tabParam ?? ""}|${contractIdParam ?? ""}`;
+  const [seenParam, setSeenParam] = useState(paramKey);
+  if (paramKey !== seenParam) {
+    setSeenParam(paramKey);
     const next = TAB_FROM_PARAM[String(tabParam)];
     if (next) setTab(next);
   }
@@ -182,7 +186,7 @@ export default function ClientServicesScreen() {
       ) : tab === "Hội viên" ? (
         <MembershipsTab onBrowseGyms={() => setTab("Phòng gym")} />
       ) : (
-        <ContractsTab onFindPt={() => setTab("Tìm PT")} />
+        <ContractsTab onFindPt={() => setTab("Tìm PT")} highlightId={contractIdParam ?? null} />
       )}
     </View>
   );
@@ -1066,7 +1070,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
  * selects the refund formula. An active contract therefore also shows what ending it right now
  * would return, straight from the server's own breakdown rather than a number computed here.
  */
-function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
+function ContractsTab({ onFindPt, highlightId }: { onFindPt: () => void; highlightId: string | null }) {
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -1087,8 +1091,10 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
     () => normalizeContracts(contractsQuery.data),
     [contractsQuery.data],
   );
-  const open = contracts.filter(isOpen);
-  const past = contracts.filter((contract) => !isOpen(contract));
+  // N15M-11 — the contract a notification is about goes first in its group and is outlined.
+  const firstHighlighted = (list: ContractRow[]) => [...list].sort((a, b) => Number(b.id === highlightId) - Number(a.id === highlightId));
+  const open = firstHighlighted(contracts.filter(isOpen));
+  const past = firstHighlighted(contracts.filter((contract) => !isOpen(contract)));
 
   // Phase 14.1 — an accepted contract waiting for payment is paid from its card (web: ContractPage).
   const checkout = useGatewayCheckout<ContractRow>({
@@ -1199,6 +1205,7 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
               <ContractCard
                 key={contract.id}
                 contract={contract}
+                highlighted={contract.id === highlightId}
                 paying={checkout.submitting}
                 onPay={() => checkout.choose(contract)}
                 onEnd={() => openEnding(contract)}
@@ -1209,7 +1216,7 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
               <Text className="mt-2 font-body-medium text-xs text-muted-foreground">Đã kết thúc</Text>
             ) : null}
             {past.map((contract) => (
-              <ContractCard key={contract.id} contract={contract} />
+              <ContractCard key={contract.id} contract={contract} highlighted={contract.id === highlightId} />
             ))}
           </View>
         )}
@@ -1335,8 +1342,10 @@ function ContractCard({
   onEnd,
   onPay,
   paying,
+  highlighted,
 }: {
   contract: ContractRow;
+  highlighted?: boolean;
   onEnd?: () => void;
   onPay?: () => void;
   paying?: boolean;
@@ -1358,7 +1367,7 @@ function ContractCard({
   );
 
   return (
-    <Card className="gap-2 p-4">
+    <Card className={`gap-2 p-4 ${highlighted ? "border-primary bg-primary/5" : ""}`}>
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="font-display text-base text-foreground" numberOfLines={1}>
@@ -1371,6 +1380,12 @@ function ContractCard({
         </View>
         <Badge tone={status.tone}>{status.label}</Badge>
       </View>
+
+      {isIndependentVenue(contract.sessionMode, contract.gymId) ? (
+        <Text className="font-body text-xs" style={{ color: designTokens.warning }}>
+          {INDEPENDENT_VENUE_NOTE}
+        </Text>
+      ) : null}
 
       <Text className="font-body text-sm text-foreground">
         {formatVND(contract.price)}

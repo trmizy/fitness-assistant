@@ -42,6 +42,7 @@ import {
   type OnboardingProgress,
   type PayoutForm,
 } from "../../src/features/gymOwner/gymOwner";
+import { staffRoleLabel } from "../../src/features/gymOwner/staffRoles";
 
 /**
  * WB-18 — "Hồ sơ". Web gọi là `GymOwnerProfilePage`; Figma không vẽ màn này.
@@ -66,7 +67,12 @@ export default function GymOwnerProfileScreen() {
 
   const statusKey = ["partner-onboarding-status", uid];
   const statusQuery = useQuery({ queryKey: statusKey, queryFn: () => gymService.getOnboardingStatus() });
-  const brandsQuery = useQuery({ queryKey: ["owned-brands", uid], queryFn: () => gymService.listOwnedBrands() });
+  // Only the OWNER edits the brand here; a receptionist gets 403 on /owner/brands, so it is not even asked for them.
+  const brandsQuery = useQuery({
+    queryKey: ["owned-brands", uid],
+    queryFn: () => gymService.listOwnedBrands(),
+    enabled: statusQuery.isSuccess && isBrandOwner(statusQuery.data),
+  });
 
   const progress = (statusQuery.data ?? null) as OnboardingProgress | null;
   const brand = theBrand(brandsQuery.data) as any;
@@ -160,7 +166,7 @@ export default function GymOwnerProfileScreen() {
             {user?.email}
           </Text>
           <View className="mt-2 flex-row">
-            <Badge tone={isOwner ? "success" : "info"}>{isOwner ? "Chủ phòng gym" : "Quản lý chi nhánh"}</Badge>
+            <Badge tone={isOwner ? "success" : "info"}>{staffRoleLabel(statusQuery.data)}</Badge>
           </View>
         </View>
 

@@ -14,6 +14,12 @@ import {
   activeFilterCount,
   buildContractRequestPayload,
   buildListParams,
+  INDEPENDENT_VENUE_AGREE,
+  INDEPENDENT_VENUE_DECLINE,
+  INDEPENDENT_VENUE_WARNING,
+  isIndependentVenue,
+  readIndependentVenueRequired,
+  venueGate,
   filterError,
   lowAvailabilityMessage,
   hasMorePts,
@@ -543,5 +549,42 @@ describe("a hidden / suspended trainer", () => {
     assert.equal(isPtGone({ response: { status: 500 } }), false);
     assert.equal(isPtGone(new Error("Network Error")), false);
     assert.equal(isPtGone(null), false);
+  });
+});
+
+describe("N15M-14 independent venue (outside the Gymini system)", () => {
+  const mk = (sessionMode: string): ServicePackage => ({ id: "p", name: "g", sessionCount: 10, price: 1, sessionMode });
+
+  it("offline / hybrid with no Gymini gym is outside the system; online and gym contracts are not", () => {
+    assert.equal(isIndependentVenue("OFFLINE", null), true);
+    assert.equal(isIndependentVenue("HYBRID", undefined), true);
+    assert.equal(isIndependentVenue("ONLINE", null), false);
+    assert.equal(isIndependentVenue("OFFLINE", "gym-1"), false);
+  });
+
+  it("submit is impossible without agreeing: the gate shows the sheet until acknowledged", () => {
+    assert.equal(venueGate({ pkg: mk("OFFLINE"), gymId: null, acknowledged: false }), "sheet");
+    assert.equal(venueGate({ pkg: mk("HYBRID"), gymId: "gym-1", acknowledged: false }), "sheet"); // a gym rides only on OFFLINE
+    assert.equal(venueGate({ pkg: mk("OFFLINE"), gymId: null, acknowledged: true }), "send");
+    assert.equal(venueGate({ pkg: mk("OFFLINE"), gymId: "gym-1", acknowledged: false }), "send");
+    assert.equal(venueGate({ pkg: mk("ONLINE"), gymId: null, acknowledged: false }), "send");
+  });
+
+  it("the body carries acknowledgedIndependentVenue only as true, only for an independent venue", () => {
+    const ack = (pkg: ServicePackage, gymId: string | null, acknowledgedIndependentVenue: boolean) =>
+      buildContractRequestPayload({ ptUserId: "pt-1", pkg, gymId, acknowledgedIndependentVenue });
+    assert.equal(ack(mk("OFFLINE"), null, true).acknowledgedIndependentVenue, true);
+    assert.equal("acknowledgedIndependentVenue" in ack(mk("OFFLINE"), null, false), false);
+    assert.equal("acknowledgedIndependentVenue" in ack(mk("ONLINE"), null, true), false);
+    assert.equal("acknowledgedIndependentVenue" in ack(mk("OFFLINE"), "gym-1", true), false);
+  });
+
+  it("copy and the server's 409", () => {
+    assert.match(INDEPENDENT_VENUE_WARNING, /Gymini không chịu trách nhiệm/);
+    assert.equal(INDEPENDENT_VENUE_AGREE, "Tôi đồng ý");
+    assert.equal(INDEPENDENT_VENUE_DECLINE, "Chọn gói/PT khác");
+    assert.equal(readIndependentVenueRequired({ response: { status: 409, data: { code: "INDEPENDENT_VENUE_ACK_REQUIRED" } } }), true);
+    assert.equal(readIndependentVenueRequired({ response: { status: 409, data: { code: "LOW_AVAILABILITY" } } }), false);
+    assert.equal(readIndependentVenueRequired(null), false);
   });
 });

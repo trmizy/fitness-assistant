@@ -12,6 +12,7 @@ import * as Notifications from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Preferences } from "../services/storage";
+import { clearReturnPath } from "../config/returnPath";
 import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
@@ -171,6 +172,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Web also cleared its pending-AI-task store here; that store belongs to the AI Coach
     // screens and arrives with them in Phase 8.
     queryClient.clear();
+    // A remembered cold-start link belongs to whoever opened it — never to the next account.
+    clearReturnPath();
     // Revokes the refresh token server-side, clears local storage, then emits "session expired".
     await authService.logout();
     setIsAuth(false);

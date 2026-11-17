@@ -80,11 +80,31 @@ export function readCheckout(raw: unknown): CheckoutStart {
 /** Where payment-service sends the payer back when the checkout started in the app. */
 export const PAYMENT_RETURN_PREFIX = "fitnessassistant://client/payments/result";
 
+/** What the return link says about the checkout, kept only as a DISPLAY hint (never a verdict). */
+export type ReturnHint = "failed";
+
 /** The app's own result route for a transaction — also what the deep link resolves to. */
-export function resultHref(transactionId: string | null): string {
-  return transactionId
+export function resultHref(transactionId: string | null, hint: ReturnHint | null = null): string {
+  const base = transactionId
     ? `/client/payments/result?txnId=${encodeURIComponent(transactionId)}`
     : "/client/payments/result";
+  return hint ? `${base}${transactionId ? "&" : "?"}gw=${hint}` : base;
+}
+
+/**
+ * N17M-03 — ZaloPay appends its own `status` to the return link (1 = paid, any other number = the
+ * checkout did not complete, e.g. the payer pressed "Hủy giao dịch"); VNPay's `status` is a word
+ * (success/failed/invalid) that payment-service has already settled before redirecting, so sync alone
+ * is enough for it. So only a NUMBER other than 1 becomes a hint: the result screen can then say
+ * "chưa hoàn tất" straight away instead of waiting ~15 minutes for ZaloPay's order to expire.
+ * It is still only a hint: PAID from `POST /me/payments/:id/sync` always wins, and a link
+ * anyone can type decides nothing but which wording is shown while the server says pending.
+ */
+export function returnHintFromUrl(url: string | null | undefined): ReturnHint | null {
+  if (!url) return null;
+  const match = /[?&]status=(-?\d+)(?:[&#]|$)/.exec(url);
+  if (!match) return null;
+  return Number(match[1]) === 1 ? null : "failed";
 }
 
 /**
@@ -110,6 +130,37 @@ export function phaseFromSync(raw: unknown): ResultPhase {
   if (status === "PAID") return "paid";
   if (status === "FAILED" || status === "CANCELLED") return "failed";
   return "pending";
+}
+
+/** The thing a failed / abandoned payment was for, when it is one the app can start paying again. */
+export type RetryTarget = { kind: "membership" | "contract"; id: string };
+
+export function retryTargetFor(raw: unknown): RetryTarget | null {
+  const data = (raw ?? {}) as { relatedEntityType?: unknown; relatedEntityId?: unknown };
+  const id = typeof data.relatedEntityId === "string" && data.relatedEntityId ? data.relatedEntityId : null;
+  if (!id) return null;
+  if (data.relatedEntityType === "GYM_MEMBERSHIP") return { kind: "membership", id };
+  if (data.relatedEntityType === "PT_CONTRACT") return { kind: "contract", id };
+  return null;
+}
+
+/**
+ * N17M-02 — what the failed screen can offer, decided from the item's own state (the same rule the
+ * Hội viên / Hợp đồng cards use for their "Thanh toán" button: only PENDING_PAYMENT can be paid again).
+ * A membership the server already cancelled can not be paid again, only bought again at its gym.
+ */
+export type RetryAction = { type: "pay"; amount: number } | { type: "rebuy"; gymId: string };
+
+export function retryActionFor(
+  item: { status: string; price: number; gymId?: string | null } | null | undefined,
+  kind: RetryTarget["kind"],
+): RetryAction | null {
+  if (!item) return null;
+  if (item.status === "PENDING_PAYMENT") return { type: "pay", amount: item.price };
+  if (kind === "membership" && (item.status === "CANCELLED" || item.status === "EXPIRED") && item.gymId) {
+    return { type: "rebuy", gymId: item.gymId };
+  }
+  return null;
 }
 
 /** Where the thing just paid for lives in the app. */

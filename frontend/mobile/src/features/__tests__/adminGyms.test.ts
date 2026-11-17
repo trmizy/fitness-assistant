@@ -78,6 +78,7 @@ describe("năm hàng việc", () => {
     const x = g({ name: "Mới", approvedName: "Cũ", address: "a", approvedAddress: "Lê Lợi", city: "HCM" });
     assert.equal(displayName(x), "Cũ");
     assert.equal(displayAddress(x), "Lê Lợi, HCM");
+    assert.equal(displayAddress(g({ address: "1 A, Tỉnh An Giang", city: "Tỉnh An Giang" })), "1 A, Tỉnh An Giang", "N16M-01: tỉnh không in hai lần");
     assert.equal(searchGyms([x], "le loi").length, 1);
     assert.equal(searchGyms([x], "hanoi").length, 0);
   });

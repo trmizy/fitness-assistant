@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, UserRound, Wallet } from "lucide-react-native";
+import { Building2, ConciergeBell, LayoutDashboard, Receipt, UserRound, Wallet } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import { RequireRole } from "../../src/components/guards/RequireRole";
@@ -8,7 +8,7 @@ import {
   type WorkspaceTab,
 } from "../../src/components/navigation/WorkspaceTabs";
 import { useApp } from "../../src/context/AppContext";
-import { isManagerAccount, staffRoleOf } from "../../src/features/gymOwner/gymOwner";
+import { ALL_STAFF_TABS, staffTabsFor } from "../../src/features/gymOwner/staffRoles";
 import { gymService } from "../../src/services/api";
 
 /**
@@ -27,6 +27,9 @@ const gymTabs: WorkspaceTab[] = [
   { name: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { name: "gyms", label: "Phòng gym", icon: Building2 },
   { name: "wallet", label: "Ví", icon: Wallet },
+  // N15M-08 / N15M-10 — one home per narrow role: the receptionist's desk and the accountant's read-only finance.
+  { name: "front-desk", label: "Quầy lễ tân", icon: ConciergeBell },
+  { name: "finance", label: "Tài chính", icon: Receipt },
   // Tab thứ tư, ngoài `gymTabs` ba tab của bản thiết kế: WB-18 (hồ sơ chủ gym) là màn web mọc thêm
   // sau khi Figma vẽ xong, và nó chứa mật khẩu + tài khoản nhận tiền — không thể chôn sau hai lần
   // bấm. Mọi không gian khác cũng có tab hồ sơ, nên đây là chỗ người dùng sẽ đi tìm.
@@ -48,27 +51,24 @@ const LISTING_HIDDEN_ROUTES = ["listing"];
 
 const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch"];
 
-/** The "Ví" tab is OWNER-only (gym-service 403s a manager), so a manager's bar leaves it out. */
+/**
+ * Tab bar per role (staffRoles.ts, mirrors gym-service default-deny permissions): owner = Tổng quan / Phòng gym / Ví / Hồ sơ;
+ * manager drops Ví; receptionist = Quầy lễ tân + Hồ sơ; accountant = Tài chính + Hồ sơ. A tab a role cannot use is
+ * hidden (href null) rather than shown and 403'd. Role not known yet → the owner bar, as before.
+ */
 function GymTabs() {
   const { user } = useApp();
   const status = useQuery({
     queryKey: ["partner-onboarding-status", user?.id ?? "guest"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const manager = isManagerAccount(status.data);
-  // D15 — hai vai trò hẹp chỉ giữ tab dùng được (backend 403 phần còn lại): lễ tân = Phòng gym (QR check-in) + Hồ sơ;
-  // kế toán = Hồ sơ (màn Tài chính chỉ-đọc trên mobile chưa có — xem báo cáo D15). Chưa biết vai trò → tab của quản lý.
-  const staff = staffRoleOf(status.data);
-  const keep: string[] | null = staff === "RECEPTIONIST" ? ["gyms", "profile"] : staff === "ACCOUNTANT" ? ["profile"] : null;
-  if (keep) {
-    const hidden = [...hiddenRoutes, ...gymTabs.map((t) => t.name).filter((n) => !keep.includes(n))];
-    return <WorkspaceTabs workspace="gym" tabs={gymTabs.filter((t) => keep.includes(t.name))} hiddenRoutes={hidden} />;
-  }
+  const keep: string[] = staffTabsFor(status.data);
+  const dropped = ALL_STAFF_TABS.filter((n) => !keep.includes(n));
   return (
     <WorkspaceTabs
       workspace="gym"
-      tabs={manager ? gymTabs.filter((t) => t.name !== "wallet") : gymTabs}
-      hiddenRoutes={manager ? [...hiddenRoutes, "wallet"] : hiddenRoutes}
+      tabs={gymTabs.filter((t) => keep.includes(t.name))}
+      hiddenRoutes={[...hiddenRoutes, ...dropped]}
     />
   );
 }

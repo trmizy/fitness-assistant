@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, LockOpen, Search, TriangleAlert } from "lucide-react-native";
 
 import {
@@ -25,14 +25,15 @@ import { friendlyError } from "../../src/features/partnerApplication/partnerAppl
 import {
   ROLE_FILTERS,
   STATUS_FILTERS,
-  filterUsers,
   initials,
   isLocked,
   lockConsequences,
+  mergeUserPages,
+  nextUserPage,
   partnerRoleMap,
+  userListParams,
+  userPage,
   userRoleLabel,
-  userCounts,
-  userRows,
   type AdminUserRow,
 } from "../../src/features/admin/adminUsers";
 
@@ -64,7 +65,8 @@ function Chips({ options, value, onChange }: { options: { value: string; label: 
  * (`lockConsequences`) — với PT là huỷ + hoàn tiền mọi hợp đồng đang mở, không đảo ngược được. Danh sách
  * phản ánh được trạng thái khoá nhờ sửa GAP-21 ở gateway (28/9).
  *
- * Danh sách dài (200+) nên dùng FlatList, không map trong ScrollView.
+ * Danh sách dài (37 nghìn tài khoản): máy chủ chia trang + tìm kiếm + lọc (FIX5-ADMIN-PERF); màn cuộn vô hạn,
+ * mỗi lần 20 dòng, FlatList (không map trong ScrollView).
  */
 export default function AdminUsersScreen() {
   const insets = useSafeAreaInsets();
@@ -73,13 +75,27 @@ export default function AdminUsersScreen() {
   const qc = useQueryClient();
 
   const [q, setQ] = useState("");
+  // The search runs on the server: wait for a short pause in typing before asking.
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 350);
+    return () => clearTimeout(t);
+  }, [q]);
   const [role, setRole] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [selected, setSelected] = useState<AdminUserRow | null>(null);
 
   const key = ["admin-user-directory"];
-  const query = useQuery({ queryKey: key, queryFn: () => adminService.listUserDirectory() });
-  const rows = useMemo(() => userRows(query.data), [query.data]);
+  const query = useInfiniteQuery({
+    queryKey: [...key, "list", debouncedQ, role, status],
+    initialPageParam: 1,
+    // Keep the rows (and the search box with its focus) on screen while a new search / filter loads.
+    placeholderData: keepPreviousData,
+    getNextPageParam: (last) => nextUserPage(last),
+    queryFn: ({ pageParam }) => adminService.listUserDirectory(userListParams({ q: debouncedQ, role, status, page: pageParam as number })),
+  });
+  const rows = useMemo(() => mergeUserPages(query.data?.pages), [query.data]);
+  const total = query.data?.pages?.[0] ? userPage(query.data.pages[0]).total : 0;
   // B41 — partner staff (manager, receptionist, accountant) share the "Gym Owner" account role; ask the
   // partner directory who is the real owner. A failure only leaves the generic label.
   const gymOwnerIds = useMemo(() => rows.filter((u) => u.role === "Gym Owner").map((u) => u.id), [rows]);
@@ -90,8 +106,6 @@ export default function AdminUsersScreen() {
     staleTime: 60_000,
   });
   const partnerRoles = useMemo(() => partnerRoleMap(rolesQuery.data), [rolesQuery.data]);
-  const shown = useMemo(() => filterUsers(rows, q, role, status), [rows, q, role, status]);
-  const counts = userCounts(rows);
 
   const toggle = useMutation({
     mutationFn: (u: AdminUserRow) => adminService.setUserActive(u.id, isLocked(u)),
@@ -140,8 +154,8 @@ export default function AdminUsersScreen() {
       <Chips options={ROLE_FILTERS} value={role} onChange={setRole} />
       <Chips options={STATUS_FILTERS} value={status} onChange={setStatus} />
       <Text className="px-5 font-body text-xs text-muted-foreground">
-        {shown.length === rows.length ? `${rows.length} tài khoản` : `${shown.length} / ${rows.length} tài khoản`}
-        {counts.locked > 0 ? ` · ${counts.locked} đang bị khoá` : ""}
+        {`${total} tài khoản`}
+        {q.trim() !== debouncedQ || (query.isFetching && !query.isFetchingNextPage) ? " · đang tìm…" : ""}
       </Text>
     </View>
   );
@@ -149,7 +163,7 @@ export default function AdminUsersScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Người dùng" onBack={back} />
-      {query.isLoading ? (
+      {query.isLoading && rows.length === 0 ? (
         <ActivityIndicator className="mt-10" color={accent.primary} />
       ) : query.isError ? (
         <View className="items-center gap-3 p-8">
@@ -160,14 +174,19 @@ export default function AdminUsersScreen() {
         </View>
       ) : (
         <FlatList
-          data={shown}
+          data={rows}
+          onEndReachedThreshold={0.6}
+          onEndReached={() => {
+            if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
+          }}
+          ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator className="my-4" color={accent.primary} /> : null}
           keyExtractor={(u) => u.id}
           ListHeaderComponent={header}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
           refreshControl={
             <RefreshControl
-              refreshing={query.isRefetching}
+              refreshing={query.isRefetching && !query.isFetchingNextPage}
               onRefresh={() => void query.refetch()}
               tintColor={accent.primary}
               colors={[accent.primary]}

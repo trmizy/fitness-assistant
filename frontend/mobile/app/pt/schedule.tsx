@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
@@ -53,6 +53,7 @@ import {
   ptSessionStatus,
   relativeDayLabel,
   sessionActions,
+  sessionDayOf,
   sessionDaysIn,
   sessionTimeLabel,
   sessionsOf,
@@ -98,6 +99,19 @@ export default function PtScheduleScreen() {
   const noShowQuery = useQuery({ queryKey: ["pt-no-show-reports", uid], queryFn: () => sessionService.listNoShowReports() });
 
   const sessions = sessionsOf(sessionsQuery.data);
+  // N15M-11: a session notification opens this screen with ?sessionId=<id> - jump to that session's day and outline it.
+  const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
+  const openedParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sessionIdParam || openedParam.current === sessionIdParam) return;
+    const at = sessionDayOf(sessions, sessionIdParam);
+    if (!at) return; // not in the loaded upcoming list: the calendar stays on today
+    openedParam.current = sessionIdParam;
+    setYear(at.year);
+    setMonth(at.month);
+    setDay(at.day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionIdParam, sessionsQuery.data]);
   const marked = sessionDaysIn(sessions, year, month);
   const daySessions = sessionsOnDay(sessions, year, month, day);
   const blocked = blockedDateSet(exceptionsQuery.data);
@@ -366,7 +380,7 @@ export default function PtScheduleScreen() {
                 const name = clientName(s);
                 const actions = sessionActions(s);
                 return (
-                  <Card key={s.id} className="gap-3 p-4">
+                  <Card key={s.id} className={`gap-3 p-4 ${s.id === sessionIdParam ? "border-primary bg-primary/5" : ""}`}>
                     <View className="flex-row items-center gap-3">
                       <Avatar name={name} size={40} />
                       <View className="min-w-0 flex-1">

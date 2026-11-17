@@ -153,6 +153,7 @@ describe("branches", () => {
     assert.equal(branchAddress(g2), "Mới");
     assert.equal(branchName(g3), "Chi nhánh chưa đặt tên");
     assert.equal(branchAddress(g3), "Chưa có địa chỉ");
+    assert.equal(branchAddress({ ...g1, address: "388 Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", pendingAddress: null, city: "Tỉnh An Giang" }), "388 Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", "N16M-01: tỉnh không in hai lần");
   });
 
   it("status labels cover the real GymStatus enum and nothing invented", () => {

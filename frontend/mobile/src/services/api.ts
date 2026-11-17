@@ -3999,8 +3999,16 @@ export const adminService = {
 
   // Gateway aggregate (auth + user-service): name/email/role/status per account — the admin
   // "Người dùng" list, and the name lookup for withdrawal/dispute rows that only carry an id.
-  listUserDirectory: async () => {
-    const { data } = await api.get("/admin/users");
+  // FIX5-ADMIN-PERF: the server answers ONE page (37k accounts) — filters and search run there.
+  listUserDirectory: async (params: Record<string, string | number> = { page: 1, limit: 20 }) => {
+    const { data } = await api.get("/admin/users", { params });
+    return data;
+  },
+  // Names behind a list of account ids (withdrawal rows): one call for up to 200 ids, never the whole directory.
+  lookupUsers: async (ids: string[]) => {
+    const unique = [...new Set(ids.filter(Boolean))].slice(0, 200);
+    if (unique.length === 0) return { data: { users: [] } };
+    const { data } = await api.get("/admin/users", { params: { ids: unique.join(","), page: 1, limit: 200 } });
     return data;
   },
   // AD-05 — lock/unlock ANY account (auth-service setUserActive). For a PT this also relays a
@@ -4989,8 +4997,12 @@ export const contractService = {
     acknowledgedLowAvailability?: boolean;
     /** `version` of the package on screen; a changed package answers 409 PACKAGE_CHANGED with the current one. */
     expectedPackageVersion?: number;
+    /** N15M-14: the client accepted the "venue outside Gymini" warning (offline/hybrid with no Gymini gym). */
+    acknowledgedIndependentVenue?: boolean;
   }) => {
-    const { data } = await api.post("/contracts/request", requestData);
+    // N15M-14 grace: this build knows the venue-consent step. The server accepts a request without the flag ONLY from an app that
+    // lacks this header (an older install), so a new client that skips the dialog is still refused.
+    const { data } = await api.post("/contracts/request", requestData, { headers: { "X-Gymini-Venue-Consent": "1" } });
     return data;
   },
   // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
@@ -5689,11 +5701,18 @@ export const adminPartnerApplications = {
 // AD-02 — admin side of PT applications (user-service /pt-applications/admin). The server does NOT
 // check the current status before a review action; the screen gates actions by status itself
 // (features/admin/adminModeration.ts#ptActions).
+// FIX5-ADMIN-PERF: one page; the total is in the X-Total-Count header (10k applications on the official data).
+async function fetchPtApplicationsPage(params: Record<string, string | number> = {}): Promise<{ rows: any[]; total: number }> {
+  const res = await api.get("/pt-applications/admin", { params: { page: 1, limit: 20, ...params } });
+  const rows = Array.isArray(res.data) ? res.data : [];
+  const total = Number((res.headers as any)?.["x-total-count"]);
+  return { rows, total: Number.isFinite(total) && total >= 0 ? total : rows.length };
+}
+
 export const adminPtApplications = {
-  list: async (status?: string) => {
-    const { data } = await api.get("/pt-applications/admin", { params: status ? { status } : undefined });
-    return data;
-  },
+  list: fetchPtApplicationsPage,
+  /** How many applications have this status (one row read, the count comes from the header). */
+  count: async (status: string): Promise<number> => (await fetchPtApplicationsPage({ status, page: 1, limit: 1 })).total,
   get: async (id: string) => {
     const { data } = await api.get(`/pt-applications/admin/${id}`);
     return data;
@@ -6464,6 +6483,46 @@ export const gymService = {
   // Owner/manager: trainers who checked in at one branch (never member check-ins, never clients).
   listPtCheckins: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
+    return data?.data ?? data;
+  },
+  // N15M-08 — receptionist front desk (D15b/D15c). Mirrors web's gymService; every route is permission-gated server-side.
+  // Trainers who checked in TODAY at the branch (name + time only) — the receptionist's list; pt-checkins above is owner/manager.
+  listPtCheckinsToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins/today`);
+    return data?.data ?? data;
+  },
+  // Guests with a booking or a check-in at the branch today (display name only).
+  getFrontDeskToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
+    return data?.data ?? data;
+  },
+  getAssistedConfig: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/assisted-checkin/config`);
+    return data?.data ?? data;
+  },
+  searchFrontDeskMembers: async (gymId: string, params: { code?: string; name?: string; last4?: string }) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/members`, { params });
+    return data?.data ?? data;
+  },
+  requestAssistedOtp: async (gymId: string, membershipId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin/otp`, { membershipId });
+    return data?.data ?? data;
+  },
+  assistedCheckIn: async (gymId: string, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin`, payload);
+    return data?.data ?? data;
+  },
+  requestCheckinException: async (gymId: string, payload: { membershipId: string; reason: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions`, payload);
+    return data?.data ?? data;
+  },
+  listCheckinExceptions: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  // N15M-10 — accountant/owner: TOTAL PT commission per period (never per PT, never rates).
+  getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });
     return data?.data ?? data;
   },
   listMyCheckins: async () => {

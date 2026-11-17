@@ -3,6 +3,7 @@ import { render } from "@testing-library/react-native";
 
 import { RequireRole } from "../../guards/RequireRole";
 import type { UserRole } from "../../../context/AppContext";
+import { clearReturnPath, peekReturnPath, rememberReturnPath } from "../../../config/returnPath";
 
 /**
  * The role guard decides three different things and gets each wrong in a different way: letting
@@ -15,13 +16,14 @@ import type { UserRole } from "../../../context/AppContext";
  */
 
 const mockUseApp = jest.fn();
+let mockPathname = "/pt/dashboard";
 
 jest.mock("../../../context/AppContext", () => ({
   useApp: () => mockUseApp(),
 }));
 
 jest.mock("expo-router", () => ({
-  usePathname: () => "/pt/dashboard",
+  usePathname: () => mockPathname,
   router: { replace: jest.fn() },
   // Renders as a marker so a redirect is observable without a navigator in the tree.
   Redirect: ({ href }: { href: any }) => {
@@ -29,7 +31,8 @@ jest.mock("expo-router", () => ({
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Text: RNText } = require("react-native");
     const target = typeof href === "string" ? href : href?.pathname;
-    return <RNText>{`REDIRECT:${target}`}</RNText>;
+    const from = typeof href === "string" ? undefined : href?.params?.from;
+    return <RNText>{`REDIRECT:${target}${from ? ` from=${from}` : ""}`}</RNText>;
   },
 }));
 
@@ -48,6 +51,8 @@ function renderGuard(allow: UserRole[]) {
 describe("RequireRole", () => {
   afterEach(() => {
     mockUseApp.mockReset();
+    mockPathname = "/pt/dashboard";
+    clearReturnPath();
   });
 
   it("renders the workspace for a role on the allow list", async () => {
@@ -79,7 +84,29 @@ describe("RequireRole", () => {
     const view = await renderGuard(["client"]);
 
     expect(view.queryByText(/403/)).toBeNull();
+    expect(view.getByText("REDIRECT:/login from=/pt/dashboard")).toBeTruthy();
+  });
+
+  it("cold start: pathname is still the default \"/\", so the remembered link becomes `from` (N17M-08)", async () => {
+    mockPathname = "/";
+    rememberReturnPath("/client/services/gyms/abc-123");
+    setSession("client", false);
+    const view = await renderGuard(["client"]);
+    expect(view.getByText("REDIRECT:/login from=/client/services/gyms/abc-123")).toBeTruthy();
+  });
+
+  it("cold start with no remembered link sends plain /login, never from=\"/\"", async () => {
+    mockPathname = "/";
+    setSession("client", false);
+    const view = await renderGuard(["client"]);
     expect(view.getByText("REDIRECT:/login")).toBeTruthy();
+  });
+
+  it("a signed-in guard clears the remembered link so it cannot reach another account", async () => {
+    rememberReturnPath("/client/services/gyms/abc-123");
+    setSession("client", true);
+    await renderGuard(["client"]);
+    expect(peekReturnPath()).toBeNull();
   });
 
   it("admits a PT to the client workspace, which allows both roles", async () => {

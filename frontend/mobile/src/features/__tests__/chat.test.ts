@@ -11,6 +11,9 @@ import {
   canLoadOlder,
   chatErrorText,
   mergeMessageLists,
+  mergeThreadPage,
+  threadPollInterval,
+  THREAD_POLL_MS,
   olderCursor,
   sendFailureText,
   canSend,
@@ -144,5 +147,30 @@ describe("older-page cursor and merge (Xem tin cũ hơn)", () => {
   it("REST send failure uses the server sentence or a generic line", () => {
     assert.equal(sendFailureText({ response: { data: { error: "Tin nhắn quá dài" } } }), "Tin nhắn quá dài");
     assert.match(sendFailureText(new Error("net")), /Không gửi được/);
+  });
+});
+
+describe("N15M-03 — open thread poll", () => {
+  const m = (id: string, t: string) => normalizeMessage({ id, conversationId: "c", content: id, createdAt: t, senderId: "u" });
+
+  it("polls only while the screen is in front AND the socket is not delivering", () => {
+    assert.equal(threadPollInterval(true, false), THREAD_POLL_MS, "realtime OFF (aws-dev): poll");
+    assert.equal(threadPollInterval(true, true), false, "realtime ON: the socket path does it");
+    assert.equal(threadPollInterval(false, false), false, "blurred or app in background: stop");
+    assert.equal(threadPollInterval(false, true), false);
+  });
+
+  it("a poll result merges into the thread: new message appended once, nothing duplicated or reordered", () => {
+    const cached = [m("a", "2026-01-01T00:00:00Z"), m("b", "2026-01-02T00:00:00Z")];
+    const polled = [m("a", "2026-01-01T00:00:00Z"), m("b", "2026-01-02T00:00:00Z"), m("c", "2026-01-03T00:00:00Z")];
+    assert.deepEqual(mergeThreadPage(cached, polled).map((x) => x.id), ["a", "b", "c"]);
+    assert.deepEqual(mergeThreadPage(mergeThreadPage(cached, polled), polled).map((x) => x.id), ["a", "b", "c"], "same poll twice");
+  });
+
+  it("a poll that started before a send does not drop the just-sent message", () => {
+    const cached = [m("a", "2026-01-01T00:00:00Z"), m("mine", "2026-01-04T00:00:00Z")];
+    const staleFetch = [m("a", "2026-01-01T00:00:00Z")];
+    assert.deepEqual(mergeThreadPage(cached, staleFetch).map((x) => x.id), ["a", "mine"]);
+    assert.deepEqual(mergeThreadPage(undefined, staleFetch).map((x) => x.id), ["a"]);
   });
 });
