@@ -717,6 +717,21 @@ export const profileController = {
         res.status(403).json({ error: "Forbidden: admin role required" });
         return;
       }
+      // FIX5-ADMIN-PERF: a paged admin list only needs the counts of the ids on its page. With
+      // `userIds=a,b,c` (1..200) the counts are taken for exactly those ids — no scan of every contract.
+      if (req.query.userIds !== undefined) {
+        const raw = typeof req.query.userIds === "string" ? req.query.userIds : "";
+        const ids = [...new Set(raw.split(",").map((x) => x.trim()).filter(Boolean))];
+        if (ids.length === 0 || ids.length > 200) {
+          res.status(400).json({
+            error: "Cần từ 1 đến 200 mã người dùng, cách nhau bằng dấu phẩy",
+            code: "INVALID_USER_IDS",
+          });
+          return;
+        }
+        res.json({ summary: await contractRepository.countByUsers(ids) });
+        return;
+      }
       // Fetch all REAL contracts and group counts in the repository (no 10k truncation)
       // We pass all active user IDs extracted from REAL contracts
       const allContracts = await contractRepository.findAll(0);

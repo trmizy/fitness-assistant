@@ -132,7 +132,7 @@ dbTest("requestContract: auth-service unreachable -> 503 ACCOUNT_STATUS_UNAVAILA
     for (const failure of [DOWN(), httpError(500), httpError(502), httpError(401), httpError(403)]) {
       authAnswers = new Map<string, AuthAnswer>([[ptUserId, failure], [clientUserId, { isActive: true }]]);
       await assert.rejects(
-        () => contractService.requestContract(clientUserId, { ptUserId, packageId }),
+        () => contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }),
         (e: any) => e.status === 503 && e.code === "ACCOUNT_STATUS_UNAVAILABLE",
         String(failure.message),
       );
@@ -140,7 +140,7 @@ dbTest("requestContract: auth-service unreachable -> 503 ACCOUNT_STATUS_UNAVAILA
     }
     // either side being unverifiable is enough
     authAnswers = new Map<string, AuthAnswer>([[ptUserId, { isActive: true }], [clientUserId, DOWN()]]);
-    await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId, packageId }), (e: any) => e.status === 503);
+    await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }), (e: any) => e.status === 503);
     assert.equal(await count(ptUserId, clientUserId), 0);
   } finally {
     restore();
@@ -155,7 +155,7 @@ dbTest("requestContract: a deactivated (banned) client or PT is refused 403 ACCO
     for (const [who, inactive] of [["client", clientUserId], ["pt", ptUserId]] as const) {
       authAnswers = new Map<string, AuthAnswer>([[ptUserId, { isActive: true }], [clientUserId, { isActive: true }], [inactive, { isActive: false }]]);
       await assert.rejects(
-        () => contractService.requestContract(clientUserId, { ptUserId, packageId }),
+        () => contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }),
         (e: any) => e.status === 403 && e.code === "ACCOUNT_INACTIVE",
         who,
       );
@@ -172,7 +172,7 @@ dbTest("requestContract: auth-service says both are active (or has no such user)
   const { packageId, restore } = stubRequestDeps(ptUserId);
   try {
     authAnswers = new Map<string, AuthAnswer>([[ptUserId, { isActive: true }], [clientUserId, "notfound"]]);
-    const c = await contractService.requestContract(clientUserId, { ptUserId, packageId });
+    const c = await contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     createdIds.push(c.id);
     assert.equal(c.status, ContractStatus.PENDING_REVIEW);
     assert.ok(authLookups.includes(ptUserId) && authLookups.includes(clientUserId), "both accounts were asked about");
@@ -286,35 +286,35 @@ dbTest("REAL HTTP POST /contracts/request: auth down -> 503 and no row; banned -
   try {
     // (a) the caller's own token cannot be verified (auth-service down) -> the middleware answers 503
     verifyDown = DOWN();
-    let r = await http_("POST", "/contracts/request", token, { ptUserId, packageId });
+    let r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     assert.equal(r.status, 503);
     assert.equal(await count(ptUserId, clientUserId), 0);
     verifyDown = null;
 
     // (b) token fine, but the account-status lookup fails -> 503 from the contract path itself
     authAnswers = new Map<string, AuthAnswer>([[ptUserId, DOWN()]]);
-    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId });
+    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     assert.equal(r.status, 503);
     assert.equal(r.body.code, "ACCOUNT_STATUS_UNAVAILABLE");
     assert.equal(await count(ptUserId, clientUserId), 0);
 
     // (c) auth-service says the PT account is deactivated -> refused, no row
     authAnswers = new Map<string, AuthAnswer>([[ptUserId, { isActive: false }]]);
-    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId });
+    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     assert.equal(r.status, 403);
     assert.equal(r.body.code, "ACCOUNT_INACTIVE");
     assert.equal(await count(ptUserId, clientUserId), 0);
 
     // (d) the caller's own token says the account is disabled (auth-service 403) -> propagated by the middleware
     verifyDown = httpError(403);
-    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId });
+    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     assert.equal(r.status, 403);
     assert.equal(await count(ptUserId, clientUserId), 0);
     verifyDown = null;
 
     // (e) everything healthy -> 201
     authAnswers = new Map();
-    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedLowAvailability: true });
+    r = await http_("POST", "/contracts/request", token, { ptUserId, packageId, acknowledgedLowAvailability: true, acknowledgedIndependentVenue: true });
     assert.equal(r.status, 201, JSON.stringify(r.body));
     createdIds.push(r.body.id);
     assert.equal(await count(ptUserId, clientUserId), 1);

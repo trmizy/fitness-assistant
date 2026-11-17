@@ -987,6 +987,11 @@ export const bookingService = {
     ]);
   },
 
+  /** N15B-06: the PT's sessions that are over but still CONFIRMED - shown as "Cần chốt buổi" with the Hoàn thành action. */
+  async listAwaitingCompletionForPT(ptUserId: string) {
+    return sessionRepository.findAwaitingCompletionByPT(ptUserId);
+  },
+
   async listDisputed() {
     return sessionRepository.findDisputed();
   },

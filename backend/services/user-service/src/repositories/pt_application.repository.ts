@@ -86,10 +86,44 @@ function sanitizeCert(c: any): Record<string, any> {
   return clean;
 }
 
-function adminListWhere(filters: { status?: PTApplicationStatus; search?: string }) {
+export type AdminListFilters = {
+  status?: PTApplicationStatus;
+  search?: string;
+  /**
+   * FIX5-ADMIN-PERF: applicant name / email search — what the admin list search box means. Every word typed must
+   * match the first name, last name or email, case- and accent-insensitive ("nguyen minh" finds "Nguyễn Minh Khoa").
+   */
+  q?: string;
+  /** "oldest": the review queue order (earliest submitted first); default newest first. */
+  order?: "oldest";
+};
+
+/** Lower-case + strip Vietnamese diacritics (the form user_profiles.first_name_normalized / last_name_normalized store). */
+function foldWord(value: string): string {
+  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[đĐ]/g, "d").toLowerCase();
+}
+
+function adminListWhere(filters: AdminListFilters) {
   const { status, search } = filters;
+  const words = (typeof filters.q === "string" ? filters.q : "").trim().split(/\s+/).filter(Boolean).slice(0, 6);
   return {
     ...(status && { status }),
+    ...(words.length > 0 && {
+      AND: words.map((w) => {
+        const f = foldWord(w);
+        return {
+          userProfile: {
+            OR: [
+              { firstNameNormalized: { contains: f } },
+              { lastNameNormalized: { contains: f } },
+              { firstName: { contains: w, mode: "insensitive" as const } },
+              { lastName: { contains: w, mode: "insensitive" as const } },
+              { email: { contains: w, mode: "insensitive" as const } },
+            ],
+          },
+        };
+      }),
+    }),
     ...(search && {
       OR: [
         { phoneNumber: { contains: search } },
@@ -285,10 +319,7 @@ export const ptApplicationRepository = {
    * swap between pages.
    */
   findAll: async (
-    filters: {
-      status?: PTApplicationStatus;
-      search?: string;
-    },
+    filters: AdminListFilters,
     paging?: { page: number; limit: number },
   ) => {
     return prisma.pTApplication.findMany({
@@ -298,12 +329,17 @@ export const ptApplicationRepository = {
         certificates: true,
         media: true,
       },
-      orderBy: paging ? [{ submittedAt: "desc" }, { id: "asc" }] : { submittedAt: "desc" },
+      orderBy:
+        filters.order === "oldest"
+          ? [{ submittedAt: "asc" as const }, { id: "asc" as const }]
+          : paging
+            ? [{ submittedAt: "desc" as const }, { id: "asc" as const }]
+            : { submittedAt: "desc" as const },
       ...(paging ? { skip: (paging.page - 1) * paging.limit, take: paging.limit } : {}),
     });
   },
 
   /** Total rows matching the same filters as findAll (for the X-Total-Count header of a paged list). */
-  countAll: async (filters: { status?: PTApplicationStatus; search?: string }) =>
+  countAll: async (filters: AdminListFilters) =>
     prisma.pTApplication.count({ where: adminListWhere(filters) }),
 };

@@ -290,6 +290,33 @@ test("prices: fromPricePerSession / fromPackagePrice and the legacy price fields
 
 // ── 4. physique photos: PUBLISHED only ───────────────────────────────────────────────────────
 
+test("N15C-03: the delivery mode in list + detail follows the packages the PT sells, not the application service_mode", async () => {
+  const shared = `Mod${randomUUID().slice(0, 6)}`;
+  const mk = async (letter: string, modes: Array<"ONLINE" | "OFFLINE">) => {
+    const pt = await makePublicPt({ marker: `${shared}${letter}` });
+    created.push(pt.userId);
+    // the fixture's application says OFFLINE for everyone; the packages decide
+    await prisma.pTApplication.updateMany({ where: { userProfileId: pt.profileId }, data: { serviceMode: "OFFLINE" } });
+    for (const m of modes) await makePackage(pt.userId, { name: `Gói ${letter} ${m}`, sessionMode: m });
+    return pt;
+  };
+  const onlineOnly = await mk("A", ["ONLINE"]);
+  const both = await mk("B", ["ONLINE", "OFFLINE"]);
+  const offlineOnly = await mk("C", ["OFFLINE"]);
+  const tok = viewer();
+  const expected = new Map([[onlineOnly.userId, "ONLINE"], [both.userId, "HYBRID"], [offlineOnly.userId, "OFFLINE"]]);
+
+  const list = await app.call("GET", `/profile/pts?q=${shared}&limit=100`, tok);
+  assert.equal(list.status, 200, JSON.stringify(list.body));
+  for (const [id, mode] of expected) {
+    const row = (list.body.pts as any[]).find((p) => p.userId === id);
+    assert.equal(row?.ptApplication?.serviceMode, mode, `list ${id}`);
+    const detail = await app.call("GET", `/profile/pts/${id}`, tok);
+    assert.equal(detail.status, 200, JSON.stringify(detail.body));
+    assert.equal(detail.body.ptApplication.serviceMode, mode, `detail ${id}`);
+  }
+});
+
 test("physiquePhotos: only PUBLISHED rows are exposed, in sort order, with the cover url; STAGED / RETIRED / DISCARDED never appear", async () => {
   const pt = await makePublicPt();
   created.push(pt.userId);

@@ -27,6 +27,7 @@ import {
   isPartySubmitted,
   shareRefusalReason,
   canTransition,
+  APPEAL_WINDOW_DAYS,
   canTransitionManually,
   changeAcknowledged,
   checkApprover,
@@ -1520,7 +1521,7 @@ export const disputeCaseService = {
     const [agreementFacts, notice, myAppeal] = await Promise.all([
       prisma.disputeCaseAgreement.findMany({ where: { caseId }, include: { confirmations: true } }),
       prisma.disputeCasePartyNotice.findFirst({ where: { caseId, userId: actor.id, kind: "CONCLUSION" }, orderBy: [{ recordedAt: "desc" }, { id: "desc" }] }),
-      prisma.disputeCaseAppeal.findUnique({ where: { caseId_partyRole: { caseId, partyRole: role } }, select: { id: true } }),
+      prisma.disputeCaseAppeal.findUnique({ where: { caseId_partyRole: { caseId, partyRole: role } }, select: { id: true, status: true, result: true, createdAt: true, decidedAt: true } }),
     ]);
     const partyActions = computePartyAllowedActions({
       role,
@@ -1560,6 +1561,15 @@ export const disputeCaseService = {
         mine: s.authorUserId === actor.id,
       })),
       financial,
+      // N15B-02: the party's OWN appeal, so the page can say "đang xem xét lại" and show the result once decided (reasoning stays admin-only).
+      appeal: {
+        closesAt: notice ? new Date(notice.recordedAt.getTime() + APPEAL_WINDOW_DAYS * 86_400_000) : null,
+        used: !!myAppeal,
+        status: myAppeal?.status ?? null,
+        result: myAppeal?.status === "DECIDED" ? (myAppeal.result ?? null) : null,
+        requestedAt: myAppeal?.createdAt ?? null,
+        decidedAt: myAppeal?.decidedAt ?? null,
+      },
       // V2.1: what this party may confirm (the SAME content hash both sides confirm) and its own response clocks
       agreements: (await prisma.disputeCaseAgreement.findMany({ where: { caseId, status: { in: ["PROPOSED", "AGREED", "USED"] } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { confirmations: true } })).map((a) => ({
         id: a.id,

@@ -35,8 +35,14 @@ function fakeRes() {
   const res: any = {
     statusCode: 200,
     body: undefined,
+    headers: {} as Record<string, string>,
     status(code: number) {
       this.statusCode = code;
+      return this;
+    },
+    // FIX5-ADMIN-PERF: every list answer now carries X-Total-Count / X-Page / X-Limit.
+    setHeader(k: string, v: string) {
+      this.headers[k.toLowerCase()] = v;
       return this;
     },
     json(body: unknown) {
@@ -159,7 +165,7 @@ test("B02: an invalid ?status is a 400 with a Vietnamese message and a machine c
   }
 });
 
-test("B02: a valid status and no status at all still reach the list", async () => {
+test("B02: a valid status and no status at all still reach the list (bare = page 1 of 50 + X-Total-Count)", async () => {
   for (const query of [{}, { status: "APPROVED" }, { status: "NEEDS_MORE_INFO" }, { search: "x" }]) {
     const restore = patch(ptApplicationService, "listApplications", async () => []);
     const res = fakeRes();

@@ -408,10 +408,23 @@ test("B3 bounds are checked again UNDER THE CONTRACT LOCK when applied (the quot
   const { s: s2, a: a2 } = await executedCase(FINDING_FOR.CANCELLED);
   const ap2 = (await call("POST", `/dispute-cases/${a2.caseId}/appeals`, `CUSTOMER:${s2.clientUserId}`, { reason: "x" }, key())).json;
   const R2 = admin();
+  // N15B-02: the party's OWN appeal state on its case page - filed, then under review, then the result (never the reasoning)
+  const partyAppeal = async () => (await call("GET", `/dispute-cases/${a2.caseId}`, `CUSTOMER:${s2.clientUserId}`)).json.appeal;
+  const filed = await partyAppeal();
+  assert.deepEqual([filed.used, filed.status, filed.result], [true, "REQUESTED", null]);
+  assert.ok(filed.requestedAt && filed.closesAt);
   await call("POST", `/admin/dispute-cases/${a2.caseId}/appeals/${ap2.appealId}/assign-reviewer`, A(admin()), { reviewerId: R2.id });
+  assert.equal((await partyAppeal()).status, "UNDER_REVIEW");
+  // N15B-01: the assignment event note is words, not "reviewer <uuid>" (the id stays in the event detail)
+  const assignEvent = await prisma.disputeCaseEvent.findFirstOrThrow({ where: { caseId: a2.caseId, action: "APPEAL_REVIEWER_ASSIGNED" } });
+  assert.ok(!(assignEvent.note ?? "").includes(R2.id) && !/reviewer/i.test(assignEvent.note ?? ""), assignEvent.note ?? "");
   const up = await call("POST", `/admin/dispute-cases/${a2.caseId}/appeals/${ap2.appealId}/decision`, A(R2), { result: "UPHELD", reasoning: "Giữ nguyên" }, key());
   assert.deepEqual([up.status, up.json.result, up.json.newFindingId, up.json.fullyResolved], [200, "UPHELD", null, true]);
   assert.equal(await prisma.disputeCaseFinding.count({ where: { caseId: a2.caseId } }), 1);
+  const decided = await partyAppeal();
+  assert.deepEqual([decided.status, decided.result], ["DECIDED", "UPHELD"]);
+  assert.ok(decided.decidedAt);
+  assert.ok(!JSON.stringify(decided).includes("Giữ nguyên"), "the reviewer's reasoning is not part of the party view");
   const detail = (await call("GET", `/admin/dispute-cases/${a2.caseId}`, A(R2))).json;
   assert.deepEqual([detail.closure.fullyResolved, detail.closure.pendingAppeals], [true, 0]);
 });

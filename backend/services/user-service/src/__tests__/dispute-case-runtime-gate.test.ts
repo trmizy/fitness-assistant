@@ -127,8 +127,8 @@ test("dev-shared gate opens ONLY when mode + NODE_ENV + dev marker + hard-coded 
   assert.equal(ok.mode, "dev-shared");
   assert.equal(ok.open, true);
   assert.equal(ok.refusedBecause, undefined);
-  for (const db of ["gymcoach_user", "gymcoach_payment", "gymcoach_gym"]) assert.equal(evaluateRuntimeGate(devEnv({ DATABASE_URL: `postgresql://u:pw@h/${db}` }), false).open, true, db);
-  assert.deepEqual([...DEV_DB_ALLOWLIST], ["gymcoach_user", "gymcoach_payment", "gymcoach_gym"]);
+  for (const db of ["gymcoach_user", "gymcoach_payment", "gymcoach_gym", "gymcoach_user_official", "gymcoach_payment_official", "gymcoach_gym_official"]) assert.equal(evaluateRuntimeGate(devEnv({ DATABASE_URL: `postgresql://u:pw@h/${db}` }), false).open, true, db);
+  assert.deepEqual([...DEV_DB_ALLOWLIST], ["gymcoach_user", "gymcoach_payment", "gymcoach_gym", "gymcoach_user_official", "gymcoach_payment_official", "gymcoach_gym_official"]);
   assert.notEqual(DEV_MARKER_VALUE, MARKER_VALUE, "the dev marker must not equal the e2e marker");
   const closed: Array<[string, NodeJS.ProcessEnv, string]> = [
     ["mode missing", devEnv({ DISPUTE_RUNTIME_MODE: undefined }), "NOT_TEST_ENV"],
@@ -146,6 +146,13 @@ test("dev-shared gate opens ONLY when mode + NODE_ENV + dev marker + hard-coded 
     ["db gymini_user_e2e", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymini_user_e2e" }), "DEV_DB_NOT_ALLOWLISTED"],
     ["db of another dev service (auth)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_auth" }), "DEV_DB_NOT_ALLOWLISTED"],
     ["db name in another case", devEnv({ DATABASE_URL: "postgresql://u:pw@h/GYMCOACH_USER" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["db gymcoach_user_official2 (near miss)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_user_official2" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["db gymcoach_user_official_old (near miss)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_user_official_old" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["db xgymcoach_user_official (prefix)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/xgymcoach_user_official" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["db GYMCOACH_USER_OFFICIAL (case)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/GYMCOACH_USER_OFFICIAL" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["db gymcoach_auth_official (not a dispute service)", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_auth_official" }), "DEV_DB_NOT_ALLOWLISTED"],
+    ["official DB but production", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_user_official", NODE_ENV: "production" }), "DEV_NODE_ENV_NOT_ALLOWED"],
+    ["official DB but no marker", devEnv({ DATABASE_URL: "postgresql://u:pw@h/gymcoach_user_official", DISPUTE_DEV_COMPOSE_MARKER: undefined }), "DEV_MARKER_MISSING"],
     ["db unset", devEnv({ DATABASE_URL: undefined }), "DEV_DB_NOT_ALLOWLISTED"],
     ["DATABASE_URL garbage", devEnv({ DATABASE_URL: "not a url" }), "DEV_DB_NOT_ALLOWLISTED"],
     // an allowlist taken from the environment must be ignored: the dev list is hard-coded in the code
@@ -220,6 +227,37 @@ test("dev-shared: money flags need a fresh agreeing payment verdict; mismatch / 
     assert.equal(peerAgrees({ mode: "dev-shared", open: true }, NOW, devGood).agrees, true);
     assert.equal(peerAgrees({ mode: "dev-shared", open: true }, NOW, good).why, "PEER_MISMATCH");
     assert.equal(peerAgrees({ mode: "e2e-isolated", open: true }, NOW, devGood).why, "PEER_MISMATCH");
+  });
+});
+
+test("dev-shared on the OFFICIAL databases: money flags agree when user + payment are both official; T0 / late-open stay off", () => {
+  quiet(() => {
+    const F = DISPUTE_CASE_FLAGS;
+    const now = Date.now();
+    const official = (name: string, over: Record<string, string | undefined> = {}) =>
+      devEnv({ [name]: "true", DATABASE_URL: "postgresql://u:pw@postgres:5432/gymcoach_user_official", ...over });
+    try {
+      // payment-service reports its own verdict on gymcoach_payment_official: identical mode:open signature
+      __setPeerState({ status: "checked", checkedAt: now, payment: { mode: "dev-shared", open: true, database: "gymcoach_payment_official" } as any });
+      for (const name of [F.EXECUTION, F.D65B_RESOLUTION]) assert.equal(flagVerdict(name, official(name), now).effective, true, name);
+      // mixed pair (user official, payment dev): the signature is the same (the gate does not compare database names), pinned here as documented behaviour
+      __setPeerState({ status: "checked", checkedAt: now, payment: { mode: "dev-shared", open: true, database: "gymcoach_payment" } as any });
+      assert.equal(flagVerdict(F.EXECUTION, official(F.EXECUTION), now).effective, true);
+      // a peer that is locked (e.g. payment on a non-allowlisted DB) still locks the money flags
+      __setPeerState({ status: "checked", checkedAt: now, payment: { mode: "locked", open: false, refusedBecause: "DEV_DB_NOT_ALLOWLISTED" } });
+      assert.equal(flagVerdict(F.EXECUTION, official(F.EXECUTION), now).refusedBecause, "PEER_MISMATCH");
+      // production is refused even on an official DB name
+      __setPeerState({ status: "checked", checkedAt: now, payment: { mode: "dev-shared", open: true } });
+      assert.equal(flagVerdict(F.EXECUTION, official(F.EXECUTION, { NODE_ENV: "production" }), now).effective, false);
+      // T0 and late-open reconciliation are not permitted in dev-shared, official DB or not
+      for (const name of [F.T0, F.LATE_OPEN_RECONCILIATION]) {
+        const v = flagVerdict(name, official(name), now);
+        assert.equal(v.effective, false, name);
+        assert.equal(v.refusedBecause, "DEV_FLAG_NOT_PERMITTED", name);
+      }
+    } finally {
+      __setPeerState({ status: "unknown" });
+    }
   });
 });
 

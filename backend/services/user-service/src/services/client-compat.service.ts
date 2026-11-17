@@ -11,7 +11,9 @@ export type ClientCompatOutcome =
   | "LEGACY_ACCEPTED"
   | "REVIEW_REQUIRED_409"
   | "UPLOAD_RETIRED_410"
-  | "PACKAGE_VERSION_MISSING";
+  | "PACKAGE_VERSION_MISSING"
+  | "INDEPENDENT_VENUE_ACK_MISSING"
+  | "INDEPENDENT_VENUE_LEGACY_ACCEPTED";
 
 /** The `X-Gymini-Client` header (web/<gitsha> or mobile/<version>/<build>), or null when the client sent none. */
 export function clientHeaderOf(req: Pick<Request, "headers">): string | null {

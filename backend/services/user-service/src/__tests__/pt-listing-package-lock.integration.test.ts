@@ -151,6 +151,7 @@ const requestBody = (pt: string, pkgId: string, extra: Record<string, unknown> =
   ptUserId: pt,
   packageId: pkgId,
   acknowledgedLowAvailability: true, // the test PT has no availability rows
+  acknowledgedIndependentVenue: true, // N15M-14: the test packages are offline with no gym
   ...extra,
 });
 

@@ -18,6 +18,12 @@ router.get(
   authMiddleware,
   bookingController.listNoShowReportsForPT as any,
 );
+// N15B-06: PT - sessions that are over but still CONFIRMED ("Cần chốt buổi"). Declared before "/:id".
+router.get(
+  "/awaiting-completion",
+  authMiddleware,
+  bookingController.listAwaitingCompletion as any,
+);
 router.get(
   "/contract/:contractId",
   authMiddleware,

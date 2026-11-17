@@ -13,6 +13,7 @@ import { assertPtMayActOnContract } from "../services/pt-restriction.service";
 import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
 import { errorCodeBody } from "../utils/error-code.util";
 import { clientHeaderOf } from "../services/client-compat.service";
+import { VENUE_CONSENT_CAPABILITY_HEADER } from "../services/independent-venue-consent";
 import {
   MEMBERSHIP_REQUIRED,
   MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
@@ -44,7 +45,7 @@ export const contractController = {
         clientUserId,
         req.body,
         undefined,
-        { clientHeader: clientHeaderOf(req) },
+        { clientHeader: clientHeaderOf(req), venueConsentHeader: req.headers?.[VENUE_CONSENT_CAPABILITY_HEADER] ?? null, ...auditMeta(req) },
       );
       res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
