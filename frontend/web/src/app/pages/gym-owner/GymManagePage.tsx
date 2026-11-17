@@ -275,6 +275,16 @@ export function GymManagePage() {
                 {gym.pendingAddress && <>Địa chỉ mới đang chờ duyệt: <strong>{gym.pendingAddress}</strong>.</>}
               </p>
             )}
+            {gym.status === "SUSPENDED" && (
+              <div role="status" data-testid="gym-admin-suspended" className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                <AlertTriangle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold">Đang bị tạm khoá trên Gymini</p>
+                  {gym.adminSuspensionReason && <p className="mt-0.5 break-words">Lý do: {gym.adminSuspensionReason}</p>}
+                  <p className="mt-0.5 text-amber-300/80">Chi nhánh tạm ẩn khỏi tìm kiếm và không bán gói mới. Hội viên đang có gói vẫn check-in bình thường tới hết hạn.</p>
+                </div>
+              </div>
+            )}
             {gym.operationalStatus && gym.operationalStatus !== "OPEN" && (
               <p data-testid="gym-operational-status-badge" data-status={gym.operationalStatus} className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
@@ -675,7 +685,7 @@ export function GymManagePage() {
       )}
 
       {/* Check-in */}
-      <GymCheckinPanel gymId={id!} />
+      <GymCheckinPanel gymId={id!} branch={gym as any} />
 
       {/* PT partnerships are agreed with the BRAND and apply to every open branch (D5/D72), so there
           is nothing branch-specific to manage here: the one place is "Quản lý cộng tác". Only the

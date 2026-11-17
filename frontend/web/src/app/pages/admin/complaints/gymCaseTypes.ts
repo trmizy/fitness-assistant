@@ -107,6 +107,8 @@ export interface GymComplaintInfo {
   description: string;
   photoTokens: string[];
   reporterUserId: string | null;
+  /** N15A-03: the reporter's display name (null when it could not be resolved) */
+  reporterName?: string | null;
   adminResponse: string | null;
   resolvedAt: string | null;
 }
@@ -220,6 +222,9 @@ export interface GymDecision {
 }
 export interface GymExecutionRow {
   id: string;
+  /** N15A-05: which decision this attempt belongs to (an appeal supplement is a second decision) */
+  decisionId?: string;
+  outcome?: GymOutcome;
   state: string;
   attempt: number;
   blockedReason: string | null;
@@ -243,6 +248,15 @@ export interface GymEvent {
   createdAt: string;
 }
 
+export type GymAskedParty = "MEMBER" | "GYM";
+export interface GymMoreInfo {
+  askedAt: string;
+  note: string | null;
+  askedParties: GymAskedParty[];
+  pendingParties: GymAskedParty[];
+  dueAt: Partial<Record<GymAskedParty, string>>;
+}
+
 /** G3. */
 export interface GymCaseDetail {
   case: GymCaseSummary;
@@ -262,7 +276,11 @@ export interface GymCaseDetail {
   closure: GymClosure;
   allowedActions: GymAllowedAction[];
   sla?: { state: string; daysOpen?: number; ageDays?: number } | null;
-  deadlines?: Array<{ kind: string; party?: string; partyRole?: string; startedAt?: string; dueAt?: string | null; effectiveDueAt?: string | null; paused?: boolean | null; status?: string }>;
+  /** N15A-05: what the appeal-supplement execution will refund (the difference only); null for every other outcome */
+  supplement?: { amount: string; refundedSoFar: string } | null;
+  /** N15A-01/07: the admin's latest "request more" while the case waits on parties (null otherwise) */
+  moreInfo?: GymMoreInfo | null;
+  deadlines?: Array<{ id?: string; kind: string; party?: string; partyRole?: string; startsAt?: string; startedAt?: string; dueAt?: string | null; effectiveDueAt?: string | null; paused?: boolean | null; status?: string }>;
   appeal?: { canFile?: boolean; closesAt?: string | null; status?: string; reviewerId?: string | null; result?: string | null; reason?: string | null; filedAt?: string | null } | null;
   refundQuote?: { amount: string | number; pricePaid?: string | number; quotedAt?: string } | null;
   replacement?: {
@@ -388,8 +406,16 @@ export interface MemberStatementRow {
   createdAt: string;
   mine: boolean;
 }
+/** N15A-01: the admin's "request more" as the asked party sees it (null when nothing is pending for it) */
+export interface PartyMoreInfo {
+  note: string | null;
+  askedAt: string;
+  askedParties: GymAskedParty[];
+  dueAt: string | null;
+}
 export interface MemberCaseDetail {
   case: { id: string; complaintId: string; progress: string; createdAt: string; canSubmit: boolean };
+  moreInfo?: PartyMoreInfo | null;
   complaint: { issueType: string; description: string };
   evidence: MemberEvidenceRow[];
   statements: MemberStatementRow[];
@@ -407,6 +433,8 @@ export interface OwnerCaseListItem {
   /** Vietnamese progress sentence from the server; never an internal status */
   progress: string;
   canSubmit: boolean;
+  /** the admin asked this gym for more and it has not answered yet */
+  awaitingYou?: boolean;
   /** the open response deadline of the Gym, or null when no clock is running */
   respondBy: string | null;
   createdAt: string;
@@ -434,6 +462,7 @@ export interface OwnerStatementRow {
   mine: boolean;
 }
 export interface OwnerCaseDetail {
+  moreInfo?: PartyMoreInfo | null;
   case: { id: string; gymId: string; progress: string; createdAt: string; canSubmit: boolean; respondBy: string | null };
   complaint: { issueType: string; description: string };
   evidence: OwnerEvidenceRow[];

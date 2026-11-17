@@ -14,6 +14,7 @@ import { formatVND } from "../../utils/currency";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { normalizeCheckoutContext } from "../../utils/contractGymOptions";
+import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 
 const statusConfig: Record<
   ContractStatus,
@@ -631,6 +632,14 @@ export function ContractPage() {
                         </div>
                       </div>
                     </div>
+                    {isIndependentVenue(selected.sessionMode, selected.gymId) && (
+                      <p
+                        className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 text-xs leading-snug text-amber-500"
+                        data-testid="contract-independent-venue-note"
+                      >
+                        {INDEPENDENT_VENUE_NOTE}
+                      </p>
+                    )}
                     <p className="text-[11px] text-zinc-600 leading-snug">
                       Hãy cung cấp mã hợp đồng này khi báo cáo sự cố — mã xác định hợp đồng, hai bên và mọi buổi tập thuộc hợp đồng.
                     </p>

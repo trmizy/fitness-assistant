@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { MagnifyingGlassIcon as Search, CircleNotchIcon, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, ArrowsClockwiseIcon as RefreshCw, ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, UsersIcon } from "@phosphor-icons/react";
 import { Button } from "../../components/ui/button";
@@ -27,7 +27,7 @@ import { describeAdminError, errorStateKind, type AdminErrorView } from "./share
 import { parseIdParam } from "./shared/b9aUrlState";
 import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
 import { Pill, type PillTone } from "./shared/b9bPill";
-import { buildUserParams, paginate, parsePageParam, parseSearchParam, parseUserRole, parseUserStatus } from "./shared/b9bUrlState";
+import { buildUserParams, parsePageParam, parseSearchParam, parseUserRole, parseUserStatus, serverUserQuery, USER_PAGE_SIZE } from "./shared/b9bUrlState";
 
 interface AdminUser {
   id: string;
@@ -48,7 +48,7 @@ const ROLE_LABEL_TO_ENUM: Record<string, string> = {
   Admin: "ADMIN",
 };
 const ROLE_OPTIONS: { value: AssignableRole; label: string }[] = [
-  { value: "CUSTOMER", label: "Khách hàng" },
+  { value: "CUSTOMER", label: "Hội viên" },
   { value: "PT", label: "Huấn luyện viên (PT)" },
   { value: "GYM_OWNER", label: "Chủ phòng gym" },
 ];
@@ -61,8 +61,6 @@ const PARTNER_ROLE_LABEL: Record<string, string> = {
   RECEPTIONIST: "Lễ tân",
   ACCOUNTANT: "Kế toán",
 };
-
-const PAGE_SIZE = 20;
 
 const initials = (name: string) =>
   name
@@ -78,7 +76,7 @@ const avatarBg = (role: string) =>
   role === "PT" ? "bg-st-success-bg text-st-success" : role === "Admin" ? "bg-st-info-bg text-st-info" : "bg-st-neutral-bg text-st-neutral";
 
 const selectCls =
-  "min-w-0 flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30";
+  "min-h-10 min-w-0 flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30";
 
 /** After a dialog opened from a menu item closes, the menu item is gone: put focus back on the row's "Thao tác" button. */
 function useFocusFallback(open: boolean, selector: string | null) {
@@ -118,8 +116,9 @@ function ActionDialog({
         </DialogHeader>
         {children}
         <DialogFooter>
-          <Button variant="outline" disabled={pending} onClick={onCancel}>Huỷ</Button>
+          <Button variant="outline" size="lg" disabled={pending} onClick={onCancel}>Huỷ</Button>
           <Button
+            size="lg"
             variant={danger ? "destructive" : "default"}
             className={danger ? undefined : "bg-st-success text-adm-bg hover:bg-st-success hover:opacity-90"}
             disabled={confirmDisabled || pending}
@@ -165,10 +164,10 @@ function UserDetailDialog({
           ))}
         </dl>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" disabled={isSelf} onClick={onRole}>
+          <Button variant="outline" size="lg" disabled={isSelf} onClick={onRole}>
             <UserCheck className="size-4" /> Đổi vai trò
           </Button>
-          <Button variant={user.status === "Inactive" ? "outline" : "destructive"} disabled={isSelf} onClick={onLock}>
+          <Button variant={user.status === "Inactive" ? "outline" : "destructive"} size="lg" disabled={isSelf} onClick={onLock}>
             <UserX className="size-4" /> {user.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
           </Button>
         </div>
@@ -186,14 +185,19 @@ export function UserManagement() {
   const search = parseSearchParam(params.get("q"));
   const pageParam = parsePageParam(params.get("page"));
 
+  // Server-side paging (FIX5-ADMIN-PERF): `users` is ONE page; filters and search run in the database.
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [activeTotal, setActiveTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<AdminErrorView | null>(null);
+  // A deep link (?id=) can point at an account that is not on the current page: fetched on its own.
+  const [linked, setLinked] = useState<{ id: string; user: AdminUser | null } | null>(null);
   const { user: me } = useApp();
   const [partnerRoles, setPartnerRoles] = useState<Record<string, string | null>>({});
   const roleText = (u: AdminUser) => (u.role === "Gym Owner" ? PARTNER_ROLE_LABEL[partnerRoles[u.id] ?? "OWNER"] ?? adminRoleVi(u.role) : adminRoleVi(u.role));
-  // Khóa dùng để lọc theo vai trò: tài khoản đối tác tách theo vai trò thật (chủ / quản lý / lễ tân / kế toán).
-  const roleKey = (u: AdminUser) => (u.role === "Gym Owner" ? (partnerRoles[u.id] ?? "OWNER") : u.role);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState<AssignableRole>("CUSTOMER");
   const [lockTarget, setLockTarget] = useState<AdminUser | null>(null);
@@ -237,18 +241,73 @@ export function UserManagement() {
     setLockTarget(u);
   };
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await api.get("/admin/users");
-      setUsers(data.data?.users ?? []);
-    } catch (err: unknown) {
-      setError(describeAdminError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Typing in the search box updates the URL at once; the request waits for a short pause.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    if (debouncedSearch === search) return;
+    const t = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(t);
+  }, [search, debouncedSearch]);
+
+  const requestSeq = useRef(0);
+  const [reloadTick, setReloadTick] = useState(0);
+  const fetchUsers = async () => setReloadTick((n) => n + 1);
+
+  useEffect(() => {
+    const seq = ++requestSeq.current;
+    const q = serverUserQuery({ role: roleFilter, status: statusFilter, q: debouncedSearch, page: pageParam }, USER_PAGE_SIZE);
+    // The "đang hoạt động" figure of the header: same filters, status ACTIVE, one row (only when no status filter).
+    const wantActive = statusFilter === "All";
+    setRefreshing(true);
+    (async () => {
+      try {
+        const [pageRes, activeRes] = await Promise.all([
+          api.get("/admin/users", { params: q }),
+          wantActive ? api.get("/admin/users", { params: { ...q, page: 1, limit: 1, status: "ACTIVE" } }).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (seq !== requestSeq.current) return;
+        const d = pageRes.data?.data ?? {};
+        setUsers(d.users ?? []);
+        setTotal(Number(d.total ?? 0));
+        setTotalPages(Math.max(1, Number(d.totalPages ?? 1)));
+        setActiveTotal(wantActive ? (activeRes ? Number(activeRes.data?.data?.total ?? 0) : null) : statusFilter === "Active" ? Number(d.total ?? 0) : 0);
+        setError(null);
+      } catch (err: unknown) {
+        if (seq !== requestSeq.current) return;
+        setError(describeAdminError(err));
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    })();
+  }, [roleFilter, statusFilter, debouncedSearch, pageParam, reloadTick]);
+
+  // A page past the end (stale link, or the list shrank after a lock/role change): go to the last page.
+  useEffect(() => {
+    if (!loading && !refreshing && !error && total > 0 && pageParam > totalPages) setState({ page: totalPages }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, refreshing, error, total, totalPages, pageParam]);
+
+  // Deep link to an account that is not on the page: look it up by id, once per id.
+  useEffect(() => {
+    if (!selectedId || loading || refreshing || error) return;
+    if (users.some((u) => u.id === selectedId)) return;
+    if (linked?.id === selectedId) return;
+    let cancelled = false;
+    (async () => {
+      let found: AdminUser | null = null;
+      try {
+        const { data } = await api.get("/admin/users", { params: { page: 1, limit: 1, id: selectedId } });
+        found = (data?.data?.users ?? [])[0] ?? null;
+      } catch {
+        found = null;
+      }
+      if (!cancelled) setLinked({ id: selectedId, user: found });
+    })();
+    return () => { cancelled = true; };
+  }, [selectedId, loading, refreshing, error, users, linked]);
 
   const confirmRole = async () => {
     if (!roleTarget) return;
@@ -277,10 +336,6 @@ export function UserManagement() {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   // Tra vai trò đối tác cho các tài khoản Gym Owner (≤200 id mỗi lần gọi). Lỗi thì giữ nhãn mặc định.
   useEffect(() => {
     const ids = users.filter((u) => u.role === "Gym Owner").map((u) => u.id);
@@ -302,22 +357,9 @@ export function UserManagement() {
     return () => { cancelled = true; };
   }, [users]);
 
-  const filtered = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          (u.name.toLowerCase().includes(search.toLowerCase()) ||
-            u.email.toLowerCase().includes(search.toLowerCase())) &&
-          (roleFilter === "All" || roleKey(u) === roleFilter) &&
-          (statusFilter === "All" || u.status === statusFilter),
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, search, roleFilter, statusFilter, partnerRoles],
-  );
-  const paged = paginate(filtered, pageParam, PAGE_SIZE);
-  const activeCount = users.filter((u) => u.status === "Active").length;
-  const selectedUser = selectedId ? users.find((u) => u.id === selectedId) ?? null : null;
-  const unknownSelected = !!selectedId && !loading && !error && !selectedUser && noteDismissed !== selectedId;
+  const selectedUser = selectedId ? users.find((u) => u.id === selectedId) ?? (linked?.id === selectedId ? linked.user : null) : null;
+  const lookupDone = !!selectedId && (users.some((u) => u.id === selectedId) || linked?.id === selectedId);
+  const unknownSelected = !!selectedId && !loading && !refreshing && !error && lookupDone && !selectedUser && noteDismissed !== selectedId;
   const hasFilters = !!search || roleFilter !== "All" || statusFilter !== "All";
 
   const columns: DataTableColumn<AdminUser>[] = [
@@ -377,10 +419,16 @@ export function UserManagement() {
     <div className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       <PageHeader
         title="Người dùng"
-        description={!loading && !error ? `${users.length} người dùng đã đăng ký · ${activeCount} đang hoạt động` : undefined}
+        description={
+          !loading && !error
+            ? hasFilters
+              ? `${total} người dùng khớp bộ lọc${activeTotal !== null && statusFilter === "All" ? ` · ${activeTotal} đang hoạt động` : ""}`
+              : `${total} người dùng đã đăng ký${activeTotal !== null ? ` · ${activeTotal} đang hoạt động` : ""}`
+            : undefined
+        }
         actions={
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading || refreshing}>
+            <RefreshCw className={`size-4 ${loading || refreshing ? "animate-spin" : ""}`} />
             Làm mới
           </Button>
         }
@@ -406,13 +454,11 @@ export function UserManagement() {
             <option value="MANAGER">Quản lý chi nhánh</option>
             <option value="RECEPTIONIST">Lễ tân</option>
             <option value="ACCOUNTANT">Kế toán</option>
-            <option value="Admin">Quản trị viên</option>
           </select>
           <select aria-label="Lọc theo trạng thái" value={statusFilter} onChange={(e) => setState({ status: parseUserStatus(e.target.value), page: 1 }, { replace: true })} className={selectCls}>
             <option value="All">Tất cả trạng thái</option>
             <option value="Active">Đang hoạt động</option>
             <option value="Inactive">Đã khóa</option>
-            <option value="Pending">Chờ duyệt</option>
           </select>
         </div>
       </div>
@@ -433,10 +479,10 @@ export function UserManagement() {
       )}
 
       {!loading && !error && (
-        <div className="space-y-3">
+        <div className={`space-y-3 transition-opacity ${refreshing ? "opacity-60" : ""}`} aria-busy={refreshing}>
           <DataTable
             columns={columns}
-            rows={paged.rows}
+            rows={users}
             rowKey={(u) => u.id}
             onRowClick={openDetail}
             emptyState={
@@ -447,15 +493,15 @@ export function UserManagement() {
               />
             }
           />
-          {paged.pages > 1 && (
+          {totalPages > 1 && (
             <nav aria-label="Phân trang" className="flex items-center justify-between gap-3">
-              <Button variant="outline" size="sm" disabled={paged.page <= 1} onClick={() => setState({ page: paged.page - 1 })}>
+              <Button variant="outline" size="sm" disabled={pageParam <= 1 || refreshing} onClick={() => setState({ page: pageParam - 1 })}>
                 <ArrowLeft className="size-4" /> Trước
               </Button>
               <span className="text-xs text-zinc-500" data-testid="users-page-info">
-                Trang {paged.page} / {paged.pages} · {paged.total} người dùng
+                Trang {Math.min(pageParam, totalPages)} / {totalPages} · {total} người dùng
               </span>
-              <Button variant="outline" size="sm" disabled={paged.page >= paged.pages} onClick={() => setState({ page: paged.page + 1 })}>
+              <Button variant="outline" size="sm" disabled={pageParam >= totalPages || refreshing} onClick={() => setState({ page: pageParam + 1 })}>
                 Sau <ArrowRight className="size-4" />
               </Button>
             </nav>
@@ -488,7 +534,7 @@ export function UserManagement() {
           aria-label="Vai trò mới"
           value={newRole}
           onChange={(e) => setNewRole(e.target.value as AssignableRole)}
-          className="w-full rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+          className="min-h-10 w-full rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
         >
           {ROLE_OPTIONS.map((r) => (
             <option key={r.value} value={r.value}>

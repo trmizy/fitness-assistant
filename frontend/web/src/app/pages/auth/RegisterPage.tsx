@@ -183,33 +183,49 @@ export function RegisterPage() {
               </div>
 
               <div className="space-y-3">
-                <div className="relative">
+                <div>
+                  <label htmlFor="register-full-name" className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Họ và tên</label>
+                  <div className="relative">
                   <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    id="register-full-name"
+                    autoComplete="name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
-                    placeholder="Họ và tên"
+                    placeholder="Ví dụ: Nguyễn Văn An"
                   />
+                  </div>
                 </div>
-                <div className="relative">
+                <div>
+                  <label htmlFor="register-email" className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Địa chỉ email</label>
+                  <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    id="register-email"
+                    type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
-                    placeholder="Địa chỉ email"
+                    placeholder="ten@email.com"
                   />
+                  </div>
                 </div>
-                <div className="relative">
+                <div>
+                  <label htmlFor="register-password" className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Mật khẩu</label>
+                  <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    id="register-password"
+                    autoComplete="new-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
-                    placeholder="Mật khẩu"
+                    placeholder="Tạo mật khẩu của bạn"
                   />
+                  </div>
                 </div>
               </div>
             </div>
@@ -229,7 +245,11 @@ export function RegisterPage() {
                 <span className="text-zinc-200 font-semibold">{email}</span>
               </p>
 
+              <label htmlFor="register-otp" className="sr-only">Mã xác nhận 6 chữ số</label>
               <input
+                id="register-otp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={otp}
                 onChange={(e) =>
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))

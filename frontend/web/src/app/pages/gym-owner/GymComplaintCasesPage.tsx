@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { gymCaseApi } from "../admin/complaints/gymCaseApi";
 import { parseGymError } from "../admin/complaints/gymCaseErrors";
@@ -11,6 +11,7 @@ import { gymService } from "../../services/api";
 import type { Gym } from "../../types";
 import { CARD, FOCUS, FailureBlock, LoadingBlock, MUTED, Notice, PartyLink, Pill, ReloadButton } from "../disputes/PartyParts";
 import { GymStatementForm, GymDocumentForm } from "../complaints/GymMemberForms";
+import { MoreInfoNotice } from "../complaints/MoreInfoNotice";
 
 const ROOT = "/gym-owner/complaint-cases";
 const date = (value: string | null | undefined) => (value ? new Date(value).toLocaleString("vi-VN") : "Chưa rõ");
@@ -61,7 +62,7 @@ export function GymComplaintCasesPage() {
                 <span className="block break-words font-semibold text-[var(--text-color)]">{issueLabel(item.issueType)}</span>
                 {gymName(item.gymId) && <span className={`block break-words text-sm ${MUTED}`}>{gymName(item.gymId)}</span>}
                 <span className={`block text-sm ${MUTED}`}>{item.progress} · mở lúc {date(item.createdAt)}</span>
-                {item.canSubmit && <span className="flex flex-wrap gap-1.5 pt-0.5"><Pill tone="info">Đang chờ phòng gym phản hồi</Pill><RespondBy value={item.respondBy} /></span>}
+                {item.awaitingYou && <span className="flex flex-wrap gap-1.5 pt-0.5"><Pill tone="info">Đang chờ phòng gym phản hồi</Pill><RespondBy value={item.respondBy} /></span>}
               </span>
               <CaretRightIcon className="size-5 shrink-0" aria-hidden />
             </PartyLink>
@@ -84,6 +85,11 @@ export function GymComplaintCasePage() {
     enabled: !!keys && !!caseId,
     ...GYM_QUERY_OPTIONS,
   });
+  const queryClient = useQueryClient();
+  const saved = () => {
+    void query.refetch();
+    if (keys) void queryClient.invalidateQueries({ queryKey: keys.ownerList() });
+  };
   const failure = query.isError ? parseGymError(query.error) : null;
   const d = query.data;
   return (
@@ -99,8 +105,9 @@ export function GymComplaintCasePage() {
             {gymName(d.case.gymId) && <p className="break-words text-sm text-[var(--text-color)]">{gymName(d.case.gymId)}</p>}
             <p className="text-sm font-medium text-[var(--text-color)]">{d.case.progress}</p>
             <p className={`text-xs ${MUTED}`}>Mở lúc {date(d.case.createdAt)}</p>
-            {d.case.canSubmit && <div className="flex flex-wrap gap-1.5"><RespondBy value={d.case.respondBy} /></div>}
+            {d.moreInfo && <div className="flex flex-wrap gap-1.5"><RespondBy value={d.case.respondBy} /></div>}
           </header>
+          <MoreInfoNotice info={d.moreInfo} viewer="GYM" />
           <section className={`${CARD} space-y-2 p-4`}>
             <h2 className="font-semibold text-[var(--text-color)]">Nội dung phản ánh</h2>
             <p className={`text-sm ${MUTED}`}>{issueLabel(d.complaint.issueType)}</p>
@@ -147,8 +154,8 @@ export function GymComplaintCasePage() {
           </section>
           {d.case.canSubmit ? (
             <>
-              <GymStatementForm caseId={d.case.id} party="gym" statementCount={d.statements.filter((s) => s.mine).length} submit={gymCaseApi.submitOwnerExplanation} onSaved={() => void query.refetch()} />
-              <GymDocumentForm caseId={d.case.id} submit={gymCaseApi.submitOwnerEvidence} onSaved={() => void query.refetch()} />
+              <GymStatementForm caseId={d.case.id} party="gym" statementCount={d.statements.filter((s) => s.mine).length} submit={gymCaseApi.submitOwnerExplanation} onSaved={saved} />
+              <GymDocumentForm caseId={d.case.id} submit={gymCaseApi.submitOwnerEvidence} onSaved={saved} />
             </>
           ) : (
             <Notice tone="info">Hồ sơ hiện không nhận thêm giải trình hay tài liệu.</Notice>

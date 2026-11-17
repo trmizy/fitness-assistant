@@ -114,7 +114,7 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
                 aria-label="Loại vấn đề"
                 value={issueType}
                 onChange={(e) => setIssueType(e.target.value as ComplaintIssueType)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+                className="w-full min-h-10 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
               >
                 {(Object.keys(ISSUE_TYPE_LABEL) as ComplaintIssueType[]).map((t) => (
                   <option key={t} value={t}>

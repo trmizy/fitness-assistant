@@ -13,6 +13,7 @@ import type {
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { useNavigate } from "react-router";
+import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -183,6 +184,14 @@ export function PTSchedulePage() {
     queryFn: () => sessionService.listNoShowReports(),
   });
 
+  // N15B-06: an in-person session that is over but still CONFIRMED is no longer in "upcoming" - without this list the PT could
+  // only close it from the contract page.
+  const { data: awaitingRaw = [] } = useQuery({
+    queryKey: ["sessions-awaiting-completion"],
+    queryFn: () => sessionService.listAwaitingCompletion(),
+  });
+  const awaitingCompletion = sessionsToClose(awaitingRaw as Session[]);
+
   const { data: availability = [], isLoading: loadingAvail } = useQuery({
     queryKey: ["pt-availability"],
     queryFn: () => availabilityService.getAvailability("me"),
@@ -240,6 +249,7 @@ export function PTSchedulePage() {
     onSuccess: () => {
       toast.success("Đã hoàn thành buổi tập");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["sessions-awaiting-completion"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
@@ -422,6 +432,35 @@ export function PTSchedulePage() {
           </p>
         </div>
       </div>
+
+      {/* N15B-06: finished in-person sessions nobody closed yet */}
+      {awaitingCompletion.length > 0 && (
+        <section data-testid="pt-sessions-to-close" aria-label="Cần chốt buổi" className="bg-blue-500/5 border border-blue-500/30 rounded-xl p-4 space-y-3">
+          <div>
+            <h2 className="text-sm font-bold text-blue-400">Cần chốt buổi ({awaitingCompletion.length})</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Các buổi trực tiếp đã kết thúc nhưng bạn chưa báo hoàn thành. Bấm Hoàn thành để khách xác nhận và buổi được tính.</p>
+          </div>
+          <ul className="space-y-2">
+            {awaitingCompletion.map((s) => (
+              <li key={s.id} className="flex flex-col gap-2 rounded-lg border border-zinc-800/60 bg-zinc-900 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-200">{sessionWhenLabel(s)}</p>
+                  <p className="text-xs text-zinc-500 truncate">{clientLabel(s.clientUserId)}</p>
+                </div>
+                <button
+                  type="button"
+                  data-testid="pt-session-complete"
+                  onClick={() => completeMut.mutate(s.id)}
+                  disabled={completeMut.isPending}
+                  className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-4 text-xs font-bold text-white transition-all hover:bg-blue-400 disabled:opacity-50"
+                >
+                  <CheckCircle className="w-4 h-4" /> Hoàn thành
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Money-flow plan 4.3: a client reported this PT as a no-show — needs a response */}
       {(noShowReports as Session[]).length > 0 && (

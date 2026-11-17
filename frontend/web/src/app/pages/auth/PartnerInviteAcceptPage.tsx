@@ -22,12 +22,20 @@ export function PartnerInviteAcceptPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  // N15C-11: once the invitation is accepted the preview is switched OFF (a disabled query is skipped by the cache-wide invalidation login() triggers).
+  const [accepted, setAccepted] = useState(false);
 
   const previewQuery = useQuery({
     queryKey: ["partner-invite-preview", token],
     queryFn: () => gymService.previewPartnerInvitation(token!),
-    enabled: !!token,
+    enabled: !!token && !accepted,
     retry: false,
+    // N15C-11: the preview is read ONCE. Accepting the invitation consumes it, so any later automatic re-fetch (window focus, reconnect,
+    // remount while logging in) would only get a pointless 409 "already accepted" and could flip a successful page into an error.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 
   const acceptMutation = useMutation({
@@ -37,6 +45,7 @@ export function PartnerInviteAcceptPage() {
         ? gymService.acceptPartnerInvitation(token!, {})
         : gymService.acceptPartnerInvitation(token!, { password, firstName: firstName.trim(), lastName: lastName.trim() || undefined }),
     onSuccess: async () => {
+      setAccepted(true);
       if (previewQuery.data?.existingAccount) {
         toast.success("Đã kích hoạt lại tài khoản — hãy đăng nhập bằng mật khẩu cũ của bạn");
         navigate("/login", { replace: true });

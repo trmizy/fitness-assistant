@@ -629,6 +629,9 @@ export interface Gym {
   /** GYM_MANAGEMENT master spec §61 (Phase 1) — owner-entered expected reopen date, only
    * meaningful while operationalStatus is TEMPORARILY_CLOSED. */
   expectedReopenAt?: string | null;
+  /** N15C-08: only on the owner / manager views of an admin-SUSPENDED branch — why, and when. */
+  adminSuspensionReason?: string | null;
+  adminSuspendedAt?: string | null;
   closedAt?: string | null;
   reopenedAt?: string | null;
   /** GET /gyms/:id (public) — chi nhánh đóng cửa tạm thời vẫn trả về, kèm cờ trạng thái. */

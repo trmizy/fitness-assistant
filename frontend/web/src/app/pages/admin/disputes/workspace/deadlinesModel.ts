@@ -44,6 +44,9 @@ export function deadlinePartyLabel(partyRole: string | null | undefined): string
 export const DEADLINE_STATUS_LABEL: Record<string, string> = {
   OPEN: "Đang mở",
   SATISFIED: "Đã hoàn thành",
+  // gym complaint cases: the asked party answered in time
+  MET: "Đã phản hồi",
+  PAUSED: "Tạm dừng (tài khoản đang bị khoá)",
   EXPIRED: "Đã hết hạn",
   CANCELLED: "Đã huỷ",
 };
@@ -52,7 +55,7 @@ export function deadlineStatusLabel(status: string | null | undefined): string {
   if (status && status in DEADLINE_STATUS_LABEL) {
     return DEADLINE_STATUS_LABEL[status];
   }
-  return status ?? "Đang theo dõi";
+  return "Đang theo dõi"; // an unknown code is never shown raw
 }
 
 export function deadlineStatusTone(
@@ -62,6 +65,7 @@ export function deadlineStatusTone(
     case "OPEN":
       return "info";
     case "SATISFIED":
+    case "MET":
       return "success";
     case "EXPIRED":
       return "danger";

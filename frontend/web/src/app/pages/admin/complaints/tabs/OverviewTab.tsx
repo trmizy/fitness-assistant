@@ -1,7 +1,7 @@
 import { adminService } from "../../../../services/api";
 import { AuthenticatedImage } from "../../../../components/ui/AuthenticatedImage";
 import { Facts, Muted, Notice, Pill, Section, DisputeLink, FOCUS } from "../GymParts";
-import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatusLabel, gymWaitingNote, issueLabel, complaintStatusLabel, gymStatusTone, slaStatusLabel, slaStatusTone } from "../gymCaseLabels";
+import { GYM_CLASS_HELP, gymClassLabel, gymClosureLabel, gymExecLabel, gymStatusLabelFor, gymWaitingNote, issueLabel, complaintStatusLabel, gymStatusTone, slaStatusLabel, slaStatusTone } from "../gymCaseLabels";
 import { DeadlinesTable } from "../../disputes/workspace/DeadlinesTable";
 import { COMPLAINTS_PATH, gatesOf, investigatorText, reporterText } from "../gymCaseModel";
 import { formatDateSafe, formatDateTimeSafe } from "../gymFormat";
@@ -38,7 +38,7 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
             { label: "Loại vấn đề", value: issueLabel(detail.complaint.issueType) },
             { label: "Nguồn", value: SOURCE[detail.complaint.source] ?? "Nguồn khác" },
             { label: "Phòng tập", value: detail.gym?.name ?? "Chưa đọc được tên phòng tập" },
-            { label: "Người phản ánh", value: reporterText(detail.complaint.reporterUserId) },
+            { label: "Người phản ánh", value: reporterText(detail.complaint.reporterUserId, detail.complaint.reporterName) },
             { label: "Tình trạng khiếu nại", value: complaintStatusLabel(detail.complaint.status) },
             { label: "Mở hồ sơ lúc", value: formatDateTimeSafe(c.createdAt) },
           ]}
@@ -68,7 +68,7 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
         <Facts
           items={[
             { label: "Loại hồ sơ", value: gymClassLabel(c.caseClass) },
-            { label: "Bước hiện tại", value: <Pill tone={gymStatusTone(c.status)}>{gymStatusLabel(c.status)}</Pill> },
+            { label: "Bước hiện tại", value: <Pill tone={gymStatusTone(c.status)}>{gymStatusLabelFor(c.status, detail.moreInfo)}</Pill> },
             { label: "Người phụ trách", value: investigatorText(c.investigatorId, currentUserId) },
             { label: "Thực thi", value: gymExecLabel(c.execStatus) },
             { label: "Tình trạng hồ sơ", value: gymClosureLabel(detail.closure) },
@@ -91,7 +91,7 @@ export function OverviewTab(props: FormProps & { detail: GymCaseDetail }) {
         />
         <Muted>{GYM_CLASS_HELP[c.caseClass as keyof typeof GYM_CLASS_HELP] ?? ""}</Muted>
         <p className="text-sm text-adm-text" data-testid="d6-waiting-note">
-          {gymWaitingNote(c.status, c.execStatus)}
+          {gymWaitingNote(c.status, c.execStatus, detail.moreInfo)}
         </p>
       </Section>
 

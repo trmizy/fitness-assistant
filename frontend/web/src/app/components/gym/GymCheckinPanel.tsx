@@ -12,6 +12,7 @@ import {
   ownerPtScanLabel,
 } from "../../utils/ptGymCheckin";
 import { clockLabel, normalizeTodayPts } from "../../utils/frontDeskToday";
+import { checkinClosedMessage, isBranchAcceptingCheckin, type BranchCheckinInput } from "../../utils/branchCheckinState";
 
 const shortId = (id: string) => `${id.slice(0, 8)}…`;
 const timeAgo = (iso: string) =>
@@ -27,19 +28,35 @@ const timeAgo = (iso: string) =>
  * needs no scanner hardware and no camera permission — and the member's identity comes
  * from their logged-in session rather than from anything encoded in this image.
  */
-export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: string; ptCheckinsMode?: "all" | "today" | "none" }) {
+export function GymCheckinPanel({
+  gymId,
+  ptCheckinsMode = "all",
+  branch,
+}: {
+  gymId: string;
+  ptCheckinsMode?: "all" | "today" | "none";
+  /** N15C-05: the branch's status, so a closed branch never asks for a QR the server refuses (409). */
+  branch?: BranchCheckinInput | null;
+}) {
   const showPtCheckins = ptCheckinsMode === "all";
   const { user } = useApp();
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
 
-  const { data: qr, isLoading, refetch, isRefetching } = useQuery<{
+  const branchOpen = isBranchAcceptingCheckin(branch);
+  const { data: qr, isLoading, refetch, isRefetching, error: qrError } = useQuery<{
     token: string;
     gymName: string;
   }>({
     queryKey: ["gym-checkin-qr", gymId],
     queryFn: () => gymService.getGymCheckinQr(gymId),
+    enabled: branchOpen,
+    // 409 GYM_NOT_OPEN is a state, not a glitch: never retried.
+    retry: (count, err: any) => err?.response?.status !== 409 && count < 2,
   });
+  const qrRefusal = (qrError as any)?.response?.status === 409 ? (qrError as any).response.data?.error : null;
+  const qrClosed = !branchOpen || !!qrRefusal;
+  const closedText = qrClosed ? checkinClosedMessage(branch, qrRefusal?.expectedReopenAt) : "";
 
   const { data: checkins = [] } = useQuery<GymCheckIn[]>({
     queryKey: ["gym-checkins", gymId],
@@ -83,7 +100,7 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
         <button
           type="button"
           onClick={() => refetch()}
-          disabled={isRefetching}
+          disabled={isRefetching || qrClosed}
           className="flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} /> Tạo lại
@@ -97,7 +114,15 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
 
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div className="relative">
-          {isLoading || !dataUrl ? (
+          {qrClosed ? (
+            <div
+              role="status"
+              data-testid="checkin-qr-closed"
+              className="w-full sm:w-[200px] rounded-xl border border-dashed border-zinc-700 bg-zinc-800/40 p-4 text-xs leading-relaxed text-zinc-400"
+            >
+              {closedText}
+            </div>
+          ) : isLoading || !dataUrl ? (
             <div className="w-[200px] h-[200px] rounded-xl bg-zinc-800/60 flex items-center justify-center">
               <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
             </div>

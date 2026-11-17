@@ -18,17 +18,14 @@ import {
   REJECT_REPLACEMENT_CONFIRM,
   validateReplacementReason,
 } from "../../disputes/actions/replacementModel";
-import { actionOf } from "../gymCaseModel";
-
-/** "bạn" for the caller, otherwise a short id (the list carries ids only; never the full uuid). */
-const shortId = (id: string | null | undefined) => (id ? `mã ${id.slice(0, 8)}` : "—");
+import { actionOf, adminDid, replacementState } from "../gymCaseModel";
 
 export function GymDecisionReplacementPanel({
   detail,
   currentUserId,
   onChanged,
 }: FormProps) {
-  const who = (id: string | null | undefined) => (id && id === currentUserId ? "bạn" : shortId(id));
+  const who = (id: string | null | undefined) => (id ? adminDid(id, currentUserId) : "—");
   const caseId = detail.case.id;
 
   const proposeAction = actionOf(detail, "PROPOSE_DECISION_REPLACEMENT");
@@ -63,7 +60,8 @@ export function GymDecisionReplacementPanel({
 
   const existingReplacement = detail.replacement;
 
-  const isPending = existingReplacement?.status === "PENDING" || approveAction.allowed || rejectAction.allowed;
+  const replState = replacementState(existingReplacement);
+  const isPending = replState === "PENDING" || approveAction.allowed || rejectAction.allowed;
 
   const handleOpenPropose = () => {
     const val = validateReplacementReason(proposeReason);
@@ -158,18 +156,10 @@ export function GymDecisionReplacementPanel({
             <span className="font-medium text-adm-text">Đề xuất gần nhất:</span>
             <Pill
               tone={
-                existingReplacement.status === "APPROVED"
-                  ? "success"
-                  : existingReplacement.status === "REJECTED"
-                  ? "danger"
-                  : "warning"
+                replState === "APPROVED" ? "success" : replState === "REJECTED" ? "danger" : "warning"
               }
             >
-              {existingReplacement.status === "APPROVED"
-                ? "Đã duyệt thay"
-                : existingReplacement.status === "REJECTED"
-                ? "Đã bác"
-                : "Đang chờ duyệt"}
+              {replState === "APPROVED" ? "Đã duyệt thay" : replState === "REJECTED" ? "Đã bác" : "Đang chờ duyệt"}
             </Pill>
           </div>
 

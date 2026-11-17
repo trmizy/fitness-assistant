@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
 import { gymService } from "../../services/api";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 
 /** Nhãn ngắn + mô tả quyền cho từng vai trò mời được (D15). Quyền thật nằm ở gym-service/partner-permissions.ts. */
 type StaffRole = "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
@@ -45,9 +46,16 @@ export function ManageManagersPage() {
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [createdInvite, setCreatedInvite] = useState<{ email: string; inviteLink: string; emailSent: boolean } | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const menuTriggers = useRef(new Map<string, HTMLButtonElement>());
   // N14G-06: thu hồi quyền là việc không hoàn tác được ngay (nhân viên bị cắt khỏi hệ thống) → luôn hỏi xác nhận.
   const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string; role: string } | null>(null);
+
+  // Đóng hộp thu hồi → trả con trỏ về nút ⋮ của dòng đó (nếu dòng còn, tức là chưa thu hồi xong / bị lỗi).
+  const closeRevokeDialog = () => {
+    const id = revokeTarget?.id;
+    setRevokeTarget(null);
+    if (id) requestAnimationFrame(() => setTimeout(() => menuTriggers.current.get(id)?.focus(), 0));
+  };
 
   const gymsQuery = useQuery({ queryKey: ["owner-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const accountsQuery = useQuery({ queryKey: ["owner-partner-accounts"], queryFn: () => gymService.listPartnerAccounts() });
@@ -117,30 +125,29 @@ export function ManageManagersPage() {
                       (a.role === "ACCOUNTANT" ? "Tất cả chi nhánh" : "Chưa gán chi nhánh")}
                   </p>
                 </div>
-                <div className="relative flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)}
-                    aria-label={`Thao tác với ${staffName(a)}`}
-                    aria-haspopup="menu"
-                    aria-expanded={menuOpenId === a.id}
-                    data-testid="staff-menu-button"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                  {menuOpenId === a.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-10 overflow-hidden" onMouseLeave={() => setMenuOpenId(null)}>
+                <div className="flex-shrink-0">
+                  {/* N15C-02: Radix DropdownMenu — Esc / bấm ngoài tự đóng, aria-expanded đúng, con trỏ về nút khi đóng. */}
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        role="menuitem"
-                        onClick={() => { setRevokeTarget({ id: a.id, name: staffName(a), role: a.role }); setMenuOpenId(null); }}
-                        className="w-full min-h-10 text-left px-3 py-2.5 text-xs text-red-400 hover:bg-zinc-800"
+                        ref={(el) => { if (el) menuTriggers.current.set(a.id, el); else menuTriggers.current.delete(a.id); }}
+                        aria-label={`Thao tác với ${staffName(a)}`}
+                        data-testid="staff-menu-button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl overflow-hidden">
+                      <DropdownMenuItem
+                        onSelect={() => setRevokeTarget({ id: a.id, name: staffName(a), role: a.role })}
+                        className="min-h-10 rounded-none px-3 py-2.5 text-xs text-red-400 focus:bg-zinc-800 focus:text-red-400"
                       >
                         Thu hồi
-                      </button>
-                    </div>
-                  )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -171,7 +178,7 @@ export function ManageManagersPage() {
 
       <ConfirmDialog
         open={!!revokeTarget}
-        onOpenChange={(open) => { if (!open) setRevokeTarget(null); }}
+        onOpenChange={(open) => { if (!open) closeRevokeDialog(); }}
         title={revokeTarget ? `Thu hồi quyền của ${revokeTarget.name}?` : "Thu hồi quyền"}
         description={
           revokeTarget
@@ -187,7 +194,7 @@ export function ManageManagersPage() {
           } catch {
             /* revokeMutation.onError đã hiện thông báo */
           }
-          setRevokeTarget(null);
+          closeRevokeDialog();
         }}
       />
 

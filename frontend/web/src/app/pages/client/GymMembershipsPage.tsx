@@ -124,7 +124,9 @@ export function GymMembershipsPage() {
                   </span>
                   <span className="text-sm font-bold text-green-400">{formatVND(Number(m.priceAtPurchase))}</span>
                 </div>
-                <div className="text-xs text-zinc-500">
+                {/* N15C-09: which gym this pass is for (several branches / brands can be held at once). */}
+                <h3 data-testid="membership-gym-name" className="text-sm font-bold text-zinc-100 break-words">{m.gymName ?? "Phòng gym"}</h3>
+                <div className="text-xs text-zinc-500 mt-0.5">
                   {m.startDate ? `${formatDate(m.startDate)} – ${formatDate(m.endDate)}` : `${m.durationDaysSnapshot} ngày`}
                   {m.totalVisits ? ` · ${m.usedVisits}/${m.totalVisits} lượt` : ""}
                 </div>

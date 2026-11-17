@@ -59,6 +59,14 @@ import {
   type EligibilityReason,
 } from "../../utils/contractGymOptions";
 import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { IndependentVenueDialog } from "../../components/booking/IndependentVenueDialog";
+import {
+  INDEPENDENT_VENUE_NOTE,
+  isIndependentVenue,
+  readIndependentVenueRequired,
+  venueAckField,
+  venueGate,
+} from "../../utils/independentVenue";
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
 
@@ -265,6 +273,9 @@ export function PTDiscoveryPage() {
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
+  // N15M-14: the venue is outside Gymini -> the client must press "Tôi đồng ý" before the request can be sent.
+  const [venueDialog, setVenueDialog] = useState(false);
+  const [venueAck, setVenueAck] = useState(false);
   // P3.6: the server's own 422 on the membership rule (wins over what was shown before sending),
   // and the branch whose membership plans are open on top of the request dialog.
   const [eligibilityRefusal, setEligibilityRefusal] = useState<{
@@ -409,11 +420,19 @@ export function PTDiscoveryPage() {
       setRequestMessage("");
       setSelectedPackage(null);
       setSelectedGymId("");
+      setVenueAck(false);
+      setVenueDialog(false);
       setEligibilityRefusal(null);
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      if (readIndependentVenueRequired(err)) {
+        // The server asks for the acknowledgement (e.g. the package switched to offline after this page loaded).
+        setVenueAck(false);
+        setVenueDialog(true);
+        return;
+      }
       const changed = readPackageChanged(err);
       if (changed) {
         setPackageChanged(changed);
@@ -458,10 +477,12 @@ export function PTDiscoveryPage() {
     setLowAvailabilityData(null);
     setEligibilityRefusal(null);
     setSelectedGymId("");
+    setVenueAck(false);
+    setVenueDialog(false);
     setShowRequestModal(true);
   };
 
-  const submitRequest = (acknowledgedLowAvailability = false) => {
+  const submitRequest = (acknowledgedLowAvailability = false, venueAcked = venueAck) => {
     if (!selectedPT || !selectedPackage) return;
     
     // Only an offline package can run at a gym; an online one never carries a gym share. A branch
@@ -469,12 +490,20 @@ export function PTDiscoveryPage() {
     const gymId =
       selectedPackage.sessionMode === "OFFLINE" && pickedGym ? pickedGym.gymId : undefined;
 
+    // N15M-14: a venue outside Gymini -> show the warning first; nothing is sent until the client agrees.
+    const venue = { sessionMode: selectedPackage.sessionMode, gymId, acknowledged: venueAcked };
+    if (venueGate(venue) === "dialog") {
+      setVenueDialog(true);
+      return;
+    }
+
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
       packageId: selectedPackage.id,
       clientMessage: requestMessage || undefined,
       gymId,
       acknowledgedLowAvailability,
+      ...venueAckField(venue),
       // The version of the package as this page showed it: a package edited since then answers 409 PACKAGE_CHANGED.
       ...(Number.isInteger(selectedPackage.version) ? { expectedPackageVersion: selectedPackage.version } : {}),
     });
@@ -1808,6 +1837,7 @@ export function PTDiscoveryPage() {
                         aria-checked={!pickedGym}
                         onClick={() => {
                           setSelectedGymId("");
+                          setVenueAck(false);
                           setEligibilityRefusal(null);
                         }}
                         className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
@@ -1836,6 +1866,7 @@ export function PTDiscoveryPage() {
                               disabled={!g.selectable}
                               onClick={() => {
                                 setEligibilityRefusal(null);
+                                setVenueAck(false);
                                 setSelectedGymId(g.gymId);
                               }}
                               className="w-full text-left disabled:cursor-not-allowed"
@@ -1877,6 +1908,16 @@ export function PTDiscoveryPage() {
 
               {selectedPackage?.sessionMode !== "OFFLINE" && gymOptionsView?.gymsReasonCopy && (
                 <p className="text-[11px] text-zinc-600 leading-snug">{gymOptionsView.gymsReasonCopy}</p>
+              )}
+
+              {isIndependentVenue(selectedPackage?.sessionMode, pickedGym?.gymId) && (
+                <p
+                  className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-snug text-amber-500"
+                  data-testid="independent-venue-note"
+                >
+                  <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{INDEPENDENT_VENUE_NOTE}. Bạn sẽ được hỏi xác nhận trước khi gửi yêu cầu.</span>
+                </p>
               )}
 
               {eligibilityRefusal && (
@@ -1932,6 +1973,25 @@ export function PTDiscoveryPage() {
           </div>
         )}
       </Modal>
+
+      {/* N15M-14 - venue outside the Gymini system: explicit consent before the request is sent. */}
+      <IndependentVenueDialog
+        open={venueDialog && showRequestModal}
+        pending={requestMutation.isPending}
+        onAgree={() => {
+          setVenueAck(true);
+          setVenueDialog(false);
+          submitRequest(lowAvailabilityData != null, true);
+        }}
+        onDecline={() => {
+          // Back to the price list: pick another package, or another trainer from there.
+          setVenueDialog(false);
+          setVenueAck(false);
+          setShowRequestModal(false);
+          setSelectedPackage(null);
+          setDetailTab("pricing");
+        }}
+      />
 
       {/* P3.6 - buy a gym membership from inside the request flow. The trainer's referral code is
           only PRE-FILLED in the (optional) referral field; the client still presses buy. */}

@@ -7,7 +7,8 @@ import { onTablistKeyDown, tabProps } from "../shared/tablistKeys";
 import { SlotNotes, useSlotNotes } from "./gymCaseKit";
 import { gymCaseApi } from "./gymCaseApi";
 import { parseGymError, parseGymErrorBody } from "./gymCaseErrors";
-import { gymClassLabel, gymStatusLabel, gymStatusTone, gymWaitingNote } from "./gymCaseLabels";
+import { gymClassLabel, gymStatusLabelFor, gymStatusTone, gymWaitingNote } from "./gymCaseLabels";
+import { useGymAdminNames } from "./useGymAdminNames";
 import { GYM_QUERY_OPTIONS, useGymQueryKeys } from "./gymCaseQueryKeys";
 import { GYM_TABS, describeMoney, gymTabCounts, gymTabLabel, gymTabParam, investigatorText, isWriteLayerOff, parseGymCaseId, parseGymTab, type GymTab } from "./gymCaseModel";
 import { formatDateTimeSafe } from "./gymFormat";
@@ -33,6 +34,7 @@ export function AdminComplaintCasePage() {
   const { keys, userId } = useGymQueryKeys();
   const queryClient = useQueryClient();
   const { notes, push } = useSlotNotes();
+  useGymAdminNames(); // N15A-03: admins are shown by name; this re-renders when the directory arrives
 
   const query = useQuery({
     queryKey: keys && caseId ? keys.detail(caseId) : ["gym-complaint", "disabled"],
@@ -133,7 +135,7 @@ export function AdminComplaintCasePage() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5" data-testid="d6-case-chips">
             <span data-testid="d6-status-pill">
-              <Pill tone={gymStatusTone(c.status)}>{gymStatusLabel(c.status)}</Pill>
+              <Pill tone={gymStatusTone(c.status)}>{gymStatusLabelFor(c.status, detail.moreInfo)}</Pill>
             </span>
             <span data-testid="d6-money-chip">
               <Pill tone={money.tone}>{`Tiền: ${money.chip}`}</Pill>
@@ -141,7 +143,7 @@ export function AdminComplaintCasePage() {
           </div>
         </div>
         <p className="text-sm text-adm-text" data-testid="d6-waiting-header">
-          {gymWaitingNote(c.status, c.execStatus)}
+          {gymWaitingNote(c.status, c.execStatus, detail.moreInfo)}
         </p>
         <div className="-mx-1 overflow-x-auto px-1">
           <div role="tablist" aria-label="Các mục của hồ sơ" onKeyDown={onTablistKeyDown} className="flex min-w-max gap-1 border-b border-adm-border" data-testid="d6-tablist">

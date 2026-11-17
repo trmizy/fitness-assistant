@@ -4,7 +4,9 @@ import { CompactReference } from "../shared/CompactReference";
 import { disputeCaseApi } from "../disputeCaseApi";
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../disputeQueryKeys";
 import type { ReplacementItem, ReplacementList } from "../disputeCaseTypes";
-import { formatDateTime, shortRef } from "../workspace/format";
+import { formatDateTime } from "../workspace/format";
+import { CONTRACT_STATUS_VI, SESSION_STATUS_VI, viLabel } from "../../../../utils/labels.vi";
+import { adminWhoLabel } from "../workspace/adminNames";
 import { CARD, EmptyBox, Muted, Notice, Pill } from "../workspace/WorkspaceParts";
 import {
   ActionButton,
@@ -208,7 +210,7 @@ export function ReplacementPanel({
                   </Pill>
                   <span className="text-xs text-adm-text-2">
                     Lập bởi{" "}
-                    {proposedByYou ? "bạn" : `mã ${shortRef(item.proposedBy)}`} ·{" "}
+                    {proposedByYou ? "bạn" : adminWhoLabel(item.proposedBy, currentUserId)} ·{" "}
                     {formatDateTime(item.createdAt)}
                   </span>
                 </div>
@@ -222,7 +224,7 @@ export function ReplacementPanel({
                     {item.status === "APPROVED" ? "Đã duyệt thay bởi" : "Đã bác bởi"}{" "}
                     {currentUserId && (item.approvedBy === currentUserId || item.rejectedBy === currentUserId)
                       ? "bạn"
-                      : `mã ${shortRef(item.approvedBy ?? item.rejectedBy)}`}{" "}
+                      : adminWhoLabel(item.approvedBy ?? item.rejectedBy, currentUserId)}{" "}
                     · {formatDateTime(item.approvedAt ?? item.rejectedAt ?? "")}
                   </p>
                 )}
@@ -236,14 +238,14 @@ export function ReplacementPanel({
                 {item.checksAtApproval && (
                   <details className="mt-2 text-xs">
                     <summary className="cursor-pointer text-adm-text-2 hover:text-adm-text">
-                      Xem kiểm tra khi duyệt (snapshot)
+                      Xem kiểm tra lúc duyệt
                     </summary>
-                    <div className="mt-1 space-y-1 rounded border border-adm-border-soft bg-adm-surface p-2 font-mono">
+                    <div className="mt-1 space-y-1 rounded border border-adm-border-soft bg-adm-surface p-2">
                       {item.checksAtApproval.contractStatus ? (
-                        <div>Hợp đồng: {String(item.checksAtApproval.contractStatus)}</div>
+                        <div>Hợp đồng: {viLabel(CONTRACT_STATUS_VI, String(item.checksAtApproval.contractStatus))}</div>
                       ) : null}
                       {item.checksAtApproval.sessionStatus ? (
-                        <div>Buổi tập: {String(item.checksAtApproval.sessionStatus)}</div>
+                        <div>Buổi tập: {viLabel(SESSION_STATUS_VI, String(item.checksAtApproval.sessionStatus))}</div>
                       ) : null}
                       <div className="mt-1">
                         <CompactReference

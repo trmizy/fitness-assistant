@@ -106,6 +106,8 @@ export const SESSION_STATUS_VI: Record<string, string> = {
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
   NO_SHOW: "Vắng mặt",
+  DISPUTED: "Đang khiếu nại",
+  PT_NO_SHOW_REPORTED: "PT bị báo vắng mặt",
 };
 
 export const SESSION_MODE_VI: Record<string, string> = {

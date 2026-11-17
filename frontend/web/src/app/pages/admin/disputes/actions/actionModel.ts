@@ -31,6 +31,7 @@ import type {
 import { CLAIM_MOVES, CLAIM_RESULTS, CLAIMANT_ROLES, CLASSIFIABLE_TYPES, FINDING_KINDS, POLICY_RESULTS, PT_LATE_FINDINGS } from "../disputeCaseTypes";
 import { buildEvidenceGroups } from "../workspace/evidenceModel";
 import { shortRef } from "../workspace/format";
+import { adminWhoLabel } from "../workspace/adminNames";
 import { FINDING_TO_OUTCOME, blockedText, latestFinding, outcomeConsequence } from "../workspace/workspaceModel";
 import {
   CANNOT_APPROVE_INVESTIGATOR,
@@ -211,7 +212,7 @@ export function investigatorOnlyLine(detail: DisputeCaseDetail, userId: string |
   const inv = detail.case?.investigatorId ?? null;
   if (!inv) return NO_INVESTIGATOR_LINE;
   if (verdictOf(detail, "addClaim")?.code === "NOT_ASSIGNED_INVESTIGATOR" || verdictOf(detail, "recordFinding")?.code === "NOT_ASSIGNED_INVESTIGATOR") {
-    return `${NOT_INVESTIGATOR_PREFIX}${detail.case?.investigatorName ? ` (${detail.case.investigatorName})` : ` (mã ${shortRef(inv)})`}. Máy chủ vẫn kiểm lại từng thao tác.`;
+    return `${NOT_INVESTIGATOR_PREFIX}${detail.case?.investigatorName ? ` (${detail.case.investigatorName})` : ` (${adminWhoLabel(inv, userId)})`}. Máy chủ vẫn kiểm lại từng thao tác.`;
   }
   return null;
 }

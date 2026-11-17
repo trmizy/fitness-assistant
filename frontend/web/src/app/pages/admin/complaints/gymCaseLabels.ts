@@ -14,7 +14,7 @@ const lookup = <T extends string>(map: Record<T, string>, key: string | null | u
 export const GYM_STATUS_LABEL: Record<GymCaseStatus, string> = {
   INTAKE: "Mới tiếp nhận",
   COLLECTING: "Đang thu thập bằng chứng",
-  AWAITING_PARTIES: "Chờ hội viên bổ sung",
+  AWAITING_PARTIES: "Chờ bổ sung thông tin",
   ASSESSING: "Đang đánh giá",
   FINDING_RECORDED: "Đã có kết luận",
   AWAITING_APPROVAL: "Chờ duyệt",
@@ -23,13 +23,24 @@ export const GYM_STATUS_LABEL: Record<GymCaseStatus, string> = {
   APPEAL_REVIEW: "Đang xem xét lại",
 };
 export const gymStatusLabel = (s: string | null | undefined) => lookup(GYM_STATUS_LABEL, s, "Chưa rõ trạng thái");
+
+/** N15A-07: who the admin asked. Missing info (older cases) keeps the neutral wording: never claims a party was asked. */
+const askedText = (parties: readonly string[] | undefined): string | null => {
+  const m = parties?.includes("MEMBER");
+  const g = parties?.includes("GYM");
+  return m && g ? "khách và phòng gym" : m ? "khách" : g ? "phòng gym" : null;
+};
+export const gymStatusLabelFor = (s: string | null | undefined, moreInfo?: { askedParties?: readonly string[] } | null): string => {
+  const who = s === "AWAITING_PARTIES" ? askedText(moreInfo?.askedParties) : null;
+  return who ? `Chờ ${who} bổ sung` : gymStatusLabel(s);
+};
 export const isAppealReview = (s: string | null | undefined): boolean => s === "APPEAL_REVIEW";
 
 /** "Who must act next" - one sentence per status, shown under the header. */
 export const GYM_WAITING_NOTE: Record<GymCaseStatus, string> = {
   INTAKE: "Chờ một quản trị viên nhận hồ sơ, hoặc không tiếp nhận hồ sơ này.",
   COLLECTING: "Điều tra viên đang thu thập bằng chứng và ghi lại các khẳng định.",
-  AWAITING_PARTIES: "Đang chờ hội viên bổ sung thông tin. Hội viên đã được báo trong ứng dụng.",
+  AWAITING_PARTIES: "Đang chờ các bên được hỏi bổ sung thông tin. Các bên đã được báo trong ứng dụng.",
   ASSESSING: "Điều tra viên đánh giá từng khẳng định rồi ghi kết luận.",
   FINDING_RECORDED: "Đã có kết luận. Điều tra viên lập đề xuất để chuyển sang bước duyệt.",
   AWAITING_APPROVAL: "Chờ một quản trị viên khác (không phải người lập đề xuất hay điều tra viên) duyệt hoặc bác.",
@@ -37,11 +48,23 @@ export const GYM_WAITING_NOTE: Record<GymCaseStatus, string> = {
   REJECTED_INTAKE: "Hồ sơ không được tiếp nhận. Khiếu nại quay lại luồng xử lý cũ.",
   APPEAL_REVIEW: "Hồ sơ đang trong quá trình xem xét lại bởi người đánh giá độc lập.",
 };
-export const gymWaitingNote = (s: string | null | undefined, execStatus?: string | null) =>
+export const gymWaitingNote = (s: string | null | undefined, execStatus?: string | null, moreInfo?: { askedParties?: readonly string[]; pendingParties?: readonly string[] } | null) => {
   // An approved case that was already executed must not still say "việc thực thi là bước riêng"; money is read from the money axis.
-  s === "DECISION_APPROVED" && execStatus === "BUSINESS_DONE"
-    ? "Quyết định đã được duyệt và đã thực thi phần nghiệp vụ. Điều đó chưa có nghĩa là tiền đã về; trạng thái tiền xem ở mục Thực thi & tiền."
-    : lookup(GYM_WAITING_NOTE, s, "Chưa rõ hồ sơ đang chờ ai.");
+  if (s === "DECISION_APPROVED" && execStatus === "BUSINESS_DONE") {
+    return "Quyết định đã được duyệt và đã thực thi phần nghiệp vụ. Điều đó chưa có nghĩa là tiền đã về; trạng thái tiền xem ở mục Thực thi & tiền.";
+  }
+  // N15A-07: the sentence follows who was ASKED (and who has not answered yet); it never says the member was told when only the gym was asked.
+  if (s === "AWAITING_PARTIES" && moreInfo?.askedParties?.length) {
+    const asked = askedText(moreInfo.askedParties)!;
+    const pending = askedText(moreInfo.pendingParties ?? moreInfo.askedParties);
+    if (!pending) return `Đã nhận phản hồi của ${asked}. Điều tra viên có thể chuyển sang bước đánh giá.`;
+    const gymOnly = moreInfo.askedParties.length === 1 && moreInfo.askedParties[0] === "GYM";
+    const both = moreInfo.askedParties.length === 2;
+    const told = both ? "Cả hai bên đã được báo trong ứng dụng." : gymOnly ? "Chủ phòng gym đã được báo trong ứng dụng." : "Hội viên đã được báo trong ứng dụng.";
+    return `Đang chờ ${pending} bổ sung thông tin. ${told}`;
+  }
+  return lookup(GYM_WAITING_NOTE, s, "Chưa rõ hồ sơ đang chờ ai.");
+};
 
 export function gymStatusTone(status: string): Tone {
   switch (status) {
@@ -104,6 +127,18 @@ export const GYM_OUTCOME_LABEL: Record<GymOutcome, string> = {
   REFUND_APPEAL_SUPPLEMENT: "Kháng nghị được chấp nhận: hoàn thêm phần chênh lệch",
 };
 export const gymOutcomeLabel = (o: string | null | undefined) => lookup(GYM_OUTCOME_LABEL, o, "Kết quả khác");
+
+/** N15A-05: "Hệ quả" of an outcome, in plain words, shown on the approval tab so the approver knows what approving + executing will do. */
+export const GYM_OUTCOME_CONSEQUENCE: Record<GymOutcome, string> = {
+  REFUND_TRANSACTION_ERROR: "Nếu duyệt rồi thực thi: gói hội viên bị huỷ và hội viên được hoàn phần chưa dùng (làm tròn xuống nghìn đồng) vào ví Gymini. Duyệt thôi chưa chuyển tiền.",
+  REFUND_GYM_CLOSED: "Nếu duyệt rồi thực thi: gói hội viên bị huỷ và hội viên được hoàn phần chưa dùng (làm tròn xuống nghìn đồng) vào ví Gymini. Duyệt thôi chưa chuyển tiền.",
+  REFUND_GYM_VIOLATION: "Nếu duyệt rồi thực thi: gói hội viên bị huỷ và hội viên được hoàn phần chưa dùng (làm tròn xuống nghìn đồng) vào ví Gymini. Duyệt thôi chưa chuyển tiền.",
+  RESOLVE_UPHELD: "Nếu duyệt: khiếu nại được ghi nhận là đúng và hồ sơ đóng. Không có khoản tiền nào thay đổi.",
+  RESOLVE_INSUFFICIENT_EVIDENCE: "Nếu duyệt: hồ sơ đóng với kết quả «chưa đủ căn cứ». Không hoàn tiền và không có khoản tiền nào thay đổi.",
+  REFUND_APPEAL_SUPPLEMENT:
+    "Nếu duyệt rồi thực thi: hội viên được hoàn thêm đúng PHẦN CHÊNH LỆCH so với số đã hoàn trước đó (không hoàn lại số đã hoàn). Phần này chia theo tỉ lệ lúc mua gói: phòng gym chịu phần của gym từ số dư khả dụng, nền tảng chịu phần còn lại. Nếu ví gym không đủ, nền tảng ứng trước để hội viên nhận đủ và gym ghi nợ khoản thiếu.",
+};
+export const gymOutcomeConsequence = (o: string | null | undefined) => lookup(GYM_OUTCOME_CONSEQUENCE, o, "");
 
 /** What a finding leads to, by class. The server computes the real outcome; this only tells the investigator before they write it. */
 export function findingConsequence(caseClass: string, finding: string): string {
@@ -229,6 +264,19 @@ export const GYM_EVENT_LABEL: Record<string, string> = {
   EXECUTION_STARTED: "Bắt đầu thực thi",
   EXECUTION_BLOCKED: "Thực thi bị chặn",
   EXECUTION_NEEDS_HUMAN: "Cần người xem xét",
+  // verify round: events the log writes that used to read "Thao tác khác"
+  REPLACEMENT_PROPOSED: "Đề xuất thay quyết định",
+  PROPOSE_DECISION_REPLACEMENT: "Đề xuất thay quyết định",
+  REPLACEMENT_APPROVED: "Duyệt thay quyết định",
+  REPLACEMENT_REJECTED: "Bác đề xuất thay quyết định",
+  DEADLINE_STARTED: "Bắt đầu tính hạn phản hồi",
+  DEADLINE_PAUSED: "Tạm dừng hạn phản hồi",
+  DEADLINE_RESUMED: "Tiếp tục hạn phản hồi",
+  NO_RESPONSE_RECORDED: "Ghi nhận không phản hồi",
+  GYM_EXPLANATION_SUBMITTED: "Phòng gym gửi giải trình",
+  GYM_EVIDENCE_SUBMITTED: "Phòng gym gửi tài liệu",
+  APPEAL_FILED: "Hội viên kháng nghị",
+  APPEAL_REVIEWER_ASSIGNED: "Giao người xem xét kháng nghị",
   EXECUTION_BUSINESS_DONE: "Thực thi xong (bước nghiệp vụ)",
 };
 export const gymEventLabel = (a: string | null | undefined) => lookup(GYM_EVENT_LABEL, a, "Thao tác khác");

@@ -16,7 +16,8 @@ const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: strin
   PENDING_REVIEW: { label: "Chờ duyệt", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
   APPROVED:       { label: "Đã duyệt",       color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
   REJECTED:       { label: "Bị từ chối",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     icon: XCircle },
-  SUSPENDED:      { label: "Tạm ngưng",      color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Ban },
+  // N15C-08: an ADMIN suspension is a platform measure, not the owner's own pause - say so (the reason shows under the address).
+  SUSPENDED:      { label: "Đang bị tạm khoá trên Gymini", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Ban },
 };
 
 const WIZARD_TOTAL_STEPS = 7;
@@ -47,11 +48,11 @@ function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
       onClick={onClick}
       className="text-left bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors flex flex-col"
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="w-10 h-10 shrink-0 rounded-xl bg-green-500/10 flex items-center justify-center">
           <Dumbbell className="w-5 h-5 text-green-400" />
         </div>
-        <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`}>
+        <span className={`inline-flex min-w-0 items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`}>
           <cfg.icon className="w-3 h-3" /> {cfg.label}
         </span>
       </div>
@@ -59,6 +60,9 @@ function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
       <div className="flex items-center gap-1 text-xs text-zinc-500 mt-1">
         <MapPin className="w-3 h-3" /> {gym.address}{gym.city ? `, ${gym.city}` : ""}
       </div>
+      {gym.status === "SUSPENDED" && gym.adminSuspensionReason && (
+        <p data-testid="gym-card-suspension-reason" className="mt-2 text-xs text-amber-300/90 break-words">Lý do: {gym.adminSuspensionReason}</p>
+      )}
       <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center justify-between">
         {gym.status === "PENDING_REVIEW" ? (
           <span className="text-xs text-amber-400">Đang chờ admin duyệt...</span>

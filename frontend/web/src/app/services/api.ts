@@ -4964,8 +4964,12 @@ export const contractService = {
     clientMessage?: string;
     gymId?: string;
     acknowledgedLowAvailability?: boolean;
+    /** N15M-14: the client accepted the "venue outside Gymini" warning (offline/hybrid with no Gymini gym). */
+    acknowledgedIndependentVenue?: boolean;
   }) => {
-    const { data } = await api.post("/contracts/request", requestData);
+    // N15M-14 grace: this build knows the venue-consent step. The server accepts a request without the flag ONLY from an app that
+    // lacks this header (an older install), so a new client that skips the dialog is still refused.
+    const { data } = await api.post("/contracts/request", requestData, { headers: { "X-Gymini-Venue-Consent": "1" } });
     return data;
   },
   // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
@@ -5321,6 +5325,11 @@ export const sessionService = {
   },
   getMyUpcoming: async () => {
     const { data } = await api.get("/sessions/upcoming");
+    return data;
+  },
+  /** N15B-06 (PT): CONFIRMED sessions whose end has passed but that were never closed - "Cần chốt buổi". */
+  listAwaitingCompletion: async () => {
+    const { data } = await api.get("/sessions/awaiting-completion");
     return data;
   },
   confirmSession: async (id: string) => {

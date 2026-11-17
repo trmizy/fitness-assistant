@@ -1,6 +1,6 @@
 /** D6 - the "file" tabs of a gym case: evidence, statements, claims & assessments. */
 import { DECLARED_HASH_NOTE, gymSourceLabel } from "../gymCaseLabels";
-import { describeEvidence, evidenceGroups, gatesOf, isSharedWithMember, shortRefOf } from "../gymCaseModel";
+import { adminDid, describeEvidence, evidenceGroups, gatesOf, isSharedWithMember } from "../gymCaseModel";
 import { formatDateTimeSafe } from "../gymFormat";
 import type { GymCaseDetail, GymEvidence } from "../gymCaseTypes";
 import { AckCard, RecollectCard } from "../forms/InvestigationForms";
@@ -129,7 +129,7 @@ const RESULT_LABEL: Record<string, { text: string; tone: "success" | "neutral" |
 };
 
 export function AssessmentsTab(props: FormProps) {
-  const { detail } = props;
+  const { detail, currentUserId } = props;
   const g = gatesOf(detail);
   const byClaim = (id: string) => detail.assessments.filter((a) => a.claimId === id);
   return (
@@ -156,7 +156,7 @@ export function AssessmentsTab(props: FormProps) {
                         <Pill tone={r.tone}>{r.text}</Pill>
                         <p className="break-words text-adm-text">{a.reasoning}</p>
                         <p className="text-xs text-adm-text-2">
-                          Bằng chứng trực tiếp {a.directEvidenceIds.length} · gián tiếp {a.indirectEvidenceIds.length} · phản bác {a.rebuttalEvidenceIds.length} · {formatDateTimeSafe(a.createdAt)} · người đánh giá mã {shortRefOf(a.assessorId)}
+                          Bằng chứng trực tiếp {a.directEvidenceIds.length} · gián tiếp {a.indirectEvidenceIds.length} · phản bác {a.rebuttalEvidenceIds.length} · {formatDateTimeSafe(a.createdAt)} · {adminDid(a.assessorId, currentUserId, "đánh giá")}
                         </p>
                         <details className="text-xs text-adm-text-2">
                           <summary className="cursor-pointer text-adm-text">Ghi chú đánh giá</summary>

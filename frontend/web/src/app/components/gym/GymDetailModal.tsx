@@ -178,17 +178,17 @@ export function GymDetailModal({
       <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
     </div>
   ) : !gym ? (
-    <div className="flex flex-col items-center justify-center gap-3 p-10 text-center" data-testid="gym-unavailable">
+    <div className="flex flex-col items-center justify-center gap-3 p-10 text-center" data-testid="gym-unavailable" role="status">
       <Dumbbell className="w-10 h-10 text-zinc-700" />
       <p className="text-sm font-semibold text-zinc-200">
-        {isPublicGymGone(gymError) ? "Phòng gym này hiện không còn hiển thị" : "Không tải được thông tin phòng gym"}
+        {isPublicGymGone(gymError) ? "Phòng gym này hiện không khả dụng" : "Không tải được thông tin phòng gym"}
       </p>
       <p className="max-w-xs text-xs text-zinc-500">
         {isPublicGymGone(gymError)
-          ? "Chi nhánh có thể đã tạm ngừng hoạt động hoặc không còn được công khai. Hãy quay lại danh sách để chọn phòng gym khác."
+          ? "Chi nhánh này có thể đã tạm ngừng hoạt động trên Gymini hoặc không còn được công khai. Hãy quay lại danh sách để chọn phòng gym khác."
           : "Vui lòng kiểm tra kết nối rồi thử lại."}
       </p>
-      <button type="button" onClick={onClose} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500">
+      <button type="button" onClick={onClose} className="min-h-10 rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500">
         Quay lại danh sách
       </button>
     </div>

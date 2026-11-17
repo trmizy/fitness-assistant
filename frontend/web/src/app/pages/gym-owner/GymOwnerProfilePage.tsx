@@ -21,7 +21,7 @@ import { SectionCard } from "../client/settings/components/SectionCard";
 import { SOCIALS, SocialLinks, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BrandLogoUpload } from "../partner-application/uploaders";
-import { canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { PARTNER_ROLE_CHIP_LABEL, canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
 import { authErrorMessage } from "../../utils/authErrors";
 import { isValidPhoneNumber } from "../../utils/phone";
 
@@ -39,12 +39,7 @@ const errMessage = (e: any, fallback: string) => {
 };
 
 /** N14G-01: nhãn vai trò hiển thị ở đầu hồ sơ — đúng vai trò thật của người đăng nhập, không gộp chung "Quản lý". */
-const ROLE_CHIP_LABEL: Record<OnboardingStatus["role"], string> = {
-  OWNER: "Chủ phòng gym",
-  MANAGER: "Quản lý chi nhánh",
-  RECEPTIONIST: "Lễ tân",
-  ACCOUNTANT: "Kế toán",
-};
+const ROLE_CHIP_LABEL = PARTNER_ROLE_CHIP_LABEL;
 
 const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Đang hiển thị",

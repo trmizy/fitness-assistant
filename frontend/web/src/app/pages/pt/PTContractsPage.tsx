@@ -16,6 +16,7 @@ import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 import { ptContractShare } from "../../utils/ptContractShare";
 import { withRefundLabel } from "../../utils/sessionRefund";
+import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -533,6 +534,11 @@ export function PTContractsPage() {
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />{" "}
                             {formatPrice(c.price)}
+                          </span>
+                        )}
+                        {isIndependentVenue(c.sessionMode, c.gymId) && (
+                          <span className="text-amber-500" data-testid="contract-independent-venue-note">
+                            {INDEPENDENT_VENUE_NOTE}
                           </span>
                         )}
                         {/* The PT's own cut, from this contract's frozen split - shown before they accept. */}

@@ -4,6 +4,7 @@ import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { UserIcon as User, ShieldIcon as Shield, XIcon as X, SignOutIcon as LogOut, LightningIcon as Zap } from "@phosphor-icons/react";
 import { AutoText } from "../i18n/AutoText";
+import { PARTNER_ROLE_CHIP_LABEL, normalizePartnerRole } from "../../utils/gymStaffRole";
 import type { AppLanguage } from "../../context/SettingsContext";
 import { AppLogo } from "../brand/AppLogo";
 import { UserAvatar } from "./UserAvatar";
@@ -249,6 +250,9 @@ export function Sidebar() {
     enabled: role === "gym_owner",
   });
   const partnerRole = partnerRoleQuery.data?.role as string | undefined;
+  // N15C-01: nhãn dưới tên = vai trò THẬT trong đối tác (cùng nguồn với chip ở trang hồ sơ), không mặc định "Chủ phòng gym".
+  const normalizedPartnerRole = normalizePartnerRole(partnerRole);
+  const partnerRoleLabel = normalizedPartnerRole ? PARTNER_ROLE_CHIP_LABEL[normalizedPartnerRole] : "Đối tác";
   // Chưa biết vai trò (đang tải / lỗi) → không hiện menu nào thay vì mặc định menu của chủ (fail-closed).
   const gymOwnerNav =
     partnerRole === "OWNER"
@@ -423,7 +427,7 @@ export function Sidebar() {
                   : role === "pt"
                     ? "Huấn luyện viên"
                     : role === "gym_owner"
-                      ? "Chủ phòng gym"
+                      ? partnerRoleLabel
                       : "Quản trị viên"}
               </AutoText>
             </div>

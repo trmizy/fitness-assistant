@@ -15,6 +15,7 @@ import { describeAdminError } from "./shared/useAdminError";
 import { moneyText } from "./shared/moneyGuards";
 import { QUEUE_KEY, ROW_GRID, WithdrawalRow } from "./withdrawals/WithdrawalRow";
 import { WithdrawalHistoryPanel } from "./withdrawals/WithdrawalHistoryPanel";
+import { useWithdrawalOwnerNames } from "./withdrawals/useWithdrawalOwnerNames";
 import { TAB_LABEL, parseHistoryPage, parseHistoryTab, type WithdrawalTab } from "./withdrawals/withdrawalHistory";
 import {
   QUEUE_STATUSES,
@@ -38,8 +39,9 @@ import {
  *
  * Data limits are shown, not hidden: the queue endpoint returns only PENDING + APPROVED, oldest first, max 100 rows
  * (≥100 ⇒ "có thể còn nữa"). The two history chips (G-08, `?status=PAID|REJECTED&page=`) read the separate paged,
- * read-only `withdrawal-history` API — see `withdrawals/WithdrawalHistoryPanel.tsx`. The requester's name is not
- * available anywhere, so people are identified by their user code.
+ * read-only `withdrawal-history` API — see `withdrawals/WithdrawalHistoryPanel.tsx`. The queue API only has the owner's id, so
+ * the names of the PT / client owners on screen are looked up in one `GET /admin/users?ids=` (withdrawals/useWithdrawalOwnerNames.ts);
+ * until that answers (or if it fails) a row falls back to the user code, and a gym wallet keeps the "Phòng gym" label.
  *
  * B1 behaviour (confirmation dialogs, per-row pending, one POST per confirmation, no retry, errors ≠ empty) lives
  * in `withdrawals/WithdrawalRow.tsx` and is unchanged.
@@ -130,6 +132,8 @@ export function AdminWithdrawals() {
   const view = summary[active];
   const rows = rowsFor(queue.rows, active);
   const other: QueueStatus = active === "PENDING" ? "APPROVED" : "PENDING";
+  // Names of the people asking to withdraw (only the ones on the queue). A failed lookup just leaves the user code on screen.
+  const ownerNames = useWithdrawalOwnerNames(queue.rows);
 
   const selectChip = (status: WithdrawalTab) => {
     setSearchParams(
@@ -270,8 +274,8 @@ export function AdminWithdrawals() {
           <p data-testid="admin-withdrawals-queue-note" className="flex items-start gap-2 text-xs text-adm-text-2">
             <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
             <span>
-              Hàng đợi chỉ gồm yêu cầu chờ duyệt và đã duyệt (cũ nhất trước, tối đa {WITHDRAWAL_API_LIMIT}); tên người rút chưa có nên đối chiếu người rút bằng mã
-              người dùng. Yêu cầu đã chuyển hoặc bị từ chối nằm ở hai nhãn “Đã chuyển” và “Từ chối”.
+              Hàng đợi chỉ gồm yêu cầu chờ duyệt và đã duyệt (cũ nhất trước, tối đa {WITHDRAWAL_API_LIMIT}); mã người dùng nằm dưới tên để đối chiếu khi cần.
+              Yêu cầu đã chuyển hoặc bị từ chối nằm ở hai nhãn “Đã chuyển” và “Từ chối”.
             </span>
           </p>
 
@@ -372,7 +376,7 @@ export function AdminWithdrawals() {
               </div>
               <div role="rowgroup">
                 {rows.map((r) => (
-                  <WithdrawalRow key={r.id} r={r} now={now} onActionDone={() => { focusLostPending.current = true; }} />
+                  <WithdrawalRow key={r.id} r={r} now={now} ownerName={ownerNames.data?.get(r.ownerId)?.name} onActionDone={() => { focusLostPending.current = true; }} />
                 ))}
               </div>
             </div>

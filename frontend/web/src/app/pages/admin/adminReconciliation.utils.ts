@@ -330,6 +330,22 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
 
 /**
+ * N15A-08: the reason of an obligation as words for the admin. New GYM_DEBT rows already carry plain Vietnamese; rows written before 15/11 carry an English sentence with
+ * a gym UUID ("Appeal supplement 347000: gym <uuid> could fund 34700 of its 312300 share ...") which is rewritten here, and any other raw UUID is shortened.
+ */
+export function obligationReasonText(reason: string | null | undefined): string {
+  const text = (reason ?? "").trim();
+  if (!text) return "—";
+  const vnd = (n: string) => `${Number(n).toLocaleString("vi-VN")} ₫`;
+  const legacy = /^Appeal supplement (\d+): gym [0-9a-f-]+ could fund (\d+) of its (\d+) share from its available balance; the platform fronted (\d+) from REVENUE so the member was paid in full$/i.exec(text);
+  if (legacy) {
+    const [, amount, funded, share, fronted] = legacy;
+    return `Hoàn thêm ${vnd(amount)} cho hội viên sau kháng nghị khiếu nại phòng gym: phần của gym là ${vnd(share)}, ví khả dụng của gym chỉ trả được ${vnd(funded)}; nền tảng đã ứng ${vnd(fronted)} từ ví doanh thu để hội viên nhận đủ, gym còn nợ nền tảng khoản này`;
+  }
+  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (id) => id.slice(0, 8));
+}
+
+/**
  * Vòng đời: Đang mở -> Đã phê duyệt chi -> Đang chờ chứng từ -> Đã thanh toán được xác minh. Chi ngoài hệ thống: chỉ "được xác minh" mới là đã trả. Ngoài ra PAID_VIA_LEDGER = đã trả vào ví Gymini bằng bút toán sổ cái (không phải chuyển khoản ngân hàng).
  * PAID_EXTERNALLY là bản ghi cũ (chứng từ tự nhập, chưa ai xác minh) nên nhãn nói rõ "CHƯA xác minh".
  */

@@ -13,7 +13,7 @@ import type { FormProps } from "./formTypes";
 export const COI_LABEL = "Tôi khai báo không có xung đột lợi ích với vụ việc này.";
 export const COI_HELP = "Bắt buộc phải tích để gửi. Người duyệt không được là người lập đề xuất, điều tra viên, hội viên hay chủ phòng tập.";
 export const EVIDENCE_ACK_LABEL = "Tôi đã xem thay đổi bằng chứng mà điều tra viên đã xác nhận.";
-export const APPROVE_NOTICE = "Sau khi duyệt, hồ sơ không thể sửa hay huỷ duyệt. Duyệt chưa thực thi gì: hoàn tiền (nếu có) chỉ chạy ở bước «Thực thi».";
+export const APPROVE_NOTICE = "Sau khi duyệt, bạn không tự sửa hay huỷ duyệt được. Trước khi thực thi, chỉ có thể đề xuất thay quyết định (cần một quản trị viên khác duyệt); sau khi thực thi thì không thay được nữa. Duyệt chưa thực thi gì: hoàn tiền (nếu có) chỉ chạy ở bước «Thực thi».";
 export const REJECT_NOTICE = "Hồ sơ quay lại bước đánh giá.";
 
 export function DecisionCard({ detail, onChanged, push }: FormProps) {

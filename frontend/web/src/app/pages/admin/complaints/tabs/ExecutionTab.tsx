@@ -3,7 +3,7 @@ import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { Button } from "../../../../components/ui/button";
 import { execBlockedText } from "../gymCaseErrors";
 import { GYM_EXEC_NOTE, MONEY_NOT_BANK, classHasMoneyExit, gymClosureLabel, gymExecLabel, gymOutcomeLabel, type Tone } from "../gymCaseLabels";
-import { describeMoney, gatesOf } from "../gymCaseModel";
+import { describeMoney, executionRound, gatesOf } from "../gymCaseModel";
 import { formatDateTimeSafe } from "../gymFormat";
 import type { GymCaseDetail, GymExecStatus } from "../gymCaseTypes";
 import { ExecuteCard, ReconcileCard, needsHumanText } from "../forms/ExecutionPanel";
@@ -90,11 +90,11 @@ export function ExecutionTab(props: FormProps & { onReload: () => void; reloadin
           </p>
         ) : (
           <ol className="space-y-2">
-            {detail.execution.history.map((h) => (
+            {detail.execution.history.map((h, i) => (
               <li key={h.id} className="rounded-lg border border-adm-border-soft bg-adm-surface-2 p-3 text-sm" data-testid="d6-exec-row">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-adm-text">
-                    Lần {h.attempt || 1}: {STATE_LABEL[h.state] ?? "Bước khác"}
+                    Lần {executionRound(detail.execution.history, i)}{h.outcome ? ` · ${gymOutcomeLabel(h.outcome)}` : ""}: {STATE_LABEL[h.state] ?? "Bước khác"}
                   </span>
                   <span className="text-xs text-adm-text-2">{formatDateTimeSafe(h.createdAt)}</span>
                 </div>

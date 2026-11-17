@@ -5,6 +5,7 @@ import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, XCircleIco
 import { gymService } from "../../services/api";
 import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import type { CheckinResult } from "../../types";
+import { memberScanClosedMessage } from "../../utils/branchCheckinState";
 import {
   normalizePtCheckinResult,
   ptCheckinDateLabel,
@@ -74,7 +75,9 @@ export function CheckinScanModal({
       } else {
         const code = err?.response?.data?.error?.code;
         setErrorText(
-          ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
+          code === "GYM_NOT_ACTIVE"
+            ? memberScanClosedMessage(err?.response?.data?.error?.expectedReopenAt)
+            : ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
         );
       }
       // Let the member re-aim and try again instead of dead-ending.

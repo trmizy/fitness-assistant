@@ -28,6 +28,7 @@ import {
   formatObligationEvent,
   formatPendingPayment,
   obligationKindLabel,
+  obligationReasonText,
   obligationStatusLabelFor,
   obligationTone,
   partyLabel,
@@ -175,7 +176,7 @@ const obligationCols: Column<UnpaidObligationRow>[] = [
   },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
   { header: "Buổi", cell: (r) => shortId(r.sessionId) },
-  { header: "Lý do", cell: (r) => r.reason || "—" },
+  { header: "Lý do", cell: (r) => obligationReasonText(r.reason) },
   { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
   { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
 ];

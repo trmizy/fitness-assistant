@@ -205,6 +205,9 @@ function personName(u: unknown): string | null {
   return full || str(u.email);
 }
 
+/** Rows of the PT-application queue read (= ptApplicationService ADMIN_QUEUE_READ_CAP, the server's maximum page). */
+export const PT_QUEUE_READ_CAP = 200;
+
 /** ADM-08 `GET /pt-applications/admin?status=SUBMITTED` → array; queue-entry time = `submittedAt` (fallback `createdAt`). */
 export function summarizePtApplications(list: unknown): QueueFacts | null {
   if (!Array.isArray(list)) return null;
@@ -214,7 +217,8 @@ export function summarizePtApplications(list: unknown): QueueFacts | null {
   const row = newest === null ? null : rows[times.indexOf(newest)];
   return {
     count: list.length,
-    capped: false,
+    // The queue read is one page of at most PT_QUEUE_READ_CAP rows: at the cap the count is a lower bound.
+    capped: list.length >= PT_QUEUE_READ_CAP,
     oldestMs: oldest,
     newest: row && newest !== null ? { queue: "ptApplications", kind: "Hồ sơ PT", title: personName(row.user ?? row.userProfile) ?? "Ứng viên PT", caption: "Hồ sơ PT mới nộp", at: newest, to: ROUTES.pts } : null,
   };

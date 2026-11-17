@@ -12,7 +12,8 @@ import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { withRefundLabel } from "../../utils/sessionRefund";
 import type { Contract, Session, SessionStatus } from "../../types";
-import { Modal, ModalTitle } from "../../components/ui/Modal";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { bookableSessionsLeft, formatViDateTime, remainingEntitlements } from "../../utils/contractQuota";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -50,16 +51,7 @@ function formatTime(t: string) {
 }
 
 function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString("vi-VN", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }) +
-    " lúc " +
-    d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-  );
+  return formatViDateTime(iso);
 }
 
 function formatDateShort(iso: string) {
@@ -300,13 +292,10 @@ export function BookingPage() {
   // Remaining sessions count — must also subtract compensatedSessions (PT no-shows already
   // paid out in cash): those consume entitlement exactly like a used session, but totalSessions
   // itself no longer shrinks to reflect them (money-flow plan 1.5).
+  // N15C-10: and also the sessions already booked but not finished (they hold an entitlement) — same rule
+  // as the backend quota gate, so the header never says "còn 1 buổi" while a booking is refused.
   const remainingSessions = selectedContract
-    ? Math.max(
-        0,
-        selectedContract.totalSessions -
-          selectedContract.usedSessions -
-          (selectedContract.compensatedSessions ?? 0),
-      )
+    ? bookableSessionsLeft(selectedContract, contractSessions as Session[])
     : 0;
 
   // Fetch available slots for selected date + PT
@@ -639,7 +628,9 @@ export function BookingPage() {
                       }`}
                     >
                       {c.packageName} (còn{" "}
-                      {Math.max(0, c.totalSessions - c.usedSessions - (c.compensatedSessions ?? 0))})
+                      {c.id === selectedContractId
+                        ? bookableSessionsLeft(c, contractSessions as Session[])
+                        : remainingEntitlements(c)})
                     </button>
                   ))}
                 </div>
@@ -1489,18 +1480,25 @@ export function BookingPage() {
       {/* ─── DỜI LỊCH ─── */}
       <Modal
         open={!!(rescheduleTarget)}
-        onClose={() => setRescheduleTarget(null)}
+        onClose={() => {
+          setRescheduleTarget(null);
+          setRescheduleSlot(null);
+          setRescheduleReason("");
+        }}
         closeOnBackdrop={false}
         placement="sheet"
         data-testid="booking-reschedule-modal"
       >
         {rescheduleTarget && (
           <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden flex flex-col max-h-[90vh] transition-all">
-            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
-              <ModalTitle className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</ModalTitle>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Buổi hiện tại: {formatDateTime(rescheduleTarget.scheduledStartAt)}
-              </p>
+            <div className="p-5 border-b border-white/10 shrink-0 bg-white/5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <ModalTitle className="text-zinc-100 font-bold tracking-tight">Yêu cầu dời lịch</ModalTitle>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Buổi hiện tại: {formatDateTime(rescheduleTarget.scheduledStartAt)}
+                </p>
+              </div>
+              <ModalClose className="-mr-2 -mt-1" aria-label="Đóng hộp dời lịch" />
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
               <DateSlotPicker

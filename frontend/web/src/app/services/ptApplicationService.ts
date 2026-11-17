@@ -102,6 +102,8 @@ export interface PTApplication {
   certificates: PTApplicationCertificate[];
   media: any[];
   user?: {
+    /** The PT's account id (the profile's userId) - what the admin PT suspension routes take. */
+    userId?: string;
     firstName?: string;
     lastName?: string;
     email?: string;
@@ -122,6 +124,19 @@ export interface PtTerms {
   previouslyAcceptedVersion: string | null;
   mustReconfirm: boolean;
 }
+
+/**
+ * The admin endpoints answer with `user` = {firstName,lastName,email} only; the account id (what the PT suspension card
+ * needs) lives on `userProfile.userId`. Keep the name/email from `user` and add the account id (N15B-04, found in verify).
+ */
+function adminAppUser(app: any) {
+  const base = app.user ?? app.userProfile;
+  const userId = app.user?.userId ?? app.userProfile?.userId;
+  return base && userId ? { ...base, userId } : base;
+}
+
+/** Rows the queue badges read (server maximum page size). A queue at this size shows "≥200". */
+export const ADMIN_QUEUE_READ_CAP = 200;
 
 export const ptApplicationService = {
   getTerms: async (): Promise<PtTerms> => {
@@ -191,17 +206,43 @@ export const ptApplicationService = {
   },
 
   // Admin methods
+  /**
+   * A bounded read for the work-queue badges ("Hôm nay", sidebar): newest first, at most ADMIN_QUEUE_READ_CAP rows of the
+   * given status. The server never answers more than one page; callers that show a list use listApplicationsPage.
+   */
   listApplications: async (params: any = {}): Promise<PTApplication[]> => {
-    const { data } = await api.get("/pt-applications/admin", { params });
+    const { data } = await api.get("/pt-applications/admin", { params: { page: 1, limit: ADMIN_QUEUE_READ_CAP, ...params } });
     return data.map((app: any) => ({
       ...app,
-      user: app.user ?? app.userProfile,
+      user: adminAppUser(app),
     }));
+  },
+
+  /**
+   * FIX5-ADMIN-PERF: ONE page of the admin list (status filter + applicant name/email search `q` run in the
+   * database). The body stays the plain array; the total travels in the `X-Total-Count` header.
+   */
+  listApplicationsPage: async (params: {
+    status?: string;
+    q?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ rows: PTApplication[]; total: number }> => {
+    const query: Record<string, string | number> = { page: params.page, limit: params.limit };
+    if (params.status) query.status = params.status;
+    if (params.q && params.q.trim()) query.q = params.q.trim();
+    const res = await api.get("/pt-applications/admin", { params: query });
+    const rows: PTApplication[] = (Array.isArray(res.data) ? res.data : []).map((app: any) => ({
+      ...app,
+      user: adminAppUser(app),
+    }));
+    const header = Number(res.headers?.["x-total-count"]);
+    return { rows, total: Number.isFinite(header) && header >= 0 ? header : rows.length };
   },
 
   getById: async (id: string): Promise<PTApplication> => {
     const { data } = await api.get(`/pt-applications/admin/${id}`);
-    return { ...data, user: data.user ?? data.userProfile };
+    return { ...data, user: adminAppUser(data) };
   },
 
   reviewAction: async (
@@ -213,6 +254,6 @@ export const ptApplicationService = {
       `/pt-applications/admin/${id}/review/${action}`,
       payload,
     );
-    return { ...data, user: data.user ?? data.userProfile };
+    return { ...data, user: adminAppUser(data) };
   },
 };

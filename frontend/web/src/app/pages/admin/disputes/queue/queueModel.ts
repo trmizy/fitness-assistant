@@ -12,6 +12,7 @@ import { parseDisputeError, type DisputeErrorView } from "../disputeCaseErrors";
 import type { LoadFailure } from "../workspace/workspaceModel";
 import { CASE_TYPE_LABEL, FINDING_CONSEQUENCE, OUTCOME_CONSEQUENCE } from "../disputeCaseLabels";
 import { asArray, asRecord, shortRef } from "../workspace/format";
+import { adminNameOf } from "../workspace/adminNames";
 
 // ───────────────────────────────────────────────────────────── URL state ──
 export const QUEUE_VIEWS = ["cases", "sessions", "stuck"] as const;
@@ -76,7 +77,8 @@ export function rangeText(page: number, total: number, shown: number): string | 
 export function investigatorText(investigatorId: string | null | undefined, currentUserId: string | null | undefined): string {
   if (!investigatorId) return "Chưa có người phụ trách";
   if (currentUserId && investigatorId === currentUserId) return "Bạn phụ trách";
-  return `Người phụ trách: mã ${shortRef(investigatorId)}`;
+  const name = adminNameOf(investigatorId);
+  return name ? `Người phụ trách: ${name}` : `Người phụ trách: mã ${shortRef(investigatorId)}`;
 }
 export const isProvisionalType = (type: CaseType | string) => type === "LEGACY_UNCLASSIFIED";
 /** Type column text: the provisional type is shown as a chip, so the text just says it has no class yet. */
