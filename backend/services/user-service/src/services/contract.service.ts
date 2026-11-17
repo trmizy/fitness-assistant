@@ -1200,9 +1200,16 @@ export const contractService = {
     assertNotSynthetic(contract);
     // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
     if (contract.ptUserId === userId) await assertPtMayAct(userId);
+    // CONTRACT-02: with e-sign OFF (REQUIRE_CONTRACT_ESIGN=false) nothing can ever sign a PENDING_SIGNATURE contract, so one
+    // left in that state (created while the flag was still on) was stuck forever and, via ACTIVE_CONTRACT_EXISTS, blocked the
+    // client-PT pair. It is still pre-money (payment comes after signing), so cancelling is the same safe status flip. With
+    // e-sign ON a signature request may be outstanding, so that case is left exactly as before.
+    const cancellableWhenEsignOff =
+      !REQUIRE_CONTRACT_ESIGN && contract.status === ContractStatus.PENDING_SIGNATURE;
     if (
       contract.status !== ContractStatus.PENDING_REVIEW &&
-      contract.status !== ContractStatus.PENDING_PAYMENT
+      contract.status !== ContractStatus.PENDING_PAYMENT &&
+      !cancellableWhenEsignOff
     ) {
       throw err(
         contract.status === ContractStatus.ACTIVE

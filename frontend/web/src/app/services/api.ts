@@ -5728,6 +5728,7 @@ export const collaborationService = {
   },
 };
 
+let gymDraftInFlight: Promise<any> | null = null; // see gymService.createGymDraft (WIZ-01)
 export const gymService = {
   // Public
   listGyms: async () => {
@@ -5828,9 +5829,17 @@ export const gymService = {
     return data?.data ?? data;
   },
   // GYM_BRANCH_FORM_SPEC.md, Phase 1 — "Add Branch" wizard shell: draft/auto-save/resume.
-  createGymDraft: async () => {
-    const { data } = await api.post('/owner/gyms/draft', {});
-    return data?.data ?? data;
+  // WIZ-01: the wizard's "create a draft once" effect can fire twice before the first POST answers (effect re-run / remount),
+  // which minted an orphan draft. Concurrent callers now share ONE in-flight request; it is cleared as soon as it settles,
+  // so a later, deliberate "add another branch" still creates a new draft.
+  createGymDraft: () => {
+    if (!gymDraftInFlight) {
+      gymDraftInFlight = api
+        .post('/owner/gyms/draft', {})
+        .then(({ data }) => data?.data ?? data)
+        .finally(() => { gymDraftInFlight = null; });
+    }
+    return gymDraftInFlight;
   },
   updateGymDraft: async (
     gymId: string,
