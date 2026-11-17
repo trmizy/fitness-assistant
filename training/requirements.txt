@@ -2,7 +2,7 @@
 # NOT part of the product's runtime dependency graph (ai-service is Node/TS).
 #
 # Pivoted 2026-07 from the RunPod A40 + Qwen3-30B-A3B setup (see
-# RUNPOD_RUNBOOK.md, now historical/optional) to LOCAL training on a
+# docs/ai-training/RUNPOD_RUNBOOK.md, now historical/optional) to LOCAL training on a
 # consumer GPU with ~4GB VRAM, using Unsloth (purpose-built for low-VRAM
 # QLoRA — meaningfully lower memory than raw transformers+peft+bitsandbytes
 # for the same job) and a much smaller base model (Qwen2.5-1.5B-Instruct,

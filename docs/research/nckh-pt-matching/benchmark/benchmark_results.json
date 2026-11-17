@@ -1,0 +1,613 @@
+{
+  "generatedAt": "2026-11-07T08:15:51.677Z",
+  "datasetVersion": "GYMINI_SIM_COMPLETE_V2_2026-11-03",
+  "ptFixtureSha256": "c6dd0baf955bd3fc127ee9a798d33f7b01d8be5a1ed25930dc630ed2b79fd6c3",
+  "nPT": 20,
+  "nClient": 30,
+  "truthAgreementWithPrecheck": "30/30",
+  "validCountDistribution": {
+    "1": 18,
+    "2": 6,
+    "3": 3,
+    "4": 2,
+    "5": 1
+  },
+  "random": {
+    "method": "R Ngẫu nhiên 3/20 (TB 200 lần)",
+    "coverage3": 1,
+    "valid3": 0.08777777777777761,
+    "top1Validity": 0.08783333333333326,
+    "caseSuccess": 0.2466666666666667,
+    "recallValid": 0.16099999999999995
+  },
+  "methods": [
+    {
+      "method": "G0 Gymini hiện tại (lọc theo ngày/tỉnh/giá gói + scorePT)",
+      "runs": 30,
+      "coverage3": 0.5777777777777777,
+      "valid3": 0.2692307692307692,
+      "top1Validity": 0.3333333333333333,
+      "caseSuccess": 0.36666666666666664,
+      "full3": 0.16666666666666666,
+      "full3N": 6,
+      "recallValid": 0.2722222222222222,
+      "emptyWhenValidExists": 4,
+      "tieRate": 1,
+      "invalidPositions": 38,
+      "violations": {
+        "H1": 7,
+        "H2": 16,
+        "H3": 0,
+        "H4": 0,
+        "H5": 25,
+        "SAME_OFFER": 0
+      },
+      "rows": [
+        {
+          "client": "C01",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 1,
+          "top": "PT016(88)✗H5"
+        },
+        {
+          "client": "C02",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 0,
+          "top": ""
+        },
+        {
+          "client": "C03",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT018 PT019 PT020",
+          "eligibleByMethod": 5,
+          "top": "PT007(88)✗H5 PT009(88)✗H5 PT014(88)✗H5"
+        },
+        {
+          "client": "C04",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT014(88)✗H2"
+        },
+        {
+          "client": "C05",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT019 PT020",
+          "eligibleByMethod": 4,
+          "top": "PT008(88)✗H5 PT011(88)✗H5 PT018(88)✗H2"
+        },
+        {
+          "client": "C06",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT008 PT015",
+          "eligibleByMethod": 1,
+          "top": "PT016(88)✗H5"
+        },
+        {
+          "client": "C07",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT002",
+          "eligibleByMethod": 1,
+          "top": "PT002(88)"
+        },
+        {
+          "client": "C08",
+          "goal": "ENDURANCE",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT004 PT018",
+          "eligibleByMethod": 5,
+          "top": "PT006(88)✗H1 PT007(88)✗H1 PT017(88)✗H1"
+        },
+        {
+          "client": "C09",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 5,
+          "validIds": "PT005 PT006 PT007 PT008 PT009",
+          "eligibleByMethod": 2,
+          "top": "PT008(88) PT020(88)✗H5"
+        },
+        {
+          "client": "C10",
+          "goal": "STRENGTH",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT014(88)✗H2"
+        },
+        {
+          "client": "C11",
+          "goal": "FAT_LOSS",
+          "mode": "HYBRID",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 2,
+          "top": "PT008(88)✗H2 PT020(88)✗H2"
+        },
+        {
+          "client": "C12",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT001 PT003 PT018",
+          "eligibleByMethod": 5,
+          "top": "PT001(88) PT003(88) PT013(88)✗H5"
+        },
+        {
+          "client": "C13",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT015",
+          "eligibleByMethod": 2,
+          "top": "PT015(88) PT016(88)✗H2/H5"
+        },
+        {
+          "client": "C14",
+          "goal": "FUNCTIONAL",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 0,
+          "top": ""
+        },
+        {
+          "client": "C15",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 2,
+          "top": "PT008(88)✗H2/H5 PT020(88)✗H2"
+        },
+        {
+          "client": "C16",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT002",
+          "eligibleByMethod": 1,
+          "top": "PT002(88)"
+        },
+        {
+          "client": "C17",
+          "goal": "ENDURANCE",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 0,
+          "top": ""
+        },
+        {
+          "client": "C18",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT019",
+          "eligibleByMethod": 4,
+          "top": "PT007(88)✗H2/H5 PT009(88)✗H2/H5 PT017(88)✗H2/H5"
+        },
+        {
+          "client": "C19",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT009 PT010 PT015",
+          "eligibleByMethod": 5,
+          "top": "PT003(88)✗H5 PT012(88)✗H5 PT015(88)"
+        },
+        {
+          "client": "C20",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT003",
+          "eligibleByMethod": 3,
+          "top": "PT003(88) PT013(88)✗H5 PT015(88)✗H5"
+        },
+        {
+          "client": "C21",
+          "goal": "FAT_LOSS",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT008 PT011",
+          "eligibleByMethod": 2,
+          "top": "PT008(88) PT016(88)✗H2"
+        },
+        {
+          "client": "C22",
+          "goal": "FUNCTIONAL",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 1,
+          "top": "PT020(65)✗H1/H2"
+        },
+        {
+          "client": "C23",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT002(88)✗H5"
+        },
+        {
+          "client": "C24",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 1,
+          "top": "PT009(88)✗H5"
+        },
+        {
+          "client": "C25",
+          "goal": "MUSCLE_GAIN",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT011 PT012",
+          "eligibleByMethod": 2,
+          "top": "PT015(88)✗H2 PT016(88)✗H2"
+        },
+        {
+          "client": "C26",
+          "goal": "BODY_TONING",
+          "mode": "ONLINE",
+          "nValid": 4,
+          "validIds": "PT004 PT009 PT011 PT012",
+          "eligibleByMethod": 1,
+          "top": "PT012(88)"
+        },
+        {
+          "client": "C27",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT008",
+          "eligibleByMethod": 4,
+          "top": "PT008(88) PT011(88)✗H5 PT018(88)✗H2/H5"
+        },
+        {
+          "client": "C28",
+          "goal": "ENDURANCE",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT004 PT018",
+          "eligibleByMethod": 4,
+          "top": "PT005(88)✗H1/H5 PT007(88)✗H1/H5 PT010(88)✗H1/H5"
+        },
+        {
+          "client": "C29",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 0,
+          "top": ""
+        },
+        {
+          "client": "C30",
+          "goal": "GENERAL_FITNESS",
+          "mode": "ONLINE",
+          "nValid": 4,
+          "validIds": "PT009 PT011 PT014 PT020",
+          "eligibleByMethod": 3,
+          "top": "PT009(65) PT014(65) PT020(65)"
+        }
+      ]
+    },
+    {
+      "method": "G1 Gymini + ràng buộc đầy đủ giờ/quận/giá buổi (H1–H5) + scorePT",
+      "runs": 30,
+      "coverage3": 0.5333333333333333,
+      "valid3": 1,
+      "top1Validity": 1,
+      "caseSuccess": 1,
+      "full3": 1,
+      "full3N": 6,
+      "recallValid": 1,
+      "emptyWhenValidExists": 0,
+      "tieRate": 0.5833333333333334,
+      "invalidPositions": 0,
+      "violations": {
+        "H1": 0,
+        "H2": 0,
+        "H3": 0,
+        "H4": 0,
+        "H5": 0,
+        "SAME_OFFER": 0
+      },
+      "rows": [
+        {
+          "client": "C01",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 1,
+          "top": "PT018(78)"
+        },
+        {
+          "client": "C02",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 1,
+          "top": "PT011(78)"
+        },
+        {
+          "client": "C03",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT018 PT019 PT020",
+          "eligibleByMethod": 3,
+          "top": "PT020(88) PT018(74) PT019(74)"
+        },
+        {
+          "client": "C04",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT012(74)"
+        },
+        {
+          "client": "C05",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT019 PT020",
+          "eligibleByMethod": 2,
+          "top": "PT020(88) PT019(38)"
+        },
+        {
+          "client": "C06",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT008 PT015",
+          "eligibleByMethod": 2,
+          "top": "PT008(78) PT015(78)"
+        },
+        {
+          "client": "C07",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT002",
+          "eligibleByMethod": 1,
+          "top": "PT002(88)"
+        },
+        {
+          "client": "C08",
+          "goal": "ENDURANCE",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT004 PT018",
+          "eligibleByMethod": 2,
+          "top": "PT018(88) PT004(74)"
+        },
+        {
+          "client": "C09",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 5,
+          "validIds": "PT005 PT006 PT007 PT008 PT009",
+          "eligibleByMethod": 5,
+          "top": "PT008(88) PT005(74) PT006(74)"
+        },
+        {
+          "client": "C10",
+          "goal": "STRENGTH",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT012(74)"
+        },
+        {
+          "client": "C11",
+          "goal": "FAT_LOSS",
+          "mode": "HYBRID",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 1,
+          "top": "PT011(74)"
+        },
+        {
+          "client": "C12",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT001 PT003 PT018",
+          "eligibleByMethod": 3,
+          "top": "PT001(88) PT003(88) PT018(74)"
+        },
+        {
+          "client": "C13",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT015",
+          "eligibleByMethod": 1,
+          "top": "PT015(88)"
+        },
+        {
+          "client": "C14",
+          "goal": "FUNCTIONAL",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 1,
+          "top": "PT004(50)"
+        },
+        {
+          "client": "C15",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 1,
+          "top": "PT018(78)"
+        },
+        {
+          "client": "C16",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT002",
+          "eligibleByMethod": 1,
+          "top": "PT002(88)"
+        },
+        {
+          "client": "C17",
+          "goal": "ENDURANCE",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 1,
+          "top": "PT004(74)"
+        },
+        {
+          "client": "C18",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT019",
+          "eligibleByMethod": 1,
+          "top": "PT019(74)"
+        },
+        {
+          "client": "C19",
+          "goal": "BODY_TONING",
+          "mode": "OFFLINE",
+          "nValid": 3,
+          "validIds": "PT009 PT010 PT015",
+          "eligibleByMethod": 3,
+          "top": "PT015(88) PT010(53) PT009(38)"
+        },
+        {
+          "client": "C20",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT003",
+          "eligibleByMethod": 1,
+          "top": "PT003(88)"
+        },
+        {
+          "client": "C21",
+          "goal": "FAT_LOSS",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT008 PT011",
+          "eligibleByMethod": 2,
+          "top": "PT008(88) PT011(74)"
+        },
+        {
+          "client": "C22",
+          "goal": "FUNCTIONAL",
+          "mode": "ONLINE",
+          "nValid": 1,
+          "validIds": "PT004",
+          "eligibleByMethod": 1,
+          "top": "PT004(50)"
+        },
+        {
+          "client": "C23",
+          "goal": "STRENGTH",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT012",
+          "eligibleByMethod": 1,
+          "top": "PT012(74)"
+        },
+        {
+          "client": "C24",
+          "goal": "GENERAL_FITNESS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT018",
+          "eligibleByMethod": 1,
+          "top": "PT018(74)"
+        },
+        {
+          "client": "C25",
+          "goal": "MUSCLE_GAIN",
+          "mode": "HYBRID",
+          "nValid": 2,
+          "validIds": "PT011 PT012",
+          "eligibleByMethod": 2,
+          "top": "PT011(74) PT012(74)"
+        },
+        {
+          "client": "C26",
+          "goal": "BODY_TONING",
+          "mode": "ONLINE",
+          "nValid": 4,
+          "validIds": "PT004 PT009 PT011 PT012",
+          "eligibleByMethod": 4,
+          "top": "PT012(88) PT011(74) PT004(53)"
+        },
+        {
+          "client": "C27",
+          "goal": "FAT_LOSS",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT008",
+          "eligibleByMethod": 1,
+          "top": "PT008(88)"
+        },
+        {
+          "client": "C28",
+          "goal": "ENDURANCE",
+          "mode": "OFFLINE",
+          "nValid": 2,
+          "validIds": "PT004 PT018",
+          "eligibleByMethod": 2,
+          "top": "PT004(74) PT018(74)"
+        },
+        {
+          "client": "C29",
+          "goal": "MUSCLE_GAIN",
+          "mode": "OFFLINE",
+          "nValid": 1,
+          "validIds": "PT011",
+          "eligibleByMethod": 1,
+          "top": "PT011(74)"
+        },
+        {
+          "client": "C30",
+          "goal": "GENERAL_FITNESS",
+          "mode": "ONLINE",
+          "nValid": 4,
+          "validIds": "PT009 PT011 PT014 PT020",
+          "eligibleByMethod": 4,
+          "top": "PT009(65) PT014(65) PT020(65)"
+        }
+      ]
+    }
+  ]
+}

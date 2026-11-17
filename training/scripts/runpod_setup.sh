@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run this ON the RunPod pod (not locally) after cloning/syncing the repo.
 # Creates an isolated training venv and installs training/requirements.txt.
-# See training/RUNPOD_RUNBOOK.md for the full step-by-step launch process.
+# See docs/ai-training/RUNPOD_RUNBOOK.md for the full step-by-step launch process.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -29,4 +29,4 @@ python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA not available 
 echo
 echo "Setup complete. Activate with:"
 echo "  source ${VENV_DIR}/bin/activate"
-echo "Next: run the smoke test in training/RUNPOD_RUNBOOK.md before a full training run."
+echo "Next: run the smoke test in docs/ai-training/RUNPOD_RUNBOOK.md before a full training run."

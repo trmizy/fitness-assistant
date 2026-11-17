@@ -218,11 +218,17 @@ _warroom/
 .dev/
 
 # Internal documents / reports / QA evidence
-/docs/*
-# CI reads this generated file (.github/workflows/pr-validation.yml, ci/service-impact-map.json) — keep it pushed.
-!/docs/deployment/
-/docs/deployment/*
-!/docs/deployment/generated/
+# Since 2026-11-17 docs/ is pushed (single home for all project .md docs, see docs/README.md).
+# Local-only exceptions: *.local.md (open security findings) and the AWS admin-credential rotation runbook.
+/docs/**/*.local.md
+/docs/deployment/AWS_DEV_AUTH_ROTATION_RUNBOOK.md
+# Non-md leftovers of the archived docs (evidence, prototypes, annotation sheets) stay local.
+/docs/admin-redesign/
+/docs/ai-product/
+/docs/audit/
+/docs/handoff/
+/docs/deployment/evidence/
+/docs/ai-training/*.csv
 /reports/
 /qa-audit/
 /GYM_*.md

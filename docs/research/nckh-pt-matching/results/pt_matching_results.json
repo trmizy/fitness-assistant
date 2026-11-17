@@ -1,0 +1,4016 @@
+{
+  "generatedAt": "2026-11-07T04:36:51.072Z",
+  "scoringVersion": "compatibility-v2",
+  "weights": {
+    "goal": 30,
+    "schedule": 25,
+    "budget": 20,
+    "reputation": 10,
+    "evidence": 15
+  },
+  "setup": {
+    "seeds": [
+      11,
+      23,
+      37,
+      41,
+      53
+    ],
+    "nPTSensitivity": 250,
+    "nUserPerSeed": 300,
+    "K": 5,
+    "relevanceThreshold": 0.6
+  },
+  "labels": {
+    "RANDOM": "M0 Ngẫu nhiên",
+    "RATING_ONLY": "M1 Chỉ theo đánh giá sao",
+    "SCORE_NO_FILTER": "M2 Chấm điểm, không lọc cứng",
+    "FILTER_PRICE": "M3 Lọc cứng + giá rẻ nhất",
+    "FILTER_RATING": "M4 Lọc cứng + đánh giá sao",
+    "HYBRID_V1": "M5 Lọc cứng + đa tiêu chí v1",
+    "HYBRID_V2": "M6 Lọc cứng + đa tiêu chí v2 (đề xuất)",
+    "ABL_NO_GOAL_SCHED_BUDGET": "A1 v2 bỏ mục tiêu+lịch+ngân sách",
+    "ABL_NO_REPUTATION": "A2 v2 bỏ uy tín (sao)",
+    "ABL_NO_EVIDENCE": "A3 v2 bỏ bằng chứng chỉ số cơ thể",
+    "EXP_OUTCOME_AWARE": "X1 v2 + bằng chứng theo kết quả (thử nghiệm)",
+    "EXP_UNROUNDED_TIEBREAK": "X2 v2 không làm tròn + phá hoà theo sao"
+  },
+  "scenarios": [
+    {
+      "id": "S1",
+      "nPT": 80,
+      "rating": "informative",
+      "label": "S1: 80 PT, sao phản ánh chất lượng",
+      "perSeed": [
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05107962631075691,
+              "precision5": 0.03450704225352112,
+              "recall5": 0.06313506815365552,
+              "hitRate1": 0.007042253521126761,
+              "violation5": 0.9500000000000011,
+              "tieRate5": null,
+              "coldStartHit5": 0.09558823529411764,
+              "coldStartN": 136,
+              "msPerQuery": 0.0071440140845070365,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.06364418238612057,
+              "precision5": 0.052112676056337986,
+              "recall5": 0.07781908302354393,
+              "hitRate1": 0.01056338028169014,
+              "violation5": 0.9366197183098601,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 136,
+              "msPerQuery": 0.07037007042253525,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6807540427369652,
+              "precision5": 0.3725352112676067,
+              "recall5": 0.7081164807930606,
+              "hitRate1": 0.23943661971830985,
+              "violation5": 0.4401408450704229,
+              "tieRate5": 0.8450704225352113,
+              "coldStartHit5": 0.36764705882352944,
+              "coldStartN": 136,
+              "msPerQuery": 0.39989718309859185,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8892855141572309,
+              "precision5": 0.6668427230046947,
+              "recall5": 0.9204460966542753,
+              "hitRate1": 0.27816901408450706,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.8897058823529411,
+              "coldStartN": 136,
+              "msPerQuery": 0.014249999999999999,
+              "avgReturned": 3.6690140845070425
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9506173075944345,
+              "precision5": 0.7055751173708918,
+              "recall5": 0.96548946716233,
+              "hitRate1": 0.5035211267605634,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9411764705882353,
+              "coldStartN": 136,
+              "msPerQuery": 0.008883802816901406,
+              "avgReturned": 3.6690140845070425
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.9016536532830772,
+              "precision5": 0.6675469483568074,
+              "recall5": 0.9202602230483272,
+              "hitRate1": 0.323943661971831,
+              "violation5": 0,
+              "tieRate5": 0.6097560975609756,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.06869295774647889,
+              "avgReturned": 3.6690140845070425
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.9021057847404661,
+              "precision5": 0.6675469483568074,
+              "recall5": 0.9214374225526645,
+              "hitRate1": 0.3415492957746479,
+              "violation5": 0,
+              "tieRate5": 0.7073170731707317,
+              "coldStartHit5": 0.7941176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.05454471830985912,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.9005895494467199,
+              "precision5": 0.6668427230046948,
+              "recall5": 0.9205080545229247,
+              "hitRate1": 0.33098591549295775,
+              "violation5": 0,
+              "tieRate5": 0.524390243902439,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.057273943661971825,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8916546972321479,
+              "precision5": 0.6717723004694836,
+              "recall5": 0.9262701363073113,
+              "hitRate1": 0.29577464788732394,
+              "violation5": 0,
+              "tieRate5": 0.8821138211382114,
+              "coldStartHit5": 0.9191176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.058743661971830986,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9147114961651215,
+              "precision5": 0.6710680751173707,
+              "recall5": 0.92546468401487,
+              "hitRate1": 0.40492957746478875,
+              "violation5": 0,
+              "tieRate5": 0.7560975609756098,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.055664788732394374,
+              "avgReturned": 3.6690140845070425
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.9033024954454001,
+              "precision5": 0.6668427230046947,
+              "recall5": 0.9205080545229247,
+              "hitRate1": 0.35563380281690143,
+              "violation5": 0,
+              "tieRate5": 0.6219512195121951,
+              "coldStartHit5": 0.7941176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.0571676056338028,
+              "avgReturned": 3.6690140845070425
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9138042678775191,
+              "precision5": 0.681631455399061,
+              "recall5": 0.9389095415117725,
+              "hitRate1": 0.3415492957746479,
+              "violation5": 0,
+              "tieRate5": 0.5203252032520326,
+              "coldStartHit5": 0.8529411764705882,
+              "coldStartN": 136,
+              "msPerQuery": 0.05794014084507039,
+              "avgReturned": 3.6690140845070425
+            }
+          },
+          "queries": 300,
+          "answered": 284,
+          "emptyRate": 0.05333333333333334,
+          "avgFeasible": 4.454225352112676,
+          "evidenceCoverage": 0.28537549407114626,
+          "coldStartPTShare": 0.275,
+          "sample": {
+            "pts": [
+              {
+                "id": "pt-0",
+                "specialties": [
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  7
+                ],
+                "packages": [
+                  "12b/90p/5600000",
+                  "8b/90p/3750000"
+                ],
+                "rating": 5,
+                "reviews": 9,
+                "journeys": 22
+              },
+              {
+                "id": "pt-1",
+                "specialties": [
+                  "Giảm mỡ",
+                  "Sức bền"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3500000",
+                  "8b/45p/1750000"
+                ],
+                "rating": null,
+                "reviews": 0,
+                "journeys": 0
+              },
+              {
+                "id": "pt-2",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "8b/45p/1450000",
+                  "12b/45p/2200000",
+                  "16b/60p/3900000"
+                ],
+                "rating": 4.6,
+                "reviews": 17,
+                "journeys": 28
+              },
+              {
+                "id": "pt-3",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/45p/3250000"
+                ],
+                "rating": 5,
+                "reviews": 29,
+                "journeys": 43
+              },
+              {
+                "id": "pt-4",
+                "specialties": [
+                  "Tăng cơ"
+                ],
+                "days": [
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3450000",
+                  "12b/90p/5150000",
+                  "12b/60p/3450000"
+                ],
+                "rating": 4.8,
+                "reviews": 25,
+                "journeys": 47
+              }
+            ],
+            "users": [
+              {
+                "id": "u-0",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 79.4,
+                "bodyFat": 25.2,
+                "days": [
+                  1,
+                  4,
+                  6
+                ],
+                "sessionMinutes": 90,
+                "budget": 3800000
+              },
+              {
+                "id": "u-1",
+                "goal": "MAINTENANCE",
+                "exp": "BEGINNER",
+                "weight": 66.6,
+                "bodyFat": 25.3,
+                "days": [
+                  3,
+                  5,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 45,
+                "budget": 2600000
+              },
+              {
+                "id": "u-2",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 112.6,
+                "bodyFat": 27,
+                "days": [
+                  1,
+                  5,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 45,
+                "budget": 3600000
+              },
+              {
+                "id": "u-3",
+                "goal": "ATHLETIC_PERFORMANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 84,
+                "bodyFat": 24.4,
+                "days": [
+                  2,
+                  3,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 90,
+                "budget": 2800000
+              },
+              {
+                "id": "u-4",
+                "goal": "WEIGHT_LOSS",
+                "exp": "BEGINNER",
+                "weight": 63.6,
+                "bodyFat": 26.8,
+                "days": [
+                  2,
+                  4,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 2400000
+              }
+            ]
+          }
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05072156221503282,
+              "precision5": 0.029104477611940315,
+              "recall5": 0.06005398110661268,
+              "hitRate1": 0.014925373134328358,
+              "violation5": 0.9507462686567173,
+              "tieRate5": null,
+              "coldStartHit5": 0.075,
+              "coldStartN": 160,
+              "msPerQuery": 0.003212686567164181,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.029369672231773048,
+              "precision5": 0.02611940298507464,
+              "recall5": 0.03859649122807018,
+              "hitRate1": 0.014925373134328358,
+              "violation5": 0.9694029850746275,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 160,
+              "msPerQuery": 0.022880970149253735,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6089119892593235,
+              "precision5": 0.27835820895522445,
+              "recall5": 0.6475708502024289,
+              "hitRate1": 0.2126865671641791,
+              "violation5": 0.49179104477611935,
+              "tieRate5": 0.9029850746268657,
+              "coldStartHit5": 0.4875,
+              "coldStartN": 160,
+              "msPerQuery": 0.23450970149253714,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8982626046732589,
+              "precision5": 0.5778606965174129,
+              "recall5": 0.9083670715249662,
+              "hitRate1": 0.34701492537313433,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9375,
+              "coldStartN": 160,
+              "msPerQuery": 0.011510447761194026,
+              "avgReturned": 3.5223880597014925
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.947596190802837,
+              "precision5": 0.6099502487562186,
+              "recall5": 0.949460188933873,
+              "hitRate1": 0.5261194029850746,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.007905970149253733,
+              "avgReturned": 3.5223880597014925
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8984773280689452,
+              "precision5": 0.5845771144278606,
+              "recall5": 0.9188259109311739,
+              "hitRate1": 0.31716417910447764,
+              "violation5": 0,
+              "tieRate5": 0.7316017316017316,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.040454850746268665,
+              "avgReturned": 3.5223880597014925
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.9010697581531565,
+              "precision5": 0.5838308457711441,
+              "recall5": 0.9187584345479077,
+              "hitRate1": 0.35447761194029853,
+              "violation5": 0,
+              "tieRate5": 0.7575757575757576,
+              "coldStartHit5": 0.88125,
+              "coldStartN": 160,
+              "msPerQuery": 0.03439552238805972,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.9035621970601972,
+              "precision5": 0.5838308457711442,
+              "recall5": 0.9180161943319836,
+              "hitRate1": 0.3694029850746269,
+              "violation5": 0,
+              "tieRate5": 0.6190476190476191,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.04216940298507462,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8787883439586889,
+              "precision5": 0.5703980099502487,
+              "recall5": 0.9007422402159238,
+              "hitRate1": 0.2835820895522388,
+              "violation5": 0,
+              "tieRate5": 0.9307359307359307,
+              "coldStartHit5": 0.98125,
+              "coldStartN": 160,
+              "msPerQuery": 0.03214962686567164,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9095604352868767,
+              "precision5": 0.5890547263681594,
+              "recall5": 0.9236842105263157,
+              "hitRate1": 0.376865671641791,
+              "violation5": 0,
+              "tieRate5": 0.7792207792207793,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.031126492537313442,
+              "avgReturned": 3.5223880597014925
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.9033352487416126,
+              "precision5": 0.5845771144278606,
+              "recall5": 0.9188259109311739,
+              "hitRate1": 0.3619402985074627,
+              "violation5": 0,
+              "tieRate5": 0.7445887445887446,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.03452388059701493,
+              "avgReturned": 3.5223880597014925
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9156071027615214,
+              "precision5": 0.5950248756218901,
+              "recall5": 0.9332658569500673,
+              "hitRate1": 0.39552238805970147,
+              "violation5": 0,
+              "tieRate5": 0.6320346320346321,
+              "coldStartHit5": 0.88125,
+              "coldStartN": 160,
+              "msPerQuery": 0.035758208955223886,
+              "avgReturned": 3.5223880597014925
+            }
+          },
+          "queries": 300,
+          "answered": 268,
+          "emptyRate": 0.10666666666666667,
+          "avgFeasible": 4.388059701492537,
+          "evidenceCoverage": 0.18622448979591838,
+          "coldStartPTShare": 0.35
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04551363886200349,
+              "precision5": 0.027888446215139456,
+              "recall5": 0.04722222222222221,
+              "hitRate1": 0.00796812749003984,
+              "violation5": 0.9513944223107578,
+              "tieRate5": null,
+              "coldStartHit5": 0.04,
+              "coldStartN": 100,
+              "msPerQuery": 0.0030844621513944222,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.09425462036777138,
+              "precision5": 0.06852589641434252,
+              "recall5": 0.12492877492877484,
+              "hitRate1": 0.07171314741035857,
+              "violation5": 0.9314741035856589,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 100,
+              "msPerQuery": 0.02048525896414341,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6343459444635826,
+              "precision5": 0.31155378486055807,
+              "recall5": 0.6055555555555554,
+              "hitRate1": 0.2749003984063745,
+              "violation5": 0.4788844621513946,
+              "tieRate5": 0.8605577689243028,
+              "coldStartHit5": 0.23,
+              "coldStartN": 100,
+              "msPerQuery": 0.2939884462151394,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8870232401612262,
+              "precision5": 0.6378486055776887,
+              "recall5": 0.9059829059829061,
+              "hitRate1": 0.3426294820717131,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.89,
+              "coldStartN": 100,
+              "msPerQuery": 0.013134262948207175,
+              "avgReturned": 3.6254980079681274
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9230383381920099,
+              "precision5": 0.6561752988047806,
+              "recall5": 0.9264957264957269,
+              "hitRate1": 0.47410358565737054,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.91,
+              "coldStartN": 100,
+              "msPerQuery": 0.009343027888446218,
+              "avgReturned": 3.6254980079681274
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8990033134057749,
+              "precision5": 0.6338645418326689,
+              "recall5": 0.9017806267806272,
+              "hitRate1": 0.4063745019920319,
+              "violation5": 0,
+              "tieRate5": 0.6515837104072398,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.04996772908366534,
+              "avgReturned": 3.6254980079681274
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8905270774980105,
+              "precision5": 0.6274900398406372,
+              "recall5": 0.8949430199430204,
+              "hitRate1": 0.36254980079681276,
+              "violation5": 0,
+              "tieRate5": 0.6153846153846154,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.04338844621513945,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8871690738446002,
+              "precision5": 0.6250996015936253,
+              "recall5": 0.8921652421652426,
+              "hitRate1": 0.350597609561753,
+              "violation5": 0,
+              "tieRate5": 0.3755656108597285,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.04750756972111554,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.9197804243177058,
+              "precision5": 0.6681274900398404,
+              "recall5": 0.9432336182336186,
+              "hitRate1": 0.3944223107569721,
+              "violation5": 0,
+              "tieRate5": 0.9004524886877828,
+              "coldStartHit5": 0.98,
+              "coldStartN": 100,
+              "msPerQuery": 0.04293147410358563,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9105565952947264,
+              "precision5": 0.6346613545816729,
+              "recall5": 0.902635327635328,
+              "hitRate1": 0.4541832669322709,
+              "violation5": 0,
+              "tieRate5": 0.7149321266968326,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.042976494023904334,
+              "avgReturned": 3.6254980079681274
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8919637423651476,
+              "precision5": 0.6266932270916331,
+              "recall5": 0.8938746438746442,
+              "hitRate1": 0.3705179282868526,
+              "violation5": 0,
+              "tieRate5": 0.5565610859728507,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.044103984063745064,
+              "avgReturned": 3.6254980079681274
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8883775314807708,
+              "precision5": 0.6250996015936253,
+              "recall5": 0.891595441595442,
+              "hitRate1": 0.3466135458167331,
+              "violation5": 0,
+              "tieRate5": 0.37104072398190047,
+              "coldStartHit5": 0.84,
+              "coldStartN": 100,
+              "msPerQuery": 0.0472239043824701,
+              "avgReturned": 3.6254980079681274
+            }
+          },
+          "queries": 300,
+          "answered": 251,
+          "emptyRate": 0.16333333333333333,
+          "avgFeasible": 4.51792828685259,
+          "evidenceCoverage": 0.2292768959435626,
+          "coldStartPTShare": 0.2125
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.060892275555609617,
+              "precision5": 0.03767123287671232,
+              "recall5": 0.07724968314321924,
+              "hitRate1": 0.010273972602739725,
+              "violation5": 0.9390410958904117,
+              "tieRate5": null,
+              "coldStartHit5": 0.07407407407407407,
+              "coldStartN": 135,
+              "msPerQuery": 0.0028921232876712288,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.03493414496686049,
+              "precision5": 0.026712328767123303,
+              "recall5": 0.04752851711026614,
+              "hitRate1": 0.0273972602739726,
+              "violation5": 0.9732876712328774,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 135,
+              "msPerQuery": 0.024408561643835626,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6550692941353246,
+              "precision5": 0.30547945205479543,
+              "recall5": 0.6395437262357414,
+              "hitRate1": 0.2226027397260274,
+              "violation5": 0.4143835616438356,
+              "tieRate5": 0.8561643835616438,
+              "coldStartHit5": 0.37777777777777777,
+              "coldStartN": 135,
+              "msPerQuery": 0.2387777397260276,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8462681141253089,
+              "precision5": 0.4903538812785389,
+              "recall5": 0.8176172370088719,
+              "hitRate1": 0.21232876712328766,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.8222222222222222,
+              "coldStartN": 135,
+              "msPerQuery": 0.013178424657534243,
+              "avgReturned": 3.9075342465753424
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9144277018815855,
+              "precision5": 0.547203196347032,
+              "recall5": 0.9050063371356146,
+              "hitRate1": 0.4178082191780822,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.7555555555555555,
+              "coldStartN": 135,
+              "msPerQuery": 0.008226027397260272,
+              "avgReturned": 3.9075342465753424
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8979756902889836,
+              "precision5": 0.5362442922374431,
+              "recall5": 0.8868821292775665,
+              "hitRate1": 0.3356164383561644,
+              "violation5": 0,
+              "tieRate5": 0.6813186813186813,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.04943287671232878,
+              "avgReturned": 3.9075342465753424
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8854620334976537,
+              "precision5": 0.5204908675799087,
+              "recall5": 0.8697718631178705,
+              "hitRate1": 0.3116438356164384,
+              "violation5": 0,
+              "tieRate5": 0.7655677655677655,
+              "coldStartHit5": 0.8,
+              "coldStartN": 135,
+              "msPerQuery": 0.04049897260273974,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8841094865726069,
+              "precision5": 0.5184360730593608,
+              "recall5": 0.8666032953105194,
+              "hitRate1": 0.3047945205479452,
+              "violation5": 0,
+              "tieRate5": 0.47985347985347987,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.03923458904109591,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8922470314458006,
+              "precision5": 0.5184360730593607,
+              "recall5": 0.8631812420785803,
+              "hitRate1": 0.3527397260273973,
+              "violation5": 0,
+              "tieRate5": 0.9340659340659341,
+              "coldStartHit5": 0.9851851851851852,
+              "coldStartN": 135,
+              "msPerQuery": 0.04066815068493152,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9032778674593249,
+              "precision5": 0.5328196347031966,
+              "recall5": 0.8830798479087453,
+              "hitRate1": 0.3664383561643836,
+              "violation5": 0,
+              "tieRate5": 0.8131868131868132,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.03942363013698629,
+              "avgReturned": 3.9075342465753424
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8881337304644851,
+              "precision5": 0.5239155251141551,
+              "recall5": 0.8730671736375155,
+              "hitRate1": 0.3321917808219178,
+              "violation5": 0,
+              "tieRate5": 0.7032967032967034,
+              "coldStartHit5": 0.7407407407407407,
+              "coldStartN": 135,
+              "msPerQuery": 0.04205479452054795,
+              "avgReturned": 3.9075342465753424
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.885505089884949,
+              "precision5": 0.5218607305936075,
+              "recall5": 0.8741444866920153,
+              "hitRate1": 0.3082191780821918,
+              "violation5": 0,
+              "tieRate5": 0.5164835164835165,
+              "coldStartHit5": 0.7333333333333333,
+              "coldStartN": 135,
+              "msPerQuery": 0.04176849315068493,
+              "avgReturned": 3.9075342465753424
+            }
+          },
+          "queries": 300,
+          "answered": 292,
+          "emptyRate": 0.02666666666666667,
+          "avgFeasible": 5.1438356164383565,
+          "evidenceCoverage": 0.19174434087882822,
+          "coldStartPTShare": 0.35
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05934398856408873,
+              "precision5": 0.032365145228215784,
+              "recall5": 0.07967479674796747,
+              "hitRate1": 0.012448132780082987,
+              "violation5": 0.9535269709543575,
+              "tieRate5": null,
+              "coldStartHit5": 0.06140350877192982,
+              "coldStartN": 114,
+              "msPerQuery": 0.0027377593360995863,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.021769483839584006,
+              "precision5": 0.01576763485477179,
+              "recall5": 0.046016260162601616,
+              "hitRate1": 0,
+              "violation5": 0.9842323651452286,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 114,
+              "msPerQuery": 0.018348547717842334,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.4108602513523212,
+              "precision5": 0.2058091286307054,
+              "recall5": 0.5096747967479676,
+              "hitRate1": 0.0912863070539419,
+              "violation5": 0.6539419087136926,
+              "tieRate5": 0.8174273858921162,
+              "coldStartHit5": 0.2982456140350877,
+              "coldStartN": 114,
+              "msPerQuery": 0.24551867219917003,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.9133051625200052,
+              "precision5": 0.601521438450899,
+              "recall5": 0.9391869918699185,
+              "hitRate1": 0.3651452282157676,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9298245614035088,
+              "coldStartN": 114,
+              "msPerQuery": 0.008906224066390033,
+              "avgReturned": 3.107883817427386
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.969463112754689,
+              "precision5": 0.6289073305670818,
+              "recall5": 0.9753658536585368,
+              "hitRate1": 0.6597510373443983,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9824561403508771,
+              "coldStartN": 114,
+              "msPerQuery": 0.006612448132780078,
+              "avgReturned": 3.107883817427386
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.9313343516280662,
+              "precision5": 0.608990318118949,
+              "recall5": 0.9465853658536588,
+              "hitRate1": 0.5020746887966805,
+              "violation5": 0,
+              "tieRate5": 0.5968586387434555,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.0326265560165975,
+              "avgReturned": 3.107883817427386
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.922045405183344,
+              "precision5": 0.6089903181189491,
+              "recall5": 0.9489430894308946,
+              "hitRate1": 0.42323651452282157,
+              "violation5": 0,
+              "tieRate5": 0.6178010471204188,
+              "coldStartHit5": 0.8859649122807017,
+              "coldStartN": 114,
+              "msPerQuery": 0.02802946058091283,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.9207949942122079,
+              "precision5": 0.6065006915629323,
+              "recall5": 0.943658536585366,
+              "hitRate1": 0.4315352697095436,
+              "violation5": 0,
+              "tieRate5": 0.4712041884816754,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.02867344398340249,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.9311882503006188,
+              "precision5": 0.6065006915629323,
+              "recall5": 0.9417073170731707,
+              "hitRate1": 0.44813278008298757,
+              "violation5": 0,
+              "tieRate5": 0.8638743455497382,
+              "coldStartHit5": 0.9824561403508771,
+              "coldStartN": 114,
+              "msPerQuery": 0.03008755186721991,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9329867599309811,
+              "precision5": 0.6081604426002767,
+              "recall5": 0.9456097560975613,
+              "hitRate1": 0.5186721991701245,
+              "violation5": 0,
+              "tieRate5": 0.6387434554973822,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.026849377593360993,
+              "avgReturned": 3.107883817427386
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.9197207836448225,
+              "precision5": 0.60567081604426,
+              "recall5": 0.9441463414634148,
+              "hitRate1": 0.4190871369294606,
+              "violation5": 0,
+              "tieRate5": 0.5549738219895288,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.028415767634854764,
+              "avgReturned": 3.107883817427386
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9266277166443883,
+              "precision5": 0.6106500691562934,
+              "recall5": 0.9520325203252035,
+              "hitRate1": 0.43568464730290457,
+              "violation5": 0,
+              "tieRate5": 0.4816753926701571,
+              "coldStartHit5": 0.9649122807017544,
+              "coldStartN": 114,
+              "msPerQuery": 0.028327385892116214,
+              "avgReturned": 3.107883817427386
+            }
+          },
+          "queries": 300,
+          "answered": 241,
+          "emptyRate": 0.19666666666666666,
+          "avgFeasible": 3.4730290456431536,
+          "evidenceCoverage": 0.24731182795698925,
+          "coldStartPTShare": 0.2625
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "nPT": 80,
+      "rating": "inflated",
+      "label": "S2: 80 PT, sao bị thổi phồng",
+      "perSeed": [
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05107962631075691,
+              "precision5": 0.03450704225352112,
+              "recall5": 0.06313506815365552,
+              "hitRate1": 0.007042253521126761,
+              "violation5": 0.9500000000000011,
+              "tieRate5": null,
+              "coldStartHit5": 0.09558823529411764,
+              "coldStartN": 136,
+              "msPerQuery": 0.0023422535211267575,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.06364418238612057,
+              "precision5": 0.052112676056337986,
+              "recall5": 0.07781908302354393,
+              "hitRate1": 0.01056338028169014,
+              "violation5": 0.9366197183098601,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 136,
+              "msPerQuery": 0.019335211267605616,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6627540777949792,
+              "precision5": 0.3669014084507051,
+              "recall5": 0.7009913258983886,
+              "hitRate1": 0.18661971830985916,
+              "violation5": 0.4422535211267609,
+              "tieRate5": 0.8591549295774648,
+              "coldStartHit5": 0.35294117647058826,
+              "coldStartN": 136,
+              "msPerQuery": 0.24770352112676047,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8892855141572309,
+              "precision5": 0.6668427230046947,
+              "recall5": 0.9204460966542753,
+              "hitRate1": 0.27816901408450706,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.8897058823529411,
+              "coldStartN": 136,
+              "msPerQuery": 0.010553169014084509,
+              "avgReturned": 3.6690140845070425
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9288537567155651,
+              "precision5": 0.694307511737089,
+              "recall5": 0.9528500619578688,
+              "hitRate1": 0.397887323943662,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9191176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.00703908450704225,
+              "avgReturned": 3.6690140845070425
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8958686456232551,
+              "precision5": 0.661913145539906,
+              "recall5": 0.9148079306071872,
+              "hitRate1": 0.29577464788732394,
+              "violation5": 0,
+              "tieRate5": 0.6910569105691057,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.044954225352112694,
+              "avgReturned": 3.6690140845070425
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.893844847865086,
+              "precision5": 0.6654342723004694,
+              "recall5": 0.9192069392812889,
+              "hitRate1": 0.29225352112676056,
+              "violation5": 0,
+              "tieRate5": 0.7235772357723578,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.038264084507042224,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.897031230024922,
+              "precision5": 0.6654342723004694,
+              "recall5": 0.9190210656753411,
+              "hitRate1": 0.31690140845070425,
+              "violation5": 0,
+              "tieRate5": 0.556910569105691,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.03845669014084507,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8916546972321479,
+              "precision5": 0.6717723004694836,
+              "recall5": 0.9262701363073113,
+              "hitRate1": 0.29577464788732394,
+              "violation5": 0,
+              "tieRate5": 0.8821138211382114,
+              "coldStartHit5": 0.9191176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.03997077464788729,
+              "avgReturned": 3.6690140845070425
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9030019378312254,
+              "precision5": 0.6647300469483566,
+              "recall5": 0.9182775712515491,
+              "hitRate1": 0.3345070422535211,
+              "violation5": 0,
+              "tieRate5": 0.8130081300813008,
+              "coldStartHit5": 0.7867647058823529,
+              "coldStartN": 136,
+              "msPerQuery": 0.03805211267605634,
+              "avgReturned": 3.6690140845070425
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8975756650140392,
+              "precision5": 0.6654342723004694,
+              "recall5": 0.9190210656753411,
+              "hitRate1": 0.3204225352112676,
+              "violation5": 0,
+              "tieRate5": 0.7032520325203252,
+              "coldStartHit5": 0.7941176470588235,
+              "coldStartN": 136,
+              "msPerQuery": 0.03974049295774649,
+              "avgReturned": 3.6690140845070425
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9033044900856408,
+              "precision5": 0.6738849765258215,
+              "recall5": 0.9295539033457251,
+              "hitRate1": 0.30985915492957744,
+              "violation5": 0,
+              "tieRate5": 0.5447154471544715,
+              "coldStartHit5": 0.8308823529411765,
+              "coldStartN": 136,
+              "msPerQuery": 0.04025105633802814,
+              "avgReturned": 3.6690140845070425
+            }
+          },
+          "queries": 300,
+          "answered": 284,
+          "emptyRate": 0.05333333333333334,
+          "avgFeasible": 4.454225352112676,
+          "evidenceCoverage": 0.28537549407114626,
+          "coldStartPTShare": 0.275,
+          "sample": {
+            "pts": [
+              {
+                "id": "pt-0",
+                "specialties": [
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  7
+                ],
+                "packages": [
+                  "12b/90p/5600000",
+                  "8b/90p/3750000"
+                ],
+                "rating": 5,
+                "reviews": 9,
+                "journeys": 22
+              },
+              {
+                "id": "pt-1",
+                "specialties": [
+                  "Giảm mỡ",
+                  "Sức bền"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3500000",
+                  "8b/45p/1750000"
+                ],
+                "rating": null,
+                "reviews": 0,
+                "journeys": 0
+              },
+              {
+                "id": "pt-2",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "8b/45p/1450000",
+                  "12b/45p/2200000",
+                  "16b/60p/3900000"
+                ],
+                "rating": 4.9,
+                "reviews": 17,
+                "journeys": 28
+              },
+              {
+                "id": "pt-3",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/45p/3250000"
+                ],
+                "rating": 5,
+                "reviews": 29,
+                "journeys": 43
+              },
+              {
+                "id": "pt-4",
+                "specialties": [
+                  "Tăng cơ"
+                ],
+                "days": [
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3450000",
+                  "12b/90p/5150000",
+                  "12b/60p/3450000"
+                ],
+                "rating": 4.8,
+                "reviews": 25,
+                "journeys": 47
+              }
+            ],
+            "users": [
+              {
+                "id": "u-0",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 79.4,
+                "bodyFat": 25.2,
+                "days": [
+                  1,
+                  4,
+                  6
+                ],
+                "sessionMinutes": 90,
+                "budget": 3800000
+              },
+              {
+                "id": "u-1",
+                "goal": "MAINTENANCE",
+                "exp": "BEGINNER",
+                "weight": 66.6,
+                "bodyFat": 25.3,
+                "days": [
+                  3,
+                  5,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 45,
+                "budget": 2600000
+              },
+              {
+                "id": "u-2",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 112.6,
+                "bodyFat": 27,
+                "days": [
+                  1,
+                  5,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 45,
+                "budget": 3600000
+              },
+              {
+                "id": "u-3",
+                "goal": "ATHLETIC_PERFORMANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 84,
+                "bodyFat": 24.4,
+                "days": [
+                  2,
+                  3,
+                  6,
+                  7
+                ],
+                "sessionMinutes": 90,
+                "budget": 2800000
+              },
+              {
+                "id": "u-4",
+                "goal": "WEIGHT_LOSS",
+                "exp": "BEGINNER",
+                "weight": 63.6,
+                "bodyFat": 26.8,
+                "days": [
+                  2,
+                  4,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 2400000
+              }
+            ]
+          }
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05072156221503282,
+              "precision5": 0.029104477611940315,
+              "recall5": 0.06005398110661268,
+              "hitRate1": 0.014925373134328358,
+              "violation5": 0.9507462686567173,
+              "tieRate5": null,
+              "coldStartHit5": 0.075,
+              "coldStartN": 160,
+              "msPerQuery": 0.002548134328358208,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.08529421507916284,
+              "precision5": 0.023880597014925384,
+              "recall5": 0.038259109311740896,
+              "hitRate1": 0.048507462686567165,
+              "violation5": 0.9432835820895528,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 160,
+              "msPerQuery": 0.020924999999999996,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6081025179630786,
+              "precision5": 0.27611940298507515,
+              "recall5": 0.6413630229419699,
+              "hitRate1": 0.19402985074626866,
+              "violation5": 0.4895522388059701,
+              "tieRate5": 0.9328358208955224,
+              "coldStartHit5": 0.475,
+              "coldStartN": 160,
+              "msPerQuery": 0.19682201492537318,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8982626046732589,
+              "precision5": 0.5778606965174129,
+              "recall5": 0.9083670715249662,
+              "hitRate1": 0.34701492537313433,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9375,
+              "coldStartN": 160,
+              "msPerQuery": 0.010834328358208953,
+              "avgReturned": 3.5223880597014925
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9222138071651814,
+              "precision5": 0.5905472636815917,
+              "recall5": 0.9276653171390012,
+              "hitRate1": 0.43283582089552236,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.875,
+              "coldStartN": 160,
+              "msPerQuery": 0.006790298507462689,
+              "avgReturned": 3.5223880597014925
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8975809015099685,
+              "precision5": 0.58681592039801,
+              "recall5": 0.9212550607287449,
+              "hitRate1": 0.3246268656716418,
+              "violation5": 0,
+              "tieRate5": 0.7748917748917749,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.03504179104477612,
+              "avgReturned": 3.5223880597014925
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8948747828112099,
+              "precision5": 0.5823383084577113,
+              "recall5": 0.9160593792172735,
+              "hitRate1": 0.3358208955223881,
+              "violation5": 0,
+              "tieRate5": 0.7835497835497836,
+              "coldStartHit5": 0.875,
+              "coldStartN": 160,
+              "msPerQuery": 0.029197388059701495,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8971044041601413,
+              "precision5": 0.5838308457711442,
+              "recall5": 0.9180161943319836,
+              "hitRate1": 0.35074626865671643,
+              "violation5": 0,
+              "tieRate5": 0.70995670995671,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.030307462686567182,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8787883439586889,
+              "precision5": 0.5703980099502487,
+              "recall5": 0.9007422402159238,
+              "hitRate1": 0.2835820895522388,
+              "violation5": 0,
+              "tieRate5": 0.9307359307359307,
+              "coldStartHit5": 0.98125,
+              "coldStartN": 160,
+              "msPerQuery": 0.029442910447761202,
+              "avgReturned": 3.5223880597014925
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8977841144253293,
+              "precision5": 0.5838308457711443,
+              "recall5": 0.9180161943319836,
+              "hitRate1": 0.3246268656716418,
+              "violation5": 0,
+              "tieRate5": 0.8181818181818182,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.03126044776119403,
+              "avgReturned": 3.5223880597014925
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8969979554180079,
+              "precision5": 0.5845771144278606,
+              "recall5": 0.9188259109311739,
+              "hitRate1": 0.34328358208955223,
+              "violation5": 0,
+              "tieRate5": 0.7878787878787878,
+              "coldStartHit5": 0.86875,
+              "coldStartN": 160,
+              "msPerQuery": 0.03032611940298508,
+              "avgReturned": 3.5223880597014925
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9092648074780988,
+              "precision5": 0.5912935323383082,
+              "recall5": 0.9286774628879891,
+              "hitRate1": 0.3694029850746269,
+              "violation5": 0,
+              "tieRate5": 0.7186147186147186,
+              "coldStartHit5": 0.875,
+              "coldStartN": 160,
+              "msPerQuery": 0.03031417910447761,
+              "avgReturned": 3.5223880597014925
+            }
+          },
+          "queries": 300,
+          "answered": 268,
+          "emptyRate": 0.10666666666666667,
+          "avgFeasible": 4.388059701492537,
+          "evidenceCoverage": 0.18622448979591838,
+          "coldStartPTShare": 0.35
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04551363886200349,
+              "precision5": 0.027888446215139456,
+              "recall5": 0.04722222222222221,
+              "hitRate1": 0.00796812749003984,
+              "violation5": 0.9513944223107578,
+              "tieRate5": null,
+              "coldStartHit5": 0.04,
+              "coldStartN": 100,
+              "msPerQuery": 0.0021999999999999975,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.10934579800786509,
+              "precision5": 0.07490039840637437,
+              "recall5": 0.13418803418803407,
+              "hitRate1": 0.07171314741035857,
+              "violation5": 0.9027888446215161,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 100,
+              "msPerQuery": 0.017833067729083666,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6308802580408351,
+              "precision5": 0.3051792828685262,
+              "recall5": 0.5928062678062674,
+              "hitRate1": 0.26294820717131473,
+              "violation5": 0.47888446215139446,
+              "tieRate5": 0.9123505976095617,
+              "coldStartHit5": 0.22,
+              "coldStartN": 100,
+              "msPerQuery": 0.2195633466135459,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8870232401612262,
+              "precision5": 0.6378486055776887,
+              "recall5": 0.9059829059829061,
+              "hitRate1": 0.3426294820717131,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.89,
+              "coldStartN": 100,
+              "msPerQuery": 0.009687649402390438,
+              "avgReturned": 3.6254980079681274
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8891070131779591,
+              "precision5": 0.629880478087649,
+              "recall5": 0.8959401709401712,
+              "hitRate1": 0.40239043824701193,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.86,
+              "coldStartN": 100,
+              "msPerQuery": 0.006172908366533861,
+              "avgReturned": 3.6254980079681274
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8960431717013855,
+              "precision5": 0.629880478087649,
+              "recall5": 0.8975071225071228,
+              "hitRate1": 0.3944223107569721,
+              "violation5": 0,
+              "tieRate5": 0.6968325791855203,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.04319243027888447,
+              "avgReturned": 3.6254980079681274
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8863866143641197,
+              "precision5": 0.6243027888446211,
+              "recall5": 0.8910968660968664,
+              "hitRate1": 0.3466135458167331,
+              "violation5": 0,
+              "tieRate5": 0.7375565610859729,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.03287091633466136,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.874504501600785,
+              "precision5": 0.6243027888446211,
+              "recall5": 0.8913105413105415,
+              "hitRate1": 0.28286852589641437,
+              "violation5": 0,
+              "tieRate5": 0.4751131221719457,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.03415338645418327,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.9197804243177058,
+              "precision5": 0.6681274900398404,
+              "recall5": 0.9432336182336186,
+              "hitRate1": 0.3944223107569721,
+              "violation5": 0,
+              "tieRate5": 0.9004524886877828,
+              "coldStartHit5": 0.98,
+              "coldStartN": 100,
+              "msPerQuery": 0.034873705179282906,
+              "avgReturned": 3.6254980079681274
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.907694544195514,
+              "precision5": 0.631474103585657,
+              "recall5": 0.8992165242165246,
+              "hitRate1": 0.44621513944223107,
+              "violation5": 0,
+              "tieRate5": 0.8461538461538461,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.03298247011952192,
+              "avgReturned": 3.6254980079681274
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8886946192881688,
+              "precision5": 0.6266932270916332,
+              "recall5": 0.8940883190883194,
+              "hitRate1": 0.3545816733067729,
+              "violation5": 0,
+              "tieRate5": 0.6877828054298643,
+              "coldStartHit5": 0.83,
+              "coldStartN": 100,
+              "msPerQuery": 0.03495378486055778,
+              "avgReturned": 3.6254980079681274
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8689473277636169,
+              "precision5": 0.6195219123505975,
+              "recall5": 0.8838319088319091,
+              "hitRate1": 0.2749003984063745,
+              "violation5": 0,
+              "tieRate5": 0.4796380090497738,
+              "coldStartHit5": 0.79,
+              "coldStartN": 100,
+              "msPerQuery": 0.03629043824701196,
+              "avgReturned": 3.6254980079681274
+            }
+          },
+          "queries": 300,
+          "answered": 251,
+          "emptyRate": 0.16333333333333333,
+          "avgFeasible": 4.51792828685259,
+          "evidenceCoverage": 0.2292768959435626,
+          "coldStartPTShare": 0.2125
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.060892275555609617,
+              "precision5": 0.03767123287671232,
+              "recall5": 0.07724968314321924,
+              "hitRate1": 0.010273972602739725,
+              "violation5": 0.9390410958904117,
+              "tieRate5": null,
+              "coldStartHit5": 0.07407407407407407,
+              "coldStartN": 135,
+              "msPerQuery": 0.0024140410958904037,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.04772872727493053,
+              "precision5": 0.030136986301369864,
+              "recall5": 0.05811153358681874,
+              "hitRate1": 0.0273972602739726,
+              "violation5": 0.9493150684931518,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 135,
+              "msPerQuery": 0.023641438356164397,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6413253932914329,
+              "precision5": 0.3020547945205487,
+              "recall5": 0.6393536121673002,
+              "hitRate1": 0.1917808219178082,
+              "violation5": 0.4164383561643835,
+              "tieRate5": 0.8732876712328768,
+              "coldStartHit5": 0.3111111111111111,
+              "coldStartN": 135,
+              "msPerQuery": 0.2132106164383562,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8462681141253089,
+              "precision5": 0.4903538812785389,
+              "recall5": 0.8176172370088719,
+              "hitRate1": 0.21232876712328766,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.8222222222222222,
+              "coldStartN": 135,
+              "msPerQuery": 0.010542808219178086,
+              "avgReturned": 3.9075342465753424
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8842528639407595,
+              "precision5": 0.5355593607305937,
+              "recall5": 0.8892268694550065,
+              "hitRate1": 0.2979452054794521,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.7555555555555555,
+              "coldStartN": 135,
+              "msPerQuery": 0.006942808219178082,
+              "avgReturned": 3.9075342465753424
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8933467699172977,
+              "precision5": 0.5314497716894978,
+              "recall5": 0.8815589353612167,
+              "hitRate1": 0.3321917808219178,
+              "violation5": 0,
+              "tieRate5": 0.73992673992674,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.04096575342465752,
+              "avgReturned": 3.9075342465753424
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8765747211307526,
+              "precision5": 0.5170662100456621,
+              "recall5": 0.865399239543726,
+              "hitRate1": 0.2808219178082192,
+              "violation5": 0,
+              "tieRate5": 0.7362637362637363,
+              "coldStartHit5": 0.762962962962963,
+              "coldStartN": 135,
+              "msPerQuery": 0.03549315068493151,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8718204624869016,
+              "precision5": 0.5170662100456622,
+              "recall5": 0.8650823827629909,
+              "hitRate1": 0.2808219178082192,
+              "violation5": 0,
+              "tieRate5": 0.5384615384615384,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.03650856164383566,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8922470314458006,
+              "precision5": 0.5184360730593607,
+              "recall5": 0.8631812420785803,
+              "hitRate1": 0.3527397260273973,
+              "violation5": 0,
+              "tieRate5": 0.9340659340659341,
+              "coldStartHit5": 0.9851851851851852,
+              "coldStartN": 135,
+              "msPerQuery": 0.03588767123287672,
+              "avgReturned": 3.9075342465753424
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.890558920576622,
+              "precision5": 0.5259703196347032,
+              "recall5": 0.8754752851711025,
+              "hitRate1": 0.3287671232876712,
+              "violation5": 0,
+              "tieRate5": 0.8424908424908425,
+              "coldStartHit5": 0.725925925925926,
+              "coldStartN": 135,
+              "msPerQuery": 0.03849109589041098,
+              "avgReturned": 3.9075342465753424
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8800533624613652,
+              "precision5": 0.521175799086758,
+              "recall5": 0.8700253485424586,
+              "hitRate1": 0.3013698630136986,
+              "violation5": 0,
+              "tieRate5": 0.717948717948718,
+              "coldStartHit5": 0.7333333333333333,
+              "coldStartN": 135,
+              "msPerQuery": 0.036821232876712295,
+              "avgReturned": 3.9075342465753424
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8702331417193027,
+              "precision5": 0.5198059360730595,
+              "recall5": 0.8718631178707226,
+              "hitRate1": 0.2773972602739726,
+              "violation5": 0,
+              "tieRate5": 0.5421245421245421,
+              "coldStartHit5": 0.7111111111111111,
+              "coldStartN": 135,
+              "msPerQuery": 0.03682226027397261,
+              "avgReturned": 3.9075342465753424
+            }
+          },
+          "queries": 300,
+          "answered": 292,
+          "emptyRate": 0.02666666666666667,
+          "avgFeasible": 5.1438356164383565,
+          "evidenceCoverage": 0.19174434087882822,
+          "coldStartPTShare": 0.35
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.05934398856408873,
+              "precision5": 0.032365145228215784,
+              "recall5": 0.07967479674796747,
+              "hitRate1": 0.012448132780082987,
+              "violation5": 0.9535269709543575,
+              "tieRate5": null,
+              "coldStartHit5": 0.06140350877192982,
+              "coldStartN": 114,
+              "msPerQuery": 0.00247136929460581,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.027507059984916947,
+              "precision5": 0.019087136929460586,
+              "recall5": 0.03552845528455285,
+              "hitRate1": 0,
+              "violation5": 0.9684647302904569,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 114,
+              "msPerQuery": 0.01982033195020747,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.4231340896382523,
+              "precision5": 0.20082987551867224,
+              "recall5": 0.4995121951219513,
+              "hitRate1": 0.1078838174273859,
+              "violation5": 0.6473029045643153,
+              "tieRate5": 0.8672199170124482,
+              "coldStartHit5": 0.2631578947368421,
+              "coldStartN": 114,
+              "msPerQuery": 0.22599294605809128,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.9133051625200052,
+              "precision5": 0.601521438450899,
+              "recall5": 0.9391869918699185,
+              "hitRate1": 0.3651452282157676,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9298245614035088,
+              "coldStartN": 114,
+              "msPerQuery": 0.008924481327800831,
+              "avgReturned": 3.107883817427386
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.9541787354542469,
+              "precision5": 0.6222683264177042,
+              "recall5": 0.9668292682926831,
+              "hitRate1": 0.5560165975103735,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.9824561403508771,
+              "coldStartN": 114,
+              "msPerQuery": 0.006149377593360999,
+              "avgReturned": 3.107883817427386
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.9289293898693884,
+              "precision5": 0.608990318118949,
+              "recall5": 0.9465853658536588,
+              "hitRate1": 0.4896265560165975,
+              "violation5": 0,
+              "tieRate5": 0.5863874345549738,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.0308759336099585,
+              "avgReturned": 3.107883817427386
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.9188624160266213,
+              "precision5": 0.6073305670816046,
+              "recall5": 0.9448780487804882,
+              "hitRate1": 0.4149377593360996,
+              "violation5": 0,
+              "tieRate5": 0.6230366492146597,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.026358091286307058,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.9181240294202966,
+              "precision5": 0.6065006915629323,
+              "recall5": 0.943658536585366,
+              "hitRate1": 0.4149377593360996,
+              "violation5": 0,
+              "tieRate5": 0.4973821989528796,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.027136929460580928,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.9311882503006188,
+              "precision5": 0.6065006915629323,
+              "recall5": 0.9417073170731707,
+              "hitRate1": 0.44813278008298757,
+              "violation5": 0,
+              "tieRate5": 0.8638743455497382,
+              "coldStartHit5": 0.9824561403508771,
+              "coldStartN": 114,
+              "msPerQuery": 0.027823236514522832,
+              "avgReturned": 3.107883817427386
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.9304945148326438,
+              "precision5": 0.6065006915629323,
+              "recall5": 0.944308943089431,
+              "hitRate1": 0.5145228215767634,
+              "violation5": 0,
+              "tieRate5": 0.7068062827225131,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.029364315352697085,
+              "avgReturned": 3.107883817427386
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.9182040841713754,
+              "precision5": 0.6048409405255879,
+              "recall5": 0.9417073170731709,
+              "hitRate1": 0.4107883817427386,
+              "violation5": 0,
+              "tieRate5": 0.5863874345549738,
+              "coldStartHit5": 0.8771929824561403,
+              "coldStartN": 114,
+              "msPerQuery": 0.030209128630705396,
+              "avgReturned": 3.107883817427386
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.9195249222055477,
+              "precision5": 0.6081604426002768,
+              "recall5": 0.9473170731707319,
+              "hitRate1": 0.3983402489626556,
+              "violation5": 0,
+              "tieRate5": 0.4973821989528796,
+              "coldStartHit5": 0.9210526315789473,
+              "coldStartN": 114,
+              "msPerQuery": 0.026887136929460573,
+              "avgReturned": 3.107883817427386
+            }
+          },
+          "queries": 300,
+          "answered": 241,
+          "emptyRate": 0.19666666666666666,
+          "avgFeasible": 3.4730290456431536,
+          "evidenceCoverage": 0.24731182795698925,
+          "coldStartPTShare": 0.2625
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "nPT": 250,
+      "rating": "informative",
+      "label": "S3: 250 PT, sao phản ánh chất lượng",
+      "perSeed": [
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.035082267702956214,
+              "precision5": 0.02828282828282829,
+              "recall5": 0.03197740112994351,
+              "hitRate1": 0.003367003367003367,
+              "violation5": 0.9548821548821559,
+              "tieRate5": null,
+              "coldStartHit5": 0.02459016393442623,
+              "coldStartN": 122,
+              "msPerQuery": 0.009659259259259251,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.040781740951882,
+              "precision5": 0.02828282828282829,
+              "recall5": 0.029378531073446332,
+              "hitRate1": 0,
+              "violation5": 0.9535353535353541,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 122,
+              "msPerQuery": 0.09659191919191916,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5396075536653252,
+              "precision5": 0.43299663299663316,
+              "recall5": 0.5305649717514123,
+              "hitRate1": 0.09427609427609428,
+              "violation5": 0.38787878787878827,
+              "tieRate5": 0.9629629629629629,
+              "coldStartHit5": 0.04918032786885246,
+              "coldStartN": 122,
+              "msPerQuery": 1.0317430976430975,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7890326063006633,
+              "precision5": 0.6988776655443326,
+              "recall5": 0.7827118644067802,
+              "hitRate1": 0.15488215488215487,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5163934426229508,
+              "coldStartN": 122,
+              "msPerQuery": 0.043676430976430994,
+              "avgReturned": 4.555555555555555
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8890991919351862,
+              "precision5": 0.8261503928170607,
+              "recall5": 0.9127683615819222,
+              "hitRate1": 0.28619528619528617,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.6065573770491803,
+              "coldStartN": 122,
+              "msPerQuery": 0.029444444444444447,
+              "avgReturned": 4.555555555555555
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8263880285358681,
+              "precision5": 0.7278338945005627,
+              "recall5": 0.8068361581920919,
+              "hitRate1": 0.2255892255892256,
+              "violation5": 0,
+              "tieRate5": 0.7420494699646644,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.14609797979797973,
+              "avgReturned": 4.555555555555555
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8138807419633494,
+              "precision5": 0.7103254769921443,
+              "recall5": 0.7905649717514133,
+              "hitRate1": 0.16161616161616163,
+              "violation5": 0,
+              "tieRate5": 0.823321554770318,
+              "coldStartHit5": 0.22131147540983606,
+              "coldStartN": 122,
+              "msPerQuery": 0.13089191919191928,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8158409941962096,
+              "precision5": 0.7150392817059489,
+              "recall5": 0.7953107344632776,
+              "hitRate1": 0.18855218855218855,
+              "violation5": 0,
+              "tieRate5": 0.4876325088339223,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.1331289562289561,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7736196482679288,
+              "precision5": 0.6672278338945009,
+              "recall5": 0.7466101694915257,
+              "hitRate1": 0.12794612794612795,
+              "violation5": 0,
+              "tieRate5": 0.9681978798586572,
+              "coldStartHit5": 0.5163934426229508,
+              "coldStartN": 122,
+              "msPerQuery": 0.13676902356902362,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8630342123424233,
+              "precision5": 0.7655443322109997,
+              "recall5": 0.84632768361582,
+              "hitRate1": 0.2760942760942761,
+              "violation5": 0,
+              "tieRate5": 0.9293286219081273,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.13374006734006738,
+              "avgReturned": 4.555555555555555
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8202648805366066,
+              "precision5": 0.7184062850729525,
+              "recall5": 0.798870056497176,
+              "hitRate1": 0.1717171717171717,
+              "violation5": 0,
+              "tieRate5": 0.8268551236749117,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.13742828282828268,
+              "avgReturned": 4.555555555555555
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.815088333501932,
+              "precision5": 0.715039281705949,
+              "recall5": 0.7976836158192098,
+              "hitRate1": 0.18518518518518517,
+              "violation5": 0,
+              "tieRate5": 0.4558303886925795,
+              "coldStartHit5": 0.2540983606557377,
+              "coldStartN": 122,
+              "msPerQuery": 0.13368350168350163,
+              "avgReturned": 4.555555555555555
+            }
+          },
+          "queries": 300,
+          "answered": 297,
+          "emptyRate": 0.01,
+          "avgFeasible": 11.98989898989899,
+          "evidenceCoverage": 0.2723953945520921,
+          "coldStartPTShare": 0.288,
+          "sample": {
+            "pts": [
+              {
+                "id": "pt-0",
+                "specialties": [
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  7
+                ],
+                "packages": [
+                  "12b/90p/5600000",
+                  "8b/90p/3750000"
+                ],
+                "rating": 5,
+                "reviews": 9,
+                "journeys": 22
+              },
+              {
+                "id": "pt-1",
+                "specialties": [
+                  "Giảm mỡ",
+                  "Sức bền"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3500000",
+                  "8b/45p/1750000"
+                ],
+                "rating": null,
+                "reviews": 0,
+                "journeys": 0
+              },
+              {
+                "id": "pt-2",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "8b/45p/1450000",
+                  "12b/45p/2200000",
+                  "16b/60p/3900000"
+                ],
+                "rating": 4.6,
+                "reviews": 17,
+                "journeys": 28
+              },
+              {
+                "id": "pt-3",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/45p/3250000"
+                ],
+                "rating": 5,
+                "reviews": 29,
+                "journeys": 43
+              },
+              {
+                "id": "pt-4",
+                "specialties": [
+                  "Tăng cơ"
+                ],
+                "days": [
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3450000",
+                  "12b/90p/5150000",
+                  "12b/60p/3450000"
+                ],
+                "rating": 4.8,
+                "reviews": 25,
+                "journeys": 47
+              }
+            ],
+            "users": [
+              {
+                "id": "u-0",
+                "goal": "WEIGHT_LOSS",
+                "exp": "ADVANCED",
+                "weight": 97.5,
+                "bodyFat": 30.6,
+                "days": [
+                  3,
+                  5
+                ],
+                "sessionMinutes": 45,
+                "budget": 5600000
+              },
+              {
+                "id": "u-1",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 70.6,
+                "bodyFat": 17.3,
+                "days": [
+                  2,
+                  5,
+                  7
+                ],
+                "sessionMinutes": 60,
+                "budget": 1800000
+              },
+              {
+                "id": "u-2",
+                "goal": "MAINTENANCE",
+                "exp": "BEGINNER",
+                "weight": 73,
+                "bodyFat": 15,
+                "days": [
+                  4,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5600000
+              },
+              {
+                "id": "u-3",
+                "goal": "MUSCLE_GAIN",
+                "exp": "ADVANCED",
+                "weight": 75.7,
+                "bodyFat": 37.7,
+                "days": [
+                  1,
+                  2,
+                  3,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5200000
+              },
+              {
+                "id": "u-4",
+                "goal": "MUSCLE_GAIN",
+                "exp": "INTERMEDIATE",
+                "weight": 100.9,
+                "bodyFat": 27.1,
+                "days": [
+                  5,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5100000
+              }
+            ]
+          }
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04196623150832457,
+              "precision5": 0.03904109589041094,
+              "recall5": 0.04333333333333332,
+              "hitRate1": 0,
+              "violation5": 0.9417808219178087,
+              "tieRate5": null,
+              "coldStartHit5": 0.013513513513513514,
+              "coldStartN": 148,
+              "msPerQuery": 0.00756780821917807,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.011835259609592134,
+              "precision5": 0.013013698630136992,
+              "recall5": 0.014047619047619054,
+              "hitRate1": 0,
+              "violation5": 0.9849315068493155,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 148,
+              "msPerQuery": 0.10091369863013702,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5256587610791158,
+              "precision5": 0.3904109589041103,
+              "recall5": 0.48065476190476225,
+              "hitRate1": 0.11643835616438356,
+              "violation5": 0.41575342465753445,
+              "tieRate5": 0.934931506849315,
+              "coldStartHit5": 0.11486486486486487,
+              "coldStartN": 148,
+              "msPerQuery": 0.8704082191780822,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7719785927632018,
+              "precision5": 0.622888127853881,
+              "recall5": 0.7261904761904764,
+              "hitRate1": 0.13013698630136986,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5878378378378378,
+              "coldStartN": 148,
+              "msPerQuery": 0.03707910958904109,
+              "avgReturned": 4.510273972602739
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8781391640976959,
+              "precision5": 0.7420662100456625,
+              "recall5": 0.8508333333333342,
+              "hitRate1": 0.3356164383561644,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.6081081081081081,
+              "coldStartN": 148,
+              "msPerQuery": 0.026478767123287682,
+              "avgReturned": 4.510273972602739
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8101169536602021,
+              "precision5": 0.6626141552511418,
+              "recall5": 0.7630357142857144,
+              "hitRate1": 0.1952054794520548,
+              "violation5": 0,
+              "tieRate5": 0.822463768115942,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.11601712328767119,
+              "avgReturned": 4.510273972602739
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7967769730525235,
+              "precision5": 0.6379566210045666,
+              "recall5": 0.7377976190476194,
+              "hitRate1": 0.18835616438356165,
+              "violation5": 0,
+              "tieRate5": 0.8695652173913043,
+              "coldStartHit5": 0.3108108108108108,
+              "coldStartN": 148,
+              "msPerQuery": 0.10767020547945215,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8025165008461452,
+              "precision5": 0.6420662100456623,
+              "recall5": 0.7412500000000002,
+              "hitRate1": 0.2054794520547945,
+              "violation5": 0,
+              "tieRate5": 0.6231884057971014,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.10553458904109583,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7516231431393755,
+              "precision5": 0.6153538812785386,
+              "recall5": 0.7151190476190477,
+              "hitRate1": 0.14726027397260275,
+              "violation5": 0,
+              "tieRate5": 0.9746376811594203,
+              "coldStartHit5": 0.5472972972972973,
+              "coldStartN": 148,
+              "msPerQuery": 0.10977671232876712,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8281431219998459,
+              "precision5": 0.677682648401827,
+              "recall5": 0.7787500000000003,
+              "hitRate1": 0.2089041095890411,
+              "violation5": 0,
+              "tieRate5": 0.9456521739130435,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.10441061643835631,
+              "avgReturned": 4.510273972602739
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8020040065869257,
+              "precision5": 0.6454908675799089,
+              "recall5": 0.7450000000000002,
+              "hitRate1": 0.18835616438356165,
+              "violation5": 0,
+              "tieRate5": 0.8768115942028986,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.10904623287671225,
+              "avgReturned": 4.510273972602739
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8105963228057581,
+              "precision5": 0.65439497716895,
+              "recall5": 0.7588690476190483,
+              "hitRate1": 0.21575342465753425,
+              "violation5": 0,
+              "tieRate5": 0.6413043478260869,
+              "coldStartHit5": 0.49324324324324326,
+              "coldStartN": 148,
+              "msPerQuery": 0.10419109589041096,
+              "avgReturned": 4.510273972602739
+            }
+          },
+          "queries": 300,
+          "answered": 292,
+          "emptyRate": 0.02666666666666667,
+          "avgFeasible": 12.256849315068493,
+          "evidenceCoverage": 0.2215702710254261,
+          "coldStartPTShare": 0.324
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.045310070301153124,
+              "precision5": 0.04123711340206183,
+              "recall5": 0.04912891986062713,
+              "hitRate1": 0,
+              "violation5": 0.938144329896908,
+              "tieRate5": null,
+              "coldStartHit5": 0.024691358024691357,
+              "coldStartN": 81,
+              "msPerQuery": 0.008355326460481101,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.0660597197386846,
+              "precision5": 0.06666666666666658,
+              "recall5": 0.06945412311265961,
+              "hitRate1": 0,
+              "violation5": 0.9257731958762901,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 81,
+              "msPerQuery": 0.09481718213058415,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.569120782110482,
+              "precision5": 0.492783505154639,
+              "recall5": 0.572648083623693,
+              "hitRate1": 0.13058419243986255,
+              "violation5": 0.3250859106529215,
+              "tieRate5": 0.9518900343642611,
+              "coldStartHit5": 0.06172839506172839,
+              "coldStartN": 81,
+              "msPerQuery": 1.010775945017182,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7622774865478371,
+              "precision5": 0.7124284077892327,
+              "recall5": 0.7680023228803718,
+              "hitRate1": 0.13745704467353953,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.4691358024691358,
+              "coldStartN": 81,
+              "msPerQuery": 0.04269725085910653,
+              "avgReturned": 4.6116838487972505
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8741116711596567,
+              "precision5": 0.8553837342497147,
+              "recall5": 0.9141114982578412,
+              "hitRate1": 0.21305841924398625,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.6049382716049383,
+              "coldStartN": 81,
+              "msPerQuery": 0.028866666666666655,
+              "avgReturned": 4.6116838487972505
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8145176557527779,
+              "precision5": 0.7488545246277207,
+              "recall5": 0.8037166085946578,
+              "hitRate1": 0.25773195876288657,
+              "violation5": 0,
+              "tieRate5": 0.7943262411347518,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.1566501718213058,
+              "avgReturned": 4.6116838487972505
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7901850870698689,
+              "precision5": 0.71930126002291,
+              "recall5": 0.7739256678281075,
+              "hitRate1": 0.1718213058419244,
+              "violation5": 0,
+              "tieRate5": 0.9042553191489362,
+              "coldStartHit5": 0.25925925925925924,
+              "coldStartN": 81,
+              "msPerQuery": 0.14515120274914092,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.7941445620441775,
+              "precision5": 0.7213631156930129,
+              "recall5": 0.775667828106853,
+              "hitRate1": 0.14432989690721648,
+              "violation5": 0,
+              "tieRate5": 0.6879432624113475,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.14450618556701034,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7761356462558977,
+              "precision5": 0.7323596792668964,
+              "recall5": 0.7862369337979103,
+              "hitRate1": 0.13745704467353953,
+              "violation5": 0,
+              "tieRate5": 0.9716312056737588,
+              "coldStartHit5": 0.7037037037037037,
+              "coldStartN": 81,
+              "msPerQuery": 0.14313745704467348,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8441722151925926,
+              "precision5": 0.7921534936998862,
+              "recall5": 0.8476190476190486,
+              "hitRate1": 0.23024054982817868,
+              "violation5": 0,
+              "tieRate5": 0.9361702127659575,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.14147903780068727,
+              "avgReturned": 4.6116838487972505
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.7944542273947982,
+              "precision5": 0.7247995418098514,
+              "recall5": 0.7793263646922189,
+              "hitRate1": 0.1718213058419244,
+              "violation5": 0,
+              "tieRate5": 0.8546099290780141,
+              "coldStartHit5": 0.24691358024691357,
+              "coldStartN": 81,
+              "msPerQuery": 0.14205292096219924,
+              "avgReturned": 4.6116838487972505
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.7967626090152939,
+              "precision5": 0.7289232531500577,
+              "recall5": 0.785017421602788,
+              "hitRate1": 0.14776632302405499,
+              "violation5": 0,
+              "tieRate5": 0.6843971631205674,
+              "coldStartHit5": 0.2839506172839506,
+              "coldStartN": 81,
+              "msPerQuery": 0.14018487972508595,
+              "avgReturned": 4.6116838487972505
+            }
+          },
+          "queries": 300,
+          "answered": 291,
+          "emptyRate": 0.03,
+          "avgFeasible": 13.9106529209622,
+          "evidenceCoverage": 0.2734683794466403,
+          "coldStartPTShare": 0.26
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04204632936325822,
+              "precision5": 0.0361111111111111,
+              "recall5": 0.0404255319148936,
+              "hitRate1": 0.003472222222222222,
+              "violation5": 0.9388888888888898,
+              "tieRate5": null,
+              "coldStartHit5": 0.02631578947368421,
+              "coldStartN": 114,
+              "msPerQuery": 0.006842013888888872,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.04946922920462106,
+              "precision5": 0.05902777777777769,
+              "recall5": 0.06323877068557911,
+              "hitRate1": 0,
+              "violation5": 0.9395833333333348,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 114,
+              "msPerQuery": 0.09299722222222222,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.6267099652166634,
+              "precision5": 0.47291666666666654,
+              "recall5": 0.5887706855791964,
+              "hitRate1": 0.16666666666666666,
+              "violation5": 0.309027777777778,
+              "tieRate5": 0.9236111111111112,
+              "coldStartHit5": 0.02631578947368421,
+              "coldStartN": 114,
+              "msPerQuery": 0.7841961805555558,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7485717344305938,
+              "precision5": 0.602835648148148,
+              "recall5": 0.7089834515366429,
+              "hitRate1": 0.13541666666666666,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.3684210526315789,
+              "coldStartN": 114,
+              "msPerQuery": 0.03223159722222223,
+              "avgReturned": 4.527777777777778
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8883084204819728,
+              "precision5": 0.7875578703703707,
+              "recall5": 0.9007092198581569,
+              "hitRate1": 0.28125,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5877192982456141,
+              "coldStartN": 114,
+              "msPerQuery": 0.025513541666666677,
+              "avgReturned": 4.527777777777778
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8255458201822542,
+              "precision5": 0.6729745370370371,
+              "recall5": 0.7803191489361704,
+              "hitRate1": 0.2361111111111111,
+              "violation5": 0,
+              "tieRate5": 0.7454545454545455,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10960937499999995,
+              "avgReturned": 4.527777777777778
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8121356555839024,
+              "precision5": 0.6667245370370372,
+              "recall5": 0.7739361702127662,
+              "hitRate1": 0.21180555555555555,
+              "violation5": 0,
+              "tieRate5": 0.8763636363636363,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10501250000000001,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.816614687504692,
+              "precision5": 0.6722800925925927,
+              "recall5": 0.7796099290780144,
+              "hitRate1": 0.23958333333333334,
+              "violation5": 0,
+              "tieRate5": 0.6145454545454545,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10064375,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7987953673335316,
+              "precision5": 0.6632523148148151,
+              "recall5": 0.7667848699763596,
+              "hitRate1": 0.1736111111111111,
+              "violation5": 0,
+              "tieRate5": 0.9490909090909091,
+              "coldStartHit5": 0.6929824561403509,
+              "coldStartN": 114,
+              "msPerQuery": 0.10308576388888888,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8530177710511141,
+              "precision5": 0.7104745370370373,
+              "recall5": 0.818794326241135,
+              "hitRate1": 0.2638888888888889,
+              "violation5": 0,
+              "tieRate5": 0.9309090909090909,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10091180555555562,
+              "avgReturned": 4.527777777777778
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.813827198169744,
+              "precision5": 0.668113425925926,
+              "recall5": 0.7753546099290781,
+              "hitRate1": 0.2152777777777778,
+              "violation5": 0,
+              "tieRate5": 0.8327272727272728,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10102534722222219,
+              "avgReturned": 4.527777777777778
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8177814736466487,
+              "precision5": 0.6826967592592593,
+              "recall5": 0.7926713947990547,
+              "hitRate1": 0.22916666666666666,
+              "violation5": 0,
+              "tieRate5": 0.6290909090909091,
+              "coldStartHit5": 0.24561403508771928,
+              "coldStartN": 114,
+              "msPerQuery": 0.0998465277777778,
+              "avgReturned": 4.527777777777778
+            }
+          },
+          "queries": 300,
+          "answered": 288,
+          "emptyRate": 0.04,
+          "avgFeasible": 12.427083333333334,
+          "evidenceCoverage": 0.2224084939927354,
+          "coldStartPTShare": 0.296
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.026123919309886733,
+              "precision5": 0.025170068027210897,
+              "recall5": 0.025694444444444457,
+              "hitRate1": 0,
+              "violation5": 0.9619047619047627,
+              "tieRate5": null,
+              "coldStartHit5": 0.006666666666666667,
+              "coldStartN": 150,
+              "msPerQuery": 0.0067755102040816285,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.04320248795651409,
+              "precision5": 0.05918367346938768,
+              "recall5": 0.06799768518518512,
+              "hitRate1": 0,
+              "violation5": 0.9408163265306135,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 150,
+              "msPerQuery": 0.08313945578231287,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5183056896766551,
+              "precision5": 0.3938775510204082,
+              "recall5": 0.4906249999999999,
+              "hitRate1": 0.1870748299319728,
+              "violation5": 0.45374149659863966,
+              "tieRate5": 0.9319727891156463,
+              "coldStartHit5": 0.08,
+              "coldStartN": 150,
+              "msPerQuery": 0.7683442176870744,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8105431492441223,
+              "precision5": 0.6714285714285714,
+              "recall5": 0.7892361111111108,
+              "hitRate1": 0.1564625850340136,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5133333333333333,
+              "coldStartN": 150,
+              "msPerQuery": 0.02893435374149659,
+              "avgReturned": 4.418367346938775
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8939078703951836,
+              "precision5": 0.7897959183673474,
+              "recall5": 0.9087384259259265,
+              "hitRate1": 0.3299319727891156,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.7,
+              "coldStartN": 150,
+              "msPerQuery": 0.022538435374149655,
+              "avgReturned": 4.418367346938775
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8383250893725369,
+              "precision5": 0.7244897959183678,
+              "recall5": 0.8399884259259264,
+              "hitRate1": 0.23469387755102042,
+              "violation5": 0,
+              "tieRate5": 0.7581227436823105,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.0935197278911565,
+              "avgReturned": 4.418367346938775
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8353046439180158,
+              "precision5": 0.7163265306122455,
+              "recall5": 0.835243055555556,
+              "hitRate1": 0.25510204081632654,
+              "violation5": 0,
+              "tieRate5": 0.8122743682310469,
+              "coldStartHit5": 0.4533333333333333,
+              "coldStartN": 150,
+              "msPerQuery": 0.08550238095238095,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8325657995161228,
+              "precision5": 0.7115646258503406,
+              "recall5": 0.8264467592592596,
+              "hitRate1": 0.22108843537414966,
+              "violation5": 0,
+              "tieRate5": 0.5342960288808665,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.08333945578231296,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8209738674733477,
+              "precision5": 0.7190476190476196,
+              "recall5": 0.8419560185185189,
+              "hitRate1": 0.21768707482993196,
+              "violation5": 0,
+              "tieRate5": 0.9783393501805054,
+              "coldStartHit5": 0.72,
+              "coldStartN": 150,
+              "msPerQuery": 0.0839874149659864,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.859930445071964,
+              "precision5": 0.7482993197278915,
+              "recall5": 0.8642939814814818,
+              "hitRate1": 0.3163265306122449,
+              "violation5": 0,
+              "tieRate5": 0.9133574007220217,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.0829285714285714,
+              "avgReturned": 4.418367346938775
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8362554210684332,
+              "precision5": 0.7149659863945582,
+              "recall5": 0.8321759259259262,
+              "hitRate1": 0.25510204081632654,
+              "violation5": 0,
+              "tieRate5": 0.7870036101083032,
+              "coldStartHit5": 0.42,
+              "coldStartN": 150,
+              "msPerQuery": 0.08175884353741499,
+              "avgReturned": 4.418367346938775
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8339285209596734,
+              "precision5": 0.7136054421768715,
+              "recall5": 0.8307870370370377,
+              "hitRate1": 0.22448979591836735,
+              "violation5": 0,
+              "tieRate5": 0.5631768953068592,
+              "coldStartHit5": 0.4866666666666667,
+              "coldStartN": 150,
+              "msPerQuery": 0.08848027210884357,
+              "avgReturned": 4.418367346938775
+            }
+          },
+          "queries": 300,
+          "answered": 294,
+          "emptyRate": 0.02,
+          "avgFeasible": 10.33673469387755,
+          "evidenceCoverage": 0.2073050345508391,
+          "coldStartPTShare": 0.312
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "nPT": 250,
+      "rating": "inflated",
+      "label": "S4: 250 PT, sao bị thổi phồng",
+      "perSeed": [
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.035082267702956214,
+              "precision5": 0.02828282828282829,
+              "recall5": 0.03197740112994351,
+              "hitRate1": 0.003367003367003367,
+              "violation5": 0.9548821548821559,
+              "tieRate5": null,
+              "coldStartHit5": 0.02459016393442623,
+              "coldStartN": 122,
+              "msPerQuery": 0.006805723905723897,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.040781740951882,
+              "precision5": 0.02828282828282829,
+              "recall5": 0.029378531073446332,
+              "hitRate1": 0,
+              "violation5": 0.9535353535353541,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 122,
+              "msPerQuery": 0.08560404040404043,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5229808501678346,
+              "precision5": 0.404713804713805,
+              "recall5": 0.5018079096045197,
+              "hitRate1": 0.09427609427609428,
+              "violation5": 0.39259259259259294,
+              "tieRate5": 0.9696969696969697,
+              "coldStartHit5": 0.04918032786885246,
+              "coldStartN": 122,
+              "msPerQuery": 0.8207710437710434,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7890326063006633,
+              "precision5": 0.6988776655443326,
+              "recall5": 0.7827118644067802,
+              "hitRate1": 0.15488215488215487,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5163934426229508,
+              "coldStartN": 122,
+              "msPerQuery": 0.035419865319865296,
+              "avgReturned": 4.555555555555555
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8428748982725239,
+              "precision5": 0.762850729517397,
+              "recall5": 0.8479096045197748,
+              "hitRate1": 0.24242424242424243,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.4672131147540984,
+              "coldStartN": 122,
+              "msPerQuery": 0.02346195286195287,
+              "avgReturned": 4.555555555555555
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8170770720038736,
+              "precision5": 0.71571268237935,
+              "recall5": 0.7954802259887017,
+              "hitRate1": 0.2053872053872054,
+              "violation5": 0,
+              "tieRate5": 0.7773851590106007,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.12467407407407398,
+              "avgReturned": 4.555555555555555
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7940310486081261,
+              "precision5": 0.6921436588103258,
+              "recall5": 0.7722598870056502,
+              "hitRate1": 0.16498316498316498,
+              "violation5": 0,
+              "tieRate5": 0.8480565371024735,
+              "coldStartHit5": 0.21311475409836064,
+              "coldStartN": 122,
+              "msPerQuery": 0.10894377104377104,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.7938088719482924,
+              "precision5": 0.6921436588103258,
+              "recall5": 0.7722598870056503,
+              "hitRate1": 0.16835016835016836,
+              "violation5": 0,
+              "tieRate5": 0.607773851590106,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.10894781144781146,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7736196482679288,
+              "precision5": 0.6672278338945009,
+              "recall5": 0.7466101694915257,
+              "hitRate1": 0.12794612794612795,
+              "violation5": 0,
+              "tieRate5": 0.9681978798586572,
+              "coldStartHit5": 0.5163934426229508,
+              "coldStartN": 122,
+              "msPerQuery": 0.10847104377104372,
+              "avgReturned": 4.555555555555555
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.8276173103347971,
+              "precision5": 0.7251402918069589,
+              "recall5": 0.8053107344632773,
+              "hitRate1": 0.265993265993266,
+              "violation5": 0,
+              "tieRate5": 0.9469964664310954,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.10809494949494947,
+              "avgReturned": 4.555555555555555
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.799966411817434,
+              "precision5": 0.7008978675645345,
+              "recall5": 0.7812429378531077,
+              "hitRate1": 0.16835016835016836,
+              "violation5": 0,
+              "tieRate5": 0.833922261484099,
+              "coldStartHit5": 0.20491803278688525,
+              "coldStartN": 122,
+              "msPerQuery": 0.10877609427609432,
+              "avgReturned": 4.555555555555555
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.7968021588561007,
+              "precision5": 0.6988776655443327,
+              "recall5": 0.7814124293785317,
+              "hitRate1": 0.17845117845117844,
+              "violation5": 0,
+              "tieRate5": 0.6007067137809188,
+              "coldStartHit5": 0.26229508196721313,
+              "coldStartN": 122,
+              "msPerQuery": 0.10560437710437716,
+              "avgReturned": 4.555555555555555
+            }
+          },
+          "queries": 300,
+          "answered": 297,
+          "emptyRate": 0.01,
+          "avgFeasible": 11.98989898989899,
+          "evidenceCoverage": 0.2723953945520921,
+          "coldStartPTShare": 0.288,
+          "sample": {
+            "pts": [
+              {
+                "id": "pt-0",
+                "specialties": [
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  7
+                ],
+                "packages": [
+                  "12b/90p/5600000",
+                  "8b/90p/3750000"
+                ],
+                "rating": 5,
+                "reviews": 9,
+                "journeys": 22
+              },
+              {
+                "id": "pt-1",
+                "specialties": [
+                  "Giảm mỡ",
+                  "Sức bền"
+                ],
+                "days": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3500000",
+                  "8b/45p/1750000"
+                ],
+                "rating": null,
+                "reviews": 0,
+                "journeys": 0
+              },
+              {
+                "id": "pt-2",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "8b/45p/1450000",
+                  "12b/45p/2200000",
+                  "16b/60p/3900000"
+                ],
+                "rating": 4.9,
+                "reviews": 17,
+                "journeys": 28
+              },
+              {
+                "id": "pt-3",
+                "specialties": [
+                  "Tăng cơ",
+                  "Giảm mỡ"
+                ],
+                "days": [
+                  1,
+                  3,
+                  4,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/45p/3250000"
+                ],
+                "rating": 5,
+                "reviews": 29,
+                "journeys": 43
+              },
+              {
+                "id": "pt-4",
+                "specialties": [
+                  "Tăng cơ"
+                ],
+                "days": [
+                  5,
+                  6,
+                  7
+                ],
+                "packages": [
+                  "12b/60p/3450000",
+                  "12b/90p/5150000",
+                  "12b/60p/3450000"
+                ],
+                "rating": 4.8,
+                "reviews": 25,
+                "journeys": 47
+              }
+            ],
+            "users": [
+              {
+                "id": "u-0",
+                "goal": "WEIGHT_LOSS",
+                "exp": "ADVANCED",
+                "weight": 97.5,
+                "bodyFat": 30.6,
+                "days": [
+                  3,
+                  5
+                ],
+                "sessionMinutes": 45,
+                "budget": 5600000
+              },
+              {
+                "id": "u-1",
+                "goal": "MAINTENANCE",
+                "exp": "INTERMEDIATE",
+                "weight": 70.6,
+                "bodyFat": 17.3,
+                "days": [
+                  2,
+                  5,
+                  7
+                ],
+                "sessionMinutes": 60,
+                "budget": 1800000
+              },
+              {
+                "id": "u-2",
+                "goal": "MAINTENANCE",
+                "exp": "BEGINNER",
+                "weight": 73,
+                "bodyFat": 15,
+                "days": [
+                  4,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5600000
+              },
+              {
+                "id": "u-3",
+                "goal": "MUSCLE_GAIN",
+                "exp": "ADVANCED",
+                "weight": 75.7,
+                "bodyFat": 37.7,
+                "days": [
+                  1,
+                  2,
+                  3,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5200000
+              },
+              {
+                "id": "u-4",
+                "goal": "MUSCLE_GAIN",
+                "exp": "INTERMEDIATE",
+                "weight": 100.9,
+                "bodyFat": 27.1,
+                "days": [
+                  5,
+                  6
+                ],
+                "sessionMinutes": 60,
+                "budget": 5100000
+              }
+            ]
+          }
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04196623150832457,
+              "precision5": 0.03904109589041094,
+              "recall5": 0.04333333333333332,
+              "hitRate1": 0,
+              "violation5": 0.9417808219178087,
+              "tieRate5": null,
+              "coldStartHit5": 0.013513513513513514,
+              "coldStartN": 148,
+              "msPerQuery": 0.006498972602739726,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.03260618022069142,
+              "precision5": 0.021917808219178093,
+              "recall5": 0.02440476190476192,
+              "hitRate1": 0,
+              "violation5": 0.9458904109589055,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 148,
+              "msPerQuery": 0.09359486301369858,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5130463387909852,
+              "precision5": 0.369863013698631,
+              "recall5": 0.4582738095238099,
+              "hitRate1": 0.0958904109589041,
+              "violation5": 0.4102739726027402,
+              "tieRate5": 0.9828767123287672,
+              "coldStartHit5": 0.10810810810810811,
+              "coldStartN": 148,
+              "msPerQuery": 0.7927130136986295,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7719785927632018,
+              "precision5": 0.622888127853881,
+              "recall5": 0.7261904761904764,
+              "hitRate1": 0.13013698630136986,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5878378378378378,
+              "coldStartN": 148,
+              "msPerQuery": 0.04731678082191785,
+              "avgReturned": 4.510273972602739
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8293154245493916,
+              "precision5": 0.6769977168949771,
+              "recall5": 0.7817857142857144,
+              "hitRate1": 0.2602739726027397,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5337837837837838,
+              "coldStartN": 148,
+              "msPerQuery": 0.02243938356164384,
+              "avgReturned": 4.510273972602739
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.7953797455256205,
+              "precision5": 0.6441210045662101,
+              "recall5": 0.74375,
+              "hitRate1": 0.1780821917808219,
+              "violation5": 0,
+              "tieRate5": 0.8442028985507246,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.10677431506849315,
+              "avgReturned": 4.510273972602739
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7752172733780615,
+              "precision5": 0.6187785388127857,
+              "recall5": 0.7167857142857148,
+              "hitRate1": 0.15753424657534246,
+              "violation5": 0,
+              "tieRate5": 0.9094202898550725,
+              "coldStartHit5": 0.3108108108108108,
+              "coldStartN": 148,
+              "msPerQuery": 0.09439589041095886,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.7815970147563658,
+              "precision5": 0.6215182648401829,
+              "recall5": 0.719821428571429,
+              "hitRate1": 0.1643835616438356,
+              "violation5": 0,
+              "tieRate5": 0.7536231884057971,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.09556917808219183,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7516231431393755,
+              "precision5": 0.6153538812785386,
+              "recall5": 0.7151190476190477,
+              "hitRate1": 0.14726027397260275,
+              "violation5": 0,
+              "tieRate5": 0.9746376811594203,
+              "coldStartHit5": 0.5472972972972973,
+              "coldStartN": 148,
+              "msPerQuery": 0.09790958904109588,
+              "avgReturned": 4.510273972602739
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.7899464128643248,
+              "precision5": 0.6365867579908677,
+              "recall5": 0.7358928571428572,
+              "hitRate1": 0.1643835616438356,
+              "violation5": 0,
+              "tieRate5": 0.9492753623188406,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.09478082191780822,
+              "avgReturned": 4.510273972602739
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.7802862057546606,
+              "precision5": 0.6256278538812787,
+              "recall5": 0.7242857142857144,
+              "hitRate1": 0.16095890410958905,
+              "violation5": 0,
+              "tieRate5": 0.8876811594202898,
+              "coldStartHit5": 0.30405405405405406,
+              "coldStartN": 148,
+              "msPerQuery": 0.09337910958904115,
+              "avgReturned": 4.510273972602739
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.7937985537407792,
+              "precision5": 0.6297374429223745,
+              "recall5": 0.7323214285714288,
+              "hitRate1": 0.20205479452054795,
+              "violation5": 0,
+              "tieRate5": 0.7681159420289855,
+              "coldStartHit5": 0.41216216216216217,
+              "coldStartN": 148,
+              "msPerQuery": 0.09503698630136981,
+              "avgReturned": 4.510273972602739
+            }
+          },
+          "queries": 300,
+          "answered": 292,
+          "emptyRate": 0.02666666666666667,
+          "avgFeasible": 12.256849315068493,
+          "evidenceCoverage": 0.2215702710254261,
+          "coldStartPTShare": 0.324
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.045310070301153124,
+              "precision5": 0.04123711340206183,
+              "recall5": 0.04912891986062713,
+              "hitRate1": 0,
+              "violation5": 0.938144329896908,
+              "tieRate5": null,
+              "coldStartHit5": 0.024691358024691357,
+              "coldStartN": 81,
+              "msPerQuery": 0.00708900343642612,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.06740129474274185,
+              "precision5": 0.06323024054982809,
+              "recall5": 0.06550522648083615,
+              "hitRate1": 0,
+              "violation5": 0.9140893470790388,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 81,
+              "msPerQuery": 0.0867975945017182,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5438353763146573,
+              "precision5": 0.44673539518900374,
+              "recall5": 0.5254936120789778,
+              "hitRate1": 0.10996563573883161,
+              "violation5": 0.32439862542955367,
+              "tieRate5": 0.979381443298969,
+              "coldStartHit5": 0.06172839506172839,
+              "coldStartN": 81,
+              "msPerQuery": 0.8226312714776631,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7622774865478371,
+              "precision5": 0.7124284077892327,
+              "recall5": 0.7680023228803718,
+              "hitRate1": 0.13745704467353953,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.4691358024691358,
+              "coldStartN": 81,
+              "msPerQuery": 0.028745704467353948,
+              "avgReturned": 4.6116838487972505
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.7911538856129917,
+              "precision5": 0.7131156930126008,
+              "recall5": 0.7690476190476196,
+              "hitRate1": 0.19243986254295534,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.4074074074074074,
+              "coldStartN": 81,
+              "msPerQuery": 0.020247422680412363,
+              "avgReturned": 4.6116838487972505
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.7963756687395102,
+              "precision5": 0.7227376861397483,
+              "recall5": 0.777235772357724,
+              "hitRate1": 0.23711340206185566,
+              "violation5": 0,
+              "tieRate5": 0.8191489361702128,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.12542439862542956,
+              "avgReturned": 4.6116838487972505
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7547313783242515,
+              "precision5": 0.6773768613974801,
+              "recall5": 0.7314169570267134,
+              "hitRate1": 0.14432989690721648,
+              "violation5": 0,
+              "tieRate5": 0.8971631205673759,
+              "coldStartHit5": 0.25925925925925924,
+              "coldStartN": 81,
+              "msPerQuery": 0.11497903780068729,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.7371843263866014,
+              "precision5": 0.661569301260023,
+              "recall5": 0.7150406504065044,
+              "hitRate1": 0.12371134020618557,
+              "violation5": 0,
+              "tieRate5": 0.6843971631205674,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.11544054982817865,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7761356462558977,
+              "precision5": 0.7323596792668964,
+              "recall5": 0.7862369337979103,
+              "hitRate1": 0.13745704467353953,
+              "violation5": 0,
+              "tieRate5": 0.9716312056737588,
+              "coldStartHit5": 0.7037037037037037,
+              "coldStartN": 81,
+              "msPerQuery": 0.11486357388316158,
+              "avgReturned": 4.6116838487972505
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.7743743512593441,
+              "precision5": 0.7131156930126009,
+              "recall5": 0.7674796747967487,
+              "hitRate1": 0.14432989690721648,
+              "violation5": 0,
+              "tieRate5": 0.9539007092198581,
+              "coldStartHit5": 0.2345679012345679,
+              "coldStartN": 81,
+              "msPerQuery": 0.11647353951890031,
+              "avgReturned": 4.6116838487972505
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.7592361149236574,
+              "precision5": 0.6835624284077892,
+              "recall5": 0.7375145180023229,
+              "hitRate1": 0.14432989690721648,
+              "violation5": 0,
+              "tieRate5": 0.8900709219858156,
+              "coldStartHit5": 0.24691358024691357,
+              "coldStartN": 81,
+              "msPerQuery": 0.11255257731958768,
+              "avgReturned": 4.6116838487972505
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.7449909549436577,
+              "precision5": 0.6677548682703326,
+              "recall5": 0.7223577235772363,
+              "hitRate1": 0.12714776632302405,
+              "violation5": 0,
+              "tieRate5": 0.6808510638297872,
+              "coldStartHit5": 0.24691358024691357,
+              "coldStartN": 81,
+              "msPerQuery": 0.11127250859106529,
+              "avgReturned": 4.6116838487972505
+            }
+          },
+          "queries": 300,
+          "answered": 291,
+          "emptyRate": 0.03,
+          "avgFeasible": 13.9106529209622,
+          "evidenceCoverage": 0.2734683794466403,
+          "coldStartPTShare": 0.26
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.04204632936325822,
+              "precision5": 0.0361111111111111,
+              "recall5": 0.0404255319148936,
+              "hitRate1": 0.003472222222222222,
+              "violation5": 0.9388888888888898,
+              "tieRate5": null,
+              "coldStartHit5": 0.02631578947368421,
+              "coldStartN": 114,
+              "msPerQuery": 0.008230555555555548,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.03509792906339066,
+              "precision5": 0.03194444444444444,
+              "recall5": 0.03386524822695035,
+              "hitRate1": 0,
+              "violation5": 0.9611111111111121,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 114,
+              "msPerQuery": 0.10238368055555552,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5922538795213732,
+              "precision5": 0.4305555555555556,
+              "recall5": 0.5455082742316784,
+              "hitRate1": 0.1423611111111111,
+              "violation5": 0.3048611111111113,
+              "tieRate5": 0.9479166666666666,
+              "coldStartHit5": 0.02631578947368421,
+              "coldStartN": 114,
+              "msPerQuery": 0.9179357638888886,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.7485717344305938,
+              "precision5": 0.602835648148148,
+              "recall5": 0.7089834515366429,
+              "hitRate1": 0.13541666666666666,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.3684210526315789,
+              "coldStartN": 114,
+              "msPerQuery": 0.035719791666666646,
+              "avgReturned": 4.527777777777778
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8085739148648747,
+              "precision5": 0.6882523148148147,
+              "recall5": 0.7991134751773051,
+              "hitRate1": 0.1875,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.43859649122807015,
+              "coldStartN": 114,
+              "msPerQuery": 0.02523819444444444,
+              "avgReturned": 4.527777777777778
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.8066135184149374,
+              "precision5": 0.6514467592592593,
+              "recall5": 0.7583333333333335,
+              "hitRate1": 0.22569444444444445,
+              "violation5": 0,
+              "tieRate5": 0.8254545454545454,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.12243611111111109,
+              "avgReturned": 4.527777777777778
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.7783892801842295,
+              "precision5": 0.6326967592592588,
+              "recall5": 0.7390070921985814,
+              "hitRate1": 0.19444444444444445,
+              "violation5": 0,
+              "tieRate5": 0.8872727272727273,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10894722222222217,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.7722073246360612,
+              "precision5": 0.6299189814814814,
+              "recall5": 0.7361702127659573,
+              "hitRate1": 0.16666666666666666,
+              "violation5": 0,
+              "tieRate5": 0.6581818181818182,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10996736111111109,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.7987953673335316,
+              "precision5": 0.6632523148148151,
+              "recall5": 0.7667848699763596,
+              "hitRate1": 0.1736111111111111,
+              "violation5": 0,
+              "tieRate5": 0.9490909090909091,
+              "coldStartHit5": 0.6929824561403509,
+              "coldStartN": 114,
+              "msPerQuery": 0.11232881944444444,
+              "avgReturned": 4.527777777777778
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.7950756299440971,
+              "precision5": 0.6472800925925924,
+              "recall5": 0.7542553191489362,
+              "hitRate1": 0.20833333333333334,
+              "violation5": 0,
+              "tieRate5": 0.96,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10981180555555552,
+              "avgReturned": 4.527777777777778
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.7804192665806337,
+              "precision5": 0.6347800925925923,
+              "recall5": 0.7413120567375885,
+              "hitRate1": 0.19791666666666666,
+              "violation5": 0,
+              "tieRate5": 0.8654545454545455,
+              "coldStartHit5": 0.20175438596491227,
+              "coldStartN": 114,
+              "msPerQuery": 0.10828090277777774,
+              "avgReturned": 4.527777777777778
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.7698170052559381,
+              "precision5": 0.6347800925925925,
+              "recall5": 0.7433806146572105,
+              "hitRate1": 0.1597222222222222,
+              "violation5": 0,
+              "tieRate5": 0.6581818181818182,
+              "coldStartHit5": 0.23684210526315788,
+              "coldStartN": 114,
+              "msPerQuery": 0.1101229166666667,
+              "avgReturned": 4.527777777777778
+            }
+          },
+          "queries": 300,
+          "answered": 288,
+          "emptyRate": 0.04,
+          "avgFeasible": 12.427083333333334,
+          "evidenceCoverage": 0.2224084939927354,
+          "coldStartPTShare": 0.296
+        },
+        {
+          "methods": {
+            "RANDOM": {
+              "ndcg5": 0.026123919309886733,
+              "precision5": 0.025170068027210897,
+              "recall5": 0.025694444444444457,
+              "hitRate1": 0,
+              "violation5": 0.9619047619047627,
+              "tieRate5": null,
+              "coldStartHit5": 0.006666666666666667,
+              "coldStartN": 150,
+              "msPerQuery": 0.0067503401360544096,
+              "avgReturned": 5
+            },
+            "RATING_ONLY": {
+              "ndcg5": 0.0144480232131497,
+              "precision5": 0.0074829931972789105,
+              "recall5": 0.008680555555555556,
+              "hitRate1": 0,
+              "violation5": 0.9775510204081638,
+              "tieRate5": null,
+              "coldStartHit5": 0,
+              "coldStartN": 150,
+              "msPerQuery": 0.09282789115646253,
+              "avgReturned": 5
+            },
+            "SCORE_NO_FILTER": {
+              "ndcg5": 0.5160014744950369,
+              "precision5": 0.3829931972789117,
+              "recall5": 0.478587962962963,
+              "hitRate1": 0.17687074829931973,
+              "violation5": 0.4469387755102042,
+              "tieRate5": 0.9523809523809523,
+              "coldStartHit5": 0.07333333333333333,
+              "coldStartN": 150,
+              "msPerQuery": 0.7806986394557824,
+              "avgReturned": 5
+            },
+            "FILTER_PRICE": {
+              "ndcg5": 0.8105431492441223,
+              "precision5": 0.6714285714285714,
+              "recall5": 0.7892361111111108,
+              "hitRate1": 0.1564625850340136,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5133333333333333,
+              "coldStartN": 150,
+              "msPerQuery": 0.029432312925170057,
+              "avgReturned": 4.418367346938775
+            },
+            "FILTER_RATING": {
+              "ndcg5": 0.8355099953581008,
+              "precision5": 0.7319727891156466,
+              "recall5": 0.8473958333333336,
+              "hitRate1": 0.25170068027210885,
+              "violation5": 0,
+              "tieRate5": null,
+              "coldStartHit5": 0.5533333333333333,
+              "coldStartN": 150,
+              "msPerQuery": 0.023524489795918386,
+              "avgReturned": 4.418367346938775
+            },
+            "HYBRID_V1": {
+              "ndcg5": 0.829373971206407,
+              "precision5": 0.719727891156463,
+              "recall5": 0.834027777777778,
+              "hitRate1": 0.21428571428571427,
+              "violation5": 0,
+              "tieRate5": 0.8267148014440433,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.09174829931972796,
+              "avgReturned": 4.418367346938775
+            },
+            "HYBRID_V2": {
+              "ndcg5": 0.8198762855854865,
+              "precision5": 0.7006802721088442,
+              "recall5": 0.8186342592592598,
+              "hitRate1": 0.24489795918367346,
+              "violation5": 0,
+              "tieRate5": 0.8808664259927798,
+              "coldStartHit5": 0.44,
+              "coldStartN": 150,
+              "msPerQuery": 0.0854857142857143,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_GOAL_SCHED_BUDGET": {
+              "ndcg5": 0.8114193841236637,
+              "precision5": 0.6945578231292523,
+              "recall5": 0.8089120370370374,
+              "hitRate1": 0.19387755102040816,
+              "violation5": 0,
+              "tieRate5": 0.6823104693140795,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.09269149659863946,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_REPUTATION": {
+              "ndcg5": 0.8209738674733477,
+              "precision5": 0.7190476190476196,
+              "recall5": 0.8419560185185189,
+              "hitRate1": 0.21768707482993196,
+              "violation5": 0,
+              "tieRate5": 0.9783393501805054,
+              "coldStartHit5": 0.72,
+              "coldStartN": 150,
+              "msPerQuery": 0.08611632653061224,
+              "avgReturned": 4.418367346938775
+            },
+            "ABL_NO_EVIDENCE": {
+              "ndcg5": 0.837189029445205,
+              "precision5": 0.7278911564625854,
+              "recall5": 0.8429976851851856,
+              "hitRate1": 0.2653061224489796,
+              "violation5": 0,
+              "tieRate5": 0.9530685920577617,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.08621972789115644,
+              "avgReturned": 4.418367346938775
+            },
+            "EXP_OUTCOME_AWARE": {
+              "ndcg5": 0.8216454248588483,
+              "precision5": 0.700680272108844,
+              "recall5": 0.8155092592592597,
+              "hitRate1": 0.24489795918367346,
+              "violation5": 0,
+              "tieRate5": 0.8483754512635379,
+              "coldStartHit5": 0.4,
+              "coldStartN": 150,
+              "msPerQuery": 0.08431666666666664,
+              "avgReturned": 4.418367346938775
+            },
+            "EXP_UNROUNDED_TIEBREAK": {
+              "ndcg5": 0.8053177908611289,
+              "precision5": 0.689115646258504,
+              "recall5": 0.8048032407407412,
+              "hitRate1": 0.19047619047619047,
+              "violation5": 0,
+              "tieRate5": 0.6931407942238267,
+              "coldStartHit5": 0.44,
+              "coldStartN": 150,
+              "msPerQuery": 0.08436802721088434,
+              "avgReturned": 4.418367346938775
+            }
+          },
+          "queries": 300,
+          "answered": 294,
+          "emptyRate": 0.02,
+          "avgFeasible": 10.33673469387755,
+          "evidenceCoverage": 0.2073050345508391,
+          "coldStartPTShare": 0.312
+        }
+      ]
+    }
+  ],
+  "sensitivityScenario": "S4",
+  "sensitivity": [
+    {
+      "wReputation": 0,
+      "wEvidence": 0,
+      "ndcg5": 0.7853809027412575
+    },
+    {
+      "wReputation": 0,
+      "wEvidence": 5,
+      "ndcg5": 0.7688933698607747
+    },
+    {
+      "wReputation": 0,
+      "wEvidence": 15,
+      "ndcg5": 0.7693674808738434
+    },
+    {
+      "wReputation": 0,
+      "wEvidence": 25,
+      "ndcg5": 0.7692110208506048
+    },
+    {
+      "wReputation": 0,
+      "wEvidence": 35,
+      "ndcg5": 0.7692110208506048
+    },
+    {
+      "wReputation": 5,
+      "wEvidence": 0,
+      "ndcg5": 0.8270343298054473
+    },
+    {
+      "wReputation": 5,
+      "wEvidence": 5,
+      "ndcg5": 0.8119977098863905
+    },
+    {
+      "wReputation": 5,
+      "wEvidence": 15,
+      "ndcg5": 0.7990304225528373
+    },
+    {
+      "wReputation": 5,
+      "wEvidence": 25,
+      "ndcg5": 0.7987197249738395
+    },
+    {
+      "wReputation": 5,
+      "wEvidence": 35,
+      "ndcg5": 0.7985194023901325
+    },
+    {
+      "wReputation": 10,
+      "wEvidence": 0,
+      "ndcg5": 0.8223141558021966
+    },
+    {
+      "wReputation": 10,
+      "wEvidence": 5,
+      "ndcg5": 0.8045227405639718
+    },
+    {
+      "wReputation": 10,
+      "wEvidence": 15,
+      "ndcg5": 0.8034471802980309
+    },
+    {
+      "wReputation": 10,
+      "wEvidence": 25,
+      "ndcg5": 0.7953876081079413
+    },
+    {
+      "wReputation": 10,
+      "wEvidence": 35,
+      "ndcg5": 0.7922756158582892
+    },
+    {
+      "wReputation": 20,
+      "wEvidence": 0,
+      "ndcg5": 0.8220111941554935
+    },
+    {
+      "wReputation": 20,
+      "wEvidence": 5,
+      "ndcg5": 0.8092940134135469
+    },
+    {
+      "wReputation": 20,
+      "wEvidence": 15,
+      "ndcg5": 0.8061452745261363
+    },
+    {
+      "wReputation": 20,
+      "wEvidence": 25,
+      "ndcg5": 0.8057368364305133
+    },
+    {
+      "wReputation": 20,
+      "wEvidence": 35,
+      "ndcg5": 0.8053130499058188
+    },
+    {
+      "wReputation": 30,
+      "wEvidence": 0,
+      "ndcg5": 0.8189417685290823
+    },
+    {
+      "wReputation": 30,
+      "wEvidence": 5,
+      "ndcg5": 0.8093721643707917
+    },
+    {
+      "wReputation": 30,
+      "wEvidence": 15,
+      "ndcg5": 0.8031795056580434
+    },
+    {
+      "wReputation": 30,
+      "wEvidence": 25,
+      "ndcg5": 0.8028237911076878
+    },
+    {
+      "wReputation": 30,
+      "wEvidence": 35,
+      "ndcg5": 0.8027479734085714
+    }
+  ],
+  "scalability": [
+    {
+      "nPT": 100,
+      "msPerQuery": 0.04117666666666667
+    },
+    {
+      "nPT": 500,
+      "msPerQuery": 0.18642
+    },
+    {
+      "nPT": 1000,
+      "msPerQuery": 0.4110666666666667
+    },
+    {
+      "nPT": 5000,
+      "msPerQuery": 2.9163666666666668
+    }
+  ]
+}
