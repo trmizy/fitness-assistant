@@ -61,13 +61,13 @@ test("?role=PT is forwarded to auth-service", async () => {
   listUrls = [];
   const res = await get("/admin/users?role=PT");
   assert.equal(res.status, 200);
-  assert.equal(listUrls[0], "/auth/users?role=PT");
+  assert.equal(listUrls[0], "/auth/users?page=1&limit=50&role=PT");
 });
 
-test("no role: auth-service is called without a filter, as before", async () => {
+test("no role: auth-service is called without a role filter, for one page (FIX5-ADMIN-PERF)", async () => {
   listUrls = [];
   assert.equal((await get("/admin/users")).status, 200);
-  assert.equal(listUrls[0], "/auth/users");
+  assert.equal(listUrls[0], "/auth/users?page=1&limit=50");
 });
 
 test("an invalid role is a 400 with auth-service's code, not a silent empty list", async () => {

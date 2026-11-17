@@ -11,6 +11,25 @@ export const prisma = new PrismaClient();
 // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
+export type AdminListedUser = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: Role;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** Combining diacritical marks U+0300..U+036F (what NFD splits "ễ" into), as a Postgres regex. */
+const COMBINING_MARKS = "[\\u0300-\\u036f]";
+
+/** SQL twin of the gateway's `foldAdminSearch`: NFD, drop marks, đ -> d, lower-case. */
+function foldSql(expr: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`lower(translate(regexp_replace(normalize(${expr}, NFD), ${COMBINING_MARKS}, '', 'g'), 'đĐ', 'dd'))`;
+}
+
 export const authRepository = {
   // `role` narrows to one role (e.g. the admin "Quản lý gym & owner" page listing only
   // GYM_OWNER accounts) — omitted, the original "everyone but ADMIN" behavior is unchanged.
@@ -32,6 +51,53 @@ export const authRepository = {
         updatedAt: true,
       },
     }),
+
+  /**
+   * FIX5-ADMIN-PERF — one page of the admin user list, filtered and sorted in the database.
+   * Same rows, order (`createdAt` desc, `id` as the tie-break so paging is stable) and role rule as
+   * `listUsers` (no `role` = everyone but ADMIN). `search` is matched against the display name
+   * (first + last) and the email, lower-case and diacritics-free on BOTH sides, exactly like the
+   * gateway's old in-memory `foldAdminSearch` ("nguyen" finds "Nguyễn"). `total` is the number of
+   * rows matching the filters, not the page size. `limit` omitted = every matching row (no paging).
+   */
+  async listUsersPage(q: {
+    role?: Role;
+    isActive?: boolean;
+    /** Already folded (lower-case, no diacritics) by the caller. */
+    searchKey?: string | null;
+    id?: string;
+    ids?: string[];
+    page?: number;
+    limit?: number;
+  }): Promise<{ users: AdminListedUser[]; total: number }> {
+    const conds: Prisma.Sql[] = [q.role ? Prisma.sql`"role" = ${q.role}::"Role"` : Prisma.sql`"role" <> 'ADMIN'::"Role"`];
+    if (q.isActive !== undefined) conds.push(Prisma.sql`"isActive" = ${q.isActive}`);
+    if (q.id) conds.push(Prisma.sql`"id" = ${q.id}`);
+    if (q.ids && q.ids.length > 0) conds.push(Prisma.sql`"id" IN (${Prisma.join(q.ids)})`);
+    if (q.searchKey) {
+      conds.push(
+        Prisma.sql`(position(${q.searchKey} in ${foldSql(Prisma.sql`btrim(concat_ws(' ', "firstName", "lastName"))`)}) > 0
+          OR position(${q.searchKey} in ${foldSql(Prisma.sql`"email"`)}) > 0)`,
+      );
+    }
+    const where = Prisma.join(conds, " AND ");
+    const paged = q.limit !== undefined;
+    const limitSql = paged ? Prisma.sql`LIMIT ${q.limit} OFFSET ${((q.page ?? 1) - 1) * (q.limit as number)}` : Prisma.empty;
+    const rows = await prisma.$queryRaw<Array<AdminListedUser & { total: bigint }>>(Prisma.sql`
+      SELECT "id", "email", "firstName", "lastName", "role", "isActive", "createdAt", "updatedAt",
+             count(*) OVER() AS total
+      FROM "users"
+      WHERE ${where}
+      ORDER BY "createdAt" DESC, "id" ASC
+      ${limitSql}`);
+    if (rows.length > 0) {
+      return { users: rows.map(({ total: _t, ...u }) => u), total: Number(rows[0].total) };
+    }
+    // Empty page: either nothing matches or the page is past the end — only then is a count needed.
+    if (!paged) return { users: [], total: 0 };
+    const [{ n }] = await prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`SELECT count(*) AS n FROM "users" WHERE ${where}`);
+    return { users: [], total: Number(n) };
+  },
 
   /**
    * C4-01 / C1-01 — find an account by email regardless of letter case.

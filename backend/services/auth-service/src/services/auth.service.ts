@@ -135,6 +135,11 @@ export const authService = {
     return authRepository.listUsers(role);
   },
 
+  /** FIX5-ADMIN-PERF — one filtered page of the admin user list (see authRepository.listUsersPage). */
+  async listUsersPage(q: Parameters<typeof authRepository.listUsersPage>[0]) {
+    return authRepository.listUsersPage(q);
+  },
+
   /** Ids of accounts on reserved test email domains (see assertNotTestAccount). */
   async listTestAccountIds(): Promise<string[]> {
     const users = await prisma.user.findMany({ select: { id: true, email: true } });
