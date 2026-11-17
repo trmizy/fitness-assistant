@@ -1,7 +1,10 @@
 import axios from 'axios';
+import { installLambdaAdapter, serviceBaseUrl } from "./lambda-http.client";
 import type { EntityOrigin } from '../services/synthetic-guard.util';
 
-const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
+installLambdaAdapter();
+// AWS: PAYMENT_LAMBDA_NAME -> lambda://<fn> (invoked directly); dev/compose/tests: PAYMENT_SERVICE_URL as before.
+const PAYMENT_SERVICE_URL = serviceBaseUrl('PAYMENT', 'http://localhost:3007');
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
