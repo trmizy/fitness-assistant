@@ -405,6 +405,22 @@ export function formatVnd(v: string | number | null | undefined): string {
   return `${x < 0 && cents > 0 ? '-' : ''}${w}${frac ? ',' + String(frac).padStart(2, '0') : ''} ₫`;
 }
 
+/**
+ * VERIFY5: the money label of a blocked execution is read by an admin (and by the mobile card), so it must never carry the stored machine reason
+ * ("SUPPLEMENT_REFUSED:PLATFORM_FUNDS_INSUFFICIENT"). The raw reason stays in the execution history (blockedReason) for audit; only the label is translated.
+ * Anything unknown but code-shaped falls back to the generic text.
+ */
+export function blockedReasonText(reason: string | null | undefined): string {
+  const r = (reason ?? '').trim();
+  if (!r) return 'đang chờ xử lý';
+  if (r.startsWith('SUPPLEMENT_REFUSED:PLATFORM_FUNDS_INSUFFICIENT')) return 'ví doanh thu của nền tảng chưa đủ để ứng phần hoàn thêm';
+  if (r.startsWith('SUPPLEMENT_REFUSED')) return 'chưa hoàn thêm được phần chênh lệch (cổng thanh toán từ chối hoặc chưa hỗ trợ)';
+  if (r.startsWith('REFUND_REFUSED') || r === 'MEMBERSHIP_NOT_REFUNDABLE' || r === 'MEMBERSHIP_PENDING_NOT_RELEASED') return 'gói hội viên không còn ở trạng thái hoàn được';
+  if (r === 'PRIOR_REFUND_SHORTFALL') return 'lần hoàn trước còn khoản chưa trả được, cần đối soát';
+  // A plain sentence (written for people) is kept; an UPPER_SNAKE code, with or without ":detail", is not shown.
+  return /^[A-Z0-9_]{3,}(:.*)?$/.test(r) ? 'đang chờ xử lý' : r;
+}
+
 export function deriveFinancialView(i: {
   outcome: Outcome | null;
   execStatus: string;
@@ -424,7 +440,7 @@ export function deriveFinancialView(i: {
   if (i.execStatus === 'NOT_STARTED') return { ...base, state: 'NOT_EXECUTED', group: 'NONE_YET', label: 'Chưa thực hiện hoàn tiền' };
   if (i.execStatus === 'EXECUTING') return { ...base, state: 'LEDGER_PENDING', group: 'F3', label: 'Đang xử lý hoàn tiền, chưa có xác nhận ghi sổ' };
   if (i.execStatus === 'EXEC_BLOCKED') {
-    return { ...base, state: 'REFUND_BLOCKED', group: 'F3', label: `Chưa hoàn tiền: ${i.blockedReason ?? 'đang chờ xử lý'}` };
+    return { ...base, state: 'REFUND_BLOCKED', group: 'F3', label: `Chưa hoàn tiền: ${blockedReasonText(i.blockedReason)}` };
   }
   if (i.execStatus === 'NEEDS_HUMAN' || !i.observation) {
     return { ...base, state: 'NEEDS_RECONCILIATION', group: 'F3', label: 'Cần đối soát, chưa xác nhận khoản hoàn' };

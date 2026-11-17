@@ -34,7 +34,12 @@ export const checkinService = {
     // B46: no new QR for a branch nobody may check in at (temporarily/permanently closed, not approved) - the scan would be
     // refused anyway (assertGymOpenForCheckin), and a printed QR for a closed branch only invites a pointless scan.
     if (!isGymAcceptingCheckin(gym.status, gym.operationalStatus)) {
-      throw Object.assign(new Error('Chi nhánh đang đóng cửa hoặc chưa hoạt động nên chưa cấp mã QR check-in'), { status: 409, code: 'GYM_NOT_OPEN' });
+      throw Object.assign(new Error('Chi nhánh đang đóng cửa hoặc chưa hoạt động nên chưa cấp mã QR check-in'), {
+        status: 409,
+        code: 'GYM_NOT_OPEN',
+        // N15C-11: so the desk can say when the branch is expected back (display only; the owner still reopens by hand).
+        ...(gym.operationalStatus === 'TEMPORARILY_CLOSED' && gym.expectedReopenAt ? { expectedReopenAt: gym.expectedReopenAt.toISOString() } : {}),
+      });
     }
     const { token, expiresAt } = signGymCheckinToken(gym.id);
     return { token, expiresAt, gymId: gym.id, gymName: gym.name };

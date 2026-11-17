@@ -176,6 +176,13 @@ test('Q5 OVERTURN in favour of the MEMBER: supplementary refund of ONLY the diff
   const approver2 = await decideAndExecute(d, rev);
   const approval = await prisma.gymCaseApproval.findFirstOrThrow({ where: { proposal: { caseId: d.caseId, outcome: 'REFUND_APPEAL_SUPPLEMENT' } } });
 
+  // N15A-05: before executing, the admin detail shows the SUPPLEMENT (the difference) and none of the first refund's money as this decision's
+  const pre = ok(await call('GET', `/admin/complaint-cases/${d.caseId}`, approver2.tok), 200, 'detail before execute');
+  assert.deepEqual(pre.supplement, { amount: '70000.00', refundedSoFar: '630000.00' });
+  assert.equal(pre.financial.state, 'NOT_EXECUTED', 'the original refund is not this decision money');
+  assert.equal(pre.financial.observedAt, null, 'no stale ledger reading from the first execution');
+  assert.equal(new Set(pre.execution.history.map((h: any) => h.decisionId)).size, 1, 'one decision executed so far');
+  assert.ok(pre.execution.history.every((h: any) => h.decisionId && h.outcome));
   const ex = await call('POST', `/admin/complaint-cases/${d.caseId}/execute`, approver2.tok, {});
   assert.equal(ex.status, 200, JSON.stringify(ex.body));
   assert.equal(ex.body.data.outcome, 'REFUND_APPEAL_SUPPLEMENT');
@@ -183,6 +190,10 @@ test('Q5 OVERTURN in favour of the MEMBER: supplementary refund of ONLY the diff
   assert.equal(ex.body.data.money.postedToMemberWallet, '70000.00');
   assert.equal(ex.body.data.closure, 'CLOSED');
   assert.equal(pay.releases.length, 1, 'the original refund is not repeated');
+  const post = ok(await call('GET', `/admin/complaint-cases/${d.caseId}`, approver2.tok), 200, 'detail after execute');
+  assert.equal(post.supplement, null);
+  assert.equal(new Set(post.execution.history.map((h: any) => h.decisionId)).size, 2, 'two executions = two decisions (Lần 1 / Lần 2)');
+  assert.ok(post.financial.observedAt, 'the ledger reading is the supplement one');
   assert.equal(pay.supplements.length, 1);
   assert.equal(pay.supplements[0].amount, '70000.00');
   assert.equal(pay.supplements[0].key, `GYM_CASE_APPEAL_SUPPLEMENT:${approval.id}`);

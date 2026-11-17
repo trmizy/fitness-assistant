@@ -101,7 +101,9 @@ router.patch('/gyms/:id/draft', requirePartnerOwner, validateBody(gymDraftUpdate
 router.post('/gyms/:id/submit', requirePartnerOwner, asyncHandler(gymDraftController.submit));
 // GYM_BRANCH_FORM_SPEC.md, Phase 2 — Step 3 "Opening Hours". §74: free edit whether DRAFT
 // or already APPROVED, so this isn't scoped under /draft the way the other new routes are.
-router.get('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.get));
+// N15C-05: reading the hours is a branch VIEW (same gate as GET /gyms/:id) - a manager/receptionist/accountant scoped to the
+// branch needs it for the "đang mở/đã đóng" state; WRITING them stays owner-only below.
+router.get('/gyms/:id/hours', requirePermission('branch.view', { gymParam: 'id' }), asyncHandler(gymHoursController.get));
 router.put('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.set));
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Listing Management B1: the disk-photo WRITE routes are retired
 // for EVERY gym status - 410 UPLOAD_ROUTE_RETIRED, answered before any upload middleware runs, so nothing is ever

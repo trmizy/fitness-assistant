@@ -31,6 +31,8 @@ export interface MembershipRow {
   // be a different branch entirely; see the query below).
   gym_status: string;
   gym_operational_status: string;
+  /** N15C-11: the owner's expected reopen date of a temporarily closed branch (display only). */
+  gym_expected_reopen_at: Date | null;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -58,7 +60,8 @@ export async function lockMembershipForCheckIn(
   const idFilter = membershipId ? Prisma.sql`AND c.id = ${membershipId}` : Prisma.empty;
   const rows = await tx.$queryRaw<MembershipRow[]>`
     SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
-           scanned.status AS gym_status, scanned.operational_status AS gym_operational_status
+           scanned.status AS gym_status, scanned.operational_status AS gym_operational_status,
+           scanned.expected_reopen_at AS gym_expected_reopen_at
     FROM gyms scanned
     JOIN gym_membership_plans p ON p.brand_id = scanned.brand_id
     JOIN gym_membership_contracts c ON c.plan_id = p.id
@@ -91,7 +94,15 @@ export async function applyMemberCheckIn(
   m: MembershipRow,
   p: { gymId: string; clientId: string; checkedInBy: string; source: GymCheckInSource; assistedEventId?: string },
 ): Promise<AppliedCheckIn> {
-  assertGymOpenForCheckin(m.gym_status, m.gym_operational_status);
+  try {
+    assertGymOpenForCheckin(m.gym_status, m.gym_operational_status);
+  } catch (e: any) {
+    // N15C-11: tell the member WHEN a temporarily closed branch is expected to reopen, when the owner gave a date.
+    if (m.gym_operational_status === 'TEMPORARILY_CLOSED' && m.gym_expected_reopen_at) {
+      e.expectedReopenAt = new Date(m.gym_expected_reopen_at).toISOString();
+    }
+    throw e;
+  }
 
   // Lazy-expire a membership past its end date, then require ACTIVE.
   let status = m.status;

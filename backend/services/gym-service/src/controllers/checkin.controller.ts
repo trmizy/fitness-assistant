@@ -36,7 +36,7 @@ export const checkinController = {
       const data = await checkinService.getGymQr(req.params.gymId, ownerId);
       return res.json({ success: true, data });
     } catch (e: any) {
-      return res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), ...(e.expectedReopenAt ? { expectedReopenAt: e.expectedReopenAt } : {}), message: e.message } });
     }
   },
 
@@ -50,7 +50,7 @@ export const checkinController = {
       return res.status(201).json({ success: true, data });
     } catch (e: any) {
       const status = CODE_STATUS[e.message];
-      if (status) return res.status(status).json({ success: false, error: { code: e.message } });
+      if (status) return res.status(status).json({ success: false, error: { code: e.message, ...(e.expectedReopenAt ? { expectedReopenAt: e.expectedReopenAt } : {}) } });
       logger.error(e, 'checkin scan error');
       return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

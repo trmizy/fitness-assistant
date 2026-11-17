@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import type { Prisma } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
-import { isGymPubliclyVisible } from '../services/gym-public';
+import { isGymPhotoVisible } from '../services/gym-public';
 import { partnerS3 } from '../services/partner-s3.service';
 import { partnerService } from '../services/partner.service';
 
@@ -13,7 +13,8 @@ import { partnerService } from '../services/partner.service';
  *
  * Replaces `express.static('/uploads/gym-photos')`: a static mount served every file in the directory regardless of what
  * the database said, so a photo that was withdrawn (RETIRED) or never approved (STAGED) stayed reachable by URL. Here
- * every request re-checks the row: the photo must be PUBLISHED and its branch publicly visible (`gymPublicWhere`).
+ * every request re-checks the row: the photo must be PUBLISHED and its branch publicly visible (`gymPublicWhere`) - or approved and only
+ * temporarily closed (N15C-06, `gymDetailWhere`: the branch's direct-link page is reachable, so its photos are too).
  * Anything else is a plain 404 - the same answer for "no such photo", so nothing can be probed.
  */
 
@@ -53,7 +54,8 @@ async function canViewTemporarilyClosedPhoto(req: Request, gymId: string): Promi
 async function findVisiblePublishedPhoto(where: Prisma.GymPhotoWhereInput, req?: Request) {
   const photo = await prisma.gymPhoto.findFirst({ where: { ...where, status: 'PUBLISHED' } });
   if (!photo) return null;
-  if (await isGymPubliclyVisible(photo.gymId)) return photo;
+  // N15C-06: public for an open branch AND for an approved, temporarily closed one (its direct-link page is reachable).
+  if (await isGymPhotoVisible(photo.gymId)) return photo;
   return req && (await canViewTemporarilyClosedPhoto(req, photo.gymId)) ? photo : null;
 }
 

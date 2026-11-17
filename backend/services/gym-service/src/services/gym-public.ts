@@ -45,6 +45,17 @@ export async function isGymPubliclyVisible(gymId: string): Promise<boolean> {
 }
 
 /**
+ * N15C-06: may the PHOTOS of this branch be served to anyone? Same set as the detail page (gymDetailWhere): a publicly visible
+ * branch, or an APPROVED one that is only TEMPORARILY_CLOSED - it is still a real gym, and its direct-link page (reason + reopen
+ * date) would otherwise show broken images. Unapproved, suspended-by-admin-and-hidden and permanently closed branches stay hidden.
+ */
+export async function isGymPhotoVisible(gymId: string): Promise<boolean> {
+  const where = await gymDetailWhere();
+  const row = await prisma.gym.findFirst({ where: { AND: [{ id: gymId }, where] }, select: { id: true } });
+  return row !== null;
+}
+
+/**
  * C2-03: the closed-state of a branch whose DETAIL page is reachable (gymDetailWhere) but which is not strictly public - i.e. a
  * TEMPORARILY_CLOSED one. null when the branch is OPEN (use the normal path) or not reachable at all (404).
  */

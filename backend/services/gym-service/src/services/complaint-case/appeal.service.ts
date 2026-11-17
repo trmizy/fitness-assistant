@@ -1,7 +1,7 @@
 import { prisma } from '../../repositories/prisma';
 import { userClient } from '../../clients/user.client';
 import { caseError, notFoundCase } from './errors';
-import { assertAdmin, assertNotParty, assertRealAdmin, lockCase, mutate, notifyMember, requireUuid, type Actor } from './case.service';
+import { assertAdmin, assertNotParty, assertRealAdmin, lockCase, mutate, notifyMember, priorRefundFacts, recollectSystemEvidence, requireUuid, toJson, type Actor } from './case.service';
 import { appealWindow, canTransition, type CaseStatus } from './rules';
 
 /**
@@ -116,7 +116,28 @@ export const appealService = {
         });
         if (moved.count !== 1) throw caseError(409, 'CASE_VERSION_CONFLICT', 'Hồ sơ vừa được cập nhật bởi người khác. Vui lòng tải lại rồi thử lại');
         ctx.transitions.push({ from: 'APPEAL_REVIEW', to: 'ASSESSING', note: 'giao người xem xét kháng nghị độc lập' });
-        return { caseId: c.id, result: { reviewerId: target, status: 'ASSESSING' }, note: target };
+        // N15A-06: after an executed refund the membership changed by the refund itself (CANCELLED, ended, payout released). Re-collect the system evidence NOW so the reviewer's proposal
+        // snapshot already contains it (no EVIDENCE_CHANGED loop at approval) and keep the earlier assessments unless something changed BEYOND the refund's own effect.
+        let recollect: { changed: string[]; material: boolean } | undefined;
+        if (await priorRefundFacts(ctx.tx, c.id)) {
+          const r = await recollectSystemEvidence(ctx.tx, c);
+          recollect = { changed: r.changed, material: r.material };
+          if (r.changed.length > 0) {
+            await ctx.tx.gymCaseEvent.create({
+              data: {
+                caseId: c.id,
+                actorUserId: 'system',
+                actorRole: 'SYSTEM',
+                action: 'EVIDENCE_RECOLLECTED',
+                note: r.material
+                  ? `tự động thu lại bằng chứng hệ thống khi giao người xét kháng nghị: ${r.changed.length} nguồn thay đổi, có thay đổi ngoài tác động của khoản hoàn nên cần đánh giá lại`
+                  : `tự động thu lại bằng chứng hệ thống khi giao người xét kháng nghị: ${r.changed.length} nguồn thay đổi do chính khoản hoàn đã thực hiện, giữ nguyên các đánh giá trước`,
+                payload: toJson({ automatic: true, changed: r.changed, material: r.material, materialSources: r.materialSources }),
+              },
+            });
+          }
+        }
+        return { caseId: c.id, result: { reviewerId: target, status: 'ASSESSING', ...(recollect ? { evidenceRecollected: recollect.changed.length, materialEvidenceChange: recollect.material } : {}) }, note: target };
       },
     });
   },

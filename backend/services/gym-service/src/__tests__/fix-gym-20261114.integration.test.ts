@@ -304,7 +304,7 @@ test('N13E-01: the branch phone is validated on the owner PATCH, the admin PATCH
 
 // ── N13E-05: photos of a temporarily closed branch ───────────────────────────────────────────────────────────────────────────────────────────────
 
-test('N13E-05: a PUBLISHED photo of a TEMPORARILY_CLOSED branch is served to its owner, a scoped manager and an admin; everyone else (anonymous, customer, other partner, unscoped manager, receptionist) keeps the 404; OPEN stays public; PERMANENTLY_CLOSED stays hidden', { skip }, async () => {
+test('N13E-05 + N15C-06: a PUBLISHED photo of an APPROVED TEMPORARILY_CLOSED branch is served to everyone (owner, manager, admin AND anonymous / customer / other partner / receptionist); a STAGED photo never; PERMANENTLY_CLOSED stays hidden', { skip }, async () => {
   const o = await operationalOwner();
   const other = await operationalOwner();
   const photoDir = path.resolve(process.cwd(), 'uploads/gym-photos');
@@ -333,25 +333,27 @@ test('N13E-05: a PUBLISHED photo of a TEMPORARILY_CLOSED branch is served to its
 
   await prisma.gym.update({ where: { id: o.gym.id }, data: { operationalStatus: 'TEMPORARILY_CLOSED' } });
   const status = async (tok: string | null) => (await call('GET', url, tok)).status;
-  assert.equal(await status(null), 404, 'anonymous');
-  assert.equal(await status(customer), 404, 'customer');
-  assert.equal(await status(other.tok), 404, 'another partner owner');
-  assert.equal(await status(unscopedManager), 404, 'manager of other branches');
-  assert.equal(await status(receptionist), 404, 'receptionist');
+  // N15C-06 (15/11): an APPROVED but TEMPORARILY_CLOSED branch is still a real gym and its direct-link page is reachable -> its PUBLISHED photos are public too.
+  assert.equal(await status(null), 200, 'anonymous');
+  assert.equal(await status(customer), 200, 'customer');
+  assert.equal(await status(other.tok), 200, 'another partner owner');
+  assert.equal(await status(unscopedManager), 200, 'manager of other branches');
+  assert.equal(await status(receptionist), 200, 'receptionist');
   assert.equal(await status(o.tok), 200, 'owner');
   assert.equal(await status(scopedManager), 200, 'scoped manager');
   assert.equal(await status(admin.tok), 200, 'admin');
   // the legacy URL follows the same rule
   const legacy = `/uploads/gym-photos/${photo.fileName}`;
-  assert.equal((await call('GET', legacy, null)).status, 404);
+  assert.equal((await call('GET', legacy, null)).status, 200, 'legacy URL: public as well');
   assert.equal((await call('GET', legacy, o.tok)).status, 200);
   // a STAGED / RETIRED photo is never served, not even to the owner
   const staged = await prisma.gymPhoto.create({ data: { gymId: o.gym.id, fileName: photo.fileName, status: 'STAGED' } });
-  assert.equal(await status(null), 404);
+  assert.equal((await call('GET', `/media/gym-photos/${staged.id}`, null)).status, 404, 'STAGED never public');
   assert.equal((await call('GET', `/media/gym-photos/${staged.id}`, o.tok)).status, 404);
 
   await prisma.gym.update({ where: { id: o.gym.id }, data: { operationalStatus: 'PERMANENTLY_CLOSED' } });
   assert.equal(await status(o.tok), 404, 'permanently closed stays hidden even for the owner');
+  assert.equal(await status(null), 404, 'permanently closed: anonymous');
 });
 
 // ── N13E-09: complaint photo bytes ───────────────────────────────────────────────────────────────────────────────────────────────────────────────

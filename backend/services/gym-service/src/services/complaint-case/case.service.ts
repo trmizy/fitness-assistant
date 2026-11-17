@@ -7,6 +7,7 @@ import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflic
 import { gymCaseEnabled, replacementEnabled } from './flags';
 import { replacedApprovalIds } from './decision-replacement.service';
 import { assertNotSynthetic } from '../synthetic-guard';
+import { resolveDisplayNamesBatch } from '../display-name.service';
 import {
   INVESTIGATION_STATUSES,
   PARTY_SUBMIT_STATUSES,
@@ -350,6 +351,46 @@ async function insertEvidence(
   });
 }
 
+/**
+ * N15A-06: the membership fields a refund itself changes. After an executed refund the system evidence of the membership (status / end date / payout release) is expected
+ * to differ from what was stored when the case was opened; that difference alone is NOT a reason to throw the earlier assessment away.
+ */
+export const REFUND_EFFECT_MEMBERSHIP_FIELDS = ['status', 'endDate', 'payoutReleasedAt'] as const;
+
+export interface AutoRecollectResult {
+  changed: string[];
+  /** true when something changed BEYOND the refund's own effect (other sources, or other membership fields): the reviewer should re-assess */
+  material: boolean;
+  materialSources: string[];
+}
+
+const stripRefundEffect = (payload: unknown): unknown => {
+  if (!payload || typeof payload !== 'object') return payload;
+  const copy: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  for (const f of REFUND_EFFECT_MEMBERSHIP_FIELDS) delete copy[f];
+  return copy;
+};
+
+/** Re-collects the system evidence of a case (same slots/versioning as the manual re-collect) and classifies each change as refund-caused or material. */
+export async function recollectSystemEvidence(tx: Tx, c: CaseRow): Promise<AutoRecollectResult> {
+  const heads = await systemHeads(tx, c.id);
+  const changed: string[] = [];
+  const materialSources: string[] = [];
+  for (const d of await collectSources(tx, c)) {
+    const head = heads.get(slotKey(d.source, d.subject));
+    if (head && head.hash === draftHash(d)) continue;
+    let material = true;
+    if (head && d.source === 'MEMBERSHIP_RECORD') {
+      const prev = await tx.gymCaseEvidence.findUnique({ where: { id: head.id }, select: { payload: true } });
+      material = contentHashOf(toJson(stripRefundEffect(prev?.payload))) !== contentHashOf(toJson(stripRefundEffect(d.payload)));
+    }
+    await insertEvidence(tx, c, d, { snapshotVersion: (head?.version ?? 0) + 1, supersedesId: head?.id ?? null });
+    changed.push(`${d.source}#${d.subject}`);
+    if (material) materialSources.push(d.source);
+  }
+  return { changed, material: materialSources.length > 0, materialSources };
+}
+
 export async function buildSnapshot(db: Db, caseId: string): Promise<SnapshotEntry[]> {
   const [ev, st] = await Promise.all([
     db.gymCaseEvidence.findMany({ where: { caseId }, select: { id: true, contentHash: true, snapshotVersion: true } }),
@@ -419,6 +460,55 @@ export async function notifyParty(c: { id: string }, recipientUserId: string, ro
 }
 export async function notifyMember(c: { id: string; reporterUserId: string }, text: string, eventType: string, kind = 'INFO') {
   return notifyParty(c, c.reporterUserId, 'MEMBER', text, eventType, kind);
+}
+
+// ── N15A-01/07: the admin's "request more" as each party (and the admin screen) must see it ───────────────────────────
+
+export type AskedParty = 'MEMBER' | 'GYM';
+export interface MoreInfoState {
+  askedAt: Date;
+  note: string | null;
+  askedParties: AskedParty[];
+  pendingParties: AskedParty[];
+  /** effective due time of each party's OPEN deadline (a party whose notice was never delivered has none) */
+  dueAt: Partial<Record<AskedParty, Date>>;
+}
+
+/** null = the case is not waiting on anybody's supplement (or no request is recorded: legacy transitions keep the old generic wording). */
+export async function moreInfoOf(db: Db, c: { id: string; status: string }): Promise<MoreInfoState | null> {
+  if (c.status !== 'AWAITING_PARTIES') return null;
+  const events = await db.gymCaseEvent.findMany({ where: { caseId: c.id, action: 'MORE_INFO_REQUESTED' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 5 });
+  const ev = events.find((e) => {
+    const d = (e.payload as { detail?: { to?: string } } | null)?.detail;
+    return d?.to ? d.to === 'AWAITING_PARTIES' : e.toStatus === 'AWAITING_PARTIES' || e.toStatus === null;
+  });
+  if (!ev) return null;
+  const detail = (ev.payload as { detail?: { parties?: AskedParty[] } } | null)?.detail;
+  const deadlines = await db.gymCaseDeadline.findMany({ where: { caseId: c.id, createdAt: { gte: new Date(ev.createdAt.getTime() - 1000) } } });
+  const askedParties: AskedParty[] = detail?.parties?.length ? detail.parties : deadlines.length ? [...new Set(deadlines.map((d) => d.partyRole as AskedParty))] : ['MEMBER'];
+  const [statements, evidence] = await Promise.all([
+    db.gymCaseStatement.findMany({ where: { caseId: c.id, createdAt: { gte: ev.createdAt }, partyRole: { in: ['MEMBER', 'GYM'] } }, select: { partyRole: true } }),
+    db.gymCaseEvidence.findMany({ where: { caseId: c.id, createdAt: { gte: ev.createdAt }, submittedRole: { in: ['MEMBER', 'GYM'] } }, select: { submittedRole: true } }),
+  ]);
+  const answered = new Set<string>([...statements.map((s) => s.partyRole as string), ...evidence.map((e) => e.submittedRole as string)]);
+  const pendingParties = askedParties.filter((p) => !answered.has(p));
+  const dueAt: Partial<Record<AskedParty, Date>> = {};
+  for (const d of deadlines) if (d.status === 'OPEN' && askedParties.includes(d.partyRole as AskedParty)) dueAt[d.partyRole as AskedParty] = new Date(d.dueAt.getTime() + d.pausedSeconds * 1000);
+  return { askedAt: ev.createdAt, note: ev.note, askedParties, pendingParties, dueAt };
+}
+
+/** What one party reads as the case's progress: "Cần bạn bổ sung" only while IT is the one asked and has not answered yet. */
+export function partyProgressLabel(status: string, execStatus: string, party: AskedParty, mi: MoreInfoState | null): string {
+  if (status !== 'AWAITING_PARTIES' || !mi) return memberProgressLabel(status as CaseStatus, execStatus);
+  if (mi.pendingParties.includes(party)) return 'Cần bạn bổ sung thông tin';
+  if (mi.askedParties.includes(party)) return 'Đã nhận phần bổ sung của bạn, Gymini đang xem xét';
+  return 'Đang xem xét';
+}
+
+/** The request as the asked party sees it (null when nothing is pending for it). */
+export function moreInfoViewFor(party: AskedParty, mi: MoreInfoState | null) {
+  if (!mi || !mi.pendingParties.includes(party)) return null;
+  return { note: mi.note, askedAt: mi.askedAt, askedParties: mi.askedParties, dueAt: mi.dueAt[party] ?? null };
 }
 
 // ── The service ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -603,7 +693,8 @@ export const complaintCaseService = {
         assertInvestigator(actor, c);
         if (!['COLLECTING', 'AWAITING_PARTIES', 'ASSESSING', 'FINDING_RECORDED'].includes(c.status)) throw stateNotAllowed(c, ['investigation']);
         if (c.status !== to) await casStatus(ctx, c, to, note);
-        return { caseId: c.id, result: { status: c.status, reporterUserId: c.reporterUserId }, note };
+        // N15A-01/07: who was asked is recorded on the event, so each party (and the admin status text) can be derived from it later
+        return { caseId: c.id, result: { status: c.status, reporterUserId: c.reporterUserId }, note, detail: { to, parties: to === 'AWAITING_PARTIES' ? [...new Set(parties)] : [] } };
       },
     });
     if (!r.replayed && to === 'AWAITING_PARTIES') {
@@ -1049,8 +1140,11 @@ export const complaintCaseService = {
     const replacedIds = await replacedApprovalIds(prisma, caseId);
     const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
     const outcome = (approved?.outcome ?? null) as Outcome | null;
-    const financial = financialOf(c, outcome, executions);
+    const approvalId = approved?.approvals.find((a) => a.result === 'APPROVED')?.id ?? null;
+    const financial = financialOf(c, outcome, executions, approvalId);
+    const supplement = await supplementPreview(prisma, c, outcome, approvalId);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
+    const reporterNames = await resolveDisplayNamesBatch(c.complaint.reporterUserId ? [c.complaint.reporterUserId] : []);
     const latestProposal = proposals[proposals.length - 1] ?? null;
     const unassessed = claims.filter((cl) => !assessments.some((a) => a.claimId === cl.id)).length;
     const allowedActions = computeAllowedActions(actor, c, {
@@ -1067,7 +1161,7 @@ export const complaintCaseService = {
     });
     return {
       case: summary(c),
-      complaint: { id: c.complaint.id, status: c.complaint.status, source: c.complaint.source, issueType: c.complaint.issueType, description: c.complaint.description, photoTokens: c.complaint.photoTokens, reporterUserId: c.complaint.reporterUserId, adminResponse: c.complaint.adminResponse, resolvedAt: c.complaint.resolvedAt },
+      complaint: { id: c.complaint.id, status: c.complaint.status, source: c.complaint.source, issueType: c.complaint.issueType, description: c.complaint.description, photoTokens: c.complaint.photoTokens, reporterUserId: c.complaint.reporterUserId, reporterName: (c.complaint.reporterUserId ? reporterNames.get(c.complaint.reporterUserId) : undefined) ?? null, adminResponse: c.complaint.adminResponse, resolvedAt: c.complaint.resolvedAt },
       gym,
       membership: membership
         ? { id: membership.id, status: membership.status, startDate: membership.startDate, endDate: membership.endDate, priceAtPurchase: membership.priceAtPurchase.toString(), paymentTxnId: membership.paymentTxnId }
@@ -1077,6 +1171,7 @@ export const complaintCaseService = {
       refundQuote: await fixedRefundOf(prisma, caseId).then((q) => (q ? { amount: q.amount.toString(), pricePaid: q.pricePaid.toString(), quotedAt: q.quotedAt, durationDays: q.durationDays, startDate: q.startDate, endDate: q.endDate, paymentTxnId: q.paymentTxnId } : null)),
       replacement: await prisma.gymCaseDecisionReplacement.findFirst({ where: { caseId }, orderBy: { createdAt: 'desc' }, select: { id: true, oldApprovalId: true, proposedBy: true, reason: true, createdAt: true, approvedBy: true, approvedAt: true, rejectedBy: true, rejectedAt: true } }),
       sla: { ...slaOf(c.complaint.createdAt, new Date()), warnedAt: c.slaWarnedAt, overdueAt: c.slaOverdueAt },
+      moreInfo: await moreInfoOf(prisma, c),
       deadlines: (await prisma.gymCaseDeadline.findMany({ where: { caseId }, orderBy: { createdAt: 'asc' } })).map((d) => ({ ...d, effectiveDueAt: new Date(d.dueAt.getTime() + d.pausedSeconds * 1000), paused: d.pausedAt !== null })),
       appeal: await adminAppealView(c),
       statements,
@@ -1085,8 +1180,9 @@ export const complaintCaseService = {
       findings,
       proposals: proposals.map((p) => ({ ...p, outcomeLabel: outcomeLabelVi(p.outcome as Outcome) })),
       decision: approved ? { proposalId: approved.id, outcome: approved.outcome, outcomeLabel: outcomeLabelVi(approved.outcome as Outcome), approvalId: approved.approvals.find((a) => a.result === 'APPROVED')!.id } : null,
-      execution: { status: c.execStatus, decisionId: c.execDecisionId, history: executions.map((x) => ({ id: x.id, state: x.state, attempt: x.attempt, blockedReason: x.blockedReason, note: x.note, createdAt: x.createdAt, actorUserId: x.actorUserId })) },
+      execution: { status: c.execStatus, decisionId: c.execDecisionId, history: executions.map((x) => ({ id: x.id, decisionId: x.decisionId, outcome: x.outcome, state: x.state, attempt: x.attempt, blockedReason: x.blockedReason, note: x.note, createdAt: x.createdAt, actorUserId: x.actorUserId })) },
       financial,
+      supplement,
       closure: closureOf(c.status as CaseStatus, c.execStatus, financial),
       allowedActions,
       events: events.map((e) => ({ id: e.id, action: e.action, actorUserId: e.actorUserId, actorRole: e.actorRole, fromStatus: e.fromStatus, toStatus: e.toStatus, note: e.note, createdAt: e.createdAt })),
@@ -1098,7 +1194,9 @@ export const complaintCaseService = {
   async listForMember(actor: Actor) {
     const rows = await prisma.gymComplaintCase.findMany({ where: { reporterUserId: actor.id }, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], take: 100 });
     await logAccess(prisma, rows.map((r) => ({ caseId: r.id, viewer: actor, action: 'VIEW_CASE' as const })));
-    return { items: rows.map((r) => ({ id: r.id, complaintId: r.complaintId, progress: memberProgressLabel(r.status as CaseStatus, r.execStatus), createdAt: r.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus) })) };
+    const infos = new Map<string, MoreInfoState | null>();
+    for (const r of rows) infos.set(r.id, await moreInfoOf(prisma, r));
+    return { items: rows.map((r) => ({ id: r.id, complaintId: r.complaintId, progress: partyProgressLabel(r.status, r.execStatus, 'MEMBER', infos.get(r.id) ?? null), createdAt: r.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(r.status as CaseStatus) })) };
   },
 
   /** A case the user did not file does not exist for them (404, not 403). The Gym's own people see nothing (party locked). */
@@ -1118,11 +1216,13 @@ export const complaintCaseService = {
     const statements = statementsAll.filter((s) => statementVisibleTo(s, kind, actor.id, shares));
     const replacedIds = await replacedApprovalIds(prisma, caseId);
     const approved = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === 'APPROVED' && !replacedIds.includes(a.id))) ?? null;
-    const financial = financialOf(c, (approved?.outcome ?? null) as Outcome | null, executions);
+    const financial = financialOf(c, (approved?.outcome ?? null) as Outcome | null, executions, approved?.approvals.find((a) => a.result === 'APPROVED')?.id ?? null);
     await logAccess(prisma, [{ caseId, viewer: actor, action: 'VIEW_CASE' }, ...evidence.map((e) => ({ caseId, viewer: actor, action: 'VIEW_EVIDENCE' as const, evidenceId: e.id }))]);
     const resolved = c.status === 'DECISION_APPROVED' && c.execStatus === 'BUSINESS_DONE';
+    const mi = await moreInfoOf(prisma, c);
     return {
-      case: { id: c.id, complaintId: c.complaintId, progress: memberProgressLabel(c.status as CaseStatus, c.execStatus), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus) },
+      case: { id: c.id, complaintId: c.complaintId, progress: partyProgressLabel(c.status, c.execStatus, 'MEMBER', mi), createdAt: c.createdAt, canSubmit: gymCaseEnabled() && PARTY_SUBMIT_STATUSES.includes(c.status as CaseStatus) },
+      moreInfo: moreInfoViewFor('MEMBER', mi),
       complaint: { issueType: c.complaint.issueType, description: c.complaint.description },
       evidence: evidence.map((e) => ({ id: e.id, source: e.source, subject: e.subject, capturedAt: e.capturedAt, snapshotVersion: e.snapshotVersion, payload: e.payload, mine: e.submittedBy === actor.id })),
       statements: statements.map((s) => ({ id: s.id, partyRole: s.partyRole, version: s.version, text: s.text, supplementReason: s.supplementReason, createdAt: s.createdAt, mine: s.authorUserId === actor.id })),
@@ -1212,6 +1312,22 @@ export async function supplementAvailable(db: Db, c: { id: string; membershipId:
   return supplementaryRefundAmount(price, refundedSoFar);
 }
 
+/**
+ * N15A-05: what the appeal-supplement execution WILL refund (the difference only), so the admin confirms the right figure. Read-only; null for every other outcome, once that
+ * decision has been executed, or when the figure cannot be derived (the execution itself re-checks everything).
+ */
+async function supplementPreview(db: Db, c: { id: string; membershipId: string | null; execStatus: string }, outcome: Outcome | null, approvalId: string | null): Promise<{ amount: string; refundedSoFar: string } | null> {
+  if (outcome !== 'REFUND_APPEAL_SUPPLEMENT' || c.execStatus === 'BUSINESS_DONE') return null;
+  try {
+    const prior = await priorRefundFacts(db, c.id, approvalId ?? undefined);
+    if (!prior) return null;
+    const amount = await supplementAvailable(db, c, prior.refundedSoFar);
+    return { amount: amount.toFixed(2), refundedSoFar: prior.refundedSoFar.toFixed(2) };
+  } catch {
+    return null;
+  }
+}
+
 /** E1: the amount fixed for the case (written when it was opened). */
 export async function fixedRefundOf(db: Db, caseId: string) {
   return db.gymCaseRefundQuote.findUnique({ where: { caseId } });
@@ -1243,8 +1359,12 @@ async function writeEvidence(tx: Tx, c: CaseRow, actor: Actor, provenance: 'EXTE
 export function financialOf(
   c: { execStatus: string; caseClass?: CaseClass | null },
   outcome: Outcome | null,
-  executions: Array<{ state: string; blockedReason: string | null; response: unknown; createdAt: Date }>,
+  allExecutions: Array<{ state: string; blockedReason: string | null; response: unknown; createdAt: Date; decisionId?: string }>,
+  /** N15A-05: the money view is about the CURRENT decision: after an appeal the old decision's refund must not be shown as this decision's money ("Đọc từ sổ cái" of the first refund). */
+  decisionId?: string | null,
 ) {
+  const own = decisionId ? allExecutions.filter((x) => x.decisionId === decisionId) : allExecutions;
+  const executions = own.length === 0 && c.execStatus !== 'NOT_STARTED' ? allExecutions : own;
   const done = [...executions].reverse().find((x) => x.state === 'BUSINESS_DONE');
   const blocked = [...executions].reverse().find((x) => x.state === 'BLOCKED');
   const obs = (done?.response as { payment?: PaymentObservation } | null)?.payment ?? null;

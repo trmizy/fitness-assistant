@@ -161,3 +161,32 @@ integrationTest('a client with an ACTIVE membership CAN check in at an APPROVED 
     await cleanup(brand.id, gym.id, plan.id, membership.id);
   }
 });
+
+// N15C-11: a refused scan / QR request at a temporarily closed branch carries the owner's expected reopen date.
+integrationTest('N15C-11: TEMPORARILY_CLOSED + expected reopen date -> scan refusal and owner QR 409 carry expectedReopenAt; no date -> none', async () => {
+  const { brand, gym, plan } = await makeBrandGymAndPlan('APPROVED', 'TEMPORARILY_CLOSED');
+  const clientId = randomUUID();
+  const membership = await makeActiveMembership(gym.id, plan.id, clientId);
+  const { token } = signGymCheckinToken(gym.id);
+  const reopen = new Date('2026-11-20T00:00:00.000Z');
+  try {
+    // no date yet
+    await assert.rejects(
+      () => checkinService.checkInByGymToken(clientId, token),
+      (e: any) => e.message === 'GYM_NOT_ACTIVE' && e.expectedReopenAt === undefined,
+    );
+    await prisma.gym.update({ where: { id: gym.id }, data: { expectedReopenAt: reopen } });
+    await assert.rejects(
+      () => checkinService.checkInByGymToken(clientId, token),
+      (e: any) => e.message === 'GYM_NOT_ACTIVE' && e.expectedReopenAt === reopen.toISOString(),
+    );
+    await assert.rejects(
+      () => checkinService.getGymQr(gym.id, brand.ownerId),
+      (e: any) => e.status === 409 && e.code === 'GYM_NOT_OPEN' && e.expectedReopenAt === reopen.toISOString(),
+    );
+    const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
+    assert.equal(after?.usedVisits, 0);
+  } finally {
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
+  }
+});

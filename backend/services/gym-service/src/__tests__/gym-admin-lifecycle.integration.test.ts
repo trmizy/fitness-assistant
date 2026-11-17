@@ -209,3 +209,41 @@ test('FIX3-NOTIFY: no reopen date -> no date in the text; an owner who is not in
   }
   assert.equal((await prisma.gym.findUniqueOrThrow({ where: { id: g.gym.id } })).operationalStatus, 'OPEN');
 });
+
+test('N15C-08: an admin-suspended branch shows its owner AND a scoped manager the reason + time (detail and list); the receptionist reduced view and a lifted / never-suspended branch carry none', { skip }, async () => {
+  const g = await makeGym();
+  const admin = newAdmin();
+  const mgr = await addManager(g.partner.id, [g.gym.id]);
+  const rcp = `rcp-${randomUUID().slice(0, 8)}`;
+  await prisma.gymPartnerAccount.create({ data: { partnerId: g.partner.id, userId: rcp, role: 'RECEPTIONIST', scopedGymIds: [g.gym.id], status: 'ACTIVE', activatedAt: new Date(), onboardingCompletedAt: new Date() } });
+  await prisma.gymPartnerAccount.updateMany({ where: { userId: mgr }, data: { onboardingCompletedAt: new Date() } });
+  const ownerTok = token(g.ownerId, 'GYM_OWNER');
+  const mgrTok = token(mgr, 'GYM_OWNER');
+  const rcpTok = token(rcp, 'GYM_OWNER');
+
+  const before = await call('GET', `/owner/gyms/${g.gym.id}`, ownerTok);
+  assert.equal(before.status, 200, JSON.stringify(before.body));
+  assert.equal(before.body.data.adminSuspensionReason, undefined, 'never suspended: no field');
+
+  const reason = 'Có nhiều báo cáo về vệ sinh phòng tập';
+  assert.equal((await lifecycle(g.gym.id, admin.tok, { action: 'SUSPEND', reason })).status, 200);
+
+  for (const tok of [ownerTok, mgrTok]) {
+    const detail = await call('GET', `/owner/gyms/${g.gym.id}`, tok);
+    assert.equal(detail.status, 200, JSON.stringify(detail.body));
+    assert.equal(detail.body.data.status, 'SUSPENDED');
+    assert.equal(detail.body.data.adminSuspensionReason, reason);
+    assert.ok(detail.body.data.adminSuspendedAt);
+    const list = await call('GET', '/owner/gyms', tok);
+    const row = list.body.data.find((x: any) => x.id === g.gym.id);
+    assert.equal(row.adminSuspensionReason, reason);
+  }
+  const reduced = await call('GET', `/owner/gyms/${g.gym.id}`, rcpTok);
+  assert.equal(reduced.status, 200, JSON.stringify(reduced.body));
+  assert.equal(reduced.body.data.adminSuspensionReason, undefined, 'the receptionist does not see the reason');
+
+  assert.equal((await lifecycle(g.gym.id, admin.tok, { action: 'LIFT_SUSPENSION' })).status, 200);
+  const lifted = await call('GET', `/owner/gyms/${g.gym.id}`, ownerTok);
+  assert.equal(lifted.body.data.status, 'APPROVED');
+  assert.equal(lifted.body.data.adminSuspensionReason, undefined, 'lifted: no field');
+});
