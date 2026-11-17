@@ -5,6 +5,8 @@
  * screen that shows the same thing; an unknown link opens nothing rather than a dead route.
  */
 
+import { anchorOptionsFor } from "../../config/returnPath";
+
 export type AppNotification = {
   id: string;
   text: string;
@@ -255,9 +257,8 @@ export function notificationRoute(n: Pick<AppNotification, "link" | "entityType"
  * Plain tab roots (`/client/services?tab=contracts`, `/pt/schedule`) have nothing to anchor, so they are
  * left alone (the flag would only add a stray `initial` param to their search params).
  */
-const NESTED_ROUTE = /^\/(?:client|pt|admin|gym-owner)\/[^/?#]+\/[^/?#]+/;
 export function notificationPushOptions(route: string): { withAnchor: true } | undefined {
-  return NESTED_ROUTE.test(route) ? { withAnchor: true } : undefined;
+  return anchorOptionsFor(route);
 }
 
 /** "Hôm nay" / "Tuần này" / "Trước đó" groups, newest first, empty groups dropped. */

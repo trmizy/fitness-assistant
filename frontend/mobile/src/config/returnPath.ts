@@ -93,3 +93,20 @@ export function resolveReturnPath(
 ): string | null {
   return pickReturnPath(candidate, peekReturnPath(now));
 }
+
+/**
+ * N17M-01 / FIX8-5 — how to navigate to a route that lives INSIDE a workspace tab's own stack
+ * (`/client/services/gyms/<id>`, `/client/profile/wallet`, `/pt/service-orders/<id>` ...) from outside that stack.
+ *
+ * The tab's stack is not mounted yet, so expo-router starts it with ONLY the target screen: the layout's
+ * `unstable_settings.initialRouteName` applies to cold-start links only. The hub (`index`) is then missing
+ * underneath, and Android SYSTEM back exits the app instead of going to the hub (the in-app arrow worked
+ * because it routes explicitly). `withAnchor: true` makes expo-router (getNavigationAction.js: `initial = false`
+ * at every level) load the initial route under the target. It works for push and replace alike.
+ * Plain tab roots (`/client/services?tab=contracts`, `/client/dashboard`, `/pt/schedule`) have nothing to anchor, so
+ * they get no options (the flag would only add a stray `initial` param to their search params).
+ */
+const NESTED_ROUTE = /^\/(?:client|pt|admin|gym-owner)\/[^/?#]+\/[^/?#]+/;
+export function anchorOptionsFor(route: string): { withAnchor: true } | undefined {
+  return NESTED_ROUTE.test(route) ? { withAnchor: true } : undefined;
+}
