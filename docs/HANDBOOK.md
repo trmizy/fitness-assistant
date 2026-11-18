@@ -495,6 +495,66 @@ Nguồn: audit 11/11/2026 (**CODE AUDIT**, không gọi AWS), [`deployment/AWS_D
 - Khác biệt quan trọng so với local: không Redis/Ollama/Qdrant (thay bằng SQS/Bedrock/OpenSearch), file lưu S3 thật (không MinIO), bằng chứng dispute không dùng được trên Lambda (ghi file tạm), giới hạn payload ~6MB, cold start chậm khi Aurora/NAT tắt, Lambda chặn đăng ký email miền test (`TEST_ACCOUNT_BLOCKED`). Dispute V2.1 route `dispute-cases` có thể **chưa** có trong API Gateway baseline (chưa kiểm lại).
 - Việc cần REAL HTTP/API để chốt (chưa xác nhận): cấu hình thực của Lambda/Aurora, route parity API Gateway, cách migrate hiện tại cho auth/user/fitness trên AWS.
 
+### 3.12 Đợt kiểm & sửa AWS dev 17–18/11/2026
+
+**Bằng chứng:** REAL BROWSER trên `https://gymini.vn`, REAL DEVICE (ROG, APK release trỏ `https://api.gymini.vn`), REAL HTTP/API. Cấu hình AWS chỉ được **đọc** từ phía team. Mọi thay đổi cấu hình và hạ tầng do partner làm.
+
+**Môi trường đã xác nhận:**
+- Web chạy qua CloudFront `E2MHD79JFC1700` (`gymini.vn`, `www`). API là API Gateway `id1iz7upbl`, tên miền `api.gymini.vn`.
+- Lambda: `fitness-assistant-dev-{auth,user,user-jobs,gym,payment,fitness,ai}`.
+- Aurora `fitness-assistant-dev-aurora`: PG 17, Serverless v2, 2 instance. **Data API đã bật** để thao tác dữ liệu test.
+- Mọi Lambda dùng **một bucket** `fitness-assistant-uploads-dev-191798898985`, mã hoá mặc định AES256.
+- Chat (ECS) và mọi lịch EventBridge đang **tắt**.
+- Tài khoản AWS là tài khoản mượn, luật làm việc có trong bộ nhớ dự án:
+  - không bật hay tắt dịch vụ;
+  - chỉ thao tác dữ liệu;
+  - lỡ bật nhầm thì tắt trong 3 giờ.
+
+**Lỗi tìm thấy và đã sửa:**
+
+| Lỗi | Nguyên nhân | Sửa (nơi) |
+|---|---|---|
+| Upload trên web lỗi | CORS bucket thiếu `gymini.vn` / `www.gymini.vn` | cấu hình bucket (partner) |
+| Hồ sơ đối tác gym, thêm chi nhánh, nút "Tôi đồng ý" không gửi được | API Gateway thiếu allow-header `x-gymini-client`, `x-gymini-listing-flow`, `x-gymini-venue-consent` | CORS API Gateway (partner) |
+| Hợp đồng PT kẹt `PENDING_SIGNATURE` | Lambda `user` thiếu `REQUIRE_CONTRACT_ESIGN=false`; code mặc định **bật** khi thiếu biến | env Lambda. Hợp đồng đã kẹt huỷ được qua API (`e053d0e9`) |
+| Lời mời nhân viên 502, check-in hộ, giao khiếu nại 503, mail gym không gửi, `gym-options` 503 | gym↔auth và user↔gym/payment gọi bằng URL localhost | Lambda invoke `*_LAMBDA_NAME` (`d8e86133`) |
+| Trang duyệt bài tập 500 | thiếu CSV danh mục trên Lambda | đóng gói CSV (`d8e86133`) |
+| VNPay báo chữ ký sai khi tên gói có `( )` | `encodeURIComponent` không mã hoá `!'()*` | ký kiểu urlencode, kiểm chấp nhận cả hai (`e053d0e9`) |
+| Giờ buổi tập lệch 7 tiếng, dời lịch luôn bị từ chối | Lambda chạy UTC | env `TZ=Asia/Ho_Chi_Minh` cho mọi Lambda |
+| Giấy tờ chi nhánh, ảnh khiếu nại 503 | multer ghi ổ đĩa, Lambda không có | presign S3 → POST → confirm (`f907be8d`, `0ccda7a1`) |
+| Ảnh PT 503 | Lambda `user` thiếu bucket và quyền S3 | env `PT_MEDIA_S3_BUCKET` + IAM |
+| ZaloPay "not enabled" | chốt an toàn production + thiếu khoá | env khoá **sandbox** + `ZALOPAY_PRODUCTION_VERIFIED=true`. **Chỉ dùng với khoá sandbox** |
+| Lỗi giao diện web | ADM-01, PT-05/08/11, LEAK-01, NOTIF-01, MGR-01, WIZ-01, tiêu đề mail lời mời, lời chào AI, chữ vận hành ZaloPay/Grafana | `e053d0e9`, `0ccda7a1`, `59b108db` |
+| `/admin/users` trên Lambda bỏ qua phân trang | client gọi auth qua Lambda gửi `rawQueryString: ""`, mất mọi query | phân trang và lọc trong DB (`497adcb7`) |
+| `/admin/dashboard`, "Hôm nay" kéo toàn bộ user (vượt 6 MB); lọc `notIn` vượt 32.767 tham số | | tổng hợp trong DB `POST /auth/users/dashboard-summary`; `recentUsers` có `id` + `partnerRole` (`051d43f1`) |
+| `/auth/internal/test-account-ids` đọc cả bảng | | lọc trong SQL (`e367aaf3`) |
+| Mobile | MOB-ISO-01 (đăng xuất rồi đăng nhập người khác vẫn mở màn của người trước), mã giao dịch thô, nhãn vai trò, chặn WebP ở giấy tờ, lộ email/mã | `9fa41442` (nhánh `feature/payment-gateways`) |
+
+**Cấu hình đặt tay ngoài IaC:** CORS (bucket và API Gateway), env Lambda (`REQUIRE_CONTRACT_ESIGN`, `TZ`, `*_LAMBDA_NAME`, `PT_MEDIA_S3_BUCKET`, ZaloPay) và IAM. Đã ghi lại thành `scripts/aws/dev-manual-config.mjs`: chạy không tham số là chỉ kiểm, `--apply` là áp. Pipeline cấu hình nào ghi đè thì phải đặt lại.
+
+**Quy trình deploy đã dùng:**
+1. Partner push lên `aws-deploy`. `dev-build.yml` build zip Lambda.
+2. Chủ repo chạy **DEV Application Deploy (Lambda code)** từ nhánh `aws-deploy` với `build_run_id` và `services`. Chạy `dry_run=true` trước rồi mới `false`, và duyệt environment `dev`.
+3. Đổi thư viện `shared` thì build cả 6 service, nhưng chỉ deploy service đổi hành vi. Service gọi endpoint mới phải lên **sau** service cung cấp endpoint (ví dụ `auth` trước `user`).
+4. Web: `aws s3 sync dist` **không `--delete`**, giữ `runtime-config.json`, rồi `index.html`/`sw.js`/manifest với `no-cache`, cuối cùng invalidation CloudFront.
+5. Workflow chỉ chạy `update-function-code`, **không** ghi cấu hình.
+
+**Kết quả kiểm sau sửa:**
+- Web: test lại toàn bộ 16 mục, quét 270 lượt tải trang ở 390 px và desktop, sáng và tối.
+- Mobile trên máy thật: đủ 3 vai trò + nhân viên + admin. VNPay và ZaloPay sandbox quay về app qua `fitnessassistant://`.
+- APK cũ 14/11 vẫn chạy với backend mới (chế độ ân hạn khi thiếu header xác nhận nơi tập).
+- `/admin/users` (REAL HTTP/API): phân trang, lọc `role`/`status`, tìm tên có dấu, `ids=`, lỗi 400 đều đúng, khoảng 0,2 giây.
+
+**Dữ liệu test:** mọi tài khoản và dữ liệu sinh ra khi test đã được hoàn tác về mốc trước khi test (Data API, plan lọc theo thực thể test, drift tiền = 0). Dữ liệu partner tạo trong cùng khoảng thời gian được giữ nguyên.
+
+**Còn mở (AWS):**
+- `partnerRole=…` ở `/admin/users` mất khoảng 3 giây vì gọi gym-service từng đợt. Nếu chậm hơn thì làm endpoint lọc vai trò ở gym-service.
+- Backend chỉ ký URL avatar `s3://` ở **hồ sơ của chính mình**. Màn hiện avatar người khác chưa ký.
+- `/translate` 404 (không có gateway trên AWS).
+- Mail đặt lại mật khẩu và mail lời mời kế toán vào Spam (chưa có SPF/DKIM).
+- Bản đồ vai trò chính xác cho "người mới đăng ký" trên mobile cần `recentUsers.id` (đã có từ `051d43f1`, chưa kiểm trên máy).
+- Code `aws-deploy` sau `0ccda7a1` (`59b108db`, `497adcb7`, `051d43f1`, `e367aaf3`) chưa gộp về `feature/payment-gateways`. Khi gộp: **chỉ lấy code, không lấy `.md`/`docs/` cũ của `aws-deploy`**, và cẩn thận các tệp cấu hình agent bị `.gitignore` ở nhánh này nhưng `aws-deploy` có track.
+
 ---
 **Mâu thuẫn tài liệu cũ ↔ cấu hình đã được xử lý trong phần này** (đã ghi giá trị từ config): (1) `LLM_MODEL` mặc định là `qwen3:4b-instruct-2507-q4_K_M` (tài liệu cũ ghi `fitness-coach-qwen2.5-1.5b:q4_K_M`); (2) DB là 7 database `gymcoach_<svc>` (tài liệu cũ ghi một DB `gymcoach` chung); (3) dev compose chỉ có 3 profile `local-ollama`/`knowledge`/`observability` (tài liệu cũ nhắc profile `automation` không tồn tại); (4) chat-service socket đi qua gateway ở `/chat-socket.io` (tài liệu cũ ghi mặc định nối thẳng cổng 3005); (5) script `db:migrate` trong package.json dùng `prisma migrate dev`, trái quy tắc "chỉ `migrate deploy`".
 
