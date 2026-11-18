@@ -1721,7 +1721,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\FitnessAssistant\\backend\\services\\user-service\\src\\generated\\prisma",
+      "value": "C:\\D_Backup\\project_personal\\fitness-assistant-worktrees\\merge-payment-20261117\\backend\\services\\user-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -1747,12 +1747,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\FitnessAssistant\\backend\\services\\user-service\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\D_Backup\\project_personal\\fitness-assistant-worktrees\\merge-payment-20261117\\backend\\services\\user-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "5.22.0",

@@ -67,7 +67,9 @@ export function buildExerciseHowTo(name: string, instructions: string | null | u
 }
 
 // ---------- tập ở nhà / không dụng cụ ----------
-const HOME = /\b(o nha|tai nha|khong (?:co )?(?:dung cu|thiet bi|may|ta)|tay khong|bodyweight|khong can dung cu|khong dung cu)\b/;
+// "tay không" (bare-handed) — but not "cổ tay không?" ("…có nên dùng băng cổ tay không?" was answered with a home-workout
+// template, eval B4-19 2026-11-11).
+const HOME = /\b(o nha|tai nha|khong (?:co )?(?:dung cu|thiet bi|may|ta)|(?<!\bco )tay khong|bodyweight|khong can dung cu|khong dung cu)\b/;
 const CAN = /\b(duoc khong|duoc ko|co duoc|co the .* khong|co nen .* khong|lam duoc)\b/;
 export function isHomeNoEquipmentQuestion(rawText: string): boolean {
   if (!/[a-z]/i.test(rawText)) return false;

@@ -160,7 +160,9 @@ function pad2(value: number): string {
 function parseExplicitDate(q: string, today: string): string | undefined {
   const currentYear = Number(today.slice(0, 4));
   const numeric = q.match(
-    /\b(\d{1,2})\s*[/-]\s*(\d{1,2})(?:\s*[/-]\s*(\d{2,4}))?\b/,
+    // A number range followed by a unit is not a date: "dao động 1-2 kg mỗi ngày" was read as 1 February (eval B3-01),
+    // which also switched off the advice-question guard because a date counts as a hard anchor.
+    /\b(\d{1,2})\s*[/-]\s*(\d{1,2})(?:\s*[/-]\s*(\d{2,4}))?\b(?!\s*(?:kg|g\b|cm|m\b|%|buoi|phut|gio|tieng|lan|rep|reps|set|sets|hiep|bua|tuan|thang|ngay|calo|kcal|nam|tuoi))/,
   );
   if (numeric) {
     const day = Number(numeric[1]);
@@ -237,9 +239,36 @@ function isWorkoutSafetyQuestion(q: string): boolean {
 }
 
 function asksStoredWorkoutDetails(q: string): boolean {
-  return /(lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|what should i train)/.test(
+  // `tap gi` needs a word boundary: "bỏ tập giữa chừng" normalises to "bo tap giua chung", which contains "tap gi" as a
+  // substring and used to be answered with the user's saved schedule instead of by the coach (eval B1-46, 2026-11-10).
+  return /(lich tap|lich cua toi|toi tap gi\b(?! (?:de|cho)\b)|tap gi\b(?! (?:de|cho)\b)|workout schedule|what should i train)/.test(
     q,
   );
+}
+
+/**
+ * An ADVICE question that happens to contain schedule words ("chỉ tập được 2 buổi thì nên tập gì?", "chưa hít xà được thì
+ * tập gì để làm được?"). The user wants coaching, not a read-out of the saved schedule, so it must reach the coach. A hard
+ * anchor (today / tomorrow / a date or weekday / "lịch tập" / "lịch của tôi") keeps it a lookup.
+ */
+// Words that frame the message as a coaching request ("hôm nay em mệt, đổi sang bài dễ hơn", "tôi bị tiểu đường, nên tập gì và ăn gì",
+// "tuần này em chỉ rảnh 2 ngày … tập gì trong hai ngày đó") even when it also says today/tomorrow/a weekday.
+const EXPLICIT_LOOKUP = /(lich tap|lich cua toi|toi tap gi\b(?! (?:de|cho)\b)|workout schedule|what should i train)/;
+const COACHING_FRAMING =
+  /\b(met|moi me|om|khong khoe|buon ngu|stress|de hon|nhe hon|doi sang|thay bang|co nen|co duoc khong|co sao khong)\b|\bdau (?:lung|goi|vai|co|hong|khop|bung|nguc|dau)\b|\b(?:toi|em|minh|tui) (?:dang )?bi\b|\btap gi trong (?:\d+|mot|hai|ba|bon|nam) (?:ngay|buoi)\b/;
+
+function isAdviceNotLookup(q: string, hasDateOrDay: boolean): boolean {
+  if (EXPLICIT_LOOKUP.test(q)) return false;
+  if (COACHING_FRAMING.test(q)) return true;
+  const hasHardAnchor =
+    hasDateOrDay || /(hom nay|ngay mai|today|tomorrow|lich tap|lich cua toi|workout schedule)/.test(q);
+  if (hasHardAnchor) return false;
+  // A long conditional ("khách sạn không có phòng gym thì tập gì?") is a coaching question; a SHORT "thế thì tập gì?" stays a follow-up.
+  if (q.split(/\s+/).length > 7 && /\bthi (?:nen )?tap gi\b/.test(q)) return true;
+  // "Vậy tôi nên tăng tạ thế nào?" (eval B4-46, 2026-11-11) is a progression question, not "what is on my schedule": the short
+  // "vậy … thế nào" form passed as a schedule follow-up and was answered "no saved workout for Wednesday".
+  if (/\bnen\b.{1,30}\b(the nao|ra sao)\b/.test(q) || /\b(tang|giam|nang|day|cai thien|tien bo)\b.{0,12}\b(ta|muc ta|trong luong|khoi luong|kg|reps?|hiep|set)\b/.test(q)) return true;
+  return /\btap gi (?:de|cho)\b|\bchi (tap|co) duoc\b|\bban qua\b|lam sao|lam the nao|tai sao|\bnen thay doi\b/.test(q);
 }
 
 function hasScheduleFollowUpSignal(q: string): boolean {
@@ -313,9 +342,20 @@ export function detectWorkoutScheduleIntent(
   }
 
   const scheduleSignals =
-    /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
+    /(hom nay|ngay mai|lich tap|lich cua toi|toi tap gi\b|tap gi\b|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
   const hasDateOrDay =
     parsedDate !== undefined || parsedDayOfWeek !== undefined;
+  if (isAdviceNotLookup(q, hasDateOrDay)) {
+    return {
+      enabled: false,
+      target: "current_schedule",
+      rawMessage: question,
+      normalizedMessage: q,
+      inheritedIntent,
+      parsedDate,
+      parsedDayOfWeek,
+    };
+  }
   const hasDirectScheduleSignal =
     scheduleSignals.test(q) || asksForWeeklySchedule(q);
   const inheritedFollowUp =

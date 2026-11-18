@@ -33,6 +33,7 @@ import {
 } from "./nutrition-food-constraints";
 import { fitnessAgentTools, type AgentIdentity } from "./fitness-agent-tools";
 import { parseFitnessAgentIntent, normalizeAgentText } from "./fitness-agent-intent";
+import { classifyAgentTurnAct, mayStartMutation } from "./agent-turn-act";
 import { parseMinutes, parseSessionsPerWeek, parseTrainingDays } from "../agent-workflow/slot-values";
 import { isLikelyFoodSubstitutionMessage, extractFoodSubstitutionIntent } from "./food-substitution-extractor";
 import { isLikelyMealLogMessage, extractMealLogIntent } from "./meal-log-extractor";
@@ -555,6 +556,17 @@ function buildWorkoutPlanPreviewBlock(
 // names (never against arbitrary catalog text) in
 // tryReviseWorkoutPlanDraft. Deliberately simple/bounded rather than an
 // LLM extractor — same "deterministic first" precedent as slot-values.ts.
+/**
+ * A swap request about FOOD (dish, meal, menu, ingredient) with no exercise cue. Folded text. Used only to keep the
+ * exercise-swap guard off food turns; an ambiguous turn that names an exercise stays in the exercise domain.
+ */
+export function isFoodDomainSwap(message: string): boolean {
+  const s = normalizeAgentText(message);
+  const food = /\b(?:mon(?: an)?|thuc an|do an|thuc don|bua(?: sang| trua| toi| phu)?|com|bun|pho|mien|chao|xoi|banh mi|uc ga|thit|ca hoi|ca|trung|sua|rau|trai cay|hoa qua|yen mach|khoai|dau phu|dau hu|nuoc ep)\b/.test(s);
+  const exercise = /\b(?:bai(?: tap)?|squat|deadlift|press|curl|row|lunge|plank|push ?up|pull ?up|chong day|keo xa|hip thrust|bench|ta don|ta don|ta dong|ta|may|cable|giao an|lich tap|buoi tap)\b/.test(s);
+  return food && !exercise;
+}
+
 export function extractExerciseRevisionKeyword(rawMessage: string): string | null {
   // M6: longest carrier phrases FIRST — the old single alternation
   // (`khong|khong the|khong co|khong muon`) let the shorter "khong" win, so
@@ -1277,7 +1289,10 @@ export const fitnessAgent = {
         const hasPendingWorkoutDraft = await prisma.fitnessAgentAction.findFirst({
           where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
         }) !== null;
-        const permanentSwapGuard = tryExplainUnsupportedPermanentSwap(question, hasPendingWorkoutDraft, extractExerciseRevisionKeyword);
+        // Domain boundary (V1 RC1): extractExerciseRevisionKeyword returns a "keyword" for ANY đổi/thay message, so a FOOD swap
+        // ("tôi muốn đổi món ăn") got the permanent-EXERCISE-swap refusal. Food-domain turns skip the exercise guard entirely and
+        // reach the food-substitution path below; the guard itself (b4) is unchanged.
+        const permanentSwapGuard = isFoodDomainSwap(question) ? null : tryExplainUnsupportedPermanentSwap(question, hasPendingWorkoutDraft, extractExerciseRevisionKeyword);
         if (permanentSwapGuard) return permanentSwapGuard;
         // Not PT/PROGRAM/SELECT — check for a food-substitution request
         // before falling through to the normal RAG/LLM chat pipeline (see
@@ -3195,6 +3210,19 @@ export const fitnessAgent = {
       orderBy: { createdAt: "desc" },
     });
     if (!drafts.length) return null;
+    // Workflow boundary (V1 RC 2026-11-12): a pending draft changes only on a real revision. A QUESTION or HYPOTHETICAL turn
+    // ("Nếu tập 6 buổi thì sao?", "Tập 5 buổi có nhiều không?") used to regenerate the reviewed draft. Such a turn may only
+    // POLL a draft that is still being generated ("xong chưa?") — that path reads status and never revises — otherwise the
+    // draft is not touched and the normal chat answers the question. Same act contract as the intent gate (agent-turn-act.ts).
+    if (!mayStartMutation(classifyAgentTurnAct(question))) {
+      const pollOnly = /\b(xong|chua|san sang|ket qua|dau roi|kiem tra)\b/.test(normalizeAgentText(question));
+      const generating = drafts.find((a) => (a.payload as { phase?: string } | null)?.phase === "GENERATING");
+      if (!pollOnly || !generating) return null;
+      const DRAFT_DOMAIN = DRAFT_DOMAIN_OF_KIND[generating.kind];
+      return DRAFT_DOMAIN === "WORKOUT" ? this.tryReviseWorkoutPlanDraft(question, identity, sessionId, generating)
+        : DRAFT_DOMAIN === "NUTRITION" ? this.tryPollOrReviseNutritionPlanDraft(question, identity, sessionId, generating)
+          : null;
+    }
     const touched = (a: { createdAt: Date; payload: unknown }) => Math.max(a.createdAt.getTime(), Date.parse((a.payload as any)?.lastTouchedAt ?? "") || 0);
     drafts.sort((a, b) => touched(b) - touched(a));
     const domainOf = (a: { kind: string }): DraftDomain => DRAFT_DOMAIN_OF_KIND[a.kind];

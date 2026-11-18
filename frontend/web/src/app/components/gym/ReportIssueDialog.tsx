@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { XIcon, ImageIcon, CircleNotchIcon, ClockIcon, CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { gymService } from "../../services/api";
+import { gymService, uploadErrorMessage } from "../../services/api";
 import type { ComplaintIssueType, ComplaintStatus, GymComplaint } from "../../types";
 import { AuthenticatedImage } from "../ui/AuthenticatedImage";
 import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
@@ -38,6 +38,8 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
   const [description, setDescription] = useState("");
   const [photoTokens, setPhotoTokens] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // The toast vanishes in a moment; a photo that did not upload must stay visibly reported until the next attempt.
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const historyQuery = useQuery<GymComplaint[]>({
@@ -62,11 +64,14 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
   async function handleAddPhoto(file: File) {
     if (photoTokens.length >= MAX_PHOTOS) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const { token } = await gymService.uploadComplaintPhoto(file);
       setPhotoTokens((prev) => [...prev, token]);
     } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || "Tải ảnh thất bại");
+      const message = uploadErrorMessage(e, "Tải ảnh thất bại");
+      setUploadError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
     }
@@ -173,6 +178,11 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
                   </label>
                 )}
               </div>
+              {uploadError && (
+                <p role="alert" className="mt-2 text-xs text-red-400" data-testid="report-issue-upload-error">
+                  {uploadError} Ảnh này CHƯA được đính kèm vào báo cáo.
+                </p>
+              )}
             </div>
             <button
               type="button"

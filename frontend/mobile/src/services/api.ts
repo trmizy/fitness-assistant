@@ -16,7 +16,7 @@ import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { sessionGuard, SessionChangedError } from "./sessionGuard";
-import { downloadAuthenticatedFile, shareLocalFile, writeLocalFile } from "./files";
+import { downloadAuthenticatedFile, downloadPresignedFile, shareLocalFile, writeLocalFile } from "./files";
 
 export interface PlanExplanationResponse {
   planId: string;
@@ -604,6 +604,26 @@ export const inbodyService = {
   getLatest: async () => {
     const { data } = await api.get("/inbody/latest"); // We need to add /latest to backend too or just use history[0]
     return data;
+  },
+
+  /** "Giải thích thể trạng" — same endpoint and contract as the web InBodyExplanationCard. */
+  interpret: async (entryId?: string) => {
+    const { data } = await api.post("/ai/inbody/interpret", entryId ? { entryId } : {}, { timeout: 35000 });
+    return (data?.data ?? data) as {
+      entryId: string | null;
+      explanation: string | null;
+      source: "llm" | null;
+      explanationError?: string;
+      facts: {
+        daysSincePrevious: number | null;
+        metrics: Array<{ key: string; labelVi: string; value: number; unit: string; source: "MEASURED" | "COMPUTED"; status: "low" | "good" | "slightly_high" | "high" | "info"; statusVi: string; noteVi?: string }>;
+        bodyType: { code: string; labelVi: string; explanationVi: string } | null;
+        balance: Array<{ partVi: string; leftKg: number; rightKg: number; diffPct: number; status: "normal" | "mild" | "significant" }>;
+        changes: Array<{ key: string; labelVi: string; from: number; to: number; delta: number; unit: string; meaningful: boolean }>;
+        flags: Array<{ code: string; messageVi: string }>;
+        dataQuality: string[];
+      } | null;
+    };
   },
 
   getHistory: async () => {
@@ -4425,9 +4445,7 @@ export const adminService = {
     return data?.data ?? data;
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchBranchDocumentFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/admin/branch-documents/${token}`, `branch-document-${token}`);
-  },
+  fetchBranchDocumentFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/admin/branch-documents", token, "branch-document"),
 
   // GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm (một hàng đợi chung, mọi nguồn).
   listComplaints: async (status?: string) => {
@@ -4462,9 +4480,7 @@ export const adminService = {
     return data?.data ?? data;
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchComplaintPhotoFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/admin/complaint-photos/${token}`, `complaint-photo-${token}`);
-  },
+  fetchComplaintPhotoFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/admin/complaint-photos", token, "complaint-photo"),
 };
 
 export interface FoodCatalogItem {
@@ -5647,6 +5663,55 @@ async function fileSizeBytes(uri: string): Promise<number> {
 }
 
 /**
+ * Private evidence files (complaint photos, branch documents). On AWS the API runs on Lambda, which cannot write to disk,
+ * so they go presign -> multipart POST straight to storage -> confirm, and are read back through a short-lived link.
+ * Same upload mechanics as `uploadApplicationFile` (expo-file-system MULTIPART: signed fields first, file LAST, no JWT to storage).
+ */
+export class EvidenceUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EvidenceUploadError";
+  }
+}
+
+async function uploadPrivateEvidence<T>(presignPath: string, confirmPath: string, file: UploadFile): Promise<T> {
+  const sizeBytes = await fileSizeBytes(file.uri);
+  const contentType = file.type || "application/octet-stream";
+  const { data: p } = await api.post(presignPath, { contentType, sizeBytes });
+  const target = p?.data ?? p;
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(target.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: contentType,
+      parameters: target.fields,
+    });
+  } catch {
+    throw new EvidenceUploadError("Không gửi được tệp lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
+    throw new EvidenceUploadError(res.status === 403 ? "Lượt tải lên đã hết hạn hoặc không hợp lệ. Hãy thử lại." : `Tải tệp lên thất bại (${res.status}). Hãy thử lại.`);
+  }
+  const { data: c } = await api.post(confirmPath, { uploadId: target.uploadId }, { timeout: 45000 });
+  return (c?.data ?? c) as T;
+}
+
+/** Asks for a short-lived link (authorised server-side) and downloads it WITHOUT our JWT. A token saved on local disk before this flow existed (local dev) still goes through the old authenticated route. */
+async function fetchPrivateEvidenceFile(basePath: string, token: string, namePrefix: string): Promise<string> {
+  let url: string;
+  try {
+    const { data } = await api.get(`${basePath}/${token}/url`);
+    url = (data?.data ?? data).url;
+  } catch (e: any) {
+    if (e?.response?.status === 404) return downloadAuthenticatedFile(`${basePath}/${token}`, `${namePrefix}-${token}`);
+    throw e;
+  }
+  return downloadPresignedFile(url, `${namePrefix}-${token}`);
+}
+
+/**
  * WB-17 — "Duyệt hồ sơ đối tác" (admin). Thay hẳn WB-03: đường admin tự tạo tài khoản chủ gym đã bị
  * gỡ (`POST /admin/partners` trả 410), nên đây giờ là **đường duy nhất** để một chủ gym tồn tại.
  *
@@ -6332,17 +6397,11 @@ export const gymService = {
     docType: import('../types').BranchDocumentType,
     file: UploadFile,
   ): Promise<import('../types').GymBranchDocument> => {
-    const formData = new FormData();
-    appendUpload(formData, 'file', file);
-    const { data } = await api.post(`/owner/gyms/${gymId}/branch-documents/${docType}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data?.data ?? data;
+    const base = `/owner/gyms/${gymId}/branch-documents/${docType}`;
+    return uploadPrivateEvidence<import('../types').GymBranchDocument>(`${base}/presign`, `${base}/confirm`, file);
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchBranchDocumentFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/owner/branch-documents/${token}`, `branch-document-${token}`);
-  },
+  fetchBranchDocumentFile: (token: string): Promise<string> => fetchPrivateEvidenceFile('/owner/branch-documents', token, 'branch-document'),
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner: what admin flagged
   // last time this branch was sent back from PENDING_REVIEW to DRAFT.
   listOpenReviewIssues: async (gymId: string): Promise<import('../types').GymBranchReviewIssue[]> => {
@@ -6546,14 +6605,8 @@ export const gymService = {
 
   // ── GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (riêng tư, khác review công
   // khai ở trên — hai nút riêng, nhãn khác nhau, theo đúng yêu cầu đã chốt). ──
-  uploadComplaintPhoto: async (file: UploadFile): Promise<{ token: string }> => {
-    const formData = new FormData();
-    appendUpload(formData, "photo", file);
-    const { data } = await api.post("/complaint-photos", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data?.data ?? data;
-  },
+  uploadComplaintPhoto: (file: UploadFile): Promise<{ token: string }> =>
+    uploadPrivateEvidence<{ token: string }>("/complaint-photos/presign", "/complaint-photos/confirm", file),
   submitGymComplaint: async (
     gymId: string,
     payload: { issueType: string; description: string; photoTokens?: string[] },
@@ -6569,9 +6622,7 @@ export const gymService = {
    * phải tải kèm header xác thực xuống file cục bộ rồi trỏ vào `file://` URI đó. Dùng chung cho
    * cả người báo cáo xem lại ảnh của chính mình (route `/complaint-photos/:token`, không phải
    * `/admin/...` — xem adminService.fetchComplaintPhotoFile cho phía admin). */
-  fetchComplaintPhotoFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/complaint-photos/${token}`, `complaint-photo-${token}`);
-  },
+  fetchComplaintPhotoFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/complaint-photos", token, "complaint-photo"),
 
   // ── Quản lý đối tác — Phase 3: trình thiết lập lần đầu + tự quản lý người quản lý ──
   getOnboardingStatus: async () => {

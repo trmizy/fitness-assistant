@@ -93,12 +93,31 @@ function formatVnpDate(d: Date): string {
 }
 
 /**
+ * Two encodings of the same VNPay query exist in the wild:
+ *  - 'uri-component': encodeURIComponent + '+' for spaces. It leaves ! ' ( ) * literal. This is what we SEND when we create a
+ *    checkout (VNPay's sandbox accepts it, including OrderInfo with brackets).
+ *  - 'urlencode': PHP-style urlencode (RFC 1738) - additionally encodes ! ' ( ) * as %21 %27 %28 %29 %2A. This is how VNPay
+ *    signs its own return / IPN, so a vnp_OrderInfo such as "Truc tiep 4 buoi (dia diem rieng)" only verifies with this one.
+ * PAY-02 (partner retest 2026-11-17): VNPay answered ResponseCode 00 but we computed the 'uri-component' hash, never matched and
+ * showed status=invalid, so the money was not recorded. Creation is unchanged; verification accepts either encoding.
+ */
+export type VnpEncoding = 'uri-component' | 'urlencode';
+export function encodeUrlencode(s: string): string {
+  return encodeURIComponent(s)
+    .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+    .replace(/%20/g, '+');
+}
+
+/**
  * VNPay reference encoding: keys sorted alphabetically, each key/value passed through
  * encodeURIComponent with spaces as '+'. The SAME string is used both to sign and to
  * build the redirect query (per VNPay's official Node demo).
  */
-export function buildSignedQuery(params: Record<string, string>): { query: string; signature: string } {
-  const enc = (s: string) => encodeURIComponent(s).replace(/%20/g, '+');
+export function buildSignedQuery(
+  params: Record<string, string>,
+  encoding: VnpEncoding = 'uri-component',
+): { query: string; signature: string } {
+  const enc = encoding === 'urlencode' ? encodeUrlencode : (s: string) => encodeURIComponent(s).replace(/%20/g, '+');
   const query = Object.keys(params)
     .filter((k) => params[k] !== undefined && params[k] !== null && params[k] !== '')
     .sort()
@@ -243,11 +262,14 @@ export class VNPayProvider implements PaymentProvider {
     delete params.vnp_SecureHashType;
     if (!receivedHash) return { valid: false, reason: 'BAD_SIGNATURE' };
 
-    const { signature } = buildSignedQuery(params);
-    // Constant-time comparison of two hex digests of equal length (a length mismatch is simply unequal).
-    const sigBuf = Buffer.from(signature.toLowerCase(), 'utf-8');
+    // Constant-time comparison of two hex digests of equal length (a length mismatch is simply unequal). Accept the hash of
+    // EITHER encoding (see VnpEncoding): both are HMACs under our secret over the same logical parameters.
     const recvBuf = Buffer.from(receivedHash, 'utf-8');
-    if (sigBuf.length !== recvBuf.length || !crypto.timingSafeEqual(sigBuf, recvBuf)) {
+    const matches = (['urlencode', 'uri-component'] as const).map((enc) => {
+      const sigBuf = Buffer.from(buildSignedQuery(params, enc).signature.toLowerCase(), 'utf-8');
+      return sigBuf.length === recvBuf.length && crypto.timingSafeEqual(sigBuf, recvBuf);
+    });
+    if (!matches.some(Boolean)) {
       logger.warn({ error: 'VNPay signature mismatch', txnRef: params.vnp_TxnRef });
       return { valid: false, reason: 'BAD_SIGNATURE' };
     }

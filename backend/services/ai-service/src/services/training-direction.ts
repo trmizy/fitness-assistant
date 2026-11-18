@@ -14,7 +14,8 @@ const FAT_LOSS = /\b(giam can|giam mo|giam beo|sieu|cat mo|lean|xuong can)\b/;
 const MUSCLE = /\b(tang co|tang bap|len co|xay co|bulk|bulking)\b/;
 const RECOMP = /\b(vua giam (?:can|mo|beo) vua tang co|vua tang co vua giam (?:can|mo|beo)|tai cau truc|recomp|recomposition|giam mo (?:va|ma|dong thoi) tang co|giam can (?:va|ma|dong thoi) tang co|vua giam vua tang)\b/;
 // A real question about how to go about it ("nên làm gì", "tập như thế nào", "bắt đầu thế nào")...
-const ASK = /\b(nen lam gi|lam gi bay gio|lam gi tiep|tap nhu the nao|tap the nao|tap sao|tap ra sao|nen tap nhu|nen tap the|tap kieu gi|huong di|cach nao|lam sao|lam the nao|bat dau the nao|nen bat dau|nen the nao|the nao|ra sao)\b/;
+const DIRECTION_CONSTRAINT = /\b(day khang luc|day dan hoi|day cao su|resistance band|band|ta don|ta tay|ta am|kettlebell|xa don|khong co (?:dung cu|ta|may)|chi co|khong dung cu|bodyweight|dau (?:lung|goi|vai|co|khop)|chan thuong|sau sinh|sinh con|mang thai|tuoi|\d{2} tuoi)\b/;
+const ASK =/\b(nen lam gi|lam gi bay gio|lam gi tiep|tap nhu the nao|tap the nao|tap sao|tap ra sao|nen tap nhu|nen tap the|tap kieu gi|huong di|cach nao|lam sao|lam the nao|bat dau the nao|nen bat dau|nen the nao|the nao|ra sao)\b/;
 // ...that is NOT a build/nutrition/measurement request (those have their own flows).
 const OTHER_FLOW = /\b(tao|lap|len|xay dung|thiet ke|doi|sua) (?:cho toi )?(?:lich|lo trinh|thuc don|ke hoach|plan|roadmap)\b|\b(an gi|thuc don|calo|kcal|protein|dam|bua an|bua sang|bua trua|bua toi)\b|\blich tap\b|\d+\s*(?:kg|buoi|phut|tuan)\b/;
 
@@ -24,6 +25,9 @@ export function detectDirectionGoal(rawText: string): DirectionGoal | null {
   if (s.split(" ").length > 40) return null;
   if (!ASK.test(s) && !/\bnen lam\b/.test(s)) return null;
   if (OTHER_FLOW.test(s)) return null;
+  // A concrete constraint makes it a specific coaching question, not "which direction": "Em chỉ có dây kháng lực ở nhà, tập thế
+  // nào để tăng cơ?" got the generic two-direction template with no band exercise at all (eval B4-09, 2026-11-11).
+  if (DIRECTION_CONSTRAINT.test(s)) return null;
   // A question about the EFFECT of something ("Rượu bia ảnh hưởng thế nào đến việc tập luyện và giảm mỡ?") is knowledge, not a
   // request for a training direction (expert human review H01, 2026-11-08: it got "Có 2 hướng phổ biến…" — scored 1/5).
   if (/\b(anh huong|tac dong|tac hai|co hai|loi ich|tac dung)\b/.test(s)) return null;

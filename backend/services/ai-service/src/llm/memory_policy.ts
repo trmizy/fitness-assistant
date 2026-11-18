@@ -31,6 +31,8 @@
  * personalization until it happens to be overwritten.
  */
 
+import { classifySpeechAct, type SpeechAct } from "./speech_act";
+
 export type MemoryPolicyDecision = "ALLOW" | "DENY";
 
 export interface MemoryPolicyResult {
@@ -62,6 +64,8 @@ const MUTABLE_ENTERPRISE_FACT_RE = new RegExp(
     "muc tieu dinh duong", "nutritiongoal", "nutrition goal",
     "hien tai.{0,10}(nang|can|dang o)", "hom nay.{0,10}(da tap|da an|da uong)",
     "con lai \\d", "\\d+\\s*buoi",
+    // A time-bound report ("Hôm nay tôi không ăn sáng") is a logged event, not a stable preference.
+    "\\b(hom nay|hom qua|sang nay|trua nay|toi nay|chieu nay)\\b",
     // English (this classifier is bilingual — the system accepts English
     // input, see e.g. recommendation_narrator.ts's English test coverage)
     "\\blbs?\\b", "\\bpounds?\\b", "\\bweigh(s|ing)?\\b.{0,15}\\b\\d",
@@ -77,8 +81,13 @@ const STABLE_PREFERENCE_RE = new RegExp(
   [
     // Vietnamese
     "khong thich", "\\bthich\\b", "uu tien", "so thich",
-    "an chay", "di ung(?! .{0,15}(kg|inbody))", // "dị ứng" (allergy) is stable UNLESS immediately describing a live InBody-adjacent metric
-    "phong cach (tap|huan luyen)", "gio tap", "khung gio",
+    "an chay", "di ung(?! .{0,15}(kg|inbody))",
+    // A standing dietary restriction stated as a negation ("Tôi không ăn thịt", "Em không ăn hải sản", "kiêng sữa").
+    "\\bkhong (an|uong) (duoc )?(thit|ca|hai san|trung|sua|do ngot|gluten|lactose|tom|cua|bo|heo|ga|rau|hanh|toi|cay)", "\\bkieng\\b", // "dị ứng" (allergy) is stable UNLESS immediately describing a live InBody-adjacent metric
+    "phong cach (tap|huan luyen)",
+    // "giờ tập" as a TIME SLOT only ("giờ tập của tôi là 6h", "khung giờ tập tối") — the bare "gio tap" also matched "giờ tập
+    // bụng được chưa" (giờ = "now") and stored "Em vừa sinh con được 6 tuần, giờ tập bụng được chưa" as a fact (eval B4-37/B4-49).
+    "(khung )?gio tap (cua (toi|em|minh)|la|vao|luc|thuong|quen|co dinh)", "khung gio", "thuong tap (vao |luc )?(buoi )?(sang|trua|chieu|toi|dem)",
     // English
     "\\bprefers?\\b", "\\bfavou?rite\\b", "\\bpriorit(y|ize)\\b",
     "\\bvegetarian\\b", "\\bvegan\\b",
@@ -89,6 +98,13 @@ const STABLE_PREFERENCE_RE = new RegExp(
 
 export function classifyMemoryFact(fact: string): MemoryPolicyResult {
   const text = normalize(fact);
+  // Only something the user ASSERTED about themselves can become a durable fact. A question ("Ăn chay thì có tăng cơ được
+  // không"), a hypothetical ("Nếu tôi ăn chay…") or a command is never a fact about the user, whatever keywords it contains
+  // (eval 2026-11-11: both memories of persona B were questions). Negations stay statements: "Tôi không ăn thịt".
+  const act: SpeechAct = classifySpeechAct(fact);
+  if (act !== "STATEMENT") {
+    return { decision: "DENY", reason: `not_a_statement:${act.toLowerCase()}` };
+  }
   if (MUTABLE_ENTERPRISE_FACT_RE.test(text)) {
     return { decision: "DENY", reason: "mutable_enterprise_fact" };
   }
@@ -96,4 +112,19 @@ export function classifyMemoryFact(fact: string): MemoryPolicyResult {
     return { decision: "ALLOW", reason: "stable_preference" };
   }
   return { decision: "DENY", reason: "ambiguous_default_deny" };
+}
+
+/** The existing free-text `UserMemory.category` vocabulary (schema.prisma) — used as the memory's DOMAIN. */
+export type MemoryDomain = "dietary" | "schedule" | "exercise_preference" | "other";
+
+const DIETARY_RE = /\b(an chay|thuan chay|di ung|khong an|kieng|thich an|khong uong|lactose|gluten|hai san|thit|trung|sua|vegetarian|vegan|allerg\w*|halal)\b/;
+const SCHEDULE_RE = /\b(gio tap|khung gio|thuong tap|buoi (sang|trua|chieu|toi)|sang som|toi muon|cuoi tuan|ca dem|workout time|time slot|morning|evening)\b/;
+const EXERCISE_RE = /\b(tap|bai|squat|deadlift|bench|cardio|chay bo|yoga|ta|dumbbell|barbell|may|cable|pt|huan luyen|training|exercise)\b/;
+
+export function classifyMemoryDomain(fact: string): MemoryDomain {
+  const text = normalize(fact);
+  if (DIETARY_RE.test(text)) return "dietary";
+  if (SCHEDULE_RE.test(text)) return "schedule";
+  if (EXERCISE_RE.test(text)) return "exercise_preference";
+  return "other";
 }

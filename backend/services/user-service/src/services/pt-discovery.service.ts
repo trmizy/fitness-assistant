@@ -1,4 +1,5 @@
 import axios from "axios";
+import { installLambdaAdapter, serviceBaseUrl } from "../clients/lambda-http.client";
 import { logger } from "@gym-coach/shared";
 import { availabilityService } from "./availability.service";
 
@@ -14,7 +15,8 @@ import { availabilityService } from "./availability.service";
  * trainers must not mean twenty-one round trips.
  */
 
-const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || "http://gym-service:3006";
+installLambdaAdapter();
+const GYM_SERVICE_URL = serviceBaseUrl("GYM", "http://gym-service:3006");
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
   "dev_internal_service_secret_change_in_production";

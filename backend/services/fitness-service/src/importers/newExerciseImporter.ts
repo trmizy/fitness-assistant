@@ -92,8 +92,24 @@ export interface CatalogRow {
   contraindications: string;
 }
 
+/**
+ * Where the curated catalog CSV lives. Dev/scripts run from `backend/services/fitness-service`, so the repo-relative path
+ * works; on AWS Lambda there is no repo, so the build script (scripts/build-lambda-artifact.js) bundles the file at
+ * `<task root>/data/catalog/plans/gym_exercises.csv` (next to `dist/`). CATALOG_CSV_PATH overrides both.
+ */
+export function resolveCatalogCsvPath(): string {
+  const candidates = [
+    process.env.CATALOG_CSV_PATH,
+    path.resolve(process.cwd(), "../../../data/catalog/plans/gym_exercises.csv"),
+    path.resolve(__dirname, "../../data/catalog/plans/gym_exercises.csv"),
+  ].filter((c): c is string => Boolean(c));
+  const found = candidates.find((c) => fs.existsSync(c));
+  if (!found) throw new Error(`Catalog CSV gym_exercises.csv not found. Tried: ${candidates.join(" | ")}`);
+  return found;
+}
+
 export function loadCatalog(): { rows: CatalogRow[]; raw: string } {
-  const csvPath = path.resolve(process.cwd(), "../../../data/catalog/plans/gym_exercises.csv");
+  const csvPath = resolveCatalogCsvPath();
   const raw = fs.readFileSync(csvPath, "utf-8");
   const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const header = parseCSVLine(lines[0]);

@@ -53,6 +53,40 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Visceral fat level (Float) and BMR (Int) are optional. The confirm form sends parseFloat() of whatever is typed, so an emptied
+ * field arrives as NaN and a BMR like 1650.5 would be rejected by the Int column — drop non-finite values, round BMR.
+ */
+export function sanitizeOptionalMetrics<T extends Record<string, any>>(data: T): T {
+  const out: Record<string, any> = { ...data };
+  for (const key of ["visceralFat", "bmr"] as const) {
+    if (!(key in out)) continue;
+    const v = out[key];
+    if (v === null || v === undefined || v === "") { delete out[key]; continue; }
+    const num = Number(v);
+    if (!Number.isFinite(num) || num <= 0) delete out[key];
+    else out[key] = key === "bmr" ? Math.round(num) : Math.round(num * 10) / 10;
+  }
+  return out as T;
+}
+
+/**
+ * InBody prints the test date day-first ("07. 08. 2026"); a vision model occasionally reads it month-first. A measurement can
+ * never be in the future, so a future date whose day/month swap is a valid past date is swapped back (vision test 2026-11-11:
+ * "08.12.2026" read as 2026-12-08 for a report from August). Anything else is returned unchanged for the user to confirm.
+ */
+export function fixDayMonthSwap(isoDate: string, now: Date = new Date()): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!m) return isoDate;
+  const today = now.toISOString().slice(0, 10);
+  if (isoDate <= today) return isoDate;
+  const [, y, mo, d] = m;
+  if (Number(d) > 12) return isoDate;
+  const swapped = `${y}-${d}-${mo}`;
+  const check = new Date(`${swapped}T00:00:00Z`);
+  return !isNaN(check.getTime()) && check.toISOString().slice(0, 10) === swapped && swapped <= today ? swapped : isoDate;
+}
+
 /** True when the vision result carries at least one real core metric (weight, muscle mass or fat mass > 0). */
 export function hasReadableInBodyMetrics(result: any): boolean {
   const positive = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
@@ -136,7 +170,13 @@ export const inbodyService = {
     }
     assertInBodyConsistent({ weight: data.weight, muscleMass: data.muscleMass, bodyFat });
 
-    const payload = { ...data, bodyFat, date: measuredDate, dateOnly };
+    // The reverse direction too: fat mass without a percentage left bodyFatPct null, shown as "null%" on the InBody page.
+    const pctMissing = data.bodyFatPct === undefined || data.bodyFatPct === null || Number.isNaN(Number(data.bodyFatPct));
+    const bodyFatPct = pctMissing && Number(data.weight) > 0 && Number(bodyFat) > 0
+      ? Math.round((Number(bodyFat) / Number(data.weight)) * 1000) / 10
+      : data.bodyFatPct;
+    // `data` is already whitelisted by parseInBodyInput (no userId / id / createdAt), so nothing needs stripping but dateOnly.
+    const payload = { ...sanitizeOptionalMetrics(data), bodyFat, ...(bodyFatPct != null && !Number.isNaN(Number(bodyFatPct)) ? { bodyFatPct } : {}), date: measuredDate, dateOnly };
     const { dateOnly: _d, ...updatePayload } = payload;
     const entry = await inbodyRepository.upsertByUserAndDate(
       userId,
@@ -174,7 +214,7 @@ export const inbodyService = {
       muscleMass: data.muscleMass ?? existing.muscleMass,
       bodyFat: data.bodyFat ?? existing.bodyFat,
     });
-    const patch: Record<string, any> = { ...data };
+    const patch: Record<string, any> = { ...sanitizeOptionalMetrics(data) };
     if (data.date !== undefined) {
       patch.dateOnly = startOfUtcDay(data.date);
     }
@@ -251,7 +291,7 @@ export const inbodyService = {
         const parsed = new Date(cleaned);
         if (!isNaN(parsed.getTime()) && cleaned.length >= 8) {
           // Return as YYYY-MM-DD
-          measurementDate = parsed.toISOString().slice(0, 10);
+          measurementDate = fixDayMonthSwap(parsed.toISOString().slice(0, 10));
         }
       }
 
@@ -264,6 +304,9 @@ export const inbodyService = {
         bodyFat,
         bmi,
         bodyFatPct,
+        // Already columns on InBodyEntry; previously never filled from a scan.
+        ...(result.visceral_fat_level != null ? { visceralFat: result.visceral_fat_level } : {}),
+        ...(result.bmr != null ? { bmr: Math.round(result.bmr) } : {}),
 
         rightArmMuscle: result.segmental_lean_analysis?.right_arm,
         leftArmMuscle: result.segmental_lean_analysis?.left_arm,

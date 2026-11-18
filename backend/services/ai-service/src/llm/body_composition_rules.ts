@@ -30,10 +30,11 @@ export interface BodyCompAnalysis {
 
 // ── Reference values ──────────────────────────────────────────────────────────
 
-const BF_OBESE_M = 25; // % body fat thresholds
-const BF_OBESE_F = 32;
-const BF_HIGH_M = 20;
-const BF_HIGH_F = 28;
+// Exported so the InBody interpretation (inbody-interpretation.ts) classifies with the SAME thresholds as plan generation.
+export const BF_OBESE_M = 25; // % body fat thresholds
+export const BF_OBESE_F = 32;
+export const BF_HIGH_M = 20;
+export const BF_HIGH_F = 28;
 
 const BMI_OVERWEIGHT = 25;
 
@@ -54,8 +55,8 @@ function isModerateHighBF(bfPct: number, gender?: string): boolean {
 // <5% is normal side-to-side variation (measurement noise + natural
 // handedness), 5-10% is a mild but noticeable imbalance worth a small
 // training bias, >=10% is a significant imbalance worth explicit correction.
-const LIMB_ASYMMETRY_MILD_PCT = 5;
-const LIMB_ASYMMETRY_SIGNIFICANT_PCT = 10;
+export const LIMB_ASYMMETRY_MILD_PCT = 5;
+export const LIMB_ASYMMETRY_SIGNIFICANT_PCT = 10;
 
 interface LimbAsymmetryResult {
   adjustment: AdjustmentReason;
@@ -116,6 +117,19 @@ function analyzeLimbAsymmetry(
 
 // ── Main analysis function ────────────────────────────────────────────────────
 
+/**
+ * The ONE BMI computation (kg / m², 1 decimal) — used by the body-composition rules, the prompt's profile block and the
+ * post-LLM BMI check (bmi_claim_guard.ts), so no surface computes its own. Null when height or weight is missing or
+ * implausible (a height given in metres is rejected, never guessed). `minor` = under 18: adult BMI cut-offs do not apply
+ * (BMI-for-age percentiles, WHO 2007 / CDC 2000).
+ */
+export function computeBmi(input: { heightCm?: number | null; weightKg?: number | null; age?: number | null }): { value: number; minor: boolean } | null {
+  const { heightCm, weightKg, age } = input;
+  if (typeof heightCm !== "number" || typeof weightKg !== "number" || !Number.isFinite(heightCm) || !Number.isFinite(weightKg)) return null;
+  if (heightCm < 100 || heightCm > 250 || weightKg <= 0 || weightKg > 400) return null;
+  return { value: Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10, minor: typeof age === "number" && age > 0 && age < 18 };
+}
+
 export function analyzeBodyComposition(profile: UserProfile): BodyCompAnalysis {
   const analysis: BodyCompAnalysis = {
     adjustments: [],
@@ -138,10 +152,7 @@ export function analyzeBodyComposition(profile: UserProfile): BodyCompAnalysis {
   const injuries = profile.training?.injuries ?? [];
 
   // ── BMI calculation ───────────────────────────────────────────────────────
-  let bmi: number | undefined;
-  if (weightKg && heightCm && heightCm > 0) {
-    bmi = Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10;
-  }
+  const bmi: number | undefined = computeBmi({ heightCm, weightKg, age: profile.age })?.value;
 
   // ── Data quality notes ────────────────────────────────────────────────────
   if (!ib) {

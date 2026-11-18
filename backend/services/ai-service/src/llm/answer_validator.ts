@@ -266,7 +266,10 @@ function validateRequiredSections(
     if (/(bài tập|exercise|workout)/i.test(answer)) {
       warnings.push("Answer includes workout content for timing-only intent.");
     }
-    if (/(bữa sáng|bữa trưa|bữa tối|breakfast|lunch|dinner)/i.test(answer)) {
+    // A FULL day = breakfast AND lunch AND dinner. One meal named ("bữa sáng sau tập" for a 6 a.m. session) is the timing
+    // answer itself, not a day plan (V1 stabilization 2026-11-12: the single-word check was critical → template fallback).
+    const mealsNamed = [/bữa sáng|breakfast/i, /bữa trưa|lunch/i, /bữa tối|dinner/i].filter((re) => re.test(answer)).length;
+    if (mealsNamed >= 3) {
       warnings.push(
         "Answer expanded into a full multi-meal day plan for a timing-only question.",
       );
@@ -464,8 +467,11 @@ export function hasCriticalNutritionMismatch(warnings: string[]): boolean {
 }
 
 export function hasCriticalStructureMismatch(warnings: string[]): boolean {
+  // "Personalization missing" (the answer does not echo a profile number) is a quality HINT, not a correctness error: treating
+  // it as critical replaced a correct, on-topic model answer with a generic template (eval B4-45; independent review P2,
+  // 2026-11-12). It stays in the warnings for observability but never triggers the destructive fallback.
   return warnings.some((w) =>
-    /Missing required section|Language lock violation|meal-only intent|timing-only intent|full multi-meal day plan|Nutrition inconsistency|Personalization missing/i.test(
+    /Missing required section|Language lock violation|meal-only intent|timing-only intent|full multi-meal day plan|Nutrition inconsistency/i.test(
       w,
     ),
   );

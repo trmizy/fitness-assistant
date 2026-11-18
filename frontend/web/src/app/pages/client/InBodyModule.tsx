@@ -19,6 +19,7 @@ import { inbodyService, profileService, trainingCycleService } from "../../servi
 import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.utils";
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
+import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
 function CurrentCycleWidget() {
@@ -207,6 +208,10 @@ export function InBodyModule() {
   });
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
+  /** Entry just saved (scan or manual) — explained automatically on the "Đã lưu" screen. */
+  const [justSavedId, setJustSavedId] = useState<string | undefined>(undefined);
+  /** History row whose explanation is open. */
+  const [explainEntryId, setExplainEntryId] = useState<string | undefined>(undefined);
   const [uploadStep, setUploadStep] = useState<UploadStep>("drop");
   const [manualStep, setManualStep] = useState<ManualStep>("form");
   const [dragOver, setDragOver] = useState(false);
@@ -255,7 +260,15 @@ export function InBodyModule() {
 
   const history = useMemo(
     () =>
-      [...historyRaw].sort((a: any, b: any) => {
+      [...historyRaw]
+        // Older manual entries stored fat mass (kg) without the percentage, which rendered as "null%". The percentage is exact
+        // arithmetic on the two measured values, so fill it in for display.
+        .map((e: any) =>
+          (e?.bodyFatPct == null || Number.isNaN(Number(e.bodyFatPct))) && Number(e?.weight) > 0 && Number(e?.bodyFat) > 0
+            ? { ...e, bodyFatPct: Math.round((Number(e.bodyFat) / Number(e.weight)) * 1000) / 10 }
+            : e,
+        )
+        .sort((a: any, b: any) => {
         const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
         if (cmp !== 0) return cmp;
         return (
@@ -269,7 +282,9 @@ export function InBodyModule() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: inbodyService.create,
-    onSuccess: () => {
+    onSuccess: (saved: any) => {
+      // The "Đã lưu" screens explain the entry that was just saved.
+      setJustSavedId((saved?.data ?? saved)?.id ?? undefined);
       queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
       // Sync profile.currentWeight: backend already updated it, we just bust the cache
       if (user?.id) {
@@ -488,6 +503,8 @@ export function InBodyModule() {
       {tab === "overview" && (
         <div className="space-y-4">
           <CurrentCycleWidget />
+
+          {history.length > 0 && <InBodyExplanationCard key={history[0]?.id} entryId={history[0]?.id} />}
 
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -769,6 +786,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -1234,6 +1256,16 @@ export function InBodyModule() {
                         value: extractedData?.bodyFatPct,
                       },
                       { label: "BMI", field: "bmi", value: extractedData?.bmi },
+                      {
+                        label: "Mỡ nội tạng (mức)",
+                        field: "visceralFat",
+                        value: extractedData?.visceralFat,
+                      },
+                      {
+                        label: "BMR (kcal)",
+                        field: "bmr",
+                        value: extractedData?.bmr,
+                      },
                     ].map(
                       (f: {
                         label: string;
@@ -1457,6 +1489,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1484,6 +1521,15 @@ export function InBodyModule() {
               ),
             )}
           </div>
+
+          {explainEntryId && (
+            <InBodyExplanationCard
+              key={explainEntryId}
+              entryId={explainEntryId}
+              autoStart
+              title={`Giải thích lần đo ${(() => { const e = history.find((h: any) => h.id === explainEntryId); return e?.date ? new Date(e.date).toLocaleDateString("vi-VN") : ""; })()}`}
+            />
+          )}
 
           <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
@@ -1551,7 +1597,13 @@ export function InBodyModule() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <button className="text-zinc-600 hover:text-green-400 transition-colors">
+                              <button
+                                type="button"
+                                onClick={() => setExplainEntryId(explainEntryId === r.id ? undefined : r.id)}
+                                title="Giải thích lần đo này"
+                                aria-label="Giải thích lần đo này"
+                                className={`transition-colors ${explainEntryId === r.id ? "text-green-400" : "text-zinc-600 hover:text-green-400"}`}
+                              >
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button

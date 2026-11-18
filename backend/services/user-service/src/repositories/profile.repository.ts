@@ -88,6 +88,14 @@ export const profileRepository = {
       data: names,
     }),
 
+  /** Fills `email` ONLY while it is still empty (never overwrites). The admin PT search matches this column in SQL, so a profile
+   * that is created by "whatever service touched the user first" without an email is invisible to an email search (ADM-01). */
+  backfillEmail: (userId: string, email: string) =>
+    prisma.userProfile.updateMany({
+      where: { userId, email: null },
+      data: { email },
+    }),
+
   setIsPTByUserId: (userId: string, isPT: boolean) =>
     prisma.userProfile.upsert({
       where: { userId },

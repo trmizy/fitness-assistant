@@ -31,6 +31,8 @@ import {
   type ToolInputSchema,
 } from "@aws-sdk/client-bedrock-runtime";
 import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
+import { logger } from "@gym-coach/shared";
+import { currentClientRequestId } from "./request-identity";
 import {
   resolveBedrockEmbeddingModel,
   type EmbeddingInputType,
@@ -436,10 +438,27 @@ export async function embedTextsWithCohere(
     body: new TextEncoder().encode(JSON.stringify(buildCohereEmbedBody(texts, inputType))),
   };
 
-  const output = await sendWithDeadline<{ body?: unknown }>(
-    new InvokeModelCommand(input),
-    opts.timeoutMs,
-    DEFAULT_MAX_ATTEMPTS,
-  );
-  return parseCohereEmbedResponse(decodeInvokeModelBody(output.body), texts.length);
+  const started = Date.now();
+  const modelId = input.modelId as string;
+  try {
+    const output = await sendWithDeadline<{ body?: unknown }>(
+      new InvokeModelCommand(input),
+      opts.timeoutMs,
+      DEFAULT_MAX_ATTEMPTS,
+    );
+    const vectors = parseCohereEmbedResponse(decodeInvokeModelBody(output.body), texts.length);
+    logger.info(embeddingTelemetry(texts, modelId, Date.now() - started, "ok"), "embedding_call");
+    return vectors;
+  } catch (err) {
+    logger.warn(embeddingTelemetry(texts, modelId, Date.now() - started, "error"), "embedding_call");
+    throw err;
+  }
+}
+
+/**
+ * One telemetry line per Cohere call for cost accounting (test/ai-quality-eval/cost-ledger.mjs): text count and characters
+ * (Cohere bills tokens; the ledger estimates them), never the text itself. Mirrors llm.service.ts's `llm_call`.
+ */
+export function embeddingTelemetry(texts: readonly string[], model: string, latencyMs: number, outcome: "ok" | "error") {
+  return { model, texts: texts.length, inputChars: texts.reduce((n, t) => n + t.length, 0), latencyMs, outcome, clientRequestId: currentClientRequestId() };
 }

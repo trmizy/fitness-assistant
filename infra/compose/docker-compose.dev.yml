@@ -656,6 +656,8 @@ services:
       - QDRANT__SERVICE__ENABLE_UI=true
 
   ollama:
+    # GYMINI_LOCAL_OLLAMA_BLOCK: owner must explicitly unblock before starting.
+    scale: 0
     image: ollama/ollama:latest
     container_name: gymcoach-ollama
     profiles:
@@ -681,6 +683,8 @@ services:
       - default
 
   ollama-model-puller:
+    # GYMINI_LOCAL_OLLAMA_BLOCK: owner must explicitly unblock before starting.
+    scale: 0
     image: curlimages/curl:latest
     container_name: gymcoach-ollama-puller
     profiles:

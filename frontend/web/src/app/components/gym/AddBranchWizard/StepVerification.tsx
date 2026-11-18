@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CircleNotchIcon, CheckCircleIcon, ClockIcon, XCircleIcon, UploadSimpleIcon, FileTextIcon } from "@phosphor-icons/react";
-import { gymService } from "../../../services/api";
+import { gymService, uploadErrorMessage } from "../../../services/api";
 import { AuthenticatedImage } from "../../ui/AuthenticatedImage";
 import type { BranchDocumentType, GymBranchDocument, PartnerDocumentContext, PartnerDocumentStatus } from "../../../types";
 
@@ -44,7 +44,7 @@ export function StepVerification({ gymId }: { gymId: string }) {
   const uploadMutation = useMutation({
     mutationFn: ({ docType, file }: { docType: BranchDocumentType; file: File }) => gymService.uploadBranchDocument(gymId, docType, file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tải tệp lên"),
+    onError: (e: any) => toast.error(uploadErrorMessage(e, "Không thể tải tệp lên")),
   });
 
   if (query.isLoading) {
@@ -84,6 +84,13 @@ export function StepVerification({ gymId }: { gymId: string }) {
           );
         })}
       </div>
+
+      {/* The toast disappears; a failed upload must stay visible until the next attempt, so the owner never believes a document was filed when it was not. */}
+      {uploadMutation.isError && (
+        <p role="alert" className="text-xs text-red-400" data-testid="branch-document-upload-error">
+          {uploadErrorMessage(uploadMutation.error, "Không thể tải tệp lên")} Giấy tờ này CHƯA được nộp.
+        </p>
+      )}
 
       {partnerContext.length > 0 && (
         <div className="pt-4 border-t border-zinc-800">
@@ -148,7 +155,7 @@ function DocumentRow({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
+          accept="image/jpeg,image/png,application/pdf"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

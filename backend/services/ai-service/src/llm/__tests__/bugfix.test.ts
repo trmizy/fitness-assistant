@@ -1017,8 +1017,12 @@ describe("H. Legs / Shoulders / Core routines", () => {
 
   it('"Tôi muốn giảm mỡ bụng, tập bụng mỗi ngày" routes to core routine (not general_fitness_knowledge)', () => {
     const profile = minimalProfile();
+    // Contract changed 2026-11-11 (speech-act gate, intent_router.ts gateTemplateIntent): the yes/no EVALUATION form
+    // "…tập bụng mỗi ngày được không?" asks for a judgement and now goes to the model (eval B2-14 class: "5 buổi có nhiều
+    // không" got a 5-day plan). The statement form below still gets the core routine with the spot-reduction warning.
+    assert.equal(inputParser.parse("Tôi muốn giảm mỡ bụng, tập bụng mỗi ngày được không?", profile).routeIntent, "general_fitness_knowledge");
     const intent = inputParser.parse(
-      "Tôi muốn giảm mỡ bụng, tập bụng mỗi ngày được không?",
+      "Tôi muốn giảm mỡ bụng, tập bụng mỗi ngày",
       profile,
     );
     assert.equal(intent.routeIntent, "muscle_group_routine_request");

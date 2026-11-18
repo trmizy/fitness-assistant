@@ -71,8 +71,10 @@ export async function login(email, password = "TestPass#12345") {
 export const putProfile = (u, profile) => http("PUT", "/profile/me", { token: u.token, body: profile });
 
 /** One chat turn through the real product entry point (/ai/ask). */
-export async function say(u, question, sessionId) {
-  const r = await http("POST", "/ai/ask", { token: u.token, body: { question, ...(sessionId ? { sessionId } : {}) } });
+// opts.clientRequestId (optional): attributes the ai-service's llm_call / embedding_call telemetry to this turn
+// (test/ai-quality-eval/cost-ledger.mjs). Must match /^[A-Za-z0-9-]{8,64}$/ or the service ignores it.
+export async function say(u, question, sessionId, opts = {}) {
+  const r = await http("POST", "/ai/ask", { token: u.token, body: { question, ...(sessionId ? { sessionId } : {}), ...(opts.clientRequestId ? { clientRequestId: opts.clientRequestId } : {}) } });
   const d = r.json?.data ?? r.json;
   return { status: r.status, ms: r.ms, raw: r.json, data: d, sessionId: d?.sessionId ?? sessionId, answer: d?.answer ?? "", block: d?.block ?? d?.agentBlock ?? null };
 }

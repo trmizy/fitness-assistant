@@ -1,6 +1,9 @@
 import axios from 'axios';
+import { installLambdaAdapter, serviceBaseUrl } from "./lambda-http.client";
 
-const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
+installLambdaAdapter();
+// AWS: GYM_LAMBDA_NAME -> lambda://<fn> (invoked directly); dev/compose/tests: GYM_SERVICE_URL as before.
+const GYM_SERVICE_URL = serviceBaseUrl('GYM', 'http://localhost:3006');
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { evidenceUploadController } from '../controllers/evidence-upload.controller';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { membershipController } from '../controllers/membership.controller';
 import { checkinController } from '../controllers/checkin.controller';
@@ -64,6 +65,10 @@ router.delete('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.rem
 router.post('/gyms/:gymId/complaints', ...gate, asyncHandler(complaintController.submitAsMember));
 router.get('/me/complaints', ...gate, asyncHandler(complaintController.listMine));
 router.post('/complaint-photos', ...gate, complaintPhotoController.uploadMiddleware, asyncHandler(complaintPhotoController.upload));
+// Luồng chạy được trên Lambda (không ghi đĩa): presign -> POST thẳng S3 -> confirm; xem qua link ngắn hạn.
+router.post('/complaint-photos/presign', ...gate, asyncHandler(evidenceUploadController.complaintPresign));
+router.post('/complaint-photos/confirm', ...gate, asyncHandler(evidenceUploadController.complaintConfirm));
+router.get('/complaint-photos/:token/url', ...gate, asyncHandler(evidenceUploadController.complaintPhotoUrl));
 router.get('/complaint-photos/:token', ...gate, asyncHandler(complaintPhotoController.serve));
 
 // Dispute V2.1 Slice 3 - the reporter's own view of their complaint case. A case the user did not file answers 404.

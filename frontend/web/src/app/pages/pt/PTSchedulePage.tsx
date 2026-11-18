@@ -14,6 +14,7 @@ import { DateSlotPicker, type DateSlotValue } from "../../components/booking/Dat
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { useNavigate } from "react-router";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
+import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -751,12 +752,12 @@ export function PTSchedulePage() {
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "PT" ? (
                           <div className="text-amber-400 font-medium">
-                            Bạn đã gửi yêu cầu dời lịch sang {formatSessionTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                            Bạn đã gửi yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <div className="text-amber-400 font-medium">
-                              Khách yêu cầu dời lịch sang {formatSessionTime(s.rescheduleRequests[0].proposedStartAt)}
+                              Khách yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}
                             </div>
                             {s.rescheduleRequests[0].reason && (
                               <div className="text-zinc-400 italic">
@@ -1035,7 +1036,7 @@ export function PTSchedulePage() {
             <div className="p-5 border-b border-white/10 shrink-0 bg-white/5">
               <ModalTitle className="text-zinc-100 font-bold tracking-tight">Đề xuất dời lịch</ModalTitle>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Buổi hiện tại: {new Date(rescheduleTarget.scheduledStartAt).toLocaleString("vi-VN")}
+                Buổi hiện tại: {formatDateTimeVi(rescheduleTarget.scheduledStartAt)}
               </p>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">

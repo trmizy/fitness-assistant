@@ -1,6 +1,7 @@
 import type { SlotDefinition, WorkflowContext, WorkflowDefinition } from "../types";
 import { parseSessionsPerWeek, parseMinutes } from "../slot-values";
 import { normalizeAgentText } from "../../services/fitness-agent-intent";
+import { classifySpeechAct } from "../../llm/speech_act";
 
 /**
  * CREATE_WORKOUT_PLAN — a standalone "tạo lịch tập cho tôi" workflow,
@@ -73,8 +74,25 @@ export const createWorkoutPlanWorkflow: WorkflowDefinition = {
   extractFromMessage: (message: string) => {
     const out: Record<string, unknown> = {};
     const s = normalizeAgentText(message);
-    const days = s.match(/(\d)\s*(?:buoi|ngay)\s*(?:\/|moi|mot|trong|1)?\s*tuan\b/);
-    if (days) { const r = parseSessionsPerWeek(days[1]); if (r.ok) out.daysPerWeek = r.value; }
+    // V1 RC1 (H-05/H-06): also "lịch (tập) 4 buổi", "lịch 3 ngày", "tập bốn buổi", "(đổi lịch) lên 4 buổi" — the unit word must
+    // still sit next to the number and be tied to the schedule ("lịch"/"tập"/"…/tuần"), so "4 hiệp", "45 phút", "16 tuổi",
+    // "nghỉ 2 ngày", "8 bài" never count. A HYPOTHETICAL sentence ("Nếu tập 6 buổi thì có ổn không?") is not the user's choice;
+    // a polite condition ("nếu được thì 4 buổi") is.
+    const asserted = message
+      .split(/(?<=[.!?\n])\s+/u)
+      .filter((sent) => classifySpeechAct(sent.replace(/(?<!\p{L})(?:nếu|neu)\s+(?:được|duoc|có thể|co the|tiện|tien)(?!\p{L})\s*,?\s*(?:thì|thi)?/giu, " ")) !== "HYPOTHETICAL")
+      .map((sent) => normalizeAgentText(sent))
+      .join(" ");
+    const N = String.raw`(\d|mot|hai|ba|bon|nam|sau|bay)`;
+    const WORD: Record<string, number> = { mot: 1, hai: 2, ba: 3, bon: 4, nam: 5, sau: 6, bay: 7 };
+    const days = new RegExp(String.raw`\b${N}\s*(?:buoi|ngay)\s*(?:\/|moi|mot|trong|1)?\s*tuan\b`).exec(asserted)
+      ?? new RegExp(String.raw`\blich(?:\s+tap)?\s+${N}\s*(?:buoi|ngay)\b`).exec(asserted)
+      ?? new RegExp(String.raw`\btap\s+${N}\s*buoi\b`).exec(asserted)
+      ?? new RegExp(String.raw`\blich\b.{0,40}?\b${N}\s*buoi\b(?!\s*nghi)`).exec(asserted);
+    if (days) {
+      const n = /\d/.test(days[1]) ? days[1] : String(WORD[days[1]]);
+      const r = parseSessionsPerWeek(n); if (r.ok) out.daysPerWeek = r.value;
+    }
     const mins = s.match(/(?<![\d.,])(\d{2,3})\s*(?:phut|min|p)\b|(?<![\d.,])(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:gio|tieng)\b/);
     if (mins) { const r = parseMinutes(mins[0]); if (r.ok) out.sessionMinutes = r.value; }
     return out;

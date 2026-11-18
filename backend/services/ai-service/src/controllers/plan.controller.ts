@@ -13,6 +13,72 @@ import {
 import { llmService } from "../services/llm.service";
 import { ExplainUnavailableError, EXPLAIN_UNAVAILABLE_MESSAGE_VI, generateAiExplanation, nutritionExplanationRequest, workoutExplanationRequest } from "../services/plan-explanation";
 import { extractNutritionConstraints, unsupportedRestrictionMessage, isKnownExclusionKey } from "../services/nutrition-food-constraints";
+import { getActiveNutritionGoal } from "../services/enterprise-data/nutrition.reader";
+import { parseSubstituteSavedExerciseRequest } from "../services/revision/substitute-saved-exercise";
+import { fitnessAgentTools } from "../services/fitness-agent-tools";
+import { normalizeAgentText } from "../services/fitness-agent-intent";
+
+export interface ExerciseSwap { fromNames: string[]; toExerciseId?: string; toName?: string }
+
+const tokensOf = (s: string) => normalizeAgentText(s).split(/[^a-z0-9]+/).filter(Boolean).map((t) => t.replace(/s$/, ""));
+/** "một bài khác", "bài khác cho ngực": no specific target — the model chooses the replacement. */
+const GENERIC_TARGET = /^(?:mot\s+)?(?:bai\s+)?(?:khac|tuong tu|phu hop|de hon|nhe hon)\b|^bai khac\b/;
+
+/**
+ * Resolves "đổi X thành Y" against the plan being adjusted (X) and the real catalog (Y). Returns "none" when the text is not a
+ * named swap; an honest error when X is not in the plan, is ambiguous, or Y does not exist — never a guess.
+ */
+export async function resolveExerciseSwap(
+  adjustments: string,
+  planContent: unknown,
+  identity: { userId: string; authorizationHeader?: string },
+  search: (identity: { userId: string; authorizationHeader?: string }, name: string) => Promise<{ id: string; exerciseName: string } | null> = (i, n) => fitnessAgentTools.searchExerciseByName(i, n),
+): Promise<{ kind: "none" } | { kind: "swap"; swap: ExerciseSwap } | { kind: "error"; message: string }> {
+  let parsed = parseSubstituteSavedExerciseRequest(adjustments);
+  if (!parsed) {
+    // "Tôi không thích bài X, đổi sang Y nhé" — X comes BEFORE the swap verb.
+    const m = /\b(?:khong thich|bo|ngan)\s+(?:bai\s+(?:tap\s+)?)?(.+?)[,.;]?\s+(?:doi|thay)\s+(?:sang|thanh|bang)\s+(?:bai\s+(?:tap\s+)?)?(.+)$/.exec(normalizeAgentText(adjustments));
+    if (m && m[1].split(" ").length <= 6) parsed = { oldKeyword: m[1].trim(), newKeyword: m[2].trim() };
+  }
+  if (!parsed) return { kind: "none" };
+  const names = [...new Set(((planContent as any)?.weeklySchedule ?? []).flatMap((d: any) => (d?.exercises ?? []).map((e: any) => String(e?.name ?? ""))))].filter(Boolean) as string[];
+  const want = tokensOf(parsed.oldKeyword);
+  if (!want.length) return { kind: "none" };
+  const exact = names.filter((n) => normalizeAgentText(n) === normalizeAgentText(parsed.oldKeyword));
+  const partial = names.filter((n) => { const have = new Set(tokensOf(n)); return want.every((t) => have.has(t)); });
+  const fromNames = exact.length ? exact : partial;
+  if (!fromNames.length) return { kind: "error", message: `Mình không thấy bài "${parsed.oldKeyword}" trong kế hoạch này nên chưa đổi gì. Bạn kiểm tra lại tên bài giúp mình nhé.` };
+  if (fromNames.length > 1) return { kind: "error", message: `Có nhiều bài khớp với "${parsed.oldKeyword}": ${fromNames.join(", ")}. Bạn ghi đúng tên đầy đủ của bài muốn đổi giúp mình nhé.` };
+  const target = parsed.newKeyword.replace(/\s*(?:nhe|nha|di|giup toi|giup minh|duoc khong)\s*$/, "").trim();
+  if (!target || GENERIC_TARGET.test(target)) return { kind: "swap", swap: { fromNames } };
+  const found = await search(identity, target).catch(() => null);
+  if (!found) return { kind: "error", message: `Mình không tìm thấy bài "${target}" trong thư viện bài tập nên chưa đổi gì. Bạn thử tên khác (tên tiếng Anh của bài) nhé.` };
+  return { kind: "swap", swap: { fromNames, toExerciseId: found.id, toName: found.exerciseName } };
+}
+
+/**
+ * P1 fix (2026-11-11, adjust eval): a nutrition plan generated without an explicit calorie target used the processor's
+ * hard-coded 2200 kcal instead of the user's NutritionGoal — the web form's calorie field is optional and empty by default,
+ * and "Điều chỉnh" never sent a target at all, so a 52-year-old with a 1253 kcal goal got a 2200 kcal "weight-loss" menu.
+ * NutritionGoal is the authoritative prescription: when the caller gives no calorie target, the ACTIVE goal's
+ * calories + macros are used (read-only). Explicit numbers the user typed are kept. `fallback` (the original plan's own
+ * target, for an adjustment) is used only when there is no active goal.
+ */
+export async function resolveNutritionTargets(
+  userId: string,
+  authorizationHeader: string | undefined,
+  supplied: { dailyCaloriesTarget?: unknown },
+  fallback?: { dailyCaloriesTarget?: number; proteinTargetG?: number; carbTargetG?: number; fatTargetG?: number },
+): Promise<{ dailyCaloriesTarget?: number; proteinTargetG?: number; carbTargetG?: number; fatTargetG?: number; source: "user" | "nutrition_goal" | "original_plan" | "none" }> {
+  if (typeof supplied.dailyCaloriesTarget === "number" && supplied.dailyCaloriesTarget > 0) return { source: "user" };
+  const goal = await getActiveNutritionGoal({ userId, authorizationHeader }).catch(() => null);
+  if (goal && goal.status === "ok" && goal.value) {
+    const g = goal.value;
+    return { dailyCaloriesTarget: Math.round(g.calories), proteinTargetG: Math.round(g.protein), carbTargetG: Math.round(g.carbs), fatTargetG: Math.round(g.fat), source: "nutrition_goal" };
+  }
+  if (fallback?.dailyCaloriesTarget) return { ...fallback, source: "original_plan" };
+  return { source: "none" };
+}
 import {
   ApiError,
   RateLimitedError,
@@ -190,8 +256,12 @@ export const planController = {
     try {
       if (!(await ensureLlmAvailable(res))) return;
 
+      // The user's active NutritionGoal fills the target only when they typed none; any number they did type wins (body last).
+      const { source: targetSource, ...goalTargets } = await resolveNutritionTargets(userId, req.headers.authorization, req.body ?? {});
+      logger.info({ userId, targetSource }, "Nutrition plan target resolved");
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
+        ...goalTargets,
         ...req.body,
         idempotencyKey: idempotencyKeyFrom(req, "nutrition"),
       });
@@ -676,6 +746,13 @@ export const planController = {
 
       if (!(await ensureLlmAvailable(res))) return;
 
+      // "Đổi bài X thành Y" / "Thay X bằng Y": X must be one exercise of THIS plan and Y a real catalog exercise.
+      const swapResolution = await resolveExerciseSwap(adjustments, plan.plan, { userId, authorizationHeader: req.headers.authorization });
+      if (swapResolution.kind === "error") {
+        res.status(422).json(formatErrorResponse("VALIDATION_ERROR", swapResolution.message));
+        return;
+      }
+
       const result = await conversationService.queuePlanAdjustment({
         originalPlanId: planId,
         userId,
@@ -683,6 +760,7 @@ export const planController = {
         adjustments,
         daysPerWeek,
         exercisesPerDay,
+        swap: swapResolution.kind === "swap" ? swapResolution.swap : undefined,
       });
       aiPlanGenerationsTotal.inc({ status: "queued" });
       res.status(202).json(formatSuccessResponse(result));
@@ -1097,11 +1175,25 @@ export const planController = {
 
       if (!(await ensureLlmAvailable(res))) return;
 
+      // An adjustment keeps the plan on the user's CURRENT NutritionGoal; the original plan's own target is only the fallback.
+      const prior = (plan.plan ?? {}) as any;
+      const { source: targetSource, ...goalTargets } = await resolveNutritionTargets(userId, req.headers.authorization, {}, {
+        dailyCaloriesTarget: Number(prior.dailyCaloriesTarget) || undefined,
+        proteinTargetG: Number(prior.proteinTargetGrams) || undefined,
+        carbTargetG: Number(prior.carbTargetGrams) || undefined,
+        fatTargetG: Number(prior.fatTargetGrams) || undefined,
+      });
+      logger.info({ userId, planId, targetSource }, "Nutrition adjustment target resolved");
+
+      // A meal count typed in the request ("chia thành 4 bữa", "5 bữa nhỏ") wins: the web adjust panel always sends the generate
+      // form's mealsPerDay (default 3) even when the user never touched it, so the field alone cannot express the change (eval N06).
+      const typedMeals = /(?:^|\D)([1-6])\s*b(?:ữ|ư|u)a\b/i.exec(adjustments);
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
+        ...goalTargets,
         goal: plan.goal || "General Health",
         durationWeeks: 1,
-        mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
+        mealsPerDay: (typedMeals ? Number(typedMeals[1]) : undefined) || mealsPerDay || plan.mealsPerDay || 3,
         notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
         excludedFoodKeys,
         idempotencyKey: idempotencyKeyFrom(req, `nutrition-adjust:${planId}`),

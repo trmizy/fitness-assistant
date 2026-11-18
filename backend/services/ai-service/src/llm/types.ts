@@ -153,6 +153,13 @@ export interface IntentRoute {
     | "forearms";
   parsedTrainingDays?: number;
   missingFields: string[];
+  /** Speech act of the whole message (speech_act.ts) — optional so existing constructors stay valid. */
+  speechAct?: "QUESTION" | "HYPOTHETICAL" | "COMMAND" | "STATEMENT";
+  /**
+   * Set when the keyword rules picked a plan/template intent but the message does not ask for a plan (an advice question,
+   * a hypothetical, venting): the router ABSTAINS from the template and the turn goes to the model as a knowledge answer.
+   */
+  abstainedFrom?: RoutedIntentType;
 }
 
 export interface LanguageDecision {

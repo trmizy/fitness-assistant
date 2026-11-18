@@ -28,12 +28,21 @@ export interface ParsedSubstituteRequest { oldKeyword: string; newKeyword: strin
 const REPLACE_RE = /\b(?:thay\s+the|thay|doi)\b\s+(?:bai\s*(?:tap)?\s+)?(.+?)\s+(?:thanh|bang|sang)\s+(?:bai\s*(?:tap)?\s+)?(.+)/;
 
 export function parseSubstituteSavedExerciseRequest(rawMessage: string): ParsedSubstituteRequest | null {
+  // Accent stripping makes "bụng ĐÓI" collapse to "doi", the same token as "ĐỔI" (swap). Only treat "doi" as the verb when
+  // the user did not literally write the accented "đói" (and no "đổi"), e.g. "Chạy bộ lúc bụng đói buổi sáng có đốt mỡ
+  // nhiều hơn không?" was parsed as a swap of "buổi" for "có đốt mỡ nhiều hơn không" (eval B1-06, 2026-11-10).
+  const lowered = rawMessage.toLowerCase();
+  if (/đói/.test(lowered) && !/đổi/.test(lowered)) return null;
   const normalized = normalizeAgentText(rawMessage);
   const match = REPLACE_RE.exec(normalized);
   if (!match) return null;
   const oldKeyword = match[1].trim();
   const newKeyword = match[2].trim();
   if (!oldKeyword || !newKeyword) return null;
+  // "buổi sáng" / "bữa sáng" is a time of day, not an exercise: "buoi" + "sang" must not read as "X sang Y".
+  if (/^(?:buoi|bua)$/.test(oldKeyword)) return null;
+  // A question is never a swap instruction ("... nhiều hơn không?", "... là gì?").
+  if (/\b(?:khong|nhieu hon|bao nhieu|la gi|the nao)$/.test(newKeyword)) return null;
   // Sanity cap — same spirit as extractExerciseRevisionKeyword's word-count
   // guard: a real exercise name is short; a long leftover means this isn't
   // actually a named-exercise swap.

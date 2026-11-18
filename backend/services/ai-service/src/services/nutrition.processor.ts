@@ -210,6 +210,9 @@ const NutritionPlanJobDataSchema = z.object({
   // unlike `restrictions` (free text, prompt-only), these filter the food
   // pool itself and are re-checked against the final plan.
   excludedFoodKeys: z.array(z.string()).max(20).optional(),
+  // The user's own free-text request, set by "Điều chỉnh" (POST /plans/nutrition/:id/adjust). It used to be dropped here because the
+  // schema did not list it, so the model never saw what the user asked for (audit 2026-11-11).
+  notes: z.string().max(1000).optional(),
   // Extended fields
   weightKg: z.number().optional(),
   heightCm: z.number().optional(),
@@ -266,6 +269,7 @@ async function processNutritionPlanJobInner(job: Job): Promise<void> {
     vietnameseRegion,
     restrictions,
     excludedFoodKeys = [],
+    notes,
     proteinTargetG,
     carbTargetG,
     fatTargetG,
@@ -407,6 +411,7 @@ async function processNutritionPlanJobInner(job: Job): Promise<void> {
           : []),
       ],
       allowedFoods,
+      userRequest: notes,
       // Pass resolved physical metrics so prompt can calculate accurate macros
       weightKg: effectiveWeightKg,
       bodyFatPct: effectiveBodyFatPct,
@@ -794,9 +799,13 @@ function buildCompactNutritionTemplatePrompt(params: {
   vietnameseRegion?: string;
   restrictions?: string[];
   allowedFoods: AiFood[];
+  userRequest?: string;
   weightKg?: number;
   bodyFatPct?: number;
 }): string {
+  const userRequestLine = params.userRequest?.trim()
+    ? `Yêu cầu riêng của người dùng (PHẢI tuân theo khi chọn món và chia bữa, nhưng KHÔNG được làm sai mục tiêu calo/ngày ở trên): ${params.userRequest.trim().slice(0, 500)}`
+    : "";
   const {
     goal,
     mealsPerDay,
@@ -847,6 +856,7 @@ Quốc gia/phong cách ẩm thực ưu tiên: ${cuisine || "không có"}. Nếu 
 ${regionLine}
 Ngân sách: ${budgetLevel || "bình thường"}.
 Hạn chế: ${realRestrictions.join("; ") || "không có"}.
+${userRequestLine}
 
 CHỈ được dùng foodId trong DB dưới đây:
 ${foodsForPrompt}

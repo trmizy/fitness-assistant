@@ -1,6 +1,6 @@
 import { logger } from "@gym-coach/shared";
 import { conversationRepository } from "../repositories/conversation.repository";
-import { classifyMemoryFact } from "./memory_policy";
+import { classifyMemoryDomain, classifyMemoryFact } from "./memory_policy";
 
 /**
  * Deterministic memory-write provenance — the ADV-003 fix
@@ -132,7 +132,9 @@ export async function persistDeterministicMemoryCandidates(
         denied++;
         continue;
       }
-      await conversationRepository.createUserMemory({ userId, content: sentence, category: undefined });
+      // category = the memory's DOMAIN (existing free-text vocabulary, no schema change). It is what the read side
+      // (memory_selection.ts) uses to inject a memory only into prompts of the same domain.
+      await conversationRepository.createUserMemory({ userId, content: sentence, category: classifyMemoryDomain(sentence) });
       await conversationRepository.pruneOldestMemories(userId, MAX_MEMORIES_PER_USER);
       saved++;
     }

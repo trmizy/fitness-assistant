@@ -476,10 +476,10 @@ export function SystemMonitoring() {
           ) : (
             <div className="px-3 py-2.5 bg-zinc-800/40 border border-zinc-700/50 rounded-lg">
               <div className="text-xs font-semibold text-zinc-300">
-                Grafana URL chưa cấu hình
+                Chưa có liên kết Grafana
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5">
-                Đặt VITE_GRAFANA_URL nếu muốn mở bảng điều khiển từ môi trường production.
+                Môi trường này chưa có bảng điều khiển Grafana để mở từ đây.
               </div>
             </div>
           )}
