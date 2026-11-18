@@ -617,8 +617,10 @@ function AssignSection({ complaint, onChanged }: { complaint: GymComplaint; onCh
     onError: (e) => setError(parseGymError(e, { action: "write" })),
   });
   const current = complaint.assignedAdminId;
-  const label = !current ? "Chưa giao cho ai" : current === userId ? "Đang giao cho bạn" : `Đang giao cho quản trị viên mã ${shortRefSafe(current)}`;
   const list = options.data ?? [];
+  // LEAK-01: say WHO (name from the admin list the picker already loads); the short code only while that list is not there yet.
+  const currentName = current ? list.find((o) => o.id === current)?.label : undefined;
+  const label = !current ? "Chưa giao cho ai" : current === userId ? "Đang giao cho bạn" : currentName ? `Đang giao cho ${currentName}` : "Đang giao cho một quản trị viên khác";
   return (
     <section aria-label="Người phụ trách khiếu nại" className="space-y-2" data-testid="assign-section">
       <p className="text-xs font-semibold text-adm-text">Người phụ trách khiếu nại</p>

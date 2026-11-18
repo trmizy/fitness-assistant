@@ -141,4 +141,34 @@ export const gymClient = {
       throw new GymServiceUnavailableError(e);
     }
   },
+
+  /**
+   * Admin user list, partner-role filter: the REAL role inside a gym partner (OWNER / MANAGER / RECEPTIONIST / ACCOUNTANT) lives in
+   * gym-service, not on the auth account. Admin-gated there, so the calling admin's OWN Authorization header is forwarded verbatim
+   * (nothing is trusted from this service). A GYM_OWNER login with no partner account is a legacy owner: gym-service answers null.
+   */
+  async listPartnerRoles(userIds: string[], authorization: string): Promise<Array<{ userId: string; partnerRole: string | null }>> {
+    if (userIds.length === 0) return [];
+    const { data } = await axios.get(`${GYM_SERVICE_URL}/admin/partner-accounts/roles`, {
+      headers: { Authorization: authorization },
+      params: { userIds: userIds.join(',') },
+      timeout: 8_000,
+    });
+    return (data?.data ?? []) as Array<{ userId: string; partnerRole: string | null }>;
+  },
+
+  /**
+   * Admin user list, partner-role filter: every STAFF role (MANAGER / RECEPTIONIST / ACCOUNTANT) with its user ids, in ONE call (the per-id
+   * lookup above took 5+ sequential calls for ~900 owners). A GYM_OWNER login in none of the lists is an OWNER. Admin's own Authorization
+   * header is forwarded; gym-service re-checks the admin role.
+   */
+  async listPartnerRoleIndex(authorization: string): Promise<Record<string, string[]>> {
+    const { data } = await axios.get(`${GYM_SERVICE_URL}/admin/partner-accounts/role-index`, {
+      headers: { Authorization: authorization },
+      timeout: 8_000,
+    });
+    const index = data?.data;
+    if (!index || typeof index !== 'object') throw new Error('unexpected gym-service answer');
+    return index as Record<string, string[]>;
+  },
 };

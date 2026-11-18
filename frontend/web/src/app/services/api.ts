@@ -3970,6 +3970,11 @@ export const adminService = {
     const { data } = await api.get("/auth/users");
     return data;
   },
+  /** The newest accounts and the total, paged on the server (never every account: a Lambda answer is capped at ~6 MB). */
+  listUsersNewest: async (limit = 200) => {
+    const { data } = await api.get("/admin/users", { params: { page: 1, limit } });
+    return data;
+  },
 
   getDashboard: async () => {
     const { data } = await api.get("/admin/dashboard");

@@ -571,14 +571,7 @@ export function ContractPage() {
                         <div className="text-sm font-bold text-zinc-200 truncate">
                           {partyName(selected.ptProfile, "Huấn luyện viên")}
                         </div>
-                        {selected.ptProfile?.email && (
-                          <div className="text-xs text-zinc-500 truncate">
-                            {selected.ptProfile.email}
-                          </div>
-                        )}
-                        <div className="text-[11px] text-zinc-600 font-mono truncate">
-                          ID: {selected.ptUserId}
-                        </div>
+                        {/* LEAK-01: the trainer's e-mail and user id are not for the client to read; the name is. */}
                       </div>
                     </div>
                     <button

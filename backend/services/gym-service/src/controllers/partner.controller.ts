@@ -191,6 +191,19 @@ export const partnerController = {
     });
   },
 
+  /**
+   * GET /admin/partner-accounts/role-index (admin only). The admin user list filtered by a partner role used to ask for the roles of every
+   * GYM_OWNER login 200 ids at a time (5+ sequential calls, ~3.6 s). The staff roles are few, so one call lists them all:
+   * { success, data: { MANAGER: [userId], RECEPTIONIST: [userId], ACCOUNTANT: [userId] } }. A GYM_OWNER login in none of the lists is an
+   * OWNER (a real OWNER account, or a legacy owner with no partner account - both are "OWNER" in the list).
+   */
+  async roleIndex(_req: Request, res: Response) {
+    const rows = await partnerRepository.listNonOwnerAccountRoles();
+    const index: Record<string, string[]> = { MANAGER: [], RECEPTIONIST: [], ACCOUNTANT: [] };
+    for (const r of rows) (index[r.role] ??= []).push(r.userId);
+    res.json({ success: true, data: index });
+  },
+
   // ── Hành động lên từng tài khoản ──────────────────────────────────────────
   async resetPassword(req: Request, res: Response) {
     try {

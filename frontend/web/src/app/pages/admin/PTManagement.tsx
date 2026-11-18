@@ -385,7 +385,9 @@ const REVIEW_LOCKED_NOTE: Record<string, string> = {
 
 function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onDone?: () => void }) {
   const queryClient = useQueryClient();
-  const [adminNote, setAdminNote] = useState(app.adminNote || "");
+  // PT-08: this field is NOT stored and NOT sent. (For "Cần bổ sung" the backend keeps `adminNote` as the sentence the APPLICANT reads, so the
+  // old code that sent this box there showed "internal" notes to the applicant. It is also no longer pre-filled with that applicant-visible text.)
+  const [adminNote, setAdminNote] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showDocs, setShowDocs] = useState(false);
   const cfg = statusConfig[app.status || "DRAFT"];
@@ -445,7 +447,7 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
         onConfirm={async () => {
           if (!decision) return;
           try {
-            await actionMutation.mutateAsync({ action: decision, note: adminNote, feedback });
+            await actionMutation.mutateAsync({ action: decision, feedback });
           } catch {
             /* onError đã hiện thông báo */
           }
@@ -555,14 +557,14 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Ghi chú nội bộ
+                    Ghi chú nháp của bạn (không lưu, không gửi đi)
                   </p>
                   <textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     rows={2}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors"
-                    placeholder="Chỉ admin nhìn thấy..."
+                    placeholder="Chỉ để bạn tham khảo lúc xét duyệt — hệ thống không lưu ô này."
                   />
                 </div>
                 <div>
@@ -591,25 +593,20 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                     Từ chối
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "REQUEST_INFO",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => {
+                      // PT-08: what the applicant reads is the "Phản hồi gửi người nộp" box, never the private draft box.
+                      if (!feedback.trim()) {
+                        toast.error("Hãy nhập nội dung vào ô “Phản hồi gửi người nộp” — người nộp sẽ đọc đúng nội dung này.");
+                        return;
+                      }
+                      actionMutation.mutate({ action: "REQUEST_INFO", note: feedback.trim(), feedback });
+                    }}
                     className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-st-warning py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Cần bổ sung
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "UNDER_REVIEW",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => actionMutation.mutate({ action: "UNDER_REVIEW", feedback })}
                     className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-st-info py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Xem xét

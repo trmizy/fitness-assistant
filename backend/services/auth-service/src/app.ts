@@ -17,6 +17,9 @@ app.use(helmet());
 // carefully origin-scoped CORS header (which reflects a specific allowed
 // origin + Access-Control-Allow-Credentials: true) with an invalid
 // wildcard-plus-credentials combination once proxied back to the browser.
+// The admin dashboard summary carries the id list of every trainer profile (one id per PT, ~40 bytes each); the default 1 MB would break at ~25k
+// trainers. Registered BEFORE the global parser, which skips a body that is already parsed. A Lambda request is capped at ~6 MB anyway.
+app.use("/auth/users/dashboard-summary", express.json({ limit: "4mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(pinoHttp({ logger, serializers: httpLogSerializers }));
 app.use(metricsMiddleware());

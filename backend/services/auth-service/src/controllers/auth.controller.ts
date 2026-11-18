@@ -20,6 +20,7 @@ import {
   describeValidationError,
 } from "../models/auth.models";
 import { isUserListQueryError, parseUserListQuery } from "../services/admin-user-list-query";
+import { isDashboardSummaryQueryError, parseDashboardSummaryBody } from "../services/admin-dashboard-summary-query";
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
@@ -58,6 +59,38 @@ function auditMeta(req: Request) {
 }
 
 export const authController = {
+  /**
+   * POST /auth/users/dashboard-summary - admin only (same actor check as listUsers). Counts, per-month signups and the newest accounts for the
+   * admin dashboard, computed in the database. Replaces the dashboard reading every account (a Lambda answer is capped at ~6 MB).
+   */
+  async dashboardSummary(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: "No token provided" });
+        return;
+      }
+      const actor = await authService.verifyToken(token);
+      if (actor.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
+        return;
+      }
+      const parsed = parseDashboardSummaryBody(req.body);
+      if (isDashboardSummaryQueryError(parsed)) {
+        res.status(parsed.status).json({ error: parsed.message, code: parsed.code });
+        return;
+      }
+      res.json({ summary: await authRepository.dashboardSummary(parsed) });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
+        return;
+      }
+      logger.error(error, "Dashboard summary error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   async listUsers(req: Request, res: Response): Promise<void> {
     try {
       const token = getBearerToken(req);

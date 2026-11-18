@@ -134,18 +134,18 @@ export async function getAdminDashboard(): Promise<any> {
   const warn = (service: string, what: string) => ({
     level: "warning",
     service,
-    message: `Unable to fetch ${what} for dashboard. Showing partial data.`,
+    message: `Không lấy được ${what} cho bảng điều khiển. Đang hiển thị dữ liệu một phần.`,
     time: clock(),
   });
   const alerts = [
-    usersResult.status === "rejected" ? warn("Auth Service", "user list") : null,
-    ptsResult.status === "rejected" ? warn("User Service", "PT profiles") : null,
-    statsResult.status === "rejected" ? warn("User Service", "admin stats") : null,
+    usersResult.status === "rejected" ? warn("Auth Service", "số liệu người dùng") : null,
+    ptsResult.status === "rejected" ? warn("User Service", "hồ sơ huấn luyện viên") : null,
+    statsResult.status === "rejected" ? warn("User Service", "số liệu quản trị") : null,
     pendingPT > 0
       ? {
           level: "info",
           service: "PT Management",
-          message: `${pendingPT} PT verification requests pending admin review`,
+          message: `${pendingPT} yêu cầu xác minh huấn luyện viên đang chờ quản trị viên duyệt`,
           time: clock(),
         }
       : null,

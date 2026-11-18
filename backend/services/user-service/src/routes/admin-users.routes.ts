@@ -4,6 +4,8 @@ import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
 import { roleMiddleware } from "../middleware/role.middleware";
 import { authServiceClient } from "../clients/auth-service.client";
 import { contractRepository } from "../repositories/contract.repository";
+import { gymClient } from "../clients/gym.client";
+import { listAdminUsers } from "../services/admin-users-list.service";
 
 /**
  * Admin user management on AWS. The web admin UI calls GET /admin/users and
@@ -17,50 +19,25 @@ import { contractRepository } from "../repositories/contract.repository";
 const router = Router();
 const adminOnly = [authMiddleware, roleMiddleware(["ADMIN"])];
 
-type AuthUser = {
-  id: string; email: string; firstName?: string | null; lastName?: string | null;
-  role: string; isActive?: boolean | null; createdAt: string; updatedAt: string;
-};
-
-const roleLabel = (role: string | null | undefined) =>
-  role === "ADMIN" ? "Admin" : role === "PT" ? "PT" : role === "GYM_OWNER" ? "Gym Owner" : "Client";
-
+/**
+ * FIX5-ADMIN-PERF port: the answer is ALWAYS one page; filtering (role, status, search, partnerRole, id, ids) and the slicing happen in
+ * auth-service's database, and only that page is enriched. See services/admin-users-list.service.ts. The caller's own Authorization
+ * header goes to auth-service and gym-service, which re-check the admin role themselves.
+ */
 router.get("/users", ...adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const authHeader = req.headers.authorization as string;
-    const [usersRes, contractsRes] = await Promise.allSettled([
-      authServiceClient.forward("get", "/auth/users", authHeader, undefined, { timeoutMs: 8000 }),
-      (async () => {
-        // [seed-discovery X] findAll/countByUsers filter dataOrigin="REAL"; drop 10k truncation
-        const all = await contractRepository.findAll(0);
-        const ids = [...new Set([...all.map((c) => c.ptUserId), ...all.map((c) => c.clientUserId)])];
-        return contractRepository.countByUsers(ids);
-      })(),
-    ]);
-    if (usersRes.status === "rejected") {
-      logger.error({ err: (usersRes.reason as Error)?.message }, "Admin users: auth-service list failed");
-      res.status(502).json({ success: false, error: { code: "ADMIN_USERS_FAILED", message: "Failed to fetch user list" } });
-      return;
-    }
-    const authUsers = ((usersRes.value.data as any)?.users ?? []) as AuthUser[];
-    const summary = (contractsRes.status === "fulfilled" ? contractsRes.value : {}) as Record<string, number>;
-    const fmt = (iso: string, withYear: boolean) =>
-      new Date(iso).toLocaleDateString("en-US", withYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
-    const users = authUsers.map((u) => ({
-      id: u.id,
-      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email.split("@")[0],
-      email: u.email,
-      role: roleLabel(u.role),
-      status: u.isActive === false ? "Inactive" : "Active",
-      joined: fmt(u.createdAt, true),
-      lastActive: fmt(u.updatedAt, false),
-      sessions: 0,
-      contracts: summary[u.id] ?? 0,
-    }));
-    res.json({ success: true, data: { total: users.length, users } });
+    const answer = await listAdminUsers(req.query as Record<string, unknown>, {
+      listAuthUsers: async (params) =>
+        (await authServiceClient.forward("get", "/auth/users", authHeader, undefined, { timeoutMs: 8000, query: params })).data ?? {},
+      partnerRoleIndex: () => gymClient.listPartnerRoleIndex(authHeader),
+      contractCounts: (ids) => contractRepository.countByUsers(ids),
+    });
+    for (const [k, v] of Object.entries(answer.headers ?? {})) res.setHeader(k, v);
+    res.status(answer.status).json(answer.body);
   } catch (err) {
     logger.error({ err: (err as Error)?.message }, "Admin users aggregation failed");
-    res.status(500).json({ success: false, error: { code: "ADMIN_USERS_FAILED", message: "Failed to fetch user list" } });
+    res.status(502).json({ success: false, error: { code: "ADMIN_USERS_FAILED", message: "Không tải được danh sách người dùng" } });
   }
 });
 

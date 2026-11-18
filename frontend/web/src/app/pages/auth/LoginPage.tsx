@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useNavigate, useLocation, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
 import { EyeIcon as Eye, EyeSlashIcon as EyeOff, UserIcon as User, LightningIcon as Zap, ShieldIcon as Shield, ArrowRightIcon as ArrowRight, PulseIcon as Activity, BrainIcon as Brain, DatabaseIcon as ServerCog, BuildingsIcon as Buildings } from "@phosphor-icons/react";
@@ -50,6 +51,7 @@ export function LoginPage() {
   const [showServer, setShowServer] = useState(false);
   const [serverInput, setServerInput] = useState(getServerOverride());
   const [serverUrlError, setServerUrlError] = useState<string | null>(null);
+  const canConfigureServer = Capacitor.isNativePlatform() || !!import.meta.env?.DEV || !!getServerOverride();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,7 +264,10 @@ export function LoginPage() {
             </Link>
           </p>
 
+          {/* The server address is a runtime override for the native APK (changing tunnel URL) and for dev builds. A normal visitor of the
+              website has nothing to configure, so the control is not shown there - unless an override is already set (then it must stay reachable to undo it). */}
           <div className="mt-5 pt-4 border-t border-zinc-800/60">
+            {canConfigureServer && (
             <button
               type="button"
               onClick={() => setShowServer((v) => !v)}
@@ -270,8 +275,9 @@ export function LoginPage() {
             >
               <ServerCog className="w-3.5 h-3.5" /> Cấu hình máy chủ
             </button>
+            )}
 
-            {showServer && (
+            {canConfigureServer && showServer && (
               <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-3">
                 <label
                   htmlFor="server-url"

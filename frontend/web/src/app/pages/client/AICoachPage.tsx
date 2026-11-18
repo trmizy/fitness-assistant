@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { buildInitialCoachText } from "../../utils/aiCoachGreeting";
 import { useSearchParams } from "react-router";
 import { RobotIcon as Bot, PaperPlaneTiltIcon as Send, WarningCircleIcon as AlertCircle, ArrowsClockwiseIcon as RefreshCw, UserIcon as User, CircleNotchIcon as Loader2, BookOpenIcon as BookOpen, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, ChatTextIcon as MessageSquare, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, CaretLeftIcon as ChevronLeft, ImageIcon as ImagePlus } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,29 +51,12 @@ const BASE_SUGGESTIONS = [
   "Tôi muốn tăng cơ",
 ] as const;
 
-const initialMessage = (latest: any, prev: any) => {
-  const weightStr = latest ? `${latest.weight} kg` : "---";
-  const weightDiff =
-    latest && prev ? (latest.weight - prev.weight).toFixed(1) : "0.0";
-  const muscleStr = latest ? `${latest.muscleMass} kg` : "---";
-  const muscleDiff =
-    latest && prev ? (latest.muscleMass - prev.muscleMass).toFixed(1) : "0.0";
-  const fatStr = latest ? `${latest.bodyFatPct}%` : "---";
-
-  return {
-    id: 1,
-    from: "ai" as const,
-    text: `Xin chào! Tôi là huấn luyện viên AI của bạn. Tôi đã phân tích dữ liệu tập luyện của bạn. Hôm nay tôi có thể giúp gì?
-
-📊 **Chỉ số mới nhất:**
-- Cân nặng: ${weightStr} (${weightDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(weightDiff))} kg)
-- Cơ: ${muscleStr} (${muscleDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(muscleDiff))} kg)
-- Mỡ cơ thể: ${fatStr}
-
-Hãy hỏi tôi bất cứ điều gì về tiến trình của bạn!`,
-    time: "Bây giờ",
-  };
-};
+const initialMessage = (latest: any, prev: any) => ({
+  id: 1,
+  from: "ai" as const,
+  text: buildInitialCoachText(latest, prev),
+  time: "Bây giờ",
+});
 
 function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
