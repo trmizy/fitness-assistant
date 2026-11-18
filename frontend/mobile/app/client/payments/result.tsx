@@ -191,6 +191,7 @@ export default function PaymentResultScreen() {
         title={retryTarget?.kind === "contract" ? "Thanh toán hợp đồng" : "Thanh toán gói hội viên"}
         note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Dịch vụ chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
         submitting={checkout.submitting}
+        blockedMessage={checkout.blockedMessage}
         onConfirm={checkout.pay}
         onClose={checkout.close}
       />

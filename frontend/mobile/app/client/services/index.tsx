@@ -1055,6 +1055,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
       title="Thanh toán gói hội viên"
       note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
       submitting={checkout.submitting}
+      blockedMessage={checkout.blockedMessage}
       onConfirm={checkout.pay}
       onClose={checkout.close}
     />
@@ -1330,6 +1331,7 @@ function ContractsTab({ onFindPt, highlightId }: { onFindPt: () => void; highlig
         title="Thanh toán hợp đồng"
         note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Hợp đồng chỉ được kích hoạt sau khi cổng xác nhận giao dịch thành công."
         submitting={checkout.submitting}
+        blockedMessage={checkout.blockedMessage}
         onConfirm={checkout.pay}
         onClose={checkout.close}
       />

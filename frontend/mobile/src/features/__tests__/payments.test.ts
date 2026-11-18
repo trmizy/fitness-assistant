@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 
 import {
   checkoutErrorMessage,
+  isSyntheticCheckoutError,
+  SYNTHETIC_CHECKOUT_NOTICE,
   destinationFor,
   normalizeMethods,
   phaseFromSync,
@@ -149,6 +151,31 @@ describe("checkoutErrorMessage", () => {
       "Không tạo được giao dịch — thử lại hoặc chọn cổng khác.",
     );
     assert.match(checkoutErrorMessage(new Error("Network Error")), /mạng/);
+  });
+});
+
+describe("dữ liệu mẫu (SYNTHETIC) bị từ chối khi thanh toán", () => {
+  const err = (data: unknown) => ({ response: { data } });
+  const coded = { success: false, error: { code: "SYNTHETIC_RECORD_NOT_TRANSACTABLE", message: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị, không thể thực hiện giao dịch" } };
+
+  it("nhận ra bằng mã ổn định, hiện câu cố định không lộ chữ SYNTHETIC", () => {
+    assert.equal(isSyntheticCheckoutError(err(coded)), true);
+    assert.equal(checkoutErrorMessage(err(coded)), SYNTHETIC_CHECKOUT_NOTICE);
+    assert.doesNotMatch(checkoutErrorMessage(err(coded)), /SYNTHETIC/);
+    assert.match(SYNTHETIC_CHECKOUT_NOTICE, /không mua được/);
+  });
+
+  it("mã khác thì không bị coi là dữ liệu mẫu, kể cả khi câu chữ nhắc tới", () => {
+    assert.equal(isSyntheticCheckoutError(err({ error: { code: "ALREADY_HAS_PENDING_MEMBERSHIP", message: "dữ liệu mẫu" } })), false);
+    assert.equal(isSyntheticCheckoutError(err({ error: "PROVIDER_NOT_CONFIGURED" })), false);
+    assert.equal(isSyntheticCheckoutError(new Error("Network Error")), false);
+    assert.equal(isSyntheticCheckoutError(null), false);
+  });
+
+  it("không có mã (đường cũ) thì dựa vào câu chữ của server", () => {
+    assert.equal(isSyntheticCheckoutError(err({ message: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị" })), true);
+    assert.equal(isSyntheticCheckoutError(err({ error: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị" })), true);
+    assert.equal(isSyntheticCheckoutError(err({ message: "Gói này đã ngừng bán" })), false);
   });
 });
 
