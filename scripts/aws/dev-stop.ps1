@@ -373,6 +373,18 @@ if ($Chat) {
 }
 
 if ($Backend) {
+    # RDS Proxy is billed per ACU-hour while it exists, and services may point their DB secret at it. Restore every secret to
+    # the cluster endpoint first, delete the proxy stack only after that worked. A failure here must NOT block stopping
+    # Aurora (that would cost more); the helper keeps the proxy in that case so nothing loses its database.
+    Write-Host ""
+    Write-Host "2b-iii) RDS Proxy (if present): restoring service DB hosts, then deleting the proxy stack..."
+    & (Join-Path $PSScriptRoot "dev-rds-proxy.ps1") -Action Down -Execute
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "WARNING: RDS Proxy teardown did not finish - the proxy is KEPT and keeps billing. Continuing with Aurora stop. Re-run: ./scripts/aws/dev-rds-proxy.ps1 -Action Down -Execute" -ForegroundColor Yellow
+    }
+}
+
+if ($Backend) {
     Write-Host ""
     Write-Host "2c) Stopping Aurora..."
     $auroraOk = Stop-AuroraCluster -ClusterId $AuroraClusterId -Region $ExpectedRegion

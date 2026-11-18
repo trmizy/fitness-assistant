@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Gymini DEV - RDS Proxy in front of the Aurora PostgreSQL cluster (connection pooling for the
+  Lambda fleet) plus a READ_ONLY proxy endpoint that targets the Aurora reader (replica).
+
+  ON-DEMAND, HOURLY-COST resource: RDS Proxy for Aurora Serverless v2 is billed per ACU-hour of the
+  underlying capacity (USD 0.025 per ACU-hour in ap-southeast-1; AWS bills a minimum capacity,
+  verify on the pricing page). It is NOT covered by dev-stop.ps1 unless that script deletes this
+  stack. Delete this stack when not demoing, AFTER pointing every secret host back at the cluster
+  endpoint (see scripts/aws/dev-rds-proxy-switch.mjs rollback), otherwise services lose the database.
+
+  Standalone stack on purpose: it does not edit dev-on-demand.yaml or the persistent baseline.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: fitness-assistant-dev
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  DbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Two private DB subnets in different AZs (the Aurora DB subnet group).
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  AuroraSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  AuroraClusterIdentifier:
+    Type: String
+    Default: fitness-assistant-dev-aurora
+  DbSecretArn:
+    Type: String
+    Description: >-
+      Secret used by the proxy to authenticate to the DB. All service DB secrets share one
+      user+password, so one secret covers every logical database (the client picks the database).
+
+Resources:
+  ProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Proxy - accepts Postgres from the Lambda security group only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroupId
+          Description: Lambda functions to RDS Proxy
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-rds-proxy-sg" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-rds-proxy }
+
+  AuroraIngressFromProxy:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AuroraSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref ProxySecurityGroup
+      Description: RDS Proxy to Aurora
+
+  ProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: rds.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: read-db-secret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DbSecretArn
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub "secretsmanager.${AWS::Region}.amazonaws.com"
+      Tags:
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-rds-proxy }
+
+  DbProxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      DBProxyName: !Sub "${EnvironmentName}-proxy"
+      EngineFamily: POSTGRESQL
+      Auth:
+        - AuthScheme: SECRETS
+          SecretArn: !Ref DbSecretArn
+          IAMAuth: DISABLED
+      RoleArn: !GetAtt ProxyRole.Arn
+      VpcSubnetIds: !Ref DbSubnetIds
+      VpcSecurityGroupIds:
+        - !Ref ProxySecurityGroup
+      # Services connect without forcing TLS today (plain postgresql:// URLs); keep the cut-over
+      # reversible and do not introduce a TLS requirement in the same step.
+      RequireTLS: false
+      IdleClientTimeout: 1800
+      DebugLogging: false
+      Tags:
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-rds-proxy }
+
+  DbProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    DependsOn: AuroraIngressFromProxy
+    Properties:
+      DBProxyName: !Ref DbProxy
+      TargetGroupName: default
+      DBClusterIdentifiers:
+        - !Ref AuroraClusterIdentifier
+      ConnectionPoolConfigurationInfo:
+        MaxConnectionsPercent: 90
+        MaxIdleConnectionsPercent: 50
+        ConnectionBorrowTimeout: 120
+
+  ReadOnlyEndpoint:
+    Type: AWS::RDS::DBProxyEndpoint
+    DependsOn: DbProxyTargetGroup
+    Properties:
+      DBProxyName: !Ref DbProxy
+      DBProxyEndpointName: !Sub "${EnvironmentName}-proxy-ro"
+      TargetRole: READ_ONLY
+      VpcSubnetIds: !Ref DbSubnetIds
+      VpcSecurityGroupIds:
+        - !Ref ProxySecurityGroup
+      Tags:
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-rds-proxy }
+
+Outputs:
+  ProxyEndpoint:
+    Value: !GetAtt DbProxy.Endpoint
+  ReadOnlyProxyEndpoint:
+    Value: !GetAtt ReadOnlyEndpoint.Endpoint
+  ProxySecurityGroupId:
+    Value: !Ref ProxySecurityGroup
