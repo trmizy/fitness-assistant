@@ -28,6 +28,8 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 const PAID_INVALIDATES = [
   ["my-memberships"],
   ["client-contracts"],
+  // Bought a gym plan from a PT's page: its branch list must show the new membership when the client goes back.
+  ["contract-gym-options"],
   ["personalized-service-orders"],
   ["personalized-service-order"],
 ];

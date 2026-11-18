@@ -177,7 +177,7 @@ export default function GymDetailScreen() {
         referral.trim() || undefined,
         target.acknowledged,
       ),
-    invalidate: [["my-memberships"]],
+    invalidate: [["my-memberships"], ["contract-gym-options"]],
   });
 
   // The public gym payload carries no sample-data flag, so the only signal is the server's refusal

@@ -1,6 +1,8 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { router } from "expo-router";
+
 import TrainerDetailScreen from "../../../app/client/services/pt/[id]";
 import { availabilityService, contractService, profileService, ptServicePackageService } from "../../services/api";
 
@@ -270,5 +272,51 @@ describe("trainer detail — N15M-14 venue outside the Gymini system", () => {
     await press(view.getByText("Gửi yêu cầu huấn luyện"));
     expect(await view.findByText("Tôi đồng ý")).toBeTruthy();
     expect(mockToast).not.toHaveBeenCalledWith(expect.anything(), "danger");
+  });
+});
+
+describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩn mất nút)", () => {
+  const branch = (over: Record<string, unknown> = {}) => ({
+    gymId: "mekong-1",
+    name: "Mekong Fitness Q1",
+    city: "TP.HCM",
+    isPtTrainingLocation: false,
+    membership: { hasActiveMembership: false, planName: null, endDate: null },
+    eligibility: { canRequest: false, reason: "MEMBERSHIP_REQUIRED" },
+    ...over,
+  });
+  const openOffline = async (view: any) => {
+    await press(await view.findByText("Gói dịch vụ"));
+    await press(await view.findByText("Gói 10 buổi"));
+  };
+
+  it("MEMBERSHIP_REQUIRED + chưa chọn phòng + không phải nơi tập của PT: vẫn hiện lời gợi ý và nút 'Mua gói hội viên' tới đúng gym", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({ pt: { referralCode: "QGT7KPJW" }, gyms: [branch()] });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
+    expect(view.getByText(/cần có gói hội viên/)).toBeTruthy();
+    await press(view.getByText("Mua gói hội viên"));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/client/services/gyms/[id]",
+      params: { id: "mekong-1", referral: "QGT7KPJW" },
+    });
+  });
+
+  it("lý do chặn khác (gói hội viên không đủ hạn) ở chi nhánh không phải nơi tập vẫn được ẩn — không có nút mua", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({
+      gyms: [branch({ eligibility: { canRequest: false, reason: "MEMBERSHIP_DOES_NOT_COVER_CONTRACT" } })],
+    });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
+    expect(view.queryByText("Mua gói hội viên")).toBeNull();
+    expect(view.queryByText(/không đủ thời hạn/)).toBeNull();
   });
 });
