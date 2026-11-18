@@ -1,5 +1,5 @@
 import { PrismaClient, Prisma, Role } from "../generated/prisma";
-import { logger } from "@gym-coach/shared";
+import { logger, TEST_ACCOUNT_DOMAIN_PATTERNS } from "@gym-coach/shared";
 import type { DashboardSummary } from "../services/admin-dashboard-summary-query";
 
 export const prisma = new PrismaClient();
@@ -98,6 +98,22 @@ export const authRepository = {
     if (!paged) return { users: [], total: 0 };
     const [{ n }] = await prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`SELECT count(*) AS n FROM "users" WHERE ${where}`);
     return { users: [], total: Number(n) };
+  },
+
+  /**
+   * Ids of the accounts on reserved test email domains, decided IN THE DATABASE (only ids are read). The domain is built exactly like
+   * `isTestAccountEmail` builds it (after the LAST "@", trimmed, lower-cased, one trailing dot removed) and compared with the shared patterns.
+   * An email without "@" has no domain: NULL -> COALESCE(false), like the function's `false`.
+   */
+  async listTestAccountIds(): Promise<string[]> {
+    const [reservedTld, reservedDomain] = TEST_ACCOUNT_DOMAIN_PATTERNS;
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id" FROM "users"
+      WHERE COALESCE(
+        regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '') ~ ${reservedTld}
+        OR regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '') ~ ${reservedDomain},
+        false)`);
+    return rows.map((r) => r.id);
   },
 
   /**

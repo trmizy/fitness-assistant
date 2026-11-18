@@ -142,8 +142,9 @@ export const authService = {
 
   /** Ids of accounts on reserved test email domains (see assertNotTestAccount). */
   async listTestAccountIds(): Promise<string[]> {
-    const users = await prisma.user.findMany({ select: { id: true, email: true } });
-    return users.filter((u) => isTestAccountEmail(u.email)).map((u) => u.id);
+    // Decided by the database (only the ids come back). It used to read every account (id + email) into memory and filter with
+    // isTestAccountEmail; the SQL applies the same rule through TEST_ACCOUNT_DOMAIN_PATTERNS (shared/test-accounts.ts).
+    return authRepository.listTestAccountIds();
   },
 
   async register(data: RegisterStartDto) {
