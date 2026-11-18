@@ -40,9 +40,9 @@ router.get('/methods', async (_req: Request, res: Response) => {
     return {
       ...m,
       configured: status.configured,
-      unavailableReason: status.configured
-        ? null
-        : `Chưa cấu hình: ${status.missing.join(', ')}`,
+      // Shown to the customer under a greyed-out method. The missing env-var names / "set X=true" are operator detail (same rule as the
+      // checkout refusal, W12), so the customer gets a plain sentence; the operator reads the cause in the checkout refusal log.
+      unavailableReason: status.configured ? null : 'Phương thức này tạm thời chưa dùng được',
     };
   });
 

@@ -133,6 +133,24 @@ export function mergeEnv(current, wanted) {
   return { next: { ...cur, ...wanted }, changedKeys };
 }
 
+/**
+ * ZaloPay guard (payment Lambda runs NODE_ENV=production). gateway-policy.ts refuses ZaloPay in production unless ZALOPAY_PRODUCTION_VERIFIED=true,
+ * the flag an operator sets after verifying the integration against ZaloPay's PRODUCTION system. On this DEV environment it is set to true ONLY so
+ * the SANDBOX keys (fake money) can be exercised. Therefore: the flag must never be true together with a non-sandbox endpoint, and keys alone
+ * (no flag) are fine. The keys themselves (ZALOPAY_APP_ID / KEY1 / KEY2) are secrets: not in this file, set by hand, never printed.
+ * Returns the problem text, or null when consistent.
+ */
+export function zalopayGuardProblem(env) {
+  const flag = String(env?.ZALOPAY_PRODUCTION_VERIFIED ?? "").toLowerCase() === "true";
+  if (!flag) return null;
+  const endpoint = String(env?.ZALOPAY_ENDPOINT ?? "");
+  // No endpoint = the provider's built-in default, which is the sandbox host.
+  if (endpoint && !/^https:\/\/sb-openapi\.zalopay\.vn(\/|$)/.test(endpoint)) {
+    return "ZALOPAY_PRODUCTION_VERIFIED=true but ZALOPAY_ENDPOINT is not the sandbox host (sb-openapi.zalopay.vn): that flag is for SANDBOX keys only on DEV";
+  }
+  return null;
+}
+
 /** Same statements (order-insensitive) = no drift. A policy that does not exist yet is drift. */
 export function policyDiffers(currentDoc, desiredDoc) {
   if (!currentDoc) return true;
@@ -202,7 +220,14 @@ function iamItems(apply) {
   });
 }
 
-const SECTIONS = { s3: s3Item, apigw: apiItem, lambda: lambdaItems, iam: iamItems };
+/** Read-only invariant, never auto-fixed: a violation is reported as DRIFT and needs a human. */
+function zalopayItem() {
+  const env = aws(["lambda", "get-function-configuration", "--function-name", fn("payment"), "--query", "Environment.Variables"]) ?? {};
+  const problem = zalopayGuardProblem(env);
+  return [{ item: `payment ZaloPay guard (flag ${String(env.ZALOPAY_PRODUCTION_VERIFIED ?? "unset")}, keys ${env.ZALOPAY_KEY1 ? "set" : "unset"})`, drift: Boolean(problem), detail: problem ?? "" }];
+}
+
+const SECTIONS = { s3: s3Item, apigw: apiItem, lambda: lambdaItems, iam: iamItems, zalopay: zalopayItem };
 
 export function main(argv = process.argv.slice(2)) {
   const apply = argv.includes("--apply");

@@ -115,6 +115,21 @@ test('GET /me/payments/methods lists no MOMO and no PAYOS; VNPAY and ZALOPAY rem
   assert.notEqual(body.data.defaultProvider, 'PAYOS');
 });
 
+// Partner retest 2026-11-18 (ZaloPay shown as raw "... is not enabled ..."): an unusable method is greyed out with a reason the CUSTOMER reads.
+// Env-var names and "set X=true" are operator detail and must never be in it (same rule as the checkout refusal, W12).
+test('GET /me/payments/methods: an unavailable gateway carries a plain customer sentence, no env-var names or operator instructions', async () => {
+  const res = await fetch(`${baseUrl}/me/payments/methods`, { headers: CLIENT });
+  const body = (await res.json()) as { data: { methods: Array<{ provider: string; configured: boolean; unavailableReason: string | null }> } };
+  const zalo = body.data.methods.find((m) => m.provider === 'ZALOPAY')!;
+  assert.equal(zalo.configured, false, 'this suite sets no ZaloPay credentials');
+  assert.equal(zalo.unavailableReason, 'Phương thức này tạm thời chưa dùng được');
+  assert.doesNotMatch(JSON.stringify(body), /ZALOPAY_|_VERIFIED|is not enabled|set/);
+  // Every method, whatever its configuration here: usable -> no reason; unusable -> only the plain sentence.
+  for (const m of body.data.methods) {
+    assert.equal(m.unavailableReason, m.configured ? null : 'Phương thức này tạm thời chưa dùng được', m.provider);
+  }
+});
+
 const CHECKOUT_BODY = {
   purpose: 'GYM_MEMBERSHIP',
   relatedEntityType: 'GYM_MEMBERSHIP',

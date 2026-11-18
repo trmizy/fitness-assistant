@@ -145,6 +145,22 @@ export function withoutInternalProfileFields<T extends { userProfile?: any }>(ap
   return { ...app, userProfile: safeProfile };
 }
 
+/**
+ * ADM-01: the admin list searches `user_profiles.email` in SQL, but the profile row often has no email (it is shown from auth-service
+ * at display time). When a display fetch finds one, keep it: fills an EMPTY column only, best-effort, never blocks or fails the response.
+ */
+export function persistMissingProfileEmail(
+  profile: { userId?: string | null; email?: string | null } | null | undefined,
+  authEmail: string | null | undefined,
+  repo: { backfillEmail: (userId: string, email: string) => Promise<unknown> } = profileRepository,
+): void {
+  const email = (authEmail ?? "").trim();
+  if (!profile?.userId || profile.email || !email) return;
+  void Promise.resolve()
+    .then(() => repo.backfillEmail(profile.userId as string, email))
+    .catch((err: any) => logger.warn({ err: err?.message, userId: profile.userId }, "PT application: could not backfill profile email"));
+}
+
 async function enrichWithUserInfo(rawApp: any): Promise<any> {
   const app = withoutInternalProfileFields(rawApp);
   const userId = app.userProfile?.userId;
@@ -157,6 +173,7 @@ async function enrichWithUserInfo(rawApp: any): Promise<any> {
 
   const authInfo = await fetchAuthUserInfo(userId);
   if (!authInfo) return app;
+  persistMissingProfileEmail(app.userProfile, authInfo.email);
 
   return {
     ...app,
@@ -600,6 +617,12 @@ export const ptApplicationService = {
             .backfillNames(app.userProfile.userId, names)
             .catch((err: any) => logger.warn({ err: err?.message }, "PT approval: could not backfill profile name"));
         }
+      }
+
+      // The admin search finds a trainer by email too (ADM-01): keep the auth email in the profile while it is empty. Best-effort.
+      if (!app.userProfile.email) {
+        const authInfo = await fetchAuthUserInfo(app.userProfile.userId);
+        persistMissingProfileEmail(app.userProfile, authInfo?.email);
       }
 
       // Create PTTrainingLocation records from application (idempotent)

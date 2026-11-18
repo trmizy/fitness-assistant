@@ -1,7 +1,7 @@
 // UNIT test of the pure merge/compare helpers of scripts/aws/dev-manual-config.mjs. No AWS call is made.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ACCOUNT, DESIRED, mergeApiCors, mergeBucketCors, mergeEnv, policyDiffers } from "../dev-manual-config.mjs";
+import { ACCOUNT, DESIRED, mergeApiCors, mergeBucketCors, mergeEnv, policyDiffers, zalopayGuardProblem } from "../dev-manual-config.mjs";
 
 const ORIGINS = ["https://gymini.vn", "https://www.gymini.vn"];
 
@@ -71,4 +71,16 @@ test("desired state stays least-privilege and covers every Lambda that must run 
     assert.equal(DESIRED.lambdaEnv[name].TZ, "Asia/Ho_Chi_Minh", name);
   }
   assert.equal(DESIRED.lambdaEnv.user.REQUIRE_CONTRACT_ESIGN, "false");
+});
+
+test("ZaloPay guard: the production-verified flag is allowed only with the sandbox endpoint (explicit or the built-in default)", () => {
+  assert.equal(zalopayGuardProblem({}), null);
+  assert.equal(zalopayGuardProblem({ ZALOPAY_APP_ID: "1", ZALOPAY_KEY1: "k" }), null, "keys without the flag are fine");
+  assert.equal(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "true" }), null, "no endpoint = built-in sandbox default");
+  assert.equal(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "TRUE", ZALOPAY_ENDPOINT: "https://sb-openapi.zalopay.vn" }), null);
+  assert.equal(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "true", ZALOPAY_ENDPOINT: "https://sb-openapi.zalopay.vn/v2/create" }), null);
+  assert.match(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "true", ZALOPAY_ENDPOINT: "https://openapi.zalopay.vn" }), /SANDBOX/);
+  assert.match(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "true", ZALOPAY_ENDPOINT: "https://sb-openapi.zalopay.vn.evil.example" }), /SANDBOX/);
+  assert.match(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "true", ZALOPAY_ENDPOINT: "http://sb-openapi.zalopay.vn" }), /SANDBOX/);
+  assert.equal(zalopayGuardProblem({ ZALOPAY_PRODUCTION_VERIFIED: "false", ZALOPAY_ENDPOINT: "https://openapi.zalopay.vn" }), null);
 });
