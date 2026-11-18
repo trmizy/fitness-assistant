@@ -65,7 +65,18 @@ export const DAYS = [
   { value: "Sat", label: "Thứ 7", short: "T7" },
   { value: "Sun", label: "Chủ nhật", short: "CN" },
 ];
-const dayLabel = (d: string) => DAYS.find((x) => x.value === d)?.label ?? d;
+/** The server stores/returns the full enum (MONDAY…); the wizard keys days as Mon…Sun. A draft restored from the server must be mapped, or its blocks match no day. */
+const DAY_ALIAS: Record<string, string> = { MONDAY: "Mon", TUESDAY: "Tue", WEDNESDAY: "Wed", THURSDAY: "Thu", FRIDAY: "Fri", SATURDAY: "Sat", SUNDAY: "Sun" };
+export const normalizeDayKey = (d: string): string => {
+  const raw = String(d ?? "").trim();
+  return DAY_ALIAS[raw.toUpperCase()] ?? DAYS.find((x) => x.value.toLowerCase() === raw.toLowerCase())?.value ?? raw;
+};
+/** Day keys + "HH:mm" (the server may answer "HH:mm:ss"). */
+export function normalizeBlocks(blocks: PTAvailabilityBlock[] | null | undefined): PTAvailabilityBlock[] {
+  return (blocks ?? []).map((b) => ({ ...b, dayOfWeek: normalizeDayKey(b.dayOfWeek), startTime: String(b.startTime ?? "").slice(0, 5), endTime: String(b.endTime ?? "").slice(0, 5) }));
+}
+// Ngày lạ → "một ngày trong tuần", không lộ khoá thô.
+const dayLabel = (d: string) => DAYS.find((x) => x.value === normalizeDayKey(d))?.label ?? "một ngày trong tuần";
 
 export const STATUS_META: Record<PTApplicationStatus | "NONE", { label: string; tone: "success" | "warning" | "danger" | "info" | "neutral" }> = {
   NONE: { label: "Chưa đăng ký", tone: "neutral" },
@@ -111,7 +122,7 @@ export function formFromServer(app: PTApplication | null): { form: PTApplication
     mainSpecialties: app.mainSpecialties ?? [],
     targetClientGroups: app.targetClientGroups ?? [],
     primaryTrainingGoals: app.primaryTrainingGoals ?? [],
-    availabilityBlocks: app.availabilityBlocks ?? [],
+    availabilityBlocks: normalizeBlocks(app.availabilityBlocks),
     sessionDurationMinutes: app.sessionDurationMinutes || 60,
     certificates: app.certificates?.length ? app.certificates : [{ ...EMPTY_CERT }],
     media: app.media ?? [],
@@ -255,7 +266,7 @@ export function submitErrorMessage(e: any): string {
     yearsOfExperience: "số năm kinh nghiệm",
     serviceMode: "hình thức dịch vụ",
   };
-  if (field) return `Còn thiếu ${FIELD[field] ?? field}.`;
+  if (field) return `Còn thiếu ${FIELD[field] ?? "một mục bắt buộc"}.`;
   if (/specialty/i.test(raw)) return "Chọn ít nhất một chuyên môn.";
   if (/already/i.test(raw)) return "Đơn đã được nộp hoặc đang xử lý.";
   if (/[À-ỹ]/.test(raw)) return raw;

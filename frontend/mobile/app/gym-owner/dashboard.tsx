@@ -202,9 +202,13 @@ function OperationsDashboard() {
             <EmptyState
               icon={Building2}
               title="Chưa có chi nhánh nào"
-              description="Tạo chi nhánh đầu tiên ở tab Phòng gym để bắt đầu vận hành."
-              actionLabel="Mở tab Phòng gym"
-              onAction={() => router.push("/gym-owner/gyms")}
+              description={
+                manager
+                  ? "Chưa có chi nhánh nào được giao cho tài khoản của bạn. Hãy nhờ chủ thương hiệu giao chi nhánh."
+                  : "Tạo chi nhánh đầu tiên ở tab Phòng gym để bắt đầu vận hành."
+              }
+              actionLabel={manager ? undefined : "Mở tab Phòng gym"}
+              onAction={manager ? undefined : () => router.push("/gym-owner/gyms")}
             />
           </View>
         ) : (

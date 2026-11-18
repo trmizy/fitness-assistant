@@ -84,6 +84,24 @@ export function clearReturnPath(): void {
 }
 
 /**
+ * AWS-MOB-ISO-01 — a deliberate "Đăng xuất" is not a session that dropped mid-flow. The guard used to
+ * carry the screen being left (a payment result, say) as `from`, so the NEXT account signing in was
+ * sent back onto the previous user's screen and re-queried it under the new identity. While this is
+ * set, {@link resolveReturnPath} offers nothing and the new login lands on its own role home.
+ * It is cleared by the next sign-in.
+ */
+let signedOutOnPurpose = false;
+
+export function markSignedOutOnPurpose(): void {
+  signedOutOnPurpose = true;
+  pending = null;
+}
+
+export function clearSignedOutOnPurpose(): void {
+  signedOutOnPurpose = false;
+}
+
+/**
  * The `from` to put on the /login redirect: the path the guard saw when it is meaningful, else the
  * remembered cold-start link, else nothing.
  */
@@ -91,6 +109,7 @@ export function resolveReturnPath(
   candidate: string | null | undefined,
   now: number = Date.now(),
 ): string | null {
+  if (signedOutOnPurpose) return null;
   return pickReturnPath(candidate, peekReturnPath(now));
 }
 

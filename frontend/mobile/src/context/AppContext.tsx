@@ -12,7 +12,8 @@ import * as Notifications from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Preferences } from "../services/storage";
-import { clearReturnPath } from "../config/returnPath";
+import { clearReturnPath, clearSignedOutOnPurpose, markSignedOutOnPurpose } from "../config/returnPath";
+import { clearPendingCheckout } from "../features/payments/pendingCheckout";
 import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
@@ -148,6 +149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (res.success && res.user) {
         if (res.sessionGeneration !== undefined) sessionGuard.assertCurrent(res.sessionGeneration);
         queryClient.clear();
+        clearSignedOutOnPurpose();
         setUser(res.user);
         setIsAuth(true);
         return true;
@@ -174,6 +176,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     queryClient.clear();
     // A remembered cold-start link belongs to whoever opened it — never to the next account.
     clearReturnPath();
+    // AWS-MOB-ISO-01 — signing out must not carry the screen being left over to the next login, and
+    // a gateway checkout still waiting to be resumed belongs to this account only.
+    markSignedOutOnPurpose();
+    await clearPendingCheckout().catch(() => undefined);
     // Revokes the refresh token server-side, clears local storage, then emits "session expired".
     await authService.logout();
     setIsAuth(false);
@@ -187,7 +193,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // back to the login screen (real phone, 6/10). Same cache hygiene as login().
   const adoptUser = useCallback(
     (next: User | null) => {
-      if (next) queryClient.clear();
+      if (next) {
+        queryClient.clear();
+        clearSignedOutOnPurpose();
+      }
       setUser(next);
       setIsAuth(!!next);
     },

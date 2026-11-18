@@ -114,7 +114,7 @@ function MethodList({
                 <View className="min-w-0 flex-1">
                   <Text className="font-body-semibold text-sm text-foreground">{m.label}</Text>
                   <Text className="font-body text-xs text-muted-foreground" numberOfLines={2}>
-                    {m.configured ? m.description : (m.unavailableReason ?? "Chưa cấu hình")}
+                    {m.configured ? m.description : (m.unavailableReason ?? "Phương thức này tạm thời chưa dùng được")}
                   </Text>
                 </View>
                 <View

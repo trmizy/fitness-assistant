@@ -17,7 +17,7 @@ import {
   userRoleLabel,
   userRows,
 } from "../admin/adminUsers";
-import { roleBreakdown, recentUsers, unclassifiedUsers } from "../admin/adminDashboard";
+import { roleBreakdown, recentUsers, recentGymOwnerIds, unclassifiedUsers, viShortDate } from "../admin/adminDashboard";
 
 // Hình dạng thật của /admin/users sau khi sửa GAP-21 (28/9).
 const RAW = {
@@ -88,9 +88,10 @@ describe("GAP-21 trên tổng quan", () => {
       ],
       recentUsers: [{ name: "p12", email: "p", role: "Gym Owner", joined: "Sep 27", status: "Inactive" }],
     };
-    assert.deepEqual(roleBreakdown(d).map((r) => r.label), ["Khách hàng", "Huấn luyện viên", "Chủ phòng gym"]);
+    assert.deepEqual(roleBreakdown(d).map((r) => r.label), ["Khách hàng", "Huấn luyện viên", "Tài khoản phòng gym"]);
     assert.equal(unclassifiedUsers(d), 0);
-    assert.equal(recentUsers(d)[0].role, "Chủ phòng gym");
+    assert.equal(recentUsers(d)[0].role, "Tài khoản phòng gym"); // no id -> neutral
+    assert.equal(recentUsers(d)[0].joined, "27/09"); // AWS-MOB-UI-04: no English "Sep 27"
     assert.equal(recentUsers(d)[0].active, false);
   });
 });
@@ -116,5 +117,38 @@ describe("B41 partner staff are not labelled as the owner", () => {
     assert.equal(userRoleLabel({ id: "x1", role: "Gym Owner" }, roles), "Chủ phòng gym");
     assert.equal(userRoleLabel({ id: "m1", role: "Client" }, roles), "Khách hàng");
     assert.equal(userRoleLabel({ id: "o1", role: "Gym Owner" }), "Chủ phòng gym");
+  });
+});
+
+describe("viShortDate - AWS-MOB-UI-04", () => {
+  it("turns the English month into dd/mm and leaves Vietnamese dates alone", () => {
+    assert.equal(viShortDate("Nov 18"), "18/11");
+    assert.equal(viShortDate("Sep 7"), "07/09");
+    assert.equal(viShortDate("Nov 18, 2026"), "18/11/2026");
+    assert.equal(viShortDate("18/11"), "18/11");
+    assert.equal(viShortDate(undefined), "");
+  });
+});
+
+describe("recentUsers partner roles", () => {
+  const roles = partnerRoleMap({ data: [{ userId: "m1", partnerRole: "MANAGER" }, { userId: "r1", partnerRole: "RECEPTIONIST" }] });
+  const row = (extra: object) => ({ recentUsers: [{ name: "x", email: "x", role: "Gym Owner", joined: "", status: "Active", ...extra }] });
+  it("owner with id and no partner row -> owner label", () => {
+    assert.equal(recentUsers(row({ id: "o1" }), roles)[0].role, "Chủ phòng gym");
+  });
+  it("receptionist / manager with id", () => {
+    assert.equal(recentUsers(row({ id: "r1" }), roles)[0].role, "Lễ tân");
+    assert.equal(recentUsers(row({ userId: "m1" }), roles)[0].role, "Quản lý chi nhánh");
+  });
+  it("row-level partnerRole passes through", () => {
+    assert.equal(recentUsers(row({ partnerRole: "ACCOUNTANT" }))[0].role, "Kế toán");
+  });
+  it("no id -> neutral; non gym-owner untouched", () => {
+    assert.equal(recentUsers(row({}), roles)[0].role, "Tài khoản phòng gym");
+    assert.equal(recentUsers(row({ id: "c1", role: "Client" }), roles)[0].role, "Khách hàng");
+  });
+  it("recentGymOwnerIds only returns gym-owner rows with ids", () => {
+    const d = { recentUsers: [{ role: "Gym Owner", id: "a" }, { role: "Gym Owner" }, { role: "Client", id: "c" }] };
+    assert.deepEqual(recentGymOwnerIds(d), ["a"]);
   });
 });

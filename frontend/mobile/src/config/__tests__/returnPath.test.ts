@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 import {
   PENDING_RETURN_TTL_MS,
   clearReturnPath,
+  clearSignedOutOnPurpose,
+  markSignedOutOnPurpose,
   isBareWorkspaceRoot,
   anchorOptionsFor,
   isMeaningfulReturnPath,
@@ -147,5 +149,36 @@ describe("anchorOptionsFor — FIX8-5 (system back after login lands on the hub,
     assert.equal(target, "/client/services/gyms/abc-123");
     assert.deepEqual(anchorOptionsFor(target!), { withAnchor: true });
     clearReturnPath();
+  });
+});
+
+describe("deliberate sign-out — AWS-MOB-ISO-01", () => {
+  beforeEach(() => {
+    clearReturnPath();
+    clearSignedOutOnPurpose();
+  });
+
+  const RESULT = "/client/payments/result?txnId=ee421f0e-3e0e-4326-ba6e-88d8952241e3";
+
+  it("a session that drops mid-flow still carries the screen it was on", () => {
+    assert.equal(resolveReturnPath(RESULT), RESULT);
+  });
+
+  it("after 'Đăng xuất' the guard offers NO return path, so the next account lands on its own home", () => {
+    markSignedOutOnPurpose();
+    assert.equal(resolveReturnPath(RESULT), null);
+    assert.equal(resolveReturnPath(GYM), null);
+  });
+
+  it("signing out also drops a remembered cold-start link", () => {
+    rememberReturnPath(GYM);
+    markSignedOutOnPurpose();
+    assert.equal(peekReturnPath(), null);
+  });
+
+  it("the next sign-in lifts the suppression", () => {
+    markSignedOutOnPurpose();
+    clearSignedOutOnPurpose();
+    assert.equal(resolveReturnPath(RESULT), RESULT);
   });
 });

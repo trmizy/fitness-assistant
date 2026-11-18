@@ -455,6 +455,11 @@ export default function TrainerDetailScreen() {
                     <Text className="font-body-medium text-sm text-foreground">
                       Tập tại phòng gym nào?
                     </Text>
+                    {!pickedGym ? (
+                      <Text className="font-body text-xs leading-5 text-muted-foreground">
+                        Không chọn phòng nào nếu bạn tập ở nơi riêng, ngoài hệ thống phòng gym của Gymini.
+                      </Text>
+                    ) : null}
                     {gymOptionsQuery.isLoading ? (
                       <ActivityIndicator color={accent.primary} />
                     ) : gymOptionsQuery.isError ? (
@@ -478,6 +483,7 @@ export default function TrainerDetailScreen() {
                             key={gym.gymId}
                             gym={gym}
                             active={gym.gymId === pickedGym?.gymId}
+                            independentVenue={!pickedGym}
                             onPress={() => {
                               setRefusal(null);
                               setVenueAck(false);
@@ -696,11 +702,14 @@ export default function TrainerDetailScreen() {
 function GymOptionCard({
   gym,
   active,
+  independentVenue,
   onPress,
   onBuyMembership,
 }: {
   gym: GymOption;
   active: boolean;
+  /** AWS-MOB-UI-03 — no Gymini gym picked: membership lines only matter where they are useful. */
+  independentVenue: boolean;
   onPress: () => void;
   onBuyMembership: () => void;
 }) {
@@ -723,11 +732,13 @@ function GymOptionCard({
               {gym.city}
             </Text>
           ) : null}
-          <Text className="mt-0.5 font-body text-xs text-muted-foreground">{gym.membershipLabel}</Text>
+          {!independentVenue || gym.membership.hasActiveMembership ? (
+            <Text className="mt-0.5 font-body text-xs text-muted-foreground">{gym.membershipLabel}</Text>
+          ) : null}
         </View>
         {active ? <Check size={16} color={accent.primary} /> : null}
       </Tappable>
-      {gym.blockedCopy ? (
+      {gym.blockedCopy && (!independentVenue || gym.isPtTrainingLocation) ? (
         <View className="mt-2 gap-2">
           <Text className="font-body text-xs text-warning">{gym.blockedCopy}</Text>
           {gym.offersMembershipPurchase ? (

@@ -35,6 +35,7 @@ jest.mock("../../components/ui/Toast", () => {
 
 jest.mock("../../lib/pickFile", () => ({ pickImages: jest.fn(), pickApplicationFile: jest.fn() }));
 jest.mock("../gymOwner/MapPinPicker", () => ({ MapPinPicker: () => null }));
+jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 
 jest.mock("../../services/api", () => {
   const actual = jest.requireActual("../../services/api");

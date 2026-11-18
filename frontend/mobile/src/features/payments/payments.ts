@@ -20,6 +20,15 @@ export interface PaymentMethods {
   defaultProvider: string | null;
 }
 
+export const METHOD_UNAVAILABLE_TEXT = "Phương thức này tạm thời chưa dùng được";
+
+/** The server's reason when it reads as Vietnamese prose; an operator string (env-var names, English) becomes the friendly line (PAY-01). */
+export function friendlyUnavailableReason(raw: unknown): string {
+  const t = typeof raw === "string" ? raw.trim() : "";
+  if (!t || /[A-Z][A-Z0-9]*_[A-Z0-9_]+/.test(t) || !/[à-ỹĐđ]/i.test(t)) return METHOD_UNAVAILABLE_TEXT;
+  return t;
+}
+
 /** `GET /me/payments/methods` — server-decided list; a gateway without credentials stays visible, greyed. */
 export function normalizeMethods(raw: unknown): PaymentMethods {
   const data = (raw ?? {}) as { methods?: unknown; defaultProvider?: unknown };
@@ -32,7 +41,7 @@ export function normalizeMethods(raw: unknown): PaymentMethods {
           label: typeof m.label === "string" && m.label ? m.label : String(m.provider),
           description: typeof m.description === "string" ? m.description : "",
           configured: m.configured === true,
-          unavailableReason: typeof m.unavailableReason === "string" ? m.unavailableReason : null,
+          unavailableReason: m.configured === true ? null : friendlyUnavailableReason(m.unavailableReason),
         }))
     : [];
   const suggested = typeof data.defaultProvider === "string" ? data.defaultProvider : null;
@@ -161,6 +170,12 @@ export function retryActionFor(
     return { type: "rebuy", gymId: item.gymId };
   }
   return null;
+}
+
+/** AWS-MOB-UI-02 — a short, readable reference for support instead of the raw transaction uuid. */
+export function shortTransactionRef(id: string): string {
+  const compact = id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
+  return compact ? `GD-${compact}` : "";
 }
 
 /** Where the thing just paid for lives in the app. */
