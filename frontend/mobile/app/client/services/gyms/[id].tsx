@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, Platform, ScrollView, Share, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
@@ -40,7 +40,7 @@ import { GymHoursCard } from "../../../../src/features/services/GymHoursCard";
 import { gymShareContent, webOrigin } from "../../../../src/features/services/gymHours";
 import { BranchMap } from "../../../../src/features/services/BranchMap";
 import { isInVietnam } from "../../../../src/utils/geo";
-import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
+import { Notice, PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
 import { AmenityBadgeGroups } from "../../../../src/features/gymListing/AmenityWidgets";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
@@ -164,7 +164,7 @@ export default function GymDetailScreen() {
   const mine = memberships.find(
     (m) => m.gymId === gymId && (m.status === "ACTIVE" || m.status === "PENDING_PAYMENT"),
   );
-  const blocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
+  const baseBlocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
   const gymClosed = gym ? gymBlockedReason(gym) : null;
 
   // `acknowledged` rides along as evidence the multi-gym warning was shown, never as a permission.
@@ -177,8 +177,17 @@ export default function GymDetailScreen() {
         referral.trim() || undefined,
         target.acknowledged,
       ),
-    invalidate: [["my-memberships"]],
+    invalidate: [["my-memberships"], ["contract-gym-options"]],
   });
+
+  // The public gym payload carries no sample-data flag, so the only signal is the server's refusal
+  // (SYNTHETIC_RECORD_NOT_TRANSACTABLE). Once seen, the buy button stays off with the reason for as
+  // long as this screen is open — the sheet's own inline notice goes away when the sheet closes.
+  const [sampleNotice, setSampleNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (checkout.blockedMessage) setSampleNotice(checkout.blockedMessage);
+  }, [checkout.blockedMessage]);
+  const blocked = sampleNotice ?? baseBlocked;
 
   // FIX5 / Q8 (theo web): chia sẻ / sao chép liên kết /gyms/:id — khách mở link sẽ đăng nhập rồi vào đúng gym.
   const shareContent = gym
@@ -506,13 +515,16 @@ export default function GymDetailScreen() {
                   />
                 </Card>
 
+                {sampleNotice ? <Notice tone="danger" text={sampleNotice} /> : null}
                 <Button full disabled={!!blocked || checkout.submitting || warningsQuery.isLoading} onPress={() => startPurchase(false)}>
                   {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
                 </Button>
-                <Text className="text-center font-body text-xs text-muted-foreground">
-                  {blocked ??
-                    "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
-                </Text>
+                {sampleNotice ? null : (
+                  <Text className="text-center font-body text-xs text-muted-foreground">
+                    {blocked ??
+                      "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
+                  </Text>
+                )}
               </>
             ) : null}
             {/* 14B.6 (PG-B2) — reviews, and the member's own one to write / edit / delete. */}
@@ -549,6 +561,7 @@ export default function GymDetailScreen() {
         title="Thanh toán gói hội viên"
         note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
         submitting={checkout.submitting}
+        blockedMessage={checkout.blockedMessage}
         onConfirm={checkout.pay}
         onClose={checkout.close}
       />

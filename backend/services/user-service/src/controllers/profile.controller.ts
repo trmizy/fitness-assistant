@@ -4,7 +4,7 @@ import { logger } from "@gym-coach/shared";
 import {
   profileService,
   enrichProfilesWithAuthNames,
-  withSignedProfilePhoto,
+  withSignedOtherUserPhoto,
 } from "../services/profile.service";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
@@ -272,7 +272,7 @@ async function hydrateDiscoveryPublicPts(
   return Promise.all(
     (enriched as any[]).map((row) => {
       const distMeta = distanceMetaByUserId?.get(row.userId);
-      return withSignedProfilePhoto(
+      return withSignedOtherUserPhoto(
         toPublicPtDto(row as PublishedPtSource, {
           avgRating: row.avgRating,
           ratingCount: row.ratingCount,

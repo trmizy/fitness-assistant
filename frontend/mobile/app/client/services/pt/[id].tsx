@@ -80,6 +80,9 @@ import { PtBookableSchedule } from "../../../../src/features/services/PtBookable
 import { PtWeeklySchedule } from "../../../../src/features/services/PtWeeklySchedule";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
+/** Shown on a MEMBERSHIP_REQUIRED branch while no gym is picked: the client may be heading for an independent venue. */
+const MEMBERSHIP_OR_OWN_VENUE_COPY =
+  "Muốn tập tại chi nhánh này cần có gói hội viên — hoặc không chọn phòng nào để tập tại địa điểm riêng của PT.";
 
 /**
  * CL-10 (trainer detail) + CL-11 (coaching request) — one screen, because the request is a decision
@@ -526,7 +529,7 @@ export default function TrainerDetailScreen() {
                     {refusal.reason === "MEMBERSHIP_REQUIRED" && pickedGym ? (
                       <Button
                         variant="secondary"
-                        size="sm"
+                        size="md"
                         className="self-start"
                         onPress={() =>
                           router.push({
@@ -714,6 +717,10 @@ function GymOptionCard({
   onBuyMembership: () => void;
 }) {
   const accent = useWorkspaceAccent();
+  // MEMBERSHIP_REQUIRED is the demo's "buy a membership first" suggestion: always shown (a blocked branch can never be
+  // picked, so `independentVenue` is true exactly when the client has not got past it). UI-03 only softens the OTHER blocked
+  // copy (e.g. membership too short) for a branch that is not this PT's training location.
+  const showBlocked = !!gym.blockedCopy && (gym.offersMembershipPurchase || !independentVenue || gym.isPtTrainingLocation);
   return (
     <View
       className={`rounded-xl border px-3.5 py-3 ${
@@ -738,11 +745,13 @@ function GymOptionCard({
         </View>
         {active ? <Check size={16} color={accent.primary} /> : null}
       </Tappable>
-      {gym.blockedCopy && (!independentVenue || gym.isPtTrainingLocation) ? (
+      {showBlocked ? (
         <View className="mt-2 gap-2">
-          <Text className="font-body text-xs text-warning">{gym.blockedCopy}</Text>
+          <Text className="font-body text-xs text-warning">
+            {gym.offersMembershipPurchase && independentVenue ? MEMBERSHIP_OR_OWN_VENUE_COPY : gym.blockedCopy}
+          </Text>
           {gym.offersMembershipPurchase ? (
-            <Button variant="secondary" size="sm" className="self-start" onPress={onBuyMembership}>
+            <Button variant="secondary" size="md" className="self-start" onPress={onBuyMembership}>
               Mua gói hội viên
             </Button>
           ) : null}

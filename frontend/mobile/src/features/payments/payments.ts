@@ -196,10 +196,36 @@ export function destinationFor(raw: unknown): { href: string; label: string } {
 }
 
 /** Server error body → one Vietnamese line; never a raw code or stack. */
-export function checkoutErrorMessage(error: unknown): string {
+/** Mã lỗi ổn định của server (gym/payment/user-service) khi bản ghi là dữ liệu mẫu — chỉ để xem, không giao dịch. */
+export const SYNTHETIC_RECORD_NOT_TRANSACTABLE = "SYNTHETIC_RECORD_NOT_TRANSACTABLE";
+
+/** Câu hiển thị cố định cho dữ liệu mẫu (không lộ chữ SYNTHETIC của server). */
+export const SYNTHETIC_CHECKOUT_NOTICE = "Dữ liệu mẫu — chỉ để xem, không mua được.";
+
+function checkoutErrorParts(error: unknown): { code: unknown; message: unknown } {
   const body = (error as { response?: { data?: any } } | null)?.response?.data;
   const code = typeof body?.error === "string" ? body.error : body?.error?.code ?? body?.code;
   const message = typeof body?.message === "string" ? body.message : body?.error?.message;
+  return { code, message };
+}
+
+/**
+ * Server từ chối thanh toán vì phòng gym/gói là dữ liệu mẫu. Ưu tiên mã ổn định; chỉ khi không có mã
+ * mới dựa vào câu chữ của server.
+ */
+export function isSyntheticCheckoutError(error: unknown): boolean {
+  const { code, message } = checkoutErrorParts(error);
+  if (code === SYNTHETIC_RECORD_NOT_TRANSACTABLE) return true;
+  if (typeof code === "string" && /^[A-Z0-9_]+$/.test(code)) return false;
+  // Some paths put the sentence itself in `error` — read that when there is no separate message.
+  const text = typeof message === "string" ? message : typeof code === "string" ? code : "";
+  return /SYNTHETIC|dữ liệu mẫu/i.test(text);
+}
+
+export function checkoutErrorMessage(error: unknown): string {
+  const body = (error as { response?: { data?: any } } | null)?.response?.data;
+  const { code, message } = checkoutErrorParts(error);
+  if (isSyntheticCheckoutError(error)) return SYNTHETIC_CHECKOUT_NOTICE;
   if (code === "PROVIDER_NOT_CONFIGURED" || code === "PAYMENT_PROVIDER_UNAVAILABLE") {
     return "Cổng thanh toán này đang tạm ngưng — chọn cổng khác.";
   }

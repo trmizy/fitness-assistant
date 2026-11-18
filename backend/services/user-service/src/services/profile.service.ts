@@ -4,7 +4,7 @@ import { locationRepository } from "../repositories/location.repository";
 import { ptApplicationRepository } from "../repositories/pt_application.repository";
 import type { ProfileDto } from "../models/profile.models";
 import { authServiceClient } from "../clients/auth-service.client";
-import { toSignedProfilePhotoUrl } from "./s3-upload.service";
+import { toSignedProfilePhotoUrl, toSignedOtherUserPhotoUrl } from "./s3-upload.service";
 import { bootstrapNutritionSafe } from "../clients/fitness-service.client";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:3006";
@@ -112,6 +112,29 @@ export async function withSignedProfilePhoto<T extends { photoUrl?: string | nul
     ...(profile as any),
     photoUrl: await toSignedProfilePhotoUrl(profile.photoUrl),
   };
+}
+
+/**
+ * Shared mapper for a profile-shaped object that belongs to ANOTHER user (contract parties, session counterparties,
+ * PT application applicant, agent PT candidates). Returns a copy with `photoUrl` signed; same shape otherwise.
+ */
+export async function withSignedOtherUserPhoto<T extends { photoUrl?: string | null } | null | undefined>(
+  profile: T,
+): Promise<T> {
+  if (!profile?.photoUrl) return profile;
+  return {
+    ...(profile as any),
+    photoUrl: await toSignedOtherUserPhotoUrl(profile.photoUrl),
+  };
+}
+
+/** Same, for a userId -> profile map (values are replaced; the batch runs in parallel). */
+export async function signOtherUserPhotosInMap<V extends { photoUrl?: string | null } | null | undefined>(
+  map: Map<string, V>,
+): Promise<void> {
+  const entries = [...map.entries()];
+  const signed = await Promise.all(entries.map(([, v]) => withSignedOtherUserPhoto(v)));
+  entries.forEach(([k], i) => map.set(k, signed[i]));
 }
 
 function computeAgeFromDob(dateOfBirth: string): number {

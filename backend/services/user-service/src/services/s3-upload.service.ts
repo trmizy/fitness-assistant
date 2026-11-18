@@ -219,6 +219,29 @@ export async function toSignedProfilePhotoUrl(
   return createPresignedGetObject({ key });
 }
 
+/**
+ * Same as toSignedProfilePhotoUrl, for a photo that belongs to ANOTHER user inside a list/detail response.
+ * Differences (deliberate, so one odd stored value can never break or leak through someone else's response):
+ *  - an `s3://` ref that is not under `profile-photos/` (or is malformed) becomes null - never signed and never
+ *    echoed back as a raw storage reference;
+ *  - a signing failure (e.g. the bucket env is missing) becomes null instead of throwing and failing the whole list;
+ *  - legacy `/uploads/...` paths and http(s) URLs pass through unchanged.
+ * Presigning (getSignedUrl) is a local HMAC computation: no S3 round trip, so batching it is cheap.
+ */
+export async function toSignedOtherUserPhotoUrl(
+  photoUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!photoUrl) return photoUrl ?? null;
+  if (!isS3Ref(photoUrl)) return photoUrl;
+  try {
+    const key = keyFromS3Ref(photoUrl);
+    if (!isKeyWithinPrefix(key, PROFILE_PHOTO_PREFIX)) return null;
+    return await createPresignedGetObject({ key });
+  } catch {
+    return null;
+  }
+}
+
 export async function createPtApplicationDocumentUploadUrl(
   userId: string,
   contentType: string,

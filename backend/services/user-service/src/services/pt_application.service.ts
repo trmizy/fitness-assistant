@@ -13,6 +13,7 @@ import { ptApplicationReviewNotice } from "../utils/ptApplicationNotice.util";
 import { profileNameFields } from "../utils/profileName.util";
 import { ptTermsService, PT_TERMS_NOT_ACCEPTED } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
+import { toSignedOtherUserPhotoUrl } from "./s3-upload.service";
 import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from "../utils/phone.util";
 import { parseOptionalVnCoords } from "../utils/vn-coords.util";
 
@@ -161,7 +162,19 @@ export function persistMissingProfileEmail(
     .catch((err: any) => logger.warn({ err: err?.message, userId: profile.userId }, "PT application: could not backfill profile email"));
 }
 
+/** The applicant is a user the reader is not (admin review) or the applicant themselves: either way `userProfile.photoUrl` must leave signed. */
 async function enrichWithUserInfo(rawApp: any): Promise<any> {
+  const enriched = await enrichWithUserNames(rawApp);
+  return withSignedApplicantPhoto(enriched);
+}
+
+async function withSignedApplicantPhoto<T extends { userProfile?: any }>(app: T): Promise<T> {
+  const profile = app?.userProfile;
+  if (!profile?.photoUrl) return app;
+  return { ...app, userProfile: { ...profile, photoUrl: await toSignedOtherUserPhotoUrl(profile.photoUrl) } };
+}
+
+async function enrichWithUserNames(rawApp: any): Promise<any> {
   const app = withoutInternalProfileFields(rawApp);
   const userId = app.userProfile?.userId;
   if (!userId) return app;

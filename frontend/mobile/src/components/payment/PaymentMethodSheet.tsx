@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react-native";
@@ -19,7 +19,9 @@ import { formatVND } from "../../utils/currency";
  *
  * Confirm is guarded by a ref, not just `disabled`: one tap reaching the handler twice creates two
  * checkouts, and web caught exactly that on the emulator's translated touches. The sheet unmounts
- * when closed, so the guard resets for the next attempt.
+ * when closed, so the guard resets for the next attempt — and also when a request ends while the
+ * sheet stays open (`blockedMessage`: sample data the server refuses to sell; shown inline and
+ * persistently, with Thanh toán disabled).
  */
 export function PaymentMethodSheet({
   open,
@@ -27,6 +29,7 @@ export function PaymentMethodSheet({
   title = "Chọn phương thức thanh toán",
   note = "Bạn sẽ được chuyển sang trang của cổng thanh toán. Dịch vụ chỉ được kích hoạt sau khi cổng xác nhận giao dịch thành công.",
   submitting,
+  blockedMessage = null,
   onConfirm,
   onClose,
 }: {
@@ -35,12 +38,21 @@ export function PaymentMethodSheet({
   title?: string;
   note?: string;
   submitting: boolean;
+  /** Why this cannot be paid (e.g. sample data). Shown inline, keeps the sheet open, disables the confirm button. */
+  blockedMessage?: string | null;
   onConfirm: (provider: string) => void;
   onClose: () => void;
 }) {
   return (
     <BottomSheet open={open} onClose={submitting ? () => undefined : onClose} title={title}>
-      <MethodList amount={amount} note={note} submitting={submitting} onConfirm={onConfirm} onClose={onClose} />
+      <MethodList
+        amount={amount}
+        note={note}
+        submitting={submitting}
+        blockedMessage={blockedMessage}
+        onConfirm={onConfirm}
+        onClose={onClose}
+      />
     </BottomSheet>
   );
 }
@@ -49,18 +61,24 @@ function MethodList({
   amount,
   note,
   submitting,
+  blockedMessage,
   onConfirm,
   onClose,
 }: {
   amount: number;
   note: string;
   submitting: boolean;
+  blockedMessage: string | null;
   onConfirm: (provider: string) => void;
   onClose: () => void;
 }) {
   const accent = useWorkspaceAccent();
   const [picked, setPicked] = useState<string | null>(null);
   const confirmed = useRef(false);
+  // A request that ended while the sheet stays open (blocked) must allow a later attempt.
+  useEffect(() => {
+    if (!submitting) confirmed.current = false;
+  }, [submitting]);
 
   const query = useQuery({
     queryKey: ["payment-methods"],
@@ -133,6 +151,8 @@ function MethodList({
         </View>
       )}
 
+      {blockedMessage ? <Notice tone="danger" text={blockedMessage} /> : null}
+
       <Text className="font-body text-[11px] leading-4 text-muted-foreground">{note}</Text>
 
       <View className="flex-row gap-2">
@@ -141,7 +161,7 @@ function MethodList({
         </Button>
         <Button
           className="flex-1"
-          disabled={!selected || submitting}
+          disabled={!selected || submitting || !!blockedMessage}
           onPress={() => {
             if (confirmed.current || !selected) return;
             confirmed.current = true;

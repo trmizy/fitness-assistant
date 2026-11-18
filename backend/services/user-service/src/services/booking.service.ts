@@ -47,7 +47,7 @@ import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, as
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
 import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
-import { enrichProfilesWithAuthNames } from "./profile.service";
+import { enrichProfilesWithAuthNames, signOtherUserPhotosInMap } from "./profile.service";
 import { assertNotSynthetic } from "./synthetic-guard.util";
 
 /**
@@ -1564,6 +1564,7 @@ export const bookingService = {
       if (!profileMap.has(id)) profileMap.set(id, { userId: id, firstName: null, lastName: null, email: null });
     }
     await enrichProfilesWithAuthNames([...profileMap.values()]);
+    await signOtherUserPhotosInMap(profileMap);
 
     return sessions.map((s) => {
       const otherId = s.ptUserId === userId ? s.clientUserId : s.ptUserId;

@@ -28,6 +28,8 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 const PAID_INVALIDATES = [
   ["my-memberships"],
   ["client-contracts"],
+  // Bought a gym plan from a PT's page: its branch list must show the new membership when the client goes back.
+  ["contract-gym-options"],
   ["personalized-service-orders"],
   ["personalized-service-order"],
 ];
@@ -191,6 +193,7 @@ export default function PaymentResultScreen() {
         title={retryTarget?.kind === "contract" ? "Thanh toán hợp đồng" : "Thanh toán gói hội viên"}
         note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Dịch vụ chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
         submitting={checkout.submitting}
+        blockedMessage={checkout.blockedMessage}
         onConfirm={checkout.pay}
         onClose={checkout.close}
       />
