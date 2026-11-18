@@ -31,6 +31,17 @@ function foldSql(expr: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`lower(translate(regexp_replace(normalize(${expr}, NFD), ${COMBINING_MARKS}, '', 'g'), 'đĐ', 'dd'))`;
 }
 
+/**
+ * SQL form of `isTestAccountEmail`: the email's domain is built exactly like the function builds it (after the LAST "@", trimmed, lower-cased,
+ * one trailing dot removed) and compared with the shared patterns. An email without "@" has no domain: NULL -> COALESCE(false), like the
+ * function's `false`. Shared by listTestAccountIds and the dashboard summary so both apply one rule.
+ */
+function testDomainPredicate(): Prisma.Sql {
+  const [reservedTld, reservedDomain] = TEST_ACCOUNT_DOMAIN_PATTERNS;
+  const domain = Prisma.sql`regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '')`;
+  return Prisma.sql`COALESCE(${domain} ~ ${reservedTld} OR ${domain} ~ ${reservedDomain}, false)`;
+}
+
 export const authRepository = {
   // `role` narrows to one role (e.g. the admin "Quản lý gym & owner" page listing only
   // GYM_OWNER accounts) — omitted, the original "everyone but ADMIN" behavior is unchanged.
@@ -106,13 +117,7 @@ export const authRepository = {
    * An email without "@" has no domain: NULL -> COALESCE(false), like the function's `false`.
    */
   async listTestAccountIds(): Promise<string[]> {
-    const [reservedTld, reservedDomain] = TEST_ACCOUNT_DOMAIN_PATTERNS;
-    const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      SELECT "id" FROM "users"
-      WHERE COALESCE(
-        regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '') ~ ${reservedTld}
-        OR regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '') ~ ${reservedDomain},
-        false)`);
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT "id" FROM "users" WHERE ${testDomainPredicate()}`);
     return rows.map((r) => r.id);
   },
 
@@ -122,10 +127,13 @@ export const authRepository = {
    * answer (~8 MB) exceeds a Lambda's ~6 MB synchronous response. The two id lists travel as ONE JSON parameter each (not one bind
    * parameter per id: Postgres allows 32767), unpacked with jsonb_array_elements_text.
    */
-  async dashboardSummary(q: { excludeIds: string[]; ptUserIds: string[]; since: Date; recentLimit: number }): Promise<DashboardSummary> {
+  async dashboardSummary(q: { excludeIds: string[]; excludeTestDomains?: boolean; ptUserIds: string[]; since: Date; recentLimit: number }): Promise<DashboardSummary> {
     const exclude = JSON.stringify(q.excludeIds);
     const pt = JSON.stringify(q.ptUserIds);
-    const base = Prisma.sql`"role" <> 'ADMIN'::"Role" AND "id" NOT IN (SELECT jsonb_array_elements_text(${exclude}::jsonb))`;
+    // `excludeTestDomains`: the reserved-test-domain accounts are left out HERE (this service owns that rule) instead of the caller shipping
+    // ~37k of their ids in the request body (1.5 MB > the 1 MB body limit -> 413). `excludeIds` then only carries what auth cannot know.
+    const testFilter = q.excludeTestDomains ? Prisma.sql` AND NOT ${testDomainPredicate()}` : Prisma.empty;
+    const base = Prisma.sql`"role" <> 'ADMIN'::"Role" AND "id" NOT IN (SELECT jsonb_array_elements_text(${exclude}::jsonb))${testFilter}`;
 
     const [totals] = await prisma.$queryRaw<
       Array<{ total: bigint; customers: bigint; pts: bigint; owners: bigint; trainers: bigint; pending: bigint }>

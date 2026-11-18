@@ -156,4 +156,19 @@ export const gymClient = {
     });
     return (data?.data ?? []) as Array<{ userId: string; partnerRole: string | null }>;
   },
+
+  /**
+   * Admin user list, partner-role filter: every STAFF role (MANAGER / RECEPTIONIST / ACCOUNTANT) with its user ids, in ONE call (the per-id
+   * lookup above took 5+ sequential calls for ~900 owners). A GYM_OWNER login in none of the lists is an OWNER. Admin's own Authorization
+   * header is forwarded; gym-service re-checks the admin role.
+   */
+  async listPartnerRoleIndex(authorization: string): Promise<Record<string, string[]>> {
+    const { data } = await axios.get(`${GYM_SERVICE_URL}/admin/partner-accounts/role-index`, {
+      headers: { Authorization: authorization },
+      timeout: 8_000,
+    });
+    const index = data?.data;
+    if (!index || typeof index !== 'object') throw new Error('unexpected gym-service answer');
+    return index as Record<string, string[]>;
+  },
 };

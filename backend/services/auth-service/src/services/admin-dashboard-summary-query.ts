@@ -12,6 +12,8 @@ export const DASHBOARD_SUMMARY_MAX_RECENT = 20;
 export type DashboardSummaryQuery = {
   /** Accounts left out of every number (test / seed / synthetic), already decided by the caller. */
   excludeIds: string[];
+  /** Also leave out every account on a reserved test email domain (the rule auth-service owns), without the caller listing their ids. */
+  excludeTestDomains: boolean;
   /** Profiles flagged as trainers in user-service (isPT). */
   ptUserIds: string[];
   /** Start of the oldest month bucket (ISO). Accounts created before it are only counted in the totals. */
@@ -32,6 +34,9 @@ export function parseDashboardSummaryBody(body: unknown): DashboardSummaryQuery 
   if (!isStringList(excludeIds)) return bad("INVALID_EXCLUDE_IDS", "excludeIds phải là danh sách mã (tối đa 200000)");
   const ptUserIds = b.ptUserIds === undefined ? [] : b.ptUserIds;
   if (!isStringList(ptUserIds)) return bad("INVALID_PT_IDS", "ptUserIds phải là danh sách mã (tối đa 200000)");
+  if (b.excludeTestDomains !== undefined && typeof b.excludeTestDomains !== "boolean") {
+    return bad("INVALID_EXCLUDE_TEST_DOMAINS", "excludeTestDomains phải là true hoặc false");
+  }
 
   const since = typeof b.since === "string" ? new Date(b.since) : null;
   if (!since || Number.isNaN(since.getTime())) return bad("INVALID_SINCE", "since phải là thời điểm ISO hợp lệ");
@@ -40,7 +45,7 @@ export function parseDashboardSummaryBody(body: unknown): DashboardSummaryQuery 
   if (typeof recentRaw !== "number" || !Number.isInteger(recentRaw) || recentRaw < 1 || recentRaw > DASHBOARD_SUMMARY_MAX_RECENT) {
     return bad("INVALID_RECENT_LIMIT", `recentLimit là số nguyên từ 1 đến ${DASHBOARD_SUMMARY_MAX_RECENT}`);
   }
-  return { excludeIds, ptUserIds, since, recentLimit: recentRaw };
+  return { excludeIds, excludeTestDomains: b.excludeTestDomains === true, ptUserIds, since, recentLimit: recentRaw };
 }
 
 export const isDashboardSummaryQueryError = (v: DashboardSummaryQuery | DashboardSummaryQueryError): v is DashboardSummaryQueryError => "code" in v;

@@ -164,8 +164,8 @@ export function mapAdminUserRow(u: AuthUser, contractSummary: Record<string, num
 export interface AdminUsersDeps {
   /** GET /auth/users with these query params. A non-2xx must throw an error carrying `response.status` / `response.data` (axios shape). */
   listAuthUsers(params: Record<string, string>): Promise<{ users?: AuthUser[]; total?: number }>;
-  /** gym-service: real partner role per user id (null = legacy owner). */
-  partnerRoles(userIds: string[]): Promise<Array<{ userId: string; partnerRole: string | null }>>;
+  /** gym-service: the user ids of every STAFF partner role (MANAGER / RECEPTIONIST / ACCOUNTANT), one call. A GYM_OWNER in none of them is an OWNER. */
+  partnerRoleIndex(): Promise<Record<string, string[]>>;
   /** Contract counts for just these ids. */
   contractCounts(ids: string[]): Promise<Record<string, number>>;
 }
@@ -196,13 +196,13 @@ export async function listAdminUsers(rawQuery: Record<string, unknown>, deps: Ad
   let total = 0;
   try {
     if (q.partnerRole) {
-      // Partner roles live in gym-service, not on the auth account: read the (small) GYM_OWNER set, resolve its roles, page in memory.
-      const owners = ((await deps.listAuthUsers({ role: "GYM_OWNER", ...common })).users ?? []) as AuthUser[];
-      const roleById = new Map<string, string | null>();
-      for (let i = 0; i < owners.length; i += 200) {
-        for (const r of await deps.partnerRoles(owners.slice(i, i + 200).map((u) => u.id))) roleById.set(r.userId, r.partnerRole);
-      }
-      // A GYM_OWNER login with no partner account is a legacy owner (gym-service answers null).
+      // Partner roles live in gym-service, not on the auth account: read the (small) GYM_OWNER set and the staff-role index (ONE call, in
+      // parallel with it), page in memory. Resolving the role of every owner 200 ids at a time took 5+ sequential calls (~3.6 s).
+      const [ownersAnswer, roleIndex] = await Promise.all([deps.listAuthUsers({ role: "GYM_OWNER", ...common }), deps.partnerRoleIndex()]);
+      const owners = (ownersAnswer.users ?? []) as AuthUser[];
+      const roleById = new Map<string, string>();
+      for (const [role, userIds] of Object.entries(roleIndex)) for (const id of userIds) roleById.set(id, role);
+      // A GYM_OWNER login in no staff list is an OWNER: a real OWNER account, or a legacy owner with no partner account.
       const matching = owners.filter((u) => (roleById.get(u.id) ?? "OWNER") === q.partnerRole);
       total = matching.length;
       rows = matching.slice((page - 1) * limit, page * limit);

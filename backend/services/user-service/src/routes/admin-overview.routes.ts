@@ -44,6 +44,10 @@ router.get("/dashboard", ...adminOnly, async (req: AuthRequest, res: Response) =
     // auth-service owns the test-account rule; null = it could not be read (then only the SYNTHETIC ids are known, as before).
     const authTestIds = excludeTest ? await getAuthTestAccountIds() : [];
     const testIds = [...new Set([...(authTestIds ?? []), ...syntheticIds])];
+    // auth-service applies the reserved-domain rule itself, so only the ids it cannot know (SYNTHETIC profiles on a normal domain) travel in
+    // the dashboard-summary body. Sending all ~37k test ids made it 1.5 MB and auth-service answered 413 (2026-11-18).
+    const authKnowsTest = new Set(authTestIds ?? []);
+    const extraExcludeIds = syntheticIds.filter((id) => !authKnowsTest.has(id));
     const ptUserIds = await orNull("pt-profiles", prisma.userProfile.findMany({ where: { isPT: true }, select: { userId: true } })
       .then((rows) => rows.map((r) => r.userId)));
 
@@ -56,7 +60,7 @@ router.get("/dashboard", ...adminOnly, async (req: AuthRequest, res: Response) =
         ? Promise.resolve(null)
         : orNull("auth-users", authServiceClient
             .forward("post", "/auth/users/dashboard-summary", authHeader,
-              { excludeIds: testIds, ptUserIds: ptUserIds ?? [], since: dashboardSince(now).toISOString(), recentLimit: RECENT_USERS_COUNT }, { timeoutMs: 8000 })
+              { excludeIds: extraExcludeIds, excludeTestDomains: excludeTest, ptUserIds: ptUserIds ?? [], since: dashboardSince(now).toISOString(), recentLimit: RECENT_USERS_COUNT }, { timeoutMs: 8000 })
             .then(async (r) => {
               const summary = (r.data as any)?.summary as DashboardUserAggregate | undefined;
               if (!summary) throw new Error("auth-service answered without a summary");

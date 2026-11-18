@@ -82,6 +82,14 @@ export const partnerRepository = {
     });
   },
 
+  /** Every partner account whose role is NOT OWNER (user id + role). Small by nature: staff invited by an owner. */
+  listNonOwnerAccountRoles() {
+    return prisma.gymPartnerAccount.findMany({
+      where: { role: { not: 'OWNER' } },
+      select: { userId: true, role: true },
+    });
+  },
+
   listAccountsByPartner(partnerId: string) {
     return prisma.gymPartnerAccount.findMany({
       where: { partnerId },

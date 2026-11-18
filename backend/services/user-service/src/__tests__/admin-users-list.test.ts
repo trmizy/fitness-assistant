@@ -29,10 +29,10 @@ const user = (n: number, over: Partial<AuthUser> = {}): AuthUser => ({
 });
 
 function deps(over: Partial<AdminUsersDeps> = {}) {
-  const calls = { auth: [] as Array<Record<string, string>>, roles: [] as string[][], counts: [] as string[][] };
+  const calls = { auth: [] as Array<Record<string, string>>, roleIndex: 0, counts: [] as string[][] };
   const d: AdminUsersDeps = {
     listAuthUsers: async (p) => { calls.auth.push(p); return { users: [user(1), user(2)], total: 37_419 }; },
-    partnerRoles: async (ids) => { calls.roles.push(ids); return ids.map((userId) => ({ userId, partnerRole: null })); },
+    partnerRoleIndex: async () => { calls.roleIndex++; return { MANAGER: [], RECEPTIONIST: [], ACCOUNTANT: [] }; },
     contractCounts: async (ids) => { calls.counts.push(ids); return Object.fromEntries(ids.map((i) => [i, 3])); },
     ...over,
   };
@@ -124,7 +124,8 @@ const owners = (n: number) => Array.from({ length: n }, (_, i) => user(i + 1, { 
 test("partnerRole: reads the GYM_OWNER set, resolves roles in gym-service, a null role is a legacy OWNER, then pages in memory", async () => {
   const { d, calls } = deps({
     listAuthUsers: async (p) => { calls.auth.push(p); return { users: owners(5) }; },
-    partnerRoles: async (ids) => ids.map((userId) => ({ userId, partnerRole: userId === "u2" ? "MANAGER" : userId === "u3" ? "RECEPTIONIST" : userId === "u4" ? null : "OWNER" })),
+    // u4 is in no staff list: a legacy owner with no partner account (or an OWNER account) -> OWNER
+    partnerRoleIndex: async () => ({ MANAGER: ["u2"], RECEPTIONIST: ["u3"], ACCOUNTANT: [] }),
   });
   const a = await listAdminUsers({ partnerRole: "owner", page: "1", limit: "2" }, d);
   assert.deepEqual(calls.auth[0], { role: "GYM_OWNER" }, "no page/limit to auth: the filter needs the whole (small) owner set");
@@ -142,10 +143,27 @@ test("partnerRole: status / search / ids are passed on with role=GYM_OWNER", asy
   assert.deepEqual(calls.auth[0], { role: "GYM_OWNER", status: "ACTIVE", search: "an" });
 });
 
-test("partnerRole: owner ids are looked up in chunks of 200", async () => {
-  const { d, calls } = deps({ listAuthUsers: async () => ({ users: owners(450) }) });
+test("partnerRole: the staff roles come from ONE gym-service call, however many owners there are", async () => {
+  const { d, calls } = deps({ listAuthUsers: async () => ({ users: owners(926) }) });
   await listAdminUsers({ partnerRole: "OWNER" }, d);
-  assert.deepEqual(calls.roles.map((c) => c.length), [200, 200, 50]);
+  assert.equal(calls.roleIndex, 1);
+});
+
+test("partnerRole: MANAGER / RECEPTIONIST / ACCOUNTANT each get exactly their own users", async () => {
+  const { d } = deps({
+    listAuthUsers: async () => ({ users: owners(6) }),
+    partnerRoleIndex: async () => ({ MANAGER: ["u2", "u6"], RECEPTIONIST: ["u3"], ACCOUNTANT: ["u5"] }),
+  });
+  const ids = async (partnerRole: string) => ((await listAdminUsers({ partnerRole }, d)).body as any).data.users.map((u: any) => u.id);
+  assert.deepEqual(await ids("MANAGER"), ["u2", "u6"]);
+  assert.deepEqual(await ids("RECEPTIONIST"), ["u3"]);
+  assert.deepEqual(await ids("ACCOUNTANT"), ["u5"]);
+  assert.deepEqual(await ids("OWNER"), ["u1", "u4"]);
+});
+
+test("partnerRole: a failing gym-service lookup propagates (never a silent 'everyone is an OWNER')", async () => {
+  const { d } = deps({ listAuthUsers: async () => ({ users: owners(3) }), partnerRoleIndex: async () => { throw new Error("gym down"); } });
+  await assert.rejects(() => listAdminUsers({ partnerRole: "OWNER" }, d), /gym down/);
 });
 
 // ── parser + row shape ──────────────────────────────────────────────────────────────────────────────────────────────────────────────

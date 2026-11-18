@@ -161,12 +161,12 @@ export function buildAdminDashboardFromAggregate(input: DashboardFromAggregateIn
 
   const warn = (service: string, message: string) => ({ level: "warning", service, message, time: hhmm(now) });
   const systemAlerts = [
-    input.aggregate === null ? warn("Auth Service", "Unable to fetch user list for dashboard. Showing partial data.") : null,
-    !input.ptKnown ? warn("User Service", "Unable to fetch PT profiles for dashboard. Showing partial data.") : null,
+    input.aggregate === null ? warn("Auth Service", "Không lấy được số liệu người dùng cho bảng điều khiển. Đang hiển thị dữ liệu một phần.") : null,
+    !input.ptKnown ? warn("User Service", "Không lấy được hồ sơ huấn luyện viên cho bảng điều khiển. Đang hiển thị dữ liệu một phần.") : null,
     input.activeContracts === null || input.ocrStats === null
-      ? warn("User Service", "Unable to fetch admin stats for dashboard. Showing partial data.") : null,
+      ? warn("User Service", "Không lấy được số liệu quản trị cho bảng điều khiển. Đang hiển thị dữ liệu một phần.") : null,
     a.pendingPT > 0
-      ? { level: "info", service: "PT Management", message: `${a.pendingPT} PT verification requests pending admin review`, time: hhmm(now) }
+      ? { level: "info", service: "PT Management", message: `${a.pendingPT} yêu cầu xác minh huấn luyện viên đang chờ quản trị viên duyệt`, time: hhmm(now) }
       : null,
   ].filter(Boolean);
 

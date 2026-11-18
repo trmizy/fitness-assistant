@@ -30,7 +30,7 @@ router.get("/users", ...adminOnly, async (req: AuthRequest, res: Response) => {
     const answer = await listAdminUsers(req.query as Record<string, unknown>, {
       listAuthUsers: async (params) =>
         (await authServiceClient.forward("get", "/auth/users", authHeader, undefined, { timeoutMs: 8000, query: params })).data ?? {},
-      partnerRoles: (ids) => gymClient.listPartnerRoles(ids, authHeader),
+      partnerRoleIndex: () => gymClient.listPartnerRoleIndex(authHeader),
       contractCounts: (ids) => contractRepository.countByUsers(ids),
     });
     for (const [k, v] of Object.entries(answer.headers ?? {})) res.setHeader(k, v);
