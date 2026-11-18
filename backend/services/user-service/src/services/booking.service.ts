@@ -719,7 +719,8 @@ export const bookingService = {
         eventType: "SESSION_BOOKED",
         entityType: "SESSION",
         entityId: session.id,
-        link: "/pt/contracts",
+        // NOTIF-01: a booked session is confirmed/declined on the PT's schedule, not in the contracts list.
+        link: "/pt/schedule",
       })
       .catch(() => {});
 

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS, optionLabel } from "../../utils/ptListing";
+import { CERT_STATUS_LABEL, certStatusLabel, dayLabelVi, experienceLabel, normalizeAvailabilityBlocks } from "../../utils/ptApplicationDisplay";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserIcon as User, ShieldIcon as Shield, BriefcaseIcon as Briefcase, MedalIcon as Award, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, UploadSimpleIcon as Upload, XIcon as X, CheckIcon as Check, WarningCircleIcon as AlertCircle, ClockIcon as Clock, FileTextIcon as FileText, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, FacebookLogoIcon as Facebook, PlusIcon as Plus, TrashIcon as Trash2, MapPinIcon as MapPin } from "@phosphor-icons/react";
@@ -36,6 +38,9 @@ const DAY_ORDER: { value: string; label: string; short: string }[] = [
   { value: "Sat", label: "Thứ 7", short: "T7" },
   { value: "Sun", label: "Chủ nhật", short: "CN" },
 ];
+
+const optionLabels = (known: typeof TARGET_GROUP_OPTIONS, values: string[] | undefined) => (values ?? []).map((v) => optionLabel(known, v)).join(", ");
+
 
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
@@ -370,6 +375,12 @@ export function PTApplicationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
+  // PT-04: validation and save/submit errors are shown IN the form (and announced), not in a native alert() popup.
+  const [formError, setFormError] = useState<string | null>(null);
+  const showFormError = (message: string) => {
+    setFormError(message);
+    if (typeof window !== "undefined") window.setTimeout(() => document.getElementById("pt-form-error")?.scrollIntoView({ block: "center", behavior: "smooth" }), 0);
+  };
   const [portfolioUploading, setPortfolioUploading] = useState(false);
   const [consent, setConsent] = useState({
     accurate: false,
@@ -448,7 +459,7 @@ export function PTApplicationPage() {
         targetClientGroups: appData.targetClientGroups || [],
         primaryTrainingGoals: appData.primaryTrainingGoals || [],
         availableDays: appData.availableDays || [],
-        availabilityBlocks: appData.availabilityBlocks || [],
+        availabilityBlocks: normalizeAvailabilityBlocks(appData.availabilityBlocks),
         sessionDurationMinutes: appData.sessionDurationMinutes || 60,
         certificates:
           appData.certificates?.length > 0
@@ -562,7 +573,7 @@ export function PTApplicationPage() {
         remainingAttempts: prev?.remainingAttempts,
       })),
     onError: (err: any) => {
-      alert(
+      showFormError(
         err.response?.data?.error ||
           err.message ||
           "Lưu thất bại. Vui lòng thử lại.",
@@ -582,10 +593,10 @@ export function PTApplicationPage() {
         setConsent((prev) => ({ ...prev, termsAgreed: false }));
         setTermsVersionTicked(null);
         queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
-        alert("Điều khoản vừa được cập nhật hoặc chưa được xác nhận. Vui lòng đọc lại điều khoản và đồng ý trước khi nộp hồ sơ.");
+        showFormError("Điều khoản vừa được cập nhật hoặc chưa được xác nhận. Vui lòng đọc lại điều khoản và đồng ý trước khi nộp hồ sơ.");
         return;
       }
-      alert(
+      showFormError(
         err.response?.data?.error ||
           "Nộp thất bại. Vui lòng kiểm tra các trường bắt buộc.",
       );
@@ -634,12 +645,12 @@ export function PTApplicationPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (portfolioMedia.length >= 5) {
-      alert("Tối đa 5 ảnh portfolio");
+      showFormError("Tối đa 5 ảnh portfolio");
       return;
     }
     const problem = checkPtDocumentFile(file);
     if (problem) {
-      alert(problem);
+      showFormError(problem);
       e.target.value = "";
       return;
     }
@@ -651,7 +662,7 @@ export function PTApplicationPage() {
       updateField("media", media);
     } catch (error) {
       console.error("Portfolio upload failed", error);
-      alert(ptDocumentUploadErrorMessage(error));
+      showFormError(ptDocumentUploadErrorMessage(error));
     } finally {
       setPortfolioUploading(false);
     }
@@ -692,19 +703,19 @@ export function PTApplicationPage() {
     if (currentStep !== 5) return true;
     const blocks = formData.availabilityBlocks || [];
     if (blocks.length === 0) {
-      alert("Vui lòng thêm ít nhất một khung giờ.");
+      showFormError("Vui lòng thêm ít nhất một khung giờ.");
       return false;
     }
 
     for (const block of blocks) {
       if (!block.startTime || !block.endTime) {
-        alert(
+        showFormError(
           "Vui lòng điền đầy đủ giờ bắt đầu và kết thúc cho tất cả khung giờ.",
         );
         return false;
       }
       if (block.startTime >= block.endTime) {
-        alert(`Giờ bắt đầu phải trước giờ kết thúc cho ${block.dayOfWeek}.`);
+        showFormError(`Giờ bắt đầu phải trước giờ kết thúc cho ${dayLabelVi(block.dayOfWeek)}.`);
         return false;
       }
     }
@@ -717,7 +728,7 @@ export function PTApplicationPage() {
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
       for (let i = 0; i < dayBlocks.length - 1; i++) {
         if (dayBlocks[i].endTime > dayBlocks[i + 1].startTime) {
-          alert(
+          showFormError(
             `Phát hiện khung giờ trùng nhau vào ${day}. Vui lòng sửa trước khi tiếp tục.`,
           );
           return false;
@@ -733,8 +744,8 @@ export function PTApplicationPage() {
     for (const block of blocks) {
       const width = timeToMinutes(block.endTime) - timeToMinutes(block.startTime);
       if (width > 0 && width < duration) {
-        alert(
-          `Khung giờ ${block.dayOfWeek} ${block.startTime}-${block.endTime} chỉ dài ${width} phút, ngắn hơn thời lượng buổi tập bạn đã chọn (${duration} phút) — khách sẽ không thể đặt buổi nào trong khung này. Hãy nới rộng khung giờ hoặc chọn thời lượng buổi tập ngắn hơn.`,
+        showFormError(
+          `Khung giờ ${dayLabelVi(block.dayOfWeek)} ${block.startTime}-${block.endTime} chỉ dài ${width} phút, ngắn hơn thời lượng buổi tập bạn đã chọn (${duration} phút) — khách sẽ không thể đặt buổi nào trong khung này. Hãy nới rộng khung giờ hoặc chọn thời lượng buổi tập ngắn hơn.`,
         );
         return false;
       }
@@ -752,15 +763,15 @@ export function PTApplicationPage() {
   const validatePersonalInfoStep = () => {
     if (currentStep !== 0) return true;
     if (!formData.phoneNumber?.trim()) {
-      alert("Vui lòng nhập số điện thoại.");
+      showFormError("Vui lòng nhập số điện thoại.");
       return false;
     }
     if (!formData.nationalIdNumber?.trim()) {
-      alert("Vui lòng nhập số CMND/Hộ chiếu.");
+      showFormError("Vui lòng nhập số CMND/Hộ chiếu.");
       return false;
     }
     if (!formData.currentAddress?.trim()) {
-      alert("Vui lòng nhập địa chỉ hiện tại.");
+      showFormError("Vui lòng nhập địa chỉ hiện tại.");
       return false;
     }
     return true;
@@ -769,13 +780,14 @@ export function PTApplicationPage() {
   const validateIdentityStep = () => {
     if (currentStep !== 1) return true;
     if (!formData.idCardFrontUrl || !formData.idCardBackUrl || !formData.portraitPhotoUrl) {
-      alert("Vui lòng tải lên đầy đủ CMND (mặt trước, mặt sau) và ảnh chân dung.");
+      showFormError("Vui lòng tải lên đầy đủ CMND (mặt trước, mặt sau) và ảnh chân dung.");
       return false;
     }
     return true;
   };
 
   const goNext = () => {
+    setFormError(null);
     if (!validatePersonalInfoStep()) return;
     if (!validateIdentityStep()) return;
     if (currentStep === 5 && !validateAvailability()) return;
@@ -785,7 +797,7 @@ export function PTApplicationPage() {
         (mode === "OFFLINE" || mode === "HYBRID") &&
         getValidTrainingLocations().length === 0
       ) {
-        alert(
+        showFormError(
           "Dịch vụ Offline/Hybrid cần ít nhất 1 nơi luyện tập hợp lệ (chọn tỉnh/thành và tên phòng gym hoặc địa chỉ).",
         );
         return;
@@ -794,7 +806,10 @@ export function PTApplicationPage() {
     handleSaveDraft();
     setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
   };
-  const goPrev = () => setCurrentStep((s) => Math.max(s - 1, 0));
+  const goPrev = () => {
+    setFormError(null);
+    setCurrentStep((s) => Math.max(s - 1, 0));
+  };
 
   const allConsented =
     consent.accurate &&
@@ -1387,9 +1402,9 @@ export function PTApplicationPage() {
                     </label>
                     <div className="flex gap-2 mt-1">
                       {[
-                        { label: "Valid", val: "Valid" },
-                        { label: "Expired", val: "Expired" },
-                        { label: "Lifetime (No Expiry)", val: "Lifetime" },
+                        { label: CERT_STATUS_LABEL.Valid, val: "Valid" },
+                        { label: CERT_STATUS_LABEL.Expired, val: "Expired" },
+                        { label: CERT_STATUS_LABEL.Lifetime, val: "Lifetime" },
                       ].map((s) => (
                         <button
                           key={s.val}
@@ -1459,7 +1474,7 @@ export function PTApplicationPage() {
                   {targetOptions.map((opt) => (
                     <Chip
                       key={opt}
-                      label={opt}
+                      label={optionLabel(TARGET_GROUP_OPTIONS, opt)}
                       active={
                         formData.targetClientGroups?.includes(opt) || false
                       }
@@ -1486,7 +1501,7 @@ export function PTApplicationPage() {
                         className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-green-500/30"
                       />
                       <span className="text-sm text-zinc-300 font-medium">
-                        {goal}
+                        {optionLabel(TRAINING_GOAL_OPTIONS, goal)}
                       </span>
                     </label>
                   ))}
@@ -2336,7 +2351,7 @@ export function PTApplicationPage() {
               >
                 <ReviewRow
                   label="Kinh nghiệm"
-                  value={formData.yearsOfExperience}
+                  value={experienceLabel(formData.yearsOfExperience)}
                 />
                 <ReviewRow
                   label="Học vấn"
@@ -2364,7 +2379,7 @@ export function PTApplicationPage() {
                     <div key={i}>
                       <ReviewRow
                         label={`Chứng chỉ ${i + 1}`}
-                        value={`${cert.certificateName} (${cert.certificationStatus || "Valid"})`}
+                        value={`${cert.certificateName} (${certStatusLabel(cert.certificationStatus)})`}
                       />
                       <ReviewRow
                         label="Tệp"
@@ -2392,7 +2407,7 @@ export function PTApplicationPage() {
                   label="Đối tượng"
                   value={
                     formData.targetClientGroups?.length
-                      ? formData.targetClientGroups.join(", ")
+                      ? optionLabels(TARGET_GROUP_OPTIONS, formData.targetClientGroups)
                       : "Chưa chọn"
                   }
                 />
@@ -2400,7 +2415,7 @@ export function PTApplicationPage() {
                   label="Mục tiêu"
                   value={
                     formData.primaryTrainingGoals?.length
-                      ? formData.primaryTrainingGoals.join(", ")
+                      ? optionLabels(TRAINING_GOAL_OPTIONS, formData.primaryTrainingGoals)
                       : "Chưa chọn"
                   }
                 />
@@ -2438,7 +2453,7 @@ export function PTApplicationPage() {
                         key={i}
                         className="flex justify-between text-xs py-0.5"
                       >
-                        <span className="text-zinc-500">{b.dayOfWeek}</span>
+                        <span className="text-zinc-500">{dayLabelVi(b.dayOfWeek)}</span>
                         <span className="text-zinc-300 font-medium">
                           {b.startTime} - {b.endTime}
                         </span>
@@ -2507,7 +2522,7 @@ export function PTApplicationPage() {
                     },
                     {
                       key: "reviewConsent" as const,
-                      text: "Tôi đồng ý để admin Gymnini xem xét thông tin danh tính và nghề nghiệp của tôi.",
+                      text: "Tôi đồng ý để admin Gymini xem xét thông tin danh tính và nghề nghiệp của tôi.",
                     },
                     {
                       key: "falseInfoWarning" as const,
@@ -2588,6 +2603,12 @@ export function PTApplicationPage() {
           }}
           confirmLabel="Tôi đã đọc và đồng ý"
         />
+
+        {formError && (
+          <p id="pt-form-error" role="alert" data-testid="pt-form-error" className="mx-4 mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {formError}
+          </p>
+        )}
 
         {/* FOOTER ACTIONS */}
         <div className="p-4 border-t border-zinc-800/80 flex items-center justify-between">

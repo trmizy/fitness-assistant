@@ -344,13 +344,20 @@ export function GymOwnerDashboard() {
         <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-20 text-center">
           <Building2 className="mx-auto mb-4 h-12 w-12 text-zinc-800" />
           <h3 className="mb-1 font-bold text-zinc-200">Chưa có phòng gym nào</h3>
-          <p className="mb-6 text-sm text-zinc-500">Tạo phòng gym đầu tiên để bắt đầu bán gói hội viên.</p>
-          <button
-            onClick={() => navigate("/gym-owner/gyms")}
-            className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition-[transform,background-color] active:scale-[0.98] hover:bg-green-400"
-          >
-            <Plus className="h-4 w-4" /> Tạo Gym mới
-          </button>
+          {/* MGR-01: only the OWNER can create a branch; for a manager the button led to a page with no create action. */}
+          {staffRole === "OWNER" ? (
+            <>
+              <p className="mb-6 text-sm text-zinc-500">Tạo phòng gym đầu tiên để bắt đầu bán gói hội viên.</p>
+              <button
+                onClick={() => navigate("/gym-owner/gyms")}
+                className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition-[transform,background-color] active:scale-[0.98] hover:bg-green-400"
+              >
+                <Plus className="h-4 w-4" /> Tạo Gym mới
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-zinc-500">Chủ phòng gym chưa gán chi nhánh nào cho bạn.</p>
+          )}
         </div>
       </div>
     );
@@ -373,12 +380,14 @@ export function GymOwnerDashboard() {
             >
               <Settings className="h-4 w-4" /> Quản lý Gym
             </button>
-            <button
-              onClick={() => navigate("/gym-owner/gyms")}
-              className="flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black shadow-lg shadow-green-500/20 transition-[transform,background-color] active:scale-[0.98] hover:bg-green-400"
-            >
-              <Plus className="h-4 w-4" /> Tạo Gym mới
-            </button>
+            {staffRole === "OWNER" && (
+              <button
+                onClick={() => navigate("/gym-owner/gyms")}
+                className="flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black shadow-lg shadow-green-500/20 transition-[transform,background-color] active:scale-[0.98] hover:bg-green-400"
+              >
+                <Plus className="h-4 w-4" /> Tạo Gym mới
+              </button>
+            )}
           </div>
         </div>
       </div>

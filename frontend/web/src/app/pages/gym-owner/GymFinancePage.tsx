@@ -226,7 +226,7 @@ export function GymFinancePage() {
                   <li key={s.id} className="flex items-center justify-between gap-3 bg-zinc-800/40 rounded-lg px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm text-zinc-200 truncate">{planName(s.planId)} · {gymName(s.gymId)}</p>
-                      <p className="text-[11px] text-zinc-500 truncate">{fmtDate(s.createdAt)} · {STATUS_LABEL[s.status] ?? s.status}{s.paymentTxnId ? ` · ${s.paymentTxnId.slice(0, 12)}` : ""}</p>
+                      <p className="text-[11px] text-zinc-500 truncate">{fmtDate(s.createdAt)} · {STATUS_LABEL[s.status] ?? s.status}</p>
                     </div>
                     <span className="text-sm font-semibold text-zinc-100 whitespace-nowrap">{formatVND(Number(s.priceAtPurchase))}</span>
                   </li>
