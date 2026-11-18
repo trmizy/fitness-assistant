@@ -34,17 +34,14 @@ docs/
 │  ├─ AWS_DEV_DAILY_START_STOP_RUNBOOK.md  bật/tắt môi trường dev theo ngày (scripts/aws/dev-start|dev-stop.ps1)
 │  ├─ AWS_DEV_THAY_DOI_17-18-11-2026.md    lịch sử thay đổi + cấu hình đặt tay đợt 17–18/11
 │  ├─ terraform-requirements-v2.md         yêu cầu hạ tầng Terraform
-│  ├─ AWS_DEV_*_2026-10-0*.md              vài ghi chú vận hành đầu 10/2026 mà JSON bằng chứng còn trỏ tới (giữ nguyên)
 │  └─ generated/                           JSON sinh cho IaC API Gateway (CI đọc — không sửa tay)
-├─ ai-training/                  huấn luyện mô hình (RUNPOD_RUNBOOK, các audit mà training/*.json trỏ tới)
+├─ ai-training/                  huấn luyện mô hình: RUNPOD_RUNBOOK, audit mà training/*.json trỏ tới, và bộ pilot gán nhãn
+│                                (`pilot_*.csv`, `pilot_annotations_PROVENANCE.md`) mà manifest trong data/eval liệt kê đường dẫn/băm — giữ nguyên
 ├─ research/                     nghiên cứu khoa học (workout-plan-bpm — test đọc trực tiếp; nckh-pt-matching; nguồn dữ liệu)
-├─ legal/                        ghi công thư viện/tài nguyên của web
-└─ *.md ở gốc docs/, ai-product/, production-readiness/, setup/, audit/…
-                                 tài liệu thiết kế/kế hoạch/đánh giá còn giữ (xem ghi chú dưới)
+└─ legal/                        ghi công thư viện/tài nguyên của web
 ```
 
-Các file thiết kế/kế hoạch/đánh giá còn nằm phẳng ở `docs/*.md` (và `ai-product/`, `production-readiness/`…) là phần **chưa đủ bằng chứng để lưu trữ** khi dọn ngày 18/11/2026.
-Ưu tiên đọc `HANDBOOK.md` trước; coi các file này là tham khảo (mã luôn đúng hơn tài liệu).
+Thiết kế/kế hoạch/đánh giá/báo cáo cũ không còn nằm trong `docs/`: nội dung còn hiệu lực đã gộp vào `HANDBOOK.md`, bản gốc ở mục "Đã lưu trữ" bên dưới.
 
 ## Tài liệu buộc nằm cạnh mã (không di chuyển)
 
@@ -71,8 +68,13 @@ Script hoặc test đọc/ghi các file này theo đường dẫn, nên chúng �
 
 ## Đã lưu trữ
 
-Ngày 18/11/2026 khoảng 295 file `.md` đã được đóng gói **ngoài repo** trên máy chủ dự án: báo cáo IMPLEMENTATION / VERIFICATION / E2E / audit của các đợt đã đóng
-(báo cáo AWS dev theo ngày, roadmap/PT/AI coach, `docs/features/`…), 5 bản ` - Copy.md`, và các file `GYM_*.md`, `MOBILE_*.md`, `PERFORMANCE_BASELINE.md` ở thư mục gốc cũ
-(sau khi gộp phần luật còn hiệu lực vào `HANDBOOK.md`). Gói: `C:\D_Backup\md-cleanup-20261118\md-archive-20261118.zip`
-(kèm `md-archive-20261118.manifest.csv` có SHA256 từng file và `.zip.sha256`). Hỏi chủ dự án để lấy lại.
+Tài liệu cũ được đóng gói **ngoài repo**, trên hai máy (không có trên Git). Hỏi chủ dự án để lấy lại.
+
+| Gói | Máy | Nội dung |
+| --- | --- | --- |
+| `D:\FitnessAssistant-backups\md-archive-20261117.zip` | máy của nhóm dự án (nhánh `feature/payment-gateways`) | ~640 báo cáo, kế hoạch, sổ lỗi cũ — nguồn của `HANDBOOK.md` (17/11/2026) |
+| `C:\D_Backup\md-cleanup-20261118\md-archive-20261118.zip` | máy chủ dự án (nhánh `aws-deploy`) | 295 file: báo cáo IMPLEMENTATION / VERIFICATION / E2E / audit của các đợt đã đóng, 5 bản ` - Copy.md`, các file `GYM_*.md`, `MOBILE_*.md`, `PERFORMANCE_BASELINE.md` ở gốc cũ (sau khi gộp phần luật còn hiệu lực vào `HANDBOOK.md`) |
+| `C:\D_Backup\md-cleanup-20261118\md-archive-20261118-docs-rest.zip` | máy chủ dự án | 161 file: phần còn lại của `docs/` mà nhánh payment-gateways không có (thiết kế/kế hoạch/đánh giá phẳng, `ai-product/`, `production-readiness/`, `setup/`, `audit/`, bằng chứng `deployment/evidence/`…) và `frontend/web/CAPACITOR-NOTES.md` |
+
+Mỗi gói 18/11 kèm `*.manifest.csv` (SHA256 từng file) và `*.zip.sha256`; đã kiểm giải nén thử trước khi gỡ file khỏi Git.
 Mã nguồn còn vài chú thích trỏ tới tên các file cũ; nội dung còn hiệu lực của chúng nằm trong `HANDBOOK.md`.
