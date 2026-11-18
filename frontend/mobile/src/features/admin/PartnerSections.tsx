@@ -465,7 +465,7 @@ export function AccountsSection({
           <Text className="font-body-semibold text-xs uppercase text-muted-foreground">Đã thu hồi</Text>
           {revoked.map((a) => (
             <Text key={a.id} className="rounded-lg bg-panel px-3 py-2 font-body text-xs text-muted-foreground">
-              {`${identities.find((i) => i.accountId === a.id)?.email ?? a.userId} · thu hồi ${relativeOrAbsolute(a.revokedAt)}`}
+              {`${identities.find((i) => i.accountId === a.id)?.email ?? "Tài khoản đã thu hồi"} · thu hồi ${relativeOrAbsolute(a.revokedAt)}`}
             </Text>
           ))}
         </View>

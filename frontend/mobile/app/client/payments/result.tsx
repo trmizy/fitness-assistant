@@ -11,6 +11,7 @@ import { contractService, gymService, paymentService } from "../../../src/servic
 import {
   destinationFor,
   phaseFromSync,
+  shortTransactionRef,
   retryActionFor,
   retryTargetFor,
   type ResultPhase,
@@ -151,7 +152,7 @@ export default function PaymentResultScreen() {
         <Text className="text-center font-body text-sm leading-5 text-muted-foreground">{copy.description}</Text>
         {txnId ? (
           <Text className="text-center font-body text-[11px] text-muted-foreground" selectable>
-            Mã giao dịch: {txnId}
+            Mã tham chiếu: {shortTransactionRef(txnId)}
           </Text>
         ) : null}
 

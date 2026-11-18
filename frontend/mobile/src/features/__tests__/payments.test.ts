@@ -17,6 +17,7 @@ import {
   retryTargetFor,
   returnHintFromUrl,
   txnIdFromReturnUrl,
+  shortTransactionRef,
 } from "../payments/payments";
 import { PENDING_CHECKOUT_TTL_MS, resumableTransaction } from "../payments/pendingCheckout";
 import { redirectSystemPath } from "../../../app/+native-intent";
@@ -36,6 +37,13 @@ describe("normalizeMethods", () => {
     assert.equal(methods[1].configured, false);
     assert.equal(methods[1].unavailableReason, "Chưa cấu hình khoá");
     assert.equal(defaultProvider, "VNPAY");
+  });
+
+  it("PAY-01: lý do kiểu tên biến/tiếng Anh thành câu tiếng Việt thân thiện", () => {
+    const raw = { methods: [{ provider: "ZALOPAY", label: "ZaloPay", configured: false, unavailableReason: "ZALOPAY_APP_ID is not set" }] };
+    assert.equal(normalizeMethods(raw).methods[0].unavailableReason, "Phương thức này tạm thời chưa dùng được");
+    const noReason = { methods: [{ provider: "ZALOPAY", label: "ZaloPay", configured: false }] };
+    assert.equal(normalizeMethods(noReason).methods[0].unavailableReason, "Phương thức này tạm thời chưa dùng được");
   });
 
   it("không chọn sẵn một cổng mà chính server nói không dùng được", () => {
@@ -217,4 +225,13 @@ describe("N17M-02 — thanh toán lại cùng món", () => {
     assert.equal(retryActionFor({ status: "ACTIVE", price: 1, gymId: "g1" }, "membership"), null);
     assert.equal(retryActionFor(null, "membership"), null);
   });
+});
+
+describe("shortTransactionRef - AWS-MOB-UI-02", () => {
+  it("shows a short reference, never the raw uuid", () => {
+    const ref = shortTransactionRef("ee421f0e-3e0e-4326-ba6e-88d8952241e3");
+    assert.equal(ref, "GD-EE421F0E");
+    assert.ok(!ref.includes("4326"));
+  });
+  it("an empty id gives an empty reference", () => assert.equal(shortTransactionRef(""), ""));
 });

@@ -285,7 +285,6 @@ export default function FinanceScreen() {
                           </Text>
                           <Text className="font-body text-[11px] text-muted-foreground" numberOfLines={1}>
                             {dateLabel(s.createdAt)} · {SALE_STATUS_LABEL[s.status] ?? s.status}
-                            {s.paymentTxnId ? ` · ${s.paymentTxnId.slice(0, 12)}` : ""}
                           </Text>
                         </View>
                         <Text className="font-body-semibold text-sm text-foreground">{formatVND(Number(s.priceAtPurchase || 0))}</Text>

@@ -464,7 +464,7 @@ export default function ClientDashboardScreen() {
               icon={TrendingUp}
               tint={accent.chart2}
               label="Cân nặng"
-              value={latest?.weight != null ? `${latest.weight} kg` : "---"}
+              value={latest?.weight != null ? `${latest.weight} kg` : "Chưa có"}
               sub={changeLabel(latest?.weight, prev?.weight, "kg")}
               loading={inbodyQuery.isLoading}
             />
@@ -472,7 +472,7 @@ export default function ClientDashboardScreen() {
               icon={Apple}
               tint={accent.chart3}
               label="Cơ bắp"
-              value={latest?.muscleMass != null ? `${latest.muscleMass} kg` : "---"}
+              value={latest?.muscleMass != null ? `${latest.muscleMass} kg` : "Chưa có"}
               sub={changeLabel(latest?.muscleMass, prev?.muscleMass, "kg")}
               loading={inbodyQuery.isLoading}
             />
@@ -486,7 +486,7 @@ export default function ClientDashboardScreen() {
               icon={Droplets}
               tint={designTokens.warning}
               label="Mỡ cơ thể"
-              value={latest?.bodyFatPct != null && Number(latest.bodyFatPct) > 0 ? `${latest.bodyFatPct}%` : "---"}
+              value={latest?.bodyFatPct != null && Number(latest.bodyFatPct) > 0 ? `${latest.bodyFatPct}%` : "Chưa có"}
               sub={changeLabel(latest?.bodyFatPct, prev?.bodyFatPct, "%")}
               loading={inbodyQuery.isLoading}
             />
@@ -494,7 +494,7 @@ export default function ClientDashboardScreen() {
               icon={CalendarCheck}
               tint={accent.primary}
               label="Buổi tập"
-              value={sessions30 == null ? "---" : String(sessions30)}
+              value={sessions30 == null ? "Chưa có" : String(sessions30)}
               sub="30 ngày qua"
               loading={monthQuery.isLoading}
             />

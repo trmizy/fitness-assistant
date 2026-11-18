@@ -1,3 +1,6 @@
+import { GOAL_OPTIONS, TARGET_OPTIONS } from "../ptApplication/ptApplication";
+import { displaySpecialty } from "../../constants/specialties";
+
 /**
  * AD-02 — hai hàng duyệt còn lại của hub "Duyệt": đơn ứng tuyển huấn luyện viên và kế hoạch tập
  * đăng lên chợ. Phần thuần.
@@ -239,4 +242,15 @@ export function listingRejectError(note: string): string | null {
   if (!note.trim()) return "Nhập lý do — người đăng sẽ đọc câu này.";
   if (note.trim().length < 10) return "Lý do quá ngắn để người đăng hiểu cần sửa gì.";
   return null;
+}
+
+/** AWS-MOB-UI-04 — catalog values the applicant picked (stored in English) shown in Vietnamese; same lists the wizard uses. */
+export type CatalogKind = "specialty" | "target" | "goal";
+export function catalogListVi(values: unknown, kind: CatalogKind): string | null {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const options = kind === "target" ? TARGET_OPTIONS : kind === "goal" ? GOAL_OPTIONS : null;
+  return values
+    .map((v) => String(v))
+    .map((v) => (options ? (options.find((o) => o.value === v)?.label ?? v) : displaySpecialty(v)))
+    .join(", ");
 }

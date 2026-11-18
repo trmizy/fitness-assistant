@@ -21,6 +21,7 @@ import {
   ptReviewPayload,
   ptWaitingText,
   sortPtQueue,
+  catalogListVi,
 } from "../admin/adminModeration";
 
 describe("đơn PT — app tự chặn vì máy chủ không kiểm trạng thái", () => {
@@ -97,5 +98,16 @@ describe("kế hoạch trên chợ", () => {
   it("từ chối cần lý do đọc được", () => {
     assert.ok(listingRejectError(""));
     assert.equal(listingRejectError("Lịch 7/7 ngày không có nghỉ"), null);
+  });
+});
+
+describe("catalogListVi - AWS-MOB-UI-04", () => {
+  it("maps English catalog values to Vietnamese and keeps unknown ones", () => {
+    assert.equal(catalogListVi(["Beginners", "Weight-loss clients"], "target"), "Người mới tập, Người muốn giảm cân");
+    assert.equal(catalogListVi(["Fat Loss & Body Recomposition"], "goal"), "Giảm mỡ & tái cấu trúc cơ thể");
+    assert.equal(catalogListVi(["Fat Loss", "Yoga"], "specialty"), "Giảm mỡ, Yoga");
+    assert.equal(catalogListVi(["Something new"], "goal"), "Something new");
+    assert.equal(catalogListVi([], "goal"), null);
+    assert.equal(catalogListVi(undefined, "goal"), null);
   });
 });

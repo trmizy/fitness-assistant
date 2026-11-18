@@ -46,7 +46,7 @@ export type ContractRow = {
 function ptNameOf(raw: any): string {
   const p = raw?.ptProfile ?? raw?.pt ?? {};
   const name = [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim();
-  return name || p?.email || "Huấn luyện viên";
+  return name || "Huấn luyện viên";
 }
 
 export function normalizeContract(raw: any): ContractRow {

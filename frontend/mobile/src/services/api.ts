@@ -6397,11 +6397,26 @@ export const gymService = {
     docType: import('../types').BranchDocumentType,
     file: UploadFile,
   ): Promise<import('../types').GymBranchDocument> => {
+    // Máy chủ chỉ nhận PDF/JPEG/PNG cho giấy tờ (bộ chọn ảnh Android đôi khi trả WebP) — báo rõ ngay thay vì chờ 415.
+    if (file.type && !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+      throw new EvidenceUploadError("Giấy tờ chỉ nhận PDF, JPEG hoặc PNG. Hãy chọn tệp khác.");
+    }
     const base = `/owner/gyms/${gymId}/branch-documents/${docType}`;
     return uploadPrivateEvidence<import('../types').GymBranchDocument>(`${base}/presign`, `${base}/confirm`, file);
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
   fetchBranchDocumentFile: (token: string): Promise<string> => fetchPrivateEvidenceFile('/owner/branch-documents', token, 'branch-document'),
+  /** AWS-MOB-UI-05 — the short-lived presigned URL of a submitted document, to open in a viewer. Null when the server has no such URL (legacy local file). */
+  getBranchDocumentUrl: async (token: string): Promise<string | null> => {
+    try {
+      const { data } = await api.get(`/owner/branch-documents/${token}/url`);
+      const url = (data?.data ?? data)?.url;
+      return typeof url === 'string' && url ? url : null;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  },
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner: what admin flagged
   // last time this branch was sent back from PENDING_REVIEW to DRAFT.
   listOpenReviewIssues: async (gymId: string): Promise<import('../types').GymBranchReviewIssue[]> => {

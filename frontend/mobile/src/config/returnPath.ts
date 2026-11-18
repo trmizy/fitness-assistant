@@ -84,6 +84,24 @@ export function clearReturnPath(): void {
 }
 
 /**
+ * AWS-MOB-ISO-01 — a deliberate "Đăng xuất" is not a session that dropped mid-flow. The guard used to
+ * carry the screen being left (a payment result, say) as `from`, so the NEXT account signing in was
+ * sent back onto the previous user's screen and re-queried it under the new identity. While this is
+ * set, {@link resolveReturnPath} offers nothing and the new login lands on its own role home.
+ * It is cleared by the next sign-in.
+ */
+let signedOutOnPurpose = false;
+
+export function markSignedOutOnPurpose(): void {
+  signedOutOnPurpose = true;
+  pending = null;
+}
+
+export function clearSignedOutOnPurpose(): void {
+  signedOutOnPurpose = false;
+}
+
+/**
  * The `from` to put on the /login redirect: the path the guard saw when it is meaningful, else the
  * remembered cold-start link, else nothing.
  */
@@ -91,5 +109,23 @@ export function resolveReturnPath(
   candidate: string | null | undefined,
   now: number = Date.now(),
 ): string | null {
+  if (signedOutOnPurpose) return null;
   return pickReturnPath(candidate, peekReturnPath(now));
+}
+
+/**
+ * N17M-01 / FIX8-5 — how to navigate to a route that lives INSIDE a workspace tab's own stack
+ * (`/client/services/gyms/<id>`, `/client/profile/wallet`, `/pt/service-orders/<id>` ...) from outside that stack.
+ *
+ * The tab's stack is not mounted yet, so expo-router starts it with ONLY the target screen: the layout's
+ * `unstable_settings.initialRouteName` applies to cold-start links only. The hub (`index`) is then missing
+ * underneath, and Android SYSTEM back exits the app instead of going to the hub (the in-app arrow worked
+ * because it routes explicitly). `withAnchor: true` makes expo-router (getNavigationAction.js: `initial = false`
+ * at every level) load the initial route under the target. It works for push and replace alike.
+ * Plain tab roots (`/client/services?tab=contracts`, `/client/dashboard`, `/pt/schedule`) have nothing to anchor, so
+ * they get no options (the flag would only add a stray `initial` param to their search params).
+ */
+const NESTED_ROUTE = /^\/(?:client|pt|admin|gym-owner)\/[^/?#]+\/[^/?#]+/;
+export function anchorOptionsFor(route: string): { withAnchor: true } | undefined {
+  return NESTED_ROUTE.test(route) ? { withAnchor: true } : undefined;
 }

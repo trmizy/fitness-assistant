@@ -14,7 +14,7 @@ import {
   landingPathFor,
   roleOf,
 } from "../../src/config/landing";
-import { peekReturnPath, pickReturnPath } from "../../src/config/returnPath";
+import { anchorOptionsFor, peekReturnPath, pickReturnPath } from "../../src/config/returnPath";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
@@ -56,11 +56,12 @@ export default function LoginScreen() {
   // on web.
   useEffect(() => {
     if (!isAuthenticated) return;
-    router.replace(
-      isSafeReturnPath(from) && isReturnPathForRole(from, role)
-        ? asValidatedRoute(from)
-        : ROLE_HOME[role],
-    );
+    if (isSafeReturnPath(from) && isReturnPathForRole(from, role)) {
+      // withAnchor (FIX8-5): a link into a tab's own stack must keep that tab's hub underneath.
+      router.replace(asValidatedRoute(from), anchorOptionsFor(from));
+    } else {
+      router.replace(ROLE_HOME[role]);
+    }
   }, [isAuthenticated, role, from]);
 
   const handleLogin = async () => {
@@ -80,11 +81,11 @@ export default function LoginScreen() {
       const { value: userStr } = await Preferences.get({ key: "user" });
       const storedUser = JSON.parse(userStr || "{}");
 
-      router.replace(
-        isSafeReturnPath(from) && isReturnPathForRole(from, roleOf(storedUser))
-          ? asValidatedRoute(from)
-          : landingPathFor(storedUser),
-      );
+      if (isSafeReturnPath(from) && isReturnPathForRole(from, roleOf(storedUser))) {
+        router.replace(asValidatedRoute(from), anchorOptionsFor(from));
+      } else {
+        router.replace(landingPathFor(storedUser));
+      }
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 429) {

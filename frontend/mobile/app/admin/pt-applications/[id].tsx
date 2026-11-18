@@ -26,6 +26,7 @@ import {
   applicantEmail,
   applicantName,
   availabilityLines,
+  catalogListVi,
   ptActions,
   ptAppStatus,
   ptCertificates,
@@ -49,7 +50,6 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 }
 
 const money = (v: unknown) => (v == null || v === "" ? null : formatVND(Number(v)));
-const list = (v: unknown) => (Array.isArray(v) && v.length ? v.join(", ") : null);
 
 /**
  * AD-02 — một đơn ứng tuyển PT. Hành động chỉ hiện khi hợp lệ với trạng thái (`ptActions`) vì máy chủ
@@ -139,7 +139,7 @@ export default function AdminPtApplicationDetailScreen() {
           <Row label="Điện thoại" value={app.phoneNumber} />
           <Row label="Số CCCD" value={app.nationalIdNumber} />
           <Row label="Địa chỉ" value={app.currentAddress} />
-          <Row label="Nộp lúc" value={app.submittedAt ? new Date(app.submittedAt).toLocaleString("vi-VN") : null} />
+          <Row label="Nộp lúc" value={app.submittedAt ? new Date(app.submittedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : null} />
         </Card>
 
         {app.adminNote || app.rejectionReason ? (
@@ -152,9 +152,9 @@ export default function AdminPtApplicationDetailScreen() {
         <Card className="gap-2 p-4">
           <Text className="font-body-semibold text-sm text-foreground">Chuyên môn</Text>
           <Row label="Kinh nghiệm" value={app.yearsOfExperience ? `${app.yearsOfExperience} năm` : null} />
-          <Row label="Chuyên môn chính" value={list(app.mainSpecialties)} />
-          <Row label="Nhóm khách" value={list(app.targetClientGroups)} />
-          <Row label="Mục tiêu tập" value={list(app.primaryTrainingGoals)} />
+          <Row label="Chuyên môn chính" value={catalogListVi(app.mainSpecialties, "specialty")} />
+          <Row label="Nhóm khách" value={catalogListVi(app.targetClientGroups, "target")} />
+          <Row label="Mục tiêu tập" value={catalogListVi(app.primaryTrainingGoals, "goal")} />
           {app.professionalBio ? <Text className="font-body text-xs leading-5 text-muted-foreground">{app.professionalBio}</Text> : null}
         </Card>
 

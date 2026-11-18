@@ -316,7 +316,7 @@ export default function PersonalizedOrderScreen() {
                 {status.startsWith("REVISION") ? "Đã gửi yêu cầu chỉnh sửa. Chờ PT giao bản mới." : "PT đang xử lý yêu cầu của bạn."}
               </Text>
               {order.initialDeliveryDeadline ? (
-                <Text className="font-body text-xs text-muted-foreground">{`Hạn giao lần đầu: ${new Date(order.initialDeliveryDeadline).toLocaleString("vi-VN")}`}</Text>
+                <Text className="font-body text-xs text-muted-foreground">{`Hạn giao lần đầu: ${new Date(order.initialDeliveryDeadline).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`}</Text>
               ) : null}
             </View>
           </Card>

@@ -15,10 +15,11 @@ export const BLOCKED = [
   [/^test\/InBody[^/]*\//i, "personal InBody photos"],
   [/^test\/.+\.(rar|zip)$/i, "archives in test/"],
   [/^\.tmp-stack\//, "local test-stack state"],
-  [/(^|\/)docs\//, "docs/ reports (kept local)"],
-  [/\.md$/i, ".md reports (only README.md is pushed)"],
+  [/\.local\.md$/i, "local-only notes (*.local.md)"],
+  [/\.md$/i, ".md docs belong in docs/ (only README.md files live elsewhere)"],
 ];
-const ALLOWED = [/^README\.md$/i];
+// Since 2026-11-17: every project .md doc lives in docs/ and is pushed; README.md files may live next to code.
+const ALLOWED = [/(^|\/)README\.md$/i, /^docs\/(?!.*\.local\.md$).+\.md$/i];
 
 export function blockedReason(file) {
   if (ALLOWED.some((re) => re.test(file))) return null;
