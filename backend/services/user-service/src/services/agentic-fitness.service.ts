@@ -7,6 +7,7 @@ import { availabilityRepository } from "../repositories/availability.repository"
 import { sessionRepository } from "../repositories/session.repository";
 import { ptReviewRepository } from "../repositories/ptReview.repository";
 import { contractService } from "./contract.service";
+import { toSignedOtherUserPhotoUrl } from "./s3-upload.service";
 
 const fail = (message: string, status = 400) => Object.assign(new Error(message), { status });
 const DAY_NUMBERS: Record<string, number> = { MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 7 };
@@ -120,9 +121,11 @@ export const agenticFitnessService = {
         dataOrigin: origin, history: summarizeJourneys(cohort, origin),
       });
     }
+    // Candidates are OTHER users: sign their `s3://profile-photos/...` refs (local presign, no S3 call).
+    const signedCandidates = await Promise.all(candidates.map(async c => ({ ...c, photoUrl: await toSignedOtherUserPhotoUrl(c.photoUrl) })));
     const audit = await prisma.auditLog.create({ data: { actorUserId: userId, action: "AGENT_PT_RETRIEVAL", entityType: "PT_PROFILE", entityId: userId,
       metadata: { candidateIds: candidates.map(c => c.id), historicalJourneyIds: usedJourneyIds, similarityVersion: FITNESS_SCORING.similarityVersion, dataOrigin: origin } } });
-    return { candidates, preferences, historyAuditId: audit.id, truncated: profiles.length === 60 || journeys.length === 400 };
+    return { candidates: signedCandidates, preferences, historyAuditId: audit.id, truncated: profiles.length === 60 || journeys.length === 400 };
   },
   async createDraft(userId: string, ptId: string, packageId: string, preferences: AgentPreferences, actionId: string) {
     const hex = createHash("sha256").update(`pt-draft:${userId}:${actionId}`).digest("hex");

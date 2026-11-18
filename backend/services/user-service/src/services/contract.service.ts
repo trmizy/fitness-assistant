@@ -14,7 +14,7 @@ import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-service.client";
 import { profileRepository, prisma } from "../repositories/profile.repository";
-import { enrichProfilesWithAuthNames } from "./profile.service";
+import { enrichProfilesWithAuthNames, signOtherUserPhotosInMap } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
@@ -398,6 +398,8 @@ async function counterpartyProfiles(
     }
   }
   await enrichProfilesWithAuthNames([...byId.values()]);
+  // The counterparty is ANOTHER user: an `s3://profile-photos/...` ref must leave as a signed URL.
+  await signOtherUserPhotosInMap(byId);
   return byId;
 }
 
