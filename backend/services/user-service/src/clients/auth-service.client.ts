@@ -240,7 +240,7 @@ export const authServiceClient = {
    * the AWS replacement for the gateway's admin user-management aggregation.
    */
   forward(
-    method: "get" | "patch",
+    method: "get" | "patch" | "post",
     path: string,
     authorizationHeader: string,
     body?: unknown,

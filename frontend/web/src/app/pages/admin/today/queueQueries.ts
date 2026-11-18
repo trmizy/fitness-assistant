@@ -31,8 +31,8 @@ export const QUEUE_QUERIES = {
   proposals: { queryKey: proposalsKey("PENDING") as QueryKey, queryFn: () => adminAmenityService.listProposals("PENDING") },
   /** Tranh chấp buổi tập — AdminDisputes (U1, ADM-32): every DISPUTED session, oldest first, no cap. */
   disputes: { queryKey: ["admin", "disputed-sessions"] as QueryKey, queryFn: () => adminService.listDisputedSessions() },
-  /** Người dùng — `GET /auth/users` (auth-service: every non-ADMIN account with `createdAt`). Only "Hôm nay" reads it. */
-  users: { queryKey: ["admin", "today", "users"] as QueryKey, queryFn: () => adminService.listUsers() },
+  /** Người dùng — `GET /admin/users?page=1&limit=200` (newest 200 non-ADMIN accounts + `total`). Only "Hôm nay" reads it. NOT every account: a Lambda answer is capped at ~6 MB. */
+  users: { queryKey: ["admin", "today", "users"] as QueryKey, queryFn: () => adminService.listUsersNewest() },
   /** Dịch vụ đang chạy — `GET /admin/system-monitor` (gateway probe). Only "Hôm nay" reads it. */
   monitor: { queryKey: ["admin", "today", "system-monitor"] as QueryKey, queryFn: () => adminService.getSystemMonitoring() },
 } as const;

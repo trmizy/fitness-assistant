@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma, Role } from "../generated/prisma";
 import { logger } from "@gym-coach/shared";
+import type { DashboardSummary } from "../services/admin-dashboard-summary-query";
 
 export const prisma = new PrismaClient();
 
@@ -97,6 +98,55 @@ export const authRepository = {
     if (!paged) return { users: [], total: 0 };
     const [{ n }] = await prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`SELECT count(*) AS n FROM "users" WHERE ${where}`);
     return { users: [], total: Number(n) };
+  },
+
+  /**
+   * Admin dashboard numbers for ALL accounts except admins and `excludeIds`, computed in the database in three small queries
+   * (totals + roles + trainers, accounts per month, newest accounts). Replaces reading every account into memory: at 37k accounts that
+   * answer (~8 MB) exceeds a Lambda's ~6 MB synchronous response. The two id lists travel as ONE JSON parameter each (not one bind
+   * parameter per id: Postgres allows 32767), unpacked with jsonb_array_elements_text.
+   */
+  async dashboardSummary(q: { excludeIds: string[]; ptUserIds: string[]; since: Date; recentLimit: number }): Promise<DashboardSummary> {
+    const exclude = JSON.stringify(q.excludeIds);
+    const pt = JSON.stringify(q.ptUserIds);
+    const base = Prisma.sql`"role" <> 'ADMIN'::"Role" AND "id" NOT IN (SELECT jsonb_array_elements_text(${exclude}::jsonb))`;
+
+    const [totals] = await prisma.$queryRaw<
+      Array<{ total: bigint; customers: bigint; pts: bigint; owners: bigint; trainers: bigint; pending: bigint }>
+    >(Prisma.sql`
+      SELECT count(*) AS total,
+             count(*) FILTER (WHERE "role" = 'CUSTOMER'::"Role") AS customers,
+             count(*) FILTER (WHERE "role" = 'PT'::"Role") AS pts,
+             count(*) FILTER (WHERE "role" = 'GYM_OWNER'::"Role") AS owners,
+             count(*) FILTER (WHERE "role" = 'PT'::"Role" OR "id" IN (SELECT jsonb_array_elements_text(${pt}::jsonb))) AS trainers,
+             count(*) FILTER (WHERE "role" <> 'PT'::"Role" AND "id" IN (SELECT jsonb_array_elements_text(${pt}::jsonb))) AS pending
+      FROM "users"
+      WHERE ${base}`);
+
+    const months = await prisma.$queryRaw<Array<{ ym: string; n: bigint }>>(Prisma.sql`
+      -- "createdAt" is timestamp WITHOUT time zone holding UTC: first say "this is UTC", then convert to Vietnam time (the month a signup counts in).
+      SELECT to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM') AS ym, count(*) AS n
+      FROM "users"
+      WHERE ${base} AND "createdAt" >= ${q.since}
+      GROUP BY 1`);
+
+    const recent = await prisma.$queryRaw<AdminListedUser[]>(Prisma.sql`
+      SELECT "id", "email", "firstName", "lastName", "role", "isActive", "createdAt", "updatedAt"
+      FROM "users"
+      WHERE ${base}
+      ORDER BY "createdAt" DESC, "id" ASC
+      LIMIT ${q.recentLimit}`);
+
+    return {
+      totalUsers: Number(totals?.total ?? 0),
+      roleCounts: { CUSTOMER: Number(totals?.customers ?? 0), PT: Number(totals?.pts ?? 0), GYM_OWNER: Number(totals?.owners ?? 0) },
+      trainers: Number(totals?.trainers ?? 0),
+      pendingPT: Number(totals?.pending ?? 0),
+      monthCounts: Object.fromEntries(months.map((m) => [m.ym, Number(m.n)])),
+      recent: recent.map((u) => ({
+        id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role, isActive: u.isActive, createdAt: u.createdAt.toISOString(),
+      })),
+    };
   },
 
   /**
