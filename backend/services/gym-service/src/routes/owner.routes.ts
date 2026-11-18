@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { evidenceUploadController } from '../controllers/evidence-upload.controller';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { resolvePartnerContext, requirePartnerOwner, requirePermission, principalId } from '../middleware/partner-context.middleware';
 import { withdrawalsFor } from '../services/staff-views';
@@ -123,6 +124,10 @@ router.post(
   asyncHandler(gymBranchDocumentController.attach),
 );
 router.get('/branch-documents/:token', requirePartnerOwner, asyncHandler(branchDocumentPhotoController.serve));
+// Luồng chạy được trên Lambda (không ghi đĩa): presign -> POST thẳng S3 -> confirm (đính kèm luôn); xem qua link ngắn hạn.
+router.post('/gyms/:id/branch-documents/:docType/presign', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentPresign));
+router.post('/gyms/:id/branch-documents/:docType/confirm', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentConfirm));
+router.get('/branch-documents/:token/url', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentUrl));
 // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner reads this to show which
 // categories admin flagged, so the owner knows exactly what to revisit before resubmitting.
 router.get('/gyms/:id/review-issues', requirePartnerOwner, asyncHandler(gymBranchReviewController.listOpenForOwner));

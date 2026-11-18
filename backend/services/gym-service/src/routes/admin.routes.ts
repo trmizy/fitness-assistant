@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { evidenceUploadController } from '../controllers/evidence-upload.controller';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { gymController } from '../controllers/gym.controller';
 import { gymAdminLifecycleController } from '../controllers/gym-admin-lifecycle.controller';
@@ -167,6 +168,7 @@ router.get('/complaints/:id', asyncHandler(complaintController.detail));
 router.patch('/complaints/:id/status', asyncHandler(complaintController.updateStatus));
 router.patch('/complaints/:id/assigned-admin', asyncHandler(complaintController.assignAdmin));
 router.get('/complaint-photos/:token', asyncHandler(complaintPhotoController.serve));
+router.get('/complaint-photos/:token/url', asyncHandler(evidenceUploadController.complaintPhotoUrl));
 router.get('/partners/:id/complaints', asyncHandler(complaintController.listForPartner));
 
 // Dispute V2.1 Slice 3 - lop ho so (Case) tren khieu nai gym. Moi thao tac GHI bi tu choi (409 GYM_CASE_DISABLED) khi co GYM_COMPLAINT_CASE_ENABLED
@@ -205,5 +207,6 @@ router.post('/complaint-cases/:id/decision-replacement/reject', asyncHandler(com
 // owner-side serve route (see branch-document-photo.controller.ts's own doc comment) — full
 // admin listing/review of these documents is Phase 6's scope, not built yet.
 router.get('/branch-documents/:token', asyncHandler(branchDocumentPhotoController.serve));
+router.get('/branch-documents/:token/url', asyncHandler(evidenceUploadController.branchDocumentUrl));
 
 export default router;

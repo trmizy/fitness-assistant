@@ -61,6 +61,16 @@ export async function downloadAuthenticatedFile(
 }
 
 /**
+ * Downloads a PRE-SIGNED storage URL (private evidence files) to local storage and returns its `file://` URI.
+ * Deliberately sends NO Authorization header: the signature is in the URL, and S3 refuses a request that carries both.
+ */
+export async function downloadPresignedFile(url: string, fileName: string): Promise<string> {
+  const destination = new File(downloadDirectory(), safeFileName(fileName));
+  const downloaded = await File.downloadFileAsync(url, destination, { idempotent: true });
+  return downloaded.uri;
+}
+
+/**
  * Hands a local file to the OS share sheet — the native equivalent of a browser download, and the
  * only way to get a file out of the app sandbox and into the user's own storage/apps.
  */

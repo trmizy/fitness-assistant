@@ -72,9 +72,14 @@ export const gymBranchDocumentService = {
     return buildDocumentsView(gymId, gym.ownerId);
   },
 
-  async attachFile(gymId: string, ownerId: string, docType: BranchDocumentType, fileToken: string) {
+  /** Chủ chi nhánh + loại giấy tờ hợp lệ — dùng trước khi cấp quyền tải lên (presign) và khi đính kèm. */
+  async assertCanUpload(gymId: string, ownerId: string, docType: BranchDocumentType) {
     await gymService.getOwnedGym(gymId, ownerId);
     if (!ALL_DOC_TYPES.includes(docType)) throw err('Loại giấy tờ không hợp lệ', 400);
+  },
+
+  async attachFile(gymId: string, ownerId: string, docType: BranchDocumentType, fileToken: string) {
+    await gymBranchDocumentService.assertCanUpload(gymId, ownerId, docType);
     if (!fileToken?.trim()) throw err('Chưa có tệp nào được tải lên', 400);
     // Re-uploading resets any prior review — a new file needs a fresh look, not to silently
     // keep an old VERIFIED/REJECTED status attached to different bytes.

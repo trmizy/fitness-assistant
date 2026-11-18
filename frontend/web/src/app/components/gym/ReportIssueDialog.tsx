@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { XIcon, ImageIcon, CircleNotchIcon, ClockIcon, CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { gymService } from "../../services/api";
+import { gymService, uploadErrorMessage } from "../../services/api";
 import type { ComplaintIssueType, ComplaintStatus, GymComplaint } from "../../types";
 import { AuthenticatedImage } from "../ui/AuthenticatedImage";
 import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
@@ -66,7 +66,7 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
       const { token } = await gymService.uploadComplaintPhoto(file);
       setPhotoTokens((prev) => [...prev, token]);
     } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || "Tải ảnh thất bại");
+      toast.error(uploadErrorMessage(e, "Tải ảnh thất bại"));
     } finally {
       setUploading(false);
     }

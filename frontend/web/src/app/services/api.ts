@@ -4392,10 +4392,7 @@ export const adminService = {
     const { data } = await api.get(`/admin/gyms/${gymId}/branch-documents`);
     return data?.data ?? data;
   },
-  fetchBranchDocumentBlob: async (token: string): Promise<Blob> => {
-    const { data } = await api.get(`/admin/branch-documents/${token}`, { responseType: "blob" });
-    return data;
-  },
+  fetchBranchDocumentBlob: (token: string): Promise<Blob> => fetchPrivateEvidenceBlob('/admin/branch-documents', token),
 
   // GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm (một hàng đợi chung, mọi nguồn).
   listComplaints: async (status?: string) => {
@@ -4429,10 +4426,7 @@ export const adminService = {
     const { data } = await api.patch(`/admin/complaints/${id}/assigned-admin`, { assignedAdminId });
     return data?.data ?? data;
   },
-  fetchComplaintPhotoBlob: async (token: string): Promise<Blob> => {
-    const { data } = await api.get(`/admin/complaint-photos/${token}`, { responseType: "blob" });
-    return data;
-  },
+  fetchComplaintPhotoBlob: (token: string): Promise<Blob> => fetchPrivateEvidenceBlob('/admin/complaint-photos', token),
 };
 
 export interface FoodCatalogItem {
@@ -5728,6 +5722,73 @@ export const collaborationService = {
   },
 };
 
+// ── Private evidence files (complaint photos, branch documents) ────────────────────────────────────────────
+// On AWS the API runs on Lambda, which cannot write to disk, so these go presign -> POST straight to storage -> confirm,
+// and are read back through a short-lived link. (The old multipart routes remain for local dev only.)
+
+/** A failed evidence upload/download whose message is already fit to show the user (see uploadErrorMessage). */
+export class EvidenceUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EvidenceUploadError';
+  }
+}
+
+/** What to tell the user: the server's own sentence, else the step message of an EvidenceUploadError, else `fallback`. */
+export function uploadErrorMessage(e: any, fallback: string): string {
+  return e?.response?.data?.error?.message || (e instanceof EvidenceUploadError ? e.message : '') || fallback;
+}
+
+/** Sends the file with the presigned POST the server signed: signed `fields` first, the file LAST. Not through axios: it must not carry our Authorization. */
+async function postToEvidenceStorage(target: { url: string; fields?: Record<string, string> }, file: File): Promise<void> {
+  const form = new FormData();
+  Object.entries(target.fields ?? {}).forEach(([k, v]) => form.append(k, v));
+  form.append('file', file);
+  let res: Response;
+  try {
+    res = await fetch(target.url, { method: 'POST', body: form });
+  } catch {
+    throw new EvidenceUploadError('Không kết nối được kho lưu tệp. Kiểm tra mạng rồi thử lại.');
+  }
+  if (!res.ok) {
+    throw new EvidenceUploadError(
+      res.status === 403 ? 'Lượt tải lên đã hết hạn hoặc không hợp lệ. Hãy thử lại.' : `Tải tệp lên thất bại (${res.status}). Hãy thử lại.`,
+    );
+  }
+}
+
+async function uploadPrivateEvidence<T>(presignPath: string, confirmPath: string, file: File): Promise<T> {
+  const { data: p } = await api.post(presignPath, { contentType: file.type, sizeBytes: file.size });
+  const target = p?.data ?? p;
+  await postToEvidenceStorage(target, file);
+  const { data: c } = await api.post(confirmPath, { uploadId: target.uploadId }, { timeout: 45000 });
+  return (c?.data ?? c) as T;
+}
+
+/** Reads a private file: asks for a short-lived link (authorised server-side), then downloads it WITHOUT our JWT (storage refuses a request that carries both). */
+async function fetchPrivateEvidenceBlob(basePath: string, token: string): Promise<Blob> {
+  let url: string;
+  try {
+    const { data } = await api.get(`${basePath}/${token}/url`);
+    url = (data?.data ?? data).url;
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      // A file saved on local disk before this flow existed (local dev only): the old authenticated route still serves it.
+      const { data } = await api.get(`${basePath}/${token}`, { responseType: 'blob' });
+      return data;
+    }
+    throw e;
+  }
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new EvidenceUploadError('Không tải được tệp. Kiểm tra mạng rồi thử lại.');
+  }
+  if (!res.ok) throw new EvidenceUploadError(`Không tải được tệp (${res.status}).`);
+  return res.blob();
+}
+
 let gymDraftInFlight: Promise<any> | null = null; // see gymService.createGymDraft (WIZ-01)
 export const gymService = {
   // Public
@@ -5912,17 +5973,10 @@ export const gymService = {
     docType: import('../types').BranchDocumentType,
     file: File,
   ): Promise<import('../types').GymBranchDocument> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const { data } = await api.post(`/owner/gyms/${gymId}/branch-documents/${docType}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data?.data ?? data;
+    const base = `/owner/gyms/${gymId}/branch-documents/${docType}`;
+    return uploadPrivateEvidence<import('../types').GymBranchDocument>(`${base}/presign`, `${base}/confirm`, file);
   },
-  fetchBranchDocumentBlob: async (token: string): Promise<Blob> => {
-    const { data } = await api.get(`/owner/branch-documents/${token}`, { responseType: 'blob' });
-    return data;
-  },
+  fetchBranchDocumentBlob: (token: string): Promise<Blob> => fetchPrivateEvidenceBlob('/owner/branch-documents', token),
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner: what admin flagged
   // last time this branch was sent back from PENDING_REVIEW to DRAFT.
   listOpenReviewIssues: async (gymId: string): Promise<import('../types').GymBranchReviewIssue[]> => {
@@ -6136,14 +6190,8 @@ export const gymService = {
 
   // ── GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (riêng tư, khác review công
   // khai ở trên — hai nút riêng, nhãn khác nhau, theo đúng yêu cầu đã chốt). ──
-  uploadComplaintPhoto: async (file: File): Promise<{ token: string }> => {
-    const formData = new FormData();
-    formData.append("photo", file);
-    const { data } = await api.post("/complaint-photos", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data?.data ?? data;
-  },
+  uploadComplaintPhoto: (file: File): Promise<{ token: string }> =>
+    uploadPrivateEvidence<{ token: string }>('/complaint-photos/presign', '/complaint-photos/confirm', file),
   submitGymComplaint: async (
     gymId: string,
     payload: { issueType: string; description: string; photoTokens?: string[] },
@@ -6159,10 +6207,7 @@ export const gymService = {
    * phải tải qua axios (kèm header xác thực) rồi tạo object URL. Dùng chung cho cả người
    * báo cáo xem lại ảnh của chính mình (route `/complaint-photos/:token`, không phải
    * `/admin/...` — xem adminService.fetchComplaintPhotoBlob cho phía admin). */
-  fetchComplaintPhotoBlob: async (token: string): Promise<Blob> => {
-    const { data } = await api.get(`/complaint-photos/${token}`, { responseType: "blob" });
-    return data;
-  },
+  fetchComplaintPhotoBlob: (token: string): Promise<Blob> => fetchPrivateEvidenceBlob('/complaint-photos', token),
 
   // ── Quản lý đối tác — Phase 3: trình thiết lập lần đầu + tự quản lý người quản lý ──
   getOnboardingStatus: async () => {
