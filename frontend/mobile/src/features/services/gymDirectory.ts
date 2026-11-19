@@ -379,6 +379,8 @@ export type MembershipRow = {
   startDate: string | null;
   endDate: string | null;
   createdAt: string | null;
+  /** Paid, but its period has not begun: a stacked renewal queued behind the current membership ("Sắp bắt đầu"). */
+  isUpcoming?: boolean;
 };
 
 export function normalizeMembership(raw: any): MembershipRow {
@@ -395,6 +397,7 @@ export function normalizeMembership(raw: any): MembershipRow {
     startDate: raw?.startDate ?? null,
     endDate: raw?.endDate ?? null,
     createdAt: raw?.createdAt ?? null,
+    isUpcoming: raw?.isUpcoming === true,
   };
 }
 
@@ -418,6 +421,11 @@ export const MEMBERSHIP_STATUS: Record<string, { label: string; tone: "success" 
 
 export function membershipStatusLabel(status: string) {
   return MEMBERSHIP_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as const };
+}
+
+/** Like membershipStatusLabel, but a paid renewal that has not begun reads "Sắp bắt đầu" instead of "Đang hiệu lực". */
+export function membershipDisplayLabel(m: Pick<MembershipRow, "status" | "isUpcoming">) {
+  return m.status === "ACTIVE" && m.isUpcoming ? { label: "Sắp bắt đầu", tone: "warning" as const } : membershipStatusLabel(m.status);
 }
 
 /** Days left on an active membership — null when it has no end date yet (never activated). */
@@ -495,16 +503,10 @@ export function purchaseBlockedReason(
 ): string | null {
   const gymReason = gymBlockedReason(gym);
   if (gymReason) return gymReason;
-  // The DB's own unique index: one OPEN membership per client per gym. A second purchase while one
-  // is still PENDING_PAYMENT is refused server-side, so the screen says so first.
-  const open = memberships.find(
-    (m) => m.gymId === gym.id && (m.status === "ACTIVE" || m.status === "PENDING_PAYMENT"),
-  );
-  if (open) {
-    return open.status === "ACTIVE"
-      ? "Bạn đang có gói còn hiệu lực tại phòng gym này."
-      : "Bạn đang có một gói chờ thanh toán tại phòng gym này.";
-  }
+  // Stacked renewal (owner rule 19/11/2026): a running membership no longer blocks - the new plan starts when it ends ("Gia hạn").
+  // Only an UNPAID order at this gym still does (one checkout at a time; the DB's partial unique index on PENDING_PAYMENT).
+  const pending = memberships.find((m) => m.gymId === gym.id && m.status === "PENDING_PAYMENT");
+  if (pending) return "Bạn đang có một gói chờ thanh toán tại phòng gym này.";
   if (!plan) return "Chọn một gói hội viên để tiếp tục.";
   if (!planOnSale(plan)) return "Gói này hiện không mở bán.";
   return null;

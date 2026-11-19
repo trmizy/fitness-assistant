@@ -36,3 +36,11 @@ export function kgFromLb(lb: number): number {
 export function lbFromKg(kg: number): number {
   return Math.round((kg / KG_PER_LB) * 10) / 10;
 }
+
+// Energy: canonical storage (Food.calories, NutritionGoal.calories, ...) stays kcal everywhere — kJ is display only
+// (same factor and rounding as web's utils/units.ts).
+const KJ_PER_KCAL = 4.184;
+
+export function kjFromKcal(kcal: number): number {
+  return Math.round(kcal * KJ_PER_KCAL);
+}

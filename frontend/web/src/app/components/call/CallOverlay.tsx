@@ -89,6 +89,8 @@ function formatDuration(seconds: number) {
 function IncomingCallUI() {
   const { state, acceptCall, rejectCall } = useCall();
   const info = state.callInfo;
+  // One click on accept is enough: the button is disabled from then on (CallContext ignores a repeat as well).
+  const [accepting, setAccepting] = useState(false);
   if (!info) return null;
 
   return (
@@ -111,8 +113,13 @@ function IncomingCallUI() {
             <PhoneOff className="w-6 h-6 text-red-400" />
           </button>
           <button
-            onClick={acceptCall}
-            className="w-14 h-14 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-full flex items-center justify-center transition-colors animate-pulse"
+            onClick={() => {
+              if (accepting) return;
+              setAccepting(true);
+              acceptCall();
+            }}
+            disabled={accepting}
+            className="w-14 h-14 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-full flex items-center justify-center transition-colors animate-pulse disabled:opacity-50 disabled:animate-none"
           >
             <Phone className="w-6 h-6 text-green-400" />
           </button>

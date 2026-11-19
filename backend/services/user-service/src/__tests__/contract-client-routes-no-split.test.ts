@@ -98,6 +98,7 @@ const RETURNS_NO_CONTRACT: Record<string, string> = {
   "GET /contracts/:id/money-breakdown": "derived object, redactBreakdownForViewer (whitelist)",
   "POST /contracts/:id/terminate": "{ contractId, reason, settlement } - redactSettlementForViewer (whitelist)",
   "POST /sessions": "the new session row, no contract include",
+  "POST /sessions/batch": "{ sessions: [new session rows] }, no contract include",
   "GET /sessions/contract/:contractId": "sessions without the contract include",
   "GET /sessions/:id": "one session without the contract include",
   "POST /sessions/:id/join": "a join token",

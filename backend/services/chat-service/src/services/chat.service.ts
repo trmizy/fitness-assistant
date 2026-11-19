@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { logger } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
 import { canCreateDirectChat } from "./chat.policy";
@@ -43,6 +44,21 @@ async function isAccountDeactivated(userId: string): Promise<boolean> {
     logger.warn({ userId }, "Could not check account status before sending a chat message");
     return false;
   }
+}
+
+/** The system line posted when a paid contract connects a PT and a client (Vietnamese UI text). */
+export function contractConnectedContent(packageName?: string | null): string {
+  const name = (packageName ?? "").trim();
+  return `Hai bạn đã kết nối qua hợp đồng ${name || "huấn luyện"}. Hãy nhắn tin để trao đổi lịch tập.`;
+}
+
+/** Deterministic UUID (v5-shaped) of the "connected via contract" line, so posting it twice is a primary-key conflict. */
+export function contractConnectedMessageId(contractId: string): string {
+  const h = createHash("sha1").update(`contract-connected:${contractId}`).digest();
+  h[6] = (h[6] & 0x0f) | 0x50;
+  h[8] = (h[8] & 0x3f) | 0x80;
+  const x = h.subarray(0, 16).toString("hex");
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
 }
 
 export const NOT_PARTICIPANT_MESSAGE = "Bạn không thuộc cuộc trò chuyện này";
@@ -94,18 +110,64 @@ export const chatService = {
       );
     }
 
-    const existing = await chatRepository.findExistingDirectConversation(
-      requestingUserId,
-      targetUserId,
-    );
-    if (existing)
-      return { id: existing.id, conversation: existing, created: false };
+    // Get-or-create under a per-pair lock (idempotent; two simultaneous "Nhắn tin" taps make ONE conversation).
+    const { conversation, created } =
+      await chatRepository.findOrCreateDirectConversation(
+        requestingUserId,
+        targetUserId,
+      );
+    return { id: conversation.id, conversation, created };
+  },
 
-    const conversation = await chatRepository.createDirectConversation(
-      requestingUserId,
-      targetUserId,
+  /**
+   * INTERNAL (user-service, after a contract's payment activates it): make sure the PT and the client have a
+   * 1-1 conversation and post ONE system line announcing the connection. The caller is a trusted service (shared
+   * secret), so the chat eligibility check is not repeated - the contract IS the relationship.
+   *
+   * Idempotent at both levels: the conversation is get-or-create, and the system line carries an id derived from the
+   * contract id, so a retry / webhook replay hits a primary-key conflict and posts nothing a second time.
+   */
+  async connectContractParties(input: {
+    ptUserId: string;
+    clientUserId: string;
+    contractId: string;
+    packageName?: string | null;
+  }) {
+    if (input.ptUserId === input.clientUserId) {
+      throw Object.assign(new Error("Hai người dùng phải khác nhau"), { statusCode: 400 });
+    }
+    const { conversation, created } =
+      await chatRepository.findOrCreateDirectConversation(
+        input.ptUserId,
+        input.clientUserId,
+      );
+    const content = contractConnectedContent(input.packageName);
+    const message = await chatRepository.createMessageOnce(
+      contractConnectedMessageId(input.contractId),
+      conversation.id,
+      "system",
+      content,
     );
-    return { id: conversation.id, conversation, created: true };
+    if (message) {
+      const io = getIo();
+      if (io) {
+        const payload = {
+          id: message.id,
+          authorId: message.senderId,
+          content: message.content,
+          createdAt: message.createdAt,
+          conversationId: message.conversationId,
+        };
+        for (const p of conversation.participants) {
+          io.to(`user:${p.userId}`).emit("chat:message", payload);
+          io.to(`user:${p.userId}`).emit("chat:conversation_updated", {
+            conversationId: conversation.id,
+            lastMessage: { content: message.content, createdAt: message.createdAt },
+          });
+        }
+      }
+    }
+    return { conversationId: conversation.id, conversationCreated: created, messagePosted: !!message };
   },
 
   async listConversations(userId: string) {

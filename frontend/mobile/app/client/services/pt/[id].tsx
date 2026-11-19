@@ -152,6 +152,20 @@ export default function TrainerDetailScreen() {
     [gymOptionsQuery.data],
   );
   const pickedGym = pickableGym(gymOptions, gymId);
+  // Open a branch's plans (buy / renew). `coverUntil` is only a hint: plans that keep the membership running through the end of
+  // this PT contract are marked "Đủ cho hợp đồng PT" and listed first — never a requirement.
+  const openGymPlans = (targetGymId: string, contractEndsAt: string | null) => {
+    const coverUntil =
+      contractEndsAt ?? (selected?.validityDays ? new Date(Date.now() + selected.validityDays * 86_400_000).toISOString() : null);
+    router.push({
+      pathname: "/client/services/gyms/[id]",
+      params: {
+        id: targetGymId,
+        ...(gymOptions?.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
+        ...(coverUntil ? { coverUntil } : {}),
+      },
+    });
+  };
   // Coming back from buying a plan: re-read the memberships instead of trusting the earlier answer.
   useFocusEffect(
     useCallback(() => {
@@ -492,15 +506,7 @@ export default function TrainerDetailScreen() {
                               setVenueAck(false);
                               setGymId(gym.gymId === gymId ? null : gym.gymId);
                             }}
-                            onBuyMembership={() =>
-                              router.push({
-                                pathname: "/client/services/gyms/[id]",
-                                params: {
-                                  id: gym.gymId,
-                                  ...(gymOptions.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
-                                },
-                              })
-                            }
+                            onBuyMembership={() => openGymPlans(gym.gymId, gym.contractEndsAt)}
                           />
                         ))}
                       </View>
@@ -531,15 +537,7 @@ export default function TrainerDetailScreen() {
                         variant="secondary"
                         size="md"
                         className="self-start"
-                        onPress={() =>
-                          router.push({
-                            pathname: "/client/services/gyms/[id]",
-                            params: {
-                              id: pickedGym.gymId,
-                              ...(gymOptions?.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
-                            },
-                          })
-                        }
+                        onPress={() => openGymPlans(pickedGym.gymId, pickedGym.contractEndsAt)}
                       >
                         Mua gói hội viên
                       </Button>
@@ -745,6 +743,15 @@ function GymOptionCard({
         </View>
         {active ? <Check size={16} color={accent.primary} /> : null}
       </Tappable>
+      {gym.coverageWarning ? (
+        // Chọn được (gói hội viên còn hiệu lực) nhưng hết hạn trước khi hợp đồng kết thúc: cảnh báo + "Gia hạn", không chặn.
+        <View className="mt-2 gap-2">
+          <Text className="font-body text-xs text-warning">{gym.coverageWarning}</Text>
+          <Button variant="secondary" size="md" className="self-start" onPress={onBuyMembership}>
+            Gia hạn
+          </Button>
+        </View>
+      ) : null}
       {showBlocked ? (
         <View className="mt-2 gap-2">
           <Text className="font-body text-xs text-warning">

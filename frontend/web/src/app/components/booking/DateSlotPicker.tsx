@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { availabilityService } from "../../services/api";
+import { latestEndByWeekday, isWorkingDay } from "../../utils/ptWeeklyHours";
 
 /**
  * Month calendar + available-slot grid, shared by fresh booking (BookingPage.tsx) and
@@ -85,6 +86,16 @@ export function DateSlotPicker({
   });
   const slots: string[] = (availableSlots as string[]) ?? [];
 
+  // Which weekdays the PT works - the same source and marker the booking calendar uses, so a reschedule (client or PT
+  // side) shows the days to pick instead of making the user probe day by day. Highlight only; nothing is disabled by it.
+  const { data: ptWeeklyHours = [] } = useQuery({
+    queryKey: ["pt-weekly-hours", ptUserId],
+    queryFn: () => availabilityService.getAvailability(ptUserId),
+    enabled: !!ptUserId,
+    staleTime: 60_000,
+  });
+  const latestEnd = latestEndByWeekday(ptWeeklyHours);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Calendar */}
@@ -123,6 +134,7 @@ export function DateSlotPicker({
             const isAfterMax = !!maxDate && dateObj > maxDate;
             const disabled = isBeforeMin || isAfterMax;
             const isSelected = !!selectedInThisMonth && selectedDay === day;
+            const isBookable = !disabled && isWorkingDay(dateObj, latestEnd);
             return (
               <button
                 type="button"
@@ -136,7 +148,9 @@ export function DateSlotPicker({
                     ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
                     : disabled
                       ? "text-zinc-700 cursor-not-allowed"
-                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                      : isBookable
+                        ? "bg-green-500/10 text-green-300 border border-green-500/25 hover:bg-green-500/20"
+                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                 }`}
               >
                 {day}
@@ -144,6 +158,12 @@ export function DateSlotPicker({
             );
           })}
         </div>
+        {latestEnd.size > 0 && (
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span className="w-2.5 h-2.5 rounded bg-green-500/20 border border-green-500/40" />
+            Ngày PT có lịch rảnh - bấm để xem giờ trống
+          </div>
+        )}
       </div>
 
       {/* Slots */}

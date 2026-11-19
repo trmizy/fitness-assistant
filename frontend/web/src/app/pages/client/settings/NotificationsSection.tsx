@@ -25,8 +25,9 @@ export function NotificationsSection() {
         testId="settings-link-notifications"
       />
       <p className="text-xs text-zinc-600">
-        Mọi thông báo hiện chỉ gửi trong ứng dụng — chưa hỗ trợ email/SMS/đẩy
-        thông báo trên thiết bị.
+        Cài đặt này gắn với tài khoản: tắt một loại ở đây thì loại đó cũng không
+        được gửi tới ứng dụng trên điện thoại (và ngược lại). Hiện chưa hỗ trợ
+        email/SMS.
       </p>
     </SectionCard>
   );

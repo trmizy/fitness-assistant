@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -33,24 +33,27 @@ import { useWorkspaceAccent } from "../src/theme/workspace";
  */
 export const INTRO_SEEN_KEY = "intro.seen";
 
-const SLIDES: { icon: LucideIcon; title: string; body: string; image: string }[] = [
+// Photo credits (Unsplash, bundled locally so the screen never depends on the network; 800x1000 crop):
+// welcome-1 = photo-1517836357463-d25dfeac3438, welcome-2 = photo-1571019614242-c5c5dee9f50b,
+// welcome-3 = photo-1534438327276-14e5300c3a48 — source https://unsplash.com/photos/<id>.
+const SLIDES: { icon: LucideIcon; title: string; body: string; image: number }[] = [
   {
     icon: Dumbbell,
     title: "Phòng gym cá nhân\ntrong túi của bạn",
     body: "Giáo án, nhật ký tập và chu kỳ periodization — tất cả ở một nơi.",
-    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=1000&fit=crop&auto=format",
+    image: require("../assets/images/welcome/welcome-1.jpg") as number,
   },
   {
     icon: Sparkles,
     title: "AI Coach\nhiểu cơ thể bạn",
     body: "Phân tích InBody, tạo giáo án và điều chỉnh dinh dưỡng theo tiến độ thật.",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=1000&fit=crop&auto=format",
+    image: require("../assets/images/welcome/welcome-2.jpg") as number,
   },
   {
     icon: LineChart,
     title: "Kết nối PT\n& phòng gym",
     body: "Tìm huấn luyện viên, đặt lịch, mua gói hội viên — thanh toán an toàn.",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=1000&fit=crop&auto=format",
+    image: require("../assets/images/welcome/welcome-3.jpg") as number,
   },
 ];
 
@@ -107,21 +110,21 @@ export default function WelcomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Animated.View style={[{ position: "absolute", inset: 0 }, photoStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
         <Image
           // Only the photo is remote; every word and control above it is local, so a slow or missing
           // image costs the gradient's backdrop, never the screen.
-          source={{ uri: slide.image }}
+          source={slide.image}
           style={{ width: "100%", height: "100%" }}
           contentFit="cover"
           transition={0}
           cachePolicy="memory-disk"
-          recyclingKey={slide.image}
+          recyclingKey={String(index)}
         />
         <LinearGradient
           colors={[`${darkColors.background}4d`, `${darkColors.background}d9`, darkColors.background]}
           locations={[0, 0.55, 1]}
-          style={{ position: "absolute", inset: 0 }}
+          style={StyleSheet.absoluteFill}
         />
       </Animated.View>
 
@@ -162,8 +165,8 @@ export default function WelcomeScreen() {
           </Animated.View>
 
           <View className="mb-7 mt-8 flex-row gap-2">
-            {SLIDES.map((s, i) => (
-              <Dot key={s.image} active={i === index} />
+            {SLIDES.map((_, i) => (
+              <Dot key={i} active={i === index} />
             ))}
           </View>
 

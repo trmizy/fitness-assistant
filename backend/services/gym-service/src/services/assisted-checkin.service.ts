@@ -9,7 +9,7 @@ import { profileClient } from '../clients/profile.client';
 import { resolveDisplayNames } from './display-name.service';
 import { isGymAcceptingCheckin } from './checkin-gym-guard';
 import { applyMemberCheckIn, lockMembershipForCheckIn, COOLDOWN_MS } from './checkin-core';
-import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
+import { hasPassedEndDate, hasStarted, hasVisitsLeft } from './membership-eligibility.service';
 import { hasPermission } from './partner-permissions';
 import { localDateOf, windowOfLocalDate } from '../utils/local-day';
 import {
@@ -84,6 +84,8 @@ export interface StaffActor {
 
 const SEARCHABLE_STATUSES = ['ACTIVE', 'EXPIRED', 'PENDING_ISSUE'] as const;
 const STATUS_RANK: Record<string, number> = { ACTIVE: 0, EXPIRED: 1, PENDING_ISSUE: 2 };
+/** A stacked renewal that has not begun ranks just behind a membership usable today (same client: show the usable one). */
+const searchRank = (r: { status: string; startDate: Date | null }) => STATUS_RANK[r.status] + (r.status === 'ACTIVE' && !hasStarted(r.startDate) ? 0.5 : 0);
 
 // ── nhật ký chỉ-thêm ──────────────────────────────────────────────────────────────────────────────────────────────────
 type EventInput = {
@@ -177,6 +179,7 @@ function displayStatusOf(m: Pick<MemberRow, 'status' | 'endDate' | 'totalVisits'
 function blockedReasonOf(m: MemberRow, gym: GymLite, recentCheckin: boolean, now = new Date()): string | null {
   if (!isGymAcceptingCheckin(gym.status, gym.operationalStatus)) return 'GYM_NOT_ACTIVE';
   if (m.status !== 'ACTIVE' || hasPassedEndDate(m.endDate, now)) return 'NOT_ACTIVE';
+  if (!hasStarted(m.startDate, now)) return 'NOT_STARTED'; // stacked renewal queued behind the current membership
   if (!hasVisitsLeft(m.totalVisits, m.usedVisits)) return 'VISIT_LIMIT_REACHED';
   if (recentCheckin) return 'TOO_SOON';
   return null;
@@ -253,7 +256,7 @@ export const assistedCheckinService = {
     const best = new Map<string, MemberRow>();
     for (const r of rows) {
       const cur = best.get(r.clientId);
-      if (!cur || STATUS_RANK[r.status] < STATUS_RANK[cur.status]) best.set(r.clientId, r);
+      if (!cur || searchRank(r) < searchRank(cur)) best.set(r.clientId, r);
     }
     let candidates = [...best.values()];
     if (matchedBy === 'NAME_LAST4') candidates = candidates.slice(0, NAME_CANDIDATE_CAP);

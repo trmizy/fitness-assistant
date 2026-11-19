@@ -4470,6 +4470,9 @@ export namespace Prisma {
     userId: string | null
     expiresAt: Date | null
     createdAt: Date | null
+    platform: string | null
+    sessionId: string | null
+    revokedAt: Date | null
   }
 
   export type RefreshTokenMaxAggregateOutputType = {
@@ -4478,6 +4481,9 @@ export namespace Prisma {
     userId: string | null
     expiresAt: Date | null
     createdAt: Date | null
+    platform: string | null
+    sessionId: string | null
+    revokedAt: Date | null
   }
 
   export type RefreshTokenCountAggregateOutputType = {
@@ -4486,6 +4492,9 @@ export namespace Prisma {
     userId: number
     expiresAt: number
     createdAt: number
+    platform: number
+    sessionId: number
+    revokedAt: number
     _all: number
   }
 
@@ -4496,6 +4505,9 @@ export namespace Prisma {
     userId?: true
     expiresAt?: true
     createdAt?: true
+    platform?: true
+    sessionId?: true
+    revokedAt?: true
   }
 
   export type RefreshTokenMaxAggregateInputType = {
@@ -4504,6 +4516,9 @@ export namespace Prisma {
     userId?: true
     expiresAt?: true
     createdAt?: true
+    platform?: true
+    sessionId?: true
+    revokedAt?: true
   }
 
   export type RefreshTokenCountAggregateInputType = {
@@ -4512,6 +4527,9 @@ export namespace Prisma {
     userId?: true
     expiresAt?: true
     createdAt?: true
+    platform?: true
+    sessionId?: true
+    revokedAt?: true
     _all?: true
   }
 
@@ -4593,6 +4611,9 @@ export namespace Prisma {
     userId: string
     expiresAt: Date
     createdAt: Date
+    platform: string
+    sessionId: string | null
+    revokedAt: Date | null
     _count: RefreshTokenCountAggregateOutputType | null
     _min: RefreshTokenMinAggregateOutputType | null
     _max: RefreshTokenMaxAggregateOutputType | null
@@ -4618,6 +4639,9 @@ export namespace Prisma {
     userId?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    platform?: boolean
+    sessionId?: boolean
+    revokedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["refreshToken"]>
 
@@ -4627,6 +4651,9 @@ export namespace Prisma {
     userId?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    platform?: boolean
+    sessionId?: boolean
+    revokedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["refreshToken"]>
 
@@ -4636,6 +4663,9 @@ export namespace Prisma {
     userId?: boolean
     expiresAt?: boolean
     createdAt?: boolean
+    platform?: boolean
+    sessionId?: boolean
+    revokedAt?: boolean
   }
 
   export type RefreshTokenInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4656,6 +4686,9 @@ export namespace Prisma {
       userId: string
       expiresAt: Date
       createdAt: Date
+      platform: string
+      sessionId: string | null
+      revokedAt: Date | null
     }, ExtArgs["result"]["refreshToken"]>
     composites: {}
   }
@@ -5055,6 +5088,9 @@ export namespace Prisma {
     readonly userId: FieldRef<"RefreshToken", 'String'>
     readonly expiresAt: FieldRef<"RefreshToken", 'DateTime'>
     readonly createdAt: FieldRef<"RefreshToken", 'DateTime'>
+    readonly platform: FieldRef<"RefreshToken", 'String'>
+    readonly sessionId: FieldRef<"RefreshToken", 'String'>
+    readonly revokedAt: FieldRef<"RefreshToken", 'DateTime'>
   }
     
 
@@ -8377,7 +8413,10 @@ export namespace Prisma {
     token: 'token',
     userId: 'userId',
     expiresAt: 'expiresAt',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    platform: 'platform',
+    sessionId: 'sessionId',
+    revokedAt: 'revokedAt'
   };
 
   export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
@@ -8847,6 +8886,9 @@ export namespace Prisma {
     userId?: StringFilter<"RefreshToken"> | string
     expiresAt?: DateTimeFilter<"RefreshToken"> | Date | string
     createdAt?: DateTimeFilter<"RefreshToken"> | Date | string
+    platform?: StringFilter<"RefreshToken"> | string
+    sessionId?: StringNullableFilter<"RefreshToken"> | string | null
+    revokedAt?: DateTimeNullableFilter<"RefreshToken"> | Date | string | null
     user?: XOR<UserRelationFilter, UserWhereInput>
   }
 
@@ -8856,6 +8898,9 @@ export namespace Prisma {
     userId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    platform?: SortOrder
+    sessionId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
     user?: UserOrderByWithRelationInput
   }
 
@@ -8868,6 +8913,9 @@ export namespace Prisma {
     userId?: StringFilter<"RefreshToken"> | string
     expiresAt?: DateTimeFilter<"RefreshToken"> | Date | string
     createdAt?: DateTimeFilter<"RefreshToken"> | Date | string
+    platform?: StringFilter<"RefreshToken"> | string
+    sessionId?: StringNullableFilter<"RefreshToken"> | string | null
+    revokedAt?: DateTimeNullableFilter<"RefreshToken"> | Date | string | null
     user?: XOR<UserRelationFilter, UserWhereInput>
   }, "id" | "token">
 
@@ -8877,6 +8925,9 @@ export namespace Prisma {
     userId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    platform?: SortOrder
+    sessionId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
     _count?: RefreshTokenCountOrderByAggregateInput
     _max?: RefreshTokenMaxOrderByAggregateInput
     _min?: RefreshTokenMinOrderByAggregateInput
@@ -8891,6 +8942,9 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"RefreshToken"> | string
     expiresAt?: DateTimeWithAggregatesFilter<"RefreshToken"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"RefreshToken"> | Date | string
+    platform?: StringWithAggregatesFilter<"RefreshToken"> | string
+    sessionId?: StringNullableWithAggregatesFilter<"RefreshToken"> | string | null
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"RefreshToken"> | Date | string | null
   }
 
   export type EmailVerificationWhereInput = {
@@ -9401,6 +9455,9 @@ export namespace Prisma {
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
     user: UserCreateNestedOneWithoutRefreshTokensInput
   }
 
@@ -9410,6 +9467,9 @@ export namespace Prisma {
     userId: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
   }
 
   export type RefreshTokenUpdateInput = {
@@ -9417,6 +9477,9 @@ export namespace Prisma {
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     user?: UserUpdateOneRequiredWithoutRefreshTokensNestedInput
   }
 
@@ -9426,6 +9489,9 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type RefreshTokenCreateManyInput = {
@@ -9434,6 +9500,9 @@ export namespace Prisma {
     userId: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
   }
 
   export type RefreshTokenUpdateManyMutationInput = {
@@ -9441,6 +9510,9 @@ export namespace Prisma {
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type RefreshTokenUncheckedUpdateManyInput = {
@@ -9449,6 +9521,9 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EmailVerificationCreateInput = {
@@ -10019,6 +10094,9 @@ export namespace Prisma {
     userId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    platform?: SortOrder
+    sessionId?: SortOrder
+    revokedAt?: SortOrder
   }
 
   export type RefreshTokenMaxOrderByAggregateInput = {
@@ -10027,6 +10105,9 @@ export namespace Prisma {
     userId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    platform?: SortOrder
+    sessionId?: SortOrder
+    revokedAt?: SortOrder
   }
 
   export type RefreshTokenMinOrderByAggregateInput = {
@@ -10035,6 +10116,9 @@ export namespace Prisma {
     userId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
+    platform?: SortOrder
+    sessionId?: SortOrder
+    revokedAt?: SortOrder
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -10797,6 +10881,9 @@ export namespace Prisma {
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
   }
 
   export type RefreshTokenUncheckedCreateWithoutUserInput = {
@@ -10804,6 +10891,9 @@ export namespace Prisma {
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
   }
 
   export type RefreshTokenCreateOrConnectWithoutUserInput = {
@@ -10897,6 +10987,9 @@ export namespace Prisma {
     userId?: StringFilter<"RefreshToken"> | string
     expiresAt?: DateTimeFilter<"RefreshToken"> | Date | string
     createdAt?: DateTimeFilter<"RefreshToken"> | Date | string
+    platform?: StringFilter<"RefreshToken"> | string
+    sessionId?: StringNullableFilter<"RefreshToken"> | string | null
+    revokedAt?: DateTimeNullableFilter<"RefreshToken"> | Date | string | null
   }
 
   export type AuditLogUpsertWithWhereUniqueWithoutUserInput = {
@@ -11190,6 +11283,9 @@ export namespace Prisma {
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
+    platform?: string
+    sessionId?: string | null
+    revokedAt?: Date | string | null
   }
 
   export type AuditLogCreateManyUserInput = {
@@ -11215,6 +11311,9 @@ export namespace Prisma {
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type RefreshTokenUncheckedUpdateWithoutUserInput = {
@@ -11222,6 +11321,9 @@ export namespace Prisma {
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type RefreshTokenUncheckedUpdateManyWithoutUserInput = {
@@ -11229,6 +11331,9 @@ export namespace Prisma {
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    platform?: StringFieldUpdateOperationsInput | string
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AuditLogUpdateWithoutUserInput = {

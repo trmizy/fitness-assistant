@@ -164,7 +164,10 @@ exports.Prisma.RefreshTokenScalarFieldEnum = {
   token: 'token',
   userId: 'userId',
   expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  platform: 'platform',
+  sessionId: 'sessionId',
+  revokedAt: 'revokedAt'
 };
 
 exports.Prisma.EmailVerificationScalarFieldEnum = {

@@ -8,6 +8,7 @@
  *
  * Every number in the catalog is per 100 g.
  */
+import { kjFromKcal } from "../../utils/units";
 
 export type FoodItem = {
   id: string;
@@ -90,8 +91,9 @@ export function gramLabel(value: number): string {
   return `${Math.round(value * 10) / 10}g`;
 }
 
-export function caloriesLabel(value: number): string {
-  return `${Math.round(value)} kcal`;
+/** kcal by default; pass the account's energy unit (Settings → Đơn vị đo) to show kJ instead. */
+export function caloriesLabel(value: number, unit: "kcal" | "kj" = "kcal"): string {
+  return unit === "kj" ? `${kjFromKcal(value)} kJ` : `${Math.round(value)} kcal`;
 }
 
 /**

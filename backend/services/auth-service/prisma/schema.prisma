@@ -105,9 +105,21 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  // Concurrent-login rule (an account may be signed in on at most one web + one mobile device):
+  // "web" | "mobile", from the X-Gymini-Client header at login (absent/unknown = web). Inherited on rotation.
+  platform  String   @default("web")
+  // Stable id of one device session; survives refresh-token rotation and is carried in the access token
+  // (`sid`) so a superseded session is refused at once, not only at its next refresh. NULL on rows issued
+  // before this column existed (they behave as web sessions with no id).
+  sessionId String?
+  // Set when a newer login on the same platform superseded this session. The row is kept (until expiresAt)
+  // so the signed-out device is told why ("SESSION_REPLACED") instead of a bare 401.
+  revokedAt DateTime?
 
   @@index([userId])
   @@index([token])
+  @@index([sessionId])
+  @@index([userId, platform])
   @@map("refresh_tokens")
 }
 

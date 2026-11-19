@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { CaretLeftIcon as ChevronLeft, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, FileTextIcon as FileText, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningCircleIcon as AlertCircle, ClipboardTextIcon as ClipboardList, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { contractService, sessionService, ptCoachService } from "../../services/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { chatService, contractService, sessionService, ptCoachService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import { noShowLabelForPt } from "../../utils/sessionRefund";
 import { ClientFitnessSummaryCard } from "./ClientFitnessSummaryCard";
@@ -194,6 +195,18 @@ export function PTClientDetail() {
   const [showAssignPlan, setShowAssignPlan] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
+  // "Chat" opens the 1-1 conversation WITH this client, creating it the first time (idempotent endpoint;
+  // chat-service re-checks the PT<->client contract server-side). It used to open the bare chat list.
+  const openChatMutation = useMutation({
+    mutationFn: () => chatService.createDirectConversation(clientUserId!),
+    onSuccess: (conv: any) => {
+      const conversationId = conv?.id ?? conv?.data?.id ?? conv?.conversation?.id;
+      navigate(conversationId ? `/pt/chat?conversationId=${conversationId}` : "/pt/chat");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message ?? err?.response?.data?.error ?? "Không thể mở đoạn chat."),
+  });
+
   const { data: contracts = [], isLoading: contractsLoading } = useQuery({
     queryKey: ["pt-contracts"],
     queryFn: () => contractService.getByPT(),
@@ -312,8 +325,9 @@ export function PTClientDetail() {
           </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <button
-              onClick={() => navigate("/pt/chat")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors"
+              onClick={() => clientUserId && openChatMutation.mutate()}
+              disabled={openChatMutation.isPending || !clientUserId}
+              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <MessageSquare className="w-4 h-4" /> Chat
             </button>

@@ -386,14 +386,11 @@ test("pay: the membership ended / was cancelled since the request -> 422 MEMBERS
   }
 });
 
-test("pay: the membership ends before the contract would (10 days left vs 60) -> 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT, no checkout; enough days -> checkout proceeds", async () => {
+test("pay: the membership ends before the contract would (10 days left vs 60) -> NOT refused any more (owner rule 19/11/2026), checkout proceeds; enough days -> checkout proceeds", async () => {
   const short = world({ contract: contractRow(), collab: MATCHING, membership: membershipLookup(new Date(Date.now() + 10 * DAY).toISOString()) });
   try {
-    await assert.rejects(
-      () => contractService.pay("c1", "client-1"),
-      (e: any) => e.status === 422 && e.code === "MEMBERSHIP_DOES_NOT_COVER_CONTRACT" && !/Học viên/.test(e.message),
-    );
-    assert.equal(short.calls.checkout, 0);
+    await contractService.pay("c1", "client-1");
+    assert.equal(short.calls.checkout, 1);
   } finally {
     short.restore();
   }
@@ -461,10 +458,11 @@ test("accept: the client's membership is gone / too short -> 422 (worded for the
   } finally {
     gone.restore();
   }
+  // owner rule 19/11/2026: a membership that ends before the contract no longer stops the PT either - it gets past the gym gates (stops at the stubbed auth lookup, like `covered` below)
   const short = world({ contract: pendingReview(), collab: MATCHING, membership: membershipLookup(new Date(Date.now() + 5 * DAY).toISOString()) });
   try {
-    await assert.rejects(() => contractService.acceptContract("c1", "pt-1"), (e: any) => e.status === 422 && e.code === "MEMBERSHIP_DOES_NOT_COVER_CONTRACT");
-    assert.equal(short.calls.claim, 0);
+    await assert.rejects(() => contractService.acceptContract("c1", "pt-1"), (e: any) => e.status === 500);
+    assert.equal(short.calls.membership, 1);
   } finally {
     short.restore();
   }

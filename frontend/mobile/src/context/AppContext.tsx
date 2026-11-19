@@ -6,7 +6,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { ActivityIndicator, AppState, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, View } from "react-native";
 import { usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,10 +18,16 @@ import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
 import { sessionGuard } from "../services/sessionGuard";
-import { onSessionExpired } from "../services/sessionEvents";
+import { onSessionExpired, takeSessionNotice } from "../services/sessionEvents";
 import { unregisterPushToken } from "../features/push/pushDevice";
 import { darkColors } from "../theme/colors";
 import { normalizeEmail } from "../lib/email";
+
+/** Tells the user why they were signed out (e.g. another phone logged in), once. No-op when nothing is pending. */
+function announceSessionNotice(): void {
+  const notice = takeSessionNotice();
+  if (notice) Alert.alert("Đã đăng xuất", notice);
+}
 
 // Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
 export type UserRole = "client" | "pt" | "gym_owner" | "admin";
@@ -72,6 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setIsAuth(false);
+        announceSessionNotice();
       }
       setIsInitializing(false);
     })();
@@ -90,6 +97,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setActiveView("client");
       queryClient.clear();
+      announceSessionNotice();
     });
   }, [queryClient]);
 
@@ -108,11 +116,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!stillValid) {
           setIsAuth(false);
           setUser(null);
+          queryClient.clear();
+          announceSessionNotice();
         }
       })();
     });
     return () => subscription.remove();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 
   // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now.
   const role: UserRole =

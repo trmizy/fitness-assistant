@@ -8,6 +8,7 @@ import { Apple, ChevronLeft, Flame } from "lucide-react-native";
 import { Badge, Card, EmptyState, Tappable } from "../../../../src/components/ui";
 import { foodService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
+import { useUnitPreferences } from "../../../../src/features/profile/useUnitPreferences";
 import {
   caloriesLabel,
   gramLabel,
@@ -27,11 +28,11 @@ const MACRO_TINTS: Record<string, string> = {
  * Visual authority: the reference's `FoodDetail` — hero image, one big energy figure, three macro
  * cards, and a single stacked ratio bar. The ratio is by grams, as the reference draws it.
  *
- * Web additionally honours a kcal/kJ preference from the profile; mobile has no settings screen
- * until Phase 9, so everything here is kcal and the unit is always written out.
+ * Honours the account's kcal/kJ preference (Settings → Đơn vị đo, the same profile field web writes); the unit is always written out.
  */
 export default function FoodDetailScreen() {
   const accent = useWorkspaceAccent();
+  const { energyUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -101,7 +102,7 @@ export default function FoodDetailScreen() {
             <View className="mt-1 flex-row items-center gap-2">
               <Flame size={24} color="#f59e0b" />
               <Text className="font-display text-3xl text-foreground">
-                {caloriesLabel(food.calories)}
+                {caloriesLabel(food.calories, energyUnit)}
               </Text>
             </View>
           </Card>

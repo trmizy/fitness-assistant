@@ -175,13 +175,19 @@ dbTest("PT with 1 gym, client WITH an active membership: facts annotated, no rev
   try {
     const r = await contractGymOptionsService.getGymOptions(w.clientUserId, opts(w));
     assert.equal(r.gymsReason, null);
-    assert.deepEqual(r.gyms, [
+    const { eligibility, ...rest } = r.gyms[0];
+    assert.deepEqual([rest], [
       {
         gymId: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a", isPtTrainingLocation: false,
         membership: { hasActiveMembership: true, membershipId: "mem-1", planName: "Thang", endDate: MEMBERSHIP_END, purchasedHere: true },
-        eligibility: { canRequest: true, reason: null }, // P3.3
       },
     ]);
+    assert.equal(r.gyms.length, 1);
+    // P3.3 + owner rule 19/11/2026: requestable, with the coverage fact (warning when the membership ends before the contract)
+    assert.equal(eligibility.canRequest, true);
+    assert.equal(eligibility.reason, null);
+    assert.equal(typeof eligibility.coverage?.coversContract, "boolean");
+    assert.equal(eligibility.coverage?.membershipEndsAt, MEMBERSHIP_END);
     // The membership lookup is about THIS client (identity argument), at this branch.
     assert.deepEqual(w.calls.membership, [`${w.clientUserId}:gym-a1`]);
     const json = JSON.stringify(r);

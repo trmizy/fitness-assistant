@@ -5,9 +5,18 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
 import { getIo, disconnectUserSockets } from "./socket/index";
+import { z } from "zod";
 import { callService } from "./services/call.service";
+import { chatService } from "./services/chat.service";
 import { createInternalEvidenceRoutes } from "./routes/internal-evidence.routes";
 import { internalEvidenceRepository } from "./repositories/internal-evidence.repository";
+
+const connectContractSchema = z.object({
+  ptUserId: z.string().uuid(),
+  clientUserId: z.string().uuid(),
+  contractId: z.string().min(1).max(128),
+  packageName: z.string().max(200).nullish(),
+});
 
 const app: Express = express();
 
@@ -131,6 +140,28 @@ app.post("/internal/calls/end-by-session", async (req: Request, res: Response): 
   } catch (err: any) {
     logger.error({ error: err.message, coachingSessionId }, "end-by-session failed");
     res.status(500).json({ error: "Failed to end call" });
+  }
+});
+
+// Contract activation (user-service, after the client's payment): make sure the PT and the client share a 1-1
+// conversation and post one "connected via contract" system line. Idempotent (see chatService.connectContractParties);
+// best-effort on the caller's side - an unreachable chat-service never blocks the activation, the PT's "Nhắn tin"
+// (POST /chat/conversations/direct, get-or-create) covers it later.
+app.post("/internal/contracts/connect", async (req: Request, res: Response): Promise<void> => {
+  if (!isValidInternalSecret(req.headers["x-internal-secret"])) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const parsed = connectContractSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "ptUserId, clientUserId and contractId are required" });
+    return;
+  }
+  try {
+    res.json({ data: await chatService.connectContractParties(parsed.data) });
+  } catch (err: any) {
+    logger.error({ error: err.message, contractId: parsed.data.contractId }, "contract connect failed");
+    res.status(err.statusCode || 500).json({ error: err.message || "Failed to connect contract parties" });
   }
 });
 

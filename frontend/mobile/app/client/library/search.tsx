@@ -9,6 +9,7 @@ import { Card, EmptyState, ExerciseMedia, Input, Tappable } from "../../../src/c
 import { foodService, workoutService } from "../../../src/services/api";
 import { bodyPartLabel, equipmentLabel } from "../../../src/config/exerciseLabels";
 import { caloriesLabel, gramLabel, normalizeFoods } from "../../../src/features/library/foodLibrary";
+import { useUnitPreferences } from "../../../src/features/profile/useUnitPreferences";
 import { categoryLabel, searchArticles } from "../../../src/features/library/nutritionArticles";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -34,6 +35,7 @@ function textMatches(query: string, values: (string | null | undefined)[]) {
  */
 export default function GlobalSearchScreen() {
   const accent = useWorkspaceAccent();
+  const { energyUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
@@ -173,7 +175,7 @@ export default function GlobalSearchScreen() {
                         {food.name}
                       </Text>
                       <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
-                        {caloriesLabel(food.calories)} · {gramLabel(food.protein)} đạm / 100 g
+                        {caloriesLabel(food.calories, energyUnit)} · {gramLabel(food.protein)} đạm / 100 g
                       </Text>
                     </View>
                   </Card>

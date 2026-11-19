@@ -102,6 +102,30 @@ function clearRingTimeout(callSessionId: string) {
   }
 }
 
+// "callSessionId:socketId" of every call:accept a socket has already sent. Only the few seconds in which a duplicate can
+// still arrive matter, so entries expire instead of being tracked for the call's whole life.
+const ACCEPT_SEEN_TTL_MS = 2 * 60 * 1000;
+const acceptsSeen = new Map<string, number>();
+
+/** Sync (no await before it): marks this socket's accept of the call as seen; false when it had already been seen. */
+function markAcceptSeen(callSessionId: string, socketId: string): boolean {
+  const now = Date.now();
+  for (const [k, at] of acceptsSeen) if (now - at > ACCEPT_SEEN_TTL_MS) acceptsSeen.delete(k);
+  const key = `${callSessionId}:${socketId}`;
+  if (acceptsSeen.has(key)) return false;
+  acceptsSeen.set(key, now);
+  return true;
+}
+
+function forgetAcceptSeen(callSessionId: string, socketId: string): void {
+  acceptsSeen.delete(`${callSessionId}:${socketId}`);
+}
+
+/** Test hook. */
+export function __resetAcceptsSeenForTests(): void {
+  acceptsSeen.clear();
+}
+
 /**
  * True only for the two real participants of a call. Shared by every
  * signaling-relay event (ice_candidate, media_toggle, ...) so the check
@@ -392,8 +416,18 @@ export function registerCallHandlers(
     "call:accept",
     async ({ callSessionId }: { callSessionId: string }) => {
       try {
+        // Idempotent accept: a second `call:accept` for the same call from the SAME socket (double tap on "Chấp nhận",
+        // a client retry) used to lose the first-accept-wins race AGAINST ITSELF and fall into the "accepted elsewhere"
+        // branch below, which told the very socket holding the live call that someone else took it -> the callee tore
+        // its call down while the caller had already been told "accepted" and was sending an offer. Decided
+        // synchronously, before any await, so two accepts that arrive back to back cannot both get past it.
+        if (!markAcceptSeen(callSessionId, socket.id)) {
+          logger.info({ callSessionId, by: user.id }, "Duplicate call:accept from the same socket ignored");
+          return;
+        }
         const result = await callService.acceptCall(callSessionId, user.id);
         if ("error" in result) {
+          if (!result.alreadyHandled) forgetAcceptSeen(callSessionId, socket.id); // a real failure may be retried
           if (result.alreadyHandled) {
             // Multi-tab: this tab lost the race (first accept wins, see callRepository.claimRinging)
             const message = callErrorText("Call accepted on another device");
@@ -427,6 +461,7 @@ export function registerCallHandlers(
 
         logger.info({ callSessionId, acceptedBy: user.id }, "Call accepted");
       } catch (error) {
+        forgetAcceptSeen(callSessionId, socket.id);
         logger.error(error, "call:accept error");
         socket.emit("call:error", { message: callErrorText("Failed to accept call") });
       }
