@@ -311,6 +311,7 @@ if (-not $Execute) {
     if ($Chat) {
         Write-Host "2) Push graceful-disable runtime-config.json BEFORE any teardown"
         Write-Host "2b-ii) Scale Chat ECS service ($EcsService) to 0 and wait (up to 300s) for it to drain"
+        Write-Host "2b-iii) Blank CHAT_SERVICE_URL on the user Lambda (the chat ALB is about to be deleted; node lib/set-lambda-env.cjs ... --empty)"
     }
     Write-Host ""
     Write-Host "3) Apply resolved target state to the stack (only the requested flag(s) change, everything else preserved)"
@@ -370,6 +371,16 @@ if ($Chat) {
         exit 1
     }
     Write-Host "   Chat ECS is at 0/0." -ForegroundColor Green
+
+    Write-Host ""
+    Write-Host "2b-iii) Blanking CHAT_SERVICE_URL on the user Lambda (the chat ALB is deleted below; dev-start -Chat sets it to the new one)..."
+    # Warning-only: a stale value only makes the best-effort chat calls fail fast, it must never block the shutdown.
+    try {
+        node (Join-Path $PSScriptRoot "lib/set-lambda-env.cjs") "fitness-assistant-dev-user" "CHAT_SERVICE_URL" "--empty"
+        if ($LASTEXITCODE -ne 0) { throw "set-lambda-env exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: user Lambda CHAT_SERVICE_URL was NOT blanked: $($_.Exception.Message)." -ForegroundColor Yellow
+    }
 }
 
 if ($Backend) {
