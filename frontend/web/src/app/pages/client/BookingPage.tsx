@@ -18,6 +18,7 @@ import { DateSlotPicker, type DateSlotValue } from "../../components/booking/Dat
 import { latestEndByWeekday, isWorkingDay } from "../../utils/ptWeeklyHours";
 import {
   buildBatchPayload,
+  fullSessionDays,
   readBatchRejection,
   removeSlot,
   slotKey,
@@ -1614,6 +1615,10 @@ export function BookingPage() {
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
                 onChange={setRescheduleSlot}
+                fullDays={fullSessionDays(
+                  [...(upcomingSessions as Session[]), ...(contractSessions as Session[])],
+                  rescheduleTarget.id,
+                )}
               />
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>

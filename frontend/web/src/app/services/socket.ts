@@ -2,6 +2,7 @@ import { io, Socket } from "socket.io-client";
 import { chatSocketTarget } from "../config/serverUrl";
 import { ensureFreshAccessToken } from "./session";
 import { tokenStore } from "./tokenStore";
+import { answerTokenRequest } from "./socketTokenAuth";
 
 // Empty string = same-origin (current page), proxied by Vite in dev under
 // "/chat-socket.io" (see vite.config.ts) to chat-service's real
@@ -46,6 +47,15 @@ export function getSocket(): Socket {
       // call socket means "B calls A and A never rings" (ND-08). The default back-off caps at 5 s.
       reconnectionAttempts: Infinity,
       timeout: 5000,
+    });
+    // CALL-01: chat-service asks for a live token when its handshake copy has expired (see socketTokenAuth.ts).
+    socket.on("auth:request_token", (ack: unknown) => {
+      void answerTokenRequest(ack, { ensureFresh: ensureFreshAccessToken, readToken: () => tokenStore.get() });
+    });
+    // The server cuts a socket whose token it refused or could not renew (socket.io never auto-reconnects after a
+    // server-side disconnect): try once with a freshly refreshed token. A dead session is refused again at the handshake.
+    socket.on("disconnect", (reason: string) => {
+      if (reason === "io server disconnect") setTimeout(() => socket?.connect(), 500);
     });
   }
   return socket;

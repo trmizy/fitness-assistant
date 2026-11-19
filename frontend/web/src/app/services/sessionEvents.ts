@@ -62,13 +62,61 @@ export const SESSION_REPLACED_NOTICE =
 
 let pendingSessionNotice: string | null = null;
 
+/**
+ * The same reason is also kept in sessionStorage (tab-scoped, short-lived) so the login screen can still show it after a FULL page
+ * load — a reload of an already-kicked session starts with an empty module and a toast fired before the toaster mounts is lost.
+ * It is cleared as soon as the login screen has shown it.
+ */
+export const SESSION_NOTICE_STORAGE_KEY = "gymini.sessionEndedNotice";
+const SESSION_NOTICE_MAX_AGE_MS = 10 * 60_000;
+
+function storage(): Storage | null {
+  try {
+    return typeof sessionStorage === "undefined" ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function setSessionNotice(message: string): void {
   pendingSessionNotice = message;
+  try {
+    storage()?.setItem(SESSION_NOTICE_STORAGE_KEY, JSON.stringify({ message, at: Date.now() }));
+  } catch {
+    /* storage blocked: the in-memory notice still works for this page load */
+  }
+}
+
+/** Login screen: the reason a session ended (survives a reload) without removing it — pair with `consumePersistedSessionNotice`. */
+export function peekPersistedSessionNotice(now = Date.now()): string | null {
+  const store = storage();
+  if (!store) return null;
+  try {
+    const raw = store.getItem(SESSION_NOTICE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { message?: unknown; at?: unknown };
+    if (typeof parsed.message !== "string" || !parsed.message) return null;
+    if (typeof parsed.at === "number" && now - parsed.at > SESSION_NOTICE_MAX_AGE_MS) return null;
+    return parsed.message;
+  } catch {
+    return null;
+  }
 }
 
 /** Returns the pending notice once, then forgets it. */
 export function takeSessionNotice(): string | null {
   const message = pendingSessionNotice;
   pendingSessionNotice = null;
+  return message;
+}
+
+/** Removes the stored reason (call after the login screen has shown it) and returns it. */
+export function consumePersistedSessionNotice(now = Date.now()): string | null {
+  const message = peekPersistedSessionNotice(now);
+  try {
+    storage()?.removeItem(SESSION_NOTICE_STORAGE_KEY);
+  } catch {
+    /* nothing to clean */
+  }
   return message;
 }

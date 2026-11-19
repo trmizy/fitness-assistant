@@ -355,7 +355,7 @@ export function ChatPage() {
                   onClick={() => {
                     const otherUserId = activeConv.otherUser?.id;
                     if (otherUserId && activeConvId)
-                      initiateCall(otherUserId, "VOICE", activeConvId);
+                      initiateCall(otherUserId, "VOICE", activeConvId, chatPartnerName(activeConv.otherUser));
                   }}
                   className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
                   title="Gọi thoại"
@@ -366,7 +366,7 @@ export function ChatPage() {
                   onClick={() => {
                     const otherUserId = activeConv.otherUser?.id;
                     if (otherUserId && activeConvId)
-                      initiateCall(otherUserId, "VIDEO", activeConvId);
+                      initiateCall(otherUserId, "VIDEO", activeConvId, chatPartnerName(activeConv.otherUser));
                   }}
                   className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
                   title="Gọi video"

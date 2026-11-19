@@ -17,6 +17,7 @@ import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms"
 import { ptContractShare } from "../../utils/ptContractShare";
 import { withRefundLabel } from "../../utils/sessionRefund";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
+import { fullName } from "../../utils/fullName";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -68,9 +69,8 @@ const SESSION_STATUS: Record<
 };
 
 function partyName(c: Contract) {
-  const p = c.clientProfile;
-  const name = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
-  return name || p?.email || `${c.clientUserId.slice(0, 8)}…`;
+  // Profile display name only — never the e-mail or an id.
+  return fullName(c.clientProfile, "Học viên");
 }
 
 function formatSessionTime(iso: string) {
@@ -623,12 +623,6 @@ export function PTContractsPage() {
                         </div>
                         <div className="text-xs text-zinc-300 truncate">
                           {partyName(c)}
-                          {c.clientProfile?.email ? (
-                            <span className="text-zinc-600">
-                              {" "}
-                              · {c.clientProfile.email}
-                            </span>
-                          ) : null}
                         </div>
                       </div>
                       <div>
