@@ -349,6 +349,16 @@ export const authRepository = {
     return result.count;
   },
 
+  /** Live (not superseded, not expired) sessions of `userId` on `platform`, other than the row `exceptId`. */
+  countLiveSessionsOnPlatform: (userId: string, platform: string, exceptId: string) =>
+    prisma.refreshToken.count({
+      where: { userId, platform, revokedAt: null, expiresAt: { gt: new Date() }, id: { not: exceptId } },
+    }),
+
+  /** Marks one session superseded (kept as a tombstone so the device is told why). */
+  revokeRefreshTokenById: (id: string) =>
+    prisma.refreshToken.updateMany({ where: { id, revokedAt: null }, data: { revokedAt: new Date() } }),
+
   /** True when a newer login superseded the session with this id (`sid` claim of an access token). */
   isSessionRevoked: async (sessionId: string) =>
     (await prisma.refreshToken.findFirst({ where: { sessionId, revokedAt: { not: null } }, select: { id: true } })) !== null,

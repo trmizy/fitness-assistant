@@ -277,7 +277,7 @@ export const authController = {
   async refresh(req: Request, res: Response): Promise<void> {
     try {
       const body = refreshSchema.parse(req.body);
-      const result = await authService.refresh(body.refreshToken);
+      const result = await authService.refresh(body.refreshToken, resolveSessionPlatform(req.headers["x-gymini-client"]));
       await authRepository.createAuditLog({
         userId: result.userId,
         action: "REFRESH_TOKEN",

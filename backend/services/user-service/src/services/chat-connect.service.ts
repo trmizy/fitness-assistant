@@ -1,5 +1,6 @@
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import { resolveChatServiceUrl } from "../utils/chat-service-url";
 
 /**
  * Contract activation -> chat: after a contract becomes ACTIVE (the client's payment succeeded), ask chat-service to
@@ -16,7 +17,7 @@ import { logger } from "@gym-coach/shared";
  */
 const CONNECT_TIMEOUT_MS = 2500;
 
-const chatUrl = () => process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
+const chatUrl = () => resolveChatServiceUrl();
 const chatSecret = () => process.env.INTERNAL_API_SECRET || process.env.INTERNAL_SERVICE_SECRET || "";
 
 export async function connectContractPartiesInChat(contract: {
@@ -25,6 +26,12 @@ export async function connectContractPartiesInChat(contract: {
   clientUserId: string;
   packageName?: string | null;
 }): Promise<boolean> {
+  const baseUrl = chatUrl();
+  if (!baseUrl) {
+    // On Lambda with no CHAT_SERVICE_URL there is no chat-service to ask: do not even open a connection.
+    logger.info({ contractId: contract.id }, "[chat-connect] CHAT_SERVICE_URL unset on Lambda - skipped");
+    return false;
+  }
   const secret = chatSecret();
   if (!secret) {
     logger.warn({ contractId: contract.id }, "[chat-connect] no internal secret configured - skipped (the PT's Nhắn tin will create the conversation)");
@@ -32,7 +39,7 @@ export async function connectContractPartiesInChat(contract: {
   }
   try {
     await axios.post(
-      `${chatUrl()}/internal/contracts/connect`,
+      `${baseUrl}/internal/contracts/connect`,
       {
         ptUserId: contract.ptUserId,
         clientUserId: contract.clientUserId,
